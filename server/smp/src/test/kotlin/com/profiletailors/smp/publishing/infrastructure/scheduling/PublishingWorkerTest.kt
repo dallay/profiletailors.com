@@ -21,6 +21,7 @@ import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationStatus
+import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.ReconnectReason
 import com.profiletailors.smp.publishing.domain.ReconnectRequiredException
 import com.profiletailors.smp.publishing.domain.ScheduleMode
@@ -30,16 +31,17 @@ import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 
+@Suppress("LargeClass")
 class PublishingWorkerTest {
 
     private val fixedClock = Clock.fixed(Instant.parse("2026-05-26T12:00:00Z"), ZoneOffset.UTC)
@@ -202,7 +204,7 @@ class PublishingWorkerTest {
 
         assertEquals("PROVIDER_RATE_LIMITED", attemptRepository.lastAttempt?.providerErrorCode)
         assertEquals("PROVIDER_RATE_LIMITED", publicationRepository.failedReasonCode)
-        assertNull(publicationRepository.failedReasonMessage)
+        publicationRepository.failedReasonMessage shouldBe null
     }
 
     @Test
@@ -237,7 +239,7 @@ class PublishingWorkerTest {
 
         assertEquals("PUBLISHING_FAILED", attemptRepository.lastAttempt?.providerErrorCode)
         assertEquals("PUBLISHING_FAILED", publicationRepository.failedReasonCode)
-        assertNull(publicationRepository.failedReasonMessage)
+        publicationRepository.failedReasonMessage shouldBe null
         assertEquals("job-1", jobRepository.failedJobId)
     }
 
@@ -443,9 +445,9 @@ class PublishingWorkerTest {
         worker.pollOnce()
 
         assertEquals("PROVIDER_UNAVAILABLE", attemptRepository.lastAttempt?.providerErrorCode)
-        assertNull(attemptRepository.lastAttempt?.providerMessage)
+        attemptRepository.lastAttempt?.providerMessage shouldBe null
         assertEquals("PROVIDER_UNAVAILABLE", publicationRepository.failedReasonCode)
-        assertNull(publicationRepository.failedReasonMessage)
+        publicationRepository.failedReasonMessage shouldBe null
         assertEquals("PROVIDER_UNAVAILABLE", notificationRepository.lastEvent?.message)
         val persistedText = listOfNotNull(
             attemptRepository.lastAttempt?.providerMessage,
@@ -466,6 +468,45 @@ class PublishingWorkerTest {
         ).forEach { unsafeValue ->
             assertEquals(false, persistedText.contains(unsafeValue), unsafeValue)
         }
+    }
+
+    @Test
+    fun `worker maps publication validation exception to provider validation category`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val attemptRepository = InMemoryAttemptRepository()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = ThrowingCapabilityValidator(
+                PublicationValidationException("body leaked-token https://provider.example"),
+            ),
+            socialPublisher = NeverPublishesPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        attemptRepository.lastAttempt?.providerErrorCode shouldBe "PROVIDER_VALIDATION_FAILED"
+        attemptRepository.lastAttempt?.providerMessage shouldBe "PublicationValidationException"
+        publicationRepository.failedReasonCode shouldBe "PROVIDER_VALIDATION_FAILED"
+        publicationRepository.failedReasonMessage shouldBe null
+        jobRepository.failedJobId shouldBe "job-1"
     }
 
     @Test
@@ -660,6 +701,10 @@ class PublishingWorkerTest {
         override fun validate(input: ProviderCapabilityValidationInput) = Unit
     }
 
+    private class ThrowingCapabilityValidator(private val exception: RuntimeException) : ProviderCapabilityValidator {
+        override fun validate(input: ProviderCapabilityValidationInput): Unit = throw exception
+    }
+
     private class SuccessfulPublisher : SocialPublisher {
         override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
             ProviderPublishResult(externalPublicationId = "external-1")
@@ -711,7 +756,7 @@ class PublishingWorkerTest {
     // ===== Preflight gate tests =====
 
     @Test
-    fun `preflight blocks DISABLED account without calling publisher`() = runTest {
+    fun `preflight fails DISABLED account terminally without calling publisher`() = runTest {
         val disabledAccount = successAccount().copy(status = SocialConnectionStatus.DISABLED)
         val publication = successPublication()
         val publicationRepository = InMemoryPublicationRepository(publication)
@@ -742,12 +787,10 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        // Publisher was never called
         assertEquals(false, publisher.called)
-        // Publication was marked blocked
-        assertEquals("pub-1", publicationRepository.blockedPublicationId)
-        // Job was completed (not left hanging)
-        assertEquals("job-1", jobRepository.completedJobId)
+        assertEquals("pub-1", publicationRepository.failedPublicationId)
+        assertEquals("ACCOUNT_UNAVAILABLE", publicationRepository.failedReasonCode)
+        assertEquals("job-1", jobRepository.failedJobId)
     }
 
     @Test
@@ -785,6 +828,44 @@ class PublishingWorkerTest {
         assertEquals(false, publisher.called)
         assertEquals("pub-1", publicationRepository.blockedPublicationId)
         assertEquals("job-1", jobRepository.completedJobId)
+    }
+
+    @Test
+    fun `preflight fails PENDING account terminally without calling publisher`() = runTest {
+        val pendingAccount = successAccount().copy(status = SocialConnectionStatus.PENDING)
+        val publication = successPublication()
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val publisher = NeverPublishesPublisher()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(pendingAccount),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = publisher,
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        assertEquals(false, publisher.called)
+        assertEquals("pub-1", publicationRepository.failedPublicationId)
+        assertEquals("ACCOUNT_UNAVAILABLE", publicationRepository.failedReasonCode)
+        assertEquals("job-1", jobRepository.failedJobId)
     }
 
     @Test

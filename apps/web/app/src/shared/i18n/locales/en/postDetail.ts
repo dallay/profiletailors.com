@@ -72,6 +72,7 @@ export default {
     },
   },
   actionErrors: {
+    message: '{reason} {operation}',
     reasons: {
       unauthorized: 'Your session or account access needs attention.',
       notFound: 'This post is no longer available.',

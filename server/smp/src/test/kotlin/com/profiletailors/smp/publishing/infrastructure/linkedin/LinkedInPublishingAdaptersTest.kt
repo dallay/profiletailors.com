@@ -258,7 +258,7 @@ class LinkedInPublishingAdaptersTest {
     }
 
     @Test
-    fun `real publisher throws typed retryable failure on 429 rate limit`() = runTest {
+    fun `should throw typed retryable rate limit failure when LinkedIn returns 429`() = runTest {
         val transport = StubTransport(
             responses = listOf(
                 LinkedInHttpResponse(
@@ -320,7 +320,7 @@ class LinkedInPublishingAdaptersTest {
     }
 
     @Test
-    fun `real publisher throws typed retryable failure on 500 server error`() = runTest {
+    fun `should throw typed retryable provider unavailable failure when LinkedIn returns 500`() = runTest {
         val transport = StubTransport(
             responses = listOf(
                 LinkedInHttpResponse(
@@ -382,7 +382,7 @@ class LinkedInPublishingAdaptersTest {
     }
 
     @Test
-    fun `real publisher throws typed validation failure on unexpected error code`() = runTest {
+    fun `should throw typed reconnect failure when LinkedIn returns 403`() = runTest {
         val transport = StubTransport(
             responses = listOf(
                 LinkedInHttpResponse(
@@ -438,9 +438,71 @@ class LinkedInPublishingAdaptersTest {
             }
         }
 
-        assertEquals(PublishingFailureCategory.PROVIDER_VALIDATION_FAILED, error.failure.category)
+        assertEquals(PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED, error.failure.category)
         assertEquals(false, error.failure.retryable)
         assertEquals("status=403", error.failure.diagnostic)
+    }
+
+    @Test
+    fun `should throw typed reconnect failure when LinkedIn returns 401`() = runTest {
+        val transport = StubTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    401,
+                    emptyHeaders(),
+                    """{"message":"Unauthorized"}""",
+                ),
+            ),
+        )
+        val credentialGateway = FakeCredentialGateway()
+        val accountId = "abcd1234"
+        val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
+        )
+        val account = SocialAccount(
+            id = "account-1",
+            socialConnectionId = "connection-1",
+            workspaceId = "workspace-1",
+            provider = SocialProvider.LINKEDIN,
+            providerAccountId = accountId,
+            kind = SocialAccountKind.PERSONAL_PROFILE,
+            displayName = "Yuniel",
+            profileUrn = "urn:li:person:$accountId",
+            status = SocialConnectionStatus.ACTIVE,
+        )
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Test",
+        )
+
+        val error = assertThrows(PublishingFailureException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                publisher.publish(
+                    ProviderPublishCommand(
+                        publicationId = "pub-1",
+                        workspaceId = "workspace-1",
+                        socialAccount = account,
+                        publication = publication,
+                        assets = emptyList(),
+                    ),
+                )
+            }
+        }
+
+        assertEquals(PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED, error.failure.category)
+        assertEquals(false, error.failure.retryable)
+        assertEquals("status=401", error.failure.diagnostic)
     }
 
     @Test

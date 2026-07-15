@@ -61,6 +61,8 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotContain
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -1313,13 +1315,13 @@ class PublishingHandlersTest {
             ),
         )
 
-        assertEquals("ACCOUNT_RECONNECT_REQUIRED", result.publications[0].blockedReason)
-        assertEquals("PROVIDER_VALIDATION_FAILED", result.publications[1].errorCode)
+        result.publications[0].blockedReason shouldBe "ACCOUNT_RECONNECT_REQUIRED"
+        result.publications[1].errorCode shouldBe "PROVIDER_VALIDATION_FAILED"
         val serializedBoundaryText = result.publications.joinToString(" ") { publication ->
             listOfNotNull(publication.blockedReason, publication.errorCode).joinToString(" ")
         }
         listOf("com.linkedin.Client", "token=secret", "https://api.linkedin.com", "bucket/key").forEach { unsafe ->
-            assertEquals(false, serializedBoundaryText.contains(unsafe), unsafe)
+            serializedBoundaryText.shouldNotContain(unsafe)
         }
     }
 

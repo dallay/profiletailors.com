@@ -106,7 +106,8 @@ type ActionReason = keyof typeof ACTION_REASON_KEYS
 
 function mapFailureCopyKey(value: string | undefined): FailureCopyKey {
   if (!value) return 'unknown'
-  return FAILURE_COPY_KEYS[value as keyof typeof FAILURE_COPY_KEYS] ?? 'unknown'
+  if (!Object.hasOwn(FAILURE_COPY_KEYS, value)) return 'unknown'
+  return FAILURE_COPY_KEYS[value as keyof typeof FAILURE_COPY_KEYS]
 }
 
 function isApiError(error: unknown): error is Error & ApiError {
@@ -142,7 +143,10 @@ function mapActionReason(error: unknown): ActionReason {
 
 function actionErrorMessage(error: unknown, operation: ActionOperation): string {
   const reason = mapActionReason(error)
-  return `${t(ACTION_REASON_KEYS[reason])} ${t(ACTION_OPERATION_KEYS[operation])}`
+  return t('postDetail.actionErrors.message', {
+    reason: t(ACTION_REASON_KEYS[reason]),
+    operation: t(ACTION_OPERATION_KEYS[operation]),
+  })
 }
 
 const isReadOnly = computed(() => props.publication?.status === 'PUBLISHED')

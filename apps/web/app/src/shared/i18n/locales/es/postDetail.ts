@@ -72,6 +72,7 @@ export default {
     },
   },
   actionErrors: {
+    message: '{reason} {operation}',
     reasons: {
       unauthorized: 'Tu sesión o el acceso de la cuenta necesita atención.',
       notFound: 'Esta publicación ya no está disponible.',

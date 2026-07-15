@@ -144,7 +144,7 @@ class PublishingJobExecutor(
                 publication.id,
                 socialAccount.id,
             )
-            blockPublication(
+            failPublicationTerminal(
                 claim,
                 publication,
                 socialAccount.workspaceId,
@@ -195,7 +195,7 @@ class PublishingJobExecutor(
                 publication.id,
                 socialAccount.id,
             )
-            blockPublication(
+            failPublicationTerminal(
                 claim,
                 publication,
                 socialAccount.workspaceId,

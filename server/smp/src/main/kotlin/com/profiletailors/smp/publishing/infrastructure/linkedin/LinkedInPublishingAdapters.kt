@@ -34,6 +34,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient
@@ -247,6 +248,7 @@ class RealLinkedInPublisher(
      * @throws RetryablePublishingException if the request is rate-limited (429) or receives a server error (500-599).
      * @throws IllegalStateException if the request fails with any other HTTP status code.
      */
+    @Suppress("ThrowsCount")
     override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
         val requestBody = buildPostBody(command)
         val accessToken = credentialResolver.resolve(command.socialAccount)
@@ -259,6 +261,7 @@ class RealLinkedInPublisher(
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(requestBody)))
                 .build(),
         )
+        val diagnostic = "status=${response.statusCode}"
         return when (response.statusCode) {
             in HTTP_SUCCESS_RANGE -> ProviderPublishResult(
                 externalPublicationId = response.headers
@@ -267,16 +270,22 @@ class RealLinkedInPublisher(
                 providerMessage = response.body,
             )
 
+            HttpURLConnection.HTTP_UNAUTHORIZED,
+            HttpURLConnection.HTTP_FORBIDDEN,
+            -> throw PublishingFailureException(
+                PublishingFailure.accountReconnectRequired(diagnostic),
+            )
+
             HTTP_TOO_MANY_REQUESTS -> throw PublishingFailureException(
-                PublishingFailure.providerRateLimited("status=${response.statusCode}"),
+                PublishingFailure.providerRateLimited(diagnostic),
             )
 
             in HTTP_SERVER_ERROR_RANGE -> throw PublishingFailureException(
-                PublishingFailure.providerUnavailable("status=${response.statusCode}"),
+                PublishingFailure.providerUnavailable(diagnostic),
             )
 
             else -> throw PublishingFailureException(
-                PublishingFailure.validationFailed("status=${response.statusCode}"),
+                PublishingFailure.validationFailed(diagnostic),
             )
         }
     }
