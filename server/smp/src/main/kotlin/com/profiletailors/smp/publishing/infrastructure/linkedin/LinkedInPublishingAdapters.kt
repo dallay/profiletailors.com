@@ -20,6 +20,8 @@ import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
+import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailure
+import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureException
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
 import com.profiletailors.storage.domain.AttachmentsStorageBinding
 import com.profiletailors.storage.domain.Storage
@@ -265,17 +267,17 @@ class RealLinkedInPublisher(
                 providerMessage = response.body,
             )
 
-            HTTP_TOO_MANY_REQUESTS, in HTTP_SERVER_ERROR_RANGE -> {
-                val message = "LinkedIn post publish retryable failure: " +
-                    "${response.statusCode} ${response.body}"
-                throw RetryablePublishingException(message)
-            }
+            HTTP_TOO_MANY_REQUESTS -> throw PublishingFailureException(
+                PublishingFailure.providerRateLimited("status=${response.statusCode}"),
+            )
 
-            else -> {
-                val message = "LinkedIn post publish failed: " +
-                    "${response.statusCode} ${response.body}"
-                throw IllegalStateException(message)
-            }
+            in HTTP_SERVER_ERROR_RANGE -> throw PublishingFailureException(
+                PublishingFailure.providerUnavailable("status=${response.statusCode}"),
+            )
+
+            else -> throw PublishingFailureException(
+                PublishingFailure.validationFailed("status=${response.statusCode}"),
+            )
         }
     }
 
@@ -445,9 +447,7 @@ class RealLinkedInPublisher(
             attachmentsBinding.bucketName,
             e,
         )
-        throw RetryablePublishingException(
-            "Storage download failed for asset ${asset.id} (key=$storageKey): ${e.message}",
-        )
+        throw PublishingFailureException(PublishingFailure.mediaUnavailable(e::class.simpleName))
     }
 
     private fun extractFirstUrl(text: String): String? = Regex("https?://\\S+").find(text)?.value

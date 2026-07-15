@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { CalendarClock, ExternalLink, Pencil, Trash2, X, AlertTriangle, CheckCircle2, Clock } from '@lucide/vue'
 import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
+import type { ApiError } from '@modules/auth/infrastructure/auth-api'
 import { getProviderBadge } from '@shared/lib/provider-styles'
 
 const props = withDefaults(
@@ -25,13 +26,123 @@ const emit = defineEmits<{
 const { t, locale: i18nLocale } = useI18n()
 const publishingStore = usePublishingStore()
 
-/** Maps backend error codes to user-facing message keys. Expand as new codes are introduced. */
-const PUBLICATION_ERROR_MESSAGES: Record<string, string> = {
-  LINKEDIN_VALIDATION_ERROR: 'postDetail.errorMessages.linkedinValidation',
-  MEDIA_ASSET_TOO_LARGE: 'postDetail.errorMessages.mediaAssetTooLarge',
-  EMAIL_VERIFICATION_REQUIRED: 'postDetail.errorMessages.emailVerificationRequired',
-  RATE_LIMIT_EXCEEDED: 'postDetail.errorMessages.rateLimitExceeded',
-  UNAUTHORIZED: 'postDetail.errorMessages.unauthorized',
+const FAILURE_COPY_KEYS = {
+  MEDIA_NOT_FOUND: 'mediaNotFound',
+  MEDIA_UNAVAILABLE: 'mediaUnavailable',
+  PROVIDER_VALIDATION_FAILED: 'providerValidationFailed',
+  PROVIDER_RATE_LIMITED: 'providerRateLimited',
+  PROVIDER_UNAVAILABLE: 'providerUnavailable',
+  ACCOUNT_RECONNECT_REQUIRED: 'accountReconnectRequired',
+  ACCOUNT_UNAVAILABLE: 'accountUnavailable',
+  PUBLISHING_FAILED: 'publishingFailed',
+} as const
+
+const FAILURE_COPY_I18N_KEYS = {
+  mediaNotFound: {
+    label: 'postDetail.failure.mediaNotFound.label',
+    explanation: 'postDetail.failure.mediaNotFound.explanation',
+    action: 'postDetail.failure.mediaNotFound.action',
+  },
+  mediaUnavailable: {
+    label: 'postDetail.failure.mediaUnavailable.label',
+    explanation: 'postDetail.failure.mediaUnavailable.explanation',
+    action: 'postDetail.failure.mediaUnavailable.action',
+  },
+  providerValidationFailed: {
+    label: 'postDetail.failure.providerValidationFailed.label',
+    explanation: 'postDetail.failure.providerValidationFailed.explanation',
+    action: 'postDetail.failure.providerValidationFailed.action',
+  },
+  providerRateLimited: {
+    label: 'postDetail.failure.providerRateLimited.label',
+    explanation: 'postDetail.failure.providerRateLimited.explanation',
+    action: 'postDetail.failure.providerRateLimited.action',
+  },
+  providerUnavailable: {
+    label: 'postDetail.failure.providerUnavailable.label',
+    explanation: 'postDetail.failure.providerUnavailable.explanation',
+    action: 'postDetail.failure.providerUnavailable.action',
+  },
+  accountReconnectRequired: {
+    label: 'postDetail.failure.accountReconnectRequired.label',
+    explanation: 'postDetail.failure.accountReconnectRequired.explanation',
+    action: 'postDetail.failure.accountReconnectRequired.action',
+  },
+  accountUnavailable: {
+    label: 'postDetail.failure.accountUnavailable.label',
+    explanation: 'postDetail.failure.accountUnavailable.explanation',
+    action: 'postDetail.failure.accountUnavailable.action',
+  },
+  publishingFailed: {
+    label: 'postDetail.failure.publishingFailed.label',
+    explanation: 'postDetail.failure.publishingFailed.explanation',
+    action: 'postDetail.failure.publishingFailed.action',
+  },
+  unknown: {
+    label: 'postDetail.failure.unknown.label',
+    explanation: 'postDetail.failure.unknown.explanation',
+    action: 'postDetail.failure.unknown.action',
+  },
+} as const
+
+const ACTION_REASON_KEYS = {
+  unauthorized: 'postDetail.actionErrors.reasons.unauthorized',
+  notFound: 'postDetail.actionErrors.reasons.notFound',
+  stateConflict: 'postDetail.actionErrors.reasons.stateConflict',
+  validation: 'postDetail.actionErrors.reasons.validation',
+  temporarilyUnavailable: 'postDetail.actionErrors.reasons.temporarilyUnavailable',
+  unknown: 'postDetail.actionErrors.reasons.unknown',
+} as const
+
+const ACTION_OPERATION_KEYS = {
+  retry: 'postDetail.actionErrors.operations.retry',
+  delete: 'postDetail.actionErrors.operations.delete',
+  reschedule: 'postDetail.actionErrors.operations.reschedule',
+} as const
+
+type FailureCopyKey = keyof typeof FAILURE_COPY_I18N_KEYS
+type ActionOperation = keyof typeof ACTION_OPERATION_KEYS
+type ActionReason = keyof typeof ACTION_REASON_KEYS
+
+function mapFailureCopyKey(value: string | undefined): FailureCopyKey {
+  if (!value) return 'unknown'
+  return FAILURE_COPY_KEYS[value as keyof typeof FAILURE_COPY_KEYS] ?? 'unknown'
+}
+
+function isApiError(error: unknown): error is Error & ApiError {
+  return typeof error === 'object' && error !== null
+}
+
+function mapActionReason(error: unknown): ActionReason {
+  if (!isApiError(error)) return 'unknown'
+  const code = error.errorCode ?? error.code
+  if (code === 'UNAUTHORIZED' || code === 'FORBIDDEN') return 'unauthorized'
+  if (code === 'NOT_FOUND') return 'notFound'
+  if (code === 'STATE_CONFLICT' || code === 'CONFLICT') return 'stateConflict'
+  if (code === 'VALIDATION_FAILED' || code === 'VALIDATION_ERROR') return 'validation'
+  if (code === 'RATE_LIMITED' || code === 'SERVICE_UNAVAILABLE') return 'temporarilyUnavailable'
+  if (error instanceof Error && error.status === undefined) return 'temporarilyUnavailable'
+  switch (error.status) {
+    case 401:
+    case 403:
+      return 'unauthorized'
+    case 404:
+      return 'notFound'
+    case 409:
+      return 'stateConflict'
+    case 400:
+    case 422:
+      return 'validation'
+    case 429:
+      return 'temporarilyUnavailable'
+    default:
+      return typeof error.status === 'number' && error.status >= 500 ? 'temporarilyUnavailable' : 'unknown'
+  }
+}
+
+function actionErrorMessage(error: unknown, operation: ActionOperation): string {
+  const reason = mapActionReason(error)
+  return `${t(ACTION_REASON_KEYS[reason])} ${t(ACTION_OPERATION_KEYS[operation])}`
 }
 
 const isReadOnly = computed(() => props.publication?.status === 'PUBLISHED')
@@ -134,19 +245,14 @@ const rescheduleError = ref('')
 const isRetrying = ref(false)
 const retryError = ref('')
 
-const failureDetail = computed(() => {
-  if (!props.publication) return ''
-  if (props.publication.status === 'BLOCKED') {
-    return props.publication.blockedReason ?? ''
-  }
-  if (props.publication.status === 'FAILED') {
-    const code = props.publication.errorCode
-    if (!code) return ''
-    const msgKey = PUBLICATION_ERROR_MESSAGES[code]
-    return msgKey ? t(msgKey) : code
-  }
-  return ''
+const failureCopyKey = computed<FailureCopyKey | null>(() => {
+  if (!props.publication) return null
+  if (props.publication.status === 'BLOCKED') return mapFailureCopyKey(props.publication.blockedReason)
+  if (props.publication.status === 'FAILED') return mapFailureCopyKey(props.publication.errorCode)
+  return null
 })
+
+const failureCopy = computed(() => (failureCopyKey.value ? FAILURE_COPY_I18N_KEYS[failureCopyKey.value] : null))
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, closeModal)
@@ -182,7 +288,7 @@ async function deletePublication() {
     emit('deleted', props.publication.id)
     closeModal()
   } catch (err) {
-    deleteError.value = err instanceof Error ? err.message : 'Failed to delete post'
+    deleteError.value = actionErrorMessage(err, 'delete')
     console.error('Failed to delete publication', err)
   } finally {
     isDeleting.value = false
@@ -209,7 +315,7 @@ async function retryPublication() {
     emit('retried', props.publication.id)
     closeModal()
   } catch (err) {
-    retryError.value = err instanceof Error ? err.message : t('postDetail.retryFailed')
+    retryError.value = actionErrorMessage(err, 'retry')
   } finally {
     isRetrying.value = false
   }
@@ -220,7 +326,7 @@ async function confirmReschedule() {
   rescheduleError.value = ''
   const newDate = new Date(newScheduledAt.value)
   if (Number.isNaN(newDate.getTime()) || newDate <= new Date()) {
-    rescheduleError.value = 'Please select a valid future date and time.'
+    rescheduleError.value = t('postDetail.rescheduleInvalidDate')
     return
   }
   try {
@@ -230,7 +336,7 @@ async function confirmReschedule() {
     showReschedule.value = false
     closeModal()
   } catch (err) {
-    rescheduleError.value = err instanceof Error ? err.message : 'Failed to reschedule'
+    rescheduleError.value = actionErrorMessage(err, 'reschedule')
   }
 }
 
@@ -328,12 +434,18 @@ function cancelReschedule() {
             </div>
           </div>
 
-          <div v-if="failureDetail" class="space-y-1 rounded-2xl border border-border-visible bg-bg-primary/40 px-4 py-3">
+          <div v-if="failureCopy" class="space-y-2 rounded-2xl border border-border-visible bg-bg-primary/40 px-4 py-3">
             <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
-              {{ publication.status === 'BLOCKED' ? t('postDetail.blockedReason') : t('postDetail.errorCode') }}
+              {{ t('postDetail.failure.title') }}
             </span>
-            <p class="text-xs text-text-body break-words">
-              {{ failureDetail }}
+            <p class="text-xs font-semibold text-text-display">
+              {{ t(failureCopy.label) }}
+            </p>
+            <p class="text-xs text-text-body">
+              {{ t(failureCopy.explanation) }}
+            </p>
+            <p class="text-xs text-text-secondary">
+              {{ t(failureCopy.action) }}
             </p>
           </div>
 
@@ -447,7 +559,6 @@ function cancelReschedule() {
             >
               {{ t('postDetail.close') }}
             </button>
-            <!-- biome-ignore lint/a11y/useValidAnchor: viewPostUrl is conditionally bound, always present when this renders -->
             <a
               v-if="viewPostUrl"
               :href="viewPostUrl"

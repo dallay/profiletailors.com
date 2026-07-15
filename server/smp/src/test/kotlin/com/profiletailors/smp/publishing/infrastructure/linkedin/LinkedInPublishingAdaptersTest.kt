@@ -21,7 +21,8 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway
 import com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentials
-import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
+import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureCategory
+import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureException
 import com.profiletailors.storage.domain.AttachmentsStorageBinding
 import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.Storage
@@ -257,7 +258,7 @@ class LinkedInPublishingAdaptersTest {
     }
 
     @Test
-    fun `real publisher throws retryable on 429 rate limit`() = runTest {
+    fun `real publisher throws typed retryable failure on 429 rate limit`() = runTest {
         val transport = StubTransport(
             responses = listOf(
                 LinkedInHttpResponse(
@@ -299,7 +300,7 @@ class LinkedInPublishingAdaptersTest {
             bodyText = "Test",
         )
 
-        val error = assertThrows(RetryablePublishingException::class.java) {
+        val error = assertThrows(PublishingFailureException::class.java) {
             kotlinx.coroutines.runBlocking {
                 publisher.publish(
                     ProviderPublishCommand(
@@ -313,11 +314,13 @@ class LinkedInPublishingAdaptersTest {
             }
         }
 
-        assertTrue(error.message!!.contains("retryable failure"))
+        assertEquals(PublishingFailureCategory.PROVIDER_RATE_LIMITED, error.failure.category)
+        assertEquals(true, error.failure.retryable)
+        assertEquals("status=429", error.failure.diagnostic)
     }
 
     @Test
-    fun `real publisher throws retryable on 500 server error`() = runTest {
+    fun `real publisher throws typed retryable failure on 500 server error`() = runTest {
         val transport = StubTransport(
             responses = listOf(
                 LinkedInHttpResponse(
@@ -359,7 +362,7 @@ class LinkedInPublishingAdaptersTest {
             bodyText = "Test",
         )
 
-        val error = assertThrows(RetryablePublishingException::class.java) {
+        val error = assertThrows(PublishingFailureException::class.java) {
             kotlinx.coroutines.runBlocking {
                 publisher.publish(
                     ProviderPublishCommand(
@@ -373,11 +376,13 @@ class LinkedInPublishingAdaptersTest {
             }
         }
 
-        assertTrue(error.message!!.contains("retryable failure"))
+        assertEquals(PublishingFailureCategory.PROVIDER_UNAVAILABLE, error.failure.category)
+        assertEquals(true, error.failure.retryable)
+        assertEquals("status=500", error.failure.diagnostic)
     }
 
     @Test
-    fun `real publisher throws illegal state on unexpected error code`() = runTest {
+    fun `real publisher throws typed validation failure on unexpected error code`() = runTest {
         val transport = StubTransport(
             responses = listOf(
                 LinkedInHttpResponse(
@@ -419,7 +424,7 @@ class LinkedInPublishingAdaptersTest {
             bodyText = "Test",
         )
 
-        val error = assertThrows(IllegalStateException::class.java) {
+        val error = assertThrows(PublishingFailureException::class.java) {
             kotlinx.coroutines.runBlocking {
                 publisher.publish(
                     ProviderPublishCommand(
@@ -433,8 +438,9 @@ class LinkedInPublishingAdaptersTest {
             }
         }
 
-        assertTrue(error.message!!.contains("publish failed"))
-        assertTrue(error.message!!.contains("403"))
+        assertEquals(PublishingFailureCategory.PROVIDER_VALIDATION_FAILED, error.failure.category)
+        assertEquals(false, error.failure.retryable)
+        assertEquals("status=403", error.failure.diagnostic)
     }
 
     @Test
@@ -1346,7 +1352,7 @@ class LinkedInPublishingAdaptersTest {
         private var index = 0
         override suspend fun send(request: java.net.http.HttpRequest): LinkedInHttpResponse =
             responses.getOrElse(index++) {
-                throw RetryablePublishingException("No stub response configured")
+                throw IllegalStateException("No stub response configured")
             }
     }
 

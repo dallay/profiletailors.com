@@ -1,13 +1,17 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
+import com.profiletailors.smp.publishing.domain.NotificationEvent
+import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
@@ -17,6 +21,8 @@ import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationStatus
+import com.profiletailors.smp.publishing.domain.ReconnectReason
+import com.profiletailors.smp.publishing.domain.ReconnectRequiredException
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
@@ -27,6 +33,7 @@ import com.profiletailors.smp.publishing.domain.SocialPublisher
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Duration
@@ -36,6 +43,27 @@ import java.time.ZoneOffset
 class PublishingWorkerTest {
 
     private val fixedClock = Clock.fixed(Instant.parse("2026-05-26T12:00:00Z"), ZoneOffset.UTC)
+
+    @Test
+    fun `failure taxonomy defines canonical categories retryability and final behavior`() {
+        val expected = mapOf(
+            PublishingFailureCategory.MEDIA_NOT_FOUND to Pair(false, false),
+            PublishingFailureCategory.MEDIA_UNAVAILABLE to Pair(true, false),
+            PublishingFailureCategory.PROVIDER_VALIDATION_FAILED to Pair(false, false),
+            PublishingFailureCategory.PROVIDER_RATE_LIMITED to Pair(true, false),
+            PublishingFailureCategory.PROVIDER_UNAVAILABLE to Pair(true, false),
+            PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED to Pair(false, true),
+            PublishingFailureCategory.ACCOUNT_UNAVAILABLE to Pair(false, false),
+            PublishingFailureCategory.PUBLISHING_FAILED to Pair(false, false),
+        )
+
+        assertEquals(expected.keys.map { it.code }.toSet(), PublishingFailureCategory.entries.map { it.code }.toSet())
+        expected.forEach { (category, defaults) ->
+            assertEquals(defaults.first, category.retryable, category.code)
+            assertEquals(defaults.second, category.blocked, category.code)
+            assertEquals(category.retryable, PublishingFailure(category).retryable, category.code)
+        }
+    }
 
     @Test
     fun `worker completes successful publish`() = runTest {
@@ -143,6 +171,304 @@ class PublishingWorkerTest {
     }
 
     @Test
+    fun `worker persists canonical code for retryable failure after exhaustion`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 4, fixedClock.instant()))
+        val attemptRepository = InMemoryAttemptRepository()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = RateLimitedPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        assertEquals("PROVIDER_RATE_LIMITED", attemptRepository.lastAttempt?.providerErrorCode)
+        assertEquals("PROVIDER_RATE_LIMITED", publicationRepository.failedReasonCode)
+        assertNull(publicationRepository.failedReasonMessage)
+    }
+
+    @Test
+    fun `worker maps unexpected exceptions to canonical publishing failed code without raw message`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val attemptRepository = InMemoryAttemptRepository()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = RawFailingPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        assertEquals("PUBLISHING_FAILED", attemptRepository.lastAttempt?.providerErrorCode)
+        assertEquals("PUBLISHING_FAILED", publicationRepository.failedReasonCode)
+        assertNull(publicationRepository.failedReasonMessage)
+        assertEquals("job-1", jobRepository.failedJobId)
+    }
+
+    @Test
+    fun `worker stores reconnect blocked reason as canonical category`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = ReconnectPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        assertEquals("ACCOUNT_RECONNECT_REQUIRED", publicationRepository.blockedReason)
+        assertEquals("pub-1", publicationRepository.blockedPublicationId)
+        assertEquals("job-1", jobRepository.completedJobId)
+    }
+
+    @Test
+    fun `worker records media resolution failure before provider dispatch and does not call provider`() = runTest {
+        val publication = successPublication().copy(assetIds = listOf("asset-missing"))
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val attemptRepository = InMemoryAttemptRepository()
+        val publisher = NeverPublishesPublisher()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = FailingMediaAssetResolver(
+                PublishingFailureException(PublishingFailure.mediaNotFound()),
+            ),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = publisher,
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        assertEquals(false, publisher.called)
+        assertEquals(DeliveryAttemptOutcome.FAILED, attemptRepository.lastAttempt?.outcome)
+        assertEquals("MEDIA_NOT_FOUND", attemptRepository.lastAttempt?.providerErrorCode)
+        assertEquals("MEDIA_NOT_FOUND", publicationRepository.failedReasonCode)
+        assertEquals("job-1", jobRepository.failedJobId)
+    }
+
+    @Test
+    fun `worker records unavailable media before provider dispatch and reschedules without calling provider`() =
+        runTest {
+            val publication = successPublication().copy(assetIds = listOf("asset-unavailable"))
+            val publicationRepository = InMemoryPublicationRepository(publication)
+            val jobRepository =
+                InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+            val attemptRepository = InMemoryAttemptRepository()
+            val publisher = NeverPublishesPublisher()
+            val executor = PublishingJobExecutor(
+                publicationJobRepository = jobRepository,
+                publicationRepository = publicationRepository,
+                socialAccountRepository = InMemoryAccountRepository(successAccount()),
+                mediaAssetResolver = FailingMediaAssetResolver(
+                    MediaServiceUnavailableException(
+                        "GET https://storage.example.com/bucket/assets/workspace-1/raw.png " +
+                            "Authorization: Bearer secret-token",
+                    ),
+                ),
+                deliveryAttemptRepository = attemptRepository,
+                notificationEventRepository = null,
+                providerCapabilityValidator = AcceptingCapabilityValidator(),
+                socialPublisher = publisher,
+                retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+                transactionRunner = NoOpTransactionRunner(),
+                clock = fixedClock,
+            )
+            val worker = PublishingWorker(
+                publicationJobRepository = jobRepository,
+                publicationRepository = publicationRepository,
+                executor = executor,
+                transactionRunner = NoOpTransactionRunner(),
+                clock = fixedClock,
+                workerId = "worker-1",
+            )
+
+            worker.pollOnce()
+
+            assertEquals(false, publisher.called)
+            assertEquals(DeliveryAttemptOutcome.FAILED, attemptRepository.lastAttempt?.outcome)
+            assertEquals("MEDIA_UNAVAILABLE", attemptRepository.lastAttempt?.providerErrorCode)
+            assertEquals("MediaServiceUnavailableException", attemptRepository.lastAttempt?.providerMessage)
+            assertEquals("job-1", jobRepository.retriedJobId)
+        }
+
+    @Test
+    fun `worker maps media not ready exception to missing media before provider dispatch`() = runTest {
+        val publication = successPublication().copy(assetIds = listOf("asset-missing"))
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val attemptRepository = InMemoryAttemptRepository()
+        val publisher = NeverPublishesPublisher()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = FailingMediaAssetResolver(
+                AssetNotReadyException(
+                    "asset-missing",
+                    "bucket/assets/workspace-1/raw.png token=secret",
+                ),
+            ),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = publisher,
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        assertEquals(false, publisher.called)
+        assertEquals("MEDIA_NOT_FOUND", attemptRepository.lastAttempt?.providerErrorCode)
+        assertEquals("AssetNotReadyException", attemptRepository.lastAttempt?.providerMessage)
+        assertEquals("MEDIA_NOT_FOUND", publicationRepository.failedReasonCode)
+        assertEquals("job-1", jobRepository.failedJobId)
+    }
+
+    @Test
+    fun `worker redacts unsafe diagnostics from publication attempts and notifications`() = runTest {
+        val unsafeDiagnostic = """
+            {"message":"provider body","access_token":"secret-token","authorization":"Bearer secret"}
+            https://api.linkedin.com/rest/posts?token=secret-token
+            at com.provider.Client.publish(Client.kt:42)
+            workspace-550e8400-e29b-41d4-a716-446655440000 bucket/assets/workspace-1/raw.png
+        """.trimIndent()
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 4, fixedClock.instant()))
+        val attemptRepository = InMemoryAttemptRepository()
+        val notificationRepository = InMemoryNotificationEventRepository()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = notificationRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = UnsafeDiagnosticPublisher(unsafeDiagnostic),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        assertEquals("PROVIDER_UNAVAILABLE", attemptRepository.lastAttempt?.providerErrorCode)
+        assertNull(attemptRepository.lastAttempt?.providerMessage)
+        assertEquals("PROVIDER_UNAVAILABLE", publicationRepository.failedReasonCode)
+        assertNull(publicationRepository.failedReasonMessage)
+        assertEquals("PROVIDER_UNAVAILABLE", notificationRepository.lastEvent?.message)
+        val persistedText = listOfNotNull(
+            attemptRepository.lastAttempt?.providerMessage,
+            publicationRepository.failedReasonCode,
+            publicationRepository.failedReasonMessage,
+            notificationRepository.lastEvent?.message,
+            notificationRepository.lastEvent?.suggestedAction,
+        ).joinToString(" ")
+        listOf(
+            "provider body",
+            "secret-token",
+            "Bearer secret",
+            "https://api.linkedin.com",
+            "com.provider.Client",
+            "Client.kt:42",
+            "550e8400-e29b-41d4-a716-446655440000",
+            "bucket/assets/workspace-1/raw.png",
+        ).forEach { unsafeValue ->
+            assertEquals(false, persistedText.contains(unsafeValue), unsafeValue)
+        }
+    }
+
+    @Test
     fun `worker requeues blocked publications when scan finds recovered accounts`() = runTest {
         val blockedPublication = blockedPublication()
         val publicationRepository = InMemoryPublicationRepository(
@@ -244,7 +570,10 @@ class PublishingWorkerTest {
     ) : PublicationRepository {
         var publishedPublicationId: String? = null
         var failedPublicationId: String? = null
+        var failedReasonCode: String? = null
+        var failedReasonMessage: String? = null
         var blockedPublicationId: String? = null
+        var blockedReason: String? = null
         var updatedDraft: PublicationDraft? = null
         override suspend fun createDraft(draft: PublicationDraft): PublicationDraft = draft
         override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft {
@@ -278,10 +607,13 @@ class PublishingWorkerTest {
             reasonMessage: String?,
         ) {
             failedPublicationId = publicationId
+            failedReasonCode = reasonCode
+            failedReasonMessage = reasonMessage
         }
         override suspend fun markCancelled(publicationId: String, cancelledAt: Instant) = Unit
         override suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?) {
             blockedPublicationId = publicationId
+            blockedReason = reason
         }
         override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean = false
         override suspend fun findBlockedForRecovery(maxRetries: Int): List<PublicationDraft> =
@@ -308,6 +640,22 @@ class PublishingWorkerTest {
         }
     }
 
+    private class InMemoryNotificationEventRepository : NotificationEventRepository {
+        var lastEvent: NotificationEvent? = null
+        override suspend fun record(event: NotificationEvent): NotificationEvent {
+            lastEvent = event
+            return event
+        }
+
+        override suspend fun findByWorkspace(
+            workspaceId: String,
+            socialAccountId: String?,
+            publicationId: String?,
+            categories: Set<com.profiletailors.smp.publishing.domain.NotificationCategory>?,
+            limit: Int,
+        ): List<NotificationEvent> = listOfNotNull(lastEvent)
+    }
+
     private class AcceptingCapabilityValidator : ProviderCapabilityValidator {
         override fun validate(input: ProviderCapabilityValidationInput) = Unit
     }
@@ -320,6 +668,36 @@ class PublishingWorkerTest {
     private class RetryableFailingPublisher : SocialPublisher {
         override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
             throw RetryablePublishingException("transient provider error")
+    }
+
+    private class RateLimitedPublisher : SocialPublisher {
+        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
+            throw PublishingFailureException(PublishingFailure.providerRateLimited())
+    }
+
+    private class RawFailingPublisher : SocialPublisher {
+        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
+            throw IllegalStateException("com.example.ProviderClient token=secret bucket/key")
+    }
+
+    private class UnsafeDiagnosticPublisher(private val diagnostic: String) : SocialPublisher {
+        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
+            throw PublishingFailureException(PublishingFailure.providerUnavailable(diagnostic))
+    }
+
+    private class ReconnectPublisher : SocialPublisher {
+        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
+            throw ReconnectRequiredException(
+                "Reconnect failed for token=secret https://provider.example/auth",
+                ReconnectReason.INVALID_GRANT,
+            )
+    }
+
+    private class FailingMediaAssetResolver(private val exception: RuntimeException) : MediaAssetResolver {
+        override suspend fun resolveReadyAssets(
+            workspaceId: String,
+            assetIds: List<String>,
+        ): List<ResolvedAssetSummary> = throw exception
     }
 
     private class NeverPublishesPublisher : SocialPublisher {

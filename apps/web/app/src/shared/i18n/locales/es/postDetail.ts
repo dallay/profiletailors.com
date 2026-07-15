@@ -17,20 +17,74 @@ export default {
   rescheduleConfirm: 'Confirmar',
   rescheduleCancel: 'Cancelar',
   rescheduleSuccess: 'Reagendado exitosamente',
+  rescheduleInvalidDate: 'Elige una fecha y hora futuras antes de reagendar.',
   delete: 'Eliminar',
-  save: 'Guardar',
+  edit: 'Editar',
   close: 'Cerrar',
   viewPost: 'Ver Publicación',
   viewPostUnavailable: 'La URL de la publicación aún no está disponible.',
-  errorMessages: {
-    linkedinValidation:
-      'La validación de LinkedIn falló. Revisa el contenido de tu publicación e inténtalo de nuevo.',
-    mediaAssetTooLarge: 'El archivo multimedia adjunto excede el tamaño máximo permitido.',
-    emailVerificationRequired:
-      'Se requiere verificación de correo para publicar. Por favor, verifica tu dirección de correo.',
-    rateLimitExceeded:
-      'Límite de solicitudes alcanzado. Por favor, espera antes de intentarlo de nuevo.',
-    unauthorized: 'No autorizado. Por favor, inicia sesión e inténtalo de nuevo.',
+  failure: {
+    title: 'Problema de publicación',
+    mediaNotFound: {
+      label: 'No se pudo encontrar el medio',
+      explanation: 'Uno o más archivos adjuntos ya no están disponibles.',
+      action: 'Vuelve a adjuntar o reemplaza el medio y publica de nuevo.',
+    },
+    mediaUnavailable: {
+      label: 'El medio no está disponible temporalmente',
+      explanation: 'No pudimos acceder al medio adjunto en este momento.',
+      action: 'Inténtalo más tarde o reemplaza el archivo si el problema continúa.',
+    },
+    providerValidationFailed: {
+      label: 'El canal rechazó esta publicación',
+      explanation: 'La publicación no cumple uno de los requisitos del canal.',
+      action: 'Edita el contenido o el medio y vuelve a intentar publicar.',
+    },
+    providerRateLimited: {
+      label: 'El canal está limitando solicitudes',
+      explanation: 'El servicio de publicación pidió reducir el ritmo temporalmente.',
+      action: 'Inténtalo más tarde o reagenda la publicación.',
+    },
+    providerUnavailable: {
+      label: 'El canal no está disponible temporalmente',
+      explanation: 'No se pudo contactar el servicio de publicación en este momento.',
+      action: 'Inténtalo más tarde o reagenda la publicación.',
+    },
+    accountReconnectRequired: {
+      label: 'Reconecta la cuenta',
+      explanation: 'La publicación está pausada hasta reconectar la cuenta social seleccionada.',
+      action: 'Reconecta la cuenta y luego reintenta la publicación.',
+    },
+    accountUnavailable: {
+      label: 'La cuenta seleccionada no puede publicar',
+      explanation: 'Esta cuenta no está disponible para publicar en este momento.',
+      action: 'Restaura la cuenta o elige otra cuenta disponible.',
+    },
+    publishingFailed: {
+      label: 'La publicación falló',
+      explanation: 'Algo salió mal al publicar este post.',
+      action: 'Reintenta una vez. Si vuelve a fallar, contacta soporte.',
+    },
+    unknown: {
+      label: 'La publicación necesita atención',
+      explanation: 'No pudimos publicar este post de forma segura.',
+      action: 'Revisa la publicación e inténtalo de nuevo. Contacta soporte si sigue fallando.',
+    },
+  },
+  actionErrors: {
+    reasons: {
+      unauthorized: 'Tu sesión o el acceso de la cuenta necesita atención.',
+      notFound: 'Esta publicación ya no está disponible.',
+      stateConflict: 'Esta publicación cambió antes de completar la acción.',
+      validation: 'El cambio solicitado no es válido para esta publicación.',
+      temporarilyUnavailable: 'La publicación no está disponible temporalmente.',
+      unknown: 'No pudimos completar la acción de forma segura.',
+    },
+    operations: {
+      retry: 'Revisa los detalles del post y vuelve a intentar.',
+      delete: 'Actualiza el calendario e intenta eliminar de nuevo.',
+      reschedule: 'Revisa la programación e inténtalo de nuevo.',
+    },
   },
   status: {
     draft: 'Borrador',
