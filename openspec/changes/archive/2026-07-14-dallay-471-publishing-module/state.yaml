@@ -1,0 +1,13 @@
+change: dallay-471-publishing-module
+current_phase: verify
+completed:
+  - explore
+  - propose
+  - design
+  - spec
+  - tasks
+  - apply
+  - verify
+next: archive
+updated: 2026-07-14T15:12:00Z
+notes: DALLAY-471 verify completed. Focused relocation guard, publishing/media Vitest suite, Biome check, and type-check passed. Biome reported one warning for unused imports in CreatePostModal.vue.

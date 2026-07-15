@@ -150,6 +150,56 @@ export class ComposeModalPage {
     return this.page.getByTestId('picker-source-unsplash')
   }
 
+  get unsplashSearchInput(): Locator {
+    return this.pickerShell.getByRole('searchbox')
+  }
+
+  get unsplashSearchButton(): Locator {
+    return this.pickerShell.getByRole('button', { name: /search|buscar/i })
+  }
+
+  get unsplashResults(): Locator {
+    return this.page.getByTestId('provider-panel-results')
+  }
+
+  /**
+   * Named locator for Unsplash result cards.
+   * Uses the named-image role (accessible) backed by data-testid for robustness.
+   * Falls back to testid when the photo name matches.
+   */
+  unsplashResult(externalId: string): Locator {
+    return this.page.getByTestId(`provider-result-${externalId}`)
+  }
+
+  /**
+   * Named locator for Unsplash result images.
+   * Uses the img role with accessible alt text for screen readers.
+   * Falls back to testid when alt text is not reliably exposed.
+   */
+  unsplashResultImage(externalId: string): Locator {
+    return this.unsplashResult(externalId).getByRole('img')
+  }
+
+  unsplashImportButton(externalId: string): Locator {
+    return this.unsplashResult(externalId).getByTestId('provider-panel-import')
+  }
+
+  /**
+   * Empty state locator when a search returns no results.
+   * No distinguishing accessible role is present, so data-testid is used.
+   */
+  get unsplashEmptyState(): Locator {
+    return this.page.getByTestId('provider-panel-empty')
+  }
+
+  /**
+   * Error state locator when provider search fails.
+   * No distinguishing accessible role is present, so data-testid is used.
+   */
+  get unsplashErrorState(): Locator {
+    return this.page.getByTestId('provider-panel-search-error')
+  }
+
   /** Button to open the media picker from the compose modal. */
   get addMediaButton(): Locator {
     return this.page.getByTestId('add-media-button')
@@ -436,6 +486,11 @@ export class ComposeModalPage {
     // path a mouse user has to open the picker.
     await this.page.getByTestId('composer-sources-trigger').click()
     await this.page.getByTestId('composer-source-library').click()
+  }
+
+  async searchUnsplash(query: string): Promise<void> {
+    await this.unsplashSearchInput.fill(query)
+    await this.unsplashSearchButton.click()
   }
 
   // ---- Assertions ----

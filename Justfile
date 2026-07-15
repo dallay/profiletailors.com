@@ -319,7 +319,7 @@ ci-local:
     @echo ""
     @echo "▸ Backend: build..."
     export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
-    {{gradle-root}} :server:smp:build --no-daemon -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
+    {{gradle-root}} :server:smp:assemble --no-daemon
     @echo ""
     @echo "══════════════════════════════════════════════"
     @echo "  ✅ CI Pipeline Simulation Complete"
