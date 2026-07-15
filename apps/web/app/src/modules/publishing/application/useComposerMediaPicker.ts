@@ -26,7 +26,12 @@ import { toValue, ref, computed, isRef } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import type { MediaAssetStatus } from '@modules/media'
 import type { Channel, Publication } from '@modules/publishing/infrastructure/publishing.store'
-import type { MediaAssetSummary } from '@modules/media/services/media-api'
+import {
+  importUnsplashPhoto,
+  searchUnsplashPhotos,
+  type MediaAssetSummary,
+  type UnsplashPhotoSummary,
+} from '@modules/media/services/media-api'
 import type {
   ComposerMediaPickerAsset,
   ComposerMediaPickerCollectionState,
@@ -74,6 +79,11 @@ type ComposerMediaPickerPublishingStore = {
   channels: StoreValue<Channel[]>
 }
 
+type ProviderSearchResult = UnsplashPhotoSummary & {
+  selectedForImport?: boolean
+  imported?: boolean
+}
+
 export type ComposerMediaPickerStoreParams = {
   mediaStore: ComposerMediaPickerMediaStore
   publishingStore: ComposerMediaPickerPublishingStore
@@ -82,21 +92,23 @@ export type ComposerMediaPickerStoreParams = {
   /** ID of the currently selected channel (reactive). */
   initialChannelId: MaybeRefOrGetter<string | null>
   /**
-   * Optional workspaceId override for testing. When provided, the composable
-   * uses this value instead of calling useWorkspaceStore() internally.
-   */
-  workspaceId?: MaybeRefOrGetter<string>
-  /**
    * Optional callback invoked whenever the draft attachments change
    * (applyPickerSelection or removeDraftAttachment). The modal uses this
    * to flip its assetsTouched ref in edit mode.
    */
   onAttachmentsChanged?: () => void
+  searchUnsplash?: (query?: string) => Promise<UnsplashPhotoSummary[]>
+  importUnsplash?: (externalId: string) => Promise<MediaAssetSummary>
 }
 
 // ---------------------------------------------------------------------------
 // Composable
-// ---------------------------------------------------------------------------
+/**
+ * Manages media selection, uploads, reconciliation, and Unsplash provider interactions for a publication composer.
+ *
+ * @param params - Store dependencies, reactive inputs, and optional attachment and Unsplash handlers.
+ * @returns Reactive picker state, computed values, helper functions, and event handlers.
+ */
 
 export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   // -------------------------------------------------------------------------
@@ -173,17 +185,11 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   // -------------------------------------------------------------------------
 
   const providerQuery = ref('')
-  const providerResults = ref<
-    Array<{
-      externalId: string
-      name: string
-      previewUrl: string | null
-      authorName?: string | null
-      selectedForImport?: boolean
-    }>
-  >([])
+  const providerResults = ref<ProviderSearchResult[]>([])
   const providerSearching = ref(false)
   const providerSearchError = ref<string | null>(null)
+  /** Monotonic request id; compared against the latest to ignore stale search responses. */
+  const providerSearch = ref(0)
   /** externalId → assetId mapping for already-reconciled provider imports. */
   const providerImportResolution = ref<Record<string, string>>({})
 
@@ -414,7 +420,11 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
 
   // -------------------------------------------------------------------------
   // Lifecycle methods
-  // -------------------------------------------------------------------------
+  /**
+   * Sets the active media picker source and starts an initial provider search when required.
+   *
+   * @param source - The media picker source to activate. Unsupported provider sources fall back to the library source.
+   */
 
   function setActiveMediaPickerSource(source: ComposerMediaPickerSource) {
     if (source === 'unsplash' && effectiveProvider.value !== 'unsplash') {
@@ -422,8 +432,21 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
       return
     }
     activeMediaPickerSource.value = source
+    if (
+      source === 'unsplash' &&
+      providerQuery.value === '' &&
+      providerResults.value.length === 0 &&
+      !providerSearching.value
+    ) {
+      void handleProviderSearch({ query: '' })
+    }
   }
 
+  /**
+   * Opens the media picker and loads the available library assets.
+   *
+   * @param source - The picker source to activate.
+   */
   async function openMediaPicker(source: ComposerMediaPickerSource = 'library') {
     pickerSelectionIds.value = [...draftAttachmentIds.value]
     isMediaPickerOpen.value = true
@@ -480,11 +503,21 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     closeMediaPicker()
   }
 
+  /**
+   * Removes an attachment from the draft.
+   *
+   * @param assetId - The ID of the attachment to remove
+   */
   function removeDraftAttachment(assetId: string) {
     draftAttachmentIds.value = draftAttachmentIds.value.filter((id) => id !== assetId)
     params.onAttachmentsChanged?.()
   }
 
+  /**
+   * Uploads the first supported image or MP4 file and stages the resulting asset.
+   *
+   * @param filesList - Files to search for a supported image or MP4 video
+   */
   async function handlePickerUploadSelection(filesList: File[]) {
     const file = filesList.find(
       (candidate) =>
@@ -513,90 +546,91 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Provider search/import (parent-owned, DEV/test stub)
-  // -------------------------------------------------------------------------
-
   /**
-   * Captures provider-search intent. Real search happens in the backend client;
-   * the modal exposes only the typed interaction and a result list. The
-   * synthetic result path is explicitly guarded: it only runs in DEV/test, and
-   * providerSearchError surfaces a clear message in production when no real
-   * Unsplash search client is wired.
+   * Searches Unsplash photos using the provided query and updates the provider results.
+   *
+   * @param payload - Search payload containing the query text.
    */
-  function handleProviderSearch(payload: { query: string }) {
+  async function handleProviderSearch(payload: { query: string }): Promise<void> {
     const q = payload.query.trim()
     providerQuery.value = q
     providerSearchError.value = null
-    providerSearching.value = false
+    providerSearching.value = true
 
-    if (!q) {
-      providerResults.value = []
-      return
-    }
+    // Monotonic request id to ignore stale overlapping search promises.
+    const requestId = ++providerSearch.value
 
-    if (!import.meta.env.DEV && !import.meta.env.MODE?.startsWith('test')) {
+    try {
+      const search = params.searchUnsplash ?? searchUnsplashPhotos
+      const results = await search(q || undefined)
+      // Ignore results from a stale search that was overtaken by a newer query.
+      if (requestId !== providerSearch.value) return
+      providerResults.value = results.map((photo) => ({
+        ...photo,
+        imported: providerImportResolution.value[photo.externalId] !== undefined,
+      }))
+    } catch (error: unknown) {
+      if (requestId !== providerSearch.value) return
       providerResults.value = []
       providerSearchError.value =
-        'Unsplash search is not configured. Wire the backend search client before enabling this provider.'
-      return
+        error instanceof Error ? error.message : 'Unable to load Unsplash photos.'
+    } finally {
+      if (requestId === providerSearch.value) {
+        providerSearching.value = false
+      }
     }
-
-    providerResults.value = [
-      { externalId: `${q}-1`, name: `${q} photo one`, previewUrl: null, authorName: 'Test author' },
-      { externalId: `${q}-2`, name: `${q} photo two`, previewUrl: null, authorName: 'Test author' },
-    ]
-  }
-
-  /** Helper to read the explicitly injected workspaceId. */
-  function useMediaStoreWorkspaceId(): string {
-    return params.workspaceId !== undefined ? toValue(params.workspaceId) : 'ws-local'
   }
 
   /**
-   * Provider-import orchestration. The picker MUST remain open after emit so
-   * the author can continue staged multi-selection. We synthesize a persisted
-   * asset ID for the imported external result and route it through the same
-   * reconciliation pipeline as uploads.
+   * Imports the selected Unsplash photo and stages the resulting media asset.
    *
-   * In production, the parent would POST to a backend import endpoint that
-   * returns the persisted asset; for now we generate a deterministic UUID
-   * that the polling layer resolves through mediaStore.loadAsset(). The
-   * synthetic path is guarded: it only runs in DEV/test — production callers
-   * must wire a real import client before the flag can ship.
+   * @param payload - Identifies the Unsplash photo to import.
    */
   async function handleProviderImport(payload: { externalId: string }): Promise<void> {
-    if (!import.meta.env.DEV && !import.meta.env.MODE?.startsWith('test')) {
-      providerSearchError.value =
-        'Unsplash import is not configured. Wire the backend import client before enabling this provider.'
+    const existingAssetId = providerImportResolution.value[payload.externalId]
+    if (existingAssetId) {
+      stageAssetOnce(existingAssetId)
       return
     }
 
-    const syntheticAssetId = `unsplash-${payload.externalId}`
-    providerImportResolution.value = {
-      ...providerImportResolution.value,
-      [payload.externalId]: syntheticAssetId,
+    const target = providerResults.value.find((result) => result.externalId === payload.externalId)
+    if (target?.selectedForImport || target?.imported) return
+
+    providerSearchError.value = null
+    providerResults.value = providerResults.value.map((result) =>
+      result.externalId === payload.externalId ? { ...result, selectedForImport: true } : result,
+    )
+
+    try {
+      const importPhoto = params.importUnsplash ?? importUnsplashPhoto
+      const asset = await importPhoto(payload.externalId)
+      mediaStore.upsertAsset(asset)
+      ensurePickerAssetVisible(asset.assetId)
+      mediaPickerCollectionState.value = 'READY'
+
+      if (isAssetSelectableStatus(asset.status)) {
+        stageAssetOnce(asset.assetId)
+        clearPendingPickerAsset(asset.assetId)
+      } else {
+        startAssetReconciliation(asset.assetId)
+      }
+
+      providerImportResolution.value = {
+        ...providerImportResolution.value,
+        [payload.externalId]: asset.assetId,
+      }
+      providerResults.value = providerResults.value.map((result) =>
+        result.externalId === payload.externalId
+          ? { ...result, selectedForImport: false, imported: true }
+          : result,
+      )
+    } catch (error: unknown) {
+      providerResults.value = providerResults.value.map((result) =>
+        result.externalId === payload.externalId ? { ...result, selectedForImport: false } : result,
+      )
+      providerSearchError.value =
+        error instanceof Error ? error.message : 'Unable to import the selected Unsplash photo.'
     }
-
-    // Seed a non-READY persisted asset so the reconciliation pipeline has
-    // something to poll; the asset becomes READY after loadAsset resolves.
-    mediaStore.upsertAsset({
-      assetId: syntheticAssetId,
-      workspaceId: useMediaStoreWorkspaceId(),
-      sourceType: 'EXTERNAL',
-      mediaType: 'image/jpeg',
-      status: 'PENDING_UPLOAD',
-      originalFilename: `${payload.externalId}.jpg`,
-      fileSizeBytes: null,
-      createdAt: new Date().toISOString(),
-      previewUrl: null,
-      sourceProvider: 'unsplash',
-      externalId: payload.externalId,
-    })
-
-    ensurePickerAssetVisible(syntheticAssetId)
-    mediaPickerCollectionState.value = 'READY'
-    startAssetReconciliation(syntheticAssetId)
   }
 
   // -------------------------------------------------------------------------
@@ -629,6 +663,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     providerResults,
     providerSearching,
     providerSearchError,
+    providerSearch,
     providerImportResolution,
 
     // Lifecycle methods

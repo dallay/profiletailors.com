@@ -38,6 +38,10 @@ internal fun interface WorkspaceMembershipLookup {
     suspend fun resolve(principalId: String, resourceContext: ResourceContext): WorkspaceMembership?
 }
 
+internal fun interface WorkspaceMembershipAccessChecker {
+    suspend fun isActiveMember(principalId: String, resourceContext: ResourceContext): Boolean
+}
+
 internal interface WorkspaceMembershipRepository {
     suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceMembership>
 

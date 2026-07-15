@@ -11,7 +11,7 @@ export type MockMediaStatus =
 export interface MockMediaAsset {
   assetId: string
   workspaceId: string
-  sourceType: 'UPLOADED'
+  sourceType: 'UPLOADED' | 'EXTERNAL'
   mediaType: string
   status: MockMediaStatus
   originalFilename: string | null
@@ -20,6 +20,21 @@ export interface MockMediaAsset {
   previewUrl?: string | null
   downloadUrl?: string | null
   fileHash?: string
+  sourceProvider?: string | null
+  externalId?: string | null
+  sourceUrl?: string | null
+  authorName?: string | null
+  authorUrl?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+export interface MockUnsplashPhoto {
+  externalId: string
+  name: string
+  previewUrl: string
+  sourceUrl: string
+  authorName: string
+  authorUrl: string
 }
 
 export interface MockListResponse {
@@ -250,6 +265,41 @@ export class MockChannelsProvider implements IMockChannelsProvider {
   }
 }
 
+/**
+ * Controls the mocked `POST /api/publishing/publications` response used by
+ * the composer happy-path. The default behavior echoes the request body and
+ * returns `201 Created`; tests can call `setFailure(...)` to simulate a
+ * server-side rejection (e.g. validation, scheduling conflict).
+ */
+export interface IMockPublicationPostProvider {
+  setFailure(status: number, body?: unknown): void
+  clearFailure(): void
+  reset(): void
+}
+
+export class MockPublicationPostProvider implements IMockPublicationPostProvider {
+  private readonly state: MediaRouteState
+
+  constructor(state: MediaRouteState) {
+    this.state = state
+  }
+
+  setFailure(status: number, body: unknown = null): void {
+    this.state.publicationPostStatus = status
+    this.state.publicationPostFailureBody = body
+  }
+
+  clearFailure(): void {
+    this.state.publicationPostStatus = 201
+    this.state.publicationPostFailureBody = null
+  }
+
+  reset(): void {
+    this.clearFailure()
+    this.state.publicationPostCount = 0
+  }
+}
+
 const MOCK_WORKSPACE_ID = 'workspace-001'
 
 function contentType(headers: Record<string, string> = {}): Record<string, string> {
@@ -279,6 +329,16 @@ function parsePutBody(route: Route): PutRequestBody {
   }
 }
 
+function parsePostData(request: import('@playwright/test').Request): Record<string, unknown> {
+  const data = request.postData()
+  if (!data) return {}
+  try {
+    return JSON.parse(data) as Record<string, unknown>
+  } catch {
+    return {}
+  }
+}
+
 function defaultErrorBody(status: number) {
   return {
     errorCode: status >= 500 ? 'MEDIA_SERVICE_UNAVAILABLE' : 'MEDIA_REQUEST_FAILED',
@@ -298,6 +358,16 @@ export class MediaRouteState {
   // PR 1 — deferred upload and channel-limit state
   deferredUploads: Map<string, DeferredUploadRecord> = new Map()
   channelsMaxAttachments: number | null = null
+  unsplashSearches: string[] = []
+  unsplashImportCount = 0
+  unsplashImportFailures = new Set<string>()
+  // PR 2 — composer publication POST state.
+  // Default behavior is "echo the request body as 201 Created". Tests that
+  // need to exercise failure paths call `publicationPostProvider.setFailure(...)`
+  // to enqueue a one-shot status + body before the request fires.
+  publicationPostCount = 0
+  publicationPostStatus = 201
+  publicationPostFailureBody: unknown = null
 
   reset(): void {
     this.assets = []
@@ -310,6 +380,12 @@ export class MediaRouteState {
     this.getCount = 0
     this.deferredUploads = new Map()
     this.channelsMaxAttachments = null
+    this.unsplashSearches = []
+    this.unsplashImportCount = 0
+    this.unsplashImportFailures = new Set()
+    this.publicationPostCount = 0
+    this.publicationPostStatus = 201
+    this.publicationPostFailureBody = null
   }
 
   enqueuePut(response: MockPutResponse): void {
@@ -334,6 +410,12 @@ export class MediaRouteState {
       previewUrl: input.previewUrl ?? `/api/media/assets/${assetId}/preview`,
       downloadUrl: input.downloadUrl ?? `/api/media/assets/${assetId}/preview`,
       fileHash: input.fileHash,
+      sourceProvider: input.sourceProvider,
+      externalId: input.externalId,
+      sourceUrl: input.sourceUrl,
+      authorName: input.authorName,
+      authorUrl: input.authorUrl,
+      metadata: input.metadata,
     }
     this.upsertAsset(asset)
     return asset
@@ -601,8 +683,12 @@ function deferredPromise<T>(): {
   return { promise, resolve: resolveFn, reject: rejectFn }
 }
 
-/** Default channel used by the mocked channels endpoint when the test has
- *  not registered a per-test override. */
+/**
+ * Creates the mocked channels response payload for the configured attachment limit.
+ *
+ * @param maxAttachments - The maximum number of attachments, or `null` to use 10.
+ * @returns An object containing the mocked LinkedIn channel.
+ */
 export function defaultChannelsPayload(maxAttachments: number | null) {
   return {
     channels: [
@@ -620,10 +706,113 @@ export function defaultChannelsPayload(maxAttachments: number | null) {
   }
 }
 
+/**
+ * Registers mock routes for Unsplash photo operations and media asset endpoints.
+ *
+ * @param context - The browser context in which to register the routes
+ * @param state - Shared mutable state used by the mocked routes
+ */
 export async function registerMediaMocks(
   context: BrowserContext,
   state: MediaRouteState,
 ): Promise<void> {
+  const editorialPhotos: MockUnsplashPhoto[] = [
+    {
+      externalId: 'editorial-workspace',
+      name: 'Creative workspace',
+      previewUrl: 'https://images.unsplash.com/editorial-workspace',
+      sourceUrl:
+        'https://unsplash.com/photos/editorial-workspace?utm_source=profile_tailors&utm_medium=referral',
+      authorName: 'Editorial Author',
+      authorUrl:
+        'https://unsplash.com/@editorial-author?utm_source=profile_tailors&utm_medium=referral',
+    },
+  ]
+  const searchPhotos: MockUnsplashPhoto[] = [
+    {
+      externalId: 'remote-work',
+      name: 'Remote work',
+      previewUrl: 'https://images.unsplash.com/remote-work',
+      sourceUrl:
+        'https://unsplash.com/photos/remote-work?utm_source=profile_tailors&utm_medium=referral',
+      authorName: 'Search Author',
+      authorUrl:
+        'https://unsplash.com/@search-author?utm_source=profile_tailors&utm_medium=referral',
+    },
+    {
+      externalId: 'import-fails',
+      name: 'Import failure example',
+      previewUrl: 'https://images.unsplash.com/import-fails',
+      sourceUrl:
+        'https://unsplash.com/photos/import-fails?utm_source=profile_tailors&utm_medium=referral',
+      authorName: 'Retry Author',
+      authorUrl:
+        'https://unsplash.com/@retry-author?utm_source=profile_tailors&utm_medium=referral',
+    },
+  ]
+
+  await context.route('https://images.unsplash.com/**', (route) => {
+    previewAsset(route)
+  })
+
+  await context.route('**/api/media/providers/unsplash/photos**', (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+
+    if (request.method() === 'GET') {
+      const query = url.searchParams.get('query')?.trim() ?? ''
+      state.unsplashSearches.push(query)
+
+      if (query === 'provider-error') {
+        route.fulfill(json(502, { title: 'Unsplash unavailable', detail: 'Try again later.' }))
+        return
+      }
+
+      route.fulfill(
+        json(200, {
+          photos: query === '' ? editorialPhotos : query === 'no-results' ? [] : searchPhotos,
+        }),
+      )
+      return
+    }
+
+    if (request.method() === 'POST' && url.pathname.endsWith('/import')) {
+      const externalId = url.pathname.split('/').at(-2) ?? ''
+      state.unsplashImportCount += 1
+      if (state.unsplashImportFailures.has(externalId)) {
+        route.fulfill(json(502, { title: 'Unsplash import failed', detail: 'Try again later.' }))
+        return
+      }
+
+      const photo = [...editorialPhotos, ...searchPhotos].find(
+        (candidate) => candidate.externalId === externalId,
+      )
+      if (!photo) {
+        route.fulfill(
+          json(404, { title: 'Photo not found', detail: 'The photo is no longer available.' }),
+        )
+        return
+      }
+
+      const asset = state.seedAsset({
+        assetId: `unsplash-${externalId}`,
+        sourceType: 'EXTERNAL',
+        mediaType: 'image/jpeg',
+        originalFilename: `${externalId}.jpg`,
+        sourceProvider: 'unsplash',
+        externalId,
+        sourceUrl: photo.sourceUrl,
+        authorName: photo.authorName,
+        authorUrl: photo.authorUrl,
+        metadata: { attribution: `Photo by ${photo.authorName} on Unsplash` },
+      })
+      route.fulfill(json(201, asset))
+      return
+    }
+
+    route.fulfill(json(405, { title: 'Method not allowed' }))
+  })
+
   await context.route('**/api/media/assets**', async (route) => {
     const request = route.request()
     const method = request.method()
@@ -669,6 +858,59 @@ export async function registerMediaMocks(
       json(405, { title: 'Method not allowed', detail: `Unsupported method ${method}.` }),
     )
   })
+
+  // PR 2 — composer publication POST. The composer lane submits here on
+  // happy-path scheduling. Without a route the request falls through to the
+  // Vite proxy and ECONNREFUSEs because no backend is running in this config.
+  await context.route('**/api/publishing/publications', async (route) => {
+    const request = route.request()
+    if (request.method() !== 'POST') {
+      await route.fallback()
+      return
+    }
+    state.publicationPostCount += 1
+    const status = state.publicationPostStatus
+    if (status !== 201) {
+      const failureBody = state.publicationPostFailureBody ?? {
+        title: 'Publication rejected',
+        detail: 'Mocked failure.',
+      }
+      await route.fulfill(json(status, failureBody))
+      return
+    }
+    const body = parsePostData(request)
+    const publication = {
+      id: `mock-publication-${Date.now()}`,
+      publicationId: `mock-publication-${Date.now()}`,
+      workspaceId: body?.workspaceId ?? MOCK_WORKSPACE_ID,
+      socialAccountId: body?.socialAccountId ?? 'sa-linkedin-001',
+      provider: body?.provider ?? 'linkedin',
+      status: 'QUEUED',
+      scheduleMode: body?.scheduleMode ?? 'NOW',
+      priority: body?.priority ?? false,
+      title: body?.title ?? null,
+      bodyText: body?.bodyText ?? null,
+      scheduledFor: body?.scheduledFor ?? null,
+      nextSlotAfter: body?.nextSlotAfter ?? null,
+      assetIds: body?.assetIds ?? [],
+      hasConflict: false,
+      conflictingPublicationIds: [],
+    }
+    await route.fulfill(json(201, publication))
+  })
+
+  // PR 2 — composer channels GET. The composer lane needs at least one
+  // ACTIVE LinkedIn channel for `canSubmit` to enable the submit button.
+  // Without this handler the request 401s on the Vite proxy and the
+  // composer never reaches the publication POST above.
+  await context.route('**/api/publishing/channels**', async (route) => {
+    const request = route.request()
+    if (request.method() !== 'GET') {
+      await route.fallback()
+      return
+    }
+    await route.fulfill(json(200, defaultChannelsPayload(state.channelsMaxAttachments)))
+  })
 }
 
 /**
@@ -710,11 +952,38 @@ export async function registerComposerControls(
  * Apply seeded channels directly to the Pinia publishing store.
  * Used by composer tests that need channels loaded before the modal opens.
  */
+type VueAppElement = Element & {
+  __vue_app__?: {
+    config?: {
+      globalProperties?: {
+        $pinia?: {
+          _s?: Map<string, unknown>
+        }
+      }
+    }
+  }
+}
+
+type SeededPublishingChannel = {
+  id: string
+  accountId: string
+  name: string
+  provider: 'linkedin'
+  avatar: string
+  handle: string
+  status: 'ACTIVE'
+  maxAttachments: number
+}
+
+type PublishingStoreWithChannels = {
+  channels: SeededPublishingChannel[]
+}
+
 export async function applySeededChannelsToStore(
   page: import('@playwright/test').Page,
-  _maxAttachments: number | null = null,
+  maxAttachments: number | null = null,
 ): Promise<void> {
-  const channel = {
+  const channel: SeededPublishingChannel = {
     id: 'sa-linkedin-001',
     accountId: 'sa-linkedin-001',
     name: 'Dev User',
@@ -722,17 +991,15 @@ export async function applySeededChannelsToStore(
     avatar: '',
     handle: 'Dev User',
     status: 'ACTIVE',
+    maxAttachments: maxAttachments ?? 10,
   }
   await page.evaluate((ch) => {
-    // biome-ignore lint/suspicious/noExplicitAny: Vue internals access
-    const app = (document.querySelector('#app') as any)?.__vue_app__
+    const app = (document.querySelector('#app') as VueAppElement | null)?.__vue_app__
     const pinia = app?.config?.globalProperties?.$pinia
-    if (pinia?.state?.value?.publishing) {
-      const channels = pinia.state.value.publishing.channels
-      // biome-ignore lint/suspicious/noExplicitAny: dynamic channel type from Pinia
-      if (!channels.some((c: any) => c.id === ch.id)) {
-        channels.push(ch)
-      }
+    const publishingStore = pinia?._s?.get('publishing') as PublishingStoreWithChannels | undefined
+    if (!publishingStore) {
+      throw new Error('Publishing store not available')
     }
+    publishingStore.channels = [ch]
   }, channel)
 }

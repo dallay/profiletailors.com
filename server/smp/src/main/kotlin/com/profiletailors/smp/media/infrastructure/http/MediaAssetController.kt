@@ -416,6 +416,12 @@ class MediaAssetController(
         return mediator.send(GetWorkspaceAssetQuery(assetId = assetId, workspaceId = workspaceId)).toResponse()
     }
 
+    /**
+     * Deletes a workspace media asset using the legacy endpoint.
+     *
+     * @param assetId The identifier of the asset to delete.
+     * @return An empty response with HTTP status 204 (No Content).
+     */
     @DeleteMapping(value = ["/{assetId}"], version = "1")
     suspend fun deleteAssetLegacy(@PathVariable assetId: String): ResponseEntity<Void> {
         val workspaceContext = resourceContextProvider.requireWorkspaceContext()
@@ -424,6 +430,12 @@ class MediaAssetController(
         return ResponseEntity.noContent().build()
     }
 
+    /**
+     * Parses a comma-separated asset status filter.
+     *
+     * @param status The status filter, or `null` to use the `READY` status.
+     * @return The parsed statuses, defaulting to `READY` when the input is blank or contains no valid statuses.
+     */
     private fun parseStatuses(status: String?): Set<MediaAssetStatus> {
         if (status.isNullOrBlank()) return setOf(MediaAssetStatus.READY)
         return status.split(",")
@@ -441,7 +453,12 @@ class MediaAssetController(
     }
 }
 
-private fun MediaAssetSummary.toResponse() = MediaAssetResponse(
+/**
+ * Converts this media asset summary to a media asset response.
+ *
+ * @return The response containing the asset summary details.
+ */
+internal fun MediaAssetSummary.toMediaAssetResponse() = MediaAssetResponse(
     assetId = assetId,
     workspaceId = workspaceId,
     sourceType = sourceType,
@@ -459,3 +476,10 @@ private fun MediaAssetSummary.toResponse() = MediaAssetResponse(
     authorUrl = authorUrl,
     metadata = metadata,
 )
+
+/**
+ * Converts the asset summary to an API response.
+ *
+ * @return The media asset response.
+ */
+private fun MediaAssetSummary.toResponse() = toMediaAssetResponse()

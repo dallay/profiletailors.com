@@ -30,25 +30,38 @@ const API_HEADERS: Record<string, string> = {
 const HAR_REPLAY = process.env.UPDATE_HAR !== 'true'
 
 /**
- * Authenticate by logging in via the Vue form and waiting for dashboard.
- * This ensures the Pinia auth store is properly updated.
+ * Authenticates through the login form and waits for navigation to complete.
  *
- * NOTE: After page reload, the HAR's refresh entry returns 401,
- * so session is NOT persisted across reloads. Tests that need
- * reload support must add their own page.route override for
- * the refresh endpoint (POST /api/auth/refresh).
+ * @param page - The Playwright page used for authentication.
+ * @param credentials - The email and password submitted to the login form.
+ * @returns An object containing the access token returned by the login endpoint.
+ * @throws Error if the login endpoint responds with a failure status.
  */
 export async function authenticateAs(
   page: Page,
   credentials: { email: string; password: string } = VALID_CREDENTIALS,
-): Promise<void> {
+): Promise<{ accessToken: string }> {
   await page.goto(APP_URL.login, { waitUntil: 'domcontentloaded' })
   await page.getByLabel(/email/i).fill(credentials.email)
   await page.getByLabel(/password/i).fill(credentials.password)
+  const loginResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/auth/login',
+  )
   await page.getByRole('button', { name: /sign in|iniciar sesión/i }).click()
+
+  const loginResponse = await loginResponsePromise
+  if (!loginResponse.ok()) {
+    const problem = await loginResponse.text()
+    throw new Error(`Login failed with ${loginResponse.status()}: ${problem}`)
+  }
+
+  const tokens = (await loginResponse.json()) as { accessToken: string }
 
   // Wait for navigation to dashboard
   await page.waitForURL('**/')
+  return tokens
 }
 
 /**

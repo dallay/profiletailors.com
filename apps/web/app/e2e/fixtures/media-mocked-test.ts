@@ -9,6 +9,7 @@ import {
   resetMediaMocks,
   DeferredUploadController,
   MockChannelsProvider,
+  MockPublicationPostProvider,
   TransitionQueue,
 } from './media-mocks'
 
@@ -21,6 +22,10 @@ interface MediaMockFixtures {
   deferredUpload: DeferredUploadController
   channelsProvider: MockChannelsProvider
   transitionQueue: TransitionQueue<{ progress: number }>
+  // PR 2 — composer publication POST controller.
+  // Default behavior echoes the request body as 201; tests override via
+  // `setFailure(status, body?)` for failure-path coverage.
+  publicationPostProvider: MockPublicationPostProvider
 }
 
 export const test = base.extend<MediaMockFixtures>({
@@ -78,6 +83,12 @@ export const test = base.extend<MediaMockFixtures>({
     const queue = new TransitionQueue<{ progress: number }>()
     await use(queue)
     queue.reset()
+  },
+
+  publicationPostProvider: async ({ mockState }, use) => {
+    const provider = new MockPublicationPostProvider(mockState)
+    await use(provider)
+    provider.reset()
   },
 })
 

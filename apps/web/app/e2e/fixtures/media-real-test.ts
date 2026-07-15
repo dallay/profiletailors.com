@@ -82,12 +82,13 @@ export const test = base.extend<MediaRealFixtures>({
     if (!email || !password) {
       throw new Error('E2E_MEDIA_EMAIL and E2E_MEDIA_PASSWORD must be set for real media tests')
     }
-    await authenticateAs(page, {
+    const tokens = await authenticateAs(page, {
       email,
       password,
     })
 
-    await page.setExtraHTTPHeaders({
+    await context.setExtraHTTPHeaders({
+      Authorization: `Bearer ${tokens.accessToken}`,
       'X-Workspace-Id': 'dev-workspace-001',
       'x-e2e-run-id': runId,
     })

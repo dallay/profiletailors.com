@@ -728,9 +728,19 @@ describe('useComposerMediaPicker', () => {
   // -------------------------------------------------------------------------
 
   describe('handleProviderSearch', () => {
-    it('sets providerQuery and clears results on empty query', () => {
+    it('loads editorial example photos when the query is empty', async () => {
       const mediaStore = createFakeMediaStore()
       const publishingStore = createFakePublishingStore()
+      const searchUnsplash = vi.fn().mockResolvedValue([
+        {
+          externalId: 'editorial-1',
+          name: 'Editorial photo',
+          previewUrl: 'https://images.unsplash.com/editorial-1',
+          sourceUrl: 'https://unsplash.com/photos/editorial-1',
+          authorName: 'Author',
+          authorUrl: 'https://unsplash.com/@author',
+        },
+      ])
 
       const picker = useComposerMediaPicker({
         mediaStore,
@@ -738,16 +748,28 @@ describe('useComposerMediaPicker', () => {
         editingPublication: ref(null),
         provider: ref('unsplash'),
         initialChannelId: ref(null),
+        searchUnsplash,
       })
 
-      picker.handleProviderSearch({ query: '' })
+      await picker.handleProviderSearch({ query: '' })
       expect(picker.providerQuery.value).toBe('')
-      expect(picker.providerResults.value).toEqual([])
+      expect(searchUnsplash).toHaveBeenCalledWith(undefined)
+      expect(picker.providerResults.value[0]?.externalId).toBe('editorial-1')
     })
 
-    it('synthesizes providerResults in DEV/test mode', () => {
+    it('searches with the normalized provider query', async () => {
       const mediaStore = createFakeMediaStore()
       const publishingStore = createFakePublishingStore()
+      const searchUnsplash = vi.fn().mockResolvedValue([
+        {
+          externalId: 'mountain-1',
+          name: 'Mountain',
+          previewUrl: 'https://images.unsplash.com/mountain-1',
+          sourceUrl: 'https://unsplash.com/photos/mountain-1',
+          authorName: 'Author',
+          authorUrl: 'https://unsplash.com/@author',
+        },
+      ])
 
       const picker = useComposerMediaPicker({
         mediaStore,
@@ -755,23 +777,94 @@ describe('useComposerMediaPicker', () => {
         editingPublication: ref(null),
         provider: ref('unsplash'),
         initialChannelId: ref(null),
+        searchUnsplash,
       })
 
-      picker.handleProviderSearch({ query: 'mountain' })
+      await picker.handleProviderSearch({ query: '  mountain  ' })
 
       expect(picker.providerQuery.value).toBe('mountain')
-      expect(picker.providerResults.value.length).toBeGreaterThan(0)
-      expect(picker.providerResults.value[0]?.externalId).toContain('mountain')
+      expect(searchUnsplash).toHaveBeenCalledWith('mountain')
+      expect(picker.providerResults.value[0]?.externalId).toBe('mountain-1')
+    })
+
+    it('surfaces provider failures and clears the loading state', async () => {
+      const picker = useComposerMediaPicker({
+        mediaStore: createFakeMediaStore(),
+        publishingStore: createFakePublishingStore(),
+        editingPublication: ref(null),
+        provider: ref('unsplash'),
+        initialChannelId: ref(null),
+        searchUnsplash: vi.fn().mockRejectedValue(new Error('Rate limited')),
+      })
+
+      await picker.handleProviderSearch({ query: 'mountain' })
+
+      expect(picker.providerSearching.value).toBe(false)
+      expect(picker.providerResults.value).toEqual([])
+      expect(picker.providerSearchError.value).toBe('Rate limited')
+    })
+
+    it('ignores stale provider search results from earlier requests', async () => {
+      let resolveFirst: (
+        photos: Awaited<
+          ReturnType<NonNullable<Parameters<typeof useComposerMediaPicker>[0]['searchUnsplash']>>
+        >,
+      ) => void
+      const searchUnsplash = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveFirst = resolve
+            }),
+        )
+        .mockResolvedValueOnce([
+          {
+            externalId: 'newer-result',
+            name: 'Newer result',
+            previewUrl: 'https://images.unsplash.com/newer-result',
+            sourceUrl: 'https://unsplash.com/photos/newer-result',
+            authorName: 'Author',
+            authorUrl: 'https://unsplash.com/@author',
+          },
+        ])
+      const picker = useComposerMediaPicker({
+        mediaStore: createFakeMediaStore(),
+        publishingStore: createFakePublishingStore(),
+        editingPublication: ref(null),
+        provider: ref('unsplash'),
+        initialChannelId: ref(null),
+        searchUnsplash,
+      })
+
+      const firstSearch = picker.handleProviderSearch({ query: 'old' })
+      await picker.handleProviderSearch({ query: 'new' })
+      resolveFirst!([
+        {
+          externalId: 'older-result',
+          name: 'Older result',
+          previewUrl: 'https://images.unsplash.com/older-result',
+          sourceUrl: 'https://unsplash.com/photos/older-result',
+          authorName: 'Author',
+          authorUrl: 'https://unsplash.com/@author',
+        },
+      ])
+      await firstSearch
+
+      expect(picker.providerResults.value.map((result) => result.externalId)).toEqual([
+        'newer-result',
+      ])
+      expect(picker.providerSearching.value).toBe(false)
     })
   })
 
   describe('handleProviderImport', () => {
-    it('upserts synthetic asset and starts reconciliation in DEV/test', async () => {
+    it('imports a READY asset, stages it, and prevents duplicate imports', async () => {
       const mediaStore = createFakeMediaStore()
       const publishingStore = createFakePublishingStore()
       const upsertSpy = vi.spyOn(mediaStore, 'upsertAsset')
-      vi.spyOn(mediaStore, 'loadAsset').mockResolvedValue({
-        assetId: 'unsplash-mountain-1',
+      const importedAsset: MediaAssetSummary = {
+        assetId: 'asset-mountain-1',
         workspaceId: 'ws-1',
         sourceType: 'EXTERNAL',
         mediaType: 'image/jpeg',
@@ -779,10 +872,11 @@ describe('useComposerMediaPicker', () => {
         originalFilename: 'mountain-1.jpg',
         fileSizeBytes: 1024,
         createdAt: '2026-06-19T12:00:00Z',
-        previewUrl: '/api/media/assets/unsplash-mountain-1/preview',
+        previewUrl: '/api/media/assets/asset-mountain-1/preview',
         sourceProvider: 'unsplash',
         externalId: 'mountain-1',
-      })
+      }
+      const importUnsplash = vi.fn().mockResolvedValue(importedAsset)
 
       const picker = useComposerMediaPicker({
         mediaStore,
@@ -790,13 +884,47 @@ describe('useComposerMediaPicker', () => {
         editingPublication: ref(null),
         provider: ref('unsplash'),
         initialChannelId: ref(null),
-        workspaceId: 'ws-1',
+        importUnsplash,
       })
 
       await picker.handleProviderImport({ externalId: 'mountain-1' })
+      await picker.handleProviderImport({ externalId: 'mountain-1' })
 
-      expect(upsertSpy).toHaveBeenCalled()
-      expect(picker.providerImportResolution.value['mountain-1']).toBe('unsplash-mountain-1')
+      expect(importUnsplash).toHaveBeenCalledOnce()
+      expect(upsertSpy).toHaveBeenCalledWith(importedAsset)
+      expect(picker.pickerSelectionIds.value).toContain('asset-mountain-1')
+      expect(picker.providerImportResolution.value['mountain-1']).toBe('asset-mountain-1')
+    })
+
+    it('allows retry after an import failure', async () => {
+      const importUnsplash = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Import failed'))
+        .mockResolvedValueOnce({
+          assetId: 'asset-retry',
+          workspaceId: 'ws-1',
+          sourceType: 'EXTERNAL',
+          mediaType: 'image/jpeg',
+          status: 'READY',
+          originalFilename: 'retry.jpg',
+          fileSizeBytes: 100,
+          createdAt: '2026-06-19T12:00:00Z',
+        } satisfies MediaAssetSummary)
+      const picker = useComposerMediaPicker({
+        mediaStore: createFakeMediaStore(),
+        publishingStore: createFakePublishingStore(),
+        editingPublication: ref(null),
+        provider: ref('unsplash'),
+        initialChannelId: ref(null),
+        importUnsplash,
+      })
+
+      await picker.handleProviderImport({ externalId: 'retry' })
+      expect(picker.providerSearchError.value).toBe('Import failed')
+
+      await picker.handleProviderImport({ externalId: 'retry' })
+      expect(importUnsplash).toHaveBeenCalledTimes(2)
+      expect(picker.providerImportResolution.value.retry).toBe('asset-retry')
     })
   })
 

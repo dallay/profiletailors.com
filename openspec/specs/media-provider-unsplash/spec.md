@@ -3,39 +3,51 @@
 ## Overview
 
 The Unsplash provider exposes a tab in the composer media picker that lets authors
-search Unsplash photos and import results into the active picker session. The
-provider follows the parent-owned reconciliation pattern: the picker shell renders
-the tab and slots the parent-owned panel; the panel emits typed `provider-search`
-and `provider-import` events; the parent (CreatePostModal) owns the actual fetch,
-persistence, and staged reconciliation. The provider tab is purely presentational
-and never fetches, persists, or mutates assets directly.
+browse editorial examples, search Unsplash, and import a photo into the active
+picker session. Search and import use a server-side Unsplash adapter so the access
+key is never exposed to the browser. An imported photo becomes a READY external
+media asset and its asset ID follows the same publication path as uploaded media.
 
 ## Changes
 
 - New domain `media-provider-unsplash` introduced as part of the
   `create-post-media-attachment-picker` change (WU3).
-- Provider tab visibility is controlled by a parent-supplied `provider="unsplash"`
-  prop combined with an `isUnsplashProviderEnabled` feature flag. The tab MUST
-  render only when both conditions are true.
+- Opening the Unsplash tab without a query MUST load editorial photos from the
+  Unsplash `/photos` endpoint.
+- A non-blank query MUST use the Unsplash `/search/photos` endpoint with high
+  content filtering.
+- Provider credentials and download tracking MUST remain server-side.
+- Search results MUST render photographer and Unsplash attribution links.
+- Selecting Import MUST download and persist the selected photo as a READY
+  external media asset and call the result's `download_location` endpoint.
 - Provider import is treated as an **action within the picker flow**, not as a
   browsable source replacement. Imports keep the picker open so the author can
   continue staged multi-selection.
+- Import failure MUST keep the result actionable so the author can retry.
+- The imported asset ID MUST be included in the publication create payload.
 - The provider tab is shell-only: no fetching, no persistence, no asset mutation
   inside the picker shell.
 
 ## Usage
 
-### Parent-side wiring
+### Configuration
 
-- Pass `provider="unsplash"` and `isUnsplashProviderEnabled={true}` to the modal
-  when the provider is configured and the user is in a workspace where Unsplash
-  is enabled.
-- The modal owns the provider-search and provider-import orchestration. It calls
-  the backend Unsplash client (when wired) and routes imported assets through the
-  same reconciliation pipeline as uploads.
-- Until a backend Unsplash client is wired, the modal's synthetic path is
-  explicitly guarded behind `import.meta.env.DEV` / `import.meta.env.MODE`
-  starting with `test` and returns a clear `providerSearchError` in production.
+- Set `SMP_MEDIAPROVIDER_UNSPLASH_ENABLED=true`.
+- Set `UNSPLASH_ACCESS_KEY` to the server-side Unsplash access key.
+- Keep `SMP_MEDIAPROVIDER_UNSPLASH_BASE_URL` at the official API URL outside
+  controlled tests.
+- Configure page size, timeout, and maximum import bytes through the matching
+  `SMP_MEDIAPROVIDER_UNSPLASH_*` variables when the defaults are unsuitable.
+
+### Request flow
+
+- `GET /api/media/providers/unsplash/photos` returns editorial examples.
+- `GET /api/media/providers/unsplash/photos?query=...` searches photos.
+- `POST /api/media/providers/unsplash/photos/{externalId}/import` resolves the
+  photo server-side, stores it, records the Unsplash download, and returns a READY
+  media asset.
+- The browser stages that asset and applies it through the existing picker before
+  creating the publication.
 
 ### Picker shell contract
 
@@ -49,7 +61,6 @@ and never fetches, persists, or mutates assets directly.
 
 - The parent renders `MediaProviderPanel` inside the shell's `provider` slot.
 - The panel emits typed events:
-  - `provider-search` with `{ query: string }` on form submit
   - `provider-import` with `{ externalId: string }` on Import click
 - The panel's Import button is `:disabled` whenever the parent marks a result as
   `selectedForImport: true` — the parent owns the in-flight import state and
@@ -57,11 +68,11 @@ and never fetches, persists, or mutates assets directly.
 
 ## Troubleshooting
 
-### Symptom: The Unsplash tab is missing even with the flag enabled
+### Symptom: Search reports that Unsplash is not configured
 
-- Verify the parent passes both `provider="unsplash"` AND
-  `isUnsplashProviderEnabled={true}`. The tab requires both signals.
-- Confirm the feature flag is enabled at the workspace level.
+- Verify `SMP_MEDIAPROVIDER_UNSPLASH_ENABLED=true` and `UNSPLASH_ACCESS_KEY` is
+  present in the backend environment.
+- Restart the backend after changing either value.
 
 ### Symptom: Imports close the picker unexpectedly
 
@@ -77,20 +88,22 @@ and never fetches, persists, or mutates assets directly.
   `selectedForImport: true` immediately on emit and reconcile the flag once
   the import completes or fails.
 
-### Symptom: Production users see placeholder/synthetic Unsplash results
+### Symptom: A result imports but cannot be applied
 
-- The synthetic search/import path is gated behind `import.meta.env.DEV`. In
-  production the modal sets `providerSearchError` to a clear "Unsplash search is
-  not configured" message. Wire a real Unsplash backend client before
-  enabling the flag in production.
+- Switch back to Library after import. The imported READY asset is staged there;
+  Apply commits the staged selection to the composer.
+- If import failed, retry from the same result. The picker MUST remain open and
+  the result MUST remain actionable.
 
 ## References
 
 - Source: `apps/web/app/src/components/composer/ComposerMediaPickerShell.vue`
-- Source: `apps/web/app/src/features/media-composer/providers/MediaProviderPanel.vue`
-- Source: `apps/web/app/src/components/CreatePostModal.vue` (handleProviderSearch,
-  handleProviderImport)
+- Source: `apps/web/app/src/components/composer/MediaProviderPanel.vue`
+- Source: `apps/web/app/src/composables/useComposerMediaPicker.ts`
+- Source: `server/smp/src/main/kotlin/com/profiletailors/smp/media/infrastructure/unsplash/`
 - Tests: `apps/web/app/src/components/composer/ComposerMediaPickerShell.test.ts`
-- Tests: `apps/web/app/src/features/media-composer/providers/MediaProviderPanel.test.ts`
-- Tests: `apps/web/app/src/components/CreatePostModal.test.ts` (Unsplash integration)
+- Tests: `apps/web/app/e2e/specs/composer-media-attachments-mocked.spec.ts`
+- Tests: `server/smp/src/test/kotlin/com/profiletailors/smp/media/`
+- External: `https://unsplash.com/documentation`
+- External: `https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines`
 - Archive: `openspec/changes/archive/2026-07-07-create-post-media-attachment-picker/`

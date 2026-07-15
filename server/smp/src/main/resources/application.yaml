@@ -108,6 +108,7 @@ mediaprovider:
     base-url: ${SMP_MEDIAPROVIDER_UNSPLASH_BASE_URL:https://api.unsplash.com}
     timeout: ${SMP_MEDIAPROVIDER_UNSPLASH_TIMEOUT:PT5S}
     page-size: ${SMP_MEDIAPROVIDER_UNSPLASH_PAGE_SIZE:20}
+    max-import-bytes: ${SMP_MEDIAPROVIDER_UNSPLASH_MAX_IMPORT_BYTES:26214400}
   credentials:
     encryption:
       key: ${PUBLISHING_CREDENTIALS_KEY:}  # Sin default — debe configurarse via env var
