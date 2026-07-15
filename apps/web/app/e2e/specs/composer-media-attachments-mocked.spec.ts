@@ -16,6 +16,7 @@ import { test, expect } from '../fixtures/media-mocked-test'
 import { mediaFiles } from '../fixtures/media-files'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { SchedulerPage } from '../pages/scheduler-page'
+import { applySeededChannelsToStore } from '../fixtures/media-mocks'
 import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 
 const TAGS = '@media @composer @composer-ui-mocked'
@@ -26,6 +27,22 @@ async function openComposeModal(page: import('@playwright/test').Page) {
   await scheduler.clickNewPost()
   await composePage.expectVisible()
   return composePage
+}
+
+async function hydrateAuthStore(page: import('@playwright/test').Page) {
+  await page.evaluate(async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: E2E test needs Vue app internals to hydrate Pinia.
+    const app = (document.querySelector('#app') as any)?.__vue_app__
+    const pinia = app?.config?.globalProperties?.$pinia
+    const authStore = pinia?._s?.get('auth')
+    if (!authStore) {
+      throw new Error('Auth store not available')
+    }
+    await authStore.hydrateSession()
+    if (!authStore.isAuthenticated) {
+      throw new Error('Auth store hydration failed')
+    }
+  })
 }
 
 test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
@@ -364,22 +381,12 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   // -------------------------------------------------------------------------
   // ML-COMPOSER-023: happy path reaches publication payload
   // -------------------------------------------------------------------------
-  test.skip('ML-COMPOSER-023 search, import, select, and create post with Unsplash asset', async ({
+  test('ML-COMPOSER-023 search, import, select, and create post with Unsplash asset', async ({
     page,
     mockState,
   }) => {
-    // SKIP REASON: This test validates the full happy-path flow from Unsplash
-    // search → import → select → create publication. However, the publishing
-    // store's schedulePost() checks auth.isAuthenticated before making the
-    // POST /api/publishing/publications call. In the media-mocked fixture,
-    // mockAuthenticatedSession() mocks the HTTP endpoints but does NOT hydrate
-    // the auth store's in-memory _accessToken, so isAuthenticated remains false
-    // and the POST never fires. This is a known E2E fixture limitation.
-    //
-    // TODO: Fix mockAuthenticatedSession to force auth store hydration OR
-    // refactor publishing.store to allow test-only bypass of auth check.
-    // Tracked in follow-up issue.
-
+    await hydrateAuthStore(page)
+    await applySeededChannelsToStore(page, 10)
     const composePage = await openComposeModal(page)
     await composePage.fillText('Post with an Unsplash image')
     await composePage.openMediaPicker()
@@ -392,9 +399,19 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     await composePage.pickerApply.click()
     await expect(composePage.attachmentPreview).toBeVisible()
 
+    const publicationResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/publishing/publications',
+      { timeout: 20_000 },
+    )
     await composePage.clickScheduleNow()
-    await composePage.expectHidden({ timeout: 5000 })
-
+    const response = await publicationResponse
+    expect(response.ok()).toBe(true)
+    expect(response.request().postDataJSON()).toMatchObject({
+      bodyText: 'Post with an Unsplash image',
+      assetIds: ['unsplash-remote-work'],
+    })
     expect(mockState.unsplashImportCount).toBe(1)
     expect(mockState.publicationPostCount).toBe(1)
   })

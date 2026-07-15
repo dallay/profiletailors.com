@@ -1092,7 +1092,7 @@ class CasUploadAssetHandler(
                     detectedMediaType = detectedMediaType,
                     actualBytes = actualBytes,
                 )
-            } ?: throw BlobOrAssetMissingException(assetId)
+            }
         } catch (e: BlobOrAssetMissingException) {
             // The transactional block returned null because the blob was missing,
             // the asset was missing, or a required metadata field on the blob was null.
@@ -1169,7 +1169,7 @@ class CasUploadAssetHandler(
                     workspaceId = workspaceId,
                     status = MediaAssetStatus.READY.name,
                     mediaType = updatedAsset.detectedMediaType ?: command.declaredMediaType,
-                    detectedMediaType = blob.detectedMediaType ?: command.declaredMediaType,
+                    detectedMediaType = blob.detectedMediaType,
                     deduped = true,
                     fileSizeBytes = blob.fileSizeBytes ?: 0L,
                     createdAt = ISO_FORMATTER.format(updatedAsset.createdAt.atOffset(ZoneOffset.UTC)),

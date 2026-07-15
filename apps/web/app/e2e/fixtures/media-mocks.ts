@@ -954,7 +954,7 @@ export async function registerComposerControls(
  */
 export async function applySeededChannelsToStore(
   page: import('@playwright/test').Page,
-  _maxAttachments: number | null = null,
+  maxAttachments: number | null = null,
 ): Promise<void> {
   const channel = {
     id: 'sa-linkedin-001',
@@ -964,17 +964,16 @@ export async function applySeededChannelsToStore(
     avatar: '',
     handle: 'Dev User',
     status: 'ACTIVE',
+    maxAttachments: maxAttachments ?? 10,
   }
   await page.evaluate((ch) => {
     // biome-ignore lint/suspicious/noExplicitAny: Vue internals access
     const app = (document.querySelector('#app') as any)?.__vue_app__
     const pinia = app?.config?.globalProperties?.$pinia
-    if (pinia?.state?.value?.publishing) {
-      const channels = pinia.state.value.publishing.channels
-      // biome-ignore lint/suspicious/noExplicitAny: dynamic channel type from Pinia
-      if (!channels.some((c: any) => c.id === ch.id)) {
-        channels.push(ch)
-      }
+    const publishingStore = pinia?._s?.get('publishing')
+    if (!publishingStore) {
+      throw new Error('Publishing store not available')
     }
+    publishingStore.channels = [ch]
   }, channel)
 }
