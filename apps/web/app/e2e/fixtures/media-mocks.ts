@@ -265,6 +265,41 @@ export class MockChannelsProvider implements IMockChannelsProvider {
   }
 }
 
+/**
+ * Controls the mocked `POST /api/publishing/publications` response used by
+ * the composer happy-path. The default behavior echoes the request body and
+ * returns `201 Created`; tests can call `setFailure(...)` to simulate a
+ * server-side rejection (e.g. validation, scheduling conflict).
+ */
+export interface IMockPublicationPostProvider {
+  setFailure(status: number, body?: unknown): void
+  clearFailure(): void
+  reset(): void
+}
+
+export class MockPublicationPostProvider implements IMockPublicationPostProvider {
+  private readonly state: MediaRouteState
+
+  constructor(state: MediaRouteState) {
+    this.state = state
+  }
+
+  setFailure(status: number, body: unknown = null): void {
+    this.state.publicationPostStatus = status
+    this.state.publicationPostFailureBody = body
+  }
+
+  clearFailure(): void {
+    this.state.publicationPostStatus = 201
+    this.state.publicationPostFailureBody = null
+  }
+
+  reset(): void {
+    this.clearFailure()
+    this.state.publicationPostCount = 0
+  }
+}
+
 const MOCK_WORKSPACE_ID = 'workspace-001'
 
 function contentType(headers: Record<string, string> = {}): Record<string, string> {
@@ -294,6 +329,16 @@ function parsePutBody(route: Route): PutRequestBody {
   }
 }
 
+function parsePostData(request: import('@playwright/test').Request): Record<string, unknown> {
+  const data = request.postData()
+  if (!data) return {}
+  try {
+    return JSON.parse(data) as Record<string, unknown>
+  } catch {
+    return {}
+  }
+}
+
 function defaultErrorBody(status: number) {
   return {
     errorCode: status >= 500 ? 'MEDIA_SERVICE_UNAVAILABLE' : 'MEDIA_REQUEST_FAILED',
@@ -316,6 +361,13 @@ export class MediaRouteState {
   unsplashSearches: string[] = []
   unsplashImportCount = 0
   unsplashImportFailures = new Set<string>()
+  // PR 2 — composer publication POST state.
+  // Default behavior is "echo the request body as 201 Created". Tests that
+  // need to exercise failure paths call `publicationPostProvider.setFailure(...)`
+  // to enqueue a one-shot status + body before the request fires.
+  publicationPostCount = 0
+  publicationPostStatus = 201
+  publicationPostFailureBody: unknown = null
 
   reset(): void {
     this.assets = []
@@ -331,6 +383,9 @@ export class MediaRouteState {
     this.unsplashSearches = []
     this.unsplashImportCount = 0
     this.unsplashImportFailures = new Set()
+    this.publicationPostCount = 0
+    this.publicationPostStatus = 201
+    this.publicationPostFailureBody = null
   }
 
   enqueuePut(response: MockPutResponse): void {
@@ -802,6 +857,59 @@ export async function registerMediaMocks(
     await route.fulfill(
       json(405, { title: 'Method not allowed', detail: `Unsupported method ${method}.` }),
     )
+  })
+
+  // PR 2 — composer publication POST. The composer lane submits here on
+  // happy-path scheduling. Without a route the request falls through to the
+  // Vite proxy and ECONNREFUSEs because no backend is running in this config.
+  await context.route('**/api/publishing/publications', async (route) => {
+    const request = route.request()
+    if (request.method() !== 'POST') {
+      await route.fallback()
+      return
+    }
+    state.publicationPostCount += 1
+    const status = state.publicationPostStatus
+    if (status !== 201) {
+      const failureBody = state.publicationPostFailureBody ?? {
+        title: 'Publication rejected',
+        detail: 'Mocked failure.',
+      }
+      await route.fulfill(json(status, failureBody))
+      return
+    }
+    const body = parsePostData(request)
+    const publication = {
+      id: `mock-publication-${Date.now()}`,
+      publicationId: `mock-publication-${Date.now()}`,
+      workspaceId: body?.workspaceId ?? MOCK_WORKSPACE_ID,
+      socialAccountId: body?.socialAccountId ?? 'sa-linkedin-001',
+      provider: body?.provider ?? 'linkedin',
+      status: 'QUEUED',
+      scheduleMode: body?.scheduleMode ?? 'NOW',
+      priority: body?.priority ?? false,
+      title: body?.title ?? null,
+      bodyText: body?.bodyText ?? null,
+      scheduledFor: body?.scheduledFor ?? null,
+      nextSlotAfter: body?.nextSlotAfter ?? null,
+      assetIds: body?.assetIds ?? [],
+      hasConflict: false,
+      conflictingPublicationIds: [],
+    }
+    await route.fulfill(json(201, publication))
+  })
+
+  // PR 2 — composer channels GET. The composer lane needs at least one
+  // ACTIVE LinkedIn channel for `canSubmit` to enable the submit button.
+  // Without this handler the request 401s on the Vite proxy and the
+  // composer never reaches the publication POST above.
+  await context.route('**/api/publishing/channels**', async (route) => {
+    const request = route.request()
+    if (request.method() !== 'GET') {
+      await route.fallback()
+      return
+    }
+    await route.fulfill(json(200, defaultChannelsPayload(state.channelsMaxAttachments)))
   })
 }
 

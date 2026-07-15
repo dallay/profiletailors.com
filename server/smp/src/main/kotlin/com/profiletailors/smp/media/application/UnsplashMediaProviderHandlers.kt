@@ -20,7 +20,9 @@ import com.profiletailors.smp.tenancy.application.WorkspaceMembershipAccessCheck
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipNotFoundException
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -60,6 +62,7 @@ class ImportUnsplashPhotoHandler(
      * @return A summary of the imported media asset.
      * @throws UnsplashPhotoTooLargeException If the downloaded photo exceeds the configured maximum file size.
      */
+    @Suppress("ThrowsCount")
     override suspend fun handle(command: ImportUnsplashPhotoCommand): MediaAssetSummary {
         val principalContext = principalContextProvider.require()
         requireEmailVerification(
@@ -107,10 +110,10 @@ class ImportUnsplashPhotoHandler(
             val asset = persistPhoto(command, photo, assetId, storageKey, fileSizeBytes)
             return asset.toUnsplashSummary(assetPreviewUrlResolver, mediaPreviewTokenService)
         } catch (exception: CancellationException) {
-            cleanupStorage(storageKey)
+            withContext(NonCancellable) { cleanupStorage(storageKey) }
             throw exception
         } catch (exception: Exception) {
-            cleanupStorage(storageKey)
+            withContext(NonCancellable) { cleanupStorage(storageKey) }
             throw exception
         }
     }
@@ -175,12 +178,11 @@ class ImportUnsplashPhotoHandler(
      * @throws RateLimitExceededException If the workspace has reached its hourly creation limit.
      * @return The current creation count after the increment.
      */
-    private suspend fun enforceCreationRateLimit(workspaceId: String): Int =
-        enforceHourlyCreationRateLimit(
-            workspaceId = workspaceId,
-            mediaRateLimitRepository = mediaRateLimitRepository,
-            maxCreationsPerHour = settings.maxCreationsPerHour,
-        )
+    private suspend fun enforceCreationRateLimit(workspaceId: String): Int = enforceHourlyCreationRateLimit(
+        workspaceId = workspaceId,
+        mediaRateLimitRepository = mediaRateLimitRepository,
+        maxCreationsPerHour = settings.maxCreationsPerHour,
+    )
 
     /**
      * Converts this media asset into an Unsplash media asset summary.

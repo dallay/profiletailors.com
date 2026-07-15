@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono
 
 class UnsplashWebClientAdapterTest {
     @Test
-    fun `blank search lists editorial photos with authentication headers`() = runTest {
+    fun `should list editorial photos with auth headers when query is blank`() = runTest {
         val requests = mutableListOf<ClientRequest>()
         val adapter = adapter(requests, EDITORIAL_RESPONSE)
 

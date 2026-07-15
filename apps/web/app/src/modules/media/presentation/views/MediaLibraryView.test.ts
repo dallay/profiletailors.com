@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import MediaLibraryView from './MediaLibraryView.vue'
-import { useMediaStore } from '@/stores/media'
+import { useMediaStore } from '@modules/media/infrastructure/media.store'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import type { MediaAssetSummary } from '../../services/media-api'
 

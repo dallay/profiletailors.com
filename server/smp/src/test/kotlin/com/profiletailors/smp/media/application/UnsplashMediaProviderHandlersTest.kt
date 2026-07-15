@@ -30,7 +30,7 @@ class UnsplashMediaProviderHandlersTest {
     )
 
     @Test
-    fun `search normalizes blank query to null`() = runTest {
+    fun `should normalize blank query to null when handler receives whitespace`() = runTest {
         val provider = mockk<UnsplashPhotoProvider>()
         coEvery { provider.search(null) } returns listOf(photo)
         val handler = SearchUnsplashPhotosHandler(provider)

@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import ConflictBadge from './ConflictBadge.vue'
-import CalendarCell from './CalendarCell.vue'
-import type { Publication, ActivityEntry } from '@/stores/publishing'
+import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
+import CalendarCell from '@modules/publishing/presentation/components/CalendarCell.vue'
+import type {
+  Publication,
+  ActivityEntry,
+} from '@modules/publishing/infrastructure/publishing.store'
 
 // ---------------------------------------------------------------------------
 // Mock dependencies shared across component tests
@@ -13,6 +16,13 @@ import type { Publication, ActivityEntry } from '@/stores/publishing'
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
     locale: { value: 'en' },
+    t: (key: string): string => {
+      const translations: Record<string, string> = {
+        'composer.conflictBadge.conflict': 'Conflict',
+        'composer.conflictBadge.reason': 'Conflicts with another publication',
+      }
+      return translations[key] ?? key
+    },
   }),
 }))
 
@@ -313,7 +323,7 @@ describe('CalendarCell', () => {
     expect(row?.find('img').exists()).toBe(true)
   })
 
-  it('emits click-day when current-month cell is clicked', async () => {
+  it('emits click-day when the calendar cell background action is clicked', async () => {
     const date = new Date(2026, 5, 15)
     const wrapper = mount(CalendarCell, {
       props: {
@@ -323,9 +333,30 @@ describe('CalendarCell', () => {
         publications: [],
       },
     })
-    await wrapper.trigger('click')
+
+    await wrapper
+      .get(`button[aria-label="Calendar cell for ${date.toLocaleDateString()}"]`)
+      .trigger('click')
+
     expect(wrapper.emitted('click-day')).toBeTruthy()
     const emittedDate = wrapper.emitted('click-day')?.[0]?.[0] as Date
     expect(emittedDate.getDate()).toBe(15)
+  })
+
+  it('marks past cells as aria-disabled without rendering a day action', () => {
+    const date = new Date(2026, 5, 14)
+    const wrapper = mount(CalendarCell, {
+      props: {
+        date,
+        isCurrentMonth: true,
+        isToday: false,
+        isPast: true,
+        publications: [],
+      },
+    })
+
+    expect(wrapper.attributes('aria-disabled')).toBe('true')
+    expect(wrapper.find('button[aria-label^="Calendar cell for"]').exists()).toBe(false)
+    expect(wrapper.find('button[aria-label="Add post"]').exists()).toBe(false)
   })
 })

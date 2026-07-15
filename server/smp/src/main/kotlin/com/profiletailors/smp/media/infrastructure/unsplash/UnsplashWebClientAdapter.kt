@@ -6,6 +6,7 @@ import com.profiletailors.smp.media.application.UnsplashPhotoNotFoundException
 import com.profiletailors.smp.media.application.UnsplashPhotoProvider
 import com.profiletailors.smp.media.application.UnsplashProviderException
 import com.profiletailors.smp.media.application.UnsplashProviderNotConfiguredException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingle
@@ -45,6 +46,8 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
                     queryParam("content_filter", "high")
                 }.results
             }.map(UnsplashPhotoResponse::toPhoto)
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: WebClientResponseException) {
             throw mapProviderError(exception, null)
         } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
@@ -64,6 +67,8 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
         requireConfigured()
         return try {
             get<UnsplashPhotoResponse>("/photos/${encodePathSegment(externalId)}").toPhoto()
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: WebClientResponseException) {
             throw mapProviderError(exception, externalId)
         } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
@@ -122,6 +127,8 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
                 .retrieve()
                 .toBodilessEntity()
                 .awaitSingle()
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: WebClientResponseException) {
             throw mapProviderError(exception, photo.externalId)
         } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
