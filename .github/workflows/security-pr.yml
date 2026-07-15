@@ -244,7 +244,7 @@ jobs:
           java-version: '21'
           cache: gradle
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@1a818fd5f97ed0ee9a823421bd5b171add01227f # v4.36.2
+        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
         with:
           languages: java-kotlin
           config-file: ./.github/codeql/codeql-config.yml
