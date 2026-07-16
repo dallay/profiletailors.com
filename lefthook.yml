@@ -21,13 +21,14 @@ pre-commit:
 
   commands:
     # ========== FRONTEND (Astro + Vue + TypeScript) ==========
-    # Biome: lint + format for ONLY staged files under apps/web
-    # Uses {staged_files} so partial commits are preserved — only the files
-    # the developer explicitly staged are checked and auto-fixed.
+    # Biome: validate only staged files under apps/web (no auto-fix)
+    # Uses {staged_files} so partial commits are preserved. Auto-fixes are
+    # applied manually with `pnpm biome format --write` before commit to
+    # match what CI's `biome ci` expects (one consistent format).
     frontend-biome:
       glob: 'apps/web/**/*.{ts,tsx,js,jsx,vue,astro}'
       root: 'apps/web'
-      run: 'pnpm biome check --write --unsafe {staged_files}'
+      run: 'pnpm biome check {staged_files}'
 
     # Astro type check (marketing only)
     frontend-typecheck:
