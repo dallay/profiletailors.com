@@ -129,7 +129,7 @@ export class ComposeModalPage {
 
   /** Dropzone button rendered as a 118x118 dashed tile next to the attachments. */
   get mediaDropzone(): Locator {
-    return this.page.getByTestId('media-dropzone')
+    return this.page.getByTestId('composer-inline-dropzone')
   }
 
   /**
@@ -230,7 +230,7 @@ export class ComposeModalPage {
     // `v-if="asset.isUploading"` block. We match by data-testid when the
     // seam lands, otherwise by the absolute-positioned backdrop class.
     return this.page
-      .locator('[data-testid="upload-overlay-local-upload"]')
+      .locator('[data-testid="inline-upload-overlay"]')
       .or(
         this.page
           .locator('div.absolute.inset-0.flex.flex-col')
@@ -244,7 +244,7 @@ export class ComposeModalPage {
    */
   get overflowCard(): Locator {
     return this.page
-      .locator('[data-testid="attachment-overflow"]')
+      .locator('[data-testid="inline-attachment-overflow"]')
       .or(this.page.locator('div.h-\\[118px\\].w-\\[118px\\]').filter({ hasText: /^\+\d+$/ }))
   }
 
@@ -320,7 +320,7 @@ export class ComposeModalPage {
           dt.items.add(file)
         }
         const target = document.querySelector(
-          '[data-testid="media-dropzone"]',
+          '[data-testid="composer-inline-dropzone"]',
         ) as HTMLElement | null
         if (!target) throw new Error('dropzone not found')
         const events = ['dragover', 'drop']

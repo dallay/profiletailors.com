@@ -4,9 +4,9 @@
  * Replaces the previous `media-composer.spec.ts` with a 23-scenario suite
  * tagged `@composer-ui-mocked` that covers every browser-observable plan
  * item. Provider scenarios exercise the same HTTP boundary as production;
- * additional items that depend on the inline-attachment layout from
- * `feat/adapta-media-layout` (dropzone, upload overlay, +N overflow) are
- * explicitly skipped with rationale recorded in `verify-report.md`.
+ * inline-attachment layout items (dropzone, upload overlay, +N overflow)
+ * were previously skipped pending `feat/adapta-media-layout` — now unskipped
+ * with testids aligned to the merged component.
  *
  * Determinism: every upload scenario uses the new
  * `DeferredUploadController` to hold the binary `POST /upload` until the
@@ -107,39 +107,20 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-002: dropzone present + clickable
-  // SKIPPED — dropzone testid ships in feat/adapta-media-layout only.
-  // Tracked as a seam need in verify-report.md.
   // -------------------------------------------------------------------------
   test('ML-COMPOSER-002 dropzone: visible, labelled, and clickable', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-002: media-dropzone testid pending — feature lands in feat/adapta-media-layout. Tracked in verify-report.md.',
-    )
   })
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-003: first-valid file semantics — unsupported files skipped
-  // SKIPPED — the product's <input type="file"> does not have the `multiple`
-  // attribute, so multi-select via file picker is not possible. First-valid
-  // semantics apply only to drag-and-drop, which requires the dropzone from
-  // feat/adapta-media-layout.
   // -------------------------------------------------------------------------
   test('ML-COMPOSER-003 first-valid: unsupported files in a multi-select are ignored', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-003: first-valid semantics require dropzone (feat/adapta-media-layout) — file input is single-file only. Tracked in verify-report.md.',
-    )
   })
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-004: upload progress — overlay shows percentage
-  // SKIPPED — upload-overlay testid ships in feat/adapta-media-layout only.
   // -------------------------------------------------------------------------
   test('ML-COMPOSER-004 upload progress: overlay shows percentage while uploading', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-004: upload-overlay-local-upload testid pending — feature lands in feat/adapta-media-layout. Tracked in verify-report.md.',
-    )
   })
 
   // -------------------------------------------------------------------------
@@ -255,13 +236,8 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-012: +N overflow card renders when more than 4 attachments
-  // SKIPPED — overflow testid ships in feat/adapta-media-layout only.
   // -------------------------------------------------------------------------
   test('ML-COMPOSER-012 overflow: +N card renders when more than 4 attachments', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-012: attachment-overflow testid pending — feature lands in feat/adapta-media-layout. Tracked in verify-report.md.',
-    )
   })
 
   // -------------------------------------------------------------------------
@@ -470,13 +446,8 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-027: dropzone drop — drop event triggers handleMediaDrop
-  // SKIPPED — dropzone is feat/adapta-media-layout only.
   // -------------------------------------------------------------------------
   test('ML-COMPOSER-027 drop: drop event on dropzone triggers attachment', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-027: dropzone + drop event lands in feat/adapta-media-layout. Tracked in verify-report.md.',
-    )
   })
 
   // -------------------------------------------------------------------------
@@ -491,13 +462,8 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-029: progress overlay text is "Uploading..."
-  // SKIPPED — upload overlay ships in feat/adapta-media-layout only.
   // -------------------------------------------------------------------------
   test('ML-COMPOSER-029 progress text: overlay shows "Uploading" or progress percentage', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-029: upload overlay labels land in feat/adapta-media-layout. Tracked in verify-report.md.',
-    )
   })
 
   // -------------------------------------------------------------------------
