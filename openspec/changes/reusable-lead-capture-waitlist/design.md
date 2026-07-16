@@ -1,170 +1,105 @@
-# Design: Reusable Lead Capture Waitlist
+# Design: Reusable Lead Capture Waitlist Capability
 
-## Technical Approach
+## Architecture
 
-Two pure-Kotlin shared modules hold domain primitives with zero Spring/server dependencies. A `leadcapture` bounded context in `server/smp` implements the HTTP + R2DBC adapters. Reuses existing `Email`, `BaseEntity`/`AggregateRoot` from `shared:common`, and the `WAITLIST` rate-limit strategy from `shared:shield:ratelimit`.
+Source: [ADR-0011](../../docs/architecture/adr/0011-reusable-lead-capture-waitlist.md)
 
-## Architecture Decisions
+### Module Layout
 
-| Option | Tradeoffs | Decision |
-|--------|-----------|----------|
-| Domain in shared vs server-only | Shared enables reuse (forms, newsletter) but adds publishing cost | Shared — satisfies 3-context admission rule |
-| `waitlist` separate from `common` module | Separation allows independent evolution | Separate — follows existing `shared/` convention |
-| Email normalization in shared vs server | Shared prevents inconsistent dedupe across consumers | Shared — as `EmailNormalized` VO |
-| Use existing `Email` vs new VO | Reuse avoids duplicating RFC 5321 validation | Reuse `Email`; `EmailNormalized` wraps normalized form + preserves original |
-| R2DBC vs jOOQ vs raw SQL | R2DBC matches existing pattern | R2DBC |
-| Liquibase YAML vs SQL | YAML matches existing changelog convention | YAML |
-| New context vs piggyback on existing | Separate context enforces hexagonal boundaries | New `leadcapture` context |
-| Duplicate returns 202 vs 409 | 409 leaks email existence | 202 — uniform, no enumeration |
-
-## Module Dependency Rules
-
-```
-shared:common                        (pure Kotlin, zero deps)
-  └── shared:lead-capture:common     (SourceType, ConsentType, EmailNormalized, MetadataWhitelist)
-       └── shared:lead-capture:waitlist (Waitlist, WaitlistEntry, status enums, join VOs)
-            └── server:smp:leadcapture  (application handlers, R2DBC repo, HTTP controller, config)
-```
-
-**Invariant**: `shared/lead-capture/*` MUST NOT depend on `server/smp` or any Spring/framework module. Enforce via Gradle module boundaries + ArchUnit test.
-
-## Domain Model
-
-### `shared/lead-capture/common`
-- **SourceType** — marker enum: `WAITLIST`, `FORM`, `NEWSLETTER`
-- **ConsentType** — marker enum: `EARLY_ACCESS`, `MARKETING` (separate fields, never conflated)
-- **EmailNormalized** — `inline class` wrapping `Email.value.lowercase().trim()`, preserves original via `Email` reference
-- **MetadataWhitelist** — defines allowed keys, max 10 entries, key ≤ 64 chars, value ≤ 1024 chars; strips HTML
-
-### `shared/lead-capture/waitlist`
-- **WaitlistStatus** — `OPEN`, `PAUSED`, `CLOSED`
-- **WaitlistEntryStatus** — `JOINED`, `CONFIRMED`, `REMOVED`
-- **Waitlist** (AggregateRoot) — `id`, `key` (unique), `name`, `status`, `metadataSchema`, timestamps
-- **WaitlistEntry** (entity) — `id`, `waitlistId`, `email` (original), `emailNormalized`, `status`, `earlyAccessConsent`, `marketingConsent`, `metadata`, timestamps
-- **WaitlistJoinRequest** — input VO: `email`, `metadata`, `earlyAccessConsent`
-- **WaitlistJoinResult** — output VO: `id`, `email`, `status`, `createdAt`
-
-## API Contract
-
-### `POST /api/waitlists/{waitlistKey}/entries`
-
-**Payload**:
-```json
-{ "email": "user@example.com", "metadata": { "referrer": "hero-section" } }
+```text
+shared/
+  lead-capture/
+    common/                 # framework-free VOs only
+      build.gradle.kts
+      src/main/kotlin/com/profiletailors/leadcapture/common/
+        EmailAddress.kt
+        NormalizedEmail.kt
+        CaptureSource.kt
+        CaptureLocale.kt
+        LeadMetadata.kt
+    waitlist/               # domain + application (CQRS, pure Kotlin)
+      build.gradle.kts
+      src/main/kotlin/com/profiletailors/leadcapture/waitlist/
+        domain/
+          Waitlist.kt
+          WaitlistStatus.kt
+          WaitlistEntry.kt
+          WaitlistEntryStatus.kt
+          WaitlistConsent.kt
+        application/
+          JoinWaitlistCommand.kt
+          JoinWaitlistHandler.kt
+          ports/
+            WaitlistRepository.kt
+            WaitlistEntryRepository.kt
 ```
 
-**202 Accepted** (new + duplicate):
-```json
-{ "id": "wle_abc123", "email": "user@example.com", "status": "joined", "created_at": "2026-06-25T20:00:00Z" }
+### Dependency Rule
+
+```text
+shared:lead-capture:common  ←── shared:lead-capture:waitlist
+                                      ↑
+                          server:smp (implements ports)
 ```
 
-**Errors**:
+`shared:lead-capture:waitlist` depends on `shared:lead-capture:common`. Neither depends on `server:smp` or any framework. `server:smp` depends on both shared modules and provides infrastructure adapters.
 
-| Status | Code | When |
-|--------|------|------|
-| 400 | `validation_error` | Invalid email / oversized metadata |
-| 404 | `waitlist_not_found` | `waitlistKey` does not exist |
-| 409 | `waitlist_closed` | Waitlist status CLOSED |
-| 409 | `waitlist_paused` | Waitlist status PAUSED |
-| 429 | `rate_limit_exceeded` | WAITLIST rate limit exceeded |
+### Gradle Configuration
 
-## Persistence Model
+Both shared modules use explicit dependency constraints:
 
-Tables in directory `db/changelog/leadcapture/` (Liquibase YAML):
+```kotlin
+dependencies {
+    constraints {
+        implementation("org.springframework:*") { exclude() }
+    }
+}
+```
 
-**`waitlists`**: id(varchar PK), key(varchar UNIQUE), name, description, status(default OPEN), metadata_schema(jsonb), created_at(timestamptz), updated_at(timestamptz)
+Or more simply: do not add Spring/R2DBC to the dependencies at all. Use `kotlin-test` only for testing.
 
-**`waitlist_entries`**: id(varchar PK), waitlist_id(varchar FK→waitlists), email, email_normalized, status(default JOINED), early_access_consent(boolean), marketing_consent(boolean), metadata(jsonb), created_at, updated_at
+## Key Design Decisions
 
-**Constraints**: `UNIQUE(waitlist_id, email_normalized)`
-**Indexes**: `(waitlist_id, status)`, `(email_normalized)`, `(created_at DESC)`
-**Seed**: `profile-tailors-launch` waitlist (OPEN)
+### 1. Consent lives in waitlist, not common
 
-## Metadata Whitelist
+`WaitlistConsent` is inside the waitlist domain because consent is bounded-context-specific. Different bounded contexts (newsletter, forms) will have different consent models. Putting a `ConsentSnapshot` in `common` would couple all contexts to one consent schema.
 
-`MetadataWhitelist.validate(map, schema)` returns error if:
-- Schema is non-null and key not in schema
-- Entry count > 10, key > 64 chars, value > 1024 chars
-- Value contains HTML tags or script content
+### 2. Idempotent join via uniform response
 
-## Security / Abuse Prevention
+The `JoinWaitlistHandler` internally distinguishes `joined_new`, `already_joined`, and `reactivated` for metrics/events. The public response is always `{ "message": "You're on the list.", "status": "accepted" }`. This prevents email enumeration.
 
-| Control | Mechanism |
-|---------|-----------|
-| Rate limiting | WAITLIST strategy: 10 req/min/IP on `/api/waitlists/**` |
-| No email enumeration | Duplicate returns identical 202 (same as first join) |
-| Uniform duplicate | `INSERT ... ON CONFLICT DO NOTHING` — always return 202 |
-| Logging privacy | Log `email_normalized` hash; never log raw email |
-| Input validation | Server-side: reject invalid email, oversize metadata, script injection |
+### 3. Conservative email normalization
 
-## Marketing Integration
+`NormalizedEmail` does trim + lowercase only. No Gmail dot/plus canonicalization. This avoids edge-case bugs and preserves the original email. The original and normalized values are both stored.
 
-`WaitlistForm.astro` currently client-side only. Modified to:
-- POST JSON to `/api/waitlists/profile-tailors-launch/entries` on submit
-- Show loading state while request in flight
-- Display success message (current behavior) on 202
-- Show inline error on 400/404/409/429
-- Hardcode `profile-tailors-launch` key (matches seed)
+### 4. Per-waitlist deduplication
 
-## Testing Strategy
+`UNIQUE(waitlist_id, email_normalized)` — the same email can join different waitlists. Global deduplication would prevent cross-product reuse.
 
-| Layer | What | Approach |
-|-------|------|----------|
-| Unit | `EmailNormalized`, `MetadataWhitelist`, domain invariants | TDD — write failing test first |
-| Unit | `JoinWaitlistHandler` — dedupe, status guards | Mock repository |
-| Integration | R2DBC repositories | Testcontainers PostgreSQL |
-| WebFlux | `WaitlistController` | `WebTestClient` |
-| E2E | WaitlistForm → backend round-trip | Playwright |
-| Arch | `shared/lead-capture` no server imports | ArchUnit test |
+### 5. Metadata whitelist
 
-TDD is mandatory: no production code without a failing test first.
+`LeadMetadata` enforces a fixed key set: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `referrer`, `page_path`, `user_agent_family`, `consent_version`. Unlisted keys are rejected. This prevents PII leakage through metadata.
 
-## File Changes
+## Sequence: Join Waitlist
 
-| File | Action |
-|------|--------|
-| `shared/lead-capture/common/build.gradle.kts` | Create |
-| `shared/lead-capture/common/src/.../common/SourceType.kt` | Create |
-| `shared/lead-capture/common/src/.../common/ConsentType.kt` | Create |
-| `shared/lead-capture/common/src/.../common/EmailNormalized.kt` | Create |
-| `shared/lead-capture/common/src/.../common/MetadataWhitelist.kt` | Create |
-| `shared/lead-capture/waitlist/build.gradle.kts` | Create |
-| `shared/lead-capture/waitlist/src/.../waitlist/Waitlist.kt` | Create |
-| `shared/lead-capture/waitlist/src/.../waitlist/WaitlistEntry.kt` | Create |
-| `shared/lead-capture/waitlist/src/.../waitlist/WaitlistStatus.kt` | Create |
-| `shared/lead-capture/waitlist/src/.../waitlist/WaitlistEntryStatus.kt` | Create |
-| `shared/lead-capture/waitlist/src/.../waitlist/WaitlistJoinRequest.kt` | Create |
-| `shared/lead-capture/waitlist/src/.../waitlist/WaitlistJoinResult.kt` | Create |
-| `server/smp/src/.../leadcapture/application/JoinWaitlistHandler.kt` | Create |
-| `server/smp/src/.../leadcapture/application/WaitlistRepository.kt` | Create |
-| `server/smp/src/.../leadcapture/infrastructure/R2dbcWaitlistRepository.kt` | Create |
-| `server/smp/src/.../leadcapture/infrastructure/WaitlistController.kt` | Create |
-| `server/smp/src/.../leadcapture/infrastructure/WaitlistConfiguration.kt` | Create |
-| `server/smp/src/main/resources/db/changelog/leadcapture/001-create-waitlists.yaml` | Create |
-| `server/smp/src/main/resources/db/changelog/leadcapture/002-create-waitlist-entries.yaml` | Create |
-| `server/smp/src/main/resources/db/changelog/leadcapture/003-seed-waitlists.yaml` | Create |
-| `server/smp/src/main/resources/db/changelog/db.changelog-master.yaml` | Modify — include leadcapture |
-| `server/smp/build.gradle.kts` | Modify — add waitlist dep |
-| `shared/shield/ratelimit/.../RateLimitProperties.kt` | Modify — endpoint `/api/waitlists/**` |
-| `apps/web/marketing/.../WaitlistForm.astro` | Modify — POST to backend |
-| `docs/architecture/shared/dependencies.md` | Modify — add lead-capture |
+```text
+Client → POST /api/waitlists/{waitlistKey}/entries
+  → WaitlistController
+    → JoinWaitlistCommand(email, source, formId, locale, metadata, consent)
+    → JoinWaitlistHandler.handle(command)
+      → WaitlistRepository.findByKey(waitlistKey)
+        → if not found: throw WaitlistNotFoundException → 404
+        → if not active: throw WaitlistClosedException → 409
+      → NormalizedEmail.from(email)
+      → WaitlistEntryRepository.findByWaitlistIdAndEmail(waitlistId, normalizedEmail)
+        → if exists: return JoinResult.alreadyJoined
+        → if not: create WaitlistEntry, save, return JoinResult.joinedNew
+    → return AcceptedResponse (uniform)
+```
 
-## Rollout & Rollback
+## Enforcement
 
-**Rollout**: ① shared modules + domain tests → ② migrations + seed → ③ server adapters + rate limit endpoint update → ④ WaitlistForm.astro → deploy.
-
-**Rollback**: Remove leadcapture includes from master changelog → drop tables → remove server/smp leadcapture package → revert WaitlistForm.astro → delete shared modules.
-
-## Risks and Mitigations
-
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| Shared module imports server code | Low | Gradle isolation + ArchUnit |
-| Consent blur across EARLY_ACCESS / MARKETING | Med | Separate boolean fields; handler rejects marketing consent |
-| WaitlistKey enumeration via 404 | Low | Acceptable risk for public waitlist; rate limiting |
-| Metadata injection | Low | Whitelist + sanitization at domain boundary |
-| Spam via automated submissions | Med | Rate limit 10/min/IP + ON CONFLICT dedupe |
-
-## Open Questions
-
-None.
+- Gradle: `shared:lead-capture:*` modules do not include Spring or R2DBC in dependencies.
+- ArchUnit: tests forbid `shared/lead-capture/**` from importing `org.springframework.*`, `io.r2dbc.*`, or `com.profiletailors.smp.*`.
+- Domain tests: assert `earlyAccess` required, `marketing` default false, idempotent dedupe, valid lifecycle transitions.
+- HTTP tests: assert 202 (new + duplicate), 400, 404, 409, 429.

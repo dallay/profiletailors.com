@@ -1,64 +1,70 @@
-# Proposal: Reusable Lead Capture Waitlist
+# Proposal: Reusable Lead Capture Waitlist Capability
 
-## Intent
+## Overview
 
-Build a reusable lead-capture waitlist capability for the Profile Tailors MVP marketing waitlist while preserving clean boundaries for future products and lead-capture concepts.
+### Intent
 
-## Scope
+Ship a working MVP waitlist connected to the marketing site, designed as a reusable lead-capture capability for future products in the monorepo. The waitlist is the first business interpretation of a broader lead-capture bounded context.
 
-### In Scope
-- `shared/lead-capture/common` and `shared/lead-capture/waitlist` reusable modules.
-- `server/smp` HTTP, R2DBC persistence, config, migration, and seed adapters.
-- Marketing waitlist form integration, rate limiting, tests, and docs.
+### Changes
 
-### Out of Scope
-- `forms` and `newsletter` implementations; document as future concepts only.
-- Reusing waitlist email for marketing/newsletter without explicit marketing consent.
-- Any dependency from `shared/lead-capture` to `server/smp`.
+#### Scope
 
-## Capabilities
+##### In Scope
+- `shared/lead-capture/common` — framework-free value objects (`EmailAddress`, `NormalizedEmail`, `CaptureSource`, `CaptureLocale`, `LeadMetadata`).
+- `shared/lead-capture/waitlist` — pure Kotlin domain + application layer (CQRS): `Waitlist` aggregate, `WaitlistEntry`, `WaitlistConsent`, `JoinWaitlistCommand`/`JoinWaitlistHandler`, repository ports.
+- `server/smp` — HTTP adapter (`POST /api/waitlists/{waitlistKey}/entries`), R2DBC persistence, Liquibase migrations, rate limit wiring, configuration/seed.
+- `apps/web/marketing` — connect `WaitlistForm.astro` to backend endpoint with full payload contract.
 
-### New Capabilities
-- `lead-capture-common`: Shared lead-capture primitives for metadata whitelisting, source separation, email normalization contracts, and adapter-independent boundaries.
-- `lead-capture-waitlist`: Waitlist domain, consent, dedupe, public join API contract, persistence expectations, and marketing form behavior.
+##### Out of Scope
+- `forms` module — deferred to future bounded context.
+- `newsletter` module — deferred.
+- Lead scoring, segmentation, campaigns, admin automation.
+- CAPTCHA / Turnstile (rate limit is sufficient for MVP).
+- Per-email throttling (can be added if abuse patterns emerge).
+- Separate microservice extraction (premature for MVP).
 
-### Modified Capabilities
-- None
+### Capabilities
 
-## Approach
+#### New Capabilities
+- `lead-capture-common`: Framework-free value objects shared across all lead-capture bounded contexts.
+- `lead-capture-waitlist`: Waitlist domain and application layer with CQRS pattern, idempotent join, per-waitlist email deduplication, and explicit consent separation.
 
-Model lead capture as reusable shared capability modules and integrate them into Profile Tailors through `server/smp` adapters only. Keep invariants explicit: Waitlist != source, Waitlist != form, WaitlistEntry != subscriber, early access consent != marketing consent, duplicate join != public error. Use conservative email normalization: trim, lowercase, validate reasonably, preserve original, no provider canonicalization.
+#### Modified Capabilities
+None
 
-## Affected Areas
+### Approach
+
+Two Gradle subprojects under `shared/lead-capture/` enforce framework isolation:
+
+1. `common` contains only value objects — no domain logic, no consent, no Spring/R2DBC.
+2. `waitlist` contains the aggregate, entity, value objects, commands, handlers, and ports — pure Kotlin, testable without any framework.
+
+`server/smp` provides infrastructure adapters (HTTP, R2DBC, config). `apps/web/marketing` integrates the form.
+
+The endpoint is idempotent: duplicate email joins return the same `accepted` response as new joins to prevent email enumeration. Early access consent is required; marketing consent defaults to false and is never implicit.
+
+### Affected Areas
 
 | Area | Impact | Description |
 |------|--------|-------------|
-| `shared/lead-capture/common` | New | Common metadata/source/email primitives without server dependency. |
-| `shared/lead-capture/waitlist` | New | Waitlist, WaitlistEntry, statuses, consent, dedupe rules. |
-| `server/smp` | Modified | HTTP endpoint, R2DBC repositories, migrations, config, rate limiting. |
-| `apps/web/marketing` | Modified | MVP waitlist form posts to backend endpoint. |
-| `openspec/specs` | New | New capability specs for common and waitlist behavior. |
+| `shared/lead-capture/common` | New | Framework-free VOs: `EmailAddress`, `NormalizedEmail`, `CaptureSource`, `CaptureLocale`, `LeadMetadata` |
+| `shared/lead-capture/waitlist` | New | Domain aggregate, entity, consent VO, CQRS commands/handlers, repository ports |
+| `server/smp/leadcapture/http` | New | `WaitlistController` with `POST /api/waitlists/{waitlistKey}/entries` |
+| `server/smp/leadcapture/persistence` | New | R2DBC repositories implementing shared ports |
+| `server/smp/leadcapture/config` | New | Seed `profile-tailors-launch`, rate limit wiring |
+| `server/smp/src/main/resources/db/changelog/lead-capture/` | New | Liquibase migrations for `waitlists` and `waitlist_entries` tables |
+| `apps/web/marketing/src/components/WaitlistForm.astro` | Modified | POST to backend endpoint with full payload contract |
 
-## Risks
+### Rollback Plan
 
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| Shared module accidentally imports server code | Med | Enforce Gradle/module dependency direction and tests. |
-| Consent semantics blur with newsletter | Med | Specify separate consent fields and prohibit marketing reuse. |
-| Duplicate joins leak account existence | Low | Always return idempotent accepted response for duplicates. |
+- Feature is behind no feature flag — it is new functionality with no existing behavior to revert.
+- If the endpoint misbehaves, the marketing form can revert to client-side behavior by removing the `fetch` call.
+- Database rollback: Liquibase changelog includes `dropTable` changesets.
+- No data migration needed — no legacy waitlist data exists.
 
-## Rollback Plan
+## Related
 
-Disable/remove the marketing form integration, unregister the `server/smp` route/config, and rollback waitlist migrations/seeds before deleting shared modules if no persisted entries must be retained.
-
-## Dependencies
-
-- Existing backend module conventions, PostgreSQL/R2DBC migration path, marketing app environment configuration.
-
-## Success Criteria
-
-- [ ] Public `POST /api/waitlists/{waitlistKey}/entries` returns accepted for new and duplicate joins.
-- [ ] Unknown waitlist returns `404 waitlist_not_found`; closed/paused returns `409 waitlist_closed`; validation returns `400`; rate limit returns `429`.
-- [ ] Dedupe uses `UNIQUE(waitlist_id, normalized_email)`.
-- [ ] Metadata is limited to the approved whitelist.
-- [ ] `shared/lead-capture` has no dependency on `server/smp`.
+- ADR: [ADR-0011 Reusable Lead Capture Waitlist Capability](../../docs/architecture/adr/0011-reusable-lead-capture-waitlist.md)
+- Linear Epic: DALLAY-436
+- Linear Issues: DALLAY-437 through DALLAY-443
