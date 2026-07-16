@@ -4,28 +4,35 @@
 
 This change covers all 7 Linear issues (DALLAY-437 through DALLAY-443). Each issue maps to a phase below. The current implementation focus is Phase 1 (DALLAY-437).
 
+## Review Workload Forecast
+
+- **Estimated review size**: exceeds the normal 400 changed-line budget because the change spans shared Gradle modules, framework-free Kotlin domain/application code, persistence, HTTP, rate limiting, marketing integration, tests, and documentation.
+- **Delivery strategy**: `size-exception`.
+- **Rationale**: PR #340 already exists and already contains the foundation implementation. Splitting retroactively would add operational cost and risk. The exception is acceptable because the active implementation focus remains Phase 1 (DALLAY-437), with later phases tracked separately in the checklist.
+- **Review expectation**: reviewers should prioritize module boundaries, domain invariants, TOCTOU-safe dedupe semantics, and public API enumeration safety.
+
 ## Phase 1 — Foundation / Shared Module Boundaries (DALLAY-437)
 
-- [ ] **1.1 RED**: ArchUnit test asserting no class under `shared/lead-capture/**` depends on `com.profiletailors.smp..`, `org.springframework..`, `io.r2dbc..`, `com.profiletailors.common..` (except explicitly allowed common types).
-- [ ] **1.2 GREEN**: Register Gradle subprojects `:shared:lead-capture:common` and `:shared:lead-capture:waitlist` (auto-discovery via `settings.gradle.kts`).
-- [ ] **1.3 RED**: Failing manifest test asserting the shared modules contain no Spring/R2DBC annotations or imports.
-- [ ] **1.4 GREEN**: Configure `build.gradle.kts` with explicit dependency constraints excluding frameworks in shared modules.
+- [x] **1.1 RED**: ArchUnit test asserting no class under `shared/lead-capture/**` depends on `com.profiletailors.smp..`, `org.springframework..`, `io.r2dbc..`, `com.profiletailors.common..` (except explicitly allowed common types).
+- [x] **1.2 GREEN**: Register Gradle subprojects `:shared:lead-capture:common` and `:shared:lead-capture:waitlist` (auto-discovery via `settings.gradle.kts`).
+- [x] **1.3 RED**: Failing manifest test asserting the shared modules contain no Spring/R2DBC annotations or imports.
+- [x] **1.4 GREEN**: Configure `build.gradle.kts` with explicit dependency constraints excluding frameworks in shared modules.
 
 ## Phase 2 — Domain (shared) (DALLAY-437)
 
-- [ ] **2.1 RED**: Failing domain tests for `EmailAddress`, `NormalizedEmail`, `CaptureSource`, `CaptureLocale`, `LeadMetadata`.
-- [ ] **2.2 GREEN**: Implement the value objects in `shared/lead-capture/common`.
-- [ ] **2.3 RED**: Failing domain tests for `Waitlist` aggregate and `WaitlistStatus` (`draft`, `active`, `paused`, `closed`, `archived`).
-- [ ] **2.4 GREEN**: Implement `Waitlist` and status transitions.
-- [ ] **2.5 RED**: Failing domain tests for `WaitlistEntry`, `WaitlistEntryStatus` (`pending`, `invited`, `converted`, `cancelled`), lifecycle timestamps, and `WaitlistConsent` (with explicit `earlyAccess` / `marketing` / `version`).
-- [ ] **2.6 GREEN**: Implement `WaitlistEntry`, status transitions, and consent value object.
+- [x] **2.1 RED**: Failing domain tests for `EmailAddress`, `NormalizedEmail`, `CaptureSource`, `CaptureLocale`, `LeadMetadata`.
+- [x] **2.2 GREEN**: Implement the value objects in `shared/lead-capture/common`.
+- [x] **2.3 RED**: Failing domain tests for `Waitlist` aggregate and `WaitlistStatus` (`draft`, `active`, `paused`, `closed`, `archived`).
+- [x] **2.4 GREEN**: Implement `Waitlist` and status transitions.
+- [x] **2.5 RED**: Failing domain tests for `WaitlistEntry`, `WaitlistEntryStatus` (`pending`, `invited`, `converted`, `cancelled`), lifecycle timestamps, and `WaitlistConsent` (with explicit `earlyAccess` / `marketing` / `version`).
+- [x] **2.6 GREEN**: Implement `WaitlistEntry`, status transitions, and consent value object.
 
 ## Phase 3 — Application (shared) (DALLAY-437)
 
-- [ ] **3.1 RED**: Port contract tests for `WaitlistRepository` and `WaitlistEntryRepository`.
-- [ ] **3.2 GREEN**: Define the ports in `shared/lead-capture/waitlist/application/ports`.
-- [ ] **3.3 RED**: `JoinWaitlistCommand` / `JoinWaitlistHandler` tests asserting idempotent `accepted` result, dedupe behavior, and rejection on missing `earlyAccess` consent.
-- [ ] **3.4 GREEN**: Implement the handler.
+- [x] **3.1 RED**: Port contract tests for `WaitlistRepository` and `WaitlistEntryRepository`.
+- [x] **3.2 GREEN**: Define the ports in `shared/lead-capture/waitlist/application/ports`.
+- [x] **3.3 RED**: `JoinWaitlistCommand` / `JoinWaitlistHandler` tests asserting idempotent `accepted` result, dedupe behavior, and rejection on missing `earlyAccess` consent.
+- [x] **3.4 GREEN**: Implement the handler.
 
 ## Phase 4 — Persistence (DALLAY-438)
 
@@ -61,11 +68,11 @@ This change covers all 7 Linear issues (DALLAY-437 through DALLAY-443). Each iss
 
 ## Phase 8 — Comprehensive Tests (DALLAY-442)
 
-- [ ] **8.1**: Domain tests in `shared/lead-capture/waitlist/src/test/`.
-- [ ] **8.2**: Application tests for `JoinWaitlistHandler`.
+- [x] **8.1**: Domain tests in `shared/lead-capture/waitlist/src/test/`.
+- [x] **8.2**: Application tests for `JoinWaitlistHandler`.
 - [ ] **8.3**: R2DBC repository tests (Postgres-tagged if needed).
 - [ ] **8.4**: WebTestClient tests for `WaitlistController`.
-- [ ] **8.5**: ArchUnit / module-boundary tests asserting the shared modules are framework-free.
+- [x] **8.5**: ArchUnit / module-boundary tests asserting the shared modules are framework-free.
 - [ ] **8.6**: Frontend Vitest + Playwright E2E.
 - [ ] **8.7**: Wire all of the above into `just ci-local`.
 
