@@ -46,10 +46,14 @@ class PublishingSchedulingConfiguration(
     )
 
     @Bean
+    fun publishingLifecycleLogger(): PublishingLifecycleLogger = PublishingLifecycleLogger()
+
+    @Bean
     fun publishingJobExecutor(
         notificationEventRepository: NotificationEventRepository?,
         publishingRetryPolicy: DeliveryRetryPolicy,
         transactionRunner: AtomicTransactionRunner,
+        publishingLifecycleLogger: PublishingLifecycleLogger,
     ): PublishingJobExecutor = PublishingJobExecutor(
         publicationJobRepository = publicationJobRepository,
         publicationRepository = publicationRepository,
@@ -62,6 +66,7 @@ class PublishingSchedulingConfiguration(
         retryPolicy = publishingRetryPolicy,
         transactionRunner = transactionRunner,
         clock = clock,
+        lifecycleLogger = publishingLifecycleLogger,
     )
 
     @Bean
@@ -70,6 +75,7 @@ class PublishingSchedulingConfiguration(
         publicationRepository: PublicationRepository,
         publishingJobExecutor: PublishingJobExecutor,
         transactionRunner: AtomicTransactionRunner,
+        publishingLifecycleLogger: PublishingLifecycleLogger,
     ): PublishingWorker = PublishingWorker(
         publicationJobRepository = publicationJobRepository,
         publicationRepository = publicationRepository,
@@ -77,6 +83,7 @@ class PublishingSchedulingConfiguration(
         transactionRunner = transactionRunner,
         clock = clock,
         workerId = "worker-${UUID.randomUUID()}",
+        lifecycleLogger = publishingLifecycleLogger,
     )
 
     @Bean
