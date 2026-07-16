@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 internal class WaitlistEntryTest {
@@ -61,9 +60,10 @@ internal class WaitlistEntryTest {
     fun `cancel transitions status and sets cancelled_at`() {
         val now = Instant.now()
         val entry = createEntry(joinedAt = now)
-        entry.cancel(at = now.plusSeconds(30))
+        val cancelTime = now.plusSeconds(30)
+        entry.cancel(at = cancelTime)
         assertEquals(WaitlistEntryStatus.CANCELLED, entry.status)
-        assertEquals(now.plusSeconds(30), entry.cancelledAt)
+        assertEquals(cancelTime, entry.cancelledAt)
     }
 
     @Test

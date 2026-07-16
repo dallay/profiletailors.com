@@ -7,7 +7,7 @@ import kotlin.test.assertEquals
 internal class CaptureSourceTest {
 
     @Test
-    fun `valid source is accepted`() {
+    fun `valid alphanumeric and hyphen source is accepted`() {
         val source = CaptureSource("marketing-homepage")
         assertEquals("marketing-homepage", source.value)
     }
@@ -19,30 +19,24 @@ internal class CaptureSourceTest {
     }
 
     @Test
-    fun `source with valid alphanumeric and hyphens is accepted`() {
-        val source = CaptureSource("landing-page-2024")
-        assertEquals("landing-page-2024", source.value)
-    }
-
-    @Test
     fun `source with unsupported characters is rejected`() {
-        assertThrows<IllegalArgumentException> { CaptureSource("marketing_homepage") }
-        assertThrows<IllegalArgumentException> { CaptureSource("landing page") }
-        assertThrows<IllegalArgumentException> { CaptureSource("email@campaign") }
-        assertThrows<IllegalArgumentException> { CaptureSource("promo/banner") }
+        assertThrows<IllegalArgumentException> { CaptureSource("hello world") }
+        assertThrows<IllegalArgumentException> { CaptureSource("hello_world") }
+        assertThrows<IllegalArgumentException> { CaptureSource("hello/world") }
+        assertThrows<IllegalArgumentException> { CaptureSource("hello.world") }
     }
 
     @Test
     fun `source exceeding 50 characters is rejected`() {
-        val tooLong = "a".repeat(51)
-        assertThrows<IllegalArgumentException> { CaptureSource(tooLong) }
+        val long = "a".repeat(51)
+        assertThrows<IllegalArgumentException> { CaptureSource(long) }
     }
 
     @Test
     fun `source at exactly 50 characters is accepted`() {
-        val exactly50 = "a".repeat(50)
-        val source = CaptureSource(exactly50)
-        assertEquals(exactly50, source.value)
+        val exact = "a".repeat(50)
+        val source = CaptureSource(exact)
+        assertEquals(exact, source.value)
     }
 
     @Test

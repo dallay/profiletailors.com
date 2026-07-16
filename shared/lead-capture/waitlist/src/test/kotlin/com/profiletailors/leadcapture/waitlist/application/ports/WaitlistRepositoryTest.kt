@@ -15,9 +15,7 @@ import kotlin.test.assertNull
  */
 internal class WaitlistRepositoryTest {
 
-    private class InMemoryWaitlistRepository(
-        private val store: Map<WaitlistKey, Waitlist>,
-    ) : WaitlistRepository {
+    private class InMemoryWaitlistRepository(private val store: Map<WaitlistKey, Waitlist>) : WaitlistRepository {
         override fun findByKey(key: WaitlistKey): Waitlist? = store[key]
     }
 

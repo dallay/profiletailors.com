@@ -32,14 +32,13 @@ internal class WaitlistEntryRepositoryTest {
             return entry
         }
 
-        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult {
+        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntry? {
             val key = entry.waitlistId to entry.normalizedEmail
-            val existing = store[key]
-            return if (existing != null) {
-                WaitlistEntryRepository.SaveResult.AlreadyExists(existing)
+            return if (store.containsKey(key)) {
+                null
             } else {
                 store[key] = entry
-                WaitlistEntryRepository.SaveResult.Saved(entry)
+                entry
             }
         }
     }

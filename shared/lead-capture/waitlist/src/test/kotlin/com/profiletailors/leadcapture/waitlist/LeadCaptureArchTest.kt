@@ -9,12 +9,6 @@ import org.junit.jupiter.api.Test
 
 internal class LeadCaptureArchTest {
 
-    companion object {
-        private val importedClasses: JavaClasses = ClassFileImporter()
-            .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-            .importPackages("com.profiletailors.leadcapture")
-    }
-
     @Test
     fun `lead-capture modules must not depend on Spring`() {
         val rule: ArchRule = ArchRuleDefinition.noClasses()
@@ -55,5 +49,11 @@ internal class LeadCaptureArchTest {
             .allowEmptyShould(true)
 
         rule.check(importedClasses)
+    }
+
+    companion object {
+        private val importedClasses: JavaClasses = ClassFileImporter()
+            .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+            .importPackages("com.profiletailors.leadcapture")
     }
 }
