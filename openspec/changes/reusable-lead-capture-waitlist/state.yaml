@@ -1,0 +1,11 @@
+change: reusable-lead-capture-waitlist
+current_phase: apply
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+next: verify
+updated: 2026-07-16
