@@ -15,13 +15,16 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistNotFoundException
+import io.mockk.capture
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 internal class JoinWaitlistHandlerTest {
@@ -160,5 +163,210 @@ internal class JoinWaitlistHandlerTest {
     fun `result toString is uniform regardless of distinction`() {
         assertEquals(JoinResult.JOINED_NEW.toString(), JoinResult.ALREADY_JOINED.toString())
         assertTrue(JoinResult.JOINED_NEW.toString().contains("Accepted"))
+    }
+
+    @Test
+    fun `new entry is saved with fields mapped from the command and joinedAt from the clock`() {
+        val waitlistId = WaitlistId("w-1")
+        val activeWaitlist = Waitlist(
+            id = waitlistId,
+            key = WaitlistKey("profile-tailors-launch"),
+            name = "Profile Tailors Launch",
+            context = "profile-tailors",
+            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+        )
+        val savedSlot = slot<WaitlistEntry>()
+        every { waitlistRepo.findByKey(any()) } returns activeWaitlist
+        every { entryRepo.findByNormalizedEmail(any(), any()) } returns null
+        every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
+        every { entryRepo.save(capture(savedSlot)) } returnsArgument 0
+
+        handler.handle(
+            JoinWaitlistCommand(
+                waitlistKey = WaitlistKey("profile-tailors-launch"),
+                email = EmailAddress("User@Example.com"),
+                source = CaptureSource("marketing-homepage"),
+                formId = "homepage-hero",
+                locale = CaptureLocale("en"),
+                metadata = LeadMetadata(utmSource = "linkedin"),
+                consent = WaitlistConsent(earlyAccess = true, marketing = true, version = "2026-06-25"),
+            ),
+        )
+
+        val saved = savedSlot.captured
+        assertEquals(WaitlistEntryId("e-new"), saved.id)
+        assertEquals(waitlistId, saved.waitlistId)
+        assertEquals(EmailAddress("User@Example.com"), saved.email)
+        assertEquals(NormalizedEmail("user@example.com"), saved.normalizedEmail)
+        assertEquals(CaptureSource("marketing-homepage"), saved.source)
+        assertEquals("homepage-hero", saved.formId)
+        assertEquals(CaptureLocale("en"), saved.locale)
+        assertEquals(LeadMetadata(utmSource = "linkedin"), saved.metadata)
+        assertTrue(saved.consent.marketing)
+        assertEquals(Instant.parse("2026-07-16T12:00:00Z"), saved.joinedAt)
+    }
+
+    @Test
+    fun `idGenerator is invoked with the waitlist id and the normalized email`() {
+        val waitlistId = WaitlistId("w-1")
+        val activeWaitlist = Waitlist(
+            id = waitlistId,
+            key = WaitlistKey("profile-tailors-launch"),
+            name = "Profile Tailors Launch",
+            context = "profile-tailors",
+            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+        )
+        every { waitlistRepo.findByKey(any()) } returns activeWaitlist
+        every { entryRepo.findByNormalizedEmail(any(), any()) } returns null
+        every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
+        every { entryRepo.save(any()) } returnsArgument 0
+
+        handler.handle(
+            JoinWaitlistCommand(
+                waitlistKey = WaitlistKey("profile-tailors-launch"),
+                email = EmailAddress("User@Example.com"),
+                source = CaptureSource("marketing-homepage"),
+                formId = null,
+                locale = null,
+                metadata = LeadMetadata(),
+                consent = WaitlistConsent(earlyAccess = true, version = "2026-06-25"),
+            ),
+        )
+
+        verify(exactly = 1) {
+            idGenerator.generate(waitlistId, NormalizedEmail("user@example.com"))
+        }
+    }
+
+    @Test
+    fun `lookup for existing entries is scoped by waitlist id and normalized email`() {
+        val waitlistId = WaitlistId("w-1")
+        val activeWaitlist = Waitlist(
+            id = waitlistId,
+            key = WaitlistKey("profile-tailors-launch"),
+            name = "Profile Tailors Launch",
+            context = "profile-tailors",
+            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+        )
+        every { waitlistRepo.findByKey(any()) } returns activeWaitlist
+        every { entryRepo.findByNormalizedEmail(waitlistId, NormalizedEmail("user@example.com")) } returns null
+        every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
+        every { entryRepo.save(any()) } returnsArgument 0
+
+        handler.handle(
+            JoinWaitlistCommand(
+                waitlistKey = WaitlistKey("profile-tailors-launch"),
+                email = EmailAddress("  USER@EXAMPLE.COM  ".trim()),
+                source = CaptureSource("marketing-homepage"),
+                formId = null,
+                locale = null,
+                metadata = LeadMetadata(),
+                consent = WaitlistConsent(earlyAccess = true, version = "2026-06-25"),
+            ),
+        )
+
+        verify(exactly = 1) {
+            entryRepo.findByNormalizedEmail(waitlistId, NormalizedEmail("user@example.com"))
+        }
+    }
+
+    @Test
+    fun `closed waitlist throws Closed and never queries the entry repository`() {
+        val closedWaitlist = Waitlist(
+            id = WaitlistId("w-1"),
+            key = WaitlistKey("profile-tailors-launch"),
+            name = "Profile Tailors Launch",
+            context = "profile-tailors",
+            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.CLOSED,
+        )
+        every { waitlistRepo.findByKey(any()) } returns closedWaitlist
+
+        assertThrows<WaitlistClosedException> {
+            handler.handle(
+                JoinWaitlistCommand(
+                    waitlistKey = WaitlistKey("profile-tailors-launch"),
+                    email = EmailAddress("user@example.com"),
+                    source = CaptureSource("marketing-homepage"),
+                    formId = null,
+                    locale = null,
+                    metadata = LeadMetadata(),
+                    consent = WaitlistConsent(earlyAccess = true, version = "2026-06-25"),
+                ),
+            )
+        }
+        verify(exactly = 0) { entryRepo.findByNormalizedEmail(any(), any()) }
+        verify(exactly = 0) { entryRepo.save(any()) }
+    }
+
+    @Test
+    fun `default clock is used when none is supplied`() {
+        val waitlistId = WaitlistId("w-1")
+        val activeWaitlist = Waitlist(
+            id = waitlistId,
+            key = WaitlistKey("profile-tailors-launch"),
+            name = "Profile Tailors Launch",
+            context = "profile-tailors",
+            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+        )
+        val savedSlot = slot<WaitlistEntry>()
+        every { waitlistRepo.findByKey(any()) } returns activeWaitlist
+        every { entryRepo.findByNormalizedEmail(any(), any()) } returns null
+        every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
+        every { entryRepo.save(capture(savedSlot)) } returnsArgument 0
+
+        val handlerWithDefaultClock = JoinWaitlistHandler(
+            waitlistRepository = waitlistRepo,
+            entryRepository = entryRepo,
+            idGenerator = idGenerator,
+        )
+        val before = Instant.now()
+
+        handlerWithDefaultClock.handle(
+            JoinWaitlistCommand(
+                waitlistKey = WaitlistKey("profile-tailors-launch"),
+                email = EmailAddress("user@example.com"),
+                source = CaptureSource("marketing-homepage"),
+                formId = null,
+                locale = null,
+                metadata = LeadMetadata(),
+                consent = WaitlistConsent(earlyAccess = true, version = "2026-06-25"),
+            ),
+        )
+
+        val after = Instant.now()
+        assertTrue(!savedSlot.captured.joinedAt.isBefore(before) && !savedSlot.captured.joinedAt.isAfter(after))
+    }
+
+    @Test
+    fun `command with null formId and locale is joined successfully`() {
+        val waitlistId = WaitlistId("w-1")
+        val activeWaitlist = Waitlist(
+            id = waitlistId,
+            key = WaitlistKey("profile-tailors-launch"),
+            name = "Profile Tailors Launch",
+            context = "profile-tailors",
+            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+        )
+        val savedSlot = slot<WaitlistEntry>()
+        every { waitlistRepo.findByKey(any()) } returns activeWaitlist
+        every { entryRepo.findByNormalizedEmail(any(), any()) } returns null
+        every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
+        every { entryRepo.save(capture(savedSlot)) } returnsArgument 0
+
+        val result = handler.handle(
+            JoinWaitlistCommand(
+                waitlistKey = WaitlistKey("profile-tailors-launch"),
+                email = EmailAddress("user@example.com"),
+                source = CaptureSource("marketing-homepage"),
+                formId = null,
+                locale = null,
+                metadata = LeadMetadata(),
+                consent = WaitlistConsent(earlyAccess = true, version = "2026-06-25"),
+            ),
+        )
+
+        assertEquals(JoinResult.JOINED_NEW, result)
+        assertNull(savedSlot.captured.formId)
+        assertNull(savedSlot.captured.locale)
     }
 }
