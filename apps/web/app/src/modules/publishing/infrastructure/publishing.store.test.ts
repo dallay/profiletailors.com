@@ -658,50 +658,47 @@ describe('publishing store', () => {
       ['NOW', '2026-06-20T14:30:00Z', null],
       ['NEXT_SLOT', null, '2026-06-20T15:00:00Z'],
       ['SCHEDULED_AT', '2026-06-20T16:00:00Z', null],
-    ] as const)(
-      'adopts authenticated %s create identity and normalized server fields',
-      async (scheduleMode, scheduledFor, nextSlotAfter) => {
-        const store = usePublishingStore()
-        const auth = useAuthStore()
-        Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-        store.channels = [makeChannelForStore('soc-create')]
-        vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-          publicationId: `backend-${scheduleMode}`,
-          workspaceId: 'workspace-1',
-          socialAccountId: 'soc-create',
-          status: scheduleMode === 'SCHEDULED_AT' ? 'SCHEDULED' : 'QUEUED',
-          scheduleMode,
-          priority: true,
-          title: 'Server title',
-          bodyText: 'Server body',
-          assetIds: ['asset-server'],
-          scheduledFor,
-          nextSlotAfter,
-        })
+    ] as const)('adopts authenticated %s create identity and normalized server fields', async (scheduleMode, scheduledFor, nextSlotAfter) => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [makeChannelForStore('soc-create')]
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: `backend-${scheduleMode}`,
+        workspaceId: 'workspace-1',
+        socialAccountId: 'soc-create',
+        status: scheduleMode === 'SCHEDULED_AT' ? 'SCHEDULED' : 'QUEUED',
+        scheduleMode,
+        priority: true,
+        title: 'Server title',
+        bodyText: 'Server body',
+        assetIds: ['asset-server'],
+        scheduledFor,
+        nextSlotAfter,
+      })
 
-        const result = await store.schedulePost({
-          content: 'Client body',
-          channels: ['linkedin'],
-          scheduledAt: '2026-06-20T16:00:00Z',
-          nextSlotAfter: '2026-06-20T14:00:00Z',
-          scheduleMode,
-          priority: false,
-          socialAccountId: 'soc-create',
-        })
+      const result = await store.schedulePost({
+        content: 'Client body',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-20T16:00:00Z',
+        nextSlotAfter: '2026-06-20T14:00:00Z',
+        scheduleMode,
+        priority: false,
+        socialAccountId: 'soc-create',
+      })
 
-        expect(result).toMatchObject({
-          id: `backend-${scheduleMode}`,
-          content: 'Server body',
-          accountId: 'soc-create',
-          status: scheduleMode === 'SCHEDULED_AT' ? 'SCHEDULED' : 'QUEUED',
-          scheduleMode,
-          scheduledAt: scheduledFor ?? nextSlotAfter ?? '',
-          assetIds: ['asset-server'],
-          priority: true,
-        })
-        expect(store.publications[0]?.id).toBe(`backend-${scheduleMode}`)
-      },
-    )
+      expect(result).toMatchObject({
+        id: `backend-${scheduleMode}`,
+        content: 'Server body',
+        accountId: 'soc-create',
+        status: scheduleMode === 'SCHEDULED_AT' ? 'SCHEDULED' : 'QUEUED',
+        scheduleMode,
+        scheduledAt: scheduledFor ?? nextSlotAfter ?? '',
+        assetIds: ['asset-server'],
+        priority: true,
+      })
+      expect(store.publications[0]?.id).toBe(`backend-${scheduleMode}`)
+    })
 
     it('uses the authoritative NOW scheduledFor as a valid display timestamp', async () => {
       const store = usePublishingStore()
