@@ -49,6 +49,57 @@ function nextDelay(attempt: number): number {
   return Math.min(delay, RETRY_MAX_DELAY_MS)
 }
 
+function terminalUploadState(err: unknown): {
+  status: UploadItemStatus
+  errorTitle: string
+  errorDetail: string
+  policy: RetryPolicy
+} {
+  const apiErr = err as { status?: number; errorCode?: string; code?: string; detail?: string }
+  const errorCode = apiErr.errorCode ?? apiErr.code
+  const policy = classifyError(apiErr.status, errorCode)
+  const errorTitle = titleForUploadError(apiErr.status, errorCode)
+  const errorDetail = apiErr.detail ?? `Server returned ${apiErr.status ?? 'a network error'}.`
+  return {
+    status: apiErr.status === 409 ? 'conflict' : 'failed',
+    errorTitle,
+    errorDetail,
+    policy,
+  }
+}
+
+function titleForUploadError(status: number | undefined, errorCode: string | undefined): string {
+  if (status === 403 && errorCode === 'EMAIL_VERIFICATION_REQUIRED') {
+    return 'Email verification required'
+  }
+  if (status === 409) return 'Upload conflict'
+  if (status === 413) return 'File too large'
+  return errorCode ?? 'Upload failed'
+}
+
+async function executeWithRetry<T>(
+  fn: () => Promise<T>,
+  onNetworkError?: (attempt: number) => void,
+): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastError = err
+      const apiErr = err as { status?: number; errorCode?: string }
+      const policy = classifyError(apiErr.status, apiErr.errorCode)
+      if (policy === 'no-retry' || policy === 'terminal') throw err
+      if (attempt < RETRY_MAX_ATTEMPTS) {
+        const delay = nextDelay(attempt)
+        if (apiErr.status === undefined) onNetworkError?.(attempt)
+        await new Promise<void>((resolve) => setTimeout(resolve, delay))
+      }
+    }
+  }
+  throw lastError
+}
+
 // ---------------------------------------------------------------------------
 // Upload item (in-memory state for an in-flight upload)
 // ---------------------------------------------------------------------------
@@ -143,55 +194,6 @@ export const useMediaStore = defineStore('media', () => {
 
   function markUploadDone(tempKey: string, asset: MediaAssetSummary): void {
     updateUpload(tempKey, { status: 'done', asset, progress: 100 })
-  }
-
-  function terminalUploadState(err: unknown): {
-    status: UploadItemStatus
-    errorTitle: string
-    errorDetail: string
-    policy: RetryPolicy
-  } {
-    const apiErr = err as { status?: number; errorCode?: string; code?: string; detail?: string }
-    const errorCode = apiErr.errorCode ?? apiErr.code
-    const policy = classifyError(apiErr.status, errorCode)
-    const errorTitle =
-      apiErr.status === 403 && errorCode === 'EMAIL_VERIFICATION_REQUIRED'
-        ? 'Email verification required'
-        : apiErr.status === 409
-          ? 'Upload conflict'
-          : apiErr.status === 413
-            ? 'File too large'
-            : (errorCode ?? 'Upload failed')
-    const errorDetail = apiErr.detail ?? `Server returned ${apiErr.status ?? 'a network error'}.`
-    return {
-      status: apiErr.status === 409 ? 'conflict' : 'failed',
-      errorTitle,
-      errorDetail,
-      policy,
-    }
-  }
-
-  async function executeWithRetry<T>(
-    fn: () => Promise<T>,
-    onNetworkError?: (attempt: number) => void,
-  ): Promise<T> {
-    let lastError: unknown
-    for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
-      try {
-        return await fn()
-      } catch (err) {
-        lastError = err
-        const apiErr = err as { status?: number; errorCode?: string }
-        const policy = classifyError(apiErr.status, apiErr.errorCode)
-        if (policy === 'no-retry' || policy === 'terminal') throw err
-        if (attempt < RETRY_MAX_ATTEMPTS) {
-          const delay = nextDelay(attempt)
-          if (apiErr.status === undefined) onNetworkError?.(attempt)
-          await new Promise<void>((resolve) => setTimeout(resolve, delay))
-        }
-      }
-    }
-    throw lastError
   }
 
   // ─── Actions ───────────────────────────────────────────────────────────

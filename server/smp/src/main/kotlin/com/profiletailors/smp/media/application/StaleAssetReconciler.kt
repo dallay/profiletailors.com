@@ -293,7 +293,7 @@ class MediaAssetExpirationJob(
         // Run findBlobForUpdate + countActiveReferences + markReadyForGC in a single
         // transaction so FOR UPDATE actually locks the row for the whole decision window.
         return transactionRunner.runAtomically {
-            val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
+            workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
                 ?: return@runAtomically false
 
             val activeCount = mediaAssetRepository.countActiveReferences(workspaceId, fileHash)

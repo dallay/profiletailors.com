@@ -378,7 +378,7 @@ class R2dbcPublicationRepository(
     private suspend fun performCascadingDelete(workspaceId: String, publicationId: String): Boolean =
         transactionalOperator.transactional(
             mono {
-                val deletedRows = databaseClient.sql(
+                databaseClient.sql(
                     """
                 DELETE FROM publication_jobs
                 WHERE publication_id = :publicationId
@@ -508,12 +508,10 @@ class R2dbcPublicationRepository(
             .one()
             .awaitSingleOrNull()
 
-        if (existingWorkspaceId != null && existingWorkspaceId != draft.workspaceId) {
-            throw IllegalStateException(
-                "Publication ${draft.id} cannot be written from workspace " +
-                    "${draft.workspaceId}; it belongs to a different current " +
-                    "workspace scope",
-            )
+        check(existingWorkspaceId == null || existingWorkspaceId == draft.workspaceId) {
+            "Publication ${draft.id} cannot be written from workspace " +
+                "${draft.workspaceId}; it belongs to a different current " +
+                "workspace scope"
         }
 
         databaseClient.sql(

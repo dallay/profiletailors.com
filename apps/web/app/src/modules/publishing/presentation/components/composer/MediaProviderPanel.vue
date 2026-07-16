@@ -68,15 +68,14 @@ function importResult(result: ProviderSearchResultViewModel) {
       {{ searchError }}
     </p>
 
-    <div
+    <output
       v-if="isSearching"
-      class="rounded-2xl border border-dashed border-border-subtle px-4 py-6 text-sm text-text-secondary"
+      class="block rounded-2xl border border-dashed border-border-subtle px-4 py-6 text-sm text-text-secondary"
       data-testid="provider-panel-loading"
-      role="status"
       aria-live="polite"
     >
       {{ t('composer.picker.searchingAction') }}
-    </div>
+    </output>
 
     <div
       v-else-if="sortedResults.length === 0"
@@ -112,7 +111,6 @@ function importResult(result: ProviderSearchResultViewModel) {
         <p class="text-sm font-medium text-text-display">{{ result.name }}</p>
         <p v-if="result.authorName" class="text-[11px] text-text-secondary">
           {{ t('composer.picker.photoBy') }}
-          <!-- biome-ignore lint/a11y/useValidAnchor: authorUrl is guaranteed by the surrounding conditional -->
           <a
             v-if="result.authorUrl"
             :href="result.authorUrl"
@@ -122,7 +120,6 @@ function importResult(result: ProviderSearchResultViewModel) {
           >{{ result.authorName }}</a>
           <span v-else>{{ result.authorName }}</span>
           {{ t('composer.picker.onProvider') }}
-          <!-- biome-ignore lint/a11y/useValidAnchor: sourceUrl is guaranteed by the surrounding conditional -->
           <a
             v-if="result.sourceUrl"
             :href="result.sourceUrl"
