@@ -35,10 +35,9 @@ class JoinWaitlistHandler(
             consent = command.consent,
             joinedAt = clock(),
         )
-        return if (entryRepository.saveIfNotExists(entry) != null) {
-            JoinResult.JOINED_NEW
-        } else {
-            JoinResult.ALREADY_JOINED
+        return when (entryRepository.saveIfNotExists(entry)) {
+            is WaitlistEntryRepository.SaveResult.Saved -> JoinResult.JOINED_NEW
+            is WaitlistEntryRepository.SaveResult.AlreadyExists -> JoinResult.ALREADY_JOINED
         }
     }
 }

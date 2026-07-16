@@ -1,5 +1,6 @@
 package com.profiletailors.leadcapture.waitlist.application
 
+import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
@@ -13,7 +14,7 @@ internal class WaitlistEntryIdGeneratorTest {
     fun `SAM lambda implementation returns the generated id`() {
         val generator = WaitlistEntryIdGenerator { _, _ -> WaitlistEntryId("fixed-id") }
 
-        val result = generator.generate(WaitlistId("w-1"), NormalizedEmail("user@example.com"))
+        val result = generator.generate(WaitlistId("w-1"), NormalizedEmail.from(EmailAddress("user@example.com")))
 
         assertEquals(WaitlistEntryId("fixed-id"), result)
     }
@@ -28,10 +29,10 @@ internal class WaitlistEntryIdGeneratorTest {
             WaitlistEntryId("e-1")
         }
 
-        generator.generate(WaitlistId("w-42"), NormalizedEmail("someone@example.com"))
+        generator.generate(WaitlistId("w-42"), NormalizedEmail.from(EmailAddress("someone@example.com")))
 
         assertEquals(WaitlistId("w-42"), capturedWaitlistId)
-        assertEquals(NormalizedEmail("someone@example.com"), capturedEmail)
+        assertEquals(NormalizedEmail.from(EmailAddress("someone@example.com")), capturedEmail)
     }
 
     @Test
@@ -40,8 +41,8 @@ internal class WaitlistEntryIdGeneratorTest {
             WaitlistEntryId("${waitlistId.value}:${normalizedEmail.value}")
         }
 
-        val first = generator.generate(WaitlistId("w-1"), NormalizedEmail("a@example.com"))
-        val second = generator.generate(WaitlistId("w-1"), NormalizedEmail("b@example.com"))
+        val first = generator.generate(WaitlistId("w-1"), NormalizedEmail.from(EmailAddress("a@example.com")))
+        val second = generator.generate(WaitlistId("w-1"), NormalizedEmail.from(EmailAddress("b@example.com")))
 
         assertEquals(WaitlistEntryId("w-1:a@example.com"), first)
         assertNotEquals(first, second)

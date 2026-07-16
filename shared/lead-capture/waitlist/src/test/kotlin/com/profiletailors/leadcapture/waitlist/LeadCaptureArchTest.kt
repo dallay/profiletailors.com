@@ -51,6 +51,20 @@ internal class LeadCaptureArchTest {
         rule.check(importedClasses)
     }
 
+    @Test
+    fun `lead-capture modules must not depend on shared common`() {
+        val rule: ArchRule = ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAnyPackage("..leadcapture..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("com.profiletailors.common..")
+            .because("lead-capture shared modules must stay independent from the legacy shared common module")
+            .allowEmptyShould(true)
+
+        rule.check(importedClasses)
+    }
+
     companion object {
         private val importedClasses: JavaClasses = ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)

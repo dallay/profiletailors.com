@@ -7,11 +7,10 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 interface WaitlistEntryRepository {
     fun findByNormalizedEmail(waitlistId: WaitlistId, email: NormalizedEmail): WaitlistEntry?
     fun save(entry: WaitlistEntry): WaitlistEntry
+    fun saveIfNotExists(entry: WaitlistEntry): SaveResult
 
-    /**
-     * Atomically saves the entry only if no entry exists for the same
-     * (waitlistId, normalizedEmail) key. Returns the saved entry on success
-     * or null if a conflicting entry already exists.
-     */
-    fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntry?
+    sealed interface SaveResult {
+        data class Saved(val entry: WaitlistEntry) : SaveResult
+        data class AlreadyExists(val existing: WaitlistEntry) : SaveResult
+    }
 }

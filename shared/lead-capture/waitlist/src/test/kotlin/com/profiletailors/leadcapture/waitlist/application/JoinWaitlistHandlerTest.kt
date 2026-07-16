@@ -51,7 +51,9 @@ internal class JoinWaitlistHandlerTest {
         )
         every { waitlistRepo.findByKey(WaitlistKey("profile-tailors-launch")) } returns activeWaitlist
         every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
-        every { entryRepo.saveIfNotExists(any()) } returnsArgument 0
+        every { entryRepo.saveIfNotExists(any()) } answers {
+            WaitlistEntryRepository.SaveResult.Saved(firstArg())
+        }
 
         val result = handler.handle(
             JoinWaitlistCommand(
@@ -84,7 +86,7 @@ internal class JoinWaitlistHandlerTest {
             id = WaitlistEntryId("e-existing"),
             waitlistId = waitlistId,
             email = EmailAddress("user@example.com"),
-            normalizedEmail = NormalizedEmail("user@example.com"),
+            normalizedEmail = NormalizedEmail.from(EmailAddress("user@example.com")),
             source = CaptureSource("marketing-homepage"),
             formId = "homepage-hero",
             locale = CaptureLocale("en"),
@@ -93,7 +95,9 @@ internal class JoinWaitlistHandlerTest {
             joinedAt = Instant.parse("2026-07-15T12:00:00Z"),
         )
         every { waitlistRepo.findByKey(any()) } returns activeWaitlist
-        every { entryRepo.saveIfNotExists(any()) } returns null
+        every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
+        every { entryRepo.saveIfNotExists(any()) } returns
+            WaitlistEntryRepository.SaveResult.AlreadyExists(existingEntry)
 
         val result = handler.handle(
             JoinWaitlistCommand(
