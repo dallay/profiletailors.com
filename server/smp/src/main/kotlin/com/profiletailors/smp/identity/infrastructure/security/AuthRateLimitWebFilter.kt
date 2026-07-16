@@ -9,6 +9,7 @@ import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
+import java.time.Clock
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -18,12 +19,20 @@ import java.util.concurrent.atomic.AtomicInteger
  * Prevents credential stuffing / brute-force against login, register, refresh,
  * resend-verification, and verify-email. Limits are per remote socket address.
  *
- * This is intentionally independent of the optional `shared:shield:ratelimit` module
- * so SMP always has auth abuse protection without requiring extra wiring.
+ * Windows are stored in an in-process map with opportunistic eviction to prevent
+ * unbounded growth from many distinct remote addresses. When the live identifier
+ * count reaches [maxTrackedWindows], expired entries are removed before a new
+ * request is admitted.
+ *
+ * This filter is intentionally independent of the optional `shared:shield:ratelimit`
+ * module so SMP always has auth abuse protection without requiring extra wiring.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 20)
-class AuthRateLimitWebFilter : WebFilter {
+class AuthRateLimitWebFilter internal constructor(
+    private val clock: Clock = Clock.systemUTC(),
+    private val maxTrackedWindows: Int = MAX_TRACKED_WINDOWS,
+) : WebFilter {
 
     private val windows = ConcurrentHashMap<String, Window>()
 
@@ -34,22 +43,23 @@ class AuthRateLimitWebFilter : WebFilter {
         }
 
         val identifier = clientIdentifier(exchange)
-        val now = System.currentTimeMillis()
-        val window = windows.compute(identifier) { _, existing ->
-            when {
-                existing == null || now - existing.startedAtMs >= WINDOW_MS -> {
+        val now = currentTimeMillis()
+        if (windows.size >= maxTrackedWindows) {
+            evictExpiredEntries(now)
+        }
+        val window = requireNotNull(
+            windows.compute(identifier) { _, existing ->
+                if (existing == null || now - existing.startedAtMs >= WINDOW_MS) {
                     Window(startedAtMs = now, count = AtomicInteger(1))
-                }
-
-                else -> {
+                } else {
                     existing.count.incrementAndGet()
                     existing
                 }
-            }
-        }!!
+            },
+        ) { "Rate-limit window must be present after compute()." }
 
         if (window.count.get() > MAX_REQUESTS_PER_WINDOW) {
-            return reject(exchange, window)
+            return reject(exchange, window, now)
         }
         return chain.filter(exchange)
     }
@@ -63,18 +73,32 @@ class AuthRateLimitWebFilter : WebFilter {
         return "auth-ip:${remote ?: "unknown"}"
     }
 
-    private fun reject(exchange: ServerWebExchange, window: Window): Mono<Void> {
+    private fun evictExpiredEntries(now: Long) {
+        val iterator = windows.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (now - entry.value.startedAtMs >= WINDOW_MS) {
+                iterator.remove()
+            }
+        }
+    }
+
+    private fun reject(exchange: ServerWebExchange, window: Window, now: Long): Mono<Void> {
         val response = exchange.response
         response.statusCode = HttpStatus.TOO_MANY_REQUESTS
         response.headers.contentType = MediaType.APPLICATION_PROBLEM_JSON
-        val retryAfterSeconds = ((window.startedAtMs + WINDOW_MS - System.currentTimeMillis()) / MILLIS_PER_SECOND)
-            .coerceAtLeast(1)
+        val retryAfterSeconds = ((window.startedAtMs + WINDOW_MS - now) / MILLIS_PER_SECOND)
+            .coerceAtLeast(1L)
         response.headers.set("Retry-After", retryAfterSeconds.toString())
         val body =
             """{"title":"Too Many Requests","status":429,"detail":"Authentication rate limit exceeded. Try again later."}"""
         val buffer = response.bufferFactory().wrap(body.toByteArray(Charsets.UTF_8))
         return response.writeWith(Mono.just(buffer))
     }
+
+    internal fun trackedWindowCount(): Int = windows.size
+
+    private fun currentTimeMillis(): Long = clock.millis()
 
     private data class Window(val startedAtMs: Long, val count: AtomicInteger)
 
@@ -83,6 +107,7 @@ class AuthRateLimitWebFilter : WebFilter {
         const val WINDOW_MS = 60_000L
         const val MILLIS_PER_SECOND = 1_000L
         const val MAX_IP_LENGTH = 64
+        const val MAX_TRACKED_WINDOWS = 4_096
         val IP_SANITIZE_REGEX = Regex("[^A-Za-z0-9.:-]")
         val AUTH_ENDPOINTS = setOf(
             "/api/auth/login",

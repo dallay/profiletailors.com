@@ -62,11 +62,12 @@ class ProductionCredentialsValidator(private val environment: Environment) {
             return
         }
 
-        val violations = mutableListOf<String>()
-        validateDatabasePassword(violations)
-        validatePublishingKey(violations)
-        validateJwtSecret(violations)
-        validateMediaSigningSecret(violations)
+        val violations: List<String> = listOfNotNull(
+            checkDatabasePassword(),
+            checkPublishingKey(),
+            checkJwtSecret(),
+            checkMediaSigningSecret(),
+        )
 
         if (violations.isNotEmpty()) {
             val message = buildValidationFailureMessage(violations)
@@ -77,50 +78,48 @@ class ProductionCredentialsValidator(private val environment: Environment) {
         }
     }
 
-    private fun validateDatabasePassword(violations: MutableList<String>) {
+    private fun checkDatabasePassword(): String? {
         val dbPassword = environment.getProperty("SMP_DB_PASSWORD").orEmpty()
-        if (dbPassword.isBlank() || dbPassword == UNSAFE_CREDENTIAL_SENTINEL) {
-            violations.add(
-                "SMP_DB_PASSWORD is not configured or is set to the unsafe default '$UNSAFE_CREDENTIAL_SENTINEL'. " +
-                    "Set a strong password (minimum 32 characters). " +
-                    "Generate with: openssl rand -base64 32",
-            )
+        return if (dbPassword.isBlank() || dbPassword == UNSAFE_CREDENTIAL_SENTINEL) {
+            "SMP_DB_PASSWORD is not configured or is set to the unsafe default '$UNSAFE_CREDENTIAL_SENTINEL'. " +
+                "Set a strong password (minimum 32 characters). " +
+                "Generate with: openssl rand -base64 32"
+        } else {
+            null
         }
     }
 
-    private fun validatePublishingKey(violations: MutableList<String>) {
+    private fun checkPublishingKey(): String? {
         val credentialsKey = environment.getProperty("PUBLISHING_CREDENTIALS_KEY").orEmpty()
-        if (credentialsKey.isBlank()) {
-            violations.add(
-                "PUBLISHING_CREDENTIALS_KEY is not configured. This key is required to encrypt " +
-                    "OAuth access/refresh tokens stored in the database. Without it, LinkedIn " +
-                    "publishing will fail. Generate with: openssl rand -base64 32",
-            )
+        return if (credentialsKey.isBlank()) {
+            "PUBLISHING_CREDENTIALS_KEY is not configured. This key is required to encrypt " +
+                "OAuth access/refresh tokens stored in the database. Without it, LinkedIn " +
+                "publishing will fail. Generate with: openssl rand -base64 32"
+        } else {
+            null
         }
     }
 
-    private fun validateJwtSecret(violations: MutableList<String>) {
+    private fun checkJwtSecret(): String? {
         val jwtSecret = environment.getProperty("SMP_LOCAL_JWT_SECRET").orEmpty()
         val jwtFallback = environment.getProperty("SMP_LOCAL_JWT_DEV_FALLBACK").orEmpty()
-        if (jwtSecret.isBlank() && jwtFallback.isBlank()) {
-            violations.add(
-                "SMP_LOCAL_JWT_SECRET and SMP_LOCAL_JWT_DEV_FALLBACK are both empty. " +
-                    "At least one must be configured for JWT signing. " +
-                    "Generate with: openssl rand -base64 32",
-            )
+        return if (jwtSecret.isBlank() && jwtFallback.isBlank()) {
+            "SMP_LOCAL_JWT_SECRET and SMP_LOCAL_JWT_DEV_FALLBACK are both empty. " +
+                "At least one must be configured for JWT signing. " +
+                "Generate with: openssl rand -base64 32"
+        } else {
+            null
         }
     }
 
-    private fun validateMediaSigningSecret(violations: MutableList<String>) {
-        val signingSecret = environment.getProperty("media.preview-signing-secret")
-            .orEmpty()
-            .ifBlank { environment.getProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET").orEmpty() }
-        if (signingSecret.isBlank()) {
-            violations.add(
-                "SMP_MEDIA_PREVIEW_SIGNING_SECRET is not configured. This key signs public " +
-                    "media preview URLs and must be unique per environment. " +
-                    "Generate with: openssl rand -base64 32",
-            )
+    private fun checkMediaSigningSecret(): String? {
+        val signingSecret = environment.getProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET").orEmpty()
+        return if (signingSecret.isBlank()) {
+            "SMP_MEDIA_PREVIEW_SIGNING_SECRET is not configured. This key signs public " +
+                "media preview URLs and must be unique per environment. " +
+                "Generate with: openssl rand -base64 32"
+        } else {
+            null
         }
     }
 
