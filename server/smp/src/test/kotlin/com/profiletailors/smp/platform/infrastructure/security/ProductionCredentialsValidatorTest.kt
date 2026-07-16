@@ -84,12 +84,48 @@ class ProductionCredentialsValidatorTest {
     }
 
     @Test
+    fun `should fail when SMP_MEDIA_PREVIEW_SIGNING_SECRET is blank`() {
+        val environment = MockEnvironment().apply {
+            setProperty("SMP_DB_PASSWORD", "strong-password-here")
+            setProperty("PUBLISHING_CREDENTIALS_KEY", "valid-key-here")
+            setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-32-bytes-minimum!")
+            setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "")
+        }
+        val validator = ProductionCredentialsValidator(environment)
+
+        val exception = shouldThrow<IllegalStateException> {
+            validator.validateCredentials()
+        }
+
+        exception.message shouldContain "SMP_MEDIA_PREVIEW_SIGNING_SECRET"
+        exception.message shouldContain "media preview"
+    }
+
+    @Test
+    fun `should not accept media preview YAML fallback like random uuid`() {
+        val environment = MockEnvironment().apply {
+            setProperty("SMP_DB_PASSWORD", "strong-password-here")
+            setProperty("PUBLISHING_CREDENTIALS_KEY", "valid-key-here")
+            setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-32-bytes-minimum!")
+            setProperty("media.preview-signing-secret", "\${random.uuid}")
+        }
+        val validator = ProductionCredentialsValidator(environment)
+
+        val exception = shouldThrow<IllegalStateException> {
+            validator.validateCredentials()
+        }
+
+        exception.message shouldContain "SMP_MEDIA_PREVIEW_SIGNING_SECRET"
+    }
+
+    @Test
     fun `should fail with multiple violations when multiple secrets are invalid`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setProperty("SMP_LOCAL_JWT_DEV_FALLBACK", "")
+            setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "")
         }
         val validator = ProductionCredentialsValidator(environment)
 
@@ -100,6 +136,7 @@ class ProductionCredentialsValidatorTest {
         exception.message shouldContain "SMP_DB_PASSWORD"
         exception.message shouldContain "PUBLISHING_CREDENTIALS_KEY"
         exception.message shouldContain "SMP_LOCAL_JWT_SECRET"
+        exception.message shouldContain "SMP_MEDIA_PREVIEW_SIGNING_SECRET"
     }
 
     @Test
@@ -108,6 +145,7 @@ class ProductionCredentialsValidatorTest {
             setProperty("SMP_DB_PASSWORD", "strong-random-password-32-chars")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "base64-encoded-32-byte-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-minimum-32-bytes!")
+            setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "valid-media-preview-secret-32-bytes")
         }
         val validator = ProductionCredentialsValidator(environment)
 
@@ -122,6 +160,7 @@ class ProductionCredentialsValidatorTest {
             setProperty("PUBLISHING_CREDENTIALS_KEY", "base64-encoded-32-byte-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setProperty("SMP_LOCAL_JWT_DEV_FALLBACK", "valid-fallback-secret-32-bytes!")
+            setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "valid-media-preview-secret-32-bytes")
         }
         val validator = ProductionCredentialsValidator(environment)
 

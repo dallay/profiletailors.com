@@ -44,7 +44,11 @@ app:
       api-key: ${SMP_RESEND_API_KEY:}  # empty = disabled; ResendEmailSender is not loaded
 
 media:
-  preview-signing-secret: ${SMP_MEDIA_PREVIEW_SIGNING_SECRET:${random.uuid}}
+  # SMP_MEDIA_PREVIEW_SIGNING_SECRET is intentionally required in non-test
+  # environments by ProductionCredentialsValidator. A blank value here would
+  # let Spring resolve the ${SMP_...} placeholder to empty, which the
+  # validator must catch.
+  preview-signing-secret: ${SMP_MEDIA_PREVIEW_SIGNING_SECRET:}
 
 platform:
   workspace-context:
