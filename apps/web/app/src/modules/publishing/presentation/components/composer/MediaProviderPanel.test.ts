@@ -38,7 +38,7 @@ describe('MediaProviderPanel.vue', () => {
     await wrapper.get('[data-testid="provider-panel-import"]').trigger('click')
 
     const emissions = wrapper.emitted('provider-import') ?? []
-    expect(emissions.length).toBe(1)
+    expect(emissions).toHaveLength(1)
     expect(emissions[0]).toEqual([{ externalId: 'ext-22' }])
   })
 

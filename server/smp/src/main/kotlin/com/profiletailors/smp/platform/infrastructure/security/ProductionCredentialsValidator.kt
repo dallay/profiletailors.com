@@ -64,9 +64,9 @@ class ProductionCredentialsValidator(private val environment: Environment) {
 
         // 1. Database password
         val dbPassword = environment.getProperty("SMP_DB_PASSWORD").orEmpty()
-        if (dbPassword.isBlank() || dbPassword == DEFAULT_UNSAFE_PASSWORD) {
+        if (dbPassword.isBlank() || dbPassword == UNSAFE_CREDENTIAL_SENTINEL) {
             violations.add(
-                "SMP_DB_PASSWORD is not configured or is set to the unsafe default '$DEFAULT_UNSAFE_PASSWORD'. " +
+                "SMP_DB_PASSWORD is not configured or is set to the unsafe default '$UNSAFE_CREDENTIAL_SENTINEL'. " +
                     "Set a strong password (minimum 32 characters). " +
                     "Generate with: openssl rand -base64 32",
             )
@@ -144,6 +144,6 @@ class ProductionCredentialsValidator(private val environment: Environment) {
 
     private companion object {
         private val logger = LoggerFactory.getLogger(ProductionCredentialsValidator::class.java)
-        private const val DEFAULT_UNSAFE_PASSWORD = "CHANGE_ME"
+        private const val UNSAFE_CREDENTIAL_SENTINEL = "CHANGE_ME"
     }
 }

@@ -192,8 +192,8 @@ async function pollUntilReady(
   maxAttempts = 10,
 ): Promise<PutAssetResponse | UploadAssetResponse> {
   const fetch = createMediaFetch(workspaceId)
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Respect Retry-After if server provided it; fall back to 3s default
     const pollResp = await fetch.raw(`/api/media/assets/${assetId}`, {
       method: 'PUT',
       workspaceScoped: true,
@@ -201,34 +201,12 @@ async function pollUntilReady(
     })
 
     const body = (await pollResp.json().catch(() => ({}))) as unknown
+    const outcome = resolvePollOutcome(pollResp, body)
 
-    if (
-      (pollResp.status === 200 || pollResp.status === 201) &&
-      (body as Record<string, unknown>).status === 'READY'
-    ) {
-      return body as PutAssetResponse
-    }
-
-    if (pollResp.status === 202) {
-      // Still waiting — respect Retry-After or use default
-      const retryAfter = pollResp.headers.get('Retry-After')
-      const parsedDelay = retryAfter ? Number.parseInt(retryAfter, 10) : NaN
-      const delayMs =
-        Number.isFinite(parsedDelay) && parsedDelay > 0 ? parsedDelay * 1000 : DEFAULT_POLL_DELAY_MS
-      await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
-      continue
-    }
-
-    if (pollResp.status === 409) {
-      throw mediaApiError(
-        'Asset hash mismatch',
-        'Asset already exists with a different file hash.',
-        409,
-      )
-    }
-
-    if (!pollResp.ok) {
-      throw makePutAssetError(pollResp, body)
+    if (outcome.kind === 'done') return outcome.body
+    if (outcome.kind === 'error') throw outcome.error
+    if (outcome.kind === 'wait') {
+      await sleep(outcome.delayMs)
     }
   }
 
@@ -237,6 +215,54 @@ async function pollUntilReady(
     'The blob upload did not complete in time. Please try again.',
     408,
   )
+}
+
+type PollOutcome =
+  | { kind: 'done'; body: PutAssetResponse }
+  | { kind: 'wait'; delayMs: number }
+  | { kind: 'error'; error: Error }
+
+function resolvePollOutcome(pollResp: Response, body: unknown): PollOutcome {
+  const record = body as Record<string, unknown>
+
+  if ((pollResp.status === 200 || pollResp.status === 201) && record.status === 'READY') {
+    return { kind: 'done', body: body as PutAssetResponse }
+  }
+
+  if (pollResp.status === 202) {
+    return { kind: 'wait', delayMs: parseRetryAfterMs(pollResp) }
+  }
+
+  if (pollResp.status === 409) {
+    return {
+      kind: 'error',
+      error: mediaApiError(
+        'Asset hash mismatch',
+        'Asset already exists with a different file hash.',
+        409,
+      ),
+    }
+  }
+
+  if (!pollResp.ok) {
+    return { kind: 'error', error: makePutAssetError(pollResp, body) }
+  }
+
+  return { kind: 'wait', delayMs: DEFAULT_POLL_DELAY_MS }
+}
+
+function parseRetryAfterMs(pollResp: Response): number {
+  const retryAfter = pollResp.headers.get('Retry-After')
+  if (!retryAfter) return DEFAULT_POLL_DELAY_MS
+
+  const parsedDelay = Number.parseInt(retryAfter, 10)
+  return Number.isFinite(parsedDelay) && parsedDelay > 0
+    ? parsedDelay * 1000
+    : DEFAULT_POLL_DELAY_MS
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
 // ---------------------------------------------------------------------------

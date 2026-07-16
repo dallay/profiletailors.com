@@ -47,5 +47,8 @@
     "backend:test": "./gradlew :server:smp:test --no-daemon -PexcludeTags=modularity,postgres",
     "backend:lint": "./gradlew :server:smp:detekt --no-daemon",
     "prepare": "if [ -d .git ] && [ -z \"$CI\" ]; then pnpm exec lefthook install && pnpm dlx @dallay/agentsync apply || true; fi"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.3"
   }
 }

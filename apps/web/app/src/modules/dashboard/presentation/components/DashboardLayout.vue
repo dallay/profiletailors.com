@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useDashboardStore } from '@modules/dashboard/infrastructure/dashboard.store'
 import { useAnalyticsStore } from '@modules/dashboard/infrastructure/analytics.store'
 import { useInsightsStore } from '@modules/dashboard/infrastructure/insights.store'
@@ -23,7 +22,6 @@ import ContentPipeline from './ContentPipeline.vue'
 import InboxSummary from './InboxSummary.vue'
 import TeamActivity from './TeamActivity.vue'
 
-const { t } = useI18n()
 const dashboard = useDashboardStore()
 const analytics = useAnalyticsStore()
 const insights = useInsightsStore()

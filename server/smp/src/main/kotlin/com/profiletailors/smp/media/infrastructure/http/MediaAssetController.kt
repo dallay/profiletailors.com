@@ -423,7 +423,7 @@ class MediaAssetController(
      * @return An empty response with HTTP status 204 (No Content).
      */
     @DeleteMapping(value = ["/{assetId}"], version = "1")
-    suspend fun deleteAssetLegacy(@PathVariable assetId: String): ResponseEntity<Void> {
+    suspend fun deleteAssetLegacy(@PathVariable assetId: String): ResponseEntity<Unit> {
         val workspaceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = workspaceContext.workspaceId!!
         mediator.send(DeleteWorkspaceAssetCommand(assetId = assetId, workspaceId = workspaceId))

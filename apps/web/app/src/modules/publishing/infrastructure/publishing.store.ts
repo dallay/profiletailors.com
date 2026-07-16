@@ -627,7 +627,22 @@ export const usePublishingStore = defineStore('publishing', () => {
    */
   async function fetchCalendar(from: string, to: string, filters?: CalendarFilters): Promise<void> {
     const fetchId = ++latestCalendarFetchId.value
+    const params = buildCalendarQuery(from, to, filters)
 
+    if (auth.isAuthenticated) {
+      try {
+        await applyRemoteCalendar(fetchId, params)
+        return
+      } catch (err) {
+        console.warn('Calendar API unavailable, falling back to local data', err)
+      }
+    }
+
+    if (isStaleFetch(fetchId)) return
+    applyLocalCalendarFallback()
+  }
+
+  function buildCalendarQuery(from: string, to: string, filters?: CalendarFilters): string {
     const params = new URLSearchParams({
       from,
       to,
@@ -635,44 +650,42 @@ export const usePublishingStore = defineStore('publishing', () => {
     })
     if (filters?.status) params.set('status', filters.status)
     if (filters?.socialAccountId) params.set('socialAccountId', filters.socialAccountId)
+    return params.toString()
+  }
 
-    if (auth.isAuthenticated) {
-      try {
-        const data = await auth.apiFetch<CalendarResponse>(
-          `/api/publishing/publications/calendar?${params.toString()}`,
-          { workspaceScoped: true },
-        )
-        // Drop the response if a newer fetchCalendar call has started.
-        if (fetchId !== latestCalendarFetchId.value) return
-        publications.value = data.publications.map(apiResultToPublication)
-        activity.value = data.activity
-        conflicts.value = data.conflicts
-        // Prune object URLs for publications no longer in the current set
-        const activeIds = new Set(publications.value.map((p) => p.id))
-        for (const id of objectUrls.keys()) {
-          if (!activeIds.has(id)) {
-            const url = objectUrls.get(id)
-            if (url) URL.revokeObjectURL(url)
-            objectUrls.delete(id)
-          }
-        }
-        saveToStorage()
-        return
-      } catch (err) {
-        console.warn('Calendar API unavailable, falling back to local data', err)
-      }
-    }
+  async function applyRemoteCalendar(fetchId: number, query: string): Promise<void> {
+    const data = await auth.apiFetch<CalendarResponse>(
+      `/api/publishing/publications/calendar?${query}`,
+      { workspaceScoped: true },
+    )
+    if (isStaleFetch(fetchId)) return
 
-    // Drop the fallback if a newer fetchCalendar call has started.
-    if (fetchId !== latestCalendarFetchId.value) return
+    publications.value = data.publications.map(apiResultToPublication)
+    activity.value = data.activity
+    conflicts.value = data.conflicts
+    pruneStaleObjectUrls(publications.value.map((p) => p.id))
+    saveToStorage()
+  }
 
-    // Fallback: filter from localStorage
-    const local = applyLocalFilters(publications.value)
-    publications.value = local
-    // Reset API-only state when falling back
+  function applyLocalCalendarFallback(): void {
+    publications.value = applyLocalFilters(publications.value)
     activity.value = []
     conflicts.value = []
     saveToStorage()
+  }
+
+  function isStaleFetch(fetchId: number): boolean {
+    return fetchId !== latestCalendarFetchId.value
+  }
+
+  function pruneStaleObjectUrls(activeIds: string[]): void {
+    const active = new Set(activeIds)
+    for (const id of objectUrls.keys()) {
+      if (active.has(id)) continue
+      const url = objectUrls.get(id)
+      if (url) URL.revokeObjectURL(url)
+      objectUrls.delete(id)
+    }
   }
 
   /** Quick-create a publication from calendar cells (no assets, no multi-channel). */
