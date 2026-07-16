@@ -1,13 +1,15 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
-  "root": true,
+  "root": false,
+  "extends": ["../../biome.json"],
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true
   },
   "files": {
-    "experimentalScannerIgnores": ["tmp/**", "**/coverage/**"]
+    "includes": ["**/*.{js,ts,vue,mjs,astro}"],
+    "ignoreUnknown": true
   },
   "formatter": {
     "enabled": true,
@@ -18,7 +20,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "complexity": {
         "noForEach": "off"
       },
@@ -60,7 +62,7 @@
   },
   "overrides": [
     {
-      "includes": ["apps/web/app/src/components/ui/**"],
+      "includes": ["app/src/components/ui/**"],
       "linter": {
         "rules": {
           "style": {
@@ -88,7 +90,7 @@
       }
     },
     {
-      "includes": ["apps/web/app/src/**/*.test.ts", "apps/web/app/src/**/*.spec.ts"],
+      "includes": ["app/src/**/*.test.ts", "app/src/**/*.spec.ts"],
       "linter": {
         "rules": {
           "style": {
@@ -101,7 +103,7 @@
       }
     },
     {
-      "includes": ["apps/web/app/src/components/dashboard/shared/ScoreGauge.vue"],
+      "includes": ["app/src/components/dashboard/shared/ScoreGauge.vue"],
       "linter": {
         "rules": {
           "a11y": {
@@ -112,7 +114,7 @@
       }
     },
     {
-      "includes": ["apps/web/app/src/components/CalendarCell.vue"],
+      "includes": ["app/src/components/CalendarCell.vue"],
       "linter": {
         "rules": {
           "a11y": {
@@ -122,7 +124,7 @@
       }
     },
     {
-      "includes": ["apps/web/app/src/components/CreatePostModal.vue"],
+      "includes": ["app/src/components/CreatePostModal.vue"],
       "linter": {
         "rules": {
           "correctness": {
@@ -132,7 +134,7 @@
       }
     },
     {
-      "includes": ["apps/web/marketing/**"],
+      "includes": ["marketing/**"],
       "formatter": {
         "enabled": false
       }

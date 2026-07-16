@@ -1,8 +1,0 @@
-# Generated frontend output and installed packages add noise and do not contain reviewable source.
-apps/web/marketing/.astro/
-apps/web/marketing/dist/
-apps/web/marketing/node_modules/
-
-# Gradle caches and build outputs are scanner-unfriendly generated artifacts.
-**/.gradle/
-**/build/

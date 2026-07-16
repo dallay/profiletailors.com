@@ -1,1 +1,0 @@
-{"detail":"A user with email 'dev@profiletailors.com' already exists.","instance":"/api/auth/register","status":409,"title":"User already exists"}
