@@ -25,6 +25,8 @@ import kotlin.runCatching
  * - `PUBLISHING_CREDENTIALS_KEY` must not be empty (required for OAuth token encryption).
  * - `SMP_LOCAL_JWT_SECRET` must not be empty when `SMP_LOCAL_JWT_DEV_FALLBACK` is also empty
  *   (enforced separately by `LocalJwtSecretResolver`, but double-checked here).
+ * - `SMP_MEDIA_PREVIEW_SIGNING_SECRET` must not be empty because signed public media URLs
+ *   rely on it as their access-control boundary.
  *
  * **When it runs:**
  * - After `ApplicationContext.refresh()` / `finishRefresh()` when the embedded server is already
@@ -61,8 +63,21 @@ class ProductionCredentialsValidator(private val environment: Environment) {
         }
 
         val violations = mutableListOf<String>()
+        validateDatabasePassword(violations)
+        validatePublishingKey(violations)
+        validateJwtSecret(violations)
+        validateMediaSigningSecret(violations)
 
-        // 1. Database password
+        if (violations.isNotEmpty()) {
+            val message = buildValidationFailureMessage(violations)
+            logger.error(message)
+            error(message)
+        } else {
+            logger.info("✅ Production credentials validation passed (no default values detected)")
+        }
+    }
+
+    private fun validateDatabasePassword(violations: MutableList<String>) {
         val dbPassword = environment.getProperty("SMP_DB_PASSWORD").orEmpty()
         if (dbPassword.isBlank() || dbPassword == UNSAFE_CREDENTIAL_SENTINEL) {
             violations.add(
@@ -71,8 +86,9 @@ class ProductionCredentialsValidator(private val environment: Environment) {
                     "Generate with: openssl rand -base64 32",
             )
         }
+    }
 
-        // 2. Publishing credentials encryption key (OAuth tokens at rest)
+    private fun validatePublishingKey(violations: MutableList<String>) {
         val credentialsKey = environment.getProperty("PUBLISHING_CREDENTIALS_KEY").orEmpty()
         if (credentialsKey.isBlank()) {
             violations.add(
@@ -81,9 +97,9 @@ class ProductionCredentialsValidator(private val environment: Environment) {
                     "publishing will fail. Generate with: openssl rand -base64 32",
             )
         }
+    }
 
-        // 3. JWT signing secret (when local JWT mode is enabled)
-        // Note: LocalJwtSecretResolver already enforces this, but we double-check here for clarity.
+    private fun validateJwtSecret(violations: MutableList<String>) {
         val jwtSecret = environment.getProperty("SMP_LOCAL_JWT_SECRET").orEmpty()
         val jwtFallback = environment.getProperty("SMP_LOCAL_JWT_DEV_FALLBACK").orEmpty()
         if (jwtSecret.isBlank() && jwtFallback.isBlank()) {
@@ -93,24 +109,31 @@ class ProductionCredentialsValidator(private val environment: Environment) {
                     "Generate with: openssl rand -base64 32",
             )
         }
+    }
 
-        if (violations.isNotEmpty()) {
-            val message = buildString {
-                appendLine("❌ PRODUCTION CREDENTIAL VALIDATION FAILED")
-                appendLine()
-                appendLine("The application cannot start because unsafe or missing credentials were detected:")
-                appendLine()
-                violations.forEachIndexed { index, violation ->
-                    appendLine("${index + 1}. $violation")
-                    appendLine()
-                }
-                appendLine("See docs/production-secrets.md for full secret generation and rotation guide.")
-            }
-            logger.error(message)
-            error(message)
-        } else {
-            logger.info("✅ Production credentials validation passed (no default values detected)")
+    private fun validateMediaSigningSecret(violations: MutableList<String>) {
+        val signingSecret = environment.getProperty("media.preview-signing-secret")
+            .orEmpty()
+            .ifBlank { environment.getProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET").orEmpty() }
+        if (signingSecret.isBlank()) {
+            violations.add(
+                "SMP_MEDIA_PREVIEW_SIGNING_SECRET is not configured. This key signs public " +
+                    "media preview URLs and must be unique per environment. " +
+                    "Generate with: openssl rand -base64 32",
+            )
         }
+    }
+
+    private fun buildValidationFailureMessage(violations: List<String>): String = buildString {
+        appendLine("❌ PRODUCTION CREDENTIAL VALIDATION FAILED")
+        appendLine()
+        appendLine("The application cannot start because unsafe or missing credentials were detected:")
+        appendLine()
+        violations.forEachIndexed { index, violation ->
+            appendLine("${index + 1}. $violation")
+            appendLine()
+        }
+        appendLine("See docs/production-secrets.md for full secret generation and rotation guide.")
     }
 
     /**
