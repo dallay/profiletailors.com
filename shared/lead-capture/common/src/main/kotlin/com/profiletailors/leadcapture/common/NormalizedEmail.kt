@@ -1,0 +1,11 @@
+package com.profiletailors.leadcapture.common
+
+@JvmInline
+value class NormalizedEmail(val value: String) {
+
+    override fun toString(): String = value
+
+    companion object {
+        fun from(email: EmailAddress): NormalizedEmail = NormalizedEmail(email.value.trim().lowercase())
+    }
+}
