@@ -1,5 +1,8 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetResolver
@@ -34,8 +37,10 @@ import com.profiletailors.smp.publishing.domain.SocialPublisher
 import io.kotest.assertions.withClue
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -67,6 +72,119 @@ class PublishingWorkerTest {
                 PublishingFailure(category).retryable shouldBe category.retryable
             }
         }
+    }
+
+    @Test
+    fun `worker emits claimed lifecycle event with required schema`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 2, fixedClock.instant()))
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = SuccessfulPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+        val logger = LoggerFactory.getLogger(PublishingLifecycleLogger::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        logger.addAppender(appender)
+
+        try {
+            worker.pollOnce()
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+        }
+
+        val message = appender.list.single { it.formattedMessage.contains("event=publishing_attempt_claimed") }
+            .formattedMessage
+        message shouldContain "publicationId=pub-1"
+        message shouldContain "jobId=job-1"
+        message shouldContain "workspaceId=workspace-1"
+        message shouldContain "attemptNumber=2"
+        message shouldContain "provider=LINKEDIN"
+    }
+
+    @Test
+    fun `executor emits succeeded lifecycle event after persistence`() = runTest {
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(null),
+            publicationRepository = InMemoryPublicationRepository(successPublication()),
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = SuccessfulPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val logger = LoggerFactory.getLogger(PublishingLifecycleLogger::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        logger.addAppender(appender)
+
+        try {
+            executor.executeClaim(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+        }
+
+        val message = appender.list.single { it.formattedMessage.contains("event=publishing_attempt_succeeded") }
+            .formattedMessage
+        message shouldContain "publicationId=pub-1"
+        message shouldContain "jobId=job-1"
+        message shouldContain "attemptNumber=1"
+        message shouldContain "provider=LINKEDIN"
+        message shouldContain "outcome=SUCCEEDED"
+        message shouldContain "durationMs=0"
+    }
+
+    @Test
+    fun `executor does not emit success lifecycle event when transaction fails`() = runTest {
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(null),
+            publicationRepository = InMemoryPublicationRepository(successPublication()),
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = SuccessfulPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = FailingTransactionRunner(),
+            clock = fixedClock,
+        )
+        val logger = LoggerFactory.getLogger(PublishingLifecycleLogger::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        logger.addAppender(appender)
+
+        try {
+            runCatching {
+                executor.executeClaim(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+            }
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+        }
+
+        appender.list.any { it.formattedMessage.contains("event=publishing_attempt_succeeded") } shouldBe false
     }
 
     @Test
@@ -106,6 +224,40 @@ class PublishingWorkerTest {
     }
 
     @Test
+    fun `executor emits retry scheduled lifecycle event after persistence`() = runTest {
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(null),
+            publicationRepository = InMemoryPublicationRepository(successPublication()),
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = RetryableFailingPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val logger = LoggerFactory.getLogger(PublishingLifecycleLogger::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        logger.addAppender(appender)
+
+        try {
+            executor.executeClaim(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+        }
+
+        val message = appender.list.single { it.formattedMessage.contains("event=publishing_retry_scheduled") }
+            .formattedMessage
+        message shouldContain "outcome=FAILED"
+        message shouldContain "failureCategory=PROVIDER_UNAVAILABLE"
+        message shouldContain "retryable=true"
+        message shouldContain "durationMs=0"
+    }
+
+    @Test
     fun `worker reschedules retryable failure`() = runTest {
         val publicationRepository = InMemoryPublicationRepository(successPublication())
         val jobRepository =
@@ -138,6 +290,43 @@ class PublishingWorkerTest {
         jobRepository.retriedJobId shouldBe "job-1"
         jobRepository.retryAt shouldBe Instant.parse("2026-05-26T12:05:00Z")
         attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.FAILED
+    }
+
+    @Test
+    fun `executor emits terminal failure lifecycle event after persistence`() = runTest {
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(null),
+            publicationRepository = InMemoryPublicationRepository(successPublication()),
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = ThrowingCapabilityValidator(
+                PublicationValidationException("unsafe raw body"),
+            ),
+            socialPublisher = NeverPublishesPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val logger = LoggerFactory.getLogger(PublishingLifecycleLogger::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        logger.addAppender(appender)
+
+        try {
+            executor.executeClaim(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+        }
+
+        val message = appender.list.single { it.formattedMessage.contains("event=publishing_terminal_failure") }
+            .formattedMessage
+        message shouldContain "outcome=FAILED"
+        message shouldContain "failureCategory=PROVIDER_VALIDATION_FAILED"
+        message shouldContain "retryable=false"
+        message shouldContain "durationMs=0"
+        message.contains("unsafe raw body") shouldBe false
     }
 
     @Test
@@ -243,6 +432,40 @@ class PublishingWorkerTest {
         publicationRepository.failedReasonCode shouldBe "PUBLISHING_FAILED"
         publicationRepository.failedReasonMessage shouldBe null
         jobRepository.failedJobId shouldBe "job-1"
+    }
+
+    @Test
+    fun `executor emits blocked lifecycle event after persistence`() = runTest {
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(null),
+            publicationRepository = InMemoryPublicationRepository(successPublication()),
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = ReconnectPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val logger = LoggerFactory.getLogger(PublishingLifecycleLogger::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        logger.addAppender(appender)
+
+        try {
+            executor.executeClaim(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+        }
+
+        val message = appender.list.single { it.formattedMessage.contains("event=publishing_blocked") }
+            .formattedMessage
+        message shouldContain "outcome=BLOCKED"
+        message shouldContain "failureCategory=ACCOUNT_RECONNECT_REQUIRED"
+        message shouldContain "retryable=false"
+        message shouldContain "durationMs=0"
     }
 
     @Test
@@ -580,6 +803,13 @@ class PublishingWorkerTest {
 
     private class NoOpTransactionRunner : AtomicTransactionRunner {
         override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
+    }
+
+    private class FailingTransactionRunner : AtomicTransactionRunner {
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+            block()
+            error("transaction failed")
+        }
     }
 
     private class InMemoryJobRepository(private val claim: PublicationJobClaim?) : PublicationJobRepository {

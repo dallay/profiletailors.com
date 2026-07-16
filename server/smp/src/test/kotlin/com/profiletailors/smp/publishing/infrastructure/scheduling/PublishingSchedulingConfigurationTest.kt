@@ -100,12 +100,14 @@ class PublishingSchedulingConfigurationTest {
             notificationEventRepository = notificationEventRepository,
             publishingRetryPolicy = retryPolicy,
             transactionRunner = transactionRunner,
+            publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
         )
         val worker = configuration.publishingWorker(
             publicationJobRepository = publicationJobRepository,
             publicationRepository = publicationRepository,
             publishingJobExecutor = executor,
             transactionRunner = transactionRunner,
+            publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
         )
 
         assertNotNull(executor)
@@ -119,12 +121,14 @@ class PublishingSchedulingConfigurationTest {
             notificationEventRepository = NoOpNotificationEventRepository(),
             publishingRetryPolicy = retryPolicy,
             transactionRunner = transactionRunner,
+            publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
         )
         val worker = configuration.publishingWorker(
             publicationJobRepository = publicationJobRepository,
             publicationRepository = publicationRepository,
             publishingJobExecutor = executor,
             transactionRunner = transactionRunner,
+            publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
         )
         val scheduler = RecordingTaskScheduler()
 
@@ -150,12 +154,14 @@ class PublishingSchedulingConfigurationTest {
             notificationEventRepository = NoOpNotificationEventRepository(),
             publishingRetryPolicy = retryPolicy,
             transactionRunner = transactionRunner,
+            publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
         )
         val worker = configuration.publishingWorker(
             publicationJobRepository = publicationJobRepository,
             publicationRepository = publicationRepository,
             publishingJobExecutor = executor,
             transactionRunner = transactionRunner,
+            publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
         )
         val scheduler = RecordingTaskScheduler()
 

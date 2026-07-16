@@ -44,11 +44,13 @@ class PublishingJobExecutor(
     private val retryPolicy: DeliveryRetryPolicy,
     private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
+    private val lifecycleLogger: PublishingLifecycleLogger = PublishingLifecycleLogger(),
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     suspend fun executeClaim(claim: PublicationJobClaim) {
-        val now = clock.instant()
+        val attemptStartedAt = clock.instant()
+        val now = attemptStartedAt
         val publication = publicationRepository.findByWorkspaceAndId(
             claim.workspaceId,
             claim.publicationId,
@@ -259,6 +261,15 @@ class PublishingJobExecutor(
                 ),
             )
         }
+        lifecycleLogger.blocked(
+            publicationId = publication.id,
+            jobId = claim.jobId,
+            workspaceId = workspaceId,
+            attemptNumber = claim.attemptNumber,
+            provider = provider ?: publication.provider,
+            failureCategory = PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED,
+            durationMs = attemptDurationMs(now),
+        )
     }
 
     private suspend fun failPublicationTerminal(
@@ -285,6 +296,15 @@ class PublishingJobExecutor(
                 ),
             )
         }
+        lifecycleLogger.terminalFailure(
+            publicationId = publication.id,
+            jobId = claim.jobId,
+            workspaceId = workspaceId,
+            attemptNumber = claim.attemptNumber,
+            provider = provider ?: publication.provider,
+            failureCategory = PublishingFailureCategory.entries.first { it.code == reason },
+            durationMs = attemptDurationMs(now),
+        )
     }
 
     private suspend fun handleReconnectRequired(
@@ -321,6 +341,15 @@ class PublishingJobExecutor(
                 ),
             )
         }
+        lifecycleLogger.blocked(
+            publicationId = publication.id,
+            jobId = claim.jobId,
+            workspaceId = publication.workspaceId,
+            attemptNumber = claim.attemptNumber,
+            provider = socialAccount.provider,
+            failureCategory = PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED,
+            durationMs = attemptDurationMs(now),
+        )
     }
 
     private data class NotificationEventPayload(
@@ -391,7 +420,18 @@ class PublishingJobExecutor(
             publicationRepository.markPublished(publication.id, result.externalPublicationId, now)
             publicationJobRepository.complete(claim.jobId, now)
         }
+        lifecycleLogger.succeeded(
+            publicationId = publication.id,
+            jobId = claim.jobId,
+            workspaceId = publication.workspaceId,
+            attemptNumber = claim.attemptNumber,
+            provider = publication.provider,
+            durationMs = attemptDurationMs(now),
+        )
     }
+
+    private fun attemptDurationMs(attemptStartedAt: Instant): Long =
+        Duration.between(attemptStartedAt, clock.instant()).toMillis().coerceAtLeast(0)
 
     private fun sanitizeDiagnostic(diagnostic: String?): String? {
         if (diagnostic.isNullOrBlank()) return null
@@ -399,6 +439,7 @@ class PublishingJobExecutor(
         return diagnostic.trim().takeIf { allowed.matches(it) }
     }
 
+    @Suppress("LongMethod")
     private suspend fun handlePublishFailure(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
@@ -406,6 +447,7 @@ class PublishingJobExecutor(
         now: Instant,
     ) {
         val categoryCode = failure.category.code
+        val shouldRetry = retryPolicy.shouldRetry(claim.attemptNumber, failure.retryable)
         transactionRunner.runAtomically {
             deliveryAttemptRepository.record(
                 DeliveryAttempt(
@@ -420,7 +462,7 @@ class PublishingJobExecutor(
                     attemptedAt = now,
                 ),
             )
-            if (retryPolicy.shouldRetry(claim.attemptNumber, failure.retryable)) {
+            if (shouldRetry) {
                 publicationJobRepository.rescheduleRetry(
                     claim.jobId,
                     retryPolicy.nextRetryAt(now),
@@ -446,6 +488,27 @@ class PublishingJobExecutor(
                     ),
                 )
             }
+        }
+        if (shouldRetry) {
+            lifecycleLogger.retryScheduled(
+                publicationId = publication.id,
+                jobId = claim.jobId,
+                workspaceId = publication.workspaceId,
+                attemptNumber = claim.attemptNumber,
+                provider = publication.provider,
+                failureCategory = failure.category,
+                durationMs = attemptDurationMs(now),
+            )
+        } else {
+            lifecycleLogger.terminalFailure(
+                publicationId = publication.id,
+                jobId = claim.jobId,
+                workspaceId = publication.workspaceId,
+                attemptNumber = claim.attemptNumber,
+                provider = publication.provider,
+                failureCategory = failure.category,
+                durationMs = attemptDurationMs(now),
+            )
         }
     }
 }
@@ -518,11 +581,21 @@ class PublishingWorker(
     private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val workerId: String,
+    private val lifecycleLogger: PublishingLifecycleLogger = PublishingLifecycleLogger(),
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     suspend fun pollOnce(): PublicationJobClaim? {
         val claim = publicationJobRepository.claimNextDue(clock.instant(), workerId) ?: return null
+        val publication = publicationRepository.findByWorkspaceAndId(claim.workspaceId, claim.publicationId)
+            ?: error("Publication '${claim.publicationId}' not found for worker claim.")
+        lifecycleLogger.claimed(
+            publicationId = claim.publicationId,
+            jobId = claim.jobId,
+            workspaceId = claim.workspaceId,
+            attemptNumber = claim.attemptNumber,
+            provider = publication.provider,
+        )
         executor.executeClaim(claim)
         return claim
     }

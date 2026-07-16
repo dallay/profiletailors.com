@@ -195,6 +195,24 @@ When adding new failure UI or error handling:
 4. Use the allowlist boundary — never pass raw codes through.
 5. Add locale key parity tests for any new keys.
 
+### Lifecycle Observability
+
+Publishing attempts emit five semantic lifecycle events:
+
+- `publishing_attempt_claimed`
+- `publishing_attempt_succeeded`
+- `publishing_retry_scheduled`
+- `publishing_blocked`
+- `publishing_terminal_failure`
+
+Use `jobId` plus `attemptNumber` to identify one execution attempt. Use
+`publicationId` to correlate the complete lifecycle across retries,
+rescheduling, and replacement jobs. Events contain only allowlisted identifiers,
+canonical categories, outcome, retryability, provider, and duration fields.
+
+See the [Structured Publishing Lifecycle Logs Design](plans/2026-07-16-structured-publishing-lifecycle-logs-design.md)
+for the exact event schemas and data-safety rules.
+
 ## Troubleshooting
 
 ### A new exception type appears in the UI
