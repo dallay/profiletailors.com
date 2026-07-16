@@ -117,6 +117,7 @@ const uploadPreviewBlob = ref<string | null>(null)
 const selectedUploadFile = ref<File | null>(null)
 const uploadTempKey = ref<string | null>(null)
 const uploadProgress = ref(0)
+const isLocalUploadInFlight = ref(false)
 const pickerSessionUploadInput = ref<HTMLInputElement | null>(null)
 const isMediaSourcesOpen = ref(false)
 const isDropzoneActive = ref(false)
@@ -245,6 +246,7 @@ async function initializeComposerForOpen() {
   selectedUploadFile.value = null
   uploadTempKey.value = null
   uploadProgress.value = 0
+  isLocalUploadInFlight.value = false
   isMediaSourcesOpen.value = false
   isDropzoneActive.value = false
   picker.isMediaPickerOpen.value = false
@@ -474,6 +476,7 @@ function addFiles(filesList: File[]) {
   uploadPreviewBlob.value = URL.createObjectURL(file)
   uploadTempKey.value = `modal-upload-${Date.now()}`
   uploadProgress.value = 0
+  isLocalUploadInFlight.value = false
 }
 
 /**
@@ -522,6 +525,7 @@ function removeFile() {
   }
   uploadTempKey.value = null
   uploadProgress.value = 0
+  isLocalUploadInFlight.value = false
 }
 
 /**
@@ -759,6 +763,8 @@ function resolveScheduledDate(): Date | undefined {
 
 async function uploadDeferredFile(): Promise<boolean> {
   if (!selectedUploadFile.value || !uploadTempKey.value) return true
+  isLocalUploadInFlight.value = true
+  await nextTick()
   try {
     const asset = await mediaStore.createAndUpload(
       selectedUploadFile.value,
@@ -774,6 +780,8 @@ async function uploadDeferredFile(): Promise<boolean> {
   } catch {
     submitError.value = 'Media upload failed. Please try again.'
     return false
+  } finally {
+    isLocalUploadInFlight.value = false
   }
 }
 
@@ -997,16 +1005,16 @@ async function handleCreateSubmit(
                   </div>
 
                   <div
-                    v-if="asset.isUploading"
+                    v-if="asset.kind === 'local-upload' ? isLocalUploadInFlight : asset.isUploading"
                     class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55 px-3 text-center backdrop-blur-sm"
                     data-testid="inline-upload-overlay"
                   >
                     <Spinner class="size-5 text-[#8ccf70]" />
                     <p class="text-xs font-medium leading-tight text-white">
-                      {{ asset.uploadStateLabel }}
+                      {{ asset.kind === 'local-upload' ? (currentUploadStateLabel ?? asset.uploadStateLabel ?? t('composer.media.uploadingProgress', { progress: Math.round(normalizedUploadProgress ?? 0) })) : asset.uploadStateLabel }}
                     </p>
                     <Progress
-                      :model-value="asset.uploadProgress ?? 0"
+                      :model-value="asset.kind === 'local-upload' ? (normalizedUploadProgress ?? 0) : (asset.uploadProgress ?? 0)"
                       class="h-1 w-full bg-white/15 [&_[data-slot=progress-indicator]]:bg-[#8ccf70]"
                     />
                     <p class="text-[10px] leading-tight text-white/70">
