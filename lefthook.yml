@@ -25,9 +25,13 @@ pre-commit:
     # Uses {staged_files} so partial commits are preserved. Auto-fixes are
     # applied manually with `pnpm biome format --write` before commit to
     # match what CI's `biome ci` expects (one consistent format).
-    frontend-biome:
-      glob: 'apps/web/**/*.{ts,tsx,js,jsx,vue,astro}'
-      root: 'apps/web'
+    frontend-biome-app:
+      glob: 'apps/web/app/src/**/*.{ts,tsx,js,jsx,vue}'
+      root: 'apps/web/app'
+      run: 'pnpm biome check {staged_files}'
+    frontend-biome-marketing:
+      glob: 'apps/web/marketing/src/**/*.{ts,tsx,js,jsx,astro}'
+      root: 'apps/web/marketing'
       run: 'pnpm biome check {staged_files}'
 
     # Astro type check (marketing only)
