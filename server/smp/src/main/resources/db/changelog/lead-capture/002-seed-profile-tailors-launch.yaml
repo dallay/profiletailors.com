@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: lead-capture-002-seed-profile-tailors-launch
+      author: sdd-apply
+      changes:
+        - insert:
+            tableName: waitlists
+            columns:
+              - column:
+                  name: id
+                  value: profile-tailors-launch
+              - column:
+                  name: key
+                  value: profile-tailors-launch
+              - column:
+                  name: name
+                  value: Profile Tailors Launch
+              - column:
+                  name: context
+                  value: profile-tailors
+              - column:
+                  name: status
+                  value: ACTIVE

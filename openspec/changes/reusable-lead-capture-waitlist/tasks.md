@@ -36,12 +36,12 @@ This change covers all 7 Linear issues (DALLAY-437 through DALLAY-443). Each iss
 
 ## Phase 4 — Persistence (DALLAY-438)
 
-- [ ] **4.1 RED**: Liquibase change-set test asserting presence of `waitlists` and `waitlist_entries`, plus `UNIQUE (waitlist_id, email_normalized)` and indexes.
-- [ ] **4.2 GREEN**: Add Liquibase changelogs.
-- [ ] **4.3 RED**: Repository tests for `R2dbcWaitlistRepository` and `R2dbcWaitlistEntryRepository` (round-trip, dedupe).
-- [ ] **4.4 GREEN**: Implement R2DBC repositories implementing the shared ports.
-- [ ] **4.5 RED**: Failing test asserting `profile-tailors-launch` waitlist exists after migrations.
-- [ ] **4.6 GREEN**: Add Liquibase seed changelog.
+- [x] **4.1 RED**: Liquibase change-set test asserting presence of `waitlists` and `waitlist_entries`, plus `UNIQUE (waitlist_id, email_normalized)` and indexes.
+- [x] **4.2 GREEN**: Add Liquibase changelogs.
+- [x] **4.3 RED**: Repository tests for `R2dbcWaitlistRepository` and `R2dbcWaitlistEntryRepository` (round-trip, dedupe).
+- [x] **4.4 GREEN**: Implement R2DBC repositories implementing the shared ports.
+- [x] **4.5 RED**: Failing test asserting `profile-tailors-launch` waitlist exists after migrations.
+- [x] **4.6 GREEN**: Add Liquibase seed changelog.
 
 ## Phase 5 — HTTP Endpoint (DALLAY-439)
 
@@ -70,7 +70,7 @@ This change covers all 7 Linear issues (DALLAY-437 through DALLAY-443). Each iss
 
 - [x] **8.1**: Domain tests in `shared/lead-capture/waitlist/src/test/`.
 - [x] **8.2**: Application tests for `JoinWaitlistHandler`.
-- [ ] **8.3**: R2DBC repository tests (Postgres-tagged if needed).
+- [x] **8.3**: R2DBC repository tests (Postgres-tagged if needed).
 - [ ] **8.4**: WebTestClient tests for `WaitlistController`.
 - [x] **8.5**: ArchUnit / module-boundary tests asserting the shared modules are framework-free.
 - [ ] **8.6**: Frontend Vitest + Playwright E2E.

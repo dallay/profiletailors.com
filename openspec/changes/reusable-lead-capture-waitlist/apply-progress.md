@@ -7,7 +7,8 @@
 ## Delivery Strategy
 
 - Approved strategy: `size-exception`
-- Rationale: PR #340 already contains the shared-module foundation implementation. Splitting retroactively would add operational cost and risk. Later persistence, HTTP, rate limiting, marketing, and documentation phases remain tracked separately.
+- Current slice: DALLAY-438 persistence only.
+- Rationale: Broader SDD change exceeds the standard review budget, but this apply scope is constrained to backend persistence and seed data. Endpoint, rate limiting, marketing integration, and documentation remain out of scope.
 
 ## Completed Tasks
 
@@ -34,44 +35,65 @@
 - [x] 3.3 `JoinWaitlistCommand` / `JoinWaitlistHandler` tests cover accepted/idempotent join behavior and missing/invalid scenarios covered by domain consent construction.
 - [x] 3.4 `JoinWaitlistHandler` is implemented with atomic `saveIfNotExists` semantics.
 
+### Phase 4 — Persistence (DALLAY-438)
+
+- [x] 4.1 Liquibase changelog tests assert the master includes lead-capture changelogs and the schema changelog defines `waitlists`, `waitlist_entries`, `UNIQUE(waitlist_id, normalized_email)`, and indexes including `status`, `source`, and `form_id`.
+- [x] 4.2 Liquibase schema changelog creates `waitlists` and `waitlist_entries` with the required DALLAY-438 indexes.
+- [x] 4.3 Postgres-backed repository tests cover seeded waitlist lookup, entry round-trip, same-waitlist dedupe, and cross-waitlist reuse.
+- [x] 4.4 R2DBC adapters implement `WaitlistRepository` and the sealed `WaitlistEntryRepository.SaveResult` contract.
+- [x] 4.5 Repository test asserts `profile-tailors-launch` exists after migrations.
+- [x] 4.6 Liquibase seed changelog inserts active `profile-tailors-launch` waitlist.
+
 ### Phase 8 — Comprehensive Tests, completed subset
 
 - [x] 8.1 Domain tests in `shared/lead-capture/waitlist/src/test/`.
 - [x] 8.2 Application tests for `JoinWaitlistHandler`.
+- [x] 8.3 R2DBC repository tests are Postgres-tagged and run against Testcontainers.
 - [x] 8.5 ArchUnit/module-boundary tests asserting shared modules are framework-free.
 
 ## Code Changes in This Apply Continuation
 
-- Restored and kept the CodeRabbit sealed `WaitlistEntryRepository.SaveResult` contract.
-- Updated `JoinWaitlistHandler` to branch exhaustively on `SaveResult.Saved` vs `SaveResult.AlreadyExists`.
-- Updated repository/handler tests to use the sealed result contract.
-- Fixed tests to construct `NormalizedEmail` through `NormalizedEmail.from(EmailAddress(...))` after the constructor was made private.
-- Added the missing `com.profiletailors.common..` forbidden-dependency ArchUnit assertion from task 1.1.
-- Updated `tasks.md` checkboxes for verified completed work only.
+- Fixed the DALLAY-438 verify gap by strengthening `LeadCaptureLiquibaseChangelogTest` to assert `idx_waitlist_entries_status`, `idx_waitlist_entries_source`, and `idx_waitlist_entries_form_id`, then adding those indexes to `001-create-waitlists.yaml`.
+- Added lead-capture Liquibase changelogs to create `waitlists` and `waitlist_entries`, including per-waitlist dedupe on `(waitlist_id, normalized_email)` and supporting indexes.
+- Added a seed changelog for active `profile-tailors-launch` waitlist.
+- Included lead-capture changelogs from the master Liquibase changelog.
+- Added `R2dbcWaitlistRepository` and `R2dbcWaitlistEntryRepository` infrastructure adapters under `server/smp`.
+- Preserved the sealed `WaitlistEntryRepository.SaveResult` contract by returning `Saved` or `AlreadyExists` from `saveIfNotExists`.
+- Added Postgres-backed persistence tests plus a changelog presence/shape test.
+- Added server dependency edges to `:shared:lead-capture:common` and `:shared:lead-capture:waitlist`.
+- Renamed lead-capture shared module archive names and group IDs to avoid colliding with existing `:shared:common` artifact coordinates on the server classpath.
+- Added lead-capture cleanup statements to Postgres test support and updated cleanup ordering coverage.
+- Added `leadcapture` Modulith metadata for the new server bounded context.
 
 ## Commands Run
 
 | Command | Exit | Evidence |
 |---|---:|---|
-| `./gradlew :shared:lead-capture:waitlist:test --tests 'com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepositoryTest'` | 1 | RED: failed because `SaveResult` was not yet defined and several tests still used private `NormalizedEmail` constructor. |
-| `./gradlew :shared:lead-capture:waitlist:test --tests 'com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepositoryTest'` | 0 | Focused GREEN after restoring sealed `SaveResult` and adapting tests. |
-| `./gradlew :shared:lead-capture:common:test :shared:lead-capture:waitlist:test` | 1 | Broader module verification initially failed because duplicate handler path lacked `idGenerator` mock setup. |
-| `./gradlew :shared:lead-capture:common:test :shared:lead-capture:waitlist:test` | 0 | Shared lead-capture modules passed after fixing the handler test. |
-| `./gradlew test` | 0 | Full unfiltered configured apply test command passed. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.LeadCaptureLiquibaseChangelogTest'` | 1 | RED: failed first on missing changelog files/master includes; after fixing test path typo, failed on absent lead-capture changelogs. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.LeadCaptureLiquibaseChangelogTest'` | 0 | GREEN for Liquibase changelog and seed shape after adding changelogs and master includes. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.R2dbcWaitlistRepositoriesPostgresTest'` | 1 | RED: failed compile because R2DBC repository classes did not exist and server lacked shared lead-capture dependencies. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors_test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.R2dbcWaitlistRepositoriesPostgresTest'` | 1 | RED/GREEN iteration: after implementing adapters, exposed classpath collision with `:shared:common`, then cleanup/dedup setup issues. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors_test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.R2dbcWaitlistRepositoriesPostgresTest'` | 0 | Focused GREEN for Postgres repository tests after unique shared module coordinates and cleanup fixes. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors_test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.R2dbcWaitlistRepositoriesPostgresTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.LeadCaptureLiquibaseChangelogTest' --tests 'com.profiletailors.smp.integration.support.PostgresTestContainerSupportTest'` | 0 | Focused regression pass for DALLAY-438 tests and updated cleanup support test. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors_test ./gradlew :server:smp:test` | 0 | Broader unfiltered server module test passed. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.LeadCaptureLiquibaseChangelogTest'` | 1 | RED for DALLAY-438 verify gap: failed after adding assertions for `idx_waitlist_entries_status`, `idx_waitlist_entries_source`, and `idx_waitlist_entries_form_id` while the changelog still lacked those indexes. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.LeadCaptureLiquibaseChangelogTest'` | 0 | GREEN after adding the missing `status`, `source`, and `form_id` indexes to `001-create-waitlists.yaml`. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.LeadCaptureLiquibaseChangelogTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.R2dbcWaitlistRepositoriesPostgresTest'` | 0 | Focused DALLAY-438 verification passed with Testcontainers password set. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test` | 0 | Broader unfiltered server module test passed after the changelog fix. |
 
 ## Remaining Tasks
 
-- Phase 4 persistence tasks remain incomplete: Liquibase changelog tests, changelogs, R2DBC repository tests/implementations, seed data.
 - Phase 5 HTTP endpoint tasks remain incomplete: WebTestClient coverage and controller/DTO implementation.
 - Phase 6 rate limiting tasks remain incomplete.
 - Phase 7 marketing integration tasks remain incomplete.
-- Phase 8 remaining comprehensive tests for persistence, HTTP, frontend, and CI wiring remain incomplete.
+- Phase 8 remaining comprehensive tests for HTTP, frontend, and CI wiring remain incomplete.
 - Phase 9 documentation/archive tasks remain incomplete.
 
 ## Deviations
 
-- None for the shared foundation/application slice. The `SaveResult` sealed interface is intentionally kept per review/autofix context to preserve explicit atomic save outcomes.
+- No functional deviation from the DALLAY-438 persistence design after this continuation. The persisted column uses `normalized_email`, matching existing domain naming and tests, while the OpenSpec task text says `email_normalized`; the requirement/design explicitly require `UNIQUE(waitlist_id, normalized_email)` / normalized email dedupe semantics.
+- The shared lead-capture module Gradle `group` and archive names were adjusted because both `:shared:common` and `:shared:lead-capture:common` otherwise produced identical `com.profiletailors:common` coordinates, causing the server classpath to resolve the wrong artifact.
 
 ## Status
 
-17 of 47 tasks are complete. Shared foundation/domain/application work for DALLAY-437 is verified and ready for SDD verify or the next implementation slice, depending on whether this SDD change continues beyond Phase 1.
+24 of 47 tasks are complete. DALLAY-438 persistence is implemented and verified; ready for SDD verify or the next backend slice (DALLAY-439 HTTP endpoint) if continuing the broader change.

@@ -32,7 +32,7 @@ class PostgresTestContainerSupportTest {
     }
 
     @Test
-    fun `cleanup statements delete workspace file blobs before workspaces`() {
+    fun `cleanup statements delete dependent rows before parent rows`() {
         val statements = PostgresDatabaseCleanup.statements
 
         assertTrue(
@@ -40,6 +40,10 @@ class PostgresTestContainerSupportTest {
         )
         assertTrue(
             statements.indexOf("DELETE FROM workspace_file_blobs") < statements.indexOf("DELETE FROM workspaces"),
+        )
+        assertTrue(
+            statements.indexOf("DELETE FROM waitlist_entries") <
+                statements.indexOf("DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'"),
         )
     }
 
