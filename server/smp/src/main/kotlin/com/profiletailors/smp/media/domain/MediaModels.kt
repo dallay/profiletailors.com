@@ -198,7 +198,7 @@ data class MediaAsset(
         // fileHash is nullable to support existing rows from before the CAS migration.
         // New assets must always provide fileHash at PUT time.
         if (fileHash != null) {
-            require(fileHash.matches(Regex("^[a-f0-9]{64}$"))) {
+            require(fileHash.matches(SHA256_HASH_REGEX)) {
                 "fileHash must be a lowercase 64-character SHA-256 hex string"
             }
         }
@@ -300,9 +300,11 @@ data class MediaAsset(
         /**
          * Validates a SHA-256 hex string.
          */
-        fun isValidHash(hash: String): Boolean = hash.matches(Regex("^[a-f0-9]{64}$"))
+        fun isValidHash(hash: String): Boolean = hash.matches(SHA256_HASH_REGEX)
     }
 }
+
+internal val SHA256_HASH_REGEX = Regex("^[a-f0-9]{64}$")
 
 /**
  * Workspace-scoped content-addressed blob.
@@ -341,7 +343,7 @@ data class WorkspaceFileBlob(
 ) {
     init {
         require(workspaceId.isNotBlank()) { "Workspace ID must not be blank" }
-        require(fileHash.matches(Regex("^[a-f0-9]{64}$"))) {
+        require(fileHash.matches(SHA256_HASH_REGEX)) {
             "fileHash must be a lowercase 64-character SHA-256 hex string"
         }
 

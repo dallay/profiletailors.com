@@ -411,7 +411,7 @@ async function handleDeletePublication(id: string) {
   try {
     await publishingStore.deletePost(id)
     if (wasDetailPublication) {
-      void closePostDetail()
+      await closePostDetail()
     }
   } catch (err) {
     console.warn('Delete failed', err)
@@ -419,17 +419,17 @@ async function handleDeletePublication(id: string) {
 }
 
 function openPostDetail(pub: Publication) {
-  void url.openPostDetail(pub.id)
+  url.openPostDetail(pub.id).catch(() => undefined)
 }
 
 function closePostDetail(options?: { replace?: boolean }) {
   return url.closePostDetail(options)
 }
 
-function handleEditPublication(publication: Publication) {
+async function handleEditPublication(publication: Publication) {
   editingPublication.value = publication
   isModalOpen.value = true
-  void closePostDetail()
+  await closePostDetail()
 }
 
 async function handleUpdated() {
@@ -463,7 +463,7 @@ function onPostCreated() {
 
 function onReschedule() {
   // Store already updated by PostDetailModal; just close
-  void closePostDetail()
+  closePostDetail().catch(() => undefined)
 }
 
 // Time slots mapping (24 hours starting at 12 AM)
@@ -784,11 +784,10 @@ watch(
                       'bg-error/10 text-error border border-error/20': pub.status === 'FAILED',
                     }"
                   >
-                    {{ pub.status }}
-                  </span>
-                   <!-- NOSONAR(Web:S6819): parent is a native <button>, cannot nest HTML buttons -->
-                   <!-- biome-ignore lint/a11y/useSemanticElements: parent is <button>, cannot nest HTML buttons -->
-                   <span
+                   {{ pub.status }}
+                 </span>
+                  <!-- biome-ignore lint/a11y/useSemanticElements: parent is <button>, cannot nest HTML buttons -->
+                  <span
                     v-if="pub.status === 'BLOCKED'"
                     role="button"
                     tabindex="0"
@@ -827,7 +826,6 @@ watch(
                   </span>
                 </div>
 
-                <!-- NOSONAR(Web:S6819): parent is a native <button>, cannot nest HTML buttons -->
                 <!-- biome-ignore lint/a11y/useSemanticElements: parent is <button>, cannot nest HTML buttons -->
                 <span
                   v-if="publishingStore.isPublicationDeletable(pub.status)"

@@ -12,6 +12,14 @@ export type LinkedInCallbackState = {
   processCallback: () => Promise<void>
 }
 
+function firstQueryValue(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    const first = value[0]
+    return typeof first === 'string' ? first : null
+  }
+  return typeof value === 'string' ? value : null
+}
+
 export function useLinkedInCallback(): LinkedInCallbackState {
   const route = useRoute()
   const router = useRouter()
@@ -22,14 +30,6 @@ export function useLinkedInCallback(): LinkedInCallbackState {
   const message = ref(t('linkedinCallback.loadingMessage'))
 
   const redirectUri = `${globalThis.location.origin}/integrations/linkedin/callback`
-
-  function firstQueryValue(value: unknown): string | null {
-    if (Array.isArray(value)) {
-      const first = value[0]
-      return typeof first === 'string' ? first : null
-    }
-    return typeof value === 'string' ? value : null
-  }
 
   async function retryConnection(): Promise<void> {
     status.value = 'loading'

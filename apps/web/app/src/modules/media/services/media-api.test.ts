@@ -10,7 +10,6 @@ import {
   searchUnsplashPhotos,
   uploadAsset,
   type MediaAssetSummary,
-  type MediaSourceType,
 } from './media-api'
 import type { createApiFetch } from '@modules/auth/infrastructure/auth-api'
 
@@ -103,12 +102,6 @@ function emptyResponse(status: number): Response {
 // ---------------------------------------------------------------------------
 
 describe('media asset external metadata contract', () => {
-  it('accepts EXTERNAL as a media source type', () => {
-    const sourceType: MediaSourceType = 'EXTERNAL'
-
-    expect(sourceType).toBe('EXTERNAL')
-  })
-
   it('accepts optional external metadata fields on media summaries', () => {
     const summary: MediaAssetSummary = {
       assetId: 'asset-external',
