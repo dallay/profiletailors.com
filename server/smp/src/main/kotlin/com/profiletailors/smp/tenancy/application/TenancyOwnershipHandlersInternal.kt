@@ -107,11 +107,11 @@ internal class AddWorkspaceOwnerHandler(
                     .sorted(),
             ).also {
                 tenancyMutationAuditor.recordSuccess(
-                    action = "workspace.owner.add",
-                    targetType = "WORKSPACE_OWNER",
-                    targetId = command.targetPrincipalId,
-                    workspaceId = workspaceId,
-                    details = details,
+                    action = audit.action,
+                    targetType = audit.targetType,
+                    targetId = audit.targetId,
+                    workspaceId = audit.workspaceId,
+                    details = audit.details,
                 )
             }
         }
@@ -200,11 +200,11 @@ internal class TransferWorkspaceOwnershipHandler(
                     .sorted(),
             ).also {
                 tenancyMutationAuditor.recordSuccess(
-                    action = "workspace.owner.transfer",
-                    targetType = "WORKSPACE_OWNER",
-                    targetId = command.targetPrincipalId,
-                    workspaceId = workspaceId,
-                    details = details,
+                    action = audit.action,
+                    targetType = audit.targetType,
+                    targetId = audit.targetId,
+                    workspaceId = audit.workspaceId,
+                    details = audit.details,
                 )
             }
         }
@@ -262,11 +262,11 @@ internal class RemoveWorkspaceOwnerHandler(
                     .sorted(),
             ).also {
                 tenancyMutationAuditor.recordSuccess(
-                    action = "workspace.owner.remove",
-                    targetType = "WORKSPACE_OWNER",
-                    targetId = command.targetPrincipalId,
-                    workspaceId = workspaceId,
-                    details = details,
+                    action = audit.action,
+                    targetType = audit.targetType,
+                    targetId = audit.targetId,
+                    workspaceId = audit.workspaceId,
+                    details = audit.details,
                 )
             }
         }

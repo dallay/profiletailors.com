@@ -21,13 +21,13 @@ pre-commit:
 
   commands:
     # ========== FRONTEND (Astro + Vue + TypeScript) ==========
-    # Biome: lint + format for ALL projects under apps/web
-    # Covers marketing (Astro) and app (Vue 3) with a single command.
-    # git add -u re-stages any auto-fixes so the committed files match what
-    # the hook just verified (otherwise CI runs check against un-formatted code).
+    # Biome: lint + format for ONLY staged files under apps/web
+    # Uses {staged_files} so partial commits are preserved — only the files
+    # the developer explicitly staged are checked and auto-fixed.
     frontend-biome:
       glob: 'apps/web/**/*.{ts,tsx,js,jsx,vue,astro}'
-      run: 'cd apps/web && pnpm biome check --write --unsafe . && git add -u'
+      root: 'apps/web'
+      run: 'pnpm biome check --write --unsafe {staged_files}'
 
     # Astro type check (marketing only)
     frontend-typecheck:

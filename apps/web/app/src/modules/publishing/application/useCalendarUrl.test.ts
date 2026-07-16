@@ -1,6 +1,10 @@
 import type { RouteLocationNormalizedLoaded, Router } from 'vue-router'
 import { describe, it, expect, vi } from 'vitest'
-import { createCalendarUrlController, extractFirstChannelId } from './useCalendarUrl'
+import {
+  createCalendarUrlController,
+  extractFirstChannelId,
+  isInvalidStatus,
+} from './useCalendarUrl'
 
 // ---------------------------------------------------------------------------
 // Mock router and route factories
@@ -822,16 +826,12 @@ describe('useCalendarUrl controller — stepPeriod navigation', () => {
 })
 
 describe('useCalendarUrl controller — isInvalidStatus', () => {
-  const VALID_STATUSES = new Set(['all', 'queued', 'published', 'cancelled'])
-
   it.each([
     { rawStatus: '', expectedInvalid: false, scenario: 'empty status string' },
     { rawStatus: 'pending', expectedInvalid: true, scenario: 'unrecognized status value' },
     { rawStatus: 'queued', expectedInvalid: false, scenario: 'valid status value' },
   ])('returns $expectedInvalid for $scenario', ({ rawStatus, expectedInvalid }) => {
-    const lowered = rawStatus.toLowerCase() as import('./useCalendarUrl').SchedulerStatus
-    const invalid = rawStatus.length > 0 && !VALID_STATUSES.has(lowered)
-    expect(invalid).toBe(expectedInvalid)
+    expect(isInvalidStatus(rawStatus)).toBe(expectedInvalid)
   })
 })
 

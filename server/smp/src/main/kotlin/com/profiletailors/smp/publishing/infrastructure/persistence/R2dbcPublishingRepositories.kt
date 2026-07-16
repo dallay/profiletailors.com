@@ -508,7 +508,7 @@ class R2dbcPublicationRepository(
             .one()
             .awaitSingleOrNull()
 
-        check(!(existingWorkspaceId != null && existingWorkspaceId != draft.workspaceId)) {
+        check(existingWorkspaceId == null || existingWorkspaceId == draft.workspaceId) {
             "Publication ${draft.id} cannot be written from workspace " +
                 "${draft.workspaceId}; it belongs to a different current " +
                 "workspace scope"

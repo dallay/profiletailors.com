@@ -884,6 +884,7 @@ async function handleCreateSubmit(
     >
       <dialog
         ref="modalContainer"
+        open
         aria-modal="true"
         aria-labelledby="create-post-title"
         class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row"

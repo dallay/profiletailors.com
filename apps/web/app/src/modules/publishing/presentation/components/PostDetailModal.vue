@@ -230,6 +230,7 @@ function cancelReschedule() {
     >
       <dialog
         ref="modalContainer"
+        open
         class="flex flex-col w-full max-w-2xl max-h-[90vh] bg-bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-2xl m-0 relative"
         aria-modal="true"
         aria-labelledby="post-detail-title"
