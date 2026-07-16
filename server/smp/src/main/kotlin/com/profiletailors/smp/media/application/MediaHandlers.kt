@@ -914,25 +914,19 @@ class PutAssetHandler(
 
     private fun validateAssetId(assetId: String) {
         val uuidRegex = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
-        if (!assetId.matches(uuidRegex)) {
-            throw IllegalArgumentException("Invalid assetId format: must be a valid UUID v4")
-        }
+        require(assetId.matches(uuidRegex)) { "Invalid assetId format: must be a valid UUID v4" }
     }
 
     private fun validateFileHash(fileHash: String) {
-        if (!MediaAsset.isValidHash(fileHash)) {
-            throw IllegalArgumentException(
-                "Invalid fileHash format: must be a lowercase 64-character SHA-256 hex string",
-            )
+        require(MediaAsset.isValidHash(fileHash)) {
+            "Invalid fileHash format: must be a lowercase 64-character SHA-256 hex string"
         }
     }
 
     private fun validateFileSize(fileSizeBytes: Long) {
-        if (fileSizeBytes < 1) {
-            throw IllegalArgumentException("fileSizeBytes must be at least 1")
-        }
-        if (fileSizeBytes > MediaAsset.MAX_FILE_SIZE_BYTES) {
-            throw IllegalArgumentException("fileSizeBytes exceeds maximum of ${MediaAsset.MAX_FILE_SIZE_BYTES}")
+        require(fileSizeBytes >= 1) { "fileSizeBytes must be at least 1" }
+        require(fileSizeBytes <= MediaAsset.MAX_FILE_SIZE_BYTES) {
+            "fileSizeBytes exceeds maximum of ${MediaAsset.MAX_FILE_SIZE_BYTES}"
         }
     }
 
@@ -1499,7 +1493,7 @@ class DeleteAssetHandler(
      * the blob `READY_FOR_GC` if no active references remain. Runs in a single R2DBC transaction.
      */
     private suspend fun countAndMaybeScheduleGc(workspaceId: String, fileHash: String): DeleteAssetResult {
-        val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
+        workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
             ?: return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
 
         val activeCount = mediaAssetRepository.countActiveReferences(workspaceId, fileHash)

@@ -377,7 +377,7 @@ function handleFileSelect(e: Event) {
   if (target.files?.length) {
     const files = Array.from(target.files)
     if (picker.isMediaPickerOpen.value) {
-      void picker.handlePickerUploadSelection(files)
+      picker.handlePickerUploadSelection(files).catch(() => undefined)
     } else {
       addFiles(files)
     }
@@ -391,12 +391,12 @@ function openUploadPicker() {
 
 function openMediaLibrary() {
   isMediaSourcesOpen.value = false
-  void picker.openMediaPicker('library')
+  picker.openMediaPicker('library').catch(() => undefined)
 }
 
 function openUnsplashLibrary() {
   isMediaSourcesOpen.value = false
-  void picker.openMediaPicker('unsplash')
+  picker.openMediaPicker('unsplash').catch(() => undefined)
 }
 
 function handleDropzoneDragOver(event: DragEvent) {
@@ -882,9 +882,8 @@ async function handleCreateSubmit(
       @click.self="emit('close')"
       @keydown.escape="emit('close')"
     >
-      <div
+      <dialog
         ref="modalContainer"
-        role="dialog"
         aria-modal="true"
         aria-labelledby="create-post-title"
         class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row"
@@ -1311,7 +1310,7 @@ async function handleCreateSubmit(
             </div>
           </template>
         </PostPreviewPanel>
-      </div>
+      </dialog>
     </div>
   </Teleport>
 </template>

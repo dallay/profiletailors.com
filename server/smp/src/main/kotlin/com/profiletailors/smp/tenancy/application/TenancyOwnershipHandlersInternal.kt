@@ -15,14 +15,18 @@ import com.profiletailors.smp.tenancy.domain.LastOwnerRemovalRequiresReplacement
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import java.time.Clock
 
+private data class MutationAudit(
+    val action: String,
+    val targetType: String,
+    val targetId: String,
+    val workspaceId: String,
+    val details: Map<String, String>,
+)
+
 private suspend inline fun <T : Any> auditedMutation(
     transactionRunner: AtomicTransactionRunner,
     tenancyMutationAuditor: TenancyMutationAuditor,
-    action: String,
-    targetType: String,
-    targetId: String,
-    workspaceId: String,
-    details: Map<String, String>,
+    audit: MutationAudit,
     crossinline block: suspend () -> T,
 ): T = try {
     transactionRunner.runAtomically {
@@ -32,12 +36,12 @@ private suspend inline fun <T : Any> auditedMutation(
     when (exception) {
         is IllegalArgumentException, is IllegalStateException -> {
             tenancyMutationAuditor.recordRejected(
-                action = action,
-                targetType = targetType,
-                targetId = targetId,
-                workspaceId = workspaceId,
+                action = audit.action,
+                targetType = audit.targetType,
+                targetId = audit.targetId,
+                workspaceId = audit.workspaceId,
                 reason = exception::class.simpleName ?: "Exception",
-                details = details,
+                details = audit.details,
             )
             throw exception
         }
@@ -66,15 +70,18 @@ internal class AddWorkspaceOwnerHandler(
         val workspaceId = requireNotNull(resourceContext.workspaceId)
 
         val details = mapOf("ownerPrincipalId" to command.targetPrincipalId)
-
-        return auditedMutation(
-            transactionRunner = transactionRunner,
-            tenancyMutationAuditor = tenancyMutationAuditor,
+        val audit = MutationAudit(
             action = "workspace.owner.add",
             targetType = "WORKSPACE_OWNER",
             targetId = command.targetPrincipalId,
             workspaceId = workspaceId,
             details = details,
+        )
+
+        return auditedMutation(
+            transactionRunner = transactionRunner,
+            tenancyMutationAuditor = tenancyMutationAuditor,
+            audit = audit,
         ) {
             val currentOwners = workspaceOwnershipRepository.requireCurrentOwners(workspaceId)
             val actorOwnership = currentOwners.firstOrNull { ownership -> ownership.belongsTo(actor.principalId) }
@@ -140,15 +147,18 @@ internal class TransferWorkspaceOwnershipHandler(
             "fromPrincipalId" to actor.principalId,
             "toPrincipalId" to command.targetPrincipalId,
         )
-
-        return auditedMutation(
-            transactionRunner = transactionRunner,
-            tenancyMutationAuditor = tenancyMutationAuditor,
+        val audit = MutationAudit(
             action = "workspace.owner.transfer",
             targetType = "WORKSPACE_OWNER",
             targetId = command.targetPrincipalId,
             workspaceId = workspaceId,
             details = details,
+        )
+
+        return auditedMutation(
+            transactionRunner = transactionRunner,
+            tenancyMutationAuditor = tenancyMutationAuditor,
+            audit = audit,
         ) {
             require(command.targetPrincipalId != actor.principalId) { "Cannot transfer ownership to yourself" }
 
@@ -220,15 +230,18 @@ internal class RemoveWorkspaceOwnerHandler(
             "removedBy" to actor.principalId,
             "removedPrincipalId" to command.targetPrincipalId,
         )
-
-        return auditedMutation(
-            transactionRunner = transactionRunner,
-            tenancyMutationAuditor = tenancyMutationAuditor,
+        val audit = MutationAudit(
             action = "workspace.owner.remove",
             targetType = "WORKSPACE_OWNER",
             targetId = command.targetPrincipalId,
             workspaceId = workspaceId,
             details = details,
+        )
+
+        return auditedMutation(
+            transactionRunner = transactionRunner,
+            tenancyMutationAuditor = tenancyMutationAuditor,
+            audit = audit,
         ) {
             val currentOwners = workspaceOwnershipRepository.requireCurrentOwners(workspaceId)
             currentOwners.firstOrNull { it.belongsTo(actor.principalId) }

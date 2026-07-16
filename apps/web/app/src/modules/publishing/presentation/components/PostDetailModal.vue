@@ -228,10 +228,9 @@ function cancelReschedule() {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       @click.self="closeModal"
     >
-      <div
+      <dialog
         ref="modalContainer"
         class="flex flex-col w-full max-w-2xl max-h-[90vh] bg-bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-2xl m-0 relative"
-        role="dialog"
         aria-modal="true"
         aria-labelledby="post-detail-title"
         @keydown.escape="closeModal"
@@ -454,7 +453,7 @@ function cancelReschedule() {
           </div>
           </div>
         </footer>
-      </div>
+      </dialog>
     </div>
   </Teleport>
 </template>

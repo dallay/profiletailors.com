@@ -7,8 +7,7 @@ import WorkspaceAvatar from '@shared/components/WorkspaceAvatar.vue'
 import WorkspaceIconModal from '@modules/workspace/presentation/components/WorkspaceIconModal.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { renameWorkspace, updateWorkspaceIcon } from '@modules/auth/infrastructure/auth-api'
-import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
+import { renameWorkspace, updateWorkspaceIcon, proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
 import { workspaceNameSchema } from '@shared/lib/validation/schemas'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
@@ -78,8 +77,8 @@ async function connectLinkedInProfile() {
 }
 
 onMounted(() => {
-  void publishing.fetchChannels().catch(() => undefined)
-  void publishing.fetchConfiguredProviders()
+  publishing.fetchChannels().catch(() => undefined)
+  publishing.fetchConfiguredProviders().catch(() => undefined)
 })
 
 onUnmounted(() => {
@@ -363,13 +362,12 @@ function segmentedControlClass(active: boolean) {
         </CardHeader>
 
         <CardContent class="mt-6 space-y-6 p-0">
-          <p
+          <output
             v-if="renameSuccess"
-            role="status"
-            class="rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+            class="block rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
           >
             {{ $t('workspace.renameSuccess') }}
-          </p>
+          </output>
 
           <div v-if="!editingWorkspaceName" class="flex items-center justify-between gap-4">
             <div class="min-w-0">

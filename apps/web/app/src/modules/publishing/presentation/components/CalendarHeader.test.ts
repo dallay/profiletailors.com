@@ -98,31 +98,20 @@ describe('CalendarHeader', () => {
     expect(wrapper.text()).toContain('scheduler.weekView')
   })
 
-  it('emits change:view with calendar-month when month is clicked', async () => {
+  it.each([
+    { buttonIndex: 0, expectedView: 'calendar-month', scenario: 'month' },
+    { buttonIndex: 1, expectedView: 'calendar-week', scenario: 'week' },
+    { buttonIndex: 3, expectedView: 'list', scenario: 'list toggle' },
+  ])('emits change:view with $expectedView when $scenario is clicked', async ({
+    buttonIndex,
+    expectedView,
+  }) => {
     const wrapper = mountHeader()
     const buttons = wrapper.findAll('button')
 
-    await buttons[0]?.trigger('click') // month
+    await buttons[buttonIndex]?.trigger('click')
 
-    expect(wrapper.emitted('change:view')).toEqual([['calendar-month']])
-  })
-
-  it('emits change:view with calendar-week when week is clicked', async () => {
-    const wrapper = mountHeader()
-    const buttons = wrapper.findAll('button')
-
-    await buttons[1]?.trigger('click') // week
-
-    expect(wrapper.emitted('change:view')).toEqual([['calendar-week']])
-  })
-
-  it('emits change:view=list when list toggle is clicked', async () => {
-    const wrapper = mountHeader()
-    const buttons = wrapper.findAll('button')
-
-    await buttons[3]?.trigger('click') // list toggle
-
-    expect(wrapper.emitted('change:view')).toEqual([['list']])
+    expect(wrapper.emitted('change:view')).toEqual([[expectedView]])
   })
 
   it('emits change:view=calendar-month when calendar toggle is clicked from list mode', async () => {
