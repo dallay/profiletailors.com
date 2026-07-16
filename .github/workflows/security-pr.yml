@@ -334,7 +334,7 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Run Biome CI check
-        run: cd apps/web && pnpm dlx @biomejs/biome ci .
+        run: cd apps/web && pnpm biome ci .
 
   summary:
     name: security / summary
