@@ -24,20 +24,19 @@ Outcome events MUST be emitted only after the corresponding transaction complete
 
 ### Stable safe fields
 
-Each event will use explicit SLF4J placeholders with a stable `key={}` format. Fields are included when the event has the required context:
+Each event will use explicit SLF4J placeholders with a stable `key={}` format and the following required schema:
 
-- `event`
-- `publicationId`
-- `jobId`
-- `workspaceId`
-- `attemptNumber`
-- `provider`
-- `outcome`
-- `failureCategory`
-- `retryable`
-- `durationMs`
+| Event | Required fields |
+| --- | --- |
+| `publishing_attempt_claimed` | `event`, `publicationId`, `jobId`, `workspaceId`, `attemptNumber`, `provider` |
+| `publishing_attempt_succeeded` | `event`, `publicationId`, `jobId`, `workspaceId`, `attemptNumber`, `provider`, `outcome=SUCCEEDED`, `durationMs` |
+| `publishing_retry_scheduled` | `event`, `publicationId`, `jobId`, `workspaceId`, `attemptNumber`, `provider`, `outcome=FAILED`, `failureCategory`, `retryable=true`, `durationMs` |
+| `publishing_blocked` | `event`, `publicationId`, `jobId`, `workspaceId`, `attemptNumber`, `provider`, `outcome=BLOCKED`, `failureCategory`, `retryable=false`, `durationMs` |
+| `publishing_terminal_failure` | `event`, `publicationId`, `jobId`, `workspaceId`, `attemptNumber`, `provider`, `outcome=FAILED`, `failureCategory`, `retryable=false`, `durationMs` |
 
-The implementation will centralize event formatting in a small private helper or formatter local to the scheduling infrastructure. The physical output remains the current text logging format while preserving machine-extractable semantic fields.
+`jobId` plus `attemptNumber` identifies a specific publishing attempt. `publicationId` correlates the complete publication lifecycle across retries, rescheduling, and replacement jobs.
+
+A small `PublishingLifecycleLogger` class local to the scheduling infrastructure will own this contract through five explicit methods: `claimed`, `succeeded`, `retryScheduled`, `blocked`, and `terminalFailure`. It remains a bounded-context helper backed directly by SLF4J, not a platform abstraction. The physical output remains the current text logging format while preserving machine-extractable semantic fields.
 
 ### Data safety
 
@@ -57,16 +56,16 @@ Existing technical exception logging may retain a throwable only where already a
 
 ### Duration measurement
 
-Attempt duration will use the executor's injected `Clock`, measured from the start of `executeClaim` until the outcome is persisted. Duration is clamped to a non-negative millisecond value so deterministic or adjusted test clocks cannot produce negative telemetry.
+`PublishingJobExecutor` owns attempt duration measurement completely. It uses its injected `Clock`, measuring from the beginning of `executeClaim` until the persisted outcome completes. Duration is clamped to a non-negative millisecond value so deterministic or adjusted test clocks cannot produce negative telemetry.
 
-No MDC, coroutine-local context, or executor signature change will be introduced.
+No MDC, shared timing state, coroutine-local context, or executor signature change will be introduced.
 
 ### Boundaries
 
 The change stays inside the publishing scheduling infrastructure:
 
-- `PublishingWorker` owns claim logging and attempt start time.
-- `PublishingJobExecutor` owns success, retry, blocked, and terminal-failure logging because it knows the canonical outcome and transaction result.
+- `PublishingWorker` owns claim logging only.
+- `PublishingJobExecutor` owns attempt timing plus success, retry, blocked, and terminal-failure logging because it knows the canonical outcome and transaction result.
 - Domain models and repository ports remain unchanged unless a narrow internal value object is required for timing context.
 - Global logging configuration remains unchanged.
 
@@ -111,8 +110,9 @@ Focused tests will capture Logback events and verify:
 5. Terminal failure emits the canonical category and retryability.
 6. Lifecycle events do not contain post content, credentials, raw diagnostics, storage paths, or provider payloads.
 7. Transaction rollback does not emit an outcome event that claims persistence succeeded.
+8. Every lifecycle event contains its exact required field set without relying on a brittle full-message equality assertion.
 
-Verification will run the focused `PublishingWorkerTest` suite, backend Spotless, and backend Detekt. Broader builds are unnecessary unless focused verification exposes cross-cutting impact.
+During development, verification will run the focused `PublishingWorkerTest` and transaction tests. Before merge, regression verification will run `just backend-test-fast` and `just backend-lint`. The full infrastructure-heavy CI suite remains delegated to normal PR CI unless focused verification exposes cross-cutting impact.
 
 ## Troubleshooting
 
