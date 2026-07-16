@@ -11,6 +11,7 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 
@@ -32,14 +33,10 @@ internal class WaitlistEntryRepositoryTest {
             return entry
         }
 
-        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntry? {
+        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult {
             val key = entry.waitlistId to entry.normalizedEmail
-            return if (store.containsKey(key)) {
-                null
-            } else {
-                store[key] = entry
-                entry
-            }
+            return store[key]?.let(WaitlistEntryRepository.SaveResult::AlreadyExists)
+                ?: WaitlistEntryRepository.SaveResult.Saved(entry).also { store[key] = entry }
         }
     }
 
@@ -60,7 +57,10 @@ internal class WaitlistEntryRepositoryTest {
     fun `findByNormalizedEmail returns null when no entry exists`() {
         val repository: WaitlistEntryRepository = InMemoryWaitlistEntryRepository()
 
-        val result = repository.findByNormalizedEmail(WaitlistId("w-1"), NormalizedEmail("user@example.com"))
+        val result = repository.findByNormalizedEmail(
+            WaitlistId("w-1"),
+            NormalizedEmail.from(EmailAddress("user@example.com")),
+        )
 
         assertNull(result)
     }
@@ -82,7 +82,10 @@ internal class WaitlistEntryRepositoryTest {
         val newEntry = entry(waitlistId, "user@example.com")
         repository.save(newEntry)
 
-        val found = repository.findByNormalizedEmail(waitlistId, NormalizedEmail("user@example.com"))
+        val found = repository.findByNormalizedEmail(
+            waitlistId,
+            NormalizedEmail.from(EmailAddress("user@example.com")),
+        )
 
         assertEquals(newEntry.id, found?.id)
     }
@@ -94,10 +97,40 @@ internal class WaitlistEntryRepositoryTest {
         val waitlistB = WaitlistId("w-b")
         repository.save(entry(waitlistA, "shared@example.com"))
 
-        val foundInA = repository.findByNormalizedEmail(waitlistA, NormalizedEmail("shared@example.com"))
-        val foundInB = repository.findByNormalizedEmail(waitlistB, NormalizedEmail("shared@example.com"))
+        val foundInA = repository.findByNormalizedEmail(
+            waitlistA,
+            NormalizedEmail.from(EmailAddress("shared@example.com")),
+        )
+        val foundInB = repository.findByNormalizedEmail(
+            waitlistB,
+            NormalizedEmail.from(EmailAddress("shared@example.com")),
+        )
 
         assertEquals("shared@example.com", foundInA?.normalizedEmail?.value)
         assertNull(foundInB)
+    }
+
+    @Test
+    fun `saveIfNotExists returns Saved when key is absent`() {
+        val repository: WaitlistEntryRepository = InMemoryWaitlistEntryRepository()
+        val newEntry = entry(WaitlistId("w-1"), "user@example.com")
+
+        val result = repository.saveIfNotExists(newEntry)
+
+        val saved = assertIs<WaitlistEntryRepository.SaveResult.Saved>(result)
+        assertSame(newEntry, saved.entry)
+    }
+
+    @Test
+    fun `saveIfNotExists returns AlreadyExists with existing entry when key is present`() {
+        val repository: WaitlistEntryRepository = InMemoryWaitlistEntryRepository()
+        val existing = entry(WaitlistId("w-1"), "user@example.com")
+        val duplicate = entry(WaitlistId("w-1"), "USER@example.com")
+        repository.save(existing)
+
+        val result = repository.saveIfNotExists(duplicate)
+
+        val alreadyExists = assertIs<WaitlistEntryRepository.SaveResult.AlreadyExists>(result)
+        assertSame(existing, alreadyExists.existing)
     }
 }
