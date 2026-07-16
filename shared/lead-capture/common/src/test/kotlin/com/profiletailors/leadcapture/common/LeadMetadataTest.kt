@@ -22,6 +22,12 @@ internal class LeadMetadataTest {
         assertEquals("linkedin", metadata.utmSource)
         assertEquals("social", metadata.utmMedium)
         assertEquals("launch", metadata.utmCampaign)
+        assertEquals("hero-cta", metadata.utmContent)
+        assertEquals("scheduler", metadata.utmTerm)
+        assertEquals("https://google.com", metadata.referrer)
+        assertEquals("/", metadata.pagePath)
+        assertEquals("Chrome", metadata.userAgentFamily)
+        assertEquals("2026-06-25", metadata.consentVersion)
     }
 
     @Test

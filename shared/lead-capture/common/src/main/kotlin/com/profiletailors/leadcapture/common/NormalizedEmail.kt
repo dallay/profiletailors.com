@@ -1,7 +1,7 @@
 package com.profiletailors.leadcapture.common
 
 @JvmInline
-value class NormalizedEmail(val value: String) {
+value class NormalizedEmail private constructor(val value: String) {
 
     override fun toString(): String = value
 

@@ -63,7 +63,7 @@ internal class WaitlistEntryTest {
         val entry = createEntry(joinedAt = now)
         entry.cancel(at = now.plusSeconds(30))
         assertEquals(WaitlistEntryStatus.CANCELLED, entry.status)
-        assertNotNull(entry.cancelledAt)
+        assertEquals(now.plusSeconds(30), entry.cancelledAt)
     }
 
     @Test

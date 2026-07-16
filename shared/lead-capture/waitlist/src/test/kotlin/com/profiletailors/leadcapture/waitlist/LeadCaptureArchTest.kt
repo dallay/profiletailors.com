@@ -5,16 +5,12 @@ import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.lang.ArchRule
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 internal class LeadCaptureArchTest {
 
-    private lateinit var importedClasses: JavaClasses
-
-    @BeforeEach
-    fun setUp() {
-        importedClasses = ClassFileImporter()
+    companion object {
+        private val importedClasses: JavaClasses = ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages("com.profiletailors.leadcapture")
     }

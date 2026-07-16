@@ -28,7 +28,7 @@ internal class JoinWaitlistCommandTest {
 
     @Test
     fun `normalizedEmail trims and lowercases the raw email`() {
-        val cmd = command(email = EmailAddress("  User@Example.com  ".trim()))
+        val cmd = command(email = EmailAddress("User@Example.com"))
         assertEquals("user@example.com", cmd.normalizedEmail().value)
     }
 

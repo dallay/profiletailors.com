@@ -22,11 +22,6 @@ class JoinWaitlistHandler(
         }
 
         val normalized = command.normalizedEmail()
-        val existing = entryRepository.findByNormalizedEmail(waitlist.id, normalized)
-        if (existing != null) {
-            return JoinResult.ALREADY_JOINED
-        }
-
         val entry = WaitlistEntry(
             id = idGenerator.generate(waitlist.id, normalized),
             waitlistId = waitlist.id,
@@ -39,7 +34,10 @@ class JoinWaitlistHandler(
             consent = command.consent,
             joinedAt = clock(),
         )
-        entryRepository.save(entry)
-        return JoinResult.JOINED_NEW
+
+        return when (val result = entryRepository.saveIfNotExists(entry)) {
+            is WaitlistEntryRepository.SaveResult.Saved -> JoinResult.JOINED_NEW
+            is WaitlistEntryRepository.SaveResult.AlreadyExists -> JoinResult.ALREADY_JOINED
+        }
     }
 }

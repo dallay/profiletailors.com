@@ -32,6 +32,29 @@ class WaitlistEntry(
     var cancelledAt: Instant? = cancelledAt
         private set
 
+    init {
+        when (status) {
+            WaitlistEntryStatus.PENDING -> {
+                require(invitedAt == null) { "Pending entry must not have invitedAt" }
+                require(convertedAt == null) { "Pending entry must not have convertedAt" }
+                require(cancelledAt == null) { "Pending entry must not have cancelledAt" }
+            }
+            WaitlistEntryStatus.INVITED -> {
+                require(invitedAt != null) { "Invited entry must have invitedAt" }
+                require(convertedAt == null) { "Invited entry must not have convertedAt" }
+                require(cancelledAt == null) { "Invited entry must not have cancelledAt" }
+            }
+            WaitlistEntryStatus.CONVERTED -> {
+                require(invitedAt != null) { "Converted entry must have invitedAt" }
+                require(convertedAt != null) { "Converted entry must have convertedAt" }
+                require(cancelledAt == null) { "Converted entry must not have cancelledAt" }
+            }
+            WaitlistEntryStatus.CANCELLED -> {
+                require(cancelledAt != null) { "Cancelled entry must have cancelledAt" }
+            }
+        }
+    }
+
     fun invite(at: Instant) {
         check(status == WaitlistEntryStatus.PENDING) { "Only pending entries can be invited" }
         status = WaitlistEntryStatus.INVITED

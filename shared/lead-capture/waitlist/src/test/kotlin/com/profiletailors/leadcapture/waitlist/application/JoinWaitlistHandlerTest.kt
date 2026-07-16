@@ -15,6 +15,7 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistNotFoundException
+import WaitlistStatus
 import io.mockk.capture
 import io.mockk.every
 import io.mockk.mockk
@@ -49,12 +50,14 @@ internal class JoinWaitlistHandlerTest {
             key = WaitlistKey("profile-tailors-launch"),
             name = "Profile Tailors Launch",
             context = "profile-tailors",
-            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+            status = WaitlistStatus.ACTIVE,
         )
         every { waitlistRepo.findByKey(WaitlistKey("profile-tailors-launch")) } returns activeWaitlist
-        every { entryRepo.findByNormalizedEmail(any(), any()) } returns null
         every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
-        every { entryRepo.save(any()) } returnsArgument 0
+        every { entryRepo.saveIfNotExists(any()) } answers {
+            val entry = firstArg<WaitlistEntry>()
+            WaitlistEntryRepository.SaveResult.Saved(entry)
+        }
 
         val result = handler.handle(
             JoinWaitlistCommand(
@@ -70,7 +73,7 @@ internal class JoinWaitlistHandlerTest {
 
         assertEquals(JoinResult.JOINED_NEW, result)
         assertEquals("Accepted", result.toString())
-        verify(exactly = 1) { entryRepo.save(any()) }
+        verify(exactly = 1) { entryRepo.saveIfNotExists(any()) }
     }
 
     @Test
@@ -81,7 +84,7 @@ internal class JoinWaitlistHandlerTest {
             key = WaitlistKey("profile-tailors-launch"),
             name = "Profile Tailors Launch",
             context = "profile-tailors",
-            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+            status = WaitlistStatus.ACTIVE,
         )
         val existingEntry = WaitlistEntry(
             id = WaitlistEntryId("e-existing"),
@@ -96,7 +99,8 @@ internal class JoinWaitlistHandlerTest {
             joinedAt = Instant.parse("2026-07-15T12:00:00Z"),
         )
         every { waitlistRepo.findByKey(any()) } returns activeWaitlist
-        every { entryRepo.findByNormalizedEmail(any(), any()) } returns existingEntry
+        every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
+        every { entryRepo.saveIfNotExists(any()) } returns WaitlistEntryRepository.SaveResult.AlreadyExists(existingEntry)
 
         val result = handler.handle(
             JoinWaitlistCommand(
@@ -111,7 +115,7 @@ internal class JoinWaitlistHandlerTest {
         )
 
         assertEquals(JoinResult.ALREADY_JOINED, result)
-        verify(exactly = 0) { entryRepo.save(any()) }
+        verify(exactly = 1) { entryRepo.saveIfNotExists(any()) }
     }
 
     @Test
@@ -140,7 +144,7 @@ internal class JoinWaitlistHandlerTest {
             key = WaitlistKey("profile-tailors-launch"),
             name = "Profile Tailors Launch",
             context = "profile-tailors",
-            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.PAUSED,
+            status = WaitlistStatus.PAUSED,
         )
         every { waitlistRepo.findByKey(any()) } returns pausedWaitlist
 
@@ -173,13 +177,14 @@ internal class JoinWaitlistHandlerTest {
             key = WaitlistKey("profile-tailors-launch"),
             name = "Profile Tailors Launch",
             context = "profile-tailors",
-            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+            status = WaitlistStatus.ACTIVE,
         )
         val savedSlot = slot<WaitlistEntry>()
         every { waitlistRepo.findByKey(any()) } returns activeWaitlist
-        every { entryRepo.findByNormalizedEmail(any(), any()) } returns null
         every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
-        every { entryRepo.save(capture(savedSlot)) } returnsArgument 0
+        every { entryRepo.saveIfNotExists(capture(savedSlot)) } answers {
+            WaitlistEntryRepository.SaveResult.Saved(savedSlot.captured)
+        }
 
         handler.handle(
             JoinWaitlistCommand(
@@ -214,12 +219,14 @@ internal class JoinWaitlistHandlerTest {
             key = WaitlistKey("profile-tailors-launch"),
             name = "Profile Tailors Launch",
             context = "profile-tailors",
-            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+            status = WaitlistStatus.ACTIVE,
         )
         every { waitlistRepo.findByKey(any()) } returns activeWaitlist
-        every { entryRepo.findByNormalizedEmail(any(), any()) } returns null
         every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
-        every { entryRepo.save(any()) } returnsArgument 0
+        every { entryRepo.saveIfNotExists(any()) } answers {
+            val entry = firstArg<WaitlistEntry>()
+            WaitlistEntryRepository.SaveResult.Saved(entry)
+        }
 
         handler.handle(
             JoinWaitlistCommand(
@@ -239,19 +246,21 @@ internal class JoinWaitlistHandlerTest {
     }
 
     @Test
-    fun `lookup for existing entries is scoped by waitlist id and normalized email`() {
+    fun `saveIfNotExists is invoked with entry containing waitlist id and normalized email`() {
         val waitlistId = WaitlistId("w-1")
         val activeWaitlist = Waitlist(
             id = waitlistId,
             key = WaitlistKey("profile-tailors-launch"),
             name = "Profile Tailors Launch",
             context = "profile-tailors",
-            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+            status = WaitlistStatus.ACTIVE,
         )
+        val savedSlot = slot<WaitlistEntry>()
         every { waitlistRepo.findByKey(any()) } returns activeWaitlist
-        every { entryRepo.findByNormalizedEmail(waitlistId, NormalizedEmail("user@example.com")) } returns null
         every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
-        every { entryRepo.save(any()) } returnsArgument 0
+        every { entryRepo.saveIfNotExists(capture(savedSlot)) } answers {
+            WaitlistEntryRepository.SaveResult.Saved(savedSlot.captured)
+        }
 
         handler.handle(
             JoinWaitlistCommand(
@@ -265,9 +274,9 @@ internal class JoinWaitlistHandlerTest {
             ),
         )
 
-        verify(exactly = 1) {
-            entryRepo.findByNormalizedEmail(waitlistId, NormalizedEmail("user@example.com"))
-        }
+        val saved = savedSlot.captured
+        assertEquals(waitlistId, saved.waitlistId)
+        assertEquals(NormalizedEmail("user@example.com"), saved.normalizedEmail)
     }
 
     @Test
@@ -277,7 +286,7 @@ internal class JoinWaitlistHandlerTest {
             key = WaitlistKey("profile-tailors-launch"),
             name = "Profile Tailors Launch",
             context = "profile-tailors",
-            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.CLOSED,
+            status = WaitlistStatus.CLOSED,
         )
         every { waitlistRepo.findByKey(any()) } returns closedWaitlist
 
@@ -294,8 +303,7 @@ internal class JoinWaitlistHandlerTest {
                 ),
             )
         }
-        verify(exactly = 0) { entryRepo.findByNormalizedEmail(any(), any()) }
-        verify(exactly = 0) { entryRepo.save(any()) }
+        verify(exactly = 0) { entryRepo.saveIfNotExists(any()) }
     }
 
     @Test
@@ -306,13 +314,14 @@ internal class JoinWaitlistHandlerTest {
             key = WaitlistKey("profile-tailors-launch"),
             name = "Profile Tailors Launch",
             context = "profile-tailors",
-            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+            status = WaitlistStatus.ACTIVE,
         )
         val savedSlot = slot<WaitlistEntry>()
         every { waitlistRepo.findByKey(any()) } returns activeWaitlist
-        every { entryRepo.findByNormalizedEmail(any(), any()) } returns null
         every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
-        every { entryRepo.save(capture(savedSlot)) } returnsArgument 0
+        every { entryRepo.saveIfNotExists(capture(savedSlot)) } answers {
+            WaitlistEntryRepository.SaveResult.Saved(savedSlot.captured)
+        }
 
         val handlerWithDefaultClock = JoinWaitlistHandler(
             waitlistRepository = waitlistRepo,
@@ -345,13 +354,14 @@ internal class JoinWaitlistHandlerTest {
             key = WaitlistKey("profile-tailors-launch"),
             name = "Profile Tailors Launch",
             context = "profile-tailors",
-            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE,
+            status = WaitlistStatus.ACTIVE,
         )
         val savedSlot = slot<WaitlistEntry>()
         every { waitlistRepo.findByKey(any()) } returns activeWaitlist
-        every { entryRepo.findByNormalizedEmail(any(), any()) } returns null
         every { idGenerator.generate(any(), any()) } returns WaitlistEntryId("e-new")
-        every { entryRepo.save(capture(savedSlot)) } returnsArgument 0
+        every { entryRepo.saveIfNotExists(capture(savedSlot)) } answers {
+            WaitlistEntryRepository.SaveResult.Saved(savedSlot.captured)
+        }
 
         val result = handler.handle(
             JoinWaitlistCommand(

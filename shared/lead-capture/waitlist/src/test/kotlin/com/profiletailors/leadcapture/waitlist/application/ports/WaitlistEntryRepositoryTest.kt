@@ -31,6 +31,17 @@ internal class WaitlistEntryRepositoryTest {
             store[entry.waitlistId to entry.normalizedEmail] = entry
             return entry
         }
+
+        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult {
+            val key = entry.waitlistId to entry.normalizedEmail
+            val existing = store[key]
+            return if (existing != null) {
+                WaitlistEntryRepository.SaveResult.AlreadyExists(existing)
+            } else {
+                store[key] = entry
+                WaitlistEntryRepository.SaveResult.Saved(entry)
+            }
+        }
     }
 
     private fun entry(waitlistId: WaitlistId, email: String) = WaitlistEntry(
