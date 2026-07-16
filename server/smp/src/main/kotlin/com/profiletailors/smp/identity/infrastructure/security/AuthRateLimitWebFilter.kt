@@ -28,6 +28,11 @@ import java.util.concurrent.atomic.AtomicInteger
  * module so SMP always has auth abuse protection without requiring extra wiring.
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    name = ["app.security.auth-rate-limit.enabled"],
+    havingValue = "true",
+    matchIfMissing = true,
+)
 @Order(Ordered.HIGHEST_PRECEDENCE + 20)
 class AuthRateLimitWebFilter internal constructor(
     private val clock: Clock = Clock.systemUTC(),

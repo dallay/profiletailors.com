@@ -43,6 +43,7 @@ import javax.crypto.spec.SecretKeySpec
         "app.security.local-jwt.issuer=http://localhost/profiletailors-local",
         "app.security.refresh-session.cookie-name=pt_refresh",
         "app.security.refresh-session.cookie-path=/api/auth",
+        "app.security.auth-rate-limit.enabled=false",
         "management.endpoint.health.group.readiness.include=readinessState",
         "management.endpoint.health.group.liveness.include=livenessState",
     ],
