@@ -4,6 +4,8 @@ import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.governance.application.EvaluateComplianceQuery
 import com.profiletailors.smp.governance.domain.ComplianceEvaluation
 import com.profiletailors.smp.governance.domain.ComplianceEvaluationContext
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Size
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -12,22 +14,23 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
+/**
+ * REST controller for governance compliance evaluation.
+ */
 @RestController
 @RequestMapping("/api/governance/compliance")
 class ComplianceController(private val mediator: Mediator) {
 
-    // ── Evaluation ───────────────────────────────────────────────────
-
     data class EvaluationContextRequest(
-        val release: String? = null,
-        val market: String? = null,
-        val environment: String? = null,
-        val provider: String? = null,
-        val product: String? = null,
-        val workspace: String? = null,
+        @field:Size(max = 100) val release: String? = null,
+        @field:Size(max = 100) val market: String? = null,
+        @field:Size(max = 100) val environment: String? = null,
+        @field:Size(max = 100) val provider: String? = null,
+        @field:Size(max = 100) val product: String? = null,
+        @field:Size(max = 100) val workspace: String? = null,
     )
 
-    data class EvaluationRequest(val context: EvaluationContextRequest)
+    data class EvaluationRequest(@Valid val context: EvaluationContextRequest)
 
     data class EvaluationSummaryResponse(
         val totalControls: Int,
@@ -58,7 +61,7 @@ class ComplianceController(private val mediator: Mediator) {
      */
     @PostMapping("/evaluations")
     @ResponseStatus(HttpStatus.OK)
-    suspend fun evaluate(@RequestBody request: EvaluationRequest): EvaluationResponse {
+    suspend fun evaluate(@Valid @RequestBody request: EvaluationRequest): EvaluationResponse {
         val query = EvaluateComplianceQuery(
             context = ComplianceEvaluationContext(
                 release = request.context.release,
@@ -78,19 +81,18 @@ class ComplianceController(private val mediator: Mediator) {
      *
      * @return A map containing the status value `"ok"`.
      */
-
     @GetMapping("/ping")
     @ResponseStatus(HttpStatus.OK)
     fun ping(): Map<String, String> = mapOf("status" to "ok")
 
     /**
-         * Maps a compliance evaluation and its request context to an API response.
-         *
-         * @param evaluation The completed compliance evaluation.
-         * @param context The context used for the evaluation.
-         * @return The response containing evaluation status, summary, control results, and metadata.
-         */
-        private fun toResponse(evaluation: ComplianceEvaluation, context: EvaluationContextRequest): EvaluationResponse =
+     * Maps a compliance evaluation and its request context to an API response.
+     *
+     * @param evaluation The completed compliance evaluation.
+     * @param context The context used for the evaluation.
+     * @return The response containing evaluation status, summary, control results, and metadata.
+     */
+    private fun toResponse(evaluation: ComplianceEvaluation, context: EvaluationContextRequest): EvaluationResponse =
         EvaluationResponse(
             context = context,
             overallStatus = evaluation.overallStatus.name,

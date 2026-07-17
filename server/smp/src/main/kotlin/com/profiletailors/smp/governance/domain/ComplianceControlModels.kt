@@ -2,8 +2,6 @@ package com.profiletailors.smp.governance.domain
 
 import java.time.Instant
 
-// ── Identifiers ──────────────────────────────────────────────────────
-
 @JvmInline
 value class ComplianceControlId(val value: String)
 
@@ -22,10 +20,10 @@ value class ComplianceEvidenceId(val value: String)
 @JvmInline
 value class ComplianceRiskAcceptanceId(val value: String)
 
-// ── Enums ────────────────────────────────────────────────────────────
-
+/** Lifecycle state of a compliance control definition. */
 enum class ComplianceControlStatus { ACTIVE, INACTIVE, DEPRECATED }
 
+/** Dimension along which a control's applicability can be scoped. */
 enum class ScopeType(val value: String) {
     RELEASE("RELEASE"),
     MARKET("MARKET"),
@@ -35,16 +33,24 @@ enum class ScopeType(val value: String) {
     WORKSPACE("WORKSPACE"),
 }
 
+/** Review state of a submitted compliance evidence. */
 enum class EvidenceReviewStatus { PENDING, APPROVED, REJECTED }
 
+/** Lifecycle state of a recorded risk acceptance (waiver). */
 enum class RiskAcceptanceStatus { ACTIVE, EXPIRED, REVOKED }
 
+/** Result status for a single control within an evaluation. */
 enum class ControlStatus { PASS, FAIL, WAIVED, NOT_ASSESSED, NOT_APPLICABLE, WARNING }
 
+/** Overall compliance status for a complete evaluation. */
 enum class EvaluationStatus { COMPLIANT, NON_COMPLIANT, PARTIAL, NOT_ASSESSED }
 
-// ── Compliance Control ───────────────────────────────────────────────
-
+/**
+ * A compliance control that must be satisfied for the system to be compliant.
+ *
+ * Each control has a unique key, a human-readable name, and optional
+ * ownership, category, and review scheduling metadata.
+ */
 data class ComplianceControl(
     val id: ComplianceControlId,
     val controlKey: String,
@@ -59,8 +65,9 @@ data class ComplianceControl(
     val updatedAt: Instant = Instant.now(),
 )
 
-// ── Applicability ────────────────────────────────────────────────────
-
+/**
+ * A single scope dimension value that forms part of an applicability rule.
+ */
 data class ApplicabilityDimension(
     val id: ApplicabilityDimensionId,
     val ruleId: ComplianceControlApplicabilityRuleId,
@@ -70,6 +77,9 @@ data class ApplicabilityDimension(
     val version: Long = 1,
 )
 
+/**
+ * Rule that determines when and where a compliance control applies.
+ */
 data class ComplianceControlApplicabilityRule(
     val id: ComplianceControlApplicabilityRuleId,
     val controlId: ComplianceControlId,
@@ -82,8 +92,9 @@ data class ComplianceControlApplicabilityRule(
     val dimensions: List<ApplicabilityDimension> = emptyList(),
 )
 
-// ── Evidence Requirements ────────────────────────────────────────────
-
+/**
+ * Requirement linking a compliance control to a specific evidence type.
+ */
 data class ComplianceControlEvidenceRequirement(
     val id: ComplianceControlEvidenceRequirementId,
     val controlId: ComplianceControlId,

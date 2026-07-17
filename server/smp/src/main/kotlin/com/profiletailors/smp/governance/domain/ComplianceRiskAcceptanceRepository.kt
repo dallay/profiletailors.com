@@ -17,11 +17,12 @@ interface ComplianceRiskAcceptanceRepository {
         context: ComplianceEvaluationContext,
         evaluatedAt: Instant,
     ): Flow<ComplianceRiskAcceptance>
+
     /**
- * Persists a compliance risk acceptance.
- *
- * @param riskAcceptance The compliance risk acceptance to persist.
- * @return The persisted compliance risk acceptance.
- */
-suspend fun save(riskAcceptance: ComplianceRiskAcceptance): ComplianceRiskAcceptance
+     * Persists a compliance risk acceptance.
+     *
+     * @param riskAcceptance The compliance risk acceptance to persist.
+     * @return The persisted compliance risk acceptance.
+     */
+    suspend fun save(riskAcceptance: ComplianceRiskAcceptance): ComplianceRiskAcceptance
 }

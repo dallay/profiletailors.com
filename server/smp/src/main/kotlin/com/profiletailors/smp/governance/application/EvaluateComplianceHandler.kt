@@ -16,6 +16,16 @@ import com.profiletailors.smp.governance.domain.RiskAcceptanceStatus
 import kotlinx.coroutines.flow.toList
 import java.time.Clock
 
+/**
+ * Handler that evaluates compliance by matching applicable controls against
+ * linked evidence and active risk acceptances (waivers).
+ *
+ * For each applicable control the handler determines one of:
+ * - PASS if linked evidence exists,
+ * - WAIVED if an active risk acceptance matches the evaluation context,
+ * - FAIL if no evidence is present,
+ * - WARNING if the control is not required.
+ */
 @Service
 internal class EvaluateComplianceHandler(
     private val controlRepository: ComplianceControlRepository,
@@ -111,12 +121,12 @@ internal class EvaluateComplianceHandler(
     }
 
     /**
-         * Determines whether a waiver scope applies to a context value.
-         *
-         * @param waiverScope The waiver scope value, or `null` to match any context value.
-         * @param contextValue The context value, or `null` to match any waiver scope.
-         * @return `true` if either value is `null` or both values are equal, `false` otherwise.
-         */
-        private fun matchesOrNull(waiverScope: String?, contextValue: String?): Boolean =
+     * Determines whether a waiver scope applies to a context value.
+     *
+     * @param waiverScope The waiver scope value, or `null` to match any context value.
+     * @param contextValue The context value, or `null` to match any waiver scope.
+     * @return `true` if either value is `null` or both values are equal, `false` otherwise.
+     */
+    private fun matchesOrNull(waiverScope: String?, contextValue: String?): Boolean =
         waiverScope == null || contextValue == null || waiverScope == contextValue
 }

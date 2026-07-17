@@ -20,14 +20,14 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
     ComplianceRiskAcceptanceRepository {
 
     /**
-         * Finds active risk acceptances applicable to a control and evaluation context.
-         *
-         * @param controlId The identifier of the control.
-         * @param context The evaluation context used to determine applicability.
-         * @param evaluatedAt The time used to exclude expired acceptances.
-         * @return A flow of applicable active risk acceptances.
-         */
-        override fun activeForControl(
+     * Finds active risk acceptances applicable to a control and evaluation context.
+     *
+     * @param controlId The identifier of the control.
+     * @param context The evaluation context used to determine applicability.
+     * @param evaluatedAt The time used to exclude expired acceptances.
+     * @return A flow of applicable active risk acceptances.
+     */
+    override fun activeForControl(
         controlId: ComplianceControlId,
         context: ComplianceEvaluationContext,
         evaluatedAt: Instant,
@@ -103,14 +103,14 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
     )
 
     /**
-         * Binds a nullable string value to a database statement parameter.
-         *
-         * @param spec The database statement specification.
-         * @param name The parameter name.
-         * @param value The string value, or `null`.
-         * @return The statement specification with the parameter bound.
-         */
-        private fun bindNullable(
+     * Binds a nullable string value to a database statement parameter.
+     *
+     * @param spec The database statement specification.
+     * @param name The parameter name.
+     * @param value The string value, or `null`.
+     * @return The statement specification with the parameter bound.
+     */
+    private fun bindNullable(
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: String?,
@@ -118,14 +118,14 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
         if (value != null) spec.bind(name, value) else spec.bindNull(name, String::class.java)
 
     /**
-         * Binds an optional instant value to a database statement.
-         *
-         * @param spec The database statement specification.
-         * @param name The parameter name.
-         * @param value The instant value, or `null`.
-         * @return The statement specification with the value bound.
-         */
-        private fun bindNullableInstant(
+     * Binds an optional instant value to a database statement.
+     *
+     * @param spec The database statement specification.
+     * @param name The parameter name.
+     * @param value The instant value, or `null`.
+     * @return The statement specification with the value bound.
+     */
+    private fun bindNullableInstant(
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: Instant?,
