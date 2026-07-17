@@ -1005,7 +1005,7 @@ async function handleCreateSubmit(
                   </div>
 
                   <div
-                    v-if="asset.kind === 'local-upload' ? isLocalUploadInFlight : asset.isUploading"
+                    v-if="asset.kind === 'local-upload' ? isLocalUploadInFlight || asset.isUploading : asset.isUploading"
                     class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55 px-3 text-center backdrop-blur-sm"
                     data-testid="inline-upload-overlay"
                   >
