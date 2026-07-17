@@ -9,3 +9,10 @@ completed:
   - apply
 next: apply
 updated: 2026-07-17
+notes:
+  - "P2 Codex security remediation (PR #378): RateLimitingFilter.getIdentifier now uses remoteAddress only; X-Forwarded-For is no longer trusted. ForwardedHeaderFilter / trusted-proxy wiring is deferred to a separate change."
+  # CRITICAL — production blockers that prevent the WAITLIST rate limit from being safe to enable
+  # by default while SMP runs behind Kubernetes/Cloud Run ingress with multiple replicas.
+  - "CRITICAL — DALLAY-512: Bucket4jRateLimiter stores buckets in an in-process Caffeine cache, so each replica maintains its own bucket per client. With N replicas a single client can exceed the configured 10/min WAITLIST limit by up to N×capacity. KDoc on Bucket4jRateLimiter already warns about this."
+  - "CRITICAL — DALLAY-513: Without trusted-proxy / ForwardedHeaderFilter wiring, `remoteAddress` is the ingress/load-balancer address instead of the real client. All clients routed through the same ingress (e.g. NAT egress, shared corporate proxy) collapse into one WAITLIST bucket. The P2 Codex fix on PR #378 dropped `X-Forwarded-For` trust; a positive trusted-proxy allowlist is the flip side and remains deferred."
+  - "Mitigation in this branch: `application.rate-limit.waitlist.enabled` defaults to false; flipping it on still requires explicit operator action via `SMP_WAITLIST_RATE_LIMIT_ENABLED=true`. The existing integration suite overrides the property back to true so runtime behavior stays covered."

@@ -1,13 +1,16 @@
 package com.profiletailors.smp.leadcapture.integration
 
+import com.profiletailors.ratelimit.infrastructure.adapter.Bucket4jRateLimiter
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.test.TestStorageConfiguration
 import kotlinx.coroutines.reactor.awaitSingle
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.context.annotation.Import
@@ -46,6 +49,9 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
 
     override val postgresContainer: PostgreSQLContainer<*> = postgres
 
+    @Autowired
+    private lateinit var bucket4jRateLimiter: Bucket4jRateLimiter
+
     override suspend fun seedScenario() {
         databaseClient.sql(
             """
@@ -62,15 +68,28 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
         "DELETE FROM waitlist_entries",
     ) + super.cleanupStatements()
 
+    @BeforeEach
+    fun resetRateLimiterBuckets() {
+        // Each test method must start with a fresh WAITLIST bucket cache; otherwise the in-process
+        // bucket from a prior test method (which all share the same loopback remoteAddress under
+        // bindToServer/RANDOM_PORT) would already be exhausted and short-circuit later tests.
+        bucket4jRateLimiter.clearCache()
+    }
+
     @Test
     fun `11th request from the same IP within a minute returns 429 rate_limited`() {
         val capacity = 10
-        val ip = "10.0.0.1"
 
+        // The 11 calls intentionally rotate `X-Forwarded-For` per request. After the P2 Codex
+        // remediation, the shared `RateLimitingFilter` no longer trusts client-supplied forwarded
+        // headers and keys buckets on `remoteAddress` only. Every WebTestClient call below comes
+        // from the same loopback socket, so all 11 calls share the same WAITLIST bucket and the
+        // 11th request still receives 429 — proving the limit cannot be bypassed by rotating the
+        // header.
         for (i in 1..capacity) {
             webTestClient.post()
                 .uri("/api/waitlists/profile-tailors-launch/entries")
-                .header("X-Forwarded-For", ip)
+                .header("X-Forwarded-For", "198.51.100.$i")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(validJoinRequest("user-$i@example.com"))
                 .exchange()
@@ -79,7 +98,7 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
 
         webTestClient.post()
             .uri("/api/waitlists/profile-tailors-launch/entries")
-            .header("X-Forwarded-For", ip)
+            .header("X-Forwarded-For", "198.51.100.250")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(validJoinRequest("user-overflow@example.com"))
             .exchange()
@@ -92,12 +111,15 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
     @Test
     fun `same IP can join a different waitlist after exhausting the first waitlist quota`() {
         val capacity = 10
-        val ip = "10.0.0.4"
+        // `X-Forwarded-For` is intentionally ignored by the filter (P2 remediation), so every
+        // WebTestClient call lands on the same loopback remoteAddress and the bucket is keyed by
+        // path. Different waitlists therefore remain independent.
+        val spoofedClient = "10.0.0.4"
 
         for (i in 1..capacity) {
             webTestClient.post()
                 .uri("/api/waitlists/profile-tailors-launch/entries")
-                .header("X-Forwarded-For", ip)
+                .header("X-Forwarded-For", spoofedClient)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(validJoinRequest("launch-user-$i@example.com"))
                 .exchange()
@@ -106,7 +128,7 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
 
         webTestClient.post()
             .uri("/api/waitlists/profile-tailors-beta/entries")
-            .header("X-Forwarded-For", ip)
+            .header("X-Forwarded-For", spoofedClient)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(validJoinRequest("beta-user@example.com"))
             .exchange()
@@ -116,12 +138,12 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
     @Test
     fun `rate limit applies even on duplicate joins and validation errors`() {
         val capacity = 10
-        val ip = "10.0.0.2"
+        val spoofedClient = "10.0.0.2"
 
         for (i in 1..5) {
             webTestClient.post()
                 .uri("/api/waitlists/profile-tailors-launch/entries")
-                .header("X-Forwarded-For", ip)
+                .header("X-Forwarded-For", spoofedClient)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(validJoinRequest("user-rl@example.com"))
                 .exchange()
@@ -131,7 +153,7 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
         for (i in 6..capacity) {
             webTestClient.post()
                 .uri("/api/waitlists/profile-tailors-launch/entries")
-                .header("X-Forwarded-For", ip)
+                .header("X-Forwarded-For", spoofedClient)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(invalidJoinRequest())
                 .exchange()
@@ -140,7 +162,7 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
 
         webTestClient.post()
             .uri("/api/waitlists/profile-tailors-launch/entries")
-            .header("X-Forwarded-For", ip)
+            .header("X-Forwarded-For", spoofedClient)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(validJoinRequest("user-overflow-2@example.com"))
             .exchange()
@@ -150,12 +172,12 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
     @Test
     fun `rate limited response includes Retry-After header`() {
         val capacity = 10
-        val ip = "10.0.0.3"
+        val spoofedClient = "10.0.0.3"
 
         for (i in 1..capacity) {
             webTestClient.post()
                 .uri("/api/waitlists/profile-tailors-launch/entries")
-                .header("X-Forwarded-For", ip)
+                .header("X-Forwarded-For", spoofedClient)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(validJoinRequest("header-user-$i@example.com"))
                 .exchange()
@@ -163,7 +185,7 @@ class WaitlistRateLimitIntegrationTest : PostgresIntegrationTestBase() {
 
         webTestClient.post()
             .uri("/api/waitlists/profile-tailors-launch/entries")
-            .header("X-Forwarded-For", ip)
+            .header("X-Forwarded-For", spoofedClient)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(validJoinRequest("header-overflow@example.com"))
             .exchange()

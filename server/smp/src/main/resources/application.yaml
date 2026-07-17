@@ -31,7 +31,11 @@ application:
     resume:
       enabled: false
     waitlist:
-      enabled: ${SMP_WAITLIST_RATE_LIMIT_ENABLED:true}
+      # Default OFF. Two production blockers (DALLAY-512 distributed bucket backend and
+      # DALLAY-513 trusted-proxy / ForwardedHeaderFilter wiring) prevent safe enablement
+      # while SMP runs behind Kubernetes or Cloud Run ingress with multiple replicas.
+      # Operators must set SMP_WAITLIST_RATE_LIMIT_ENABLED=true explicitly to turn it on.
+      enabled: ${SMP_WAITLIST_RATE_LIMIT_ENABLED:false}
       endpoints:
         - /api/waitlists
       limit:
