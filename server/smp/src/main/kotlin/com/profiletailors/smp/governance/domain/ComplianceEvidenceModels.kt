@@ -2,6 +2,10 @@ package com.profiletailors.smp.governance.domain
 
 import java.time.Instant
 
+/**
+ * A piece of compliance evidence — a document, attestation, or artifact
+ * that demonstrates compliance with one or more controls.
+ */
 data class ComplianceEvidence(
     val id: ComplianceEvidenceId,
     val evidenceType: String,
