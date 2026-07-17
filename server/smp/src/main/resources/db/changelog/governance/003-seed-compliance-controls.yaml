@@ -1,0 +1,495 @@
+databaseChangeLog:
+  - changeSet:
+      id: governance-003-seed-compliance-controls
+      author: sdd-apply
+      changes:
+        - insert:
+            tableName: compliance_controls
+            columns:
+              - column:
+                  name: id
+                  value: ctrl-privacy-data-retention
+              - column:
+                  name: control_key
+                  value: PRIVACY.DATA_RETENTION
+              - column:
+                  name: name
+                  value: Data retention and deletion
+              - column:
+                  name: description
+                  value: Ensure personal data is retained only as long as necessary and deleted or anonymised per the data inventory retention schedule.
+              - column:
+                  name: owner
+                  value: system
+              - column:
+                  name: category
+                  value: PRIVACY
+              - column:
+                  name: status
+                  value: ACTIVE
+        - insert:
+            tableName: compliance_control_applicability_rules
+            columns:
+              - column:
+                  name: id
+                  value: ctrlrule-privacy-retention-001
+              - column:
+                  name: control_id
+                  value: ctrl-privacy-data-retention
+              - column:
+                  name: required
+                  valueBoolean: true
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-privacy-retention-001
+              - column:
+                  name: rule_id
+                  value: ctrlrule-privacy-retention-001
+              - column:
+                  name: scope_type
+                  value: RELEASE
+              - column:
+                  name: scope_value
+                  value: mvp
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-privacy-retention-002
+              - column:
+                  name: rule_id
+                  value: ctrlrule-privacy-retention-001
+              - column:
+                  name: scope_type
+                  value: MARKET
+              - column:
+                  name: scope_value
+                  value: EEA
+
+        - insert:
+            tableName: compliance_controls
+            columns:
+              - column:
+                  name: id
+                  value: ctrl-valid-consent
+              - column:
+                  name: control_key
+                  value: PRIVACY.VALID_CONSENT
+              - column:
+                  name: name
+                  value: Valid consent for consent-based processing
+              - column:
+                  name: description
+                  value: Where consent is the legal basis for processing, ensure valid consent records are captured, stored, and withdrawable.
+              - column:
+                  name: owner
+                  value: system
+              - column:
+                  name: category
+                  value: CONSENT
+              - column:
+                  name: status
+                  value: ACTIVE
+        - insert:
+            tableName: compliance_control_applicability_rules
+            columns:
+              - column:
+                  name: id
+                  value: ctrlrule-consent-001
+              - column:
+                  name: control_id
+                  value: ctrl-valid-consent
+              - column:
+                  name: required
+                  valueBoolean: true
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-consent-001
+              - column:
+                  name: rule_id
+                  value: ctrlrule-consent-001
+              - column:
+                  name: scope_type
+                  value: RELEASE
+              - column:
+                  name: scope_value
+                  value: mvp
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-consent-002
+              - column:
+                  name: rule_id
+                  value: ctrlrule-consent-001
+              - column:
+                  name: scope_type
+                  value: MARKET
+              - column:
+                  name: scope_value
+                  value: EEA
+
+        - insert:
+            tableName: compliance_controls
+            columns:
+              - column:
+                  name: id
+                  value: ctrl-data-subject-rights
+              - column:
+                  name: control_key
+                  value: PRIVACY.DATA_SUBJECT_RIGHTS
+              - column:
+                  name: name
+                  value: Data subject rights exercise procedure
+              - column:
+                  name: description
+                  value: Maintain procedures to handle data subject access, rectification, erasure, restriction, portability, and objection requests.
+              - column:
+                  name: owner
+                  value: system
+              - column:
+                  name: category
+                  value: RIGHTS
+              - column:
+                  name: status
+                  value: ACTIVE
+        - insert:
+            tableName: compliance_control_applicability_rules
+            columns:
+              - column:
+                  name: id
+                  value: ctrlrule-rights-001
+              - column:
+                  name: control_id
+                  value: ctrl-data-subject-rights
+              - column:
+                  name: required
+                  valueBoolean: true
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-rights-001
+              - column:
+                  name: rule_id
+                  value: ctrlrule-rights-001
+              - column:
+                  name: scope_type
+                  value: RELEASE
+              - column:
+                  name: scope_value
+                  value: mvp
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-rights-002
+              - column:
+                  name: rule_id
+                  value: ctrlrule-rights-001
+              - column:
+                  name: scope_type
+                  value: MARKET
+              - column:
+                  name: scope_value
+                  value: EEA
+
+        - insert:
+            tableName: compliance_controls
+            columns:
+              - column:
+                  name: id
+                  value: ctrl-breach-response
+              - column:
+                  name: control_key
+                  value: SECURITY.BREACH_RESPONSE
+              - column:
+                  name: name
+                  value: Privacy incident and breach response workflow
+              - column:
+                  name: description
+                  value: Maintain an incident response runbook covering detection, containment, notification, and remediation of personal data breaches.
+              - column:
+                  name: owner
+                  value: system
+              - column:
+                  name: category
+                  value: INCIDENT
+              - column:
+                  name: status
+                  value: ACTIVE
+        - insert:
+            tableName: compliance_control_applicability_rules
+            columns:
+              - column:
+                  name: id
+                  value: ctrlrule-breach-001
+              - column:
+                  name: control_id
+                  value: ctrl-breach-response
+              - column:
+                  name: required
+                  valueBoolean: true
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-breach-001
+              - column:
+                  name: rule_id
+                  value: ctrlrule-breach-001
+              - column:
+                  name: scope_type
+                  value: RELEASE
+              - column:
+                  name: scope_value
+                  value: mvp
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-breach-002
+              - column:
+                  name: rule_id
+                  value: ctrlrule-breach-001
+              - column:
+                  name: scope_type
+                  value: MARKET
+              - column:
+                  name: scope_value
+                  value: EEA
+
+        - insert:
+            tableName: compliance_controls
+            columns:
+              - column:
+                  name: id
+                  value: ctrl-content-licensing
+              - column:
+                  name: control_key
+                  value: CONTENT.LICENSING_ATTRIBUTION
+              - column:
+                  name: name
+                  value: Content licensing and attribution
+              - column:
+                  name: description
+                  value: Ensure content published through the platform respects third-party licensing terms and attribution requirements.
+              - column:
+                  name: owner
+                  value: system
+              - column:
+                  name: category
+                  value: CONTENT
+              - column:
+                  name: status
+                  value: ACTIVE
+        - insert:
+            tableName: compliance_control_applicability_rules
+            columns:
+              - column:
+                  name: id
+                  value: ctrlrule-content-001
+              - column:
+                  name: control_id
+                  value: ctrl-content-licensing
+              - column:
+                  name: required
+                  valueBoolean: true
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-content-001
+              - column:
+                  name: rule_id
+                  value: ctrlrule-content-001
+              - column:
+                  name: scope_type
+                  value: RELEASE
+              - column:
+                  name: scope_value
+                  value: mvp
+
+        - insert:
+            tableName: compliance_controls
+            columns:
+              - column:
+                  name: id
+                  value: ctrl-dpa
+              - column:
+                  name: control_key
+                  value: LEGAL.DATA_PROCESSING_AGREEMENTS
+              - column:
+                  name: name
+                  value: Data processing agreements with processors
+              - column:
+                  name: description
+                  value: Maintain DPAs with all data processors as required by RGPD Art. 28.
+              - column:
+                  name: owner
+                  value: system
+              - column:
+                  name: category
+                  value: LEGAL
+              - column:
+                  name: status
+                  value: ACTIVE
+        - insert:
+            tableName: compliance_control_applicability_rules
+            columns:
+              - column:
+                  name: id
+                  value: ctrlrule-dpa-001
+              - column:
+                  name: control_id
+                  value: ctrl-dpa
+              - column:
+                  name: required
+                  valueBoolean: true
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-dpa-001
+              - column:
+                  name: rule_id
+                  value: ctrlrule-dpa-001
+              - column:
+                  name: scope_type
+                  value: RELEASE
+              - column:
+                  name: scope_value
+                  value: mvp
+
+        - insert:
+            tableName: compliance_controls
+            columns:
+              - column:
+                  name: id
+                  value: ctrl-subprocessor
+              - column:
+                  name: control_key
+                  value: LEGAL.SUBPROCESSOR_GOVERNANCE
+              - column:
+                  name: name
+                  value: Subprocessor register and notification
+              - column:
+                  name: description
+                  value: Maintain a register of subprocessors and notify customers of changes per DPA obligations.
+              - column:
+                  name: owner
+                  value: system
+              - column:
+                  name: category
+                  value: TRANSFER
+              - column:
+                  name: status
+                  value: ACTIVE
+        - insert:
+            tableName: compliance_control_applicability_rules
+            columns:
+              - column:
+                  name: id
+                  value: ctrlrule-sub-001
+              - column:
+                  name: control_id
+                  value: ctrl-subprocessor
+              - column:
+                  name: required
+                  valueBoolean: true
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-sub-001
+              - column:
+                  name: rule_id
+                  value: ctrlrule-sub-001
+              - column:
+                  name: scope_type
+                  value: RELEASE
+              - column:
+                  name: scope_value
+                  value: mvp
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-sub-002
+              - column:
+                  name: rule_id
+                  value: ctrlrule-sub-001
+              - column:
+                  name: scope_type
+                  value: MARKET
+              - column:
+                  name: scope_value
+                  value: EEA
+
+        - insert:
+            tableName: compliance_controls
+            columns:
+              - column:
+                  name: id
+                  value: ctrl-accessibility
+              - column:
+                  name: control_key
+                  value: ACCESSIBILITY.BASELINE
+              - column:
+                  name: name
+                  value: Accessibility baseline
+              - column:
+                  name: description
+                  value: Ensure the product meets basic accessibility standards. Advisory pending EAA applicability resolution.
+              - column:
+                  name: owner
+                  value: system
+              - column:
+                  name: category
+                  value: ACCESSIBILITY
+              - column:
+                  name: status
+                  value: ACTIVE
+        - insert:
+            tableName: compliance_control_applicability_rules
+            columns:
+              - column:
+                  name: id
+                  value: ctrlrule-access-001
+              - column:
+                  name: control_id
+                  value: ctrl-accessibility
+              - column:
+                  name: required
+                  valueBoolean: false
+        - insert:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  value: ctrldim-access-001
+              - column:
+                  name: rule_id
+                  value: ctrlrule-access-001
+              - column:
+                  name: scope_type
+                  value: RELEASE
+              - column:
+                  name: scope_value
+                  value: mvp

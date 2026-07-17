@@ -1,0 +1,136 @@
+schema_version: "1.0"
+processing_entity: Dallay
+DPO_contact: null
+
+processing_activities:
+  - id: pa-001
+    name: User account registration and management
+    purposes:
+      - purpose: Create and manage user accounts, authentication, and session management
+        role: controller
+        legal_basis:
+          type: contract
+          reference: GDPR Art. 6(1)(b)
+    personal_data_categories:
+      - Email address
+      - Username
+      - Password hash
+      - IP address
+    data_subjects: Registered users
+    recipients:
+      - name: Internal processing only
+        type: none
+        location_type: region
+        location: EEA
+        agreement_reference: not_applicable
+    retention:
+      trigger: account_deleted
+      duration: P30D
+      action: delete
+      exceptions:
+        - Invoicing records retained per statutory obligation
+    security_measures:
+      - Access restricted to authorized service operators
+      - Credentials hashed at rest (bcrypt)
+      - TLS 1.3 for all data in transit
+    evidence_references:
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/identity/domain/PasswordHasher.kt
+        reason: Credential hashing implementation
+    notes: Preliminary entry based on repository evidence. Expand as new processing is identified.
+
+  - id: pa-002
+    name: Social media publishing and scheduling
+    purposes:
+      - purpose: Allow users to schedule, compose, and publish content to connected social media accounts
+        role: processor
+        legal_basis:
+          type: controller_instruction
+          reference: Data Processing Agreement / controller instructions
+    personal_data_categories:
+      - Social media account identifiers
+      - Published content
+    data_subjects: End recipients of published content
+    recipients:
+      - name: LinkedIn
+        type: processor
+        location_type: country
+        location: US
+        agreement_reference: LinkedIn DPA (available upon request)
+    retention:
+      trigger: account_deleted
+      duration: P90D
+      action: archive
+      exceptions: []
+    security_measures:
+      - OAuth 2.0 for provider authentication
+      - Access restricted to authorized service operators
+    evidence_references:
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/social/LinkedInConnectionGateway.kt
+        reason: LinkedIn OAuth integration implementation
+    notes: Processor role assumed; controller instruction basis depends on customer agreement terms.
+
+  - id: pa-003
+    name: Web application hosting and delivery
+    purposes:
+      - purpose: Host and deliver the Profile Tailors web application and API
+        role: controller
+        legal_basis:
+          type: contract
+          reference: GDPR Art. 6(1)(b)
+    personal_data_categories:
+      - IP address
+      - Browser user agent
+      - Usage analytics
+    data_subjects: Website visitors and application users
+    recipients:
+      - name: Vercel Inc.
+        type: processor
+        location_type: country
+        location: US
+        agreement_reference: Vercel DPA
+    retention:
+      trigger: session_end
+      duration: P90D
+      action: delete
+      exceptions: []
+    security_measures:
+      - TLS 1.3 for all data in transit
+      - WAF and DDoS protection
+    evidence_references:
+      - path: apps/web/marketing/astro.config.ts
+        reason: Vercel adapter deployment configuration
+    notes: Vercel is the hosting provider. Analytics data retention subject to Vercel's default policies.
+
+  - id: pa-004
+    name: Lead capture and waitlist management
+    purposes:
+      - purpose: Manage early-access waitlist signups and marketing communications
+        role: controller
+        legal_basis:
+          type: consent
+          reference: GDPR Art. 6(1)(a)
+    personal_data_categories:
+      - Email address
+      - Marketing preferences
+      - Consent status
+    data_subjects: Waitlist signups and prospective users
+    recipients:
+      - name: Internal processing only
+        type: none
+        location_type: region
+        location: EEA
+        agreement_reference: not_applicable
+    retention:
+      trigger: consent_withdrawn
+      duration: P30D
+      action: anonymize
+      exceptions: []
+    security_measures:
+      - Email verification before activation
+      - Access restricted to authorized service operators
+    evidence_references:
+      - path: shared/lead-capture/waitlist/src/main/kotlin
+        reason: Complete waitlist module implementation
+      - path: server/smp/src/main/resources/db/changelog/lead-capture/001-create-waitlists.yaml
+        reason: Database schema for waitlist data
+    notes: Consent-based processing. Withdrawal triggers anonymization within 30 days.

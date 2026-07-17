@@ -1,0 +1,464 @@
+databaseChangeLog:
+  - changeSet:
+      id: governance-002-create-compliance-controls
+      author: sdd-apply
+      changes:
+        - createTable:
+            tableName: compliance_controls
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: control_key
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_compliance_controls_key
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+              - column:
+                  name: owner
+                  type: varchar(128)
+              - column:
+                  name: category
+                  type: varchar(64)
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: next_review_at
+                  type: timestamp with time zone
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: compliance_control_applicability_rules
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: control_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_applicability_rule_control
+                    references: compliance_controls(id)
+                    deleteCascade: false
+              - column:
+                  name: required
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valid_from
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valid_until
+                  type: timestamp with time zone
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: compliance_control_applicability_dimensions
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: rule_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_applicability_dimension_rule
+                    references: compliance_control_applicability_rules(id)
+                    deleteCascade: false
+              - column:
+                  name: scope_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scope_value
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: compliance_control_applicability_dimensions
+            indexName: idx_applicability_dim_rule
+            columns:
+              - column:
+                  name: rule_id
+        - createIndex:
+            tableName: compliance_control_applicability_dimensions
+            indexName: idx_applicability_dim_type_value
+            columns:
+              - column:
+                  name: scope_type
+              - column:
+                  name: scope_value
+
+        - createTable:
+            tableName: compliance_control_evidence_requirements
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: control_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_evidence_req_control
+                    references: compliance_controls(id)
+                    deleteCascade: false
+              - column:
+                  name: evidence_type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: minimum_approved_evidence
+                  type: integer
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: manual_approval_required
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: required
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valid_from
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valid_until
+                  type: timestamp with time zone
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: compliance_evidences
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: evidence_type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+              - column:
+                  name: reference_url
+                  type: varchar(512)
+              - column:
+                  name: immutable_reference
+                  type: varchar(512)
+              - column:
+                  name: checksum
+                  type: varchar(128)
+              - column:
+                  name: metadata_json
+                  type: text
+              - column:
+                  name: submitted_by
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reviewed_by
+                  type: varchar(128)
+              - column:
+                  name: review_status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: collected_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valid_from
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: timestamp with time zone
+              - column:
+                  name: verified_at
+                  type: timestamp with time zone
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: compliance_evidences
+            indexName: idx_compliance_evidences_type_status
+            columns:
+              - column:
+                  name: evidence_type
+              - column:
+                  name: review_status
+        - createIndex:
+            tableName: compliance_evidences
+            indexName: idx_compliance_evidences_expires_at
+            columns:
+              - column:
+                  name: expires_at
+
+        - createTable:
+            tableName: compliance_control_evidences
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: control_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_ctrl_ev_link_control
+                    references: compliance_controls(id)
+                    deleteCascade: false
+              - column:
+                  name: evidence_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_ctrl_ev_link_evidence
+                    references: compliance_evidences(id)
+                    deleteCascade: false
+              - column:
+                  name: linked_by
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: linked_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: compliance_control_evidences
+            columnNames: control_id, evidence_id
+            constraintName: uq_ctrl_ev_link_pair
+
+        - createTable:
+            tableName: compliance_risk_acceptances
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: control_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_risk_acceptance_control
+                    references: compliance_controls(id)
+                    deleteCascade: false
+              - column:
+                  name: release_scope
+                  type: varchar(128)
+              - column:
+                  name: market_scope
+                  type: varchar(128)
+              - column:
+                  name: environment_scope
+                  type: varchar(128)
+              - column:
+                  name: provider_scope
+                  type: varchar(128)
+              - column:
+                  name: product_scope
+                  type: varchar(128)
+              - column:
+                  name: workspace_scope
+                  type: varchar(128)
+              - column:
+                  name: risk_summary
+                  type: varchar(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: residual_risk
+                  type: text
+              - column:
+                  name: justification
+                  type: text
+              - column:
+                  name: requested_by
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: accepted_by
+                  type: varchar(128)
+              - column:
+                  name: accepted_at
+                  type: timestamp with time zone
+              - column:
+                  name: expires_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: revoked_at
+                  type: timestamp with time zone
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: compliance_risk_acceptances
+            indexName: idx_risk_acceptance_control_status
+            columns:
+              - column:
+                  name: control_id
+              - column:
+                  name: status

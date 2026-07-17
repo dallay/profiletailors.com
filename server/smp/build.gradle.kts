@@ -48,6 +48,7 @@ dependencies {
     implementation("org.springframework.security:spring-security-oauth2-jose")
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.webflux)
+    implementation(libs.spring.boot.starter.validation)
     implementation("org.springframework.security:spring-security-crypto")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation(libs.kotlin.reflect)
