@@ -7,5 +7,7 @@ value class NormalizedEmail private constructor(val value: String) {
 
     companion object {
         fun from(email: EmailAddress): NormalizedEmail = NormalizedEmail(email.value.trim().lowercase())
+
+        fun fromPersisted(value: String): NormalizedEmail = NormalizedEmail(value)
     }
 }
