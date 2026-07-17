@@ -158,7 +158,7 @@ data class WaitlistEntry(
 }
 ```
 
-**Success (200):**
+**Success (202):**
 
 ```json
 {
@@ -169,8 +169,8 @@ data class WaitlistEntry(
 
 | Status | Code | Body Error |
 |--------|------|------------|
-| New entry accepted | `200` | `{ "status": "accepted" }` |
-| Duplicate accepted | `200` | `{ "status": "accepted", "duplicate": true }` |
+| New entry accepted | `202` | `{ "status": "accepted" }` |
+| Duplicate accepted | `202` | `{ "status": "accepted" }` |
 | Waitlist not found | `404` | `{ "error": "waitlist_not_found" }` |
 | Waitlist closed/paused | `409` | `{ "error": "waitlist_closed" }` |
 | Invalid email | `400` | `{ "error": "invalid_email" }` |
@@ -179,7 +179,7 @@ data class WaitlistEntry(
 
 ### Idempotency
 
-The endpoint SHALL return `200 accepted` for duplicate joins (same `normalizedEmail` + `waitlistId`). The `duplicate: true` flag MAY indicate a repeat join. External observers MUST NOT be able to distinguish between a fresh join and a duplicate join to prevent email enumeration.
+The endpoint SHALL return `202 accepted` for duplicate joins (same `normalizedEmail` + `waitlistId`). The public response MUST NOT expose a duplicate flag. External observers MUST NOT be able to distinguish between a fresh join and a duplicate join to prevent email enumeration.
 
 ## Persistence Model
 
@@ -243,7 +243,7 @@ Seed data: one waitlist row with `key = 'profile-tailors-launch'`, `status = 'ac
 | Email normalization | Trim whitespace, lowercase, validate format; no provider-specific canonicalization |
 | Metadata limits | Whitelist-only keys, 5 max, 200 bytes per value |
 | Input validation | Email regex on server AND client; all strings length-validated |
-| Enumeration prevention | Duplicate joins return same `200 accepted` as new joins |
+| Enumeration prevention | Duplicate joins return same `202 accepted` as new joins |
 
 ## Integration Plan
 
@@ -273,7 +273,7 @@ Seed data: one waitlist row with `key = 'profile-tailors-launch'`, `status = 'ac
 | Phase | What |
 |-------|------|
 | Alpha | Deploy backend behind feature flag; test manually with curl |
-| Beta | Enable form on staging; verify 200/400/404/409/429 paths |
+| Beta | Enable form on staging; verify 202/400/404/409/429 paths |
 | Launch | Remove feature flag; monitor error rates and abuse patterns |
 | Rollback | Disable form, unregister route, remove config — all non-destructive to persisted data |
 
@@ -343,17 +343,17 @@ The system SHALL expose `POST /api/waitlists/{waitlistKey}/entries` that accepts
 
 - GIVEN a waitlist with key `"profile-tailors-launch"` and status `active`
 - WHEN a POST request sends a valid email with `earlyAccess: true`
-- THEN the response SHALL be `200` with `status: "accepted"`
+- THEN the response SHALL be `202` with `status: "accepted"`
 
 #### Requirement: Idempotent Duplicate Join
 
-The system SHALL return `200 accepted` for duplicate entries (same waitlist + normalized email).
+The system SHALL return `202 accepted` for duplicate entries (same waitlist + normalized email).
 
 ##### Scenario: Duplicate returns accepted
 
 - GIVEN an existing entry for `"user@example.com"` on waitlist `"profile-tailors-launch"`
 - WHEN a POST with the same email arrives
-- THEN the response SHALL be `200` with `status: "accepted"`
+- THEN the response SHALL be `202` with `status: "accepted"`
 - AND no new row SHALL be inserted
 
 #### Requirement: Waitlist Not Found
@@ -405,7 +405,7 @@ The system SHALL enforce `UNIQUE(waitlist_id, normalized_email)` at the database
 - GIVEN a row with `(waitlist_id=X, normalized_email="user@example.com")`
 - WHEN an INSERT with the same pair is attempted
 - THEN the database SHALL raise a unique constraint violation
-- AND the application SHALL handle it gracefully, returning `200 accepted`
+- AND the application SHALL handle it gracefully, returning `202 accepted`
 
 #### Requirement: Rate Limiting
 

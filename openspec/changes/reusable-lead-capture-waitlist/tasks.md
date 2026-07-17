@@ -47,10 +47,10 @@ This change covers all 7 Linear issues (DALLAY-437 through DALLAY-443). Each iss
 
 ### Phase 5 — HTTP Endpoint (DALLAY-439)
 
-- [ ] **5.1 RED**: WebTestClient tests for the controller covering 202 (new), 202 (duplicate), 400, 404, 409, 500.
-- [ ] **5.2 GREEN**: Implement `WaitlistController`, request/response DTOs, validation, mapping to `JoinWaitlistCommand`, and uniform public response.
-- [ ] **5.3 RED**: Handler-level tests asserting internal `joined_new` vs `already_joined` distinction exists but is not exposed publicly.
-- [ ] **5.4 GREEN**: Ensure controller swallows the distinction in the public DTO.
+- [x] **5.1 RED**: WebTestClient tests for the controller covering 202 (new), 202 (duplicate), 400, 404, 409, 500.
+- [x] **5.2 GREEN**: Implement `WaitlistController`, request/response DTOs, validation, mapping to `JoinWaitlistCommand`, and uniform public response.
+- [x] **5.3 RED**: Handler-level tests asserting internal `joined_new` vs `already_joined` distinction exists but is not exposed publicly.
+- [x] **5.4 GREEN**: Ensure controller swallows the distinction in the public DTO.
 
 ### Phase 6 — Rate Limiting (DALLAY-440)
 
