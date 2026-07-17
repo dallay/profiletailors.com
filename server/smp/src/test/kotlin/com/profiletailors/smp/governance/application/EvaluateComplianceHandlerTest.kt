@@ -5,9 +5,12 @@ import com.profiletailors.smp.governance.domain.ComplianceControlId
 import com.profiletailors.smp.governance.domain.ComplianceControlRepository
 import com.profiletailors.smp.governance.domain.ComplianceEvaluationContext
 import com.profiletailors.smp.governance.domain.ComplianceEvidenceRepository
+import com.profiletailors.smp.governance.domain.ComplianceRiskAcceptance
+import com.profiletailors.smp.governance.domain.ComplianceRiskAcceptanceId
 import com.profiletailors.smp.governance.domain.ComplianceRiskAcceptanceRepository
 import com.profiletailors.smp.governance.domain.ControlStatus
 import com.profiletailors.smp.governance.domain.EvaluationStatus
+import com.profiletailors.smp.governance.domain.RiskAcceptanceStatus
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.emptyFlow
@@ -42,7 +45,7 @@ internal class EvaluateComplianceHandlerTest {
 
         every { controlRepo.findApplicable(ctx, fixedClock.instant()) } returns emptyFlow()
         every { evidenceRepo.findByControlId(any()) } returns emptyFlow()
-        every { riskAcceptanceRepo.findActiveForControl(any(), any(), any()) } returns emptyFlow()
+        every { riskAcceptanceRepo.activeForControl(any(), any(), any()) } returns emptyFlow()
 
         val result = handler.handle(EvaluateComplianceQuery(context = ctx))
 
@@ -64,7 +67,7 @@ internal class EvaluateComplianceHandlerTest {
             mockApplicableControl(control, required = true),
         )
         every { evidenceRepo.findByControlId(control.id) } returns flowOf(mockk())
-        every { riskAcceptanceRepo.findActiveForControl(any(), any(), any()) } returns emptyFlow()
+        every { riskAcceptanceRepo.activeForControl(any(), any(), any()) } returns emptyFlow()
 
         val result = handler.handle(EvaluateComplianceQuery(context = ctx))
 
@@ -87,12 +90,105 @@ internal class EvaluateComplianceHandlerTest {
             mockApplicableControl(control, required = true),
         )
         every { evidenceRepo.findByControlId(control.id) } returns emptyFlow()
-        every { riskAcceptanceRepo.findActiveForControl(any(), any(), any()) } returns emptyFlow()
+        every { riskAcceptanceRepo.activeForControl(any(), any(), any()) } returns emptyFlow()
 
         val result = handler.handle(EvaluateComplianceQuery(context = ctx))
 
         assertEquals(EvaluationStatus.NON_COMPLIANT, result.overallStatus)
         assertEquals(1, result.summary.failed)
+        assertEquals(ControlStatus.FAIL, result.controlResults.first().status)
+    }
+
+    @Test
+    fun `non-required controls get WARNING and are excluded from overall status`() = runTest {
+        val ctx = ComplianceEvaluationContext(release = "mvp")
+        val requiredCtrl = ComplianceControl(
+            id = ComplianceControlId("ctrl-001"),
+            controlKey = "PRIVACY.DATA_RETENTION",
+            name = "Data retention",
+            category = "PRIVACY",
+        )
+        val optionalCtrl = ComplianceControl(
+            id = ComplianceControlId("ctrl-099"),
+            controlKey = "PERFORMANCE.BENCHMARK",
+            name = "Performance benchmark",
+            category = "PERFORMANCE",
+        )
+
+        every { controlRepo.findApplicable(ctx, fixedClock.instant()) } returns flowOf(
+            mockApplicableControl(requiredCtrl, required = true),
+            mockApplicableControl(optionalCtrl, required = false),
+        )
+        every { evidenceRepo.findByControlId(any()) } returns emptyFlow()
+        every { riskAcceptanceRepo.activeForControl(any(), any(), any()) } returns emptyFlow()
+
+        val result = handler.handle(EvaluateComplianceQuery(context = ctx))
+
+        assertEquals(2, result.summary.totalControls)
+        assertEquals(1, result.summary.warnings)
+        assertEquals(1, result.summary.failed)
+        assertEquals(EvaluationStatus.NON_COMPLIANT, result.overallStatus)
+        assertEquals(ControlStatus.WARNING, result.controlResults.find { it.control.id == optionalCtrl.id }?.status)
+        assertEquals(ControlStatus.FAIL, result.controlResults.find { it.control.id == requiredCtrl.id }?.status)
+    }
+
+    @Test
+    fun `waiver with non-matching scope does not waive the control`() = runTest {
+        val ctx = ComplianceEvaluationContext(release = "mvp")
+        val control = ComplianceControl(
+            id = ComplianceControlId("ctrl-004"),
+            controlKey = "PRIVACY.CROSS_BORDER",
+            name = "Cross-border transfer",
+            category = "PRIVACY",
+        )
+        val waiver = ComplianceRiskAcceptance(
+            id = ComplianceRiskAcceptanceId("ra-001"),
+            controlId = control.id,
+            releaseScope = "v2", // doesn't match context release "mvp"
+            riskSummary = "Approved",
+            requestedBy = "admin",
+            expiresAt = Instant.parse("2027-01-01T00:00:00Z"),
+        )
+
+        every { controlRepo.findApplicable(ctx, fixedClock.instant()) } returns flowOf(
+            mockApplicableControl(control, required = true),
+        )
+        every { evidenceRepo.findByControlId(control.id) } returns emptyFlow()
+        every { riskAcceptanceRepo.activeForControl(any(), any(), any()) } returns flowOf(waiver)
+
+        val result = handler.handle(EvaluateComplianceQuery(context = ctx))
+
+        assertEquals(EvaluationStatus.NON_COMPLIANT, result.overallStatus)
+        assertEquals(ControlStatus.FAIL, result.controlResults.first().status)
+    }
+
+    @Test
+    fun `waiver with EXPIRED status does not waive the control`() = runTest {
+        val ctx = ComplianceEvaluationContext(release = "mvp")
+        val control = ComplianceControl(
+            id = ComplianceControlId("ctrl-005"),
+            controlKey = "PRIVACY.DATA_MINIMIZATION",
+            name = "Data minimization",
+            category = "PRIVACY",
+        )
+        val expiredWaiver = ComplianceRiskAcceptance(
+            id = ComplianceRiskAcceptanceId("ra-002"),
+            controlId = control.id,
+            riskSummary = "Temporary approval",
+            requestedBy = "admin",
+            expiresAt = Instant.parse("2026-01-01T00:00:00Z"),
+            status = RiskAcceptanceStatus.EXPIRED,
+        )
+
+        every { controlRepo.findApplicable(ctx, fixedClock.instant()) } returns flowOf(
+            mockApplicableControl(control, required = true),
+        )
+        every { evidenceRepo.findByControlId(control.id) } returns emptyFlow()
+        every { riskAcceptanceRepo.activeForControl(any(), any(), any()) } returns flowOf(expiredWaiver)
+
+        val result = handler.handle(EvaluateComplianceQuery(context = ctx))
+
+        assertEquals(EvaluationStatus.NON_COMPLIANT, result.overallStatus)
         assertEquals(ControlStatus.FAIL, result.controlResults.first().status)
     }
 
@@ -111,7 +207,7 @@ internal class EvaluateComplianceHandlerTest {
             mockApplicableControl(control, required = true),
         )
         every { evidenceRepo.findByControlId(control.id) } returns emptyFlow()
-        every { riskAcceptanceRepo.findActiveForControl(any(), any(), any()) } returns flowOf(acceptance)
+        every { riskAcceptanceRepo.activeForControl(any(), any(), any()) } returns flowOf(acceptance)
         every { acceptance.status } returns com.profiletailors.smp.governance.domain.RiskAcceptanceStatus.ACTIVE
         every { acceptance.releaseScope } returns null
         every { acceptance.marketScope } returns null

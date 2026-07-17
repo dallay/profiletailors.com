@@ -19,7 +19,7 @@ import java.time.OffsetDateTime
 class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: DatabaseClient) :
     ComplianceRiskAcceptanceRepository {
 
-    override fun findActiveForControl(
+    override fun activeForControl(
         controlId: ComplianceControlId,
         context: ComplianceEvaluationContext,
         evaluatedAt: Instant,
@@ -86,25 +86,15 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: String?,
-    ): DatabaseClient.GenericExecuteSpec = if (value !=
-        null
-    ) {
-        spec.bind(name, value)
-    } else {
-        spec.bindNull(name, String::class.java)
-    }
+    ): DatabaseClient.GenericExecuteSpec =
+        if (value != null) spec.bind(name, value) else spec.bindNull(name, String::class.java)
 
     private fun bindNullableInstant(
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: Instant?,
-    ): DatabaseClient.GenericExecuteSpec = if (value !=
-        null
-    ) {
-        spec.bind(name, value)
-    } else {
-        spec.bindNull(name, Instant::class.java)
-    }
+    ): DatabaseClient.GenericExecuteSpec =
+        if (value != null) spec.bind(name, value) else spec.bindNull(name, Instant::class.java)
 
     companion object {
         private const val SELECT_ACTIVE_BY_CONTEXT = """

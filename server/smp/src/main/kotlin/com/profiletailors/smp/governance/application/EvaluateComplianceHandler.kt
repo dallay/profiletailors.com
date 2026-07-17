@@ -32,7 +32,7 @@ internal class EvaluateComplianceHandler(
         val controlResults = applicableControls.map { applicable ->
             val linkedEvidence = evidenceRepository.findByControlId(applicable.control.id).toList()
             val activeWaivers = riskAcceptanceRepository
-                .findActiveForControl(applicable.control.id, ctx, evaluatedAt)
+                .activeForControl(applicable.control.id, ctx, evaluatedAt)
                 .toList()
 
             val waived = activeWaivers.any { waiverMatchesContext(it, ctx) }
@@ -72,20 +72,13 @@ internal class EvaluateComplianceHandler(
         )
     }
 
-    private fun calculateOverallStatus(requiredResults: List<ControlResult>): EvaluationStatus {
-        if (requiredResults.isEmpty()) return EvaluationStatus.NOT_ASSESSED
-        if (requiredResults.any { it.status == ControlStatus.FAIL }) return EvaluationStatus.NON_COMPLIANT
-
-        val hasNotAssessed = requiredResults.any { it.status == ControlStatus.NOT_ASSESSED }
-        val hasPassed = requiredResults.any { it.status == ControlStatus.PASS }
-        val hasWaived = requiredResults.any { it.status == ControlStatus.WAIVED }
-
-        return when {
-            hasNotAssessed -> EvaluationStatus.NOT_ASSESSED
-            hasWaived -> EvaluationStatus.PARTIAL
-            hasPassed -> EvaluationStatus.COMPLIANT
-            else -> EvaluationStatus.NOT_ASSESSED
-        }
+    private fun calculateOverallStatus(requiredResults: List<ControlResult>): EvaluationStatus = when {
+        requiredResults.isEmpty() -> EvaluationStatus.NOT_ASSESSED
+        requiredResults.any { it.status == ControlStatus.FAIL } -> EvaluationStatus.NON_COMPLIANT
+        requiredResults.any { it.status == ControlStatus.NOT_ASSESSED } -> EvaluationStatus.NOT_ASSESSED
+        requiredResults.any { it.status == ControlStatus.WAIVED } -> EvaluationStatus.PARTIAL
+        requiredResults.any { it.status == ControlStatus.PASS } -> EvaluationStatus.COMPLIANT
+        else -> EvaluationStatus.NOT_ASSESSED
     }
 
     private fun waiverMatchesContext(waiver: ComplianceRiskAcceptance, context: ComplianceEvaluationContext): Boolean {

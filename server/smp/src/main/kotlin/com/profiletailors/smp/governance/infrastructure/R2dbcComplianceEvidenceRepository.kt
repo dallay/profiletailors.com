@@ -107,25 +107,15 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: String?,
-    ): DatabaseClient.GenericExecuteSpec = if (value !=
-        null
-    ) {
-        spec.bind(name, value)
-    } else {
-        spec.bindNull(name, String::class.java)
-    }
+    ): DatabaseClient.GenericExecuteSpec =
+        if (value != null) spec.bind(name, value) else spec.bindNull(name, String::class.java)
 
     private fun bindNullableInstant(
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: Instant?,
-    ): DatabaseClient.GenericExecuteSpec = if (value !=
-        null
-    ) {
-        spec.bind(name, value)
-    } else {
-        spec.bindNull(name, Instant::class.java)
-    }
+    ): DatabaseClient.GenericExecuteSpec =
+        if (value != null) spec.bind(name, value) else spec.bindNull(name, Instant::class.java)
 
     companion object {
         private const val SELECT_BY_ID = "SELECT * FROM compliance_evidences WHERE id = :id"
