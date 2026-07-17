@@ -8,6 +8,7 @@ import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
@@ -75,6 +76,37 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         assertEquals(entry.metadata.pagePath, persisted?.metadata?.pagePath)
         assertEquals(entry.consent, persisted?.consent)
         assertEquals(entry.status, persisted?.status)
+    }
+
+    @Test
+    fun `save and findByNormalizedEmail round-trip lifecycle timestamps`() = runTest {
+        val entry = testEntry(id = "entry-lifecycle", email = "lifecycle@example.com")
+        val invitedAt = Instant.parse("2026-07-17T00:00:00Z")
+        val convertedAt = Instant.parse("2026-07-18T00:00:00Z")
+        entry.invite(invitedAt)
+        entry.convert(convertedAt)
+
+        entryRepository.save(entry)
+
+        val persisted = entryRepository.findByNormalizedEmail(entry.waitlistId, entry.normalizedEmail)
+        assertNotNull(persisted)
+        assertEquals(WaitlistEntryStatus.CONVERTED, persisted?.status)
+        assertEquals(invitedAt, persisted?.invitedAt)
+        assertEquals(convertedAt, persisted?.convertedAt)
+    }
+
+    @Test
+    fun `save and findByNormalizedEmail round-trip cancelled timestamp`() = runTest {
+        val entry = testEntry(id = "entry-cancelled", email = "cancelled@example.com")
+        val cancelledAt = Instant.parse("2026-07-17T00:00:00Z")
+        entry.cancel(cancelledAt)
+
+        entryRepository.save(entry)
+
+        val persisted = entryRepository.findByNormalizedEmail(entry.waitlistId, entry.normalizedEmail)
+        assertNotNull(persisted)
+        assertEquals(WaitlistEntryStatus.CANCELLED, persisted?.status)
+        assertEquals(cancelledAt, persisted?.cancelledAt)
     }
 
     @Test

@@ -63,9 +63,7 @@ class R2dbcWaitlistEntryRepository(
 
     override fun save(entry: WaitlistEntry): WaitlistEntry = kotlinx.coroutines.runBlocking {
         insert(entry)
-        requireNotNull(findByNormalizedEmailAsync(entry.waitlistId, entry.normalizedEmail)) {
-            "Waitlist entry missing after insert: ${entry.id.value}"
-        }
+        requireNotNull(findByNormalizedEmailAsync(entry.waitlistId, entry.normalizedEmail))
     }
 
     override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
@@ -76,9 +74,7 @@ class R2dbcWaitlistEntryRepository(
                 .rowsUpdated()
                 .awaitSingle() > 0
 
-            val persisted = requireNotNull(findByNormalizedEmailAsync(entry.waitlistId, entry.normalizedEmail)) {
-                "Waitlist entry missing after saveIfNotExists: ${entry.id.value}"
-            }
+            val persisted = requireNotNull(findByNormalizedEmailAsync(entry.waitlistId, entry.normalizedEmail))
 
             if (inserted) {
                 WaitlistEntryRepository.SaveResult.Saved(persisted)
