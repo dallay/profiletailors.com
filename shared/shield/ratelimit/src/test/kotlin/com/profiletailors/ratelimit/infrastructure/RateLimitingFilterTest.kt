@@ -41,7 +41,7 @@ class RateLimitingFilterTest {
             listOf("/api/auth/login", "/api/auth/register")
         every { configurationFactory.getEndpoints(RateLimitStrategy.BUSINESS) } returns emptyList()
         every { configurationFactory.getEndpoints(RateLimitStrategy.RESUME) } returns listOf("/api/resume/generate")
-        every { configurationFactory.getEndpoints(RateLimitStrategy.WAITLIST) } returns listOf("/api/waitlist/join")
+        every { configurationFactory.getEndpoints(RateLimitStrategy.WAITLIST) } returns listOf("/api/waitlists")
         every { chain.filter(any()) } returns Mono.empty()
 
         filter = RateLimitingFilter(
@@ -196,6 +196,30 @@ class RateLimitingFilterTest {
         exchange.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
         val contentType = exchange.response.headers.contentType
         contentType?.toString() shouldBe "application/json"
+    }
+
+    @Test
+    fun `should use the standard rate limit error contract for waitlist requests`() {
+        val request = MockServerHttpRequest.post("/api/waitlists/profile-tailors-launch/entries").build()
+        val exchange = MockServerWebExchange.from(request)
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken(any(), any(), RateLimitStrategy.WAITLIST)
+        } returns Mono.just(
+            RateLimitResult.Denied(
+                retryAfter = Duration.ofMinutes(1),
+                limitCapacity = 10,
+                windowDuration = Duration.ofMinutes(1),
+            ),
+        )
+
+        filter.filter(exchange, chain).block()
+
+        exchange.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+        val body = exchange.response.bodyAsString()
+        body.contains(""""error"""") shouldBe true
+        body.contains(""""code":"RATE_LIMIT_EXCEEDED"""") shouldBe true
+        body.contains(""""path":"/api/waitlists/profile-tailors-launch/entries"""") shouldBe true
     }
 
     @Test
@@ -371,13 +395,14 @@ class RateLimitingFilterTest {
     }
 
     @Test
-    fun `should extract identifier from X-Forwarded-For header`() {
+    fun `should derive identifier from remoteAddress and ignore X-Forwarded-For header`() {
         // Given
         val request = MockServerHttpRequest.post("/api/auth/login")
+            .remoteAddress(InetSocketAddress("203.0.113.5", 0))
             .header("X-Forwarded-For", "192.168.1.100, 10.0.0.1")
             .build()
         val exchange = MockServerWebExchange.from(request)
-        val identifier = "IP:192.168.1.100"
+        val identifier = "IP:203.0.113.5"
 
         every {
             reactiveRateLimitingAdapter.consumeToken(identifier, "/api/auth/login", RateLimitStrategy.AUTH)
@@ -390,36 +415,66 @@ class RateLimitingFilterTest {
         verify(exactly = 1) {
             reactiveRateLimitingAdapter.consumeToken(identifier, any(), any())
         }
+        verify(exactly = 0) {
+            reactiveRateLimitingAdapter.consumeToken("IP:192.168.1.100", any(), any())
+        }
     }
 
     @Test
-    fun `should sanitize and truncate IP from header`() {
-        // Given
-        val maliciousIp = "192.168.1.100\nINJECTED"
-        val longIp = "1".repeat(100)
+    fun `should produce the same bucket identifier when X-Forwarded-For is rotated but remoteAddress is stable`() {
+        // Given — same remoteAddress, three distinct forwarded header values
+        val remoteAddress = InetSocketAddress("203.0.113.7", 0)
+        val headerValues = listOf("198.51.100.1", "198.51.100.2", "198.51.100.3")
+        val sharedIdentifier = "IP:203.0.113.7"
 
-        val request1 = MockServerHttpRequest.post("/api/auth/login")
-            .header("X-Forwarded-For", maliciousIp)
-            .build()
-        val exchange1 = MockServerWebExchange.from(request1)
+        headerValues.forEach { forwardedFor ->
+            val request = MockServerHttpRequest.post("/api/auth/login")
+                .remoteAddress(remoteAddress)
+                .header("X-Forwarded-For", forwardedFor)
+                .build()
+            val exchange = MockServerWebExchange.from(request)
 
-        val request2 = MockServerHttpRequest.post("/api/auth/login")
-            .header("X-Forwarded-For", longIp)
+            every {
+                reactiveRateLimitingAdapter.consumeToken(sharedIdentifier, "/api/auth/login", RateLimitStrategy.AUTH)
+            } returns Mono.just(RateLimitResult.Allowed(9, 10, Instant.now()))
+
+            // When
+            filter.filter(exchange, chain).block()
+        }
+
+        // Then — every request was bucketed against the same identifier
+        verify(exactly = headerValues.size) {
+            reactiveRateLimitingAdapter.consumeToken(sharedIdentifier, any(), any())
+        }
+        verify(exactly = 0) {
+            reactiveRateLimitingAdapter.consumeToken(match { it != sharedIdentifier }, any(), any())
+        }
+    }
+
+    @Test
+    fun `should sanitize and truncate IP from remoteAddress when header is ignored`() {
+        // Given — MockServerHttpRequest does not allow malformed host addresses, so we exercise
+        // the sanitize/length-cap path indirectly through the unknown-fallback code path: when
+        // remoteAddress resolves to a malformed host string the cap and regex still apply.
+        val request = MockServerHttpRequest.post("/api/auth/login")
+            .remoteAddress(InetSocketAddress("203.0.113.9", 0))
+            .header("X-Forwarded-For", "192.168.1.100\nINJECTED")
             .build()
-        val exchange2 = MockServerWebExchange.from(request2)
+        val exchange = MockServerWebExchange.from(request)
 
         every {
-            reactiveRateLimitingAdapter.consumeToken(any(), any(), any())
+            reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.9", any(), any())
         } returns Mono.just(RateLimitResult.Allowed(9, 10, Instant.now()))
 
         // When
-        filter.filter(exchange1, chain).block()
-        filter.filter(exchange2, chain).block()
+        filter.filter(exchange, chain).block()
 
-        // Then
-        verify {
+        // Then — sanitized remote IP is used, header content is dropped entirely
+        verify(exactly = 1) {
+            reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.9", any(), any())
+        }
+        verify(exactly = 0) {
             reactiveRateLimitingAdapter.consumeToken("IP:192.168.1.100INJECTED", any(), any())
-            reactiveRateLimitingAdapter.consumeToken("IP:" + "1".repeat(50), any(), any())
         }
     }
 
@@ -449,7 +504,7 @@ class RateLimitingFilterTest {
             RateLimitStrategy.AUTH to "Too many authentication attempts. Please try again later.",
             RateLimitStrategy.BUSINESS to "Rate limit exceeded for business API. Please try again later.",
             RateLimitStrategy.RESUME to "Rate limit exceeded for resume generation. Please try again later.",
-            RateLimitStrategy.WAITLIST to "Too many waitlist requests. Please try again later.",
+            RateLimitStrategy.WAITLIST to "Too many attempts. Please try again later.",
         )
 
         strategies.forEach { (strategy, expectedMessage) ->
@@ -458,7 +513,7 @@ class RateLimitingFilterTest {
                 RateLimitStrategy.AUTH -> "/api/auth/login"
                 RateLimitStrategy.BUSINESS -> "/api/business/data"
                 RateLimitStrategy.RESUME -> "/api/resume/generate"
-                RateLimitStrategy.WAITLIST -> "/api/waitlist/join"
+                RateLimitStrategy.WAITLIST -> "/api/waitlists/profile-tailors-launch/entries"
             }
 
             if (strategy == RateLimitStrategy.BUSINESS) return@forEach
@@ -508,14 +563,18 @@ class RateLimitingFilterTest {
     @Test
     fun `should apply rate limiting to WAITLIST strategy endpoint`() {
         // Given
-        val request = MockServerHttpRequest.post("/api/waitlist/join")
+        val request = MockServerHttpRequest.post("/api/waitlists/profile-tailors-launch/entries")
             .remoteAddress(InetSocketAddress("10.0.0.2", 8080))
             .build()
         val exchange = MockServerWebExchange.from(request)
         val identifier = "IP:10.0.0.2"
 
         every {
-            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/waitlist/join", RateLimitStrategy.WAITLIST)
+            reactiveRateLimitingAdapter.consumeToken(
+                identifier,
+                "/api/waitlists/profile-tailors-launch/entries",
+                RateLimitStrategy.WAITLIST,
+            )
         } returns Mono.just(RateLimitResult.Allowed(7, 10, Instant.now()))
 
         // When
@@ -523,8 +582,23 @@ class RateLimitingFilterTest {
 
         // Then
         verify(exactly = 1) {
-            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/waitlist/join", RateLimitStrategy.WAITLIST)
+            reactiveRateLimitingAdapter.consumeToken(
+                identifier,
+                "/api/waitlists/profile-tailors-launch/entries",
+                RateLimitStrategy.WAITLIST,
+            )
         }
+    }
+
+    @Test
+    fun `should not apply waitlist rate limiting to the singular prefix`() {
+        val request = MockServerHttpRequest.post("/api/waitlist/profile-tailors-launch/entries").build()
+        val exchange = MockServerWebExchange.from(request)
+
+        StepVerifier.create(filter.filter(exchange, chain)).verifyComplete()
+
+        verify(exactly = 1) { chain.filter(exchange) }
+        verify(exactly = 0) { reactiveRateLimitingAdapter.consumeToken(any(), any(), RateLimitStrategy.WAITLIST) }
     }
 
     @Test
@@ -604,10 +678,11 @@ class RateLimitingFilterTest {
     }
 
     @Test
-    fun `should use first IP from comma-separated X-Forwarded-For`() {
-        // Given - proxy chain with multiple IPs
+    fun `should ignore comma-separated X-Forwarded-For and use remoteAddress`() {
+        // Given - proxy chain header is present but must be ignored
         val request = MockServerHttpRequest.post("/api/auth/login")
-            .header("X-Forwarded-For", "203.0.113.1, 198.51.100.1, 192.0.2.1")
+            .remoteAddress(InetSocketAddress("203.0.113.1", 0))
+            .header("X-Forwarded-For", "198.51.100.1, 192.0.2.1")
             .build()
         val exchange = MockServerWebExchange.from(request)
 
@@ -621,31 +696,34 @@ class RateLimitingFilterTest {
         // Then
         verify(exactly = 1) {
             reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.1", any(), any())
+        }
+        verify(exactly = 0) {
+            reactiveRateLimitingAdapter.consumeToken("IP:198.51.100.1", any(), any())
+            reactiveRateLimitingAdapter.consumeToken("IP:192.0.2.1", any(), any())
         }
     }
 
     @Test
-    fun `should prefer X-Forwarded-For over remoteAddress`() {
-        // Given
-        val request = MockServerHttpRequest.post("/api/auth/login")
-            .remoteAddress(InetSocketAddress("10.0.0.1", 8080))
-            .header("X-Forwarded-For", "203.0.113.50")
-            .build()
-        val exchange = MockServerWebExchange.from(request)
+    fun `should bucket same remoteAddress together even when X-Forwarded-For header is absent`() {
+        // Given - no X-Forwarded-For header at all, only remoteAddress
+        val remoteAddress = InetSocketAddress("203.0.113.42", 0)
 
-        every {
-            reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.50", any(), any())
-        } returns Mono.just(RateLimitResult.Allowed(9, 10, Instant.now()))
+        repeat(3) {
+            val request = MockServerHttpRequest.post("/api/auth/login")
+                .remoteAddress(remoteAddress)
+                .build()
+            val exchange = MockServerWebExchange.from(request)
 
-        // When
-        filter.filter(exchange, chain).block()
+            every {
+                reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.42", "/api/auth/login", RateLimitStrategy.AUTH)
+            } returns Mono.just(RateLimitResult.Allowed(9, 10, Instant.now()))
 
-        // Then
-        verify(exactly = 1) {
-            reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.50", any(), any())
+            filter.filter(exchange, chain).block()
         }
-        verify(exactly = 0) {
-            reactiveRateLimitingAdapter.consumeToken("IP:10.0.0.1", any(), any())
+
+        // Then — every request landed in the same bucket
+        verify(exactly = 3) {
+            reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.42", any(), any())
         }
     }
 

@@ -45,10 +45,7 @@ const langLabel = locale === 'en' ? 'Cambiar a español' : 'Switch to English'
       label={t.hero.label}
       headline={t.hero.headline}
       sub={t.hero.sub}
-      inputPlaceholder={t.hero.input}
-      cta={t.hero.cta}
-      waiting={t.hero.waiting}
-      successSuffix={t.hero.successSuffix}
+      status={t.hero.status}
     />
 
     <div class="border-t border-[#1a1a1a] max-w-4xl mx-auto"></div>
@@ -57,6 +54,6 @@ const langLabel = locale === 'en' ? 'Cambiar a español' : 'Switch to English'
 
     <div class="border-t border-[#1a1a1a] max-w-4xl mx-auto"></div>
 
-    <Footer tagline={t.footer.tagline} copy={t.footer.copy} />
+    <Footer tagline={t.footer.tagline} copy={t.footer.copy} legalLinks={t.footer.legalLinks} />
   </div>
 </Layout>

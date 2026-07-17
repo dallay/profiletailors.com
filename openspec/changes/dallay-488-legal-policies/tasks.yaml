@@ -1,0 +1,231 @@
+Decision needed before apply: Yes
+Chained PRs recommended: Yes
+Chain strategy: pending
+400-line budget risk: High
+
+## Review Workload Forecast
+
+| Field | Value |
+|-------|-------|
+| Estimated changed lines | ~1000–1100 |
+| 400-line budget risk | High |
+| Chained PRs recommended | Yes |
+| Suggested split | PR 1 (Foundation) → PR 2 (Content + Components) → PR 3 (Routes + Integration) → PR 4 (Verification) |
+| Delivery strategy | ask-on-risk |
+| Chain strategy | pending |
+
+Decision needed before apply: Yes
+Chained PRs recommended: Yes
+Chain strategy: pending
+400-line budget risk: High
+
+### Suggested Work Units
+
+| Unit | Goal | Likely PR | Base | Notes |
+|------|------|-----------|------|-------|
+| 1 | i18n skeleton structure + Layout props + Footer prop | PR 1 | feature/tracker branch | Infrastructure: zero content, pure structure. ~100 lines. |
+| 2 | All EN + ES i18n content + shared components | PR 2 | PR 1 branch | Content-heavy (~660 lines prose + ~60 lines components). Mostly prose, low code-review complexity despite high line count. |
+| 3 | Route wrappers + Footer wiring + HomePage update | PR 3 | PR 2 branch | Integration: 8 tiny route files + Footer connection. ~50 lines. |
+| 4 | Build verification + route smoke test | PR 4 | PR 3 branch | Ensure all 8 pages render without errors. ~0 code lines. |
+
+---
+
+# Tasks: Publish Legal Policy Pages (DALLAY-488)
+
+## Phase 1: Foundation — i18n Structure + Layout + Footer
+
+### task-01 [x] — i18n: Add `legal` key skeleton and `footer.legalLinks` to both locales
+
+- **Description**: Add the top-level `legal` key to `en.ts` and `es.ts` with all required subsection keys (empty content). Add `footer.legalLinks` array to both files. This establishes the TypeScript shape so downstream components compile. Keys per policy: `privacy` (12 sections), `terms` (10 sections), `cookies` (7 sections), `aup` (5 sections).
+- **Files**:
+  - `apps/web/marketing/src/i18n/en.ts` — add `legal` key + `footer.legalLinks`
+  - `apps/web/marketing/src/i18n/es.ts` — mirror the same structure
+- **Depends on**: none
+- **Acceptance**:
+  - TypeScript compilation passes with no errors
+  - `footer.legalLinks` exists in both `en.ts` and `es.ts` with 4 entries each
+  - ES structure mirrors EN exactly (same keys, different labels)
+
+### task-02 [x] — Layout: Add `canonicalPath`, `jsonLdType` props; dynamic hreflang; `sameAs`
+
+- **Description**:
+  1. Add optional `canonicalPath` prop (string, default `'/'`) and `jsonLdType` prop (string, default `'WebApplication'`) to `Layout.astro` Props interface.
+  2. Replace hardcoded `canonicalEN`/`canonicalES` computation to use `canonicalPath` instead of root `/`.
+  3. Add `sameAs` array to JSON-LD Organization block pointing to all 4 EN policy URLs.
+  4. Pass `jsonLdType` as `@type` in the JSON-LD object.
+- **Files**:
+  - `apps/web/marketing/src/layouts/Layout.astro` — modify
+- **Depends on**: none
+- **Acceptance**:
+  - Layout accepts `canonicalPath="/privacy/"` and generates correct EN canonical URL
+  - hreflang alternates use the canonicalPath-derived URLs
+  - JSON-LD `@type` switches from `WebApplication` to `WebPage` when `jsonLdType="WebPage"`
+  - `sameAs` array appears in JSON-LD with 4 policy URLs
+  - Backward compatible: existing pages with no `canonicalPath` prop continue working
+
+### task-03 [x] — Footer: Add `legalLinks` prop and render legal `<nav>` group
+
+- **Description**: Add `legalLinks` prop (type `Array<{ label: string; href: string }>`) to Footer.astro. Render a `<nav aria-label="Legal">` element below the existing content with a separator line and links from the prop. The design calls for a third row with a visual separator.
+- **Files**:
+  - `apps/web/marketing/src/components/Footer.astro` — modify
+- **Depends on**: none
+- **Acceptance**:
+  - Footer renders legal link group when `legalLinks` prop is provided
+  - Group is inside `<nav aria-label="Legal">` for accessibility
+  - Visual separator exists between main content and legal links
+  - Footer renders without legal links if prop is omitted (backward compat)
+
+## Phase 2: Content — EN + ES Policy Text
+
+### task-04 [x] — i18n: Draft EN Privacy Policy content
+
+- **Description**: Draft full EN Privacy Policy content using compliance sources. Sections: intro, dataController, dataCollected (11 activities pa-001..pa-011), dataUsage, dataSharing (processor vs controller matrix), dataRetention (from ropa.md retention), internationalTransfers (SCCs), yourRights (GDPR Art. 15–22), cookies, policyChanges, contact. Include a source comment flag: `[LEGAL REVIEW]` marking all content as draft requiring qualified legal review before production publication.
+- **Files**:
+  - `apps/web/marketing/src/i18n/en.ts` — fill `legal.privacy.*` keys
+- **Depends on**: task-01
+- **Acceptance**:
+  - `legal.privacy` has all sections filled with substantive content (not placeholders)
+  - Content references all 11 processing activities from data-inventory.yaml
+  - Data sharing section lists Vercel, Cloudflare R2/AWS S3, database hosting, Sentry, Grafana as processors
+  - Independent controllers listed: Auth0, LinkedIn, Twitter/X, Facebook, Instagram, TikTok
+  - Retention schedule covers: account data (30d), access logs (90d), analytics (26mo), audit (1yr/5yr), media (7d), waitlist (30d)
+  - Source comment `[LEGAL REVIEW]` present at top of the section
+  - TypeScript compiles
+
+### task-05 [x] — i18n: Draft EN Terms of Service content
+
+- **Description**: Draft full EN Terms of Service content. Sections: serviceDescription, accountTerms, acceptableUse (incorporates AUP by reference), feesPayment, intellectualProperty (user retains ownership, license to PT), thirdPartyServices, limitationLiability, termination, governingLaw, contact. All content flagged as `[LEGAL REVIEW]` draft.
+- **Files**:
+  - `apps/web/marketing/src/i18n/en.ts` — fill `legal.terms.*` keys
+- **Depends on**: task-01
+- **Acceptance**:
+  - `legal.terms` has all sections filled
+  - AUP is incorporated by reference
+  - User retains content ownership clause present
+  - Limitation of liability and governing law sections present
+  - `[LEGAL REVIEW]` flag present
+  - TypeScript compiles
+
+### task-06 [x] — i18n: Draft EN Cookie Policy + Acceptable Use Policy content
+
+- **Description**: Draft EN Cookie Policy (sections: whatAreCookies, essentialCookies by provider, analyticsCookies, thirdPartyCookies, manageCookies, contact) and Acceptable Use Policy (sections: prohibitedActivities — 6 categories, enforcement, reporting, contact, apiFairUse). All content flagged as `[LEGAL REVIEW]`.
+- **Files**:
+  - `apps/web/marketing/src/i18n/en.ts` — fill `legal.cookies.*` and `legal.aup.*` keys
+- **Depends on**: task-01
+- **Acceptance**:
+  - Cookie Policy lists Vercel, Auth0, Cloudflare providers with cookie names/purposes
+  - Essential vs non-essential classification present
+  - Cookie consent banner noted as "planned for future release"
+  - AUP lists all 6 prohibited categories: illegal, spam, harassment, hate speech, deceptive, copyright infringement
+  - Automated scraping prohibition present
+  - `[LEGAL REVIEW]` flag on both policies
+  - TypeScript compiles
+
+### task-07 [x] — i18n: Draft ES translations for all four policies
+
+- **Description**: Translate all four policies from EN to ES. ES text is typically ~10-15% longer than EN (per existing pattern). Use `legal.es` structure mirroring EN exactly. Include the same `[LEGAL REVIEW]` comment flags. The ES `/es/acceptable-use/` route path is noted as divergent from the Spanish-named equivalent in spec.
+- **Files**:
+  - `apps/web/marketing/src/i18n/es.ts` — fill all `legal.*` keys
+- **Depends on**: task-04, task-05, task-06
+- **Acceptance**:
+  - ES has every section key that EN has (identical structure)
+  - Translations are faithful (not machine-generated without review)
+  - ES text accounts for longer character counts
+  - `[LEGAL REVIEW]` flags present
+  - TypeScript compiles
+
+## Phase 3: Implementation — Shared Components + Route Wrappers
+
+### task-08 [x] — Component: Create `_PrivacyPolicy.astro`
+
+- **Description**: Create shared Privacy Policy component. Pattern: receives `locale` prop, uses `useTranslations(locale)`, renders `<Layout lang={locale} title={t.legal.privacy.title} description={t.legal.privacy.description} canonicalPath="/privacy/" jsonLdType="WebPage">`. Inside: `<article>` with policy sections rendered from i18n keys. Follow existing `_HomePage.astro` structure — Layout wrapping, no Nav (these are standalone pages).
+- **Files**:
+  - `apps/web/marketing/src/pages/_PrivacyPolicy.astro` — create
+- **Depends on**: task-01, task-02, task-04, task-07
+- **Acceptance**:
+  - Component renders a full `<article>` with all `legal.privacy.*` sections
+  - Layout receives correct `canonicalPath="/privacy/"` and `jsonLdType="WebPage"`
+  - TypeScript compiles
+
+### task-09 [x] — Component: Create `_TermsPage.astro`
+
+- **Description**: Create shared Terms of Service component. Same pattern as task-08. Canonical path: `/terms/`. Content from `t.legal.terms.*`.
+- **Files**:
+  - `apps/web/marketing/src/pages/_TermsPage.astro` — create
+- **Depends on**: task-01, task-02, task-05, task-07
+- **Acceptance**:
+  - Component renders all `legal.terms.*` sections
+  - Layout with `canonicalPath="/terms/"`, `jsonLdType="WebPage"`
+  - TypeScript compiles
+
+### task-10 [x] — Component: Create `_CookiePolicyPage.astro`
+
+- **Description**: Create shared Cookie Policy component. Canonical path: `/cookies/`. Content from `t.legal.cookies.*`. Include cookie provider table rendering.
+- **Files**:
+  - `apps/web/marketing/src/pages/_CookiePolicyPage.astro` — create
+- **Depends on**: task-01, task-02, task-06, task-07
+- **Acceptance**:
+  - Component renders all `legal.cookies.*` sections
+  - Layout with `canonicalPath="/cookies/"`, `jsonLdType="WebPage"`
+  - TypeScript compiles
+
+### task-11 [x] — Component: Create `_AcceptableUsePage.astro`
+
+- **Description**: Create shared Acceptable Use Policy component. Canonical path: `/acceptable-use/`. Content from `t.legal.aup.*`.
+- **Files**:
+  - `apps/web/marketing/src/pages/_AcceptableUsePage.astro` — create
+- **Depends on**: task-01, task-02, task-06, task-07
+- **Acceptance**:
+  - Component renders all `legal.aup.*` sections
+  - Layout with `canonicalPath="/acceptable-use/"`, `jsonLdType="WebPage"`
+  - TypeScript compiles
+
+### task-12 [x] — Routes: Create 8 thin route wrappers (4 EN + 4 ES)
+
+- **Description**: Create one route file per policy per locale. Each is ~4 lines following the `index.astro` → `_HomePage.astro` pattern. Files: `privacy.astro`, `terms.astro`, `cookies.astro`, `acceptable-use.astro` in `pages/` for EN + `pages/es/` for ES. ES imports use `@pages/` alias (following `es/index.astro` pattern).
+- **Files**:
+  - `apps/web/marketing/src/pages/privacy.astro` — create: `import PrivacyPolicy from './_PrivacyPolicy.astro'` → `<PrivacyPolicy locale="en" />`
+  - `apps/web/marketing/src/pages/terms.astro` — create
+  - `apps/web/marketing/src/pages/cookies.astro` — create
+  - `apps/web/marketing/src/pages/acceptable-use.astro` — create
+  - `apps/web/marketing/src/pages/es/privacy.astro` — create: same component, `locale="es"`
+  - `apps/web/marketing/src/pages/es/terms.astro` — create
+  - `apps/web/marketing/src/pages/es/cookies.astro` — create
+  - `apps/web/marketing/src/pages/es/acceptable-use.astro` — create
+- **Depends on**: task-08, task-09, task-10, task-11
+- **Acceptance**:
+  - All 8 files exist and follow the thin-route pattern
+  - Each EN file renders its component with `locale="en"`
+  - Each ES file renders the same component with `locale="es"`
+  - TypeScript compiles
+  - URL paths resolve to: `/privacy/`, `/terms/`, `/cookies/`, `/acceptable-use/`, `/es/privacy/`, `/es/terms/`, `/es/cookies/`, `/es/acceptable-use/`
+
+## Phase 4: Integration — Footer Wiring
+
+### task-13 [x] — Wiring: Update `_HomePage.astro` to pass `legalLinks` to Footer
+
+- **Description**: Add footer links construction in `_HomePage.astro`. Compute `legalLinks` from `t.footer.legalLinks` (which contains label + href pairs). Pass to `<Footer legalLinks={...} />`. This is the atomic publish point — pages exist at routes but are only discoverable once Footer links are live.
+- **Files**:
+  - `apps/web/marketing/src/pages/_HomePage.astro` — modify Footer invocation
+- **Depends on**: task-03, task-12
+- **Acceptance**:
+  - Footer receives `legalLinks` prop from EN `_HomePage.astro`
+  - ES `_HomePage.astro` also passes `legalLinks` with translated labels
+  - TypeScript compiles
+  - Links navigate to correct locale-specific routes
+
+## Phase 5: Verification
+
+### task-14 [x] — Verify all 8 pages build and render at correct routes
+
+- **Description**: Run Astro build to confirm all pages compile. Verify each of the 8 routes renders the correct policy without errors. Check canonical/hreflang tags via built HTML output. Since these are SSG pages, the build output contains static HTML — verify that each page exists at the expected path.
+- **Files**: (no file changes)
+- **Depends on**: task-07, task-12, task-13
+- **Acceptance**:
+  - `astro build` completes with exit code 0
+  - All 8 static HTML files exist in the output `dist/` directory at expected paths
+  - Each HTML file contains the expected policy title in its `<title>` tag
+  - EN pages have `<link rel="canonical">` pointing to EN URL
+  - ES pages have `<link rel="canonical">` pointing to ES URL
+  - All pages have hreflang alternates for both locales
+  - `sameAs` array in JSON-LD contains all 4 policy URLs

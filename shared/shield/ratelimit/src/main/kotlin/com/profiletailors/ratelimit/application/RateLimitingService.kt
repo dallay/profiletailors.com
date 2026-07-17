@@ -41,7 +41,11 @@ class RateLimitingService(
      * @return A [RateLimitResult] indicating if the request was allowed or denied.
      */
     suspend fun consumeToken(identifier: String, endpoint: String, strategy: RateLimitStrategy): RateLimitResult {
-        val result = rateLimiter.consumeToken(identifier, strategy)
+        val result = if (strategy == RateLimitStrategy.WAITLIST) {
+            rateLimiter.consumeToken(identifier, strategy, bucketIdentity(identifier, endpoint))
+        } else {
+            rateLimiter.consumeToken(identifier, strategy)
+        }
         if (result is RateLimitResult.Denied) {
             try {
                 publishRateLimitExceededEvent(
@@ -57,6 +61,8 @@ class RateLimitingService(
         }
         return result
     }
+
+    private fun bucketIdentity(identifier: String, endpoint: String): String = "$identifier:$endpoint"
 
     private suspend fun publishRateLimitExceededEvent(
         identifier: String,

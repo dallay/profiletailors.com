@@ -161,6 +161,10 @@ class IdentitySecurityConfiguration {
                     "/api/auth/logout",
                     "/api/auth/resend-verification",
                 ).permitAll()
+                .pathMatchers(
+                    HttpMethod.POST,
+                    "/api/waitlists/*/entries",
+                ).permitAll()
                 .anyExchange().authenticated()
         }
         .exceptionHandling { exceptions ->

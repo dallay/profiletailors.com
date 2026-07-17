@@ -1,0 +1,28 @@
+---
+import { useTranslations } from '@i18n/utils'
+import type { Locale } from '@i18n/utils'
+
+interface Props {
+  locale: Locale
+  documentTitle: string
+}
+
+const { locale, documentTitle } = Astro.props
+const publication = useTranslations(locale).legal.publication
+---
+
+<article class="max-w-3xl mx-auto px-6 py-16 sm:py-24" aria-labelledby="legal-unavailable-title">
+  <header class="mb-8">
+    <p class="font-mono text-xs text-text-muted tracking-wide uppercase">{documentTitle}</p>
+    <h1 id="legal-unavailable-title" class="font-display text-3xl sm:text-4xl font-bold text-text-display mt-3">
+      {publication.unavailableTitle}
+    </h1>
+  </header>
+  <p class="leading-relaxed text-text-muted max-w-2xl">{publication.unavailableBody}</p>
+  <a
+    href={publication.unavailableHref}
+    class="inline-flex mt-8 underline text-text-muted hover:text-text-display transition-colors duration-200"
+  >
+    {publication.unavailableAction}
+  </a>
+</article>

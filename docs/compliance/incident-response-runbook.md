@@ -1,91 +1,136 @@
 # Incident Response Runbook
 
 > **Classification:** Internal — Compliance
-> **Status:** Preliminary
-> **Review cycle:** Quarterly or after each security incident
+> **Status:** Draft — production use blocked pending ownership, contact, and counsel approval
+> **Review cycle:** Quarterly, after each incident, and before enabling a new market
 
 ## Overview
 
-Define the process for detecting, assessing, containing, eradicating, and recovering from privacy and security incidents, including personal data breaches as defined by GDPR Art. 4(12). This runbook covers all production services operated by Profile Tailors under Dallay.
+Define the evidence-preserving process for detecting, assessing, containing, eradicating, and recovering from privacy and security incidents. The runbook applies to every production service and provider that the operating legal entity selects for Profile Tailors.
+
+This document does not assume that every country uses the GDPR 72-hour rule. The incident team must identify every connected jurisdiction and use the earliest applicable deadline in the [jurisdiction matrix](incident-sla-table.yaml).
+
+### Activation Blockers
+
+- The operating legal entity, registered address, Privacy Lead, Communications Lead, and external counsel are unresolved.
+- Production hosting, database, storage, monitoring, and delivery providers are not selected or evidenced.
+- Alert routes and the incident-record system are not evidenced.
+- Jurisdictions marked `counsel_confirmation_required` need local approval before market enablement.
 
 ### Roles and Responsibilities
 
 | Role | Responsibility | Primary Contact |
-|------|----------------|-----------------|
-| **Incident Commander (IC)** | Coordinates response, makes containment decisions, communicates status | On-call rotation |
-| **Security Lead** | Technical forensics, root cause analysis, eradication | Security team |
-| **Privacy Lead** | Data breach assessment, notification decisions, DPO liaison | TBD |
-| **Communications Lead** | Authority and data subject notifications, public statements | TBD |
-| **Legal Counsel** | Legal obligations, regulatory coordination | External counsel |
+|---|---|---|
+| Incident Commander | Coordinates the response, preserves the decision clock, and approves containment | Unassigned |
+| Security Lead | Technical forensics, evidence preservation, root-cause analysis, and eradication | Unassigned |
+| Privacy Lead | Determines affected processing, jurisdictions, risk, and notification obligations | Unassigned |
+| Communications Lead | Coordinates regulator, customer, processor, and data-subject communications | Unassigned |
+| Legal Counsel | Confirms privilege, applicable law, reporting thresholds, authority, and deadlines | Unassigned |
+| Processor Liaison | Obtains facts and contractual notices from affected processors | Unassigned |
 
 ### Incident Classification
 
-| Severity | Definition | Examples | Notification SLA |
-|----------|------------|----------|------------------|
-| **P1 — Critical** | Confirmed breach of personal data with high risk to data subjects | Unauthorised access to user database, credential exfiltration | 24h to DPO / legal |
-| **P2 — High** | Suspected or confirmed breach with likely risk to data subjects | Access log anomaly, successful phishing of service account | 48h to DPO / legal |
-| **P3 — Medium** | Security event with potential impact to confidentiality, integrity or availability | WAF bypass attempt, failed brute force detected | 72h logged |
-| **P4 — Low** | Informational or non-personal-data event | Port scan, false positive alert | Next business day |
+| Severity | Definition | Example | Internal escalation target |
+|---|---|---|---|
+| P1 — Critical | Confirmed or strongly suspected personal-data compromise with high potential harm or an imminent external deadline | Credential exfiltration or unauthorised database access | Immediate; target 15 minutes |
+| P2 — High | Suspected or confirmed compromise with plausible risk or material service impact | Successful phishing of a privileged service account | Immediate; target 30 minutes |
+| P3 — Medium | Security event requiring investigation but no current evidence of personal-data compromise | Material authentication anomaly | Target 4 hours |
+| P4 — Low | Informational event or confirmed false positive | Unsuccessful port scan | Next business day |
+
+Severity does not decide whether notification is legally required. A lower-severity event may still trigger a short statutory deadline.
 
 ### Detection Sources
 
-- Application error rate alerts (Vercel Observability)
-- Authentication anomaly detection
-- Upstream provider security notifications
-- Manual report from user or third party
+- Application, authentication, publishing, delivery, and audit signals implemented in the selected production stack
+- Infrastructure, database, object-storage, email, social-platform, and other processor notifications
+- User, customer, researcher, employee, or authority reports
+- Repository or dependency security alerts
+
+No managed observability provider is named because none is selected or evidenced in the repository.
 
 ## Changes
 
 | Version | Date | Description |
-|---------|------|-------------|
-| 1.0 | 2026-07-17 | Initial runbook with 5-phase response process and classification table |
+|---|---|---|
+| 2.0 | 2026-07-17 | Replaced the GDPR-only flow and unevidenced Vercel claim with a blocked, global jurisdiction workflow |
+| 1.0 | 2026-07-17 | Initial preliminary runbook |
 
 ## Usage
 
-### 1. Triage (≤30 min)
+### 1. Declare and Start the Clocks
 
-1. Acknowledge alert or report.
-2. Assign severity based on initial information.
-3. Declare incident and assemble response team if ≥P2.
-4. Record initial findings in incident log.
+1. Acknowledge the signal and create an immutable incident record.
+2. Record discovery time, awareness time, reporter, systems, processors, and every time zone in UTC.
+3. Assign the Incident Commander and Security Lead immediately; engage the Privacy Lead and counsel for any possible personal-data impact.
+4. Assign a provisional severity without delaying containment or legal assessment.
+5. Preserve the original evidence and record every collection and access action.
 
-### 2. Containment (≤2h for P1/P2)
+Do not wait for complete facts before escalating. Several jurisdictions permit or require phased reporting.
 
-1. Prevent further unauthorised access (rotate keys, block IPs, suspend accounts).
-2. Preserve evidence (logs, snapshots, audit trail).
-3. Isolate affected systems if feasible.
-4. Document all actions taken with timestamps.
+### 2. Contain and Preserve Evidence
 
-### 3. Investigation and Assessment
+1. Stop further unauthorised access using the least destructive effective action.
+2. Rotate affected secrets, revoke sessions, suspend accounts, or isolate systems where justified.
+3. Preserve logs, database and object metadata, deployment state, alerts, provider correspondence, and relevant configuration.
+4. Keep an action timeline with actor, time, reason, expected effect, and observed result.
+5. Issue a legal or evidence hold before routine retention controls can destroy relevant records.
 
-1. Determine root cause.
-2. Identify affected personal data categories and data subjects.
-3. Assess risk to data subjects' rights and freedoms.
-4. Determine whether notification obligations are triggered (GDPR Art. 33-34).
+### 3. Establish Facts and Jurisdictions
 
-### 4. Notification
+1. Map affected systems to the [data inventory](data-inventory.yaml) and controller/processor role.
+2. Identify affected data categories, people, customers, markets, residences, establishments, processors, and transfer paths.
+3. Determine whether credentials, sensitive data, children, financial data, large-scale data, or customer-controlled content are involved.
+4. Ask each affected processor for discovery time, awareness time, scope, containment, locations, sub-processors, and contractual notices.
+5. Maintain known, unknown, disputed, and inferred facts separately.
 
-1. If notification required: prepare and send authority notification within 72h of awareness.
-2. If high risk to data subjects: prepare and send data subject notification without undue delay.
-3. Use templates in `breach-notification-authority-template.md` and `breach-notification-subject-template.md`.
+### 4. Decide Notifications
 
-### 5. Remediation and Closure
+1. Select every applicable row in `incident-sla-table.yaml`; do not select only the controller's home jurisdiction.
+2. Add state, provincial, sector, cyber-security, platform, contractual, customer, insurer, and law-enforcement duties that the matrix does not cover.
+3. Use the earliest applicable deadline as the response deadline.
+4. Record the legal threshold, supporting facts, decision owner, counsel reviewer, and decision time for every authority and affected group.
+5. When facts are incomplete, submit a preliminary or phased report where the applicable regime allows it.
+6. Use the authority and data-subject templates only after adapting their terminology and required fields to the applicable jurisdiction.
 
-1. Implement permanent fixes.
-2. Update security controls to prevent recurrence.
-3. Complete post-incident review within 14 days.
-4. Update runbook with lessons learned.
+The Privacy Lead and counsel approve the legal decision. The Incident Commander ensures that uncertainty does not silently consume a deadline.
+
+### 5. Communicate
+
+1. Keep authority, affected-person, customer, processor, public, employee, insurer, and platform messages consistent with the verified facts.
+2. Avoid speculation, admissions beyond verified facts, and promises unsupported by implemented controls.
+3. Provide a safe contact channel and practical harm-reduction steps.
+4. Preserve submitted forms, delivery evidence, authority acknowledgements, message versions, and translations.
+5. Track follow-up deadlines, supplemental reports, and authority questions.
+
+### 6. Recover and Close
+
+1. Verify eradication and safe restoration before normal operations resume.
+2. Monitor for recurrence and secondary harm.
+3. Complete a post-incident review with root cause, control failures, notification performance, and assigned remediation.
+4. Reconcile the data inventory, ROPA, processor matrix, retention schedule, public notices, contracts, and technical controls.
+5. Keep the incident record for the longest applicable legal, contractual, evidence-hold, or approved retention period.
+6. Close only after counsel and the Incident Commander confirm that all follow-ups are complete.
 
 ## Troubleshooting
 
-- **Unclear severity classification:** Default to P3 until more information is available. The Incident Commander can reclassify at any stage.
-- **Unable to reach DPO/Privacy Lead:** Escalate to Legal Counsel. Document the delay and attempt timestamps for the regulatory notification record.
-- **Missing evidence for notification decision:** Use the [data inventory](data-inventory.yaml) to identify the affected processing activity and its legal basis. Preserve all logs and system state before remediation.
+- **The jurisdiction is unknown:** Treat the shortest plausible deadline as operational, preserve the clock, and obtain urgent local advice.
+- **Facts are incomplete:** Separate confirmed facts from hypotheses and use phased notification where allowed.
+- **A processor is unresponsive:** Escalate through contractual and security contacts, document attempts, and do not pause the controller's deadline.
+- **The Privacy Lead or counsel is unreachable:** Escalate to the legal-entity owner and incident executive; the current unresolved ownership is a production blocker.
+- **Evidence conflicts:** Preserve every version, record provenance, and avoid overwriting the original.
+- **Routine deletion may run:** Place a scoped evidence hold and document its legal owner and release criteria.
+- **A market is absent from the matrix:** Do not infer its rule from a neighbouring country; obtain primary-source evidence and local approval.
 
 ## References
 
-- GDPR Art. 33-34: Breach notification requirements
-- [`incident-sla-table.yaml`](incident-sla-table.yaml): Jurisdiction-specific notification deadlines
-- [`breach-notification-authority-template.md`](breach-notification-authority-template.md): Authority notification template (Art. 33)
-- [`breach-notification-subject-template.md`](breach-notification-subject-template.md): Data subject notification template (Art. 34)
-- [`data-inventory.yaml`](data-inventory.yaml): Processing activity records
+- [`incident-sla-table.yaml`](incident-sla-table.yaml): Operational jurisdiction matrix and primary authority links
+- [`data-inventory.yaml`](data-inventory.yaml): Processing activities, providers, retention controls, and evidence
+- [`controller-processor-matrix.md`](controller-processor-matrix.md): Role and provider-selection status
+- [`ropa.md`](ropa.md): Processing-record summary and unresolved legal decisions
+- [`breach-notification-authority-template.md`](breach-notification-authority-template.md): Preliminary authority template requiring jurisdiction adaptation
+- [`breach-notification-subject-template.md`](breach-notification-subject-template.md): Preliminary affected-person template requiring jurisdiction adaptation
+- [European Commission breach guidance](https://commission.europa.eu/law/law-topic/data-protection/data-protection-eu/what-should-i-do-if-my-organisation-has-personal-data-breach_en)
+- [Brazil ANPD incident reporting](https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis)
+- [Canada OPC breach reporting](https://www.priv.gc.ca/en/privacy-topics/business-privacy/safeguards-and-breaches/privacy-breaches/respond-to-a-privacy-breach-at-your-business/report-a-privacy-breach-at-your-organization/)
+- [Japan PPC breach reporting](https://www.ppc.go.jp/personalinfo/legal/leakAction/)
+- [Singapore PDPC breach reporting](https://www.pdpc.gov.sg/report-data-breach/before-you-report-a-data-breach-3/info)

@@ -128,15 +128,13 @@ class RateLimitingFilter(
      * For most strategies, we use IP address to prevent abuse.
      */
     private fun getIdentifier(exchange: ServerWebExchange): String {
-        // For authentication/waitlist endpoints, we primarily use IP address to prevent brute force attacks
-        // API keys are not typically present in these requests
-        val forwardedFor = exchange.request.headers.getFirst("X-Forwarded-For")
-        if (forwardedFor != null) {
-            val rawIp = forwardedFor.split(",").first().trim()
-            val sanitizedIp = sanitizeIpAddress(rawIp)
-            return "IP:$sanitizedIp"
-        }
-        return "IP:${exchange.request.remoteAddress?.address?.hostAddress ?: "unknown"}"
+        // SECURITY: do NOT trust client-supplied `X-Forwarded-For`. Without a verified trusted-proxy
+        // hop boundary, that header is attacker-controlled and would let any caller rotate buckets
+        // to bypass per-IP rate limits. Trusted-proxy handling (ForwardedHeaderFilter with a
+        // server-side allowlist) must be configured at the edge before honoring forwarded headers;
+        // that change is tracked separately and is intentionally out of scope here.
+        val rawIp = exchange.request.remoteAddress?.address?.hostAddress
+        return "IP:${sanitizeIpAddress(rawIp ?: "unknown")}"
     }
 
     /**
@@ -146,7 +144,7 @@ class RateLimitingFilter(
      * such as newlines, carriage returns, and other control characters.
      * Only allows alphanumeric characters, dots, colons (for IPv6), and hyphens.
      *
-     * @param ip The raw IP address string from the X-Forwarded-For header
+     * @param ip The raw IP address string (e.g. `remoteAddress.hostAddress`).
      * @return A sanitized IP address string safe for logging
      */
     private fun sanitizeIpAddress(ip: String): String {
@@ -215,7 +213,7 @@ class RateLimitingFilter(
             RateLimitStrategy.AUTH -> "Too many authentication attempts. Please try again later."
             RateLimitStrategy.BUSINESS -> "Rate limit exceeded for business API. Please try again later."
             RateLimitStrategy.RESUME -> "Rate limit exceeded for resume generation. Please try again later."
-            RateLimitStrategy.WAITLIST -> "Too many waitlist requests. Please try again later."
+            RateLimitStrategy.WAITLIST -> "Too many attempts. Please try again later."
         }
 
         val errorResponse = mapOf(

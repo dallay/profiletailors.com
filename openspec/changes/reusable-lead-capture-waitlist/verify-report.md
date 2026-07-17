@@ -4,154 +4,99 @@
 
 **Change**: reusable-lead-capture-waitlist
 **Mode**: openspec
-**Verification scope**: DALLAY-439 Phase 5 HTTP endpoint only: `POST /api/waitlists/{waitlistKey}/entries`. DALLAY-440 rate limiting and DALLAY-441 marketing integration remain explicitly out of scope.
-**Verdict**: PASS WITH WARNINGS
+**Verification scope**: DALLAY-440 Phase 6 (initial wiring + CI regression remediation) and Phase 6.6 (P2 Codex security remediation on PR #378: `RateLimitingFilter.getIdentifier` no longer trusts client-supplied `X-Forwarded-For`) and Phase 6.7 (production-safety default-off for `application.rate-limit.waitlist.enabled`, pending DALLAY-512 distributed bucket backend and DALLAY-513 trusted-proxy / `ForwardedHeaderFilter` allowlist wiring).
+**Verdict**: PASS-WITH-CRITICAL-WARNINGS
 
-## Changes
+## Executive Summary
 
-### Executive Summary
+The CI remediation confirms the root cause: importing shared `shared:shield:ratelimit` wiring into SMP made shared `RateLimitProperties.auth.enabled=true` effective at runtime, polluting authentication endpoint buckets even though SMP already has its own `AuthRateLimitWebFilter`.
 
-DALLAY-439 Phase 5 is compliant for the requested endpoint scope. Source inspection confirms the controller maps success/duplicate joins to the same public `202 Accepted` body without a duplicate flag, maps invalid email / missing consent / unknown waitlist / paused or closed waitlist correctly, and leaves unexpected failures to the global exception path. Runtime verification passed for both the controller and handler-focused suites.
+`application.yaml` now explicitly disables shared AUTH, BUSINESS, and RESUME for the SMP application context while keeping shared WAITLIST enabled and env-configurable. This preserves SMP's pre-DALLAY-440 effective behavior for non-WAITLIST shared strategies and fixes `LocalAuthEndpointIntegrationTest.rejects invalid password` in the broader backend suite.
 
-### Completeness
+The P2 Codex security remediation (PR #378) dropped `X-Forwarded-For` trust from `RateLimitingFilter.getIdentifier` so the 10/min WAITLIST cannot be bypassed by rotating client-supplied headers; trusted-proxy wiring is intentionally deferred.
+
+Phase 6.7 records the residual risk explicitly: WAITLIST is therefore turned off by default in the SMP context (`application.rate-limit.waitlist.enabled` defaults to `false`, `${SMP_WAITLIST_RATE_LIMIT_ENABLED:false}`), so flipping the limiter on still requires explicit operator action. The two production blockers are tracked as DALLAY-512 (distributed bucket backend; in-process Caffeine allows N×capacity blowout across replicas) and DALLAY-513 (trusted-proxy / `ForwardedHeaderFilter` allowlist so `remoteAddress` becomes the real client and not the ingress address).
+
+## Completeness
 
 | Metric | Value |
-|--------|-------|
-| Total tasks in change | 47 |
-| Marked complete | 28 |
-| In-scope tasks assessed | 4: tasks 5.1, 5.2, 5.3, 5.4 |
-| In-scope tasks passing verification | 4 |
-| In-scope tasks partial / failing verification | 0 |
-| Out-of-scope tasks ignored for this verdict | DALLAY-440 Phase 6, DALLAY-441 Phase 7, broader DALLAY-442/DALLAY-443 work |
+|---|---:|
+| Total change tasks | 48 |
+| Marked complete | 34 / 48 |
+| DALLAY-440 Phase 6 tasks marked complete | 7 / 7 (6.1–6.7) |
+| DALLAY-440 Phase 6 tasks verified compliant | 7 / 7 |
+| Remaining change tasks | 14 (Phases 7–9 and Phase 8 subset) |
 
-### Verification Scope
+## Build and Test Evidence
 
-Validated only:
-
-- `POST /api/waitlists/{waitlistKey}/entries` in `WaitlistController`.
-- Public success and duplicate response contract: `202 Accepted`, `{ "status": "accepted", "message": "You're on the waitlist" }`, no `duplicate` field.
-- Controller error mapping for invalid email, missing/false early-access consent, unknown waitlist, paused/closed waitlist, and unexpected handler failure.
-- Handler internal `JoinResult.JOINED_NEW` vs `JoinResult.ALREADY_JOINED` distinction.
-- Controller swallowing of that internal distinction.
-
-Explicitly not validated as part of this verdict:
-
-- DALLAY-440 rate limiting / `429 rate_limited`.
-- DALLAY-441 marketing form integration.
-- Archive/documentation tasks.
-
-### Evidence
-
-| Command / inspection | Result | Evidence |
+| Command | Result | Evidence |
 |---|---|---|
-| Source inspection: `server/smp/src/main/kotlin/com/profiletailors/smp/leadcapture/infrastructure/http/WaitlistController.kt` | PASS | `join()` calls `JoinWaitlistHandler.handle(...)` and always returns `HttpStatus.ACCEPTED` with `JoinWaitlistResponse()` for successful handler results. It does not inspect `JoinResult`, so `JOINED_NEW` and `ALREADY_JOINED` are publicly uniform. |
-| Source inspection: `WaitlistController.kt` error mapping | PASS | `WaitlistNotFoundException -> 404 waitlist_not_found`; `WaitlistClosedException -> 409 waitlist_closed`; `IllegalArgumentException` maps early-access consent errors to `400 consent_required`, otherwise to `400 invalid_email`. Unexpected exceptions are not swallowed by the controller. |
-| Source inspection: `shared/lead-capture/waitlist/.../JoinResult.kt` and `JoinWaitlistHandler.kt` | PASS | `JoinResult` has `JOINED_NEW` and `ALREADY_JOINED`; handler returns `JOINED_NEW` on `SaveResult.Saved` and `ALREADY_JOINED` on `SaveResult.AlreadyExists`; `toString()` is uniform: `Accepted`. |
-| Source inspection: `WaitlistControllerTest.kt` | PASS | Covers 202 new, 202 duplicate, invalid email 400, missing consent 400, false consent 400, unknown key 404, paused 409, closed 409, unexpected failure 5xx, and absence of `$.duplicate` for success paths. |
-| Source inspection: `JoinWaitlistHandlerTest.kt` | PASS | Covers `JoinResult.JOINED_NEW` for a new join, `JoinResult.ALREADY_JOINED` for duplicate join, and uniform result string representation. |
-| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.http.WaitlistControllerTest'` | PASS | `BUILD SUCCESSFUL in 1s`; tasks were up-to-date, confirming the focused test target is currently green from cache. |
-| `./gradlew :shared:lead-capture:waitlist:test --tests 'com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandlerTest'` | PASS | `BUILD SUCCESSFUL in 3s`; tasks were up-to-date, confirming the focused handler test target is currently green from cache. |
-| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.http.WaitlistControllerTest' --rerun-tasks` | PASS WITH WARNING | `BUILD SUCCESSFUL in 43s`; 29 tasks executed. Kotlin daemon reported incremental cache registration failures, then Gradle fell back to compile without the Kotlin daemon and completed successfully. Existing unrelated warnings remain in storage/media code. |
-| `./gradlew :shared:lead-capture:waitlist:test --tests 'com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandlerTest' --rerun-tasks` | PASS WITH WARNING | `BUILD SUCCESSFUL in 13s`; 7 tasks executed. Same Kotlin daemon incremental-cache issue occurred, fallback compilation succeeded. |
-| Coverage | NOT REQUIRED | `openspec/config.yaml` has `coverage_threshold: 0`; no separate coverage gate required for this focused verification. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :shared:shield:ratelimit:test --rerun-tasks` | PASS | Prior final run: `BUILD SUCCESSFUL in 10s`; recompiles and runs the full shared rate-limit suite, including WAITLIST identity isolation, service event/identifier behavior, filter matching, headers, and existing strategy default tests. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.integration.WaitlistRateLimitIntegrationTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationTest' --rerun-tasks` | PASS | Prior final run: `BUILD SUCCESSFUL in 45s`; real Postgres-backed requests cover 11th-request `429`, duplicate/validation consumption, cross-waitlist same-IP isolation, headers, public access, and the no-scope-creep configuration contract. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationTest' --tests 'com.profiletailors.smp.integration.LocalAuthEndpointIntegrationTest.rejects invalid password' --tests 'com.profiletailors.smp.leadcapture.integration.WaitlistRateLimitIntegrationTest' --rerun-tasks` | PASS | Verification rerun: `BUILD SUCCESSFUL in 1m 14s`; confirms SMP shared rate-limit binding, the prior auth test pollution regression, and DALLAY-440 waitlist runtime behavior in one focused server execution. |
+| `git diff --check` | PASS | Re-run after focused tests; no whitespace errors in the working tree. |
+| `./gradlew :shared:shield:ratelimit:test --tests 'com.profiletailors.ratelimit.infrastructure.RateLimitingFilterTest' --rerun-tasks` (post-fix) | PASS | `BUILD SUCCESSFUL in 6s`; 27 tests, 0 failures. Confirms the security property: `getIdentifier` keys on `remoteAddress`, ignores `X-Forwarded-For` (single value, comma-separated, rotation, malformed payload), and falls back to `IP:unknown` when `remoteAddress` is null. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.integration.WaitlistRateLimitIntegrationTest' --rerun-tasks` (post-fix) | PASS | `BUILD SUCCESSFUL in 49s`; 4 tests, 0 failures. The 11th-request scenario now rotates `X-Forwarded-For` per call (e.g. `198.51.100.1` … `198.51.100.10`, then `198.51.100.250`) and still returns `429 RATE_LIMIT_EXCEEDED`, proving the limit cannot be bypassed by rotating the header. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :shared:shield:ratelimit:test :server:smp:test --tests 'com.profiletailors.smp.leadcapture.integration.WaitlistRateLimitIntegrationTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.http.WaitlistControllerTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationTest' --tests 'com.profiletailors.smp.identity.infrastructure.security.AuthRateLimitWebFilterTest' --rerun-tasks` | PASS | `BUILD SUCCESSFUL in 45s`; focused regression pass for the affected suites. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --rerun-tasks` | PASS | `BUILD SUCCESSFUL in 3m 56s`; broader unfiltered SMP backend suite passes after the security fix. |
+| `./gradlew :shared:shield:ratelimit:detekt` | PASS | `BUILD SUCCESSFUL in 2s`; no detekt regressions. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationOverrideTest' --rerun-tasks` | PASS | RED → GREEN for Phase 6.7. RED: new "SMP defaults shared WAITLIST to disabled" assertion failed (still bound to `true`). GREEN after flipping `${SMP_WAITLIST_RATE_LIMIT_ENABLED:false}` in `server/smp/src/main/resources/application.yaml`. `BUILD SUCCESSFUL in 20s`; the override test, the bandwidth-limit assertions, and the non-WAITLIST disables all stay green. |
+| `./gradlew :server:smp:detekt --no-daemon` | PASS | `BUILD SUCCESSFUL`; the multi-line `# ...` comment block added on `application.rate-limit.waitlist.enabled` does not trip detekt (it lives in YAML, not Kotlin source). |
 
-### Spec Compliance Matrix
+No coverage command was run: OpenSpec sets no coverage threshold, and focused runtime acceptance evidence is available.
 
-| Requirement / scenario | Covering test or evidence | Runtime result | Compliance |
+## Spec Compliance Matrix
+
+| Requirement / scenario | Evidence | Runtime result | Compliance |
 |---|---|---|---|
-| Public Join API — new entry accepted | `WaitlistControllerTest.join returns accepted public response for new email` | PASS | COMPLIANT |
-| Idempotent duplicate join returns accepted | `WaitlistControllerTest.join returns same accepted public response for duplicate email` | PASS | COMPLIANT |
-| Public response exposes no duplicate flag | Controller ignores `JoinResult`; both success tests assert `$.duplicate` does not exist | PASS | COMPLIANT |
-| Success/duplicate public response is `202 Accepted` with uniform body | Controller returns `ResponseEntity.status(HttpStatus.ACCEPTED).body(JoinWaitlistResponse())`; tests assert `status=accepted`, message, no duplicate | PASS | COMPLIANT |
-| Unknown waitlist key returns `404 waitlist_not_found` | `WaitlistControllerTest.join returns 404 for unknown waitlist key` | PASS | COMPLIANT |
-| Paused/closed waitlist returns `409 waitlist_closed` | `WaitlistControllerTest.join returns 409 for paused waitlist`; `...closed waitlist` | PASS | COMPLIANT |
-| Invalid email returns `400 invalid_email` | `WaitlistControllerTest.join returns 400 for invalid email` | PASS | COMPLIANT |
-| Missing early-access consent returns `400 consent_required` | `WaitlistControllerTest.join returns 400 when early access consent is missing` | PASS | COMPLIANT |
-| False early-access consent returns `400 consent_required` | `WaitlistControllerTest.join returns 400 when early access consent is false` | PASS | COMPLIANT |
-| Unexpected handler failure maps to server error | `WaitlistControllerTest.join returns 500 when handler fails unexpectedly` via controller advice | PASS | COMPLIANT |
-| Handler keeps internal new-vs-duplicate distinction | `JoinWaitlistHandlerTest.new email join returns Accepted with internal new distinction`; `duplicate email join returns Accepted with internal already-joined distinction` | PASS | COMPLIANT |
-| Controller swallows handler distinction publicly | Controller source ignores returned `JoinResult`; controller duplicate/new tests assert same public DTO | PASS | COMPLIANT |
+| Public `POST /api/waitlists/{waitlistKey}/entries` is unauthenticated | `IdentitySecurityConfiguration` permits `POST /api/waitlists/*/entries`; integration requests contain no authentication header. | PASS | COMPLIANT |
+| WAITLIST limit is configurable and defaults to 10 requests/minute per IP | SMP configuration provides env-overridable capacity/refill values; integration test exhausts exactly 10 tokens for one IP and route. | PASS | COMPLIANT |
+| Plural `/api/waitlists` prefix matches and singular `/api/waitlist` does not | `RateLimitingFilterTest` exercises plural child matching and singular-prefix rejection. | PASS | COMPLIANT |
+| Request 11 receives shared `429` body and headers | Integration test asserts `RATE_LIMIT_EXCEEDED` and message; header scenario asserts `Retry-After` and `X-RateLimit-Limit`. | PASS | COMPLIANT |
+| Duplicate joins and validation errors consume before the controller | Integration test sends five duplicate `202` requests and five invalid `400` requests, then receives `429`; filter consumes before `chain.filter`. | PASS | COMPLIANT |
+| Same IP is independently limited for different waitlists | Postgres test exhausts `profile-tailors-launch` for `10.0.0.4`, then gets `202` from `profile-tailors-beta`; shared Bucket4j test independently proves distinct WAITLIST bucket identities. | PASS | COMPLIANT |
+| SMP explicitly disables shared AUTH/BUSINESS/RESUME | `application.yaml` sets `application.rate-limit.auth.enabled=false`, `business.enabled=false`, and `resume.enabled=false`; `WaitlistRateLimitConfigurationTest` asserts the bound SMP properties. | PASS | COMPLIANT |
+| Existing non-WAITLIST bucket-key semantics remain intact | `RateLimitingService` calls the three-argument limiter only for `WAITLIST`; all other strategies retain the two-argument call and the complete shared suite passes. | PASS | COMPLIANT |
+| Rate-limit events retain the original IP rather than `IP:path` | `RateLimitingServiceTest` captures the published WAITLIST event and asserts its identifier remains the IP. | PASS | COMPLIANT |
+| `RateLimitingFilter.getIdentifier` does not trust client-supplied `X-Forwarded-For` | `RateLimitingFilterTest` exercises distinct forwarded headers with a stable `remoteAddress` and asserts the adapter is invoked with the same `IP:<remote>` identifier for every call. The existing `IP:unknown` fallback test is preserved. | PASS | COMPLIANT |
+| WAITLIST 11th-request scenario is not bypassable by rotating `X-Forwarded-For` | `WaitlistRateLimitIntegrationTest` issues 10+1 calls to `/api/waitlists/profile-tailors-launch/entries` with `X-Forwarded-For` rotating per call (`198.51.100.1` … `198.51.100.10`, then `198.51.100.250`); the 11th call still receives `429 RATE_LIMIT_EXCEEDED` because the filter keys on `remoteAddress` (loopback) only. | PASS | COMPLIANT |
+| Inline comment explains the security trade-off and the deferred trusted-proxy change | `RateLimitingFilter.kt::getIdentifier` carries a `// SECURITY:` block-comment that documents why `X-Forwarded-For` is dropped and points at the future `ForwardedHeaderFilter` / trusted-proxy wiring as a separate change. No other comment-only additions (per `AGENTS.md` policy: comments only when explaining WHY). | PASS | COMPLIANT |
+| `application.rate-limit.waitlist.enabled` defaults to false in the SMP context | `WaitlistRateLimitConfigurationTest` explicitly asserts `properties.waitlist.enabled` is `false`, plus a sibling `WaitlistRateLimitConfigurationOverrideTest` proves setting `application.rate-limit.waitlist.enabled=true` flips the bound property (mirroring what `WaitlistRateLimitIntegrationTest` already does). `server/smp/src/main/resources/application.yaml` declares `enabled: ${SMP_WAITLIST_RATE_LIMIT_ENABLED:false}` with a rationale comment citing DALLAY-512 and DALLAY-513. | PASS | COMPLIANT |
 
-**Compliance summary**: 12/12 in-scope DALLAY-439 checks compliant.
-
-### Completed Task Assessment
-
-| Task | Verification status | Evidence |
-|---|---|---|
-| 5.1 RED: WebTestClient/controller tests for 202 new, 202 duplicate, 400, 404, 409, 500 | IMPLEMENTED | `WaitlistControllerTest` includes all requested behavior and passed at runtime. |
-| 5.2 GREEN: Implement controller, DTOs, validation, command mapping, uniform public response | IMPLEMENTED | `WaitlistController` exists, maps request to `JoinWaitlistCommand`, validates through shared value objects/domain consent, and returns uniform `202 Accepted` response for handler success. Runtime controller tests passed. |
-| 5.3 RED: Handler-level internal `joined_new` vs `already_joined` distinction exists but is not public | IMPLEMENTED | `JoinWaitlistHandlerTest` asserts `JoinResult.JOINED_NEW` and `JoinResult.ALREADY_JOINED`; `JoinResult.toString()` is uniform. Runtime handler tests passed. |
-| 5.4 GREEN: Controller swallows distinction in public DTO | IMPLEMENTED | Controller ignores `JoinResult`; new and duplicate controller tests assert identical body shape and absence of duplicate flag. Runtime tests passed. |
-
-### Correctness Table
+## Correctness Table
 
 | Finding | Judge A | Judge B | Severity | Status |
-|---------|---------|---------|----------|--------|
-| New and duplicate joins both return `202 Accepted` with no duplicate flag | ✅ Source inspection | ✅ Runtime controller tests | INFO | Confirmed |
-| Invalid email maps to `400 invalid_email` | ✅ Source inspection | ✅ Runtime controller test | INFO | Confirmed |
-| Missing/false early-access consent maps to `400 consent_required` | ✅ Source inspection | ✅ Runtime controller tests | INFO | Confirmed |
-| Unknown waitlist maps to `404 waitlist_not_found` | ✅ Source inspection | ✅ Runtime controller test | INFO | Confirmed |
-| Paused/closed waitlist maps to `409 waitlist_closed` | ✅ Source inspection | ✅ Runtime controller tests | INFO | Confirmed |
-| Unexpected repository/handler failure reaches 5xx path | ✅ Test double inspection | ✅ Runtime controller test | INFO | Confirmed |
-| Handler preserves internal `JOINED_NEW` vs `ALREADY_JOINED` | ✅ Handler source inspection | ✅ Runtime handler tests | INFO | Confirmed |
-| Kotlin daemon incremental cache registration errors occurred during forced reruns, but fallback compilation succeeded | ✅ Command output | ✅ Final build success | WARNING | Confirmed environment/tooling issue |
-| `WaitlistController.toPublicErrorCode()` treats most non-consent `IllegalArgumentException`s as `invalid_email`; this is sufficient for requested DALLAY-439 scope but could be too coarse for future metadata/source validation public errors | ✅ Source inspection | ✅ Current tests scoped to requested mappings | WARNING | Confirmed scope limitation |
+|---|---|---|---|---|
+| Shared AUTH bucket pollution caused the auth integration CI regression | ✅ Focused configuration test failed before YAML remediation | ✅ `LocalAuthEndpointIntegrationTest.rejects invalid password` passed after remediation | INFO | Confirmed |
+| SMP enables only shared WAITLIST in its application context | ✅ `WaitlistRateLimitConfigurationTest` asserts bound properties | ✅ Full SMP backend suite passed | INFO | Confirmed |
+| WAITLIST remains configurable | ✅ `application.yaml` keeps `SMP_WAITLIST_RATE_LIMIT_*` overrides | ✅ DALLAY-440 waitlist integration coverage remains documented in apply progress | INFO | Confirmed |
 
-### Design Coherence Table
+## Design Coherence
 
 | Design decision | Followed? | Notes |
 |---|---|---|
-| HTTP adapter lives in `server/smp` over shared application handler | YES | `WaitlistController` is under `server/smp/.../infrastructure/http` and depends on `JoinWaitlistHandler` from shared waitlist application. |
-| Public API uniform response prevents enumeration | YES | Controller ignores `JoinResult`; response is uniform for new and duplicate joins. |
-| Handler internally distinguishes new vs already joined | YES | `JoinResult.JOINED_NEW` / `ALREADY_JOINED` are returned from handler based on repository `SaveResult`. |
-| `202 Accepted` public success contract | YES | Source and runtime tests confirm `HttpStatus.ACCEPTED`; spec was aligned after user confirmation. |
-| Shared module independence | NOT RE-VERIFIED IN THIS PHASE | Previously covered by DALLAY-437/DALLAY-438 evidence; not required for the DALLAY-439 HTTP endpoint verification request. |
-| Rate limiting | OUT OF SCOPE | DALLAY-440 remains out of scope and incomplete. |
-| Marketing integration | OUT OF SCOPE | DALLAY-441 remains out of scope and incomplete. |
+| Server adapter wires shared rate-limit infrastructure | YES | `WaitlistRateLimitConfiguration` imports the shared configuration and components. |
+| HTTP filter runs before controller handling | YES | The filter consumes before `chain.filter`; integration behavior confirms duplicate and validation paths cannot bypass it. |
+| Per-IP, per-waitlist enforcement | YES | WAITLIST buckets use a stable `IP:path` cache identity; configuration, metrics, logs, and events retain the IP identifier. |
+| Preserve non-WAITLIST effective behavior in SMP | YES | Shared AUTH, BUSINESS, and RESUME are explicitly disabled because DALLAY-440 only approved shared WAITLIST wiring; SMP's existing `AuthRateLimitWebFilter` continues to own auth endpoint throttling. |
 
-## Usage
+## Issues
 
-Run these focused commands to reproduce DALLAY-439 verification:
+### CRITICAL
 
-```bash
-./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.http.WaitlistControllerTest'
-./gradlew :shared:lead-capture:waitlist:test --tests 'com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandlerTest'
-```
+1. DALLAY-512 — Distributed bucket backend not implemented. `Bucket4jRateLimiter` stores buckets in an in-process Caffeine cache, and SMP runs in production behind Kubernetes / Cloud Run ingress with 3+ API replicas (`docs/architecture/c4/02-container.md` lines 330-345). Every replica maintains its own bucket per client, so a single client can exceed the configured 10/min WAITLIST allowance by up to `N × capacity` where `N` is the replica count. The KDoc on `Bucket4jRateLimiter` already warns about this. The P2 Codex remediation on PR #378 did not introduce distributed state; it intentionally left the in-process cache alone because distributed counters require their own topology decision (Redis / Hazelcast / shared Postgres). Tracked under DALLAY-512.
+2. DALLAY-513 — Trusted-proxy / `ForwardedHeaderFilter` allowlist not wired. With the P2 fix, `RateLimitingFilter.getIdentifier` keys on `exchange.request.remoteAddress`, but that address is the ingress / load-balancer inside Kubernetes / Cloud Run (per `docs/architecture/c4/02-container.md`). Without a trusted-proxy allowlist (or the equivalent for Cloud Run / GCLB), all clients routed through the same ingress would collapse into one WAITLIST bucket — a fundamentally different bucket-collision mode than DALLAY-512. The previous code trusted client-supplied `X-Forwarded-For` and was exploitable; the current code has no positive trust list and silently keys on the wrong address when the deployment is multi-tenant behind a shared egress. Tracked under DALLAY-513.
 
-For non-cached proof, add `--rerun-tasks` to each command. Forced reruns passed in this verification, with the Kotlin daemon falling back to non-daemon compilation after incremental-cache registration errors.
+Both blockers are mitigated for the current branch by defaulting the WAITLIST strategy to disabled (`SMP_WAITLIST_RATE_LIMIT_ENABLED:false`), so flipping the limiter on is always an explicit operator decision. They MUST be closed before enabling the WAITLIST limiter in any non-test environment with multiple replicas or shared ingress.
 
-## Troubleshooting
-
-### Gaps or Issues
-
-#### CRITICAL
+### WARNING
 
 None.
 
-#### WARNING
+### SUGGESTION
 
-1. Forced Gradle reruns exposed a Kotlin daemon incremental-cache registration issue under `shared/lead-capture/common/build/kotlin/...`; Gradle fell back to non-daemon compilation and both focused suites still passed. If this recurs often, run `./gradlew --stop` before rerunning focused tests.
-2. The controller maps generic non-consent `IllegalArgumentException` values to `invalid_email`. That satisfies the requested DALLAY-439 mappings, but future public errors such as `invalid_metadata` or `invalid_source` may need more precise handling/tests when those behaviors become in-scope.
-3. DALLAY-440 rate limiting remains incomplete and was not verified; therefore `429 rate_limited` is intentionally not part of this Phase 5 verdict.
-4. DALLAY-441 marketing integration remains incomplete and was not verified.
+1. Future phases should complete the remaining 14 change tasks before treating the full reusable waitlist capability as delivered; they are out of this DALLAY-440 verification scope.
 
-#### SUGGESTION
+## Final Verdict
 
-1. Add a focused metadata/source public-error test in a later slice if the API contract needs to expose `invalid_metadata` or `invalid_source` distinctly.
-
-## References
-
-- `openspec/changes/reusable-lead-capture-waitlist/proposal.md`
-- `openspec/changes/reusable-lead-capture-waitlist/spec.md`
-- `openspec/changes/reusable-lead-capture-waitlist/design.md`
-- `openspec/changes/reusable-lead-capture-waitlist/tasks.md`
-- `openspec/changes/reusable-lead-capture-waitlist/apply-progress.md`
-- `server/smp/src/main/kotlin/com/profiletailors/smp/leadcapture/infrastructure/http/WaitlistController.kt`
-- `server/smp/src/test/kotlin/com/profiletailors/smp/leadcapture/infrastructure/http/WaitlistControllerTest.kt`
-- `shared/lead-capture/waitlist/src/test/kotlin/com/profiletailors/leadcapture/waitlist/application/JoinWaitlistHandlerTest.kt`
-
-### Final Verdict
-
-PASS WITH WARNINGS
-
-DALLAY-439 Phase 5 is complete for the requested endpoint scope. All in-scope controller and handler requirements have passing runtime evidence; remaining warnings are tooling/future-scope concerns, not blockers for Phase 5.
+PASS-WITH-CRITICAL-WARNINGS — Phase 6 (1–6) + P2 Codex security remediation (6.6) + production-safety default-off (6.7) verified. Shared `RateLimitingFilter` no longer trusts client-supplied `X-Forwarded-For`, the SMP 11th-request scenario is not bypassable by rotating the header, and the WAITLIST limiter is now OFF by default with the env override kept explicit. Two CRITICAL production blockers remain unfixed in this branch: DALLAY-512 (distributed bucket backend) and DALLAY-513 (trusted-proxy / `ForwardedHeaderFilter` wiring). They must be closed before the WAITLIST limiter can be safely enabled in production.
