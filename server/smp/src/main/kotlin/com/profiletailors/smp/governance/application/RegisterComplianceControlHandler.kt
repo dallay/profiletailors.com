@@ -11,6 +11,11 @@ import java.util.UUID
 internal class RegisterComplianceControlHandler(private val repository: ComplianceControlRepository) :
     CommandHandler<RegisterComplianceControlCommand> {
 
+    /**
+     * Registers and persists a compliance control.
+     *
+     * @param command The command containing the compliance control details.
+     */
     override suspend fun handle(command: RegisterComplianceControlCommand) {
         val control = ComplianceControl(
             id = command.id ?: ComplianceControlId("ctrl-${UUID.randomUUID()}"),

@@ -23,20 +23,39 @@ import java.time.OffsetDateTime
 @Repository
 class R2dbcComplianceControlRepository(private val databaseClient: DatabaseClient) : ComplianceControlRepository {
 
-    override suspend fun findById(id: ComplianceControlId): ComplianceControl? = databaseClient.sql(SELECT_BY_ID)
+    /**
+         * Finds a compliance control by its identifier.
+         *
+         * @param id The identifier of the compliance control to find.
+         * @return The matching compliance control, or `null` if no control exists.
+         */
+        override suspend fun findById(id: ComplianceControlId): ComplianceControl? = databaseClient.sql(SELECT_BY_ID)
         .bind("id", id.value)
         .map { row, _ -> mapControl(row) }
         .first()
         .awaitSingleOrNull()
 
-    override fun findAll(page: PageRequest): Flow<ComplianceControl> = databaseClient.sql(SELECT_ALL)
+    /**
+         * Retrieves a page of compliance controls ordered by creation time, newest first.
+         *
+         * @param page The pagination parameters defining the result limit and offset.
+         * @return A flow of compliance controls in descending creation order.
+         */
+        override fun findAll(page: PageRequest): Flow<ComplianceControl> = databaseClient.sql(SELECT_ALL)
         .bind("limit", page.limit)
         .bind("offset", page.offset)
         .map { row, _ -> mapControl(row) }
         .all()
         .asFlow()
 
-    override fun findApplicable(
+    /**
+         * Finds compliance controls applicable at the specified evaluation time.
+         *
+         * @param context The evaluation context used to determine applicability.
+         * @param evaluatedAt The timestamp at which applicability is evaluated.
+         * @return A flow of applicable compliance controls.
+         */
+        override fun findApplicable(
         context: ComplianceEvaluationContext,
         evaluatedAt: Instant,
     ): Flow<ApplicableComplianceControl> = databaseClient.sql(SELECT_APPLICABLE_CONTROLS)
@@ -55,6 +74,12 @@ class R2dbcComplianceControlRepository(private val databaseClient: DatabaseClien
             )
         }
 
+    /**
+     * Saves a compliance control and advances its version and update timestamp.
+     *
+     * @param control The compliance control to save.
+     * @return The saved control with its incremented version and updated timestamp.
+     */
     override suspend fun save(control: ComplianceControl): ComplianceControl {
         val now = Instant.now()
         var spec = databaseClient.sql(UPSERT_CONTROL)
@@ -87,6 +112,12 @@ class R2dbcComplianceControlRepository(private val databaseClient: DatabaseClien
         return control.copy(version = control.version + 1, updatedAt = now)
     }
 
+    /**
+     * Maps a database row to a compliance control.
+     *
+     * @param row The database row containing compliance control fields.
+     * @return The mapped compliance control.
+     */
     private fun mapControl(row: Row): ComplianceControl = ComplianceControl(
         id = ComplianceControlId(requireNotNull(row.get("id", String::class.java))),
         controlKey = requireNotNull(row.get("control_key", String::class.java)),

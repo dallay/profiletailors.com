@@ -11,6 +11,11 @@ import java.util.UUID
 internal class RecordRiskAcceptanceHandler(private val repository: ComplianceRiskAcceptanceRepository) :
     CommandHandler<RecordRiskAcceptanceCommand> {
 
+    /**
+     * Records a compliance risk acceptance from the supplied command.
+     *
+     * @param command The command containing the risk acceptance details.
+     */
     override suspend fun handle(command: RecordRiskAcceptanceCommand) {
         val riskAcceptance = ComplianceRiskAcceptance(
             id = ComplianceRiskAcceptanceId("ra-${UUID.randomUUID()}"),

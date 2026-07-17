@@ -337,7 +337,7 @@ databaseChangeLog:
                   value: Data processing agreements with processors
               - column:
                   name: description
-                  value: Maintain DPAs with all data processors as required by GDPR Art. 28.
+                  value: Maintain DPAs with all data processors as required by RGPD Art. 28.
               - column:
                   name: owner
                   value: system

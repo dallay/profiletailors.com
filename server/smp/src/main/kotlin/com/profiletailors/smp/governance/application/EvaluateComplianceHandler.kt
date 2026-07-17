@@ -24,6 +24,12 @@ internal class EvaluateComplianceHandler(
     private val clock: Clock = Clock.systemUTC(),
 ) : QueryHandler<EvaluateComplianceQuery, ComplianceEvaluation> {
 
+    /**
+     * Evaluates applicable compliance controls for the query context.
+     *
+     * @param query The query containing the compliance evaluation context.
+     * @return The compliance evaluation with control results, summary counts, overall status, and evaluation metadata.
+     */
     override suspend fun handle(query: EvaluateComplianceQuery): ComplianceEvaluation {
         val evaluatedAt = clock.instant()
         val ctx = query.context
@@ -32,7 +38,7 @@ internal class EvaluateComplianceHandler(
         val controlResults = applicableControls.map { applicable ->
             val linkedEvidence = evidenceRepository.findByControlId(applicable.control.id).toList()
             val activeWaivers = riskAcceptanceRepository
-                .findActiveForControl(applicable.control.id, ctx, evaluatedAt)
+                .activeForControl(applicable.control.id, ctx, evaluatedAt)
                 .toList()
 
             val waived = activeWaivers.any { waiverMatchesContext(it, ctx) }
@@ -72,22 +78,28 @@ internal class EvaluateComplianceHandler(
         )
     }
 
-    private fun calculateOverallStatus(requiredResults: List<ControlResult>): EvaluationStatus {
-        if (requiredResults.isEmpty()) return EvaluationStatus.NOT_ASSESSED
-        if (requiredResults.any { it.status == ControlStatus.FAIL }) return EvaluationStatus.NON_COMPLIANT
-
-        val hasNotAssessed = requiredResults.any { it.status == ControlStatus.NOT_ASSESSED }
-        val hasPassed = requiredResults.any { it.status == ControlStatus.PASS }
-        val hasWaived = requiredResults.any { it.status == ControlStatus.WAIVED }
-
-        return when {
-            hasNotAssessed -> EvaluationStatus.NOT_ASSESSED
-            hasWaived -> EvaluationStatus.PARTIAL
-            hasPassed -> EvaluationStatus.COMPLIANT
-            else -> EvaluationStatus.NOT_ASSESSED
-        }
+    /**
+     * Determines the overall evaluation status from required control results.
+     *
+     * @param requiredResults The results for controls that require compliance.
+     * @return The overall evaluation status based on the required control statuses.
+     */
+    private fun calculateOverallStatus(requiredResults: List<ControlResult>): EvaluationStatus = when {
+        requiredResults.isEmpty() -> EvaluationStatus.NOT_ASSESSED
+        requiredResults.any { it.status == ControlStatus.FAIL } -> EvaluationStatus.NON_COMPLIANT
+        requiredResults.any { it.status == ControlStatus.NOT_ASSESSED } -> EvaluationStatus.NOT_ASSESSED
+        requiredResults.any { it.status == ControlStatus.WAIVED } -> EvaluationStatus.PARTIAL
+        requiredResults.any { it.status == ControlStatus.PASS } -> EvaluationStatus.COMPLIANT
+        else -> EvaluationStatus.NOT_ASSESSED
     }
 
+    /**
+     * Determines whether a risk acceptance applies to an evaluation context.
+     *
+     * @param waiver The risk acceptance to evaluate.
+     * @param context The evaluation context to match against the waiver scopes.
+     * @return `true` if the waiver is active and all specified scopes match, `false` otherwise.
+     */
     private fun waiverMatchesContext(waiver: ComplianceRiskAcceptance, context: ComplianceEvaluationContext): Boolean {
         if (waiver.status != RiskAcceptanceStatus.ACTIVE) return false
         return matchesOrNull(waiver.releaseScope, context.release) &&
@@ -98,6 +110,13 @@ internal class EvaluateComplianceHandler(
             matchesOrNull(waiver.workspaceScope, context.workspace)
     }
 
-    private fun matchesOrNull(waiverScope: String?, contextValue: String?): Boolean =
+    /**
+         * Determines whether a waiver scope applies to a context value.
+         *
+         * @param waiverScope The waiver scope value, or `null` to match any context value.
+         * @param contextValue The context value, or `null` to match any waiver scope.
+         * @return `true` if either value is `null` or both values are equal, `false` otherwise.
+         */
+        private fun matchesOrNull(waiverScope: String?, contextValue: String?): Boolean =
         waiverScope == null || contextValue == null || waiverScope == contextValue
 }

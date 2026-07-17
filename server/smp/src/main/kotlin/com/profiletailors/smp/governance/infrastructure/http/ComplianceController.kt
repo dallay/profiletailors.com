@@ -50,6 +50,12 @@ class ComplianceController(private val mediator: Mediator) {
 
     data class ControlResultResponse(val controlId: String, val controlKey: String, val status: String)
 
+    /**
+     * Evaluates compliance for the supplied context.
+     *
+     * @param request The request containing the compliance evaluation context.
+     * @return The compliance evaluation response.
+     */
     @PostMapping("/evaluations")
     @ResponseStatus(HttpStatus.OK)
     suspend fun evaluate(@RequestBody request: EvaluationRequest): EvaluationResponse {
@@ -67,13 +73,24 @@ class ComplianceController(private val mediator: Mediator) {
         return toResponse(evaluation, request.context)
     }
 
-    // ── Health / ping ────────────────────────────────────────────────
+    /**
+     * Reports that the compliance service is available.
+     *
+     * @return A map containing the status value `"ok"`.
+     */
 
     @GetMapping("/ping")
     @ResponseStatus(HttpStatus.OK)
     fun ping(): Map<String, String> = mapOf("status" to "ok")
 
-    private fun toResponse(evaluation: ComplianceEvaluation, context: EvaluationContextRequest): EvaluationResponse =
+    /**
+         * Maps a compliance evaluation and its request context to an API response.
+         *
+         * @param evaluation The completed compliance evaluation.
+         * @param context The context used for the evaluation.
+         * @return The response containing evaluation status, summary, control results, and metadata.
+         */
+        private fun toResponse(evaluation: ComplianceEvaluation, context: EvaluationContextRequest): EvaluationResponse =
         EvaluationResponse(
             context = context,
             overallStatus = evaluation.overallStatus.name,
