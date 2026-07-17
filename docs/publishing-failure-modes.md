@@ -210,8 +210,7 @@ Use `jobId` plus `attemptNumber` to identify one execution attempt. Use
 rescheduling, and replacement jobs. Events contain only allowlisted identifiers,
 canonical categories, outcome, retryability, provider, and duration fields.
 
-See the [Structured Publishing Lifecycle Logs Design](plans/2026-07-16-structured-publishing-lifecycle-logs-design.md)
-for the exact event schemas and data-safety rules.
+The structured lifecycle events are documented here because the temporary design plan was removed after implementation. Treat this section as the durable source for event names, correlation fields, and data-safety rules.
 
 ## Troubleshooting
 

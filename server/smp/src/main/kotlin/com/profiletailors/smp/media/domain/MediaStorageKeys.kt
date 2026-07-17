@@ -44,7 +44,7 @@ object MediaStorageKeys {
      */
     fun canonicalKey(workspaceId: String, fileHash: String, detectedMediaType: String): String {
         require(workspaceId.isNotBlank()) { "workspaceId must not be blank" }
-        require(fileHash.matches(Regex("^[a-f0-9]{64}$"))) { "fileHash must be lowercase 64-char SHA-256" }
+        require(fileHash.matches(SHA256_HASH_REGEX)) { "fileHash must be lowercase 64-char SHA-256" }
         require(detectedMediaType.isNotBlank()) { "detectedMediaType must not be blank" }
         val ext = parseMediaTypeExtension(detectedMediaType)
         return "assets/$workspaceId/blobs/$fileHash$ext"

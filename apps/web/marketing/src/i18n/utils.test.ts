@@ -3,42 +3,37 @@ import { getLocaleFromUrl, useTranslations } from './utils';
 
 describe('i18n utils', () => {
   describe('getLocaleFromUrl', () => {
-    it('should return "en" for root URL', () => {
-      const url = new URL('https://example.com/');
-      expect(getLocaleFromUrl(url)).toBe('en');
-    });
-
-    it('should return "es" for Spanish URL', () => {
-      const url = new URL('https://example.com/es/');
-      expect(getLocaleFromUrl(url)).toBe('es');
-    });
-
-    it('should return "en" for English URL', () => {
-      const url = new URL('https://example.com/en/');
-      expect(getLocaleFromUrl(url)).toBe('en');
-    });
-
-    it('should default to "en" for unknown locale', () => {
-      const url = new URL('https://example.com/fr/');
-      expect(getLocaleFromUrl(url)).toBe('en');
+    it.each([
+      { pathname: 'https://example.com/', expected: 'en', scenario: 'root URL' },
+      { pathname: 'https://example.com/es/', expected: 'es', scenario: 'Spanish URL' },
+      { pathname: 'https://example.com/en/', expected: 'en', scenario: 'English URL' },
+      { pathname: 'https://example.com/fr/', expected: 'en', scenario: 'unknown locale' },
+    ])('should return "$expected" for $scenario', ({ pathname, expected }) => {
+      const url = new URL(pathname);
+      expect(getLocaleFromUrl(url)).toBe(expected);
     });
   });
 
   describe('useTranslations', () => {
-    it('should return English translations by default', () => {
-      const url = new URL('https://example.com/');
+    it.each([
+      {
+        pathname: 'https://example.com/',
+        expectedLangSwitch: 'ES',
+        expectedHeroLabel: 'NOW IN EARLY ACCESS',
+        scenario: 'root URL',
+      },
+      {
+        pathname: 'https://example.com/es/',
+        expectedLangSwitch: 'EN',
+        expectedHeroLabel: 'ACCESO ANTICIPADO',
+        scenario: '/es/',
+      },
+    ])('returns translations for $scenario', ({ pathname, expectedLangSwitch, expectedHeroLabel }) => {
+      const url = new URL(pathname);
       const t = useTranslations(url);
 
-      expect(t.nav.langSwitch).toBe('ES');
-      expect(t.hero.label).toBe('NOW IN EARLY ACCESS');
-    });
-
-    it('should return Spanish translations for /es/', () => {
-      const url = new URL('https://example.com/es/');
-      const t = useTranslations(url);
-
-      expect(t.nav.langSwitch).toBe('EN');
-      expect(t.hero.label).toBe('ACCESO ANTICIPADO');
+      expect(t.nav.langSwitch).toBe(expectedLangSwitch);
+      expect(t.hero.label).toBe(expectedHeroLabel);
     });
   });
 });

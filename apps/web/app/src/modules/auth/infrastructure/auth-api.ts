@@ -28,9 +28,6 @@ export type LoginPayload = {
   password: string
 }
 
-// RegisterPayload is structurally identical to LoginPayload.
-export type RegisterPayload = LoginPayload
-
 export type ApiError = {
   title?: string
   detail?: string
@@ -134,7 +131,7 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string |
 // Auth endpoints
 // ---------------------------------------------------------------------------
 
-export async function register(payload: RegisterPayload): Promise<AuthTokens> {
+export async function register(payload: LoginPayload): Promise<AuthTokens> {
   const validatedPayload = authCredentialsSchema.parse(payload)
 
   return request<AuthTokens>('/api/auth/register', {

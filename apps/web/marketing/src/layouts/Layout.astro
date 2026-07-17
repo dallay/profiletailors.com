@@ -20,7 +20,7 @@ const {
 const canonicalEN = new URL('/', Astro.site ?? 'https://profiletailors.com').href
 const canonicalES = new URL('/es/', Astro.site ?? 'https://profiletailors.com').href
 const canonical = lang === 'en' ? canonicalEN : canonicalES
-const ogImage = lang === 'en' ? '/og-en.png' : '/og-es.png'
+const ogImage = image ?? (lang === 'en' ? '/og-en.png' : '/og-es.png')
 const siteName = 'Profile Tailors'
 
 // JSON-LD structured data

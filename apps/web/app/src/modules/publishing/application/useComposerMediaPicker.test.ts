@@ -134,7 +134,7 @@ describe('useComposerMediaPicker', () => {
         provider: ref(null),
         initialChannelId: ref(null),
       })
-      expect(picker.effectiveProvider.value).toBe(null)
+      expect(picker.effectiveProvider.value).toBeNull()
     })
 
     it('effectiveProvider is unsplash when provider is unsplash', () => {
@@ -976,7 +976,7 @@ describe('useComposerMediaPicker', () => {
       picker.autoStagedAssetIds.value = ['asset-a']
       picker.stageAssetOnce('asset-a')
       // Should not add duplicate
-      expect(picker.autoStagedAssetIds.value.filter((id) => id === 'asset-a').length).toBe(1)
+      expect(picker.autoStagedAssetIds.value.filter((id) => id === 'asset-a')).toHaveLength(1)
     })
 
     it('is a no-op when asset is in manuallyDeselectedAutoStageIds', () => {
@@ -1047,7 +1047,7 @@ describe('useComposerMediaPicker', () => {
 
       picker.pendingPickerAssets.value = ['asset-a']
       picker.addPendingPickerAsset('asset-a')
-      expect(picker.pendingPickerAssets.value.filter((id) => id === 'asset-a').length).toBe(1)
+      expect(picker.pendingPickerAssets.value.filter((id) => id === 'asset-a')).toHaveLength(1)
     })
   })
 
