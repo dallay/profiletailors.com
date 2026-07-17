@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 interface ComplianceRiskAcceptanceRepository {
-    fun findActiveForControl(
+    fun activeForControl(
         controlId: ComplianceControlId,
         context: ComplianceEvaluationContext,
         evaluatedAt: Instant,
