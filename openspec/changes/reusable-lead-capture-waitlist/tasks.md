@@ -54,10 +54,11 @@ This change covers all 7 Linear issues (DALLAY-437 through DALLAY-443). Each iss
 
 ### Phase 6 — Rate Limiting (DALLAY-440)
 
-- [ ] **6.1 RED**: Integration test asserting 11th request from same IP within a minute returns 429.
-- [ ] **6.2 GREEN**: Configure `WaitlistController` as a WAITLIST endpoint in `BucketConfigurationFactory`.
-- [ ] **6.3 RED**: Test asserting rate limit applies even on duplicate joins and validation errors.
-- [ ] **6.4 GREEN**: Confirm filter ordering covers the waitlist route.
+- [x] **6.1 RED**: Integration test asserting 11th request from same IP within a minute returns 429.
+- [x] **6.2 GREEN**: Configure `WaitlistController` as a WAITLIST endpoint in `BucketConfigurationFactory`.
+- [x] **6.3 RED**: Test asserting rate limit applies even on duplicate joins and validation errors.
+- [x] **6.4 GREEN**: Confirm filter ordering covers the waitlist route.
+- [x] **6.5 RED/GREEN**: Assert the same IP can exhaust waitlist A while a request to waitlist B remains accepted, then isolate WAITLIST bucket cache identities per route without changing AUTH, BUSINESS, or RESUME behavior.
 
 ### Phase 7 — Marketing Integration (DALLAY-441)
 
