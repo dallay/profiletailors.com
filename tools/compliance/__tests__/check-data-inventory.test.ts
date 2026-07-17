@@ -83,6 +83,46 @@ processing_activities:
     expect(result.errors.some((e) => e.includes('role'))).toBe(true)
   })
 
+  it('accepts evidence and release-control metadata', () => {
+    const yaml = `
+schema_version: "2.0"
+processing_entity: UNRESOLVED
+status: draft
+production_release_status: blocked
+last_verified_on: 2026-07-17
+processing_activities:
+  - id: pa-001
+    name: Test activity
+    purposes:
+      - purpose: Testing
+        role: controller
+        legal_basis:
+          type: contract
+          reference: Pending legal approval
+    personal_data_categories: [Email]
+    recipients:
+      - name: Candidate provider
+        type: processor
+        location_type: unknown
+        location: Not selected
+        agreement_reference: Not executed
+        activation_status: not_selected
+        agreement_status: unverified
+    retention:
+      trigger: account_deleted
+      duration: Not established
+      action: delete
+      control_status: not_implemented
+      evidence: []
+    evidence_references: []
+    evidence_status: partial
+    legal_review_status: pending
+`
+    const result = validateDataInventory(yaml)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
   it('returns error for invalid YAML syntax', () => {
     const result = validateDataInventory('key: [unclosed')
     expect(result.valid).toBe(false)

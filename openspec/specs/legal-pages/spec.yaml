@@ -1,0 +1,289 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 Profile Tailors
+
+capability: legal-pages
+version: "2.0"
+status: blocked
+
+summary: >
+  Public legal pages for Profile Tailors. Rendering requirements are necessary
+  but are not evidence of legal approval. Publication is blocked until the
+  factual, operational, market, and qualified-counsel gates in this
+  specification pass for an immutable policy version.
+
+source_of_truth:
+  publication_gate: docs/compliance/legal-publication-gate.md
+  market_register: docs/compliance/global-legal-readiness.md
+  data_inventory: docs/compliance/data-inventory.yaml
+  processor_register: docs/compliance/controller-processor-matrix.md
+  ropa: docs/compliance/ropa.md
+
+publication_state:
+  current: blocked
+  reason: >
+    The contracting entity, production vendor set, processing and retention
+    evidence, governing law, customer model, market approvals, and contract
+    acceptance mechanism are not complete.
+  rule: >
+    A draft banner, passing build, test suite, or content-presence assertion
+    MUST NOT change publication_state to approved.
+  technical_control:
+    status_source: apps/web/marketing/src/legal/legal-publication.ts
+    blocked_behavior: >
+      Every legal route renders only a locale-specific unavailable notice, adds
+      noindex,nofollow,noarchive, and omits legal-page structured data.
+    approval_rule: >
+      The status source MUST remain blocked until an immutable approval record
+      satisfies docs/compliance/legal-publication-gate.md. Editing draft copy or
+      passing CI alone MUST NOT authorise a status change.
+
+routes:
+  en:
+    privacy: /privacy/
+    terms: /terms/
+    cookies: /cookies/
+    acceptable_use: /acceptable-use/
+  es:
+    privacy: /es/privacy/
+    terms: /es/terms/
+    cookies: /es/cookies/
+    acceptable_use: /es/acceptable-use/
+
+approval_record:
+  required_fields:
+    - policy_name
+    - immutable_version_or_commit
+    - languages
+    - enabled_countries
+    - product_approval
+    - technical_approval
+    - business_approval
+    - qualified_legal_approval
+    - approval_date
+    - next_review_date
+    - known_limitations
+    - rollback_owner
+
+global_requirements:
+  - id: legal-global-000
+    requirement: >
+      While publication_state is blocked, every configured legal route MUST
+      render only the localised unavailable state, MUST be marked
+      noindex,nofollow,noarchive, and MUST NOT emit the draft policy body or
+      legal-page structured data.
+
+  - id: legal-global-001
+    requirement: >
+      Once approved, every legal page MUST be accessible without authentication
+      and render at the locale-specific route.
+
+  - id: legal-global-002
+    requirement: >
+      Every legal page MUST display its immutable version and effective date.
+      A future effective date MUST NOT be displayed as currently effective.
+
+  - id: legal-global-003
+    requirement: >
+      Canonical, hreflang, page title, headings, banner, internal links, and
+      operative content MUST preserve the selected locale. English is the
+      x-default locale.
+
+  - id: legal-global-004
+    requirement: >
+      Public content MUST NOT contain placeholders, slash-separated vendor
+      alternatives, future providers, planned controls represented as current,
+      or unsupported legal, privacy, or security claims.
+
+  - id: legal-global-005
+    requirement: >
+      Product, technical, business, and qualified legal approvals MUST reference
+      the exact policy version and enabled country set before publication.
+
+  - id: legal-global-006
+    requirement: >
+      A country MUST NOT be targeted or enabled unless it has an approved entry
+      under docs/compliance/global-legal-readiness.md.
+
+privacy_policy:
+  requirements:
+    - id: privacy-001
+      requirement: >
+        The policy MUST identify the actual controller or service provider by
+        exact legal name, legal form, registration details where required,
+        registered address, and monitored contact channel. A brand name MUST NOT
+        replace the legal person.
+
+    - id: privacy-002
+      requirement: >
+        Each processing purpose MUST be derived from verified production
+        behaviour and state the controller/processor role, purpose, data
+        categories, source, lawful basis or customer instruction, recipients,
+        international transfer, retention criterion, and applicable rights.
+
+    - id: privacy-003
+      requirement: >
+        Provider names, roles, services, subprocessors, locations, DPA status,
+        and transfer mechanisms MUST match executed production arrangements.
+        Alternative, candidate, and planned providers MUST be excluded.
+
+    - id: privacy-004
+      requirement: >
+        A fixed retention period MAY be published only when deletion,
+        anonymisation, backup, hold, and exception behaviour have linked test or
+        operational evidence. Otherwise the policy MUST use an approved
+        purpose-based retention criterion.
+
+    - id: privacy-005
+      requirement: >
+        Rights and request instructions MUST match the enabled markets and have
+        tested workflows for identity verification, access, correction,
+        deletion, export, objection or opt-out, consent withdrawal, and appeal
+        where applicable.
+
+    - id: privacy-006
+      requirement: >
+        International transfer statements MUST name the applicable source
+        jurisdiction and verified mechanism. EU SCCs MUST NOT be presented as a
+        universal mechanism for other countries.
+
+    - id: privacy-007
+      requirement: >
+        The policy MUST explain the source and categories of personal data
+        obtained from connected social platforms or other third parties where
+        the enabled market requires it.
+
+terms_of_service:
+  requirements:
+    - id: terms-001
+      requirement: >
+        The Terms MUST identify the actual contracting entity, supported
+        customer type, eligible age, enabled countries, service scope, support
+        route, and contract language.
+
+    - id: terms-002
+      requirement: >
+        Price, tax, trial, renewal, cancellation, suspension, termination,
+        refund, withdrawal, warranty, liability, governing law, dispute forum,
+        and change terms MUST match the commercial model and mandatory law of
+        every enabled market.
+
+    - id: terms-003
+      requirement: >
+        The Terms MUST distinguish software distributed under AGPL-3.0 from the
+        hosted service, trademarks, logos, domain names, and content not
+        licensed under AGPL-3.0. They MUST NOT restrict rights granted by the
+        software licence.
+
+    - id: terms-004
+      requirement: >
+        The customer MUST retain ownership of customer content and grant only
+        the rights necessary to host, process, and transmit it to the selected
+        services on customer instruction.
+
+    - id: terms-005
+      requirement: >
+        Account creation or paid use MUST record affirmative acceptance of the
+        exact Terms and AUP version, timestamp, principal, workspace, and locale.
+        Mere continued use MUST NOT be the sole evidence of initial acceptance.
+
+    - id: terms-006
+      requirement: >
+        Consumer terms MUST NOT waive mandatory rights or impose a governing-law,
+        forum, refund, unilateral-change, or liability term that is prohibited
+        in an enabled consumer market.
+
+cookie_policy:
+  requirements:
+    - id: cookies-001
+      requirement: >
+        The cookie and device-storage inventory MUST be generated from measured
+        production-like behaviour, including cookies, local storage, SDKs,
+        pixels, CDN/security behaviour, and connected embeds.
+
+    - id: cookies-002
+      requirement: >
+        Each entry MUST name the verified setter, purpose, category, first- or
+        third-party status, duration, and whether it is set before or after a
+        consent or opt-out choice.
+
+    - id: cookies-003
+      requirement: >
+        Non-essential storage MUST remain disabled until the choice required by
+        the enabled market is recorded. Rejecting and withdrawing MUST be as
+        accessible as accepting.
+
+    - id: cookies-004
+      requirement: >
+        A provider's documented cookieless mode MUST NOT be described as setting
+        analytics cookies unless measurement shows that Profile Tailors has
+        configured behaviour that does so.
+
+acceptable_use_policy:
+  requirements:
+    - id: aup-001
+      requirement: >
+        The AUP MUST prohibit unlawful access, malware, credential abuse,
+        platform manipulation, scraping that violates applicable rights or
+        platform terms, intellectual-property infringement, exploitation of
+        minors, and illegal or abusive content relevant to the service.
+
+    - id: aup-002
+      requirement: >
+        Enforcement MUST include a monitored abuse channel, proportionate
+        investigation, preservation and disclosure rules, suspension and appeal
+        handling where required, and emergency escalation.
+
+    - id: aup-003
+      requirement: >
+        AI-assisted content rules MUST identify prohibited uses and applicable
+        transparency or labelling obligations when AI features are enabled.
+
+verification_scenarios:
+  - id: verify-001
+    given: A legal-page build and test suite pass
+    when: Publication readiness is evaluated
+    then: >
+      The result SHALL remain blocked unless every required approval record and
+      evidence reference exists for the exact version and enabled markets.
+
+  - id: verify-002
+    given: A required factual field is unknown
+    when: A public policy is generated
+    then: >
+      Generation or publication SHALL fail; a placeholder or alternative list
+      SHALL NOT satisfy the requirement.
+
+  - id: verify-003
+    given: A vendor is named in a public policy
+    when: The provider register and executed contracts are inspected
+    then: >
+      The selected production vendor, role, service, location, DPA, and transfer
+      mechanism SHALL match the public statement.
+
+  - id: verify-004
+    given: A retention period is named in a public policy
+    when: Operational evidence is inspected
+    then: >
+      A deletion or anonymisation control, backup treatment, exception handling,
+      and test evidence SHALL exist for that period.
+
+  - id: verify-005
+    given: Spanish and English policy versions exist
+    when: Their structure, meaning, headings, banners, and links are compared
+    then: >
+      They SHALL be substantively equivalent and SHALL keep visitors within the
+      selected locale.
+
+  - id: verify-006
+    given: Terms describe intellectual-property restrictions
+    when: The repository licence and deployed source route are inspected
+    then: >
+      The Terms SHALL preserve AGPL-3.0 rights and the deployed service SHALL
+      satisfy the applicable corresponding-source obligation.
+
+  - id: verify-007
+    given: A country is enabled
+    when: The market register is inspected
+    then: >
+      An unexpired qualified-counsel approval and tested rollback procedure
+      SHALL exist for that country and policy version.

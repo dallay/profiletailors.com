@@ -1,47 +1,335 @@
-schema_version: "1.0"
+schema_version: "2.0"
+status: draft
+production_release_status: blocked
+last_verified_on: 2026-07-17
+instructions:
+  - Determine every jurisdiction connected to the affected people, controller, processors, and incident before selecting a deadline.
+  - Use the earliest applicable external deadline as the operational deadline.
+  - Escalate to privacy counsel immediately when a row is marked counsel_confirmation_required or when sector-specific rules may apply.
+  - Preserve an incident record even when notification is not required.
+
 jurisdictions:
-  - code: ES
-    location_type: country
-    name: Spain
-    authority: AEPD
-    authority_url: https://www.aepd.es
-    requirements:
-      authority_notification:
-        deadline: PT72H
-        trigger: responsible_becomes_aware
-        description: Without undue delay and, where feasible, within 72 hours after becoming aware.
-      data_subject_notification:
-        deadline: without_undue_delay
-        trigger: high_risk_likely
-        description: Without undue delay when high risk to data subjects is likely.
-      internal_documentation:
-        deadline: internal_policy_immediate
-        trigger: incident_identified
-        description: Operational policy target; GDPR requires documentation but does not define this deadline.
-      processor_notification:
-        deadline: without_undue_delay
-        trigger: processor_becomes_aware
-        description: Processor notifies controller without undue delay.
-    notes: Lead supervisory authority depends on establishment and cross-border processing analysis.
   - code: EEA
     location_type: region
     name: European Economic Area
-    authority: Lead supervisory authority when applicable
-    authority_url: null
+    authority: Competent supervisory authority; lead-authority analysis required for cross-border processing
+    authority_url: https://commission.europa.eu/law/law-topic/data-protection/data-protection-eu/what-should-i-do-if-my-organisation-has-personal-data-breach_en
+    source_status: verified_primary
+    counsel_confirmation_required: true
     requirements:
       authority_notification:
         deadline: PT72H
-        trigger: responsible_becomes_aware
-        description: GDPR Art. 33.
+        trigger: controller_becomes_aware_unless_unlikely_risk
+        description: Without undue delay and, where feasible, within 72 hours after awareness.
       data_subject_notification:
         deadline: without_undue_delay
         trigger: high_risk_likely
-        description: GDPR Art. 34.
-      internal_documentation:
-        deadline: internal_policy_immediate
-        trigger: incident_identified
-        description: GDPR Art. 33(5) documentation requirement plus internal policy target.
+        description: Notify affected people without undue delay when the breach is likely to create a high risk.
       processor_notification:
         deadline: without_undue_delay
         trigger: processor_becomes_aware
-        description: GDPR Art. 33(2).
+        description: A processor notifies the controller without undue delay.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: breach_identified
+        description: Document every personal-data breach, including the decision not to notify.
+    notes: Spain is governed by this row, with the AEPD as the national authority when competent.
+
+  - code: US
+    location_type: country
+    name: United States
+    authority: State attorneys general and other competent federal or sector regulators
+    authority_url: null
+    source_status: jurisdiction_matrix_required
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: state_and_sector_specific
+        trigger: applicable_law_threshold
+        description: No single generally applicable federal deadline; determine affected states and sector rules.
+      data_subject_notification:
+        deadline: state_and_sector_specific
+        trigger: applicable_law_threshold
+        description: Apply the shortest deadline and required delivery method among affected states and sectors.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Record affected states, data definitions, risk analysis, and every notification decision.
+    notes: Do not use the California row as a substitute for a 50-state and sector analysis.
+
+  - code: US-CA
+    location_type: subdivision
+    name: California, United States
+    authority: California Attorney General
+    authority_url: https://oag.ca.gov/privacy/databreach/reporting
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: without_unreasonable_delay
+        trigger: notice_to_more_than_500_california_residents
+        description: Submit a sample consumer notice electronically to the Attorney General when more than 500 California residents are notified.
+      data_subject_notification:
+        deadline: most_expedient_time_possible_without_unreasonable_delay
+        trigger: california_breach_statute_applies
+        description: Timing, content, and permitted delay depend on California Civil Code sections 1798.29 and 1798.82.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Record the statutory data-definition and encryption analysis.
+    notes: Other state, federal, contractual, and sector rules may impose earlier or additional duties.
+
+  - code: CA
+    location_type: country
+    name: Canada
+    authority: Office of the Privacy Commissioner of Canada
+    authority_url: https://www.priv.gc.ca/en/privacy-topics/business-privacy/safeguards-and-breaches/privacy-breaches/respond-to-a-privacy-breach-at-your-business/report-a-privacy-breach-at-your-organization/
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: as_soon_as_feasible
+        trigger: real_risk_of_significant_harm
+        description: Report to the OPC as soon as feasible after determining that the breach creates a real risk of significant harm.
+      data_subject_notification:
+        deadline: as_soon_as_feasible
+        trigger: real_risk_of_significant_harm
+        description: Notify affected individuals as soon as feasible.
+      internal_documentation:
+        deadline: retain_P2Y
+        trigger: every_breach_of_security_safeguards
+        description: PIPEDA breach records must be kept for two years; provincial and sector rules require separate analysis.
+    notes: Determine whether PIPEDA, a substantially similar provincial law, or a health-sector law applies.
+
+  - code: BR
+    location_type: country
+    name: Brazil
+    authority: Autoridade Nacional de Protecao de Dados
+    authority_url: https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: P3BD
+        trigger: confirmed_incident_may_cause_relevant_risk_or_damage
+        description: The controller notifies the ANPD within three business days, unless specific legislation sets another deadline.
+      data_subject_notification:
+        deadline: P3BD
+        trigger: confirmed_incident_may_cause_relevant_risk_or_damage
+        description: The controller notifies affected people within three business days.
+      internal_documentation:
+        deadline: retain_P5Y
+        trigger: security_incident_record_created
+        description: Retain the incident record for at least five years.
+    notes: Resolution CD/ANPD No. 15/2024 permits phased notification when information is incomplete.
+
+  - code: AR
+    location_type: country
+    name: Argentina
+    authority: Agencia de Acceso a la Informacion Publica
+    authority_url: https://www.argentina.gob.ar/aaip/datospersonales
+    source_status: counsel_confirmation_required
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: unresolved
+        trigger: applicable_rule_confirmed
+        description: No deadline is approved in this repository; local counsel must confirm current general and sector-specific duties.
+      data_subject_notification:
+        deadline: unresolved
+        trigger: applicable_rule_confirmed
+        description: Do not infer a deadline from GDPR or another Latin American law.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Preserve the legal analysis and notification decision.
+
+  - code: JP
+    location_type: country
+    name: Japan
+    authority: Personal Information Protection Commission
+    authority_url: https://www.ppc.go.jp/personalinfo/legal/leakAction/
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: initial_P3D_to_P5D_final_P30D_or_P60D
+        trigger: reportable_leakage_or_likely_leakage
+        description: Prompt initial report, generally within three to five days; final report within 30 days, or 60 days where intentional conduct may be involved.
+      data_subject_notification:
+        deadline: promptly
+        trigger: reportable_leakage_or_likely_leakage
+        description: Notify affected people promptly or take an approved alternative measure when direct notice is difficult.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Record why the statutory reporting categories do or do not apply.
+
+  - code: KR
+    location_type: country
+    name: Republic of Korea
+    authority: Personal Information Protection Commission
+    authority_url: https://www.pipc.go.kr/np/default/page.do?mCode=D030040000
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: PT72H
+        trigger: statutory_reporting_threshold_met
+        description: Report within 72 hours when a current PIPA reporting threshold is met.
+      data_subject_notification:
+        deadline: without_delay
+        trigger: personal_information_leakage
+        description: Applicability and timing require current PIPA and implementing-decree review.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Record the threshold analysis, including scale, sensitive data, identifiers, and unlawful external access.
+
+  - code: SG
+    location_type: country
+    name: Singapore
+    authority: Personal Data Protection Commission
+    authority_url: https://www.pdpc.gov.sg/report-data-breach/before-you-report-a-data-breach-3/info
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: P3D
+        trigger: organisation_determines_breach_is_notifiable
+        description: Notify as soon as practicable and no later than three calendar days after determining that the breach is notifiable.
+      data_subject_notification:
+        deadline: as_soon_as_practicable
+        trigger: significant_harm_likely
+        description: Notify affected individuals as soon as practicable, at the same time as or after notifying the PDPC.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: breach_discovered
+        description: Complete the statutory assessment promptly and preserve the decision record.
+
+  - code: IN
+    location_type: country
+    name: India
+    authority: Data Protection Board of India and other competent cyber authorities
+    authority_url: https://www.meity.gov.in/documents/act-and-policies/digital-personal-data-protection-rules-2025-gDOxUjMtQWa
+    source_status: verified_primary_activation_review_required
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: initial_without_delay_details_PT72H
+        trigger: personal_data_breach_under_effective_DPDP_provisions
+        description: Give initial information without delay and detailed information within 72 hours, subject to the rule's commencement and any extension granted by the Board.
+      data_subject_notification:
+        deadline: without_delay
+        trigger: personal_data_breach_under_effective_DPDP_provisions
+        description: Notify each affected data principal without delay in clear and plain language.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Confirm the applicable commencement date and any parallel CERT-In duty.
+    notes: Legal counsel must confirm which DPDP provisions are in force on the incident date.
+
+  - code: CN
+    location_type: country
+    name: Mainland China
+    authority: Departments performing personal-information protection duties
+    authority_url: https://www.miit.gov.cn/zwgk/zcwj/flfg/art/2022/art_04a0f1fb5df244e39688fd5372623a8d.html
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: immediately
+        trigger: breach_tampering_or_loss_occurs_or_may_occur
+        description: Immediately take remedial measures and notify the competent departments; no single numeric general deadline is stated in PIPL Article 57.
+      data_subject_notification:
+        deadline: immediately
+        trigger: harm_not_effectively_avoided
+        description: Notify affected individuals unless remediation can effectively avoid harm; an authority may still require notice.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Preserve the affected-data, harm, remediation, and notification analysis.
+
+  - code: PH
+    location_type: country
+    name: Philippines
+    authority: National Privacy Commission
+    authority_url: https://privacy.gov.ph/pips-and-pics/breach-reporting/
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: PT72H
+        trigger: mandatory_notification_threshold_met
+        description: Notify the Commission within 72 hours on available information when the mandatory threshold is met.
+      data_subject_notification:
+        deadline: PT72H
+        trigger: real_risk_to_rights_and_freedoms
+        description: Notify affected people individually within 72 hours, subject to the rules governing an authorised postponement.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: breach_known_or_reasonably_believed
+        description: Record threshold, delay, and postponement analysis.
+
+  - code: MY
+    location_type: country
+    name: Malaysia
+    authority: Personal Data Protection Commissioner
+    authority_url: https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DBN_ENG.pdf
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: PT72H
+        trigger: notifiable_personal_data_breach
+        description: Submit the required notification to the Commissioner within 72 hours.
+      data_subject_notification:
+        deadline: verify_current_rule
+        trigger: significant_harm_threshold
+        description: Confirm the current statutory period and delivery requirements with Malaysian counsel before relying on the operational plan.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: breach_detected
+        description: Preserve the notification confirmation issued by the Commissioner and supporting evidence.
+
+  - code: HK
+    location_type: jurisdiction
+    name: Hong Kong SAR
+    authority: Office of the Privacy Commissioner for Personal Data
+    authority_url: https://www.pcpd.org.hk/english/enforcement/data_breach_notification/dbn.html
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: voluntary_as_soon_as_practicable
+        trigger: risk_assessment_supports_notification
+        description: Notification is not a general statutory requirement under the PDPO, but the PCPD recommends notice as soon as practicable.
+      data_subject_notification:
+        deadline: voluntary_as_soon_as_practicable
+        trigger: real_risk_of_harm
+        description: The PCPD recommends prompt notice, particularly when there is a real risk of harm.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Document the decision and the Data Protection Principle 4 safeguards analysis.
+
+  - code: ASIA-PENDING
+    location_type: market_group
+    name: Thailand, Indonesia, Vietnam, and other enabled Asian markets not listed above
+    authority: Jurisdiction-specific
+    authority_url: null
+    source_status: counsel_confirmation_required
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: unresolved
+        trigger: market_enablement_or_incident_nexus
+        description: This repository does not yet contain approved primary-source deadline evidence for these markets.
+      data_subject_notification:
+        deadline: unresolved
+        trigger: market_enablement_or_incident_nexus
+        description: Obtain local advice before enabling the market and immediately during an incident.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Record the jurisdiction analysis and preserve evidence.

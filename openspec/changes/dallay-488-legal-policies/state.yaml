@@ -1,0 +1,14 @@
+change: dallay-488-legal-policies
+current_phase: archive
+completed:
+  - init
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: null
+updated: 2026-07-17

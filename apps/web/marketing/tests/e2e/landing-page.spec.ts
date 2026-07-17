@@ -14,14 +14,21 @@ test.describe('Landing Page - Hero Section', () => {
     await expect(heading).not.toBeEmpty();
   });
 
-  test('should display platform integrations', async ({ page }) => {
+  test('should display hero with early access messaging', async ({ page }) => {
     await page.goto('/');
 
-    // Verify specific platform integrations are present
-    const body = await page.textContent('body');
-    expect(body).toContain('Twitter');
-    expect(body).toContain('Instagram');
-    expect(body).toContain('LinkedIn');
+    // Verify hero sections contain the new messaging (platform integrations were removed)
+    const label = page.locator('[data-hero-label]');
+    await expect(label).toBeVisible();
+    await expect(label).not.toBeEmpty();
+
+    const headline = page.locator('[data-hero-headline]');
+    await expect(headline).toBeVisible();
+    await expect(headline).not.toBeEmpty();
+
+    const sub = page.locator('[data-hero-sub]');
+    await expect(sub).toBeVisible();
+    await expect(sub).not.toBeEmpty();
   });
 });
 
@@ -66,51 +73,18 @@ test.describe('Bilingual Support', () => {
   });
 });
 
-test.describe('Waitlist Form', () => {
-  test('should display waitlist form', async ({ page }) => {
+test.describe('Early Access Status', () => {
+  test('should display early access status message', async ({ page }) => {
     await page.goto('/');
 
-    // Look for email input
-    const emailInput = page.locator('input[type="email"]').first();
+    // The waitlist form was replaced with a static early access status component
+    const formContainer = page.locator('[data-hero-form]');
+    await expect(formContainer).toBeVisible();
 
-    if (await emailInput.count() > 0) {
-      await expect(emailInput).toBeVisible();
-    }
-  });
-
-  test('should validate email format', async ({ page }) => {
-    await page.goto('/');
-
-    const emailInput = page.locator('input[type="email"]').first();
-    const submitButton = page.locator('button[type="submit"]').first();
-
-    // Assert form elements exist
-    await expect(emailInput).toBeVisible();
-    await expect(submitButton).toBeVisible();
-
-    // Try invalid email
-    await emailInput.fill('invalid-email');
-    await submitButton.click();
-
-    // HTML5 validation should prevent submission
-    const validationMessage = await emailInput.evaluate((el: HTMLInputElement) => el.validationMessage);
-    expect(validationMessage).toBeTruthy();
-  });
-
-  test('should accept valid email', async ({ page }) => {
-    await page.goto('/');
-
-    const emailInput = page.locator('input[type="email"]').first();
-    await expect(emailInput).toBeVisible();
-    await emailInput.fill('test@example.com');
-
-    const submitButton = page.locator('button[type="submit"]').first();
-    await expect(submitButton).toBeVisible();
-    await submitButton.click();
-
-    // Wait for the form's success transition (deterministic UI state).
-    await expect(page.locator('#form-success')).toBeVisible();
-    await expect(page.locator('#waitlist-form')).toBeHidden();
+    // The status message should be a <p> element
+    const statusMessage = formContainer.locator('p');
+    await expect(statusMessage).toBeVisible();
+    await expect(statusMessage).not.toBeEmpty();
   });
 });
 

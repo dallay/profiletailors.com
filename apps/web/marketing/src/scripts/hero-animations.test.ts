@@ -97,7 +97,6 @@ describe('initHeroAnimations', () => {
     const label = document.createElement('div')
     const headline = document.createElement('div')
     const sub = document.createElement('div')
-    const icons = document.createElement('div')
     const form = document.createElement('div')
 
     document.querySelector = vi.fn().mockImplementation((selector: string) => {
@@ -105,7 +104,6 @@ describe('initHeroAnimations', () => {
         case '[data-hero-label]': return label
         case '[data-hero-headline]': return headline
         case '[data-hero-sub]': return sub
-        case '[data-hero-icons]': return icons
         case '[data-hero-form]': return form
         default: return null
       }
@@ -118,7 +116,6 @@ describe('initHeroAnimations', () => {
     expect(label.style.transform).toBe('none')
     expect(headline.style.opacity).toBe('1')
     expect(sub.style.opacity).toBe('1')
-    expect(icons.style.opacity).toBe('1')
     expect(form.style.opacity).toBe('1')
   })
 
@@ -146,7 +143,6 @@ describe('initHeroAnimations', () => {
         case '[data-hero-label]': return label
         case '[data-hero-headline]': return headline
         case '[data-hero-sub]': return sub
-        case '[data-hero-icons]': return null
         case '[data-hero-form]': return null
         default: return null
       }
@@ -162,9 +158,9 @@ describe('initHeroAnimations', () => {
  })
 
   // -------------------------------------------------------------------------
-  // Scenario 4: icons/form are null — graceful handling
+  // Scenario 4: status is null — graceful handling
   // -------------------------------------------------------------------------
-  it('does not throw when icons or form are null', async () => {
+  it('does not throw when status is absent', async () => {
     const label = document.createElement('div')
     label.textContent = 'Label'
     const headline = document.createElement('div')
@@ -177,7 +173,6 @@ describe('initHeroAnimations', () => {
         case '[data-hero-label]': return label
         case '[data-hero-headline]': return headline
         case '[data-hero-sub]': return sub
-        case '[data-hero-icons]': return null
         case '[data-hero-form]': return null
         default: return null
       }

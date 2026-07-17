@@ -1,231 +1,266 @@
-# Record of Processing Activities (ROPA)
+# Record of Processing Activities
 
-> **Classification:** Internal — Compliance
-> **Status:** Draft
-> **Version:** 1.0
-> **Authority:** GDPR Article 30
-> **Processing entity:** Dallay (Profile Tailors)
+> **Classification:** Internal — Legal and Compliance
+> **Status:** Draft — not an approved GDPR Article 30 record
+> **Version:** 2.0
+> **Last verified:** 2026-07-17
 
 ## Overview
 
-This document constitutes the Record of Processing Activities for Profile Tailors as required by GDPR Article 30. It is derived from the canonical data inventory at [`data-inventory.yaml`](data-inventory.yaml) and MUST be kept in sync.
+This draft Record of Processing Activities (ROPA) is derived from
+[`data-inventory.yaml`](data-inventory.yaml). It records known processing and exposes missing
+evidence; it does not assert compliance or approve production launch.
 
-> **Status:** Draft — Representative and Contact fields are placeholders pending DPO appointment and establishment of EEA representative.
+The ROPA cannot become active until the controller/processor legal person, establishment,
+representative and contact details are complete, production providers and transfers are selected,
+lawful bases are approved, and missing retention and rights controls are implemented.
+
+### Organisation record
+
+| Field | Current record |
+|-------|----------------|
+| Legal person | **Unresolved — publication blocker** |
+| Brand/product | Profile Tailors; Dallay appears as a project or brand identifier |
+| Establishment and registered address | **Unresolved** |
+| Controller contact | **Unresolved** |
+| DPO | Not assessed; no appointment evidence |
+| EU/EEA representative | Not assessed; depends on establishment and territorial scope |
+| UK or other local representatives | Not assessed; depends on enabled markets |
+| Security contact | **Unresolved and unverified** |
+| ROPA owner | **Unassigned** |
 
 ## Changes
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.0 | 2026-07-17 | Initial ROPA with 11 processing activities |
+| 1.0 | 2026-07-17 | Initial ROPA containing assumed entity, providers, regions, bases, and retention |
+| 2.0 | 2026-07-17 | Revalidated against repository evidence; added browser storage and explicit control gaps |
 
 ## Usage
 
-This ROPA serves as:
+This ROPA is used for Article 30 readiness, DPIA screening, data-subject requests, transfer
+mapping, incident response, provider reviews, and policy drafting. It must be read together with
+the evidence-state fields in the YAML inventory.
 
-- The **formal record of processing activities** (Art. 30) for regulatory compliance.
-- An **accountability evidence** source for supervisory authority inquiries.
-- A **baseline for Data Protection Impact Assessments** (DPIAs).
-- A **reference for breach notification** assessments under Art. 33–34.
+The words **proposed**, **configurable**, **conditional**, **unknown**, and **missing** are
+operative controls. They MUST NOT be removed from a public derivative without the evidence and
+approvals required by [`legal-publication-gate.md`](legal-publication-gate.md).
 
-## Controller Information
+### Processing record
 
-| Field | Value |
-|-------|-------|
-| **Name** | Dallay (Profile Tailors) |
-| **DPO** | Not appointed |
-| **Representative** | Not appointed (EEA establishment assumed) |
-| **Contact** | TBD |
+#### PA-001 — Accounts, authentication, and sessions
 
-## Processing Activities
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed controller; registration, login, email verification, JWT access, and refresh sessions |
+| Data subjects | Registered users |
+| Data categories | Email, username, display identity, identifiers, BCrypt password/refresh verifiers, verification and session metadata |
+| Recipients | PostgreSQL host not selected; Resend conditional and not contractually evidenced |
+| Transfers | Unknown until database/email providers and regions are selected |
+| Proposed basis | Contract necessity; pending entity, audience, and counsel approval |
+| Retention | Access token defaults to 15 minutes and refresh session/cookie to seven days; account-erasure period missing |
+| Security evidence | BCrypt; configurable JWT; HttpOnly/Secure-by-default refresh cookie; session revocation |
+| Required action | Implement account deletion, expired-record cleanup, rights workflow, and provider contracts |
 
-### 1. User Account Registration and Management
+#### PA-002 — Social publishing and scheduling
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Create and manage user accounts, authentication, and session management |
-| **Controller** | Dallay (Profile Tailors) |
-| **Processor(s)** | Database hosting provider |
-| **Legal basis** | Contract (Art. 6(1)(b)) |
-| **Data categories** | Email, username, password hash (bcrypt), principal identifier, display identity |
-| **Data subjects** | Registered users |
-| **Recipients** | Internal systems; database hosting provider (processor) |
-| **International transfer** | EEA (internal); depends on database hosting region |
-| **Retention schedule** | Delete 30 days after account deletion (statutory exceptions apply) |
-| **Security measures** | bcrypt hashing, TLS 1.3, encryption at rest, RBAC, audit logging |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed processor; execute customer-directed composition, scheduling, and publication |
+| Data subjects | Workspace authors, social-account owners, and people represented in customer content |
+| Data categories | LinkedIn profile/account data, publication content, media, author, schedule, jobs, attempts, responses, errors |
+| Recipients | LinkedIn configurable; no other production social backend evidenced |
+| Transfers | LinkedIn entity, processing locations, and transfer route require verification |
+| Instruction | Customer DPA and documented publishing instruction required |
+| Retention | Unpublished hard deletion exists; no general post-termination or time-based cleanup |
+| Security evidence | Workspace authorization, AES-GCM OAuth credentials, worker disabled by default |
+| Required action | Approve DPA/platform terms, implement customer deletion/return schedule, verify locations |
 
-### 2. Social Media Publishing and Scheduling
+#### PA-003 — Hosting and application delivery
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Schedule, compose, and publish content to connected social media accounts |
-| **Controller** | Customer (workspace owner) — Profile Tailors acts as processor |
-| **Processor(s)** | None (processing performed by Profile Tailors on customer instruction) |
-| **Independent controller(s)** | LinkedIn, Twitter/X, Facebook, Instagram, TikTok |
-| **Legal basis** | Controller instruction |
-| **Data categories** | Social media account identifiers, published content, delivery records |
-| **Data subjects** | End recipients; social media account owners |
-| **Recipients** | LinkedIn (US), Twitter/X (US), Facebook (US), Instagram (US), TikTok (US) |
-| **International transfer** | US (social media platforms) |
-| **Retention schedule** | 90 days after account deletion (archive); delivery attempt logs retained 180 days; published content persists per platform policy |
-| **Security measures** | OAuth 2.0, token encryption (AES-256-GCM), workspace isolation |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed controller; deliver marketing, dashboard, API, and assets |
+| Data subjects | Visitors, users, and API consumers |
+| Data categories | Network/request data only as captured by the future production host, proxy, or CDN |
+| Recipients | Production host/CDN not selected |
+| Transfers | Unknown |
+| Proposed basis | Contract for users; separate pre-contract/legitimate-interest analysis for visitors |
+| Retention | Unknown; no production access-log setting or deletion control evidenced |
+| Security evidence | Configurable CORS and credential validation; provider WAF/TLS claims are not evidenced |
+| Required action | Select architecture/provider/regions and record logging, DPA, transfer, and deletion settings |
 
-### 3. Web Application Hosting and Delivery
+#### PA-004 — Waitlist and optional marketing
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Host and deliver the Profile Tailors web application, API, and marketing site |
-| **Controller** | Dallay (Profile Tailors) |
-| **Processor(s)** | Vercel Inc. (US) |
-| **Legal basis** | Contract (Art. 6(1)(b)) |
-| **Data categories** | IP address, browser user agent, usage analytics, request metadata |
-| **Data subjects** | Website visitors, application users, API consumers |
-| **Recipients** | Vercel Inc. (US — processor) |
-| **International transfer** | US (SCCs in place via Vercel DPA) |
-| **Retention schedule** | 90 days (access logs), 26 months (aggregated analytics) |
-| **Security measures** | TLS 1.3, WAF, DDoS protection, CDN edge security |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed controller; early-access registration and separate optional marketing |
+| Data subjects | Prospective users |
+| Data categories | Email, two consent flags, consent version, locale, source, form, metadata, lifecycle timestamps |
+| Recipients | PostgreSQL host not selected |
+| Transfers | Unknown |
+| Proposed basis | Consent; wording and validity require market review |
+| Retention | Missing; no withdrawal endpoint, anonymisation job, or 30-day control |
+| Security evidence | Rate limiting; versioned and separated consent fields |
+| Activation state | Public marketing collection is disabled and states that early-access registration is not open |
+| Required action | Approve notice and market basis, then implement submission, withdrawal, suppression, anonymisation/deletion, consent evidence, and request handling before activation |
 
-### 4. Lead Capture and Waitlist Management
+#### PA-005 — Workspaces and membership
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Manage early-access waitlist signups and marketing communications |
-| **Controller** | Dallay (Profile Tailors) |
-| **Processor(s)** | None (internal processing only) |
-| **Legal basis** | Consent (Art. 6(1)(a)) |
-| **Data categories** | Email, marketing preferences, consent status & version, locale, metadata |
-| **Data subjects** | Waitlist signups, prospective users |
-| **Recipients** | Internal systems only (EEA) |
-| **International transfer** | None (EEA only) |
-| **Retention schedule** | 30 days after consent withdrawal (anonymize); converted users move to account retention |
-| **Security measures** | Email verification, consent versioning, RBAC |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed controller; collaboration, ownership, roles, and access |
+| Data subjects | Workspace owners and members |
+| Data categories | Workspace metadata, principal relationships, membership status, roles, and permissions |
+| Recipients | PostgreSQL host not selected |
+| Transfers | Unknown |
+| Proposed basis | Contract necessity; customer model pending |
+| Retention | Missing; ownership relationship operations do not prove workspace/member erasure |
+| Security evidence | Active membership and permission checks; workspace isolation |
+| Required action | Implement workspace closure, member erasure/anonymisation, legal holds, and export |
 
-### 5. Workspace and Membership Management
+#### PA-006 — LinkedIn connection and OAuth credentials
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Manage team workspaces, memberships, roles, and ownership |
-| **Controller** | Dallay (Profile Tailors) |
-| **Processor(s)** | Database hosting provider |
-| **Legal basis** | Contract (Art. 6(1)(b)) |
-| **Data categories** | Membership records, ownership records, role assignments, workspace metadata |
-| **Data subjects** | Workspace members and owners |
-| **Recipients** | Internal systems (EEA) |
-| **International transfer** | EEA (internal) |
-| **Retention schedule** | 30 days after removal (audit trail exceptions) |
-| **Security measures** | RBAC per workspace, membership audit trail, cross-workspace isolation |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed processor for customer-directed social connection; controller security operations may coexist |
+| Data subjects | Workspace members connecting LinkedIn accounts |
+| Data categories | Profile/account identifiers, tokens, scopes, expiries, encrypted payloads, OAuth state |
+| Recipients | LinkedIn configurable |
+| Transfers | Provider entity, processing locations, and transfer mechanism unknown |
+| Instruction | Customer connection instruction and DPA required |
+| Retention | Missing; no automatic credential erasure after revocation or termination evidenced |
+| Security evidence | AES-GCM encryption, production key validation, signed/time-limited OAuth state |
+| Required action | Implement revocation erasure and metadata cleanup; approve platform and transfer terms |
 
-### 6. OAuth Authentication and Social Account Connections
+#### PA-007 — API and service credentials
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Authenticate users and connect social media accounts |
-| **Controller** | Dallay (auth) / Customer (social connections) |
-| **Processor(s)** | None (processing performed by Profile Tailors) |
-| **Independent controller(s)** | Auth0 / Clerk (authentication events) |
-| **Legal basis** | Contract (Art. 6(1)(b)) — auth; Controller instruction — social connections |
-| **Data categories** | OAuth subject identifier, provider connection ref, encrypted tokens |
-| **Data subjects** | Registered users connecting social accounts |
-| **Recipients** | Auth0/Clerk (US); social platforms (US) |
-| **International transfer** | US (SCCs required) |
-| **Retention schedule** | Encrypted tokens: deleted on revocation; metadata: 30 days |
-| **Security measures** | AES-256-GCM token encryption, no plaintext exposure, server-side refresh |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed controller; issue, rotate, validate, and revoke service access |
+| Data subjects | Credential-associated human or service principals |
+| Data categories | Lookup hash, BCrypt verifier, principal, provider, status, timestamps, replacement relationships |
+| Recipients | PostgreSQL host not selected |
+| Transfers | Unknown |
+| Proposed basis | Contract and service security; legal review pending |
+| Retention | Missing; revocation exists but no 90-day or other purge control |
+| Security evidence | BCrypt verifier and active-status authentication checks |
+| Required action | Define and implement post-revocation deletion criterion and audit evidence |
 
-### 7. API Key and Service Credential Management
+#### PA-008 — Media storage and external media import
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Issue and manage API keys for programmatic access |
-| **Controller** | Dallay (Profile Tailors) |
-| **Processor(s)** | Database hosting provider |
-| **Legal basis** | Contract (Art. 6(1)(b)) |
-| **Data categories** | API key lookup hash, secret verifier, principal association |
-| **Data subjects** | API key holders (technical users) |
-| **Recipients** | Internal systems (EEA) |
-| **International transfer** | None (EEA only) |
-| **Retention schedule** | 90 days after revocation (rotation audit trail) |
-| **Security measures** | Cryptographic hashing, rotation support, irrevocable revocation |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed processor for customer media; proposed controller for chosen Unsplash integration telemetry |
+| Data subjects | Workspace users and people represented in media |
+| Data categories | Files, filenames, types, sizes, hashes, storage keys, upload state, external IDs/authors/URLs and searches |
+| Recipients | Object-storage provider not selected; Unsplash conditional and disabled by default |
+| Transfers | Unknown until providers and regions are selected |
+| Instruction/basis | Customer DPA/instruction for uploads; contract/necessity review for external search |
+| Retention | Verified seven-day grace before physical object deletion; GC row remains; five failures require manual action |
+| Security evidence | Workspace controls, HMAC-signed preview links, SHA-256, scheduled GC |
+| Required action | Select storage provider/region; document database-row retention and manual GC incident process |
 
-### 8. Media Asset Storage and Management
+#### PA-009 — Publication delivery operations
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Upload, store, and serve media assets for social media content |
-| **Controller** | Customer (workspace owner) — Profile Tailors acts as processor |
-| **Processor(s)** | Cloudflare R2 / AWS S3 (object storage) |
-| **Legal basis** | Controller instruction |
-| **Data categories** | Original filenames, media content (may contain personal data), upload metadata |
-| **Data subjects** | End users; workspace members |
-| **Recipients** | Cloudflare R2 / AWS S3; social media platforms (upon publication) |
-| **International transfer** | US or EEA (bucket region); US (social platforms) |
-| **Retention schedule** | 7 days after deletion (GC grace), then permanent erasure |
-| **Security measures** | Signed URLs (time-limited), workspace access control, server-side encryption, SHA-256 integrity |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed processor; queue, execute, retry, and record customer publishing |
+| Data subjects | Workspace authors and people represented in content |
+| Data categories | Publication/author IDs, jobs, worker leases, attempts, provider responses/errors, notifications |
+| Recipients | LinkedIn configurable |
+| Transfers | Unknown until LinkedIn relationship is approved |
+| Instruction | Customer DPA and publishing instruction required |
+| Retention | Relationship deletion for unpublished content exists; no seven/90/180-day time cleanup |
+| Security evidence | Workspace isolation, attribution, leases and bounded retry configuration |
+| Required action | Implement completion/termination retention and provider-response minimisation/scrubbing |
 
-### 9. Content Publishing and Delivery Operations
+#### PA-010 — Audit and governance events
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Execute scheduled content publishing and manage delivery lifecycle |
-| **Controller** | Customer (workspace owner) — Profile Tailors acts as processor |
-| **Processor(s)** | None (processing performed by Profile Tailors on customer instruction) |
-| **Independent controller(s)** | LinkedIn, Twitter/X, Facebook, Instagram, TikTok |
-| **Legal basis** | Controller instruction |
-| **Data categories** | Publication content, author identifier, job metadata, delivery error logs |
-| **Data subjects** | Workspace members; social media audience |
-| **Recipients** | LinkedIn, Twitter/X, Facebook, Instagram, TikTok |
-| **International transfer** | US (social media platforms) |
-| **Retention schedule** | 90 days (delivery logs), 7 days (jobs) |
-| **Security measures** | Author attribution, delivery logging, workspace isolation |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed controller; authorization evidence, security monitoring, and incident investigation |
+| Data subjects | Users and service principals generating events |
+| Data categories | Principal/workspace, request, permission, role, decision, reason, target, details, timestamp |
+| Recipients | PostgreSQL host not selected |
+| Transfers | Unknown |
+| Proposed basis | Legitimate-interest/security assessment pending; GDPR Arts. 5(2) and 24 are not standalone bases |
+| Retention | Missing; no one/five-year archive/delete control or legal-hold workflow |
+| Security evidence | Insert/read repositories; hooks configurable and disabled by default; database immutability unproved |
+| Required action | Approve collection scope/basis, enable required coverage, minimise details, implement retention/holds |
 
-### 10. Audit and Governance Logging
+#### PA-011 — Analytics, metrics, logs, and errors
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Record security-relevant events for compliance and incident response |
-| **Controller** | Dallay (Profile Tailors) |
-| **Processor(s)** | Database hosting provider |
-| **Legal basis** | Legal obligation (Art. 5(2), Art. 24) |
-| **Data categories** | Actor principal ID, workspace ID, request details, role info, event details |
-| **Data subjects** | All users generating audit events |
-| **Recipients** | Internal systems (EEA) |
-| **International transfer** | None (EEA only) |
-| **Retention schedule** | 1 year (standard), 5 years (security incidents) |
-| **Security measures** | Append-only store, tamper-evident (planned), RBAC, cross-workspace isolation |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed controller; operations/security metrics and optional marketing analytics |
+| Data subjects | Visitors, users, and API consumers |
+| Data categories | Metrics/tags, emitted identifiers/log context, and conditional Ahrefs request/usage data |
+| Recipients | Ahrefs conditional; logs/metrics provider not selected; no Sentry/Vercel Analytics integration evidenced |
+| Transfers | Unknown |
+| Proposed basis | Operational legitimate interest and market-dependent analytics consent; assessments pending |
+| Retention | Missing; no 30-day/90-day/13-month controls evidenced |
+| Security evidence | Authorization for detailed Actuator information; configurable management exposure |
+| Required action | Select sinks/regions, minimise and scrub, contract providers, implement retention, verify Ahrefs behaviour |
 
-### 11. Analytics, Observability, and Error Monitoring
+#### PA-012 — Cookies and local device storage
 
-| Category | Detail |
-|----------|--------|
-| **Purpose** | Monitor application performance, track errors, analyze usage |
-| **Controller** | Dallay (Profile Tailors) |
-| **Processor(s)** | Vercel Analytics, Sentry (planned), Grafana/Prometheus |
-| **Legal basis** | Legitimate interest (Art. 6(1)(f)) |
-| **Data categories** | IP address, request metadata, error stack traces (minimized) |
-| **Data subjects** | Application users, API consumers |
-| **Recipients** | Vercel Analytics (US), Sentry (US, planned), Grafana/Prometheus (EEA) |
-| **International transfer** | US (SCCs required) |
-| **Retention schedule** | 30 days (detailed logs), 13 months (aggregated metrics), 90 days (errors) |
-| **Security measures** | Log scrubbing, data minimization by design, operations team access only |
+| Article 30 field | Record |
+|------------------|--------|
+| Role and purpose | Proposed controller; authentication, preferences, workspace selection, and local dashboard state |
+| Data subjects | Visitors and dashboard users |
+| Data categories | `pt_refresh`, `sidebar_state`, theme/settings, workspace ID/name, locally persisted publications, feature preference |
+| Recipients | User browser/device; server receives `pt_refresh` |
+| Transfers | Follows server/hosting transfer for refresh sessions; other values remain on device unless used in requests |
+| Proposed basis | Item-specific strict-necessity/contract assessment; non-essential items require applicable choice/basis |
+| Retention | Refresh and sidebar cookies default to seven days; local storage has no automatic expiry |
+| Security evidence | Refresh cookie HttpOnly and Secure by default; access token kept in memory |
+| Required action | Classify every item, remove development persistence from production, clear user/workspace/content state appropriately |
+
+### Article 30 completion gaps
+
+| Required information or control | State |
+|---------------------------------|-------|
+| Controller/processor legal name and contacts | Missing |
+| Joint-controller assessment | Not completed |
+| DPO and representative assessment | Not completed |
+| Approved purpose and lawful basis per controller activity | Pending legal review |
+| Selected production recipients, countries and safeguards | Missing |
+| Processor Article 28 contracts | Missing or not evidenced |
+| Approved retention criteria and implemented deletion evidence | Missing except limited media/session/request deletion controls |
+| General description of production technical and organisational measures | Partial; provider and runtime evidence missing |
+| Data-subject request workflow | Not evidenced as complete |
+| DPIA screening and transfer assessments | Not evidenced |
+| ROPA owner, approval and review history | Missing |
+
+### Activation rule
+
+Change this document from **Draft** to **Active** only when:
+
+1. Every organisation field is complete.
+2. Every production recipient is **Selected** in the processor matrix.
+3. Each controller purpose has approved applicability and lawful-basis evidence.
+4. Each processor purpose has an approved customer DPA and instruction model.
+5. Retention controls and rights operations have linked tests or operational evidence.
+6. Transfers, DPIAs, security measures, representatives, and market addenda are complete.
+7. A named owner and qualified reviewer approve the immutable version.
 
 ## Troubleshooting
 
-- **ROPA and data-inventory.yaml out of sync:** Update `data-inventory.yaml` first, then align this ROPA.
-- **Missing processing activity:** Before adding an entry, ensure the activity is defined in `data-inventory.yaml`.
-- **Placeholder values:** This ROPA is in Draft status while Representative and Contact fields are TBD. Update after DPO appointment.
-
----
-
-## Review and Change Management
-
-| Item | Detail |
-|------|--------|
-| **Review cadence** | Quarterly or when new processing activities are introduced |
-| **Change trigger** | New feature, new third-party provider, new data category, regulatory change |
-| **Owner** | Compliance team |
-| **Approval** | CTO / DPO (when appointed) |
+- **The product is not launched:** keep the ROPA in Draft, but document real test/staging personal
+  data and production decisions before processing begins.
+- **A provider is known operationally but absent here:** repository evidence alone is insufficient;
+  add its controlled contract, region, data-flow, subprocessor, deletion, and transfer evidence.
+- **A retention period has no job:** mark it missing. A policy or table is not a control.
+- **The same feature has controller and processor purposes:** record them separately; do not use
+  “controller instruction” as Profile Tailors' lawful basis for its own controller processing.
+- **The YAML changes:** update this ROPA and processor matrix in the same pull request.
 
 ## References
 
-- GDPR Art. 30(1)–(5): Legal requirements for records of processing activities
-- [`data-inventory.yaml`](data-inventory.yaml): Machine-readable source of truth
-- [`controller-processor-matrix.md`](controller-processor-matrix.md): Third-party processor map
-- [`data-inventory.md`](data-inventory.md): Human-readable processing activity list
+- [`data-inventory.yaml`](data-inventory.yaml)
+- [`data-inventory.md`](data-inventory.md)
+- [`controller-processor-matrix.md`](controller-processor-matrix.md)
+- [`legal-publication-gate.md`](legal-publication-gate.md)
+- [EUR-Lex — GDPR Article 30](https://eur-lex.europa.eu/eli/reg/2016/679/art_30/oj)
+- [European Commission — controller and processor obligations](https://commission.europa.eu/law/law-topic/data-protection/rules-business-and-organisations/obligations/controller-processor/what-data-controller-or-data-processor_en)
