@@ -1,0 +1,118 @@
+---
+import Layout from '@layouts/Layout.astro'
+import Footer from '@components/Footer.astro'
+import { useTranslations } from '@i18n/utils'
+import type { Locale } from '@i18n/utils'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useTranslations(locale)
+const policy = t.legal.privacy
+const links = t.footer.legalLinks
+
+function renderLegalText(text: string): string {
+  return text
+    .split('\n\n')
+    .map((p) => {
+      const html = p
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="underline text-text-muted hover:text-text-display transition-colors duration-200">$1</a>')
+      return `<p class="mb-4 leading-relaxed">${html}</p>`
+    })
+    .join('\n')
+}
+---
+
+<Layout
+  title={policy.title}
+  description={policy.description}
+  lang={locale}
+  canonicalPath="/privacy/"
+  jsonLdType="WebPage"
+>
+  <div id="main-content" class="fade-in">
+    <article class="max-w-3xl mx-auto px-6 py-16 sm:py-24">
+      <!-- Legal review banner -->
+      <div class="border border-amber-600/30 bg-amber-600/5 rounded-lg px-4 py-3 mb-8">
+        <p class="font-mono text-xs text-amber-500 tracking-wider uppercase">[LEGAL REVIEW]</p>
+        <p class="font-mono text-xs text-text-muted mt-1">
+          This is draft content that requires qualified legal review before production publication.
+        </p>
+      </div>
+
+      <!-- Header -->
+      <header class="mb-12">
+        <h1 class="font-display text-3xl sm:text-4xl font-bold text-text-display mb-3">{policy.title}</h1>
+        <p class="font-mono text-xs text-text-muted tracking-wide">{policy.lastUpdated}</p>
+      </header>
+
+      <!-- Intro -->
+      <section class="mb-10" set:html={renderLegalText(policy.intro)} />
+
+      <!-- Data Controller -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">1. Data Controller</h2>
+        <div set:html={renderLegalText(policy.dataController)} />
+      </section>
+
+      <!-- Data Collected -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">2. Personal Data We Collect</h2>
+        <div set:html={renderLegalText(policy.dataCollected)} />
+      </section>
+
+      <!-- Data Usage -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">3. How We Use Your Data</h2>
+        <div set:html={renderLegalText(policy.dataUsage)} />
+      </section>
+
+      <!-- Data Sharing -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">4. Data Sharing and Third-Party Recipients</h2>
+        <div set:html={renderLegalText(policy.dataSharing)} />
+      </section>
+
+      <!-- Data Retention -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">5. Data Retention</h2>
+        <div set:html={renderLegalText(policy.dataRetention)} />
+      </section>
+
+      <!-- International Transfers -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">6. International Data Transfers</h2>
+        <div set:html={renderLegalText(policy.internationalTransfers)} />
+      </section>
+
+      <!-- Your Rights -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">7. Your Rights</h2>
+        <div set:html={renderLegalText(policy.yourRights)} />
+      </section>
+
+      <!-- Cookies -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">8. Cookies</h2>
+        <div set:html={renderLegalText(policy.cookies)} />
+      </section>
+
+      <!-- Policy Changes -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">9. Changes to This Policy</h2>
+        <div set:html={renderLegalText(policy.policyChanges)} />
+      </section>
+
+      <!-- Contact -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">10. Contact Us</h2>
+        <div set:html={renderLegalText(policy.contact)} />
+      </section>
+    </article>
+
+    <Footer tagline={t.footer.tagline} copy={t.footer.copy} legalLinks={links} />
+  </div>
+</Layout>

@@ -8,6 +8,9 @@ interface Props {
   description?: string
   lang?: Locale
   image?: string
+  sameAs?: string[]
+  canonicalPath?: string
+  jsonLdType?: 'WebApplication' | 'WebPage'
 }
 
 const {
@@ -15,10 +18,15 @@ const {
   description = 'Create and schedule posts across Instagram, Twitter/X, LinkedIn and Facebook from one place. Join the waitlist for early access.',
   lang = 'en',
   image = '/og-en.png',
+  sameAs,
+  canonicalPath,
+  jsonLdType = 'WebApplication',
 } = Astro.props
 
-const canonicalEN = new URL('/', Astro.site ?? 'https://profiletailors.com').href
-const canonicalES = new URL('/es/', Astro.site ?? 'https://profiletailors.com').href
+const path = canonicalPath ?? '/'
+const baseUrl = Astro.site ?? 'https://profiletailors.com'
+const canonicalEN = new URL(path, baseUrl).href
+const canonicalES = new URL(path === '/' ? '/es/' : `/es${path}`, baseUrl).href
 const canonical = lang === 'en' ? canonicalEN : canonicalES
 const ogImage = image ?? (lang === 'en' ? '/og-en.png' : '/og-es.png')
 const siteName = 'Profile Tailors'
@@ -26,7 +34,7 @@ const siteName = 'Profile Tailors'
 // JSON-LD structured data
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "WebApplication",
+  "@type": jsonLdType,
   "name": "Profile Tailors",
   "description": description,
   "url": canonical,
@@ -53,7 +61,8 @@ const jsonLd = {
   "provider": {
     "@type": "Organization",
     "name": "Profile Tailors",
-    "url": "https://profiletailors.com"
+    "url": "https://profiletailors.com",
+    ...(sameAs && sameAs.length > 0 ? { sameAs } : {})
   }
 }
 const jsonLdString = JSON.stringify(jsonLd)

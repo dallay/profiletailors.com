@@ -1,0 +1,80 @@
+---
+import Layout from '@layouts/Layout.astro'
+import Footer from '@components/Footer.astro'
+import { useTranslations } from '@i18n/utils'
+import type { Locale } from '@i18n/utils'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = useTranslations(locale)
+const policy = t.legal.aup
+const links = t.footer.legalLinks
+
+function renderLegalText(text: string): string {
+  return text
+    .split('\n\n')
+    .map((p) => {
+      const html = p
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="underline text-text-muted hover:text-text-display transition-colors duration-200">$1</a>')
+      return `<p class="mb-4 leading-relaxed">${html}</p>`
+    })
+    .join('\n')
+}
+---
+
+<Layout
+  title={policy.title}
+  description={policy.description}
+  lang={locale}
+  canonicalPath="/acceptable-use/"
+  jsonLdType="WebPage"
+>
+  <div id="main-content" class="fade-in">
+    <article class="max-w-3xl mx-auto px-6 py-16 sm:py-24">
+      <!-- Legal review banner -->
+      <div class="border border-amber-600/30 bg-amber-600/5 rounded-lg px-4 py-3 mb-8">
+        <p class="font-mono text-xs text-amber-500 tracking-wider uppercase">[LEGAL REVIEW]</p>
+        <p class="font-mono text-xs text-text-muted mt-1">
+          This is draft content that requires qualified legal review before production publication.
+        </p>
+      </div>
+
+      <!-- Header -->
+      <header class="mb-12">
+        <h1 class="font-display text-3xl sm:text-4xl font-bold text-text-display mb-3">{policy.title}</h1>
+        <p class="font-mono text-xs text-text-muted tracking-wide">{policy.lastUpdated}</p>
+        <p class="font-mono text-xs text-text-muted mt-2">{policy.description}</p>
+      </header>
+
+      <!-- Prohibited -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">1. Prohibited Uses</h2>
+        <div set:html={renderLegalText(policy.prohibitedActivities)} />
+      </section>
+
+      <!-- Enforcement -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">2. Enforcement</h2>
+        <div set:html={renderLegalText(policy.enforcement)} />
+      </section>
+
+      <!-- Reporting -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">3. Reporting Violations</h2>
+        <div set:html={renderLegalText(policy.reporting)} />
+      </section>
+
+      <!-- Contact -->
+      <section class="mb-10">
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">4. Contact</h2>
+        <div set:html={renderLegalText(policy.contact)} />
+      </section>
+    </article>
+
+    <Footer tagline={t.footer.tagline} copy={t.footer.copy} legalLinks={links} />
+  </div>
+</Layout>
