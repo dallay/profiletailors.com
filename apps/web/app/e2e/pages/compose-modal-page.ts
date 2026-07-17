@@ -320,7 +320,7 @@ export class ComposeModalPage {
         txt: 'text/plain',
         webp: 'image/webp',
       }
-      return { name, type: extension ? typeByExtension[extension] ?? '' : '' }
+      return { name, type: extension ? (typeByExtension[extension] ?? '') : '' }
     })
     await this.page.evaluate(
       async ({ files }) => {

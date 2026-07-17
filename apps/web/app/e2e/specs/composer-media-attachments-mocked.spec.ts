@@ -51,7 +51,9 @@ type HeldUploadRoute = {
   release: () => Promise<void>
 }
 
-async function holdNextUploadResponse(page: import('@playwright/test').Page): Promise<HeldUploadRoute> {
+async function holdNextUploadResponse(
+  page: import('@playwright/test').Page,
+): Promise<HeldUploadRoute> {
   let releaseUpload: () => void = () => {}
   let markStarted: (assetId: string) => void = () => {}
   const releasePromise = new Promise<void>((resolve) => {
@@ -172,7 +174,9 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   // -------------------------------------------------------------------------
   // ML-COMPOSER-003: first-valid file semantics — unsupported files skipped
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-003 first-valid: unsupported files in a multi-select are ignored', async ({ page }) => {
+  test('ML-COMPOSER-003 first-valid: unsupported files in a multi-select are ignored', async ({
+    page,
+  }) => {
     const composePage = await openComposeModal(page)
     const alerts: string[] = []
     page.on('dialog', async (dialog) => {
@@ -190,7 +194,9 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   // -------------------------------------------------------------------------
   // ML-COMPOSER-004: upload progress — overlay shows percentage
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-004 upload progress: overlay shows percentage while uploading', async ({ page }) => {
+  test('ML-COMPOSER-004 upload progress: overlay shows percentage while uploading', async ({
+    page,
+  }) => {
     const upload = await holdNextUploadResponse(page)
     const composePage = await openComposeModal(page)
     await composePage.fillText('Upload progress overlay')
@@ -573,7 +579,9 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   // -------------------------------------------------------------------------
   // ML-COMPOSER-029: progress overlay text is "Uploading..."
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-029 progress text: overlay shows "Uploading" or progress percentage', async ({ page }) => {
+  test('ML-COMPOSER-029 progress text: overlay shows "Uploading" or progress percentage', async ({
+    page,
+  }) => {
     const upload = await holdNextUploadResponse(page)
     const composePage = await openComposeModal(page)
     await composePage.fillText('Upload progress text')
@@ -584,7 +592,9 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     await upload.started
 
     await composePage.expectUploadOverlayText(/Uploading…? \d+%/i)
-    await expect(composePage.uploadOverlay).toContainText(/You can keep editing while this finishes\./i)
+    await expect(composePage.uploadOverlay).toContainText(
+      /You can keep editing while this finishes\./i,
+    )
     await upload.release()
   })
 
