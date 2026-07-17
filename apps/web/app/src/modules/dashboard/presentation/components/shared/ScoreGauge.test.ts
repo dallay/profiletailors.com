@@ -43,28 +43,16 @@ describe('ScoreGauge', () => {
     expect(circles).toHaveLength(2) // track + fill
   })
 
-  it('applies success color for score >= 80', () => {
+  it.each([
+    { score: 85, expectedColor: 'var(--success-color)', range: '>= 80' },
+    { score: 74, expectedColor: 'var(--warning-color)', range: '50-79' },
+    { score: 42, expectedColor: 'var(--error-color)', range: '< 50' },
+  ])('applies $expectedColor for score $range', ({ score, expectedColor }) => {
     const wrapper = mount(ScoreGauge, {
-      props: { score: 85 },
+      props: { score },
     })
     const fillCircle = wrapper.findAll('circle')[1]!
-    expect(fillCircle.attributes('stroke')).toBe('var(--success-color)')
-  })
-
-  it('applies warning color for score 50-79', () => {
-    const wrapper = mount(ScoreGauge, {
-      props: { score: 74 },
-    })
-    const fillCircle = wrapper.findAll('circle')[1]!
-    expect(fillCircle.attributes('stroke')).toBe('var(--warning-color)')
-  })
-
-  it('applies error color for score < 50', () => {
-    const wrapper = mount(ScoreGauge, {
-      props: { score: 42 },
-    })
-    const fillCircle = wrapper.findAll('circle')[1]!
-    expect(fillCircle.attributes('stroke')).toBe('var(--error-color)')
+    expect(fillCircle.attributes('stroke')).toBe(expectedColor)
   })
 
   it('uses custom size and strokeWidth', () => {

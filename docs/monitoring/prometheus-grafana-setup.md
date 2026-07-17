@@ -95,4 +95,4 @@ includes panels for all key metrics mentioned above.
 ## References
 
 - [Spring Boot Actuator Documentation](https://docs.spring.io/spring-boot/reference/actuator/index.html)
-- [Micrometer Prometheus Registry](https://micrometer.io/docs/registry/prometheus)
+- [Micrometer Prometheus Registry](https://docs.micrometer.io/micrometer/reference/implementations/prometheus.html)

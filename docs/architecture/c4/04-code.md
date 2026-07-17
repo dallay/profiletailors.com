@@ -155,13 +155,4 @@ com.profiletailors.smp
 
 ---
 
-For detailed code examples, see:
-
-- [Identity Context Examples](04-code-identity.md)
-- [Authorization Context Examples](04-code-authorization.md)
-- [Tenancy Context Examples](04-code-tenancy.md)
-- [Platform Context Examples](04-code-platform.md)
-
----
-
-Last updated: 2026-05-21
+Last updated: 2026-07-16

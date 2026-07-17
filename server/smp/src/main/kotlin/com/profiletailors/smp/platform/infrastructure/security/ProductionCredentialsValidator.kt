@@ -25,6 +25,8 @@ import kotlin.runCatching
  * - `PUBLISHING_CREDENTIALS_KEY` must not be empty (required for OAuth token encryption).
  * - `SMP_LOCAL_JWT_SECRET` must not be empty when `SMP_LOCAL_JWT_DEV_FALLBACK` is also empty
  *   (enforced separately by `LocalJwtSecretResolver`, but double-checked here).
+ * - `SMP_MEDIA_PREVIEW_SIGNING_SECRET` must not be empty because signed public media URLs
+ *   rely on it as their access-control boundary.
  *
  * **When it runs:**
  * - After `ApplicationContext.refresh()` / `finishRefresh()` when the embedded server is already
@@ -60,57 +62,77 @@ class ProductionCredentialsValidator(private val environment: Environment) {
             return
         }
 
-        val violations = mutableListOf<String>()
-
-        // 1. Database password
-        val dbPassword = environment.getProperty("SMP_DB_PASSWORD").orEmpty()
-        if (dbPassword.isBlank() || dbPassword == DEFAULT_UNSAFE_PASSWORD) {
-            violations.add(
-                "SMP_DB_PASSWORD is not configured or is set to the unsafe default '$DEFAULT_UNSAFE_PASSWORD'. " +
-                    "Set a strong password (minimum 32 characters). " +
-                    "Generate with: openssl rand -base64 32",
-            )
-        }
-
-        // 2. Publishing credentials encryption key (OAuth tokens at rest)
-        val credentialsKey = environment.getProperty("PUBLISHING_CREDENTIALS_KEY").orEmpty()
-        if (credentialsKey.isBlank()) {
-            violations.add(
-                "PUBLISHING_CREDENTIALS_KEY is not configured. This key is required to encrypt " +
-                    "OAuth access/refresh tokens stored in the database. Without it, LinkedIn " +
-                    "publishing will fail. Generate with: openssl rand -base64 32",
-            )
-        }
-
-        // 3. JWT signing secret (when local JWT mode is enabled)
-        // Note: LocalJwtSecretResolver already enforces this, but we double-check here for clarity.
-        val jwtSecret = environment.getProperty("SMP_LOCAL_JWT_SECRET").orEmpty()
-        val jwtFallback = environment.getProperty("SMP_LOCAL_JWT_DEV_FALLBACK").orEmpty()
-        if (jwtSecret.isBlank() && jwtFallback.isBlank()) {
-            violations.add(
-                "SMP_LOCAL_JWT_SECRET and SMP_LOCAL_JWT_DEV_FALLBACK are both empty. " +
-                    "At least one must be configured for JWT signing. " +
-                    "Generate with: openssl rand -base64 32",
-            )
-        }
+        val violations: List<String> = listOfNotNull(
+            checkDatabasePassword(),
+            checkPublishingKey(),
+            checkJwtSecret(),
+            checkMediaSigningSecret(),
+        )
 
         if (violations.isNotEmpty()) {
-            val message = buildString {
-                appendLine("❌ PRODUCTION CREDENTIAL VALIDATION FAILED")
-                appendLine()
-                appendLine("The application cannot start because unsafe or missing credentials were detected:")
-                appendLine()
-                violations.forEachIndexed { index, violation ->
-                    appendLine("${index + 1}. $violation")
-                    appendLine()
-                }
-                appendLine("See docs/production-secrets.md for full secret generation and rotation guide.")
-            }
+            val message = buildValidationFailureMessage(violations)
             logger.error(message)
             error(message)
         } else {
             logger.info("✅ Production credentials validation passed (no default values detected)")
         }
+    }
+
+    private fun checkDatabasePassword(): String? {
+        val dbPassword = environment.getProperty("SMP_DB_PASSWORD").orEmpty()
+        return if (dbPassword.isBlank() || dbPassword == UNSAFE_CREDENTIAL_SENTINEL) {
+            "SMP_DB_PASSWORD is not configured or is set to the unsafe default '$UNSAFE_CREDENTIAL_SENTINEL'. " +
+                "Set a strong password (minimum 32 characters). " +
+                "Generate with: openssl rand -base64 32"
+        } else {
+            null
+        }
+    }
+
+    private fun checkPublishingKey(): String? {
+        val credentialsKey = environment.getProperty("PUBLISHING_CREDENTIALS_KEY").orEmpty()
+        return if (credentialsKey.isBlank()) {
+            "PUBLISHING_CREDENTIALS_KEY is not configured. This key is required to encrypt " +
+                "OAuth access/refresh tokens stored in the database. Without it, LinkedIn " +
+                "publishing will fail. Generate with: openssl rand -base64 32"
+        } else {
+            null
+        }
+    }
+
+    private fun checkJwtSecret(): String? {
+        val jwtSecret = environment.getProperty("SMP_LOCAL_JWT_SECRET").orEmpty()
+        val jwtFallback = environment.getProperty("SMP_LOCAL_JWT_DEV_FALLBACK").orEmpty()
+        return if (jwtSecret.isBlank() && jwtFallback.isBlank()) {
+            "SMP_LOCAL_JWT_SECRET and SMP_LOCAL_JWT_DEV_FALLBACK are both empty. " +
+                "At least one must be configured for JWT signing. " +
+                "Generate with: openssl rand -base64 32"
+        } else {
+            null
+        }
+    }
+
+    private fun checkMediaSigningSecret(): String? {
+        val signingSecret = environment.getProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET").orEmpty()
+        return if (signingSecret.isBlank()) {
+            "SMP_MEDIA_PREVIEW_SIGNING_SECRET is not configured. This key signs public " +
+                "media preview URLs and must be unique per environment. " +
+                "Generate with: openssl rand -base64 32"
+        } else {
+            null
+        }
+    }
+
+    private fun buildValidationFailureMessage(violations: List<String>): String = buildString {
+        appendLine("❌ PRODUCTION CREDENTIAL VALIDATION FAILED")
+        appendLine()
+        appendLine("The application cannot start because unsafe or missing credentials were detected:")
+        appendLine()
+        violations.forEachIndexed { index, violation ->
+            appendLine("${index + 1}. $violation")
+            appendLine()
+        }
+        appendLine("See docs/production-secrets.md for full secret generation and rotation guide.")
     }
 
     /**
@@ -144,6 +166,6 @@ class ProductionCredentialsValidator(private val environment: Environment) {
 
     private companion object {
         private val logger = LoggerFactory.getLogger(ProductionCredentialsValidator::class.java)
-        private const val DEFAULT_UNSAFE_PASSWORD = "CHANGE_ME"
+        private const val UNSAFE_CREDENTIAL_SENTINEL = "CHANGE_ME"
     }
 }

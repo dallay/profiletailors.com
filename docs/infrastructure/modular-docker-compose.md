@@ -179,5 +179,5 @@ SMP_EMAIL_SENDER=noreply@profiletailors.com
 
 ## References
 
-- [Docker Compose Include Documentation](https://docs.docker.com/compose/multiple-compose-files/include/)
+- [Docker Compose Include Documentation](https://docs.docker.com/compose/how-tos/multiple-compose-files/include/)
 - [Docker Compose Network Specification](https://docs.docker.com/compose/compose-file/06-networks/)

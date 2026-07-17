@@ -64,33 +64,38 @@ describe('formatRelativeTime', () => {
     vi.restoreAllMocks()
   })
 
-  it('returns Just now for less than 1 minute', () => {
-    const now = new Date('2026-06-13T12:00:30Z')
-    vi.setSystemTime(now)
-    expect(formatRelativeTime('2026-06-13T12:00:00Z')).toBe('Just now')
-  })
-
-  it('returns minutes ago', () => {
-    const now = new Date('2026-06-13T12:05:00Z')
-    vi.setSystemTime(now)
-    expect(formatRelativeTime('2026-06-13T12:00:00Z')).toBe('5m ago')
-  })
-
-  it('returns hours ago', () => {
-    const now = new Date('2026-06-13T14:00:00Z')
-    vi.setSystemTime(now)
-    expect(formatRelativeTime('2026-06-13T12:00:00Z')).toBe('2h ago')
-  })
-
-  it('returns days ago', () => {
-    const now = new Date('2026-06-16T12:00:00Z')
-    vi.setSystemTime(now)
-    expect(formatRelativeTime('2026-06-13T12:00:00Z')).toBe('3d ago')
+  it.each([
+    {
+      now: '2026-06-13T12:00:30Z',
+      input: '2026-06-13T12:00:00Z',
+      expected: 'Just now',
+      label: 'less than 1 minute',
+    },
+    {
+      now: '2026-06-13T12:05:00Z',
+      input: '2026-06-13T12:00:00Z',
+      expected: '5m ago',
+      label: 'minutes ago',
+    },
+    {
+      now: '2026-06-13T14:00:00Z',
+      input: '2026-06-13T12:00:00Z',
+      expected: '2h ago',
+      label: 'hours ago',
+    },
+    {
+      now: '2026-06-16T12:00:00Z',
+      input: '2026-06-13T12:00:00Z',
+      expected: '3d ago',
+      label: 'days ago',
+    },
+  ])('returns $expected for $label', ({ now, input, expected }) => {
+    vi.setSystemTime(new Date(now))
+    expect(formatRelativeTime(input)).toBe(expected)
   })
 
   it('returns formatted date for older than 7 days', () => {
-    const now = new Date('2026-06-21T12:00:00Z')
-    vi.setSystemTime(now)
+    vi.setSystemTime(new Date('2026-06-21T12:00:00Z'))
     const result = formatRelativeTime('2026-06-13T12:00:00Z')
     expect(result).toMatch(/Jun 13/)
   })

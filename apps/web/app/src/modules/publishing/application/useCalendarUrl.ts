@@ -95,7 +95,7 @@ function normalizeStatus(rawStatus: string): SchedulerStatus {
   return VALID_STATUSES.has(lowered) ? lowered : 'all'
 }
 
-function isInvalidStatus(rawStatus: string): boolean {
+export function isInvalidStatus(rawStatus: string): boolean {
   const normalized = rawStatus.toLowerCase() as SchedulerStatus
   return rawStatus.length > 0 && !VALID_STATUSES.has(normalized)
 }
