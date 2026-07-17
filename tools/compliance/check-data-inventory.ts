@@ -24,6 +24,8 @@ const recipientSchema = z.object({
   location_type: z.enum(['country', 'region', 'unknown']),
   location: z.string(),
   agreement_reference: z.string(),
+  activation_status: z.enum(['selected', 'configurable', 'conditional', 'not_selected']).optional(),
+  agreement_status: z.enum(['verified', 'unverified', 'not_applicable']).optional(),
 })
 
 const evidenceReferenceSchema = z.object({
@@ -43,9 +45,13 @@ const processingActivitySchema = z.object({
     duration: z.string(),
     action: z.enum(['delete', 'anonymize', 'archive']),
     exceptions: z.array(z.string()).optional(),
+    control_status: z.enum(['implemented', 'partial', 'not_implemented']).optional(),
+    evidence: z.array(z.string()).optional(),
   }),
   security_measures: z.array(z.string()).optional(),
   evidence_references: z.array(evidenceReferenceSchema),
+  evidence_status: z.enum(['verified', 'partial', 'not_evidenced']).optional(),
+  legal_review_status: z.enum(['pending', 'approved']).optional(),
   notes: z.string().optional(),
 })
 
@@ -53,6 +59,9 @@ const inventorySchema = z.object({
   schema_version: z.string().regex(/^\d+\.\d+$/, 'Must be major.minor format (e.g. "1.0")'),
   processing_entity: z.string().min(1),
   DPO_contact: z.string().nullable().optional(),
+  status: z.enum(['draft', 'active']).optional(),
+  production_release_status: z.enum(['blocked', 'approved']).optional(),
+  last_verified_on: z.string().date().optional(),
   processing_activities: z.array(processingActivitySchema).min(1),
 })
 

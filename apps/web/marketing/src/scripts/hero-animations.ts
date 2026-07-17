@@ -1,6 +1,6 @@
 // src/scripts/hero-animations.ts
 // One-shot WAAPI animation sequence for the Hero section on page load.
-// Effects: micro-scale-fade (label), soft-blur-in (headline), typewriter (sub), plain fade (icons+form).
+// Effects: micro-scale-fade (label), soft-blur-in (headline), typewriter (sub), plain fade (status).
 
 const EASING_SPRING = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const EASING_EASE = 'ease'
@@ -160,14 +160,13 @@ export async function initHeroAnimations(): Promise<void> {
   const label = document.querySelector<HTMLElement>('[data-hero-label]')
   const headline = document.querySelector<HTMLElement>('[data-hero-headline]')
   const sub = document.querySelector<HTMLElement>('[data-hero-sub]')
-  const icons = document.querySelector<HTMLElement>('[data-hero-icons]')
   const form = document.querySelector<HTMLElement>('[data-hero-form]')
 
   // Guard: if Hero isn't on this page, exit early.
   if (!label || !headline || !sub) return
 
   if (prefersReduced) {
-    ;[label, headline, sub, icons, form].forEach((el) => el && snapVisible(el))
+    ;[label, headline, sub, form].forEach((el) => el && snapVisible(el))
     return
   }
 
@@ -177,11 +176,10 @@ export async function initHeroAnimations(): Promise<void> {
   // t=after label (~240ms): headline
   await animateHeadline(headline, 0)
 
-  // t=after headline: sub (with 100ms gap) + icons/form fire concurrently
+  // t=after headline: sub (with 100ms gap) + status fire concurrently
   const subDelay = 100
   const subAnimPromise = animateSub(sub, subDelay)
 
-  if (icons) animateFade(icons, subDelay + 80)
   if (form) animateFade(form, subDelay + 160)
 
   await subAnimPromise

@@ -1,108 +1,131 @@
 # Controller–Processor Matrix
 
-> **Classification:** Internal — Compliance
-> **Status:** Active
-> **Version:** 1.0
+> **Classification:** Internal — Legal and Compliance
+> **Status:** Draft — no production subprocessor list is approved
+> **Version:** 2.0
+> **Last verified:** 2026-07-17
 
 ## Overview
 
-This document maps the data-processing roles of Profile Tailors, its customers, and its third-party providers for every personal-data processing activity.
+This matrix separates Profile Tailors' role by processing purpose from the status of external
+providers. It MUST NOT be used as a public subprocessor list until the contracting legal person,
+production providers, regions, agreements, and transfer mechanisms are evidenced.
+
+The previous matrix incorrectly treated vendor examples and available adapters as current
+providers. Version 2.0 uses these states:
+
+| State | Meaning |
+|-------|---------|
+| **Selected** | Production use and executed contractual evidence are recorded. |
+| **Configurable** | A real adapter exists, but production activation and contract are not proved. |
+| **Conditional** | Integration loads only when a feature flag or credential is supplied. |
+| **Not selected** | The function is needed, but the production provider is unknown. |
+| **Not evidenced** | A previous document named the provider, but current code/configuration does not support the claim. |
+
+No external provider currently qualifies as **Selected** based on repository evidence alone.
 
 ## Changes
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.0 | 2026-07-17 | Initial controller–processor matrix |
+| 1.0 | 2026-07-17 | Initial matrix containing provider alternatives and unsupported DPA claims |
+| 2.0 | 2026-07-17 | Reconciled with code and configuration; added provider-selection and agreement gates |
 
 ## Usage
 
-This matrix serves as:
+### Profile Tailors role by purpose
 
-- A **role map** identifying when Profile Tailors acts as controller, processor, or both per activity.
-- A **third-party register** documenting processor and independent-controller relationships.
-- A **DPA tracker** identifying which provider agreements are in place, required, or planned.
-- An **input for Privacy Policy and Terms** drafting (see DALLAY-488).
+These roles are working classifications pending the legal entity, customer model, DPA, and
+enabled-market review. A customer-content feature can place Profile Tailors in a processor role
+for the content while Profile Tailors remains controller for security, billing, and its own
+service operations.
 
-| Role | Definition |
-|------|------------|
-| **Controller** | Determines the purposes and means of processing (GDPR Art. 4(7)) |
-| **Processor** | Processes data on behalf of the controller (GDPR Art. 4(8)) |
-| **Independent controller** | Determines its own purposes and means, separately accountable |
-| **Joint controller** | Jointly determines purposes and means with another party (Art. 26) |
+| Processing purpose | Working role | Status and rationale |
+|--------------------|--------------|----------------------|
+| Account registration, local authentication, email verification, and refresh sessions | Controller | Profile Tailors determines the account and security means; legal basis pending approval. |
+| Customer-authored social content and scheduled publishing | Processor | Customer determines content and destination; a customer DPA and instructions are required. |
+| Hosting and delivery metadata | Controller | Profile Tailors selects infrastructure and operational purposes; provider unknown. |
+| Early-access waitlist | Controller | Profile Tailors determines the early-access purpose. |
+| Optional waitlist marketing | Controller | Separate purpose and optional consent; withdrawal workflow missing. |
+| Workspace, membership, ownership, and access management | Controller | Profile Tailors defines the collaboration and security model. |
+| LinkedIn account connection and publishing credentials | Processor for customer connection data | Customer chooses the account and instructs connection; service-security processing may be controller processing. |
+| API key and service credential administration | Controller | Profile Tailors determines service authentication and security controls. |
+| Customer media storage | Processor | Customer determines uploaded content and publishing purpose. |
+| Unsplash search/import telemetry | Controller, subject to feature review | Profile Tailors chooses the integration; disabled by default. |
+| Publication job and delivery operations | Processor | Performed to execute customer publishing instructions. |
+| Security and authorization audit events | Controller | Profile Tailors determines security/accountability purposes; lawful-basis assessment pending. |
+| Application metrics and logs | Controller | Profile Tailors determines operational and security monitoring. |
+| Marketing-site analytics | Controller | Optional Ahrefs integration; enabled-market consent/basis assessment pending. |
+| Authentication and UI device storage | Controller | Profile Tailors determines cookie and local-storage behaviour; necessity must be assessed item by item. |
 
----
+### Production provider register
 
-## Profile Tailors Role by Activity
+| Function | Provider or technology | State | Data or access | Region | Agreement | Publication rule |
+|----------|------------------------|-------|----------------|--------|-----------|------------------|
+| PostgreSQL database | Provider not selected | **Not selected** | All database-backed activity data | Unknown | DPA and transfer terms not evidenced | Do not name a database vendor or EEA location. |
+| Hosting/CDN/reverse proxy | Provider not selected | **Not selected** | Network and request metadata; deployed artifacts | Unknown | DPA and transfer terms not evidenced | Do not name Vercel, Cloudflare, or Dokploy as current host. |
+| Media object storage | Local filesystem default; S3 and Cloudflare R2 adapters | **Not selected** | Media content, filenames, hashes, storage metadata | Unknown | DPA and transfer terms not evidenced | Do not publish slash-separated storage alternatives. |
+| Transactional email | Resend adapter | **Conditional** | Email address, verification link, delivery metadata | Unknown | Contract, DPA, role, and region not evidenced | Name only after activation and agreement verification. |
+| User identity | Local JWT and configurable federated JWT validation | **No external provider selected** | Account and authentication data | Application/database locations | Not applicable until an external issuer is selected | Do not name Auth0 or Clerk. |
+| Social publishing | LinkedIn | **Configurable** | Account/profile identifiers, OAuth credentials, content, media, delivery metadata | Unknown | Platform/API terms approval not evidenced | Name as a supported integration only when enabled; do not infer all processing locations. |
+| External media search | Unsplash | **Conditional** | Search query, server request metadata, imported asset metadata | Unknown | API terms approval not evidenced | Name only if feature enabled. |
+| Marketing analytics | Ahrefs Web Analytics | **Conditional** | Page, referrer, device/network and analytics request data | Unknown | Contract/DPA/role not evidenced | Verify activation and observed behaviour before notice. |
+| Metrics and logs | Prometheus-format endpoint; provider not selected | **Not selected** | Metrics, tags, identifiers and application logs | Unknown | No managed-provider agreement evidenced | Do not name Grafana or another managed provider. |
+| Error tracking | None located | **Not evidenced** | Not applicable until selected | Not applicable | None | Remove Sentry from current-provider claims. |
+| Queue/cache | No external managed provider located | **Not evidenced** | Application may use internal/runtime mechanisms; external flow unproved | Unknown | None | Remove Upstash, ElastiCache, CloudAMQP, and Confluent from current-provider claims. |
 
-| Activity | Role | Rationale |
-|----------|------|-----------|
-| Account registration & management | **Controller** | We decide what data to collect and why |
-| Social media publishing | **Processor** | We act on customer instructions for publication |
-| Web hosting & delivery | **Controller** | We choose infrastructure and security measures |
-| Lead capture & waitlist | **Controller** | We determine the purpose (first-party marketing) |
-| Workspace & membership management | **Controller** | We provide the collaboration feature set |
-| OAuth authentication & social connections (pa-006) | **Controller** (auth) / **Processor** (connections) | We control auth requirements; customer instructs which accounts to connect |
-| API key management | **Controller** | We issue and manage access credentials |
-| Media asset storage | **Processor** | Content belongs to the customer |
-| Content publishing & delivery | **Processor** | Customer provides the content to publish |
-| Audit & governance logging | **Controller** | Legal obligation — we determine retention and scope |
-| Analytics & observability | **Controller** | We determine what to monitor for service improvement |
+### Claims invalidated by repository evidence
 
----
+| Previous claim | Revalidation result |
+|----------------|---------------------|
+| Vercel is the current host and its DPA/SCCs are in place | No Vercel deployment adapter or production configuration is present; release workflow says deployment is future work. |
+| Auth0/Clerk is the identity provider | Local JWT, refresh sessions, and configurable federated JWT validation are implemented; no Auth0/Clerk selection is evidenced. |
+| Cloudflare R2/AWS S3 is the current media store | Local filesystem is the default; R2 and S3 are available adapters, not a production selection. |
+| Sentry is a planned/current processor | No Sentry integration was located. Planned vendors do not belong in a current processor register. |
+| Managed Grafana/Prometheus operates in the EEA | Prometheus-format metrics exist; no managed recipient, region, or contract is evidenced. |
+| Resend/SendGrid is the email provider | Resend is conditional; SendGrid was not located. Neither is proved as selected production processing. |
+| All social platforms receive content | Only LinkedIn has real backend connection and publishing adapters. Frontend types and mock data do not prove processing. |
 
-## Third-Party Processor Matrix
+### Provider approval checklist
 
-| Provider | Service | Role | Data Accessed | Location | DPA Status | Safeguard Mechanism |
-|----------|---------|------|---------------|----------|------------|---------------------|
-| **Vercel Inc.** | Hosting, CDN, serverless functions | Processor | IP addresses, request metadata, source code | US (global CDN) | ✅ In place | SCCs (Standard Contractual Clauses) |
-| **Neon / AWS RDS / GCP Cloud SQL** | PostgreSQL database hosting | Processor | Personal data for activities that name database hosting as a processor arrangement (pa-001, pa-010); infrastructure-level metadata across all database-backed activities. See data-inventory.yaml for per-activity classification. | EEA or US | ⚠️ Required | SCCs; encryption at rest |
-| **Cloudflare R2 / AWS S3** | Object storage for media assets | Processor | Media files, filenames, metadata | Bucket region (EEA/US) | ⚠️ Required | SCCs; server-side encryption |
-| **Upstash / AWS ElastiCache** | Redis cache | Processor | Session data (transient), rate-limit counters | Region | ⚠️ Required | No persistent personal data; TTL-based expiry |
-| **CloudAMQP / Confluent Cloud** | Message queue | Processor | Event payloads (may contain identifiers) | Region | ⚠️ Required | Encryption in transit; queue-level access control |
-| **Resend / SendGrid** | Transactional email | Processor | Email address, email content | US | ⚠️ Required | SCCs; no marketing email processing |
-| **Sentry (planned)** | Error tracking | Processor | Error stack traces, IP, request metadata | US | ⚠️ Planned | SCCs; data scrubbing rules |
-| **Grafana / Prometheus (managed)** | Metrics & monitoring | Processor | Aggregated metrics, service logs | EEA | ⚠️ Required | Local hosting preferred |
+Before changing a row to **Selected**, record:
 
----
+1. Exact provider legal entity, service, account owner, and production environment.
+2. Data categories, purposes, controller/processor role, and all subprocessors.
+3. Storage and access locations, support access, backup locations, and deletion behaviour.
+4. Executed MSA/terms, DPA, security review, breach SLA, audit rights, and termination export/deletion.
+5. Source-jurisdiction transfer mechanism and transfer assessment where required.
+6. Configuration and runtime evidence proving the provider is actually used.
+7. Public-notice wording, approval owner, counsel reference, and next review date.
 
-## Independent Controller Matrix
+### Immediate action register
 
-| Provider | Service | Data Accessed | Location | Relationship Basis |
-|----------|---------|---------------|----------|-------------------|
-| **Auth0 / Clerk** | Identity provider (OAuth2/OIDC) | Authentication events, profile data | US | Terms of Service; independent controller for auth events |
-| **LinkedIn** | Social media platform | Published content, engagement metrics | US | API Terms of Service; independent controller for published data |
-| **Twitter/X** | Social media platform | Published content, engagement metrics | US | API Terms of Service |
-| **Facebook** | Social media platform | Published content, engagement metrics | US | Platform Terms |
-| **Instagram** | Social media platform | Published content, engagement metrics | US | Platform Terms |
-| **TikTok** | Social media platform | Published content, engagement metrics | US | API Terms of Service |
-
----
-
-## Action Items
-
-| Priority | Item | Owner |
-|----------|------|-------|
-| 🔴 **P0** | Execute DPAs with database hosting provider | Compliance |
-| 🔴 **P0** | Execute DPA with object storage provider | Compliance |
-| 🟡 **P1** | Execute DPA with email service provider | Compliance |
-| 🟡 **P1** | Execute DPA with message queue provider | Compliance |
-| 🟡 **P1** | Execute DPA with observability providers | Compliance |
-| 🔵 **P2** | Confirm Auth0/Clerk controller boundary | Legal |
-| 🔵 **P2** | Review social platform ToS for controller obligations | Legal |
-
----
+| Priority | Action | Exit evidence |
+|----------|--------|---------------|
+| P0 | Select the production legal entity, host/CDN, database, and object-storage architecture | Executed entity and provider records with regions and agreements |
+| P0 | Decide whether Resend and Ahrefs are enabled at launch | Production configuration, contract review, data-flow and notice decision |
+| P0 | Remove unverified providers from public drafts | EN/ES policies match selected provider register |
+| P0 | Execute customer DPA and LinkedIn platform review before real customer publishing | Approved DPA, platform terms assessment, transfer map |
+| P1 | Select logs/metrics destination and retention | Provider/security record plus implemented deletion settings |
+| P1 | Establish quarterly provider and subprocessor review | Named owner, evidence repository, review schedule and change-notice process |
 
 ## Troubleshooting
 
-- **Activity not listed:** If a data-processing activity is not represented in this matrix, update `data-inventory.yaml` first, then add the corresponding row.
-- **Provider missing from matrix:** Add the provider to the appropriate table (Processor or Independent Controller) with its role, location, and DPA status.
-- **DPA status out of date:** Update the `agreement_reference` or DPA Status column once an agreement is executed.
+- **A vendor appears in an ADR or architecture diagram:** treat it as an option unless production
+  configuration and contractual evidence prove selection.
+- **An environment variable exists:** treat the integration as configurable or conditional, not
+  active.
+- **The provider publishes a DPA:** availability of a public DPA is not evidence that Profile
+  Tailors accepted it, selected a region, completed a transfer assessment, or configured deletion.
+- **A platform is present in frontend mocks:** do not add it to the processor or recipient register
+  until a real backend flow or verified production integration exists.
+- **The provider is an independent controller:** document the actual relationship and disclosures;
+  the label does not remove Profile Tailors' responsibility for the disclosure or transfer.
 
 ## References
 
-- [`data-inventory.yaml`](data-inventory.yaml): Processing activity details
-- [`ropa.md`](ropa.md): GDPR Art. 30 formal record
-- [`data-inventory.md`](data-inventory.md): Human-readable processing activity list
-- [Vercel DPA](https://vercel.com/legal/dpa)
-- [Cloudflare DPA](https://www.cloudflare.com/cloudflare-customer-dpa/)
-- [AWS DPA](https://aws.amazon.com/compliance/gdpr-center/)
+- [`data-inventory.yaml`](data-inventory.yaml)
+- [`data-inventory.md`](data-inventory.md)
+- [`ropa.md`](ropa.md)
+- [`legal-publication-gate.md`](legal-publication-gate.md)
+- [European Commission — controller and processor obligations](https://commission.europa.eu/law/law-topic/data-protection/rules-business-and-organisations/obligations/controller-processor/what-data-controller-or-data-processor_en)

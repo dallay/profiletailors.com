@@ -8,17 +8,29 @@ interface Props {
   description?: string
   lang?: Locale
   image?: string
+  sameAs?: string[]
+  canonicalPath?: string
+  jsonLdType?: 'WebSite' | 'WebPage'
+  noindex?: boolean
+  includeStructuredData?: boolean
 }
 
 const {
-  title = 'Profile Tailors — Schedule smarter, post everywhere',
-  description = 'Create and schedule posts across Instagram, Twitter/X, LinkedIn and Facebook from one place. Join the waitlist for early access.',
+  title = 'Profile Tailors — Social content planning in development',
+  description = 'Preview Profile Tailors, a social content planning workspace currently in development.',
   lang = 'en',
   image = '/og-en.png',
+  sameAs,
+  canonicalPath,
+  jsonLdType = 'WebSite',
+  noindex = false,
+  includeStructuredData = true,
 } = Astro.props
 
-const canonicalEN = new URL('/', Astro.site ?? 'https://profiletailors.com').href
-const canonicalES = new URL('/es/', Astro.site ?? 'https://profiletailors.com').href
+const path = canonicalPath ?? '/'
+const baseUrl = Astro.site ?? 'https://profiletailors.com'
+const canonicalEN = new URL(path, baseUrl).href
+const canonicalES = new URL(path === '/' ? '/es/' : `/es${path}`, baseUrl).href
 const canonical = lang === 'en' ? canonicalEN : canonicalES
 const ogImage = image ?? (lang === 'en' ? '/og-en.png' : '/og-es.png')
 const siteName = 'Profile Tailors'
@@ -26,35 +38,12 @@ const siteName = 'Profile Tailors'
 // JSON-LD structured data
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "WebApplication",
+  "@type": jsonLdType,
   "name": "Profile Tailors",
   "description": description,
   "url": canonical,
-  "applicationCategory": "BusinessApplication",
-  "operatingSystem": "Web",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  },
-  "featureList": [
-    "Schedule posts to Instagram",
-    "Schedule posts to Twitter/X",
-    "Schedule posts to LinkedIn",
-    "Schedule posts to Facebook",
-    "Analytics dashboard",
-    "Waitlist for early access"
-  ],
-  "areaServed": {
-    "@type": "Place",
-    "name": "Worldwide"
-  },
-  "serviceType": "Social Media Management",
-  "provider": {
-    "@type": "Organization",
-    "name": "Profile Tailors",
-    "url": "https://profiletailors.com"
-  }
+  "inLanguage": lang,
+  ...(sameAs && sameAs.length > 0 ? { sameAs } : {})
 }
 const jsonLdString = JSON.stringify(jsonLd)
 ---
@@ -86,6 +75,7 @@ const jsonLdString = JSON.stringify(jsonLd)
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex,nofollow,noarchive" />}
 
     <!-- Canonical -->
     <link rel="canonical" href={canonical} />
@@ -103,7 +93,7 @@ const jsonLdString = JSON.stringify(jsonLd)
     <meta property="og:site_name" content={siteName} />
     <meta property="og:locale" content={lang === 'en' ? 'en_US' : 'es_ES'} />
     <meta property="og:locale:alternate" content={lang === 'en' ? 'es_ES' : 'en_US'} />
-    <meta property="og:image" content={new URL(ogImage, Astro.site ?? 'https://profiletailors.com').href} />
+    <meta property="og:image" content={new URL(ogImage, baseUrl).href} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content={title} />
@@ -113,7 +103,7 @@ const jsonLdString = JSON.stringify(jsonLd)
     <meta name="twitter:site" content="@profiletailors" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={new URL(ogImage, Astro.site ?? 'https://profiletailors.com').href} />
+    <meta name="twitter:image" content={new URL(ogImage, baseUrl).href} />
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -122,7 +112,7 @@ const jsonLdString = JSON.stringify(jsonLd)
     <title>{title}</title>
 
     <!-- JSON-LD Structured Data -->
-    <script type="application/ld+json" set:html={jsonLdString} />
+    {includeStructuredData && <script is:inline type="application/ld+json" set:html={jsonLdString} />}
   </head>
   <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>

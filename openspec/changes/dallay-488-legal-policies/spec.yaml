@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2026 Profile Tailors
+
+schema_version: "2.0"
+capability: legal-pages
+change: dallay-488-legal-policies
+artifact_status: superseded
+production_release_status: blocked
+archived_on: "2026-07-17"
+
+summary: >-
+  Historical change manifest for the first legal-policy draft. The original
+  specification was factually unreliable and structurally invalid YAML. Its
+  requirements and verification results are not publication evidence.
+
+superseded_by:
+  canonical_specification: openspec/specs/legal-pages/spec.yaml
+  publication_gate: docs/compliance/legal-publication-gate.md
+  global_readiness_register: docs/compliance/global-legal-readiness.md
+  evidence_inventory: docs/compliance/data-inventory.yaml
+
+invalidated_assumptions:
+  - The operating legal entity and registered address were complete.
+  - Auth0, Vercel, Cloudflare R2, AWS S3, Sentry, Grafana, or every named social network was a selected production provider.
+  - Standard Contractual Clauses had been executed for international transfers.
+  - Retention periods stated in the draft were implemented controls.
+  - The cookie and browser-storage disclosure was complete.
+  - The product licence and terms were compatible and approved.
+  - Governing law, liability, legal bases, and all regional rights were approved.
+  - Static legal pages alone created enforceable acceptance records.
+  - Translation parity established legal equivalence.
+  - The archived PASS result established production readiness.
+
+archive_rules:
+  - Do not use this manifest or the archived verification as public legal copy.
+  - Do not restore invalidated claims without current repository evidence and qualified legal approval.
+  - Use only the canonical specification for implementation and verification.
+  - Keep production publication blocked until every mandatory gate has named evidence and approval.
+
+historical_scope:
+  intended_routes:
+    - /privacy/
+    - /terms/
+    - /cookies/
+    - /acceptable-use/
+    - /es/privacy/
+    - /es/terms/
+    - /es/cookies/
+    - /es/acceptable-use/
+  note: Route existence does not imply that the content is approved or publishable.
+
+references:
+  - openspec/changes/dallay-488-legal-policies/archive.md
+  - openspec/changes/dallay-488-legal-policies/verification.md
+  - openspec/specs/legal-pages/spec.yaml
+  - docs/compliance/legal-publication-gate.md
