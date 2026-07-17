@@ -19,7 +19,15 @@ import java.time.OffsetDateTime
 class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: DatabaseClient) :
     ComplianceRiskAcceptanceRepository {
 
-    override fun activeForControl(
+    /**
+         * Finds active risk acceptances applicable to a control and evaluation context.
+         *
+         * @param controlId The identifier of the control.
+         * @param context The evaluation context used to determine applicability.
+         * @param evaluatedAt The time used to exclude expired acceptances.
+         * @return A flow of applicable active risk acceptances.
+         */
+        override fun activeForControl(
         controlId: ComplianceControlId,
         context: ComplianceEvaluationContext,
         evaluatedAt: Instant,
@@ -30,6 +38,12 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
         .all()
         .asFlow()
 
+    /**
+     * Persists a compliance risk acceptance and returns the provided instance.
+     *
+     * @param riskAcceptance The compliance risk acceptance to persist.
+     * @return The provided compliance risk acceptance.
+     */
     override suspend fun save(riskAcceptance: ComplianceRiskAcceptance): ComplianceRiskAcceptance {
         var spec = databaseClient.sql(INSERT_RISK_ACCEPTANCE)
             .bind("id", riskAcceptance.id.value)
@@ -57,6 +71,12 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
         return riskAcceptance
     }
 
+    /**
+     * Maps a database row to a compliance risk acceptance.
+     *
+     * @param row The database row containing the risk acceptance fields.
+     * @return The mapped compliance risk acceptance.
+     */
     private fun mapRiskAcceptance(row: Row): ComplianceRiskAcceptance = ComplianceRiskAcceptance(
         id = ComplianceRiskAcceptanceId(requireNotNull(row.get("id", String::class.java))),
         controlId = ComplianceControlId(requireNotNull(row.get("control_id", String::class.java))),
@@ -82,14 +102,30 @@ class R2dbcComplianceRiskAcceptanceRepository(private val databaseClient: Databa
         updatedAt = requireNotNull(row.get("updated_at", OffsetDateTime::class.java)).toInstant(),
     )
 
-    private fun bindNullable(
+    /**
+         * Binds a nullable string value to a database statement parameter.
+         *
+         * @param spec The database statement specification.
+         * @param name The parameter name.
+         * @param value The string value, or `null`.
+         * @return The statement specification with the parameter bound.
+         */
+        private fun bindNullable(
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: String?,
     ): DatabaseClient.GenericExecuteSpec =
         if (value != null) spec.bind(name, value) else spec.bindNull(name, String::class.java)
 
-    private fun bindNullableInstant(
+    /**
+         * Binds an optional instant value to a database statement.
+         *
+         * @param spec The database statement specification.
+         * @param name The parameter name.
+         * @param value The instant value, or `null`.
+         * @return The statement specification with the value bound.
+         */
+        private fun bindNullableInstant(
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: Instant?,

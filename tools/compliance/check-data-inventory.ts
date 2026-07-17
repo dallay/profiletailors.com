@@ -63,6 +63,12 @@ export interface ValidationResult {
   errors: string[]
 }
 
+/**
+ * Validates a YAML data inventory against the required inventory schema.
+ *
+ * @param yamlContent - The YAML content to parse and validate
+ * @returns A validation result containing any schema or YAML parsing errors
+ */
 export function validateDataInventory(yamlContent: string): ValidationResult {
   try {
     const parsed = YAML.parse(yamlContent)
@@ -86,6 +92,11 @@ export function validateDataInventory(yamlContent: string): ValidationResult {
   }
 }
 
+/**
+ * Validates the configured data inventory file and reports the result.
+ *
+ * Exits with status code `1` if the file cannot be read or fails validation.
+ */
 function main(): void {
   const yamlPath = process.argv[2]
     ? resolve(process.cwd(), process.argv[2])

@@ -11,6 +11,11 @@ import java.util.UUID
 internal class RegisterComplianceEvidenceHandler(private val repository: ComplianceEvidenceRepository) :
     CommandHandler<RegisterComplianceEvidenceCommand> {
 
+    /**
+     * Registers compliance evidence from the supplied command.
+     *
+     * @param command The command containing the compliance evidence details to register.
+     */
     override suspend fun handle(command: RegisterComplianceEvidenceCommand) {
         val evidence = ComplianceEvidence(
             id = ComplianceEvidenceId("ev-${UUID.randomUUID()}"),

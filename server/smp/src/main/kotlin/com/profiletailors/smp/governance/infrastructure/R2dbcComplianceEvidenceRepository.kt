@@ -19,19 +19,37 @@ import java.time.OffsetDateTime
 @Repository
 class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClient) : ComplianceEvidenceRepository {
 
-    override suspend fun findById(id: ComplianceEvidenceId): ComplianceEvidence? = databaseClient.sql(SELECT_BY_ID)
+    /**
+         * Finds compliance evidence by its identifier.
+         *
+         * @param id The identifier of the compliance evidence to find.
+         * @return The matching compliance evidence, or `null` if none exists.
+         */
+        override suspend fun findById(id: ComplianceEvidenceId): ComplianceEvidence? = databaseClient.sql(SELECT_BY_ID)
         .bind("id", id.value)
         .map { row, _ -> mapEvidence(row) }
         .first()
         .awaitSingleOrNull()
 
-    override fun findByControlId(controlId: ComplianceControlId): Flow<ComplianceEvidence> =
+    /**
+             * Finds all compliance evidence associated with a control.
+             *
+             * @param controlId The identifier of the control.
+             * @return A flow of compliance evidence associated with the control.
+             */
+            override fun findByControlId(controlId: ComplianceControlId): Flow<ComplianceEvidence> =
         databaseClient.sql(SELECT_BY_CONTROL)
             .bind("controlId", controlId.value)
             .map { row, _ -> mapEvidence(row) }
             .all()
             .asFlow()
 
+    /**
+     * Persists compliance evidence and returns the provided evidence instance.
+     *
+     * @param evidence The compliance evidence to persist.
+     * @return The provided compliance evidence.
+     */
     override suspend fun save(evidence: ComplianceEvidence): ComplianceEvidence {
         var spec = databaseClient.sql(INSERT_EVIDENCE)
             .bind("id", evidence.id.value)
@@ -58,6 +76,14 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
         return evidence
     }
 
+    /**
+     * Links evidence to a compliance control.
+     *
+     * @param controlId The compliance control identifier.
+     * @param evidenceId The evidence identifier.
+     * @param linkedBy The identifier of the user or process creating the link.
+     * @return The created compliance control-evidence link.
+     */
     override suspend fun linkControlEvidence(
         controlId: ComplianceControlId,
         evidenceId: ComplianceEvidenceId,
@@ -80,6 +106,14 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
         )
     }
 
+    /**
+     * Maps a database row to a compliance evidence domain object.
+     *
+     * @param row The database row containing compliance evidence data.
+     * @return The mapped compliance evidence.
+     * @throws NullPointerException If a required column is missing or null.
+     * @throws IllegalArgumentException If the review status is invalid.
+     */
     private fun mapEvidence(row: Row): ComplianceEvidence = ComplianceEvidence(
         id = ComplianceEvidenceId(requireNotNull(row.get("id", String::class.java))),
         evidenceType = requireNotNull(row.get("evidence_type", String::class.java)),
@@ -103,14 +137,29 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
         updatedAt = requireNotNull(row.get("updated_at", OffsetDateTime::class.java)).toInstant(),
     )
 
-    private fun bindNullable(
+    /**
+         * Binds a string value to a statement parameter, or binds a typed SQL `NULL` when the value is absent.
+         *
+         * @param spec The statement specification to update.
+         * @param name The parameter name.
+         * @param value The nullable string value to bind.
+         * @return The updated statement specification.
+         */
+        private fun bindNullable(
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: String?,
     ): DatabaseClient.GenericExecuteSpec =
         if (value != null) spec.bind(name, value) else spec.bindNull(name, String::class.java)
 
-    private fun bindNullableInstant(
+    /**
+         * Binds an instant value or a typed SQL `NULL` to the specified parameter.
+         *
+         * @param name The parameter name.
+         * @param value The instant to bind, or `null`.
+         * @return The execute specification with the parameter bound.
+         */
+        private fun bindNullableInstant(
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: Instant?,
