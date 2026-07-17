@@ -9,8 +9,8 @@
 ### Delivery Strategy
 
 - Approved strategy: `size-exception`
-- Current slice: DALLAY-438 persistence only.
-- Rationale: Broader SDD change exceeds the standard review budget, but this apply scope is constrained to backend persistence and seed data. Endpoint, rate limiting, marketing integration, and documentation remain out of scope.
+- Current slice: DALLAY-439 Phase 5 complete.
+- Rationale: Broader SDD change exceeds the standard review budget, but this apply scope is constrained to the HTTP endpoint and handler/public-response distinction only. Rate limiting, marketing integration, and documentation remain out of scope.
 
 ### Completed Tasks
 
@@ -46,6 +46,13 @@
 - [x] 4.5 Repository test asserts `profile-tailors-launch` exists after migrations.
 - [x] 4.6 Liquibase seed changelog inserts active `profile-tailors-launch` waitlist.
 
+### Phase 5 — HTTP Endpoint (DALLAY-439)
+
+- [x] 5.1 RED WebTestClient/controller tests added for new join accepted response, duplicate uniform accepted response, invalid email 400, missing/false early-access consent 400, unknown waitlist key 404, paused/closed waitlist 409, and unexpected handler failure 500. Focused RED failed at test compilation because `WaitlistController` was intentionally not implemented yet.
+- [x] 5.2 GREEN `WaitlistController` implemented with request/response DTOs, HTTP-to-command mapping, validation/error mapping, and uniform `202 Accepted` public response for new and duplicate joins.
+- [x] 5.3 RED coverage confirmed in existing `JoinWaitlistHandlerTest`: new joins assert `JoinResult.JOINED_NEW`, duplicate joins assert `JoinResult.ALREADY_JOINED`, and the uniform `toString()` assertion proves the public-ish string representation does not expose the internal distinction.
+- [x] 5.4 GREEN coverage confirmed in existing `WaitlistControllerTest`: both new and duplicate joins assert the same `202 Accepted` response body and explicitly assert `$.duplicate` does not exist. No production code change was needed.
+
 ### Phase 8 — Comprehensive Tests, completed subset
 
 - [x] 8.1 Domain tests in `shared/lead-capture/waitlist/src/test/`.
@@ -55,6 +62,10 @@
 
 ### Code Changes in This Apply Continuation
 
+- Added `WaitlistControllerTest` under `server/smp/src/test/kotlin/com/profiletailors/smp/leadcapture/infrastructure/http/` with WebTestClient coverage for the DALLAY-439 endpoint. The tests include in-memory/failing test doubles for `JoinWaitlistHandler` dependencies.
+- Added `WaitlistController` under `server/smp/src/main/kotlin/com/profiletailors/smp/leadcapture/infrastructure/http/` with request/response DTOs, validation/error mapping, command mapping, and uniform `202 Accepted` public response.
+- Added `WaitlistApplicationConfiguration` under `server/smp/src/main/kotlin/com/profiletailors/smp/leadcapture/infrastructure/configuration/` with explicit `@Bean` wiring for `JoinWaitlistHandler` and `WaitlistEntryIdGenerator`, so the controller can resolve dependencies during Spring context startup.
+- Aligned `spec.md` to `202 Accepted` for new and duplicate public responses after user confirmation; the public contract does not expose a duplicate flag.
 - Fixed the DALLAY-438 verify gap by strengthening `LeadCaptureLiquibaseChangelogTest` to assert `idx_waitlist_entries_status`, `idx_waitlist_entries_source`, and `idx_waitlist_entries_form_id`, then adding those indexes to `001-create-waitlists.yaml`.
 - Added lead-capture Liquibase changelogs to create `waitlists` and `waitlist_entries`, including per-waitlist dedupe on `(waitlist_id, normalized_email)` and supporting indexes.
 - Added a seed changelog for active `profile-tailors-launch` waitlist.
@@ -84,12 +95,20 @@
 | `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.LeadCaptureLiquibaseChangelogTest'` | 0 | GREEN after adding the missing `status`, `source`, and `form_id` indexes to `001-create-waitlists.yaml`. |
 | `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.LeadCaptureLiquibaseChangelogTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.R2dbcWaitlistRepositoriesPostgresTest'` | 0 | Focused DALLAY-438 verification passed with Testcontainers password set. |
 | `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test` | 0 | Broader unfiltered server module test passed after the changelog fix. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.http.WaitlistControllerTest'` | 1 | RED for DALLAY-439 Phase 5.1: test compilation fails with `Unresolved reference 'WaitlistController'`, confirming the endpoint/controller implementation is missing while test setup reaches the expected focused compile target. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.http.WaitlistControllerTest'` | 0 | GREEN for DALLAY-439 Phase 5.2 after adding `WaitlistController` and aligning the public success contract to `202 Accepted`. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.http.WaitlistControllerTest'` | 0 | Phase 5.4 focused verification passed; new and duplicate responses remain uniform and expose no duplicate flag. |
+| `./gradlew :shared:lead-capture:waitlist:test --tests 'com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandlerTest'` | 0 | Phase 5.3 focused verification passed; handler keeps internal `JOINED_NEW` vs `ALREADY_JOINED` distinction while uniform accepted representation remains covered. |
+| `./gradlew :server:smp:detekt --no-daemon` | 1 | RED for DALLAY-439 follow-up: `WaitlistController` repeated public error-string literals failed detekt’s `StringLiteralDuplication` rule. Fixed by extracting the codes into private companion constants. |
+| `./gradlew :server:smp:detekt --no-daemon` | 0 | GREEN after refactoring `WaitlistController` to use private error-code constants. |
+| `./gradlew :server:smp:test --no-daemon` | 1 | RED for DALLAY-439 wiring gap: integration tests failed to start Spring context because `JoinWaitlistHandler` had no `@Bean` registered for it (controller depended on it). Fixed by adding `WaitlistApplicationConfiguration`. |
+| `./gradlew :server:smp:test --no-daemon` | 0 | GREEN after registering `JoinWaitlistHandler` and `WaitlistEntryIdGenerator` beans; full server module test suite passed. |
+| `just ci` | 0 | Full CI pipeline (gitleaks, frontend lint, frontend tests, marketing build/coverage, backend detekt, backend tests, backend BDD fast, frontend E2E across chromium/firefox/webkit/Mobile Chrome/Mobile Safari) completed green. |
 
 ## Troubleshooting
 
 ### Remaining Tasks
 
-- Phase 5 HTTP endpoint tasks remain incomplete: WebTestClient coverage and controller/DTO implementation.
 - Phase 6 rate limiting tasks remain incomplete.
 - Phase 7 marketing integration tasks remain incomplete.
 - Phase 8 remaining comprehensive tests for HTTP, frontend, and CI wiring remain incomplete.
@@ -97,6 +116,7 @@
 
 ### Deviations
 
+- The DALLAY-439 public success contract was resolved to `202 Accepted` for new and duplicate joins after user confirmation. `spec.md`, `tasks.md`, and tests are now aligned.
 - No functional deviation from the DALLAY-438 persistence design after this continuation. The persisted column uses `normalized_email`, matching existing domain naming and tests, while the OpenSpec task text says `email_normalized`; the requirement/design explicitly require `UNIQUE(waitlist_id, normalized_email)` / normalized email dedupe semantics.
 - The shared lead-capture module Gradle `group` and archive names were adjusted because both `:shared:common` and `:shared:lead-capture:common` otherwise produced identical `com.profiletailors:common` coordinates, causing the server classpath to resolve the wrong artifact.
 
@@ -104,4 +124,4 @@
 
 ### Status
 
-24 of 47 tasks are complete. DALLAY-438 persistence is implemented and verified; ready for SDD verify or the next backend slice (DALLAY-439 HTTP endpoint) if continuing the broader change.
+28 of 47 tasks are complete. DALLAY-439 Phase 5 is complete and `just ci` is green; ready to commit, push, and open/update PR only on explicit user authorization.
