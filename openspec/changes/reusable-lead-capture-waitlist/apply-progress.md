@@ -9,8 +9,8 @@
 ### Delivery Strategy
 
 - Approved strategy: `size-exception`
-- Current slice: DALLAY-439 Phase 5 complete.
-- Rationale: Broader SDD change exceeds the standard review budget, but this apply scope is constrained to the HTTP endpoint and handler/public-response distinction only. Rate limiting, marketing integration, and documentation remain out of scope.
+- Current slice: DALLAY-440 Phase 6 CI regression remediation complete.
+- Rationale: Broader SDD change exceeds the standard review budget, but this apply scope is constrained to preserving SMP's pre-existing effective non-WAITLIST shared rate-limit behavior while keeping WAITLIST enabled and configurable. Marketing integration and documentation remain out of scope.
 
 ### Completed Tasks
 
@@ -52,6 +52,15 @@
 - [x] 5.2 GREEN `WaitlistController` implemented with request/response DTOs, HTTP-to-command mapping, validation/error mapping, and uniform `202 Accepted` public response for new and duplicate joins.
 - [x] 5.3 RED coverage confirmed in existing `JoinWaitlistHandlerTest`: new joins assert `JoinResult.JOINED_NEW`, duplicate joins assert `JoinResult.ALREADY_JOINED`, and the uniform `toString()` assertion proves the public-ish string representation does not expose the internal distinction.
 - [x] 5.4 GREEN coverage confirmed in existing `WaitlistControllerTest`: both new and duplicate joins assert the same `202 Accepted` response body and explicitly assert `$.duplicate` does not exist. No production code change was needed.
+
+### Phase 6 — Rate Limiting (DALLAY-440)
+
+- [x] 6.1 Added a Postgres-backed WebTestClient integration test asserting the 11th request from the same `X-Forwarded-For` IP to `POST /api/waitlists/{waitlistKey}/entries` returns `429` with the existing shared rate-limit error contract.
+- [x] 6.2 Wired the real waitlist endpoint prefix `/api/waitlists` to `RateLimitStrategy.WAITLIST` by updating `RateLimitProperties` defaults and server `application.yaml` overrides.
+- [x] 6.3 Added integration coverage proving the rate limit consumes tokens across duplicate joins (`202`) and validation-error responses (`400`) before the controller can bypass it.
+- [x] 6.4 Registered the shared rate-limit components in the SMP context and permitted the public waitlist endpoint through Spring Security so the WebFlux `RateLimitingFilter` runs before controller handling.
+- [x] 6.5 Added a same-IP, cross-waitlist Postgres integration regression proving waitlist B remains accepted after waitlist A exhausts its quota. `RateLimitingService` now passes a WAITLIST-only `IP:path` bucket identity to `Bucket4jRateLimiter`, while retaining the original IP for configuration, metrics, logging, and rate-limit events. AUTH, BUSINESS, and RESUME continue using their existing `strategy:identifier` cache identities.
+- [x] 6.2 CI regression remediation: added focused Spring binding coverage proving SMP enables only shared WAITLIST while shared AUTH, BUSINESS, and RESUME are disabled in the SMP application context. `application.yaml` now explicitly disables those non-WAITLIST shared strategies, preserving the pre-DALLAY-440 effective behavior because SMP already owns authentication throttling through `AuthRateLimitWebFilter`.
 
 ### Phase 8 — Comprehensive Tests, completed subset
 
@@ -104,12 +113,28 @@
 | `./gradlew :server:smp:test --no-daemon` | 1 | RED for DALLAY-439 wiring gap: integration tests failed to start Spring context because `JoinWaitlistHandler` had no `@Bean` registered for it (controller depended on it). Fixed by adding `WaitlistApplicationConfiguration`. |
 | `./gradlew :server:smp:test --no-daemon` | 0 | GREEN after registering `JoinWaitlistHandler` and `WaitlistEntryIdGenerator` beans; full server module test suite passed. |
 | `just ci` | 0 | Full CI pipeline (gitleaks, frontend lint, frontend tests, marketing build/coverage, backend detekt, backend tests, backend BDD fast, frontend E2E across chromium/firefox/webkit/Mobile Chrome/Mobile Safari) completed green. |
+| `./gradlew :shared:shield:ratelimit:test --rerun-tasks` | 1 | RED after updating expected WAITLIST endpoint to `/api/waitlists`: initial edit left a malformed `listOf` close in `RateLimitingFilterTest`. |
+| `./gradlew :shared:shield:ratelimit:test --rerun-tasks` | 0 | GREEN after fixing the test syntax and updating WAITLIST filter/factory expectations to `/api/waitlists`. |
+| `SMP_POSTGRES_TEST_PASSWORD=... ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.integration.WaitlistRateLimitIntegrationTest' --rerun-tasks` | 1 | RED: 11th waitlist request returned `202 Accepted`, proving the waitlist route was not yet being rate limited in the SMP context. |
+| `SMP_POSTGRES_TEST_PASSWORD=... ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.integration.WaitlistRateLimitIntegrationTest'` | 0 | GREEN after adding the SMP dependency on `:shared:shield:ratelimit`, registering shared rate-limit components, opening `/api/waitlists/*/entries` in Spring Security, and wiring `/api/waitlists` as the WAITLIST endpoint. |
+| `SMP_POSTGRES_TEST_PASSWORD=... ./gradlew :shared:shield:ratelimit:test :server:smp:test --tests 'com.profiletailors.smp.leadcapture.integration.WaitlistRateLimitIntegrationTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.http.WaitlistControllerTest'` | 0 | Focused DALLAY-440 regression pass for shared rate-limit tests, waitlist rate-limit integration, and existing controller contract tests. |
+| `just backend-test-fast` | 1 | Broader server test surfaced an unrelated auth-rate-limit interaction: `LocalAuthEndpointIntegrationTest.rejects invalid password` received `429` because enabling default shared rate-limit config turned AUTH rate limiting on globally. Fixed by disabling non-WAITLIST shared strategies by default in SMP `application.yaml`, leaving WAITLIST enabled. |
+| `./gradlew :shared:shield:ratelimit:test --tests 'com.profiletailors.ratelimit.infrastructure.RateLimitingFilterTest' --rerun-tasks` | 1 | RED: new waitlist contract test failed because the filter emitted a flat, waitlist-only response instead of the shared nested `error` envelope. |
+| `./gradlew :shared:shield:ratelimit:test --tests 'com.profiletailors.ratelimit.infrastructure.RateLimitingFilterTest' --tests 'com.profiletailors.ratelimit.infrastructure.BucketConfigurationFactoryTest' --rerun-tasks` | 0 | GREEN: waitlist denials retain the existing shared rate-limit error envelope; real plural child paths match and singular paths do not. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.integration.WaitlistRateLimitIntegrationTest' --rerun-tasks` | 0 | GREEN: all three Postgres-backed rate-limit scenarios pass, including public security access and filter-before-controller behavior. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.integration.WaitlistRateLimitIntegrationTest.same IP can join a different waitlist after exhausting the first waitlist quota' --rerun-tasks` | 1 | RED: the request to `profile-tailors-beta` returned `429` after the same IP exhausted `profile-tailors-launch`, proving the cache key was cross-waitlist. |
+| `./gradlew :shared:shield:ratelimit:test --tests 'com.profiletailors.ratelimit.infrastructure.Bucket4jRateLimiterTest.should isolate WAITLIST buckets by bucket identity while retaining the IP identifier' --rerun-tasks` | 1 | RED: the new three-argument bucket-identity contract did not exist, so the focused unit test failed at compilation. |
+| `./gradlew :shared:shield:ratelimit:test --rerun-tasks` | 0 | GREEN: 152 shared rate-limit tests pass, including WAITLIST bucket identity and event publication coverage. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.integration.WaitlistRateLimitIntegrationTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.http.WaitlistControllerTest' --rerun-tasks` | 0 | GREEN: Postgres integration coverage passes for same-waitlist `429`, duplicate/validation token consumption, response headers, cross-waitlist isolation, and controller response contracts. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationTest' --rerun-tasks` | 1 | RED: focused Spring binding test failed because importing shared rate-limit wiring left shared AUTH enabled in the SMP application context. |
+| `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationTest' --rerun-tasks` | 0 | GREEN: `application.yaml` now explicitly disables shared AUTH, BUSINESS, and RESUME while keeping shared WAITLIST enabled/configurable. |
+| `export SMP_POSTGRES_TEST_PASSWORD=$(grep '^SMP_POSTGRES_TEST_PASSWORD=' .env \| cut -d= -f2-) && ./gradlew :server:smp:test --tests 'com.profiletailors.smp.integration.LocalAuthEndpointIntegrationTest.rejects invalid password' --rerun-tasks` | 0 | GREEN: original CI regression target now returns the expected invalid-password response instead of being polluted by shared AUTH buckets. |
+| `export SMP_POSTGRES_TEST_PASSWORD=$(grep '^SMP_POSTGRES_TEST_PASSWORD=' .env \| cut -d= -f2-) && ./gradlew :server:smp:test --no-daemon` | 0 | GREEN: broader unfiltered SMP backend suite passed after the CI regression remediation. |
 
 ## Troubleshooting
 
 ### Remaining Tasks
 
-- Phase 6 rate limiting tasks remain incomplete.
 - Phase 7 marketing integration tasks remain incomplete.
 - Phase 8 remaining comprehensive tests for HTTP, frontend, and CI wiring remain incomplete.
 - Phase 9 documentation/archive tasks remain incomplete.
@@ -129,4 +154,4 @@
 
 ### Status
 
-28 of 47 tasks are complete. DALLAY-439 Phase 5 is complete and `just ci` is green; ready to commit, push, and open/update PR only on explicit user authorization.
+33 of 48 tasks are complete. DALLAY-440 Phase 6 is complete; ready for focused review and verify. No commit, push, or PR action was performed.

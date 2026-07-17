@@ -215,7 +215,7 @@ class RateLimitingFilter(
             RateLimitStrategy.AUTH -> "Too many authentication attempts. Please try again later."
             RateLimitStrategy.BUSINESS -> "Rate limit exceeded for business API. Please try again later."
             RateLimitStrategy.RESUME -> "Rate limit exceeded for resume generation. Please try again later."
-            RateLimitStrategy.WAITLIST -> "Too many waitlist requests. Please try again later."
+            RateLimitStrategy.WAITLIST -> "Too many attempts. Please try again later."
         }
 
         val errorResponse = mapOf(

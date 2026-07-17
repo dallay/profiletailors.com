@@ -267,7 +267,7 @@ data class RateLimitProperties(
          * List of endpoints that should be rate limited as waitlist endpoints.
          */
         val endpoints: List<String> = listOf(
-            "/api/waitlist",
+            "/api/waitlists",
         ),
 
         /**

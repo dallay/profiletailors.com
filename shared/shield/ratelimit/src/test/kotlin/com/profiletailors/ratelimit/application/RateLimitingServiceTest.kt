@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
@@ -408,13 +409,14 @@ class RateLimitingServiceTest {
             limitCapacity = 10,
             windowDuration = Duration.ofMinutes(1),
         )
+        val publishedEvent = slot<RateLimitExceededEvent>()
 
         coEvery {
-            rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST)
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST, "$identifier:$endpoint")
         } returns expectedResult
 
         coEvery {
-            eventPublisher.publish(any<RateLimitExceededEvent>())
+            eventPublisher.publish(capture(publishedEvent))
         } just Runs
 
         // When
@@ -422,7 +424,11 @@ class RateLimitingServiceTest {
 
         // Then
         result.shouldBeInstanceOf<RateLimitResult.Denied>()
+        coVerify(exactly = 1) {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST, "$identifier:$endpoint")
+        }
         coVerify(exactly = 1) { eventPublisher.publish(any<RateLimitExceededEvent>()) }
+        publishedEvent.captured.identifier shouldBe identifier
     }
 
     @Test

@@ -21,4 +21,17 @@ interface RateLimiter {
      * @return A [RateLimitResult] indicating if the request was allowed or denied.
      */
     suspend fun consumeToken(identifier: String, strategy: RateLimitStrategy): RateLimitResult
+
+    /**
+     * Consumes a token using a cache identity that may be more specific than the reporting identifier.
+     *
+     * @param identifier The identifier retained for configuration, metrics, and events.
+     * @param strategy The rate limiting strategy to apply.
+     * @param bucketIdentity The stable identity used to locate the token bucket.
+     */
+    suspend fun consumeToken(
+        identifier: String,
+        strategy: RateLimitStrategy,
+        bucketIdentity: String,
+    ): RateLimitResult = consumeToken(identifier, strategy)
 }

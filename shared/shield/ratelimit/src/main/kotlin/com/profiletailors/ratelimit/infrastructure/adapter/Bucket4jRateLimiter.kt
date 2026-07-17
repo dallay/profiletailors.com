@@ -89,13 +89,20 @@ class Bucket4jRateLimiter(
      * @param strategy The rate limiting strategy to apply.
      * @return A [RateLimitResult] indicating if the request was allowed or denied.
      */
-    override suspend fun consumeToken(identifier: String, strategy: RateLimitStrategy): RateLimitResult {
+    override suspend fun consumeToken(identifier: String, strategy: RateLimitStrategy): RateLimitResult =
+        consumeToken(identifier, strategy, identifier)
+
+    override suspend fun consumeToken(
+        identifier: String,
+        strategy: RateLimitStrategy,
+        bucketIdentity: String,
+    ): RateLimitResult {
         // Record token consumption time and update cache size metric
         return metrics.recordTokenConsumption(strategy) {
             // Caffeine synchronous lookups and Bucket4j operations are blocking
             // We wrap them in Dispatchers.IO to prevent starving the coroutine dispatcher
             withContext(Dispatchers.IO) {
-                val cacheKey = "${strategy.name}:$identifier"
+                val cacheKey = "${strategy.name}:$bucketIdentity"
                 val entry = cache.get(cacheKey) { createCachedBucketEntry(identifier, strategy) }
                 val bucket = entry.bucket
                 val limitCapacity = entry.limitCapacity

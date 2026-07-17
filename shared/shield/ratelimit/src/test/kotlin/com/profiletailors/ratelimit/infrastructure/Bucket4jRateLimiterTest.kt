@@ -418,6 +418,23 @@ class Bucket4jRateLimiterTest {
         result.limitCapacity shouldBe 5
     }
 
+    @Test
+    fun `should isolate WAITLIST buckets by bucket identity while retaining the IP identifier`() = runTest {
+        val identifier = "IP:192.168.1.102"
+        val launchBucketIdentity = "$identifier:/api/waitlists/profile-tailors-launch/entries"
+        val betaBucketIdentity = "$identifier:/api/waitlists/profile-tailors-beta/entries"
+
+        repeat(5) {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST, launchBucketIdentity)
+        }
+
+        rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST, launchBucketIdentity)
+            .shouldBeInstanceOf<RateLimitResult.Denied>()
+
+        rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST, betaBucketIdentity)
+            .shouldBeInstanceOf<RateLimitResult.Allowed>()
+    }
+
     // --- Cache management tests ---
 
     @Test

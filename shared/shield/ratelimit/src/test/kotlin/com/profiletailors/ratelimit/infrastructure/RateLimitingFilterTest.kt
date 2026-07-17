@@ -41,7 +41,7 @@ class RateLimitingFilterTest {
             listOf("/api/auth/login", "/api/auth/register")
         every { configurationFactory.getEndpoints(RateLimitStrategy.BUSINESS) } returns emptyList()
         every { configurationFactory.getEndpoints(RateLimitStrategy.RESUME) } returns listOf("/api/resume/generate")
-        every { configurationFactory.getEndpoints(RateLimitStrategy.WAITLIST) } returns listOf("/api/waitlist/join")
+        every { configurationFactory.getEndpoints(RateLimitStrategy.WAITLIST) } returns listOf("/api/waitlists")
         every { chain.filter(any()) } returns Mono.empty()
 
         filter = RateLimitingFilter(
@@ -196,6 +196,30 @@ class RateLimitingFilterTest {
         exchange.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
         val contentType = exchange.response.headers.contentType
         contentType?.toString() shouldBe "application/json"
+    }
+
+    @Test
+    fun `should use the standard rate limit error contract for waitlist requests`() {
+        val request = MockServerHttpRequest.post("/api/waitlists/profile-tailors-launch/entries").build()
+        val exchange = MockServerWebExchange.from(request)
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken(any(), any(), RateLimitStrategy.WAITLIST)
+        } returns Mono.just(
+            RateLimitResult.Denied(
+                retryAfter = Duration.ofMinutes(1),
+                limitCapacity = 10,
+                windowDuration = Duration.ofMinutes(1),
+            ),
+        )
+
+        filter.filter(exchange, chain).block()
+
+        exchange.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+        val body = exchange.response.bodyAsString()
+        body.contains(""""error"""") shouldBe true
+        body.contains(""""code":"RATE_LIMIT_EXCEEDED"""") shouldBe true
+        body.contains(""""path":"/api/waitlists/profile-tailors-launch/entries"""") shouldBe true
     }
 
     @Test
@@ -449,7 +473,7 @@ class RateLimitingFilterTest {
             RateLimitStrategy.AUTH to "Too many authentication attempts. Please try again later.",
             RateLimitStrategy.BUSINESS to "Rate limit exceeded for business API. Please try again later.",
             RateLimitStrategy.RESUME to "Rate limit exceeded for resume generation. Please try again later.",
-            RateLimitStrategy.WAITLIST to "Too many waitlist requests. Please try again later.",
+            RateLimitStrategy.WAITLIST to "Too many attempts. Please try again later.",
         )
 
         strategies.forEach { (strategy, expectedMessage) ->
@@ -458,7 +482,7 @@ class RateLimitingFilterTest {
                 RateLimitStrategy.AUTH -> "/api/auth/login"
                 RateLimitStrategy.BUSINESS -> "/api/business/data"
                 RateLimitStrategy.RESUME -> "/api/resume/generate"
-                RateLimitStrategy.WAITLIST -> "/api/waitlist/join"
+                RateLimitStrategy.WAITLIST -> "/api/waitlists/profile-tailors-launch/entries"
             }
 
             if (strategy == RateLimitStrategy.BUSINESS) return@forEach
@@ -508,14 +532,18 @@ class RateLimitingFilterTest {
     @Test
     fun `should apply rate limiting to WAITLIST strategy endpoint`() {
         // Given
-        val request = MockServerHttpRequest.post("/api/waitlist/join")
+        val request = MockServerHttpRequest.post("/api/waitlists/profile-tailors-launch/entries")
             .remoteAddress(InetSocketAddress("10.0.0.2", 8080))
             .build()
         val exchange = MockServerWebExchange.from(request)
         val identifier = "IP:10.0.0.2"
 
         every {
-            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/waitlist/join", RateLimitStrategy.WAITLIST)
+            reactiveRateLimitingAdapter.consumeToken(
+                identifier,
+                "/api/waitlists/profile-tailors-launch/entries",
+                RateLimitStrategy.WAITLIST,
+            )
         } returns Mono.just(RateLimitResult.Allowed(7, 10, Instant.now()))
 
         // When
@@ -523,8 +551,23 @@ class RateLimitingFilterTest {
 
         // Then
         verify(exactly = 1) {
-            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/waitlist/join", RateLimitStrategy.WAITLIST)
+            reactiveRateLimitingAdapter.consumeToken(
+                identifier,
+                "/api/waitlists/profile-tailors-launch/entries",
+                RateLimitStrategy.WAITLIST,
+            )
         }
+    }
+
+    @Test
+    fun `should not apply waitlist rate limiting to the singular prefix`() {
+        val request = MockServerHttpRequest.post("/api/waitlist/profile-tailors-launch/entries").build()
+        val exchange = MockServerWebExchange.from(request)
+
+        StepVerifier.create(filter.filter(exchange, chain)).verifyComplete()
+
+        verify(exactly = 1) { chain.filter(exchange) }
+        verify(exactly = 0) { reactiveRateLimitingAdapter.consumeToken(any(), any(), RateLimitStrategy.WAITLIST) }
     }
 
     @Test

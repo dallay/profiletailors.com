@@ -88,7 +88,7 @@ class BucketConfigurationFactoryTest {
             ),
             waitlist = RateLimitProperties.WaitlistRateLimitConfig(
                 enabled = true,
-                endpoints = listOf("/api/waitlist/join"),
+                endpoints = listOf("/api/waitlists"),
                 limit = RateLimitProperties.BandwidthLimit(
                     name = "waitlist-limit",
                     capacity = 5,
@@ -484,7 +484,7 @@ class BucketConfigurationFactoryTest {
         val endpoints = factory.getEndpoints(RateLimitStrategy.WAITLIST)
 
         // Then
-        endpoints shouldContainExactly listOf("/api/waitlist/join")
+        endpoints shouldContainExactly listOf("/api/waitlists")
     }
 
     // --- getEndpoints tests ---
