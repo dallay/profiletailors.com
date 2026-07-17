@@ -1,8 +1,10 @@
 schema_version: "1.0"
-processing_entity: Dallay
-DPO_contact: null
+processing_entity: Dallay (Profile Tailors)
+dpo_contact: null
 
 processing_activities:
+  # ── Account & Identity ────────────────────────────────────────────────
+
   - id: pa-001
     name: User account registration and management
     purposes:
@@ -12,31 +14,48 @@ processing_activities:
           type: contract
           reference: GDPR Art. 6(1)(b)
     personal_data_categories:
-      - Email address
-      - Username
-      - Password hash
-      - IP address
+      - Email address (user_identities.email)
+      - Username (user_identities.username)
+      - Password hash (local_password_credentials.password_hash)
+      - Principal identifier (principals.id, subject, provider)
+      - Display identity (principals.display_identity)
     data_subjects: Registered users
     recipients:
-      - name: Internal processing only
+      - name: Internal processing only (PostgreSQL database)
         type: none
         location_type: region
         location: EEA
         agreement_reference: not_applicable
+      - name: Database hosting provider
+        type: processor
+        location_type: region
+        location: EEA or US (varies by deployment)
+        agreement_reference: DPA with infrastructure provider
     retention:
       trigger: account_deleted
-      duration: P30D
+      duration: P30D (soft delete), then permanent erasure
       action: delete
       exceptions:
-        - Invoicing records retained per statutory obligation
+        - Invoicing records retained per statutory obligation (6 years)
+        - Aggregated analytics after de-identification
     security_measures:
-      - Access restricted to authorized service operators
-      - Credentials hashed at rest (bcrypt)
+      - Passwords hashed at rest (bcrypt)
       - TLS 1.3 for all data in transit
+      - Database encryption at rest (AES-256)
+      - Access restricted to authorized service operators
+      - Audit logging of identity mutations
     evidence_references:
       - path: server/smp/src/main/kotlin/com/profiletailors/smp/identity/domain/PasswordHasher.kt
-        reason: Credential hashing implementation
-    notes: Preliminary entry based on repository evidence. Expand as new processing is identified.
+        reason: Credential hashing implementation (bcrypt)
+      - path: server/smp/src/main/resources/db/changelog/identity/001-create-principals.yaml
+        reason: principals table schema
+      - path: server/smp/src/main/resources/db/changelog/identity/002-create-user-identities.yaml
+        reason: user_identities table schema
+      - path: server/smp/src/main/resources/db/changelog/identity/003-create-local-password-credentials.yaml
+        reason: password credentials table schema
+    notes: Core identity management. Principal records are the foundation for all user-related processing.
+
+  # ── Social Media Publishing ───────────────────────────────────────────
 
   - id: pa-002
     name: Social media publishing and scheduling
@@ -45,61 +64,104 @@ processing_activities:
         role: processor
         legal_basis:
           type: controller_instruction
-          reference: Data Processing Agreement / controller instructions
+          reference: Data Processing Agreement / controller (customer) instructions
     personal_data_categories:
-      - Social media account identifiers
-      - Published content
-    data_subjects: End recipients of published content
+      - Social media account identifiers (social_accounts.provider_account_id, display_name, profile_urn)
+      - Published content text and media (publications.body_text, title, publication_assets)
+      - Publication metadata (scheduled_for, status, priority)
+      - Delivery attempt records (delivery_attempts)
+      - Avatar images (social_accounts.avatar_url)
+    data_subjects: End recipients of published content; social media account owners
     recipients:
       - name: LinkedIn
-        type: processor
+        type: independent_controller
         location_type: country
         location: US
-        agreement_reference: LinkedIn DPA (available upon request)
+        agreement_reference: LinkedIn API Terms of Service
+      - name: Twitter/X
+        type: independent_controller
+        location_type: country
+        location: US
+        agreement_reference: X API Terms of Service
+      - name: Facebook
+        type: independent_controller
+        location_type: country
+        location: US
+        agreement_reference: Facebook Platform Terms
+      - name: Instagram
+        type: independent_controller
+        location_type: country
+        location: US
+        agreement_reference: Instagram Platform Terms
+      - name: TikTok
+        type: independent_controller
+        location_type: country
+        location: US
+        agreement_reference: TikTok API Terms of Service
     retention:
       trigger: account_deleted
       duration: P90D
       action: archive
-      exceptions: []
+      exceptions:
+        - Published content remains on social media platforms per their policies
+        - Delivery attempt logs retained for debugging (P180D)
     security_measures:
       - OAuth 2.0 for provider authentication
+      - OAuth tokens encrypted at rest (AES-256-GCM) in secure_credentials table
       - Access restricted to authorized service operators
+      - Publication jobs isolated per workspace
     evidence_references:
       - path: server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/social/LinkedInConnectionGateway.kt
-        reason: LinkedIn OAuth integration implementation
-    notes: Processor role assumed; controller instruction basis depends on customer agreement terms.
+        reason: LinkedIn OAuth integration
+      - path: server/smp/src/main/resources/db/changelog/publishing/002-create-social-accounts.yaml
+        reason: social_accounts table schema
+      - path: server/smp/src/main/resources/db/changelog/publishing/004-create-publications.yaml
+        reason: publications table schema
+      - path: server/smp/src/main/resources/db/changelog/publishing/008-create-secure-credentials.yaml
+        reason: Encrypted credential storage
+    notes: >
+      Processor role assumed for content publishing. Social media platforms act as
+      independent controllers for published content once it reaches their systems.
+
+  # ── Web Application Hosting ───────────────────────────────────────────
 
   - id: pa-003
     name: Web application hosting and delivery
     purposes:
-      - purpose: Host and deliver the Profile Tailors web application and API
+      - purpose: Host and deliver the Profile Tailors web application, API, and marketing site
         role: controller
         legal_basis:
           type: contract
           reference: GDPR Art. 6(1)(b)
     personal_data_categories:
-      - IP address
-      - Browser user agent
-      - Usage analytics
-    data_subjects: Website visitors and application users
+      - IP address (server access logs)
+      - Browser user agent (server access logs)
+      - Usage analytics (page views, feature usage)
+      - Request metadata (paths, referrers, timestamps)
+    data_subjects: Website visitors, application users, API consumers
     recipients:
       - name: Vercel Inc.
         type: processor
         location_type: country
-        location: US
-        agreement_reference: Vercel DPA
+        location: US (global CDN)
+        agreement_reference: Vercel DPA (available upon request)
     retention:
       trigger: session_end
-      duration: P90D
-      action: delete
+      duration: P90D (access logs), P26M (aggregated analytics)
+      action: delete or anonymize
       exceptions: []
     security_measures:
       - TLS 1.3 for all data in transit
-      - WAF and DDoS protection
+      - WAF and DDoS protection (Vercel)
+      - No personal data in client-side bundles beyond what user provides
     evidence_references:
       - path: apps/web/marketing/astro.config.ts
         reason: Vercel adapter deployment configuration
-    notes: Vercel is the hosting provider. Analytics data retention subject to Vercel's default policies.
+      - path: apps/web/app/vite.config.ts
+        reason: Vue SPA build configuration
+    notes: Vercel is the hosting provider. Analytics retention subject to Vercel's default policies.
+
+  # ── Lead Capture & Waitlist ───────────────────────────────────────────
 
   - id: pa-004
     name: Lead capture and waitlist management
@@ -110,27 +172,353 @@ processing_activities:
           type: consent
           reference: GDPR Art. 6(1)(a)
     personal_data_categories:
-      - Email address
-      - Marketing preferences
-      - Consent status
+      - Email address (waitlist_entries.email_original, normalized_email)
+      - Marketing preferences (waitlist_entries.consent_marketing)
+      - Consent status and version (waitlist_entries.consent_early_access, consent_version)
+      - Locale and source (waitlist_entries.locale, source, form_id)
+      - Metadata (waitlist_entries.metadata JSON)
     data_subjects: Waitlist signups and prospective users
     recipients:
-      - name: Internal processing only
+      - name: Internal processing only (PostgreSQL database)
         type: none
         location_type: region
         location: EEA
         agreement_reference: not_applicable
     retention:
-      trigger: consent_withdrawn
-      duration: P30D
-      action: anonymize
+      trigger: consent_withdrawn or account_converted
+      duration: P30D after withdrawal (anonymize), indefinitely if converted
+      action: anonymize (erase direct identifiers, retain aggregate counts)
       exceptions: []
     security_measures:
       - Email verification before activation
       - Access restricted to authorized service operators
+      - Consent versioning for audit trail
     evidence_references:
-      - path: shared/lead-capture/waitlist/src/main/kotlin
+      - path: shared/lead-capture/waitlist/src/main/kotlin/com/profiletailors/lead/capture
         reason: Complete waitlist module implementation
       - path: server/smp/src/main/resources/db/changelog/lead-capture/001-create-waitlists.yaml
-        reason: Database schema for waitlist data
-    notes: Consent-based processing. Withdrawal triggers anonymization within 30 days.
+        reason: Waitlist and waitlist_entries table schemas
+      - path: server/smp/src/main/resources/db/changelog/lead-capture/002-seed-profile-tailors-launch.yaml
+        reason: Launch waitlist seed data
+    notes: Consent-based processing. Dual consent model (early_access + marketing). Withdrawal triggers anonymization within 30 days.
+
+  # ── Workspace & Membership Management ─────────────────────────────────
+
+  - id: pa-005
+    name: Workspace and membership management
+    purposes:
+      - purpose: Manage team workspaces, memberships, roles, and ownership
+        role: controller
+        legal_basis:
+          type: contract
+          reference: GDPR Art. 6(1)(b)
+    personal_data_categories:
+      - Workspace membership records (workspace_memberships.principal_id, status)
+      - Workspace ownership records (workspace_ownerships.owner_principal_id)
+      - Workspace metadata (workspaces.name, icon)
+      - Role assignments (membership_roles)
+    data_subjects: Workspace members and owners
+    recipients:
+      - name: Internal processing only (PostgreSQL database)
+        type: none
+        location_type: region
+        location: EEA
+        agreement_reference: not_applicable
+    retention:
+      trigger: workspace_deleted or member_removed
+      duration: P30D after removal (soft reference retained for audit)
+      action: anonymize membership links
+      exceptions:
+        - Ownership records retained for workspace continuity audit
+    security_measures:
+      - Role-based access control (RBAC) per workspace
+      - Membership status transitions are audited
+      - Cross-workspace access prohibited
+    evidence_references:
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/tenancy/domain/Workspace.kt
+        reason: Workspace domain model
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/tenancy/domain/WorkspaceMembership.kt
+        reason: Workspace membership domain model
+      - path: server/smp/src/main/resources/db/changelog/tenancy/001-create-workspaces.yaml
+        reason: workspaces table schema
+      - path: server/smp/src/main/resources/db/changelog/tenancy/003-create-workspace-memberships.yaml
+        reason: workspace_memberships table schema
+    notes: Workspace data is customer-controlled. Profile Tailors acts as controller for workspace management features.
+
+  # ── OAuth & Social Account Connections ────────────────────────────────
+
+  - id: pa-006
+    name: OAuth authentication and social account connections
+    purposes:
+      - purpose: Authenticate users and connect social media accounts for publishing
+        role: controller (auth processing), processor (social connection per customer instruction)
+        legal_basis:
+          type: contract
+          reference: GDPR Art. 6(1)(b) (legitimate interest for auth security)
+    personal_data_categories:
+      - OAuth provider subject identifier (principals.subject, provider)
+      - Provider connection reference (social_connections.provider_connection_ref)
+      - Encrypted OAuth access/refresh tokens (secure_credentials.encrypted_payload)
+      - Connection status and sync timestamps (social_connections.status, last_synced_at)
+      - Service account credential references (service_account_credentials)
+    data_subjects: Registered users connecting social accounts
+    recipients:
+      - name: Auth0 / Clerk (planned)
+        type: independent_controller
+        location_type: country
+        location: US
+        agreement_reference: Auth0 DPA / Clerk DPA (to be established)
+      - name: LinkedIn, Twitter/X, Facebook, Instagram, TikTok
+        type: independent_controller
+        location_type: country
+        location: US / varies
+        agreement_reference: Platform API Terms
+    retention:
+      trigger: connection_revoked or account_deleted
+      duration: Encrypted tokens deleted immediately on revocation; connection metadata P30D
+      action: delete
+      exceptions: []
+    security_measures:
+      - OAuth tokens encrypted at rest (AES-256-GCM) in secure_credentials table
+      - Tokens never exposed in plaintext in logs or API responses
+      - Token refresh handled server-side
+      - Encryption key managed via PUBLISHING_CREDENTIALS_KEY environment variable
+    evidence_references:
+      - path: server/smp/src/main/resources/db/changelog/publishing/001-create-social-connections.yaml
+        reason: social_connections table schema
+      - path: server/smp/src/main/resources/db/changelog/publishing/008-create-secure-credentials.yaml
+        reason: Encrypted credential storage schema
+      - path: server/smp/src/main/resources/db/changelog/credentials/001-create-service-account-credentials.yaml
+        reason: Service account credential schema
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/security/ProductionCredentialsValidator.kt
+        reason: Credential encryption key validation
+    notes: >
+      OAuth tokens are the primary security-sensitive data. Encrypted at rest with
+      per-environment keys. Auth provider is an independent controller for authentication events.
+
+  # ── API Key & Service Credentials ─────────────────────────────────────
+
+  - id: pa-007
+    name: API key and service credential management
+    purposes:
+      - purpose: Issue and manage API keys for programmatic access and service-to-service authentication
+        role: controller
+        legal_basis:
+          type: contract
+          reference: GDPR Art. 6(1)(b)
+    personal_data_categories:
+      - API key lookup hash (api_key_credentials.lookup_key, secret_verifier)
+      - Principal association (api_key_credentials.principal_id)
+      - Credential rotation history (replaced_by, replaced_credential_id)
+    data_subjects: API key holders (technical users, service accounts)
+    recipients:
+      - name: Internal processing only (PostgreSQL database)
+        type: none
+        location_type: region
+        location: EEA
+        agreement_reference: not_applicable
+    retention:
+      trigger: key_revoked
+      duration: P90D after revocation (rotation audit trail)
+      action: delete verifier, retain metadata-only
+    security_measures:
+      - Secret verifier stored as cryptographic hash (not plaintext)
+      - Key prefix stored separately for identification
+      - Rotation support with credential chaining
+      - Revocation cannot be undone
+    evidence_references:
+      - path: server/smp/src/main/resources/db/changelog/credentials/002-create-api-key-credentials.yaml
+        reason: api_key_credentials table schema
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/credentials/domain
+        reason: Credentials domain models
+    notes: API keys are treated as authentication secrets. No personal data beyond the association to a principal.
+
+  # ── Media Asset Storage ───────────────────────────────────────────────
+
+  - id: pa-008
+    name: Media asset storage and management
+    purposes:
+      - purpose: Upload, store, and serve media assets (images, videos, documents) for social media content
+        role: processor
+        legal_basis:
+          type: controller_instruction
+          reference: Data Processing Agreement / customer instructions
+    personal_data_categories:
+      - Original filenames (media_assets.original_filename, publication_assets.original_filename)
+      - Media content (images, videos, documents — may contain personal data)
+      - Upload metadata (source_type, media_type, file_size_bytes)
+      - External asset metadata (source_url, author_name, author_url, external_id)
+    data_subjects: End users whose images/media are published; workspace members
+    recipients:
+      - name: Cloudflare R2 / AWS S3 (object storage)
+        type: processor
+        location_type: region
+        location: EEA or US (bucket region)
+        agreement_reference: Cloudflare DPA / AWS DPA (to be established)
+      - name: Social media platforms (when published)
+        type: independent_controller
+        location_type: country
+        location: US / varies
+        agreement_reference: Platform Terms
+    retention:
+      trigger: workspace_deleted or asset_removed
+      duration: P7D (GC grace period after deletion), then permanent erasure
+      action: delete from storage and database
+      exceptions:
+        - Published media remains on social media platforms per their policies
+    security_measures:
+      - Signed URLs for preview (time-limited)
+      - Access control per workspace
+      - Server-side encryption at rest in object storage
+      - Content hash (SHA-256) for integrity verification
+    evidence_references:
+      - path: server/smp/src/main/resources/db/changelog/media/001-create-media-assets.yaml
+        reason: media_assets table schema
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/media/domain/MediaModels.kt
+        reason: Media asset domain model
+      - path: server/smp/src/main/resources/db/changelog/publishing/003-create-publication-assets.yaml
+        reason: publication_assets table schema
+    notes: >
+      Media assets are processed on behalf of customers. Profile Tailors acts as processor
+      for customer-owned content. Media may contain personal data (images of individuals).
+
+  # ── Content Publishing & Delivery ─────────────────────────────────────
+
+  - id: pa-009
+    name: Content publishing and delivery operations
+    purposes:
+      - purpose: Execute scheduled content publishing and manage delivery lifecycle
+        role: processor
+        legal_basis:
+          type: controller_instruction
+          reference: Data Processing Agreement / customer instructions
+    personal_data_categories:
+      - Publication content (publications.body_text, title)
+      - Author identifier (publications.author_principal_id)
+      - Publication job metadata (status, attempt_count, due_at)
+      - Delivery error logs (delivery_attempts.response_body, error_code, error_message)
+      - Published asset references (publication_asset_links)
+    data_subjects: Workspace members authoring content; social media audience
+    recipients:
+      - name: Social media platforms (LinkedIn, Twitter/X, etc.)
+        type: independent_controller
+        location_type: country
+        location: US / varies
+        agreement_reference: Platform API Terms
+    retention:
+      trigger: publication_deleted or workspace_deleted
+      duration: P90D after deletion (delivery logs), P7D (jobs)
+      action: delete or anonymize
+      exceptions: []
+    security_measures:
+      - Author attribution tracked for accountability
+      - Delivery attempts logged for debugging
+      - Scheduled content isolated per workspace
+    evidence_references:
+      - path: server/smp/src/main/resources/db/changelog/publishing/004-create-publications.yaml
+        reason: publications table schema
+      - path: server/smp/src/main/resources/db/changelog/publishing/006-create-publication-jobs.yaml
+        reason: publication_jobs table schema
+      - path: server/smp/src/main/resources/db/changelog/publishing/007-create-delivery-attempts.yaml
+        reason: delivery_attempts table schema
+    notes: Operational processing layer for content delivery. Minimal personal data exposure.
+
+  # ── Audit & Governance ───────────────────────────────────────────────
+
+  - id: pa-010
+    name: Audit and governance logging
+    purposes:
+      - purpose: Record security-relevant events for compliance, incident response, and operational oversight
+        role: controller
+        legal_basis:
+          type: legal_obligation
+          reference: GDPR Art. 5(2) (accountability), Art. 24 (responsibility of the controller)
+    personal_data_categories:
+      - Actor principal ID (audit_events.actor_principal_id)
+      - Workspace ID (audit_events.workspace_id)
+      - Request details (request_name, request_path, permission)
+      - Role information (role_keys_json)
+      - Event details (details_json — may contain contextual data)
+      - Target identifiers (target_type, target_id)
+    data_subjects: All users whose actions generate audit events
+    recipients:
+      - name: Internal processing only (PostgreSQL database)
+        type: none
+        location_type: region
+        location: EEA
+        agreement_reference: not_applicable
+    retention:
+      trigger: event_created
+      duration: P1Y (standard), P5Y (security incidents), indefinite (aggregated statistics)
+      action: archive then delete
+      exceptions:
+        - Security incidents retained per legal hold
+    security_measures:
+      - Append-only event store (no UPDATE or DELETE on audit records)
+      - Tamper-evident via cryptographic chain (planned)
+      - Access restricted to compliance operators
+      - Cross-workspace query isolation enforced
+    evidence_references:
+      - path: server/smp/src/main/resources/db/changelog/governance/001-create-audit-events.yaml
+        reason: audit_events table schema
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/governance/infrastructure/R2dbcAuditEventReader.kt
+        reason: Audit event read implementation
+      - path: server/smp/src/main/kotlin/com/profiletailors/smp/audit/domain/AuthorizationDecisionAuditFact.kt
+        reason: Audit event domain model
+    notes: >
+      Audit events are the compliance backbone. Retention periods are minimums;
+      actual retention should account for incident response SLAs.
+
+  # ── Analytics & Observability ─────────────────────────────────────────
+
+  - id: pa-011
+    name: Analytics, observability, and error monitoring
+    purposes:
+      - purpose: Monitor application performance, track errors, and analyze product usage
+        role: controller
+        legal_basis:
+          type: legitimate_interest
+          reference: GDPR Art. 6(1)(f) (service improvement and security)
+    personal_data_categories:
+      - IP address (application logs, error reports)
+      - Request metadata (user-agent, request path, timestamps)
+      - Error stack traces (may include contextual data)
+      - Feature usage events (anonymized where possible)
+      - Performance metrics (CPU, memory, latency — typically non-personal)
+    data_subjects: Application users, API consumers
+    recipients:
+      - name: Vercel Analytics / Web Analytics (planned)
+        type: processor
+        location_type: country
+        location: US
+        agreement_reference: Vercel DPA
+      - name: Sentry (planned for error tracking)
+        type: processor
+        location_type: country
+        location: US
+        agreement_reference: Sentry DPA
+      - name: Grafana / Prometheus (self-hosted or managed)
+        type: processor
+        location_type: region
+        location: EEA
+        agreement_reference: Managed Grafana DPA
+    retention:
+      trigger: event_created
+      duration: P30D (detailed logs), P13M (aggregated metrics), P90D (error events)
+      action: delete or aggregate
+      exceptions: []
+    security_measures:
+      - Log scrubbing to exclude credentials and tokens
+      - Personal data minimized in observability pipeline
+      - Access restricted to operations team
+      - No raw personal data in metrics dashboards
+    evidence_references:
+      - path: server/smp/src/main/resources/db/changelog/governance/001-create-audit-events.yaml
+        reason: Audit event logs for observability
+      - path: docs/monitoring/prometheus-grafana-setup.md
+        reason: Monitoring infrastructure documentation
+      - path: docs/monitoring/actuator-security.md
+        reason: Actuator endpoint security
+    notes: >
+      Observability data contains minimal personal data by design. Log scrubbing
+      is enforced at the application level to prevent credential leakage.
