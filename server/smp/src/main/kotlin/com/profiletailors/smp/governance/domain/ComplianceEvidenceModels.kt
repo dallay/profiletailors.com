@@ -1,0 +1,38 @@
+package com.profiletailors.smp.governance.domain
+
+import java.time.Instant
+
+data class ComplianceEvidence(
+    val id: ComplianceEvidenceId,
+    val evidenceType: String,
+    val title: String,
+    val description: String? = null,
+    val referenceUrl: String? = null,
+    val immutableReference: String? = null,
+    val checksum: String? = null,
+    val metadataJson: String? = null,
+    val submittedBy: String,
+    val reviewedBy: String? = null,
+    val reviewStatus: EvidenceReviewStatus = EvidenceReviewStatus.PENDING,
+    val collectedAt: Instant = Instant.now(),
+    val validFrom: Instant = Instant.now(),
+    val expiresAt: Instant? = null,
+    val verifiedAt: Instant? = null,
+    val version: Long = 1,
+    val createdAt: Instant = Instant.now(),
+    val updatedAt: Instant = Instant.now(),
+)
+
+/**
+ * Immutable link between a control and an evidence.
+ * Once created, this association cannot be removed.
+ * To invalidate evidence coverage, expire or reject the evidence itself.
+ */
+data class ComplianceControlEvidence(
+    val id: String,
+    val controlId: ComplianceControlId,
+    val evidenceId: ComplianceEvidenceId,
+    val linkedBy: String,
+    val linkedAt: Instant = Instant.now(),
+    val version: Long = 1,
+)
