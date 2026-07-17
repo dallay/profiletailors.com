@@ -4,9 +4,9 @@
  * Replaces the previous `media-composer.spec.ts` with a 23-scenario suite
  * tagged `@composer-ui-mocked` that covers every browser-observable plan
  * item. Provider scenarios exercise the same HTTP boundary as production;
- * additional items that depend on the inline-attachment layout from
- * `feat/adapta-media-layout` (dropzone, upload overlay, +N overflow) are
- * explicitly skipped with rationale recorded in `verify-report.md`.
+ * inline-attachment layout items (dropzone, upload overlay, +N overflow)
+ * were previously skipped pending `feat/adapta-media-layout` — now unskipped
+ * with testids aligned to the merged component.
  *
  * Determinism: every upload scenario uses the new
  * `DeferredUploadController` to hold the binary `POST /upload` until the
@@ -44,6 +44,56 @@ type VueAppElement = Element & {
 type AuthStoreWithHydration = {
   verifyEmail: (token: string) => Promise<unknown>
   isAuthenticated: boolean
+}
+
+type HeldUploadRoute = {
+  started: Promise<string>
+  release: () => Promise<void>
+}
+
+async function holdNextUploadResponse(
+  page: import('@playwright/test').Page,
+): Promise<HeldUploadRoute> {
+  let releaseUpload: () => void = () => {}
+  let markStarted: (assetId: string) => void = () => {}
+  const releasePromise = new Promise<void>((resolve) => {
+    releaseUpload = resolve
+  })
+  const started = new Promise<string>((resolve) => {
+    markStarted = resolve
+  })
+
+  await page.route('**/api/media/assets/*/upload', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fallback()
+      return
+    }
+    const assetId = new URL(route.request().url()).pathname.split('/').at(-2) ?? 'asset-e2e-upload'
+    markStarted(assetId)
+    await releasePromise
+    await route.fulfill({
+      status: 200,
+      headers: { 'content-type': 'application/vnd.api.v1+json' },
+      body: JSON.stringify({
+        assetId,
+        workspaceId: 'workspace-001',
+        status: 'READY',
+        mediaType: mediaFiles.base.type,
+        detectedMediaType: mediaFiles.base.type,
+        deduped: false,
+        fileSizeBytes: mediaFiles.base.size,
+        createdAt: new Date().toISOString(),
+      }),
+    })
+  })
+
+  return {
+    started,
+    release: async () => {
+      releaseUpload()
+      await page.unroute('**/api/media/assets/*/upload')
+    },
+  }
 }
 
 async function hydrateAuthStore(page: import('@playwright/test').Page): Promise<void> {
@@ -107,39 +157,58 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-002: dropzone present + clickable
-  // SKIPPED — dropzone testid ships in feat/adapta-media-layout only.
-  // Tracked as a seam need in verify-report.md.
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-002 dropzone: visible, labelled, and clickable', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-002: media-dropzone testid pending — feature lands in feat/adapta-media-layout. Tracked in verify-report.md.',
-    )
+  test('ML-COMPOSER-002 dropzone: visible, labelled, and clickable', async ({ page }) => {
+    const composePage = await openComposeModal(page)
+
+    await expect(composePage.mediaDropzone).toBeVisible()
+    await expect(composePage.mediaDropzone).toBeEnabled()
+    await expect(composePage.mediaDropzone).toContainText(/drag & drop|select a file/i)
+
+    const fileChooserPromise = page.waitForEvent('filechooser')
+    await composePage.mediaDropzone.click()
+    const fileChooser = await fileChooserPromise
+    expect(fileChooser.isMultiple()).toBe(false)
   })
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-003: first-valid file semantics — unsupported files skipped
-  // SKIPPED — the product's <input type="file"> does not have the `multiple`
-  // attribute, so multi-select via file picker is not possible. First-valid
-  // semantics apply only to drag-and-drop, which requires the dropzone from
-  // feat/adapta-media-layout.
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-003 first-valid: unsupported files in a multi-select are ignored', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-003: first-valid semantics require dropzone (feat/adapta-media-layout) — file input is single-file only. Tracked in verify-report.md.',
-    )
+  test('ML-COMPOSER-003 first-valid: unsupported files in a multi-select are ignored', async ({
+    page,
+  }) => {
+    const composePage = await openComposeModal(page)
+    const alerts: string[] = []
+    page.on('dialog', async (dialog) => {
+      alerts.push(dialog.message())
+      await dialog.dismiss()
+    })
+
+    await composePage.dropFiles([mediaFiles.invalidTxt.path, mediaFiles.base.path])
+
+    await expect(page.getByTitle(mediaFiles.base.name)).toBeVisible()
+    await expect(page.getByTitle(mediaFiles.invalidTxt.name)).toBeHidden()
+    expect(alerts.some((message) => /unsupported media format/i.test(message))).toBe(true)
   })
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-004: upload progress — overlay shows percentage
-  // SKIPPED — upload-overlay testid ships in feat/adapta-media-layout only.
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-004 upload progress: overlay shows percentage while uploading', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-004: upload-overlay-local-upload testid pending — feature lands in feat/adapta-media-layout. Tracked in verify-report.md.',
-    )
+  test('ML-COMPOSER-004 upload progress: overlay shows percentage while uploading', async ({
+    page,
+  }) => {
+    const upload = await holdNextUploadResponse(page)
+    const composePage = await openComposeModal(page)
+    await composePage.fillText('Upload progress overlay')
+    await composePage.attachMediaFiles([mediaFiles.base.path])
+    await expect(page.getByTitle(mediaFiles.base.name)).toBeVisible()
+
+    await composePage.clickScheduleNow()
+    await upload.started
+
+    await expect(composePage.uploadOverlay).toBeVisible({ timeout: 10_000 })
+    await expect(composePage.uploadOverlay).toContainText(/Uploading/i)
+    await upload.release()
   })
 
   // -------------------------------------------------------------------------
@@ -255,13 +324,29 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-012: +N overflow card renders when more than 4 attachments
-  // SKIPPED — overflow testid ships in feat/adapta-media-layout only.
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-012 overflow: +N card renders when more than 4 attachments', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-012: attachment-overflow testid pending — feature lands in feat/adapta-media-layout. Tracked in verify-report.md.',
+  test('ML-COMPOSER-012 overflow: +N card renders when more than 4 attachments', async ({
+    page,
+    mockState,
+  }) => {
+    const assets = Array.from({ length: 5 }, (_, index) =>
+      mockState.seedAsset({
+        assetId: `asset-composer-012-${index + 1}`,
+        mediaType: mediaFiles.base.type,
+        originalFilename: `overflow-${index + 1}.png`,
+      }),
     )
+    const composePage = await openComposeModal(page)
+
+    await composePage.openMediaPicker()
+    for (const asset of assets) {
+      await composePage.libraryAssetCard(asset.assetId).click()
+    }
+    await composePage.pickerApply.click()
+
+    await expect(composePage.overflowCard).toBeVisible()
+    await expect(composePage.overflowCard).toHaveText('+2')
+    expect(await composePage.overflowCount()).toBe(2)
   })
 
   // -------------------------------------------------------------------------
@@ -470,13 +555,15 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-027: dropzone drop — drop event triggers handleMediaDrop
-  // SKIPPED — dropzone is feat/adapta-media-layout only.
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-027 drop: drop event on dropzone triggers attachment', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-027: dropzone + drop event lands in feat/adapta-media-layout. Tracked in verify-report.md.',
-    )
+  test('ML-COMPOSER-027 drop: drop event on dropzone triggers attachment', async ({ page }) => {
+    const composePage = await openComposeModal(page)
+
+    await composePage.dropFiles([mediaFiles.base.path])
+
+    await expect(page.getByTitle(mediaFiles.base.name)).toBeVisible()
+    await expect(composePage.attachmentPreview).toBeVisible()
+    expect(await composePage.previewMediaSrcKind()).toBe('blob')
   })
 
   // -------------------------------------------------------------------------
@@ -491,13 +578,24 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-029: progress overlay text is "Uploading..."
-  // SKIPPED — upload overlay ships in feat/adapta-media-layout only.
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-029 progress text: overlay shows "Uploading" or progress percentage', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-029: upload overlay labels land in feat/adapta-media-layout. Tracked in verify-report.md.',
+  test('ML-COMPOSER-029 progress text: overlay shows "Uploading" or progress percentage', async ({
+    page,
+  }) => {
+    const upload = await holdNextUploadResponse(page)
+    const composePage = await openComposeModal(page)
+    await composePage.fillText('Upload progress text')
+    await composePage.attachMediaFiles([mediaFiles.base.path])
+    await expect(page.getByTitle(mediaFiles.base.name)).toBeVisible()
+
+    await composePage.clickScheduleNow()
+    await upload.started
+
+    await composePage.expectUploadOverlayText(/Uploading…? \d+%/i)
+    await expect(composePage.uploadOverlay).toContainText(
+      /You can keep editing while this finishes\./i,
     )
+    await upload.release()
   })
 
   // -------------------------------------------------------------------------

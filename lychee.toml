@@ -1,0 +1,20 @@
+# Lychee link checker configuration
+# See https://github.com/lycheeverse/lychee for docs
+
+# Exclude localhost URLs from checking (loopback IP range + localhost)
+exclude_loopback = true
+
+# Exclude file paths from scanning (regex patterns)
+exclude_path = [
+    "node_modules",
+    "openspec",
+]
+
+# Hide progress bar (non-interactive friendly)
+no_progress = true
+
+# Enable on-disk request cache
+cache = true
+
+# Discard cached entries older than 1 day
+max_cache_age = "1d"

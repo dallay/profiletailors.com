@@ -30,6 +30,7 @@
   --color-warning: var(--warning-color);
   --color-error: var(--error-color);
   --color-info: var(--info-color);
+  --upload-accent: #8ccf70;
 
   /* Radii mapping to DESIGN.md */
   --radius-sm: 4px;

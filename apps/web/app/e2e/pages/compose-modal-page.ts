@@ -129,7 +129,7 @@ export class ComposeModalPage {
 
   /** Dropzone button rendered as a 118x118 dashed tile next to the attachments. */
   get mediaDropzone(): Locator {
-    return this.page.getByTestId('media-dropzone')
+    return this.page.getByTestId('composer-inline-dropzone')
   }
 
   /**
@@ -230,7 +230,7 @@ export class ComposeModalPage {
     // `v-if="asset.isUploading"` block. We match by data-testid when the
     // seam lands, otherwise by the absolute-positioned backdrop class.
     return this.page
-      .locator('[data-testid="upload-overlay-local-upload"]')
+      .locator('[data-testid="inline-upload-overlay"]')
       .or(
         this.page
           .locator('div.absolute.inset-0.flex.flex-col')
@@ -244,7 +244,7 @@ export class ComposeModalPage {
    */
   get overflowCard(): Locator {
     return this.page
-      .locator('[data-testid="attachment-overflow"]')
+      .locator('[data-testid="inline-attachment-overflow"]')
       .or(this.page.locator('div.h-\\[118px\\].w-\\[118px\\]').filter({ hasText: /^\+\d+$/ }))
   }
 
@@ -307,20 +307,30 @@ export class ComposeModalPage {
    * `setInputFiles` if the browser does not surface a usable drop target.
    */
   async dropFiles(paths: string[]): Promise<void> {
-    const bufferByName: Record<string, string> = {}
-    for (const p of paths) {
-      const filename = p.split('/').pop() ?? p
-      bufferByName[filename] = p
-    }
+    const files = paths.map((p) => {
+      const name = p.split('/').pop() ?? p
+      const extension = name.split('.').pop()?.toLowerCase()
+      const typeByExtension: Record<string, string> = {
+        gif: 'image/gif',
+        jpeg: 'image/jpeg',
+        jpg: 'image/jpeg',
+        mp4: 'video/mp4',
+        pdf: 'application/pdf',
+        png: 'image/png',
+        txt: 'text/plain',
+        webp: 'image/webp',
+      }
+      return { name, type: extension ? (typeByExtension[extension] ?? '') : '' }
+    })
     await this.page.evaluate(
-      async ({ names }) => {
+      async ({ files }) => {
         const dt = new DataTransfer()
-        for (const name of names) {
-          const file = new File([new Uint8Array([0])], name, { type: 'image/png' })
+        for (const { name, type } of files) {
+          const file = new File([new Uint8Array([0])], name, { type })
           dt.items.add(file)
         }
         const target = document.querySelector(
-          '[data-testid="media-dropzone"]',
+          '[data-testid="composer-inline-dropzone"]',
         ) as HTMLElement | null
         if (!target) throw new Error('dropzone not found')
         const events = ['dragover', 'drop']
@@ -329,7 +339,7 @@ export class ComposeModalPage {
           target.dispatchEvent(event)
         }
       },
-      { names: Object.keys(bufferByName) },
+      { files },
     )
   }
 
