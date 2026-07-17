@@ -164,11 +164,17 @@ class R2dbcWaitlistEntryRepository(
 
     private fun Readable.toWaitlistEntry(): WaitlistEntry {
         val email = EmailAddress(requireNotNull(get("email_original", String::class.java)))
+        val normalizedEmail = NormalizedEmail.fromPersisted(
+            requireNotNull(get("normalized_email", String::class.java)),
+        )
+        check(normalizedEmail == NormalizedEmail.from(email)) {
+            "Persisted normalized email does not match original email"
+        }
         return WaitlistEntry(
             id = WaitlistEntryId(requireNotNull(get("id", String::class.java))),
             waitlistId = WaitlistId(requireNotNull(get("waitlist_id", String::class.java))),
             email = email,
-            normalizedEmail = NormalizedEmail.from(email),
+            normalizedEmail = normalizedEmail,
             source = CaptureSource(requireNotNull(get("source", String::class.java))),
             formId = get("form_id", String::class.java),
             locale = get("locale", String::class.java)?.let(::CaptureLocale),

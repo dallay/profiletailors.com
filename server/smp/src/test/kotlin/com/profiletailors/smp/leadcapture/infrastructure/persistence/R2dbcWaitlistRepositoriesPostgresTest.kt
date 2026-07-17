@@ -6,10 +6,13 @@ import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.LeadMetadata
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import kotlinx.coroutines.reactor.awaitSingle
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import kotlin.test.assertIs
 
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
@@ -48,7 +52,7 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     @Test
     fun `findByKey maps the seeded profile tailors launch waitlist`() = runTest {
         val waitlist = waitlistRepository.findByKey(
-            com.profiletailors.leadcapture.waitlist.domain.WaitlistKey("profile-tailors-launch"),
+            WaitlistKey("profile-tailors-launch"),
         )
 
         assertNotNull(waitlist)
@@ -56,7 +60,7 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         assertEquals("profile-tailors-launch", waitlist?.key?.value)
         assertEquals("Profile Tailors Launch", waitlist?.name)
         assertEquals("profile-tailors", waitlist?.context)
-        assertEquals(com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus.ACTIVE, waitlist?.status)
+        assertEquals(WaitlistStatus.ACTIVE, waitlist?.status)
     }
 
     @Test
@@ -117,8 +121,8 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         val firstResult = entryRepository.saveIfNotExists(first)
         val duplicateResult = entryRepository.saveIfNotExists(duplicate)
 
-        kotlin.test.assertIs<WaitlistEntryRepository.SaveResult.Saved>(firstResult)
-        val alreadyExists = kotlin.test.assertIs<WaitlistEntryRepository.SaveResult.AlreadyExists>(duplicateResult)
+        assertIs<WaitlistEntryRepository.SaveResult.Saved>(firstResult)
+        val alreadyExists = assertIs<WaitlistEntryRepository.SaveResult.AlreadyExists>(duplicateResult)
         assertEquals(first.id, alreadyExists.existing.id)
         assertEquals(1, countEntries(first.waitlistId))
     }
@@ -134,8 +138,8 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         val firstResult = entryRepository.saveIfNotExists(first)
         val secondResult = entryRepository.saveIfNotExists(second)
 
-        kotlin.test.assertIs<WaitlistEntryRepository.SaveResult.Saved>(firstResult)
-        kotlin.test.assertIs<WaitlistEntryRepository.SaveResult.Saved>(secondResult)
+        assertIs<WaitlistEntryRepository.SaveResult.Saved>(firstResult)
+        assertIs<WaitlistEntryRepository.SaveResult.Saved>(secondResult)
         assertEquals(1, countEntries(first.waitlistId))
         assertEquals(1, countEntries(otherWaitlistId))
     }
@@ -155,7 +159,7 @@ class R2dbcWaitlistRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             formId = "launch-form",
             locale = CaptureLocale("en"),
             metadata = LeadMetadata(pagePath = "/", consentVersion = "2026-07-16"),
-            consent = com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent(
+            consent = WaitlistConsent(
                 earlyAccess = true,
                 marketing = false,
                 version = "2026-07-16",

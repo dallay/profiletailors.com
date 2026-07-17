@@ -1,16 +1,18 @@
 # Apply Progress: Reusable Lead Capture Waitlist Capability
 
-## Change
+## Overview
 
-`reusable-lead-capture-waitlist`
+**Change**: `reusable-lead-capture-waitlist`
 
-## Delivery Strategy
+## Changes
+
+### Delivery Strategy
 
 - Approved strategy: `size-exception`
 - Current slice: DALLAY-438 persistence only.
 - Rationale: Broader SDD change exceeds the standard review budget, but this apply scope is constrained to backend persistence and seed data. Endpoint, rate limiting, marketing integration, and documentation remain out of scope.
 
-## Completed Tasks
+### Completed Tasks
 
 ### Phase 1 — Foundation / Shared Module Boundaries (DALLAY-437)
 
@@ -51,7 +53,7 @@
 - [x] 8.3 R2DBC repository tests are Postgres-tagged and run against Testcontainers.
 - [x] 8.5 ArchUnit/module-boundary tests asserting shared modules are framework-free.
 
-## Code Changes in This Apply Continuation
+### Code Changes in This Apply Continuation
 
 - Fixed the DALLAY-438 verify gap by strengthening `LeadCaptureLiquibaseChangelogTest` to assert `idx_waitlist_entries_status`, `idx_waitlist_entries_source`, and `idx_waitlist_entries_form_id`, then adding those indexes to `001-create-waitlists.yaml`.
 - Added lead-capture Liquibase changelogs to create `waitlists` and `waitlist_entries`, including per-waitlist dedupe on `(waitlist_id, normalized_email)` and supporting indexes.
@@ -65,7 +67,9 @@
 - Added lead-capture cleanup statements to Postgres test support and updated cleanup ordering coverage.
 - Added `leadcapture` Modulith metadata for the new server bounded context.
 
-## Commands Run
+## Usage
+
+### Commands Run
 
 | Command | Exit | Evidence |
 |---|---:|---|
@@ -81,7 +85,9 @@
 | `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.LeadCaptureLiquibaseChangelogTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.R2dbcWaitlistRepositoriesPostgresTest'` | 0 | Focused DALLAY-438 verification passed with Testcontainers password set. |
 | `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test` | 0 | Broader unfiltered server module test passed after the changelog fix. |
 
-## Remaining Tasks
+## Troubleshooting
+
+### Remaining Tasks
 
 - Phase 5 HTTP endpoint tasks remain incomplete: WebTestClient coverage and controller/DTO implementation.
 - Phase 6 rate limiting tasks remain incomplete.
@@ -89,11 +95,13 @@
 - Phase 8 remaining comprehensive tests for HTTP, frontend, and CI wiring remain incomplete.
 - Phase 9 documentation/archive tasks remain incomplete.
 
-## Deviations
+### Deviations
 
 - No functional deviation from the DALLAY-438 persistence design after this continuation. The persisted column uses `normalized_email`, matching existing domain naming and tests, while the OpenSpec task text says `email_normalized`; the requirement/design explicitly require `UNIQUE(waitlist_id, normalized_email)` / normalized email dedupe semantics.
 - The shared lead-capture module Gradle `group` and archive names were adjusted because both `:shared:common` and `:shared:lead-capture:common` otherwise produced identical `com.profiletailors:common` coordinates, causing the server classpath to resolve the wrong artifact.
 
-## Status
+## References
+
+### Status
 
 24 of 47 tasks are complete. DALLAY-438 persistence is implemented and verified; ready for SDD verify or the next backend slice (DALLAY-439 HTTP endpoint) if continuing the broader change.

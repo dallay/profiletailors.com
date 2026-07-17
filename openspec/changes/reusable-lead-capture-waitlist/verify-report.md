@@ -1,26 +1,30 @@
 # Verification Report
 
+## Overview
+
 **Change**: reusable-lead-capture-waitlist
 **Mode**: openspec
 **Verification scope**: DALLAY-438 persistence slice only. DALLAY-439 endpoint, DALLAY-440 rate limiting, DALLAY-441 frontend, DALLAY-442 broader QA beyond 8.3, and DALLAY-443 docs are intentionally out of scope.
 **Verdict**: PASS WITH WARNINGS
 
-## Executive Summary
+## Changes
+
+### Executive Summary
 
 DALLAY-438 now verifies successfully for the persistence slice. The previous missing-index gap is closed: `waitlist_entries` includes indexes for `status`, `source`, and `form_id`, the Liquibase changelog test asserts them, the R2DBC adapters preserve the shared port semantics, and focused runtime verification passed.
 
-## Completeness
+### Completeness
 
 | Metric | Value |
 |--------|-------|
 | Total tasks in change | 47 |
-| Marked complete | 23 |
+| Marked complete | 24 |
 | In-scope marked-complete tasks assessed | 7 |
 | In-scope tasks passing verification | 7 |
 | In-scope tasks partial / failing verification | 0 |
 | Out-of-scope tasks ignored for this verdict | DALLAY-439, DALLAY-440, DALLAY-441, DALLAY-442 except 8.3, DALLAY-443 |
 
-## Verification Scope
+### Verification Scope
 
 Validated only:
 
@@ -36,7 +40,7 @@ Intentionally not required:
 - DALLAY-442 broader comprehensive QA except marked 8.3.
 - DALLAY-443 documentation/archive work.
 
-## Evidence
+### Evidence
 
 | Command / inspection | Result | Evidence |
 |---|---|---|
@@ -49,7 +53,7 @@ Intentionally not required:
 | `./gradlew :shared:lead-capture:waitlist:test --tests 'com.profiletailors.leadcapture.waitlist.LeadCaptureArchTest' --rerun-tasks` | PASS | `BUILD SUCCESSFUL in 4s`; test XML shows 4 tests, 0 failures/errors/skipped proving shared lead-capture modules stay framework-free and server-free. |
 | Coverage | NOT APPLICABLE | `coverage_threshold: 0` in `openspec/config.yaml`; no meaningful threshold enforcement required for this focused persistence verification. |
 
-### Runtime Test Counts From XML
+#### Runtime Test Counts From XML
 
 | Test suite | Tests | Failed | Errors | Skipped |
 |---|---:|---:|---:|---:|
@@ -59,7 +63,7 @@ Intentionally not required:
 | `LeadCaptureArchTest` | 4 | 0 | 0 | 0 |
 | Total focused runtime evidence | 21 | 0 | 0 | 0 |
 
-## Completed Task Assessment
+### Completed Task Assessment
 
 | Task | Verification status | Evidence |
 |---|---|---|
@@ -71,7 +75,7 @@ Intentionally not required:
 | 4.6 GREEN: Add Liquibase seed changelog | IMPLEMENTED | `002-seed-profile-tailors-launch.yaml` is included by master changelog and applied during PostgreSQL test. |
 | 8.3: R2DBC repository tests | IMPLEMENTED | `R2dbcWaitlistRepositoriesPostgresTest` exists, is PostgreSQL-backed via Testcontainers, and passed 4/4 focused tests with required environment variable. |
 
-## Spec / Roadmap Compliance Matrix
+### Spec / Roadmap Compliance Matrix
 
 | Requirement / scenario | Covering test or evidence | Runtime result | Compliance |
 |---|---|---|---|
@@ -89,7 +93,7 @@ Intentionally not required:
 
 **Compliance summary**: 11/11 DALLAY-438 checks compliant.
 
-## Correctness Table
+### Correctness Table
 
 | Finding | Judge A | Judge B | Severity | Status |
 |---------|---------|---------|----------|--------|
@@ -100,7 +104,7 @@ Intentionally not required:
 | Hexagonal dependency direction remains valid for shared lead-capture modules and server layers | ✅ ArchUnit source inspection | ✅ Runtime ArchUnit tests | INFO | Confirmed |
 | Local PostgreSQL test command needs `SMP_POSTGRES_TEST_PASSWORD` | ✅ Test infrastructure behavior | ✅ Repository verification command | WARNING | Confirmed |
 
-## Design Coherence Table
+### Design Coherence Table
 
 | Design decision | Followed? | Notes |
 |---|---|---|
@@ -114,24 +118,37 @@ Intentionally not required:
 | Public API uniform response | OUT OF SCOPE | DALLAY-439 endpoint not required for this verification. |
 | Rate limiting | OUT OF SCOPE | DALLAY-440 not required for this verification. |
 
-## Gaps or Issues
+## Usage
 
-### CRITICAL
+Run the commands in the Evidence section to reproduce the focused DALLAY-438 verification.
+
+## Troubleshooting
+
+### Gaps or Issues
+
+#### CRITICAL
 
 None.
 
-### WARNING
+#### WARNING
 
 1. Reproducibility requires setting `SMP_POSTGRES_TEST_PASSWORD`; without it, the focused PostgreSQL test suite cannot initialize its Testcontainers database. Use the exact command shown in the evidence table.
 2. Existing unrelated compile warnings remain in `shared/storage/src/main/kotlin/com/profiletailors/storage/infrastructure/S3RetryHelper.kt`, `server/smp/src/main/kotlin/com/profiletailors/smp/media/infrastructure/persistence/R2dbcMediaRepositories.kt`, and `server/smp/src/test/kotlin/com/profiletailors/smp/media/application/MediaCasHandlersTest.kt`. They did not fail the focused verification and are outside DALLAY-438.
 3. The persisted column names differ from the Linear issue's database model wording: implementation uses `metadata`, `consent_early_access`, and `consent_marketing` instead of `metadata_json`, `early_access_consent`, and `marketing_consent`. This does not break the OpenSpec/shared-port behavior, but it remains a roadmap naming deviation worth accepting explicitly or aligning later.
 4. `R2dbcWaitlistEntryRepository.save(entry)` uses plain insert and will surface a database duplicate error on duplicate entries; idempotent semantics are correctly implemented through `saveIfNotExists`, which the handler uses. Keep repository callers disciplined around the correct method.
 
-### SUGGESTION
+#### SUGGESTION
 
 1. If the roadmap column names are intentional, record the naming decision in design/OpenSpec so future verification does not treat it as drift.
 
-## Final Verdict
+## References
+
+- `tasks.md`
+- `apply-progress.md`
+- `design.md`
+- `spec.md`
+
+### Final Verdict
 
 PASS WITH WARNINGS
 
