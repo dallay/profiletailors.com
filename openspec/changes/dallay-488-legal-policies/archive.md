@@ -1,5 +1,9 @@
 # Archive: dallay-488-legal-policies
 
+> **Archive invalidated for publication readiness (2026-07-17).** The archived PASS established
+> technical/spec consistency, not factual or legal correctness. The implementation remains a
+> draft and is blocked by `docs/compliance/legal-publication-gate.md`.
+
 **Archived**: 2026-07-17
 **Phase Sequence**: init → explore → propose → spec → design → tasks → apply (3 PRs) → verify (PASS) → archive
 
@@ -25,9 +29,10 @@ The full spec for `legal-pages` capability has been copied to main specs:
 
 - `openspec/specs/legal-pages/spec.yaml` → **Created** (no pre-existing spec)
 
-### Verification Result
+### Original Verification Result
 
-**PASS** — 26/26 tests, 10 pages built, all spec scenarios passing. Content flagged for qualified legal review before production publication.
+**TECHNICAL PASS ONLY** — 26/26 tests and 10 rendered pages. Subsequent legal/factual
+revalidation blocks production publication.
 
 ### Key Details
 

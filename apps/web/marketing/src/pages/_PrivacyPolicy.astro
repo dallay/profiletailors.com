@@ -1,8 +1,10 @@
 ---
 import Layout from '@layouts/Layout.astro'
 import Footer from '@components/Footer.astro'
+import LegalPolicyUnavailable from '@components/LegalPolicyUnavailable.astro'
 import { useTranslations } from '@i18n/utils'
 import type { Locale } from '@i18n/utils'
+import { isLegalPublicationApproved } from '../legal/legal-publication'
 
 interface Props {
   locale: Locale
@@ -12,6 +14,7 @@ const { locale } = Astro.props
 const t = useTranslations(locale)
 const policy = t.legal.privacy
 const links = t.footer.legalLinks
+const publicationApproved = isLegalPublicationApproved()
 
 function renderLegalText(text: string): string {
   return text
@@ -32,80 +35,73 @@ function renderLegalText(text: string): string {
   lang={locale}
   canonicalPath="/privacy/"
   jsonLdType="WebPage"
+  noindex={!publicationApproved}
+  includeStructuredData={publicationApproved}
 >
   <div id="main-content" class="fade-in">
-    <article class="max-w-3xl mx-auto px-6 py-16 sm:py-24">
-      <!-- [LEGAL REVIEW] This is draft content that requires qualified legal review before production publication. DO NOT publish without a lawyer's sign-off. Source flags in i18n files. -->
+    {publicationApproved ? (
+      <article class="max-w-3xl mx-auto px-6 py-16 sm:py-24">
 
-      <!-- Header -->
       <header class="mb-12">
         <h1 class="font-display text-3xl sm:text-4xl font-bold text-text-display mb-3">{policy.title}</h1>
         <p class="font-mono text-xs text-text-muted tracking-wide">{policy.lastUpdated}</p>
       </header>
 
-      <!-- Intro -->
       <section class="mb-10" set:html={renderLegalText(policy.intro)} />
 
-      <!-- Data Controller -->
       <section class="mb-10">
         <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section1}</h2>
         <div set:html={renderLegalText(policy.dataController)} />
       </section>
 
-      <!-- Data Collected -->
       <section class="mb-10">
         <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section2}</h2>
         <div set:html={renderLegalText(policy.dataCollected)} />
       </section>
 
-      <!-- Data Usage -->
       <section class="mb-10">
         <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section3}</h2>
         <div set:html={renderLegalText(policy.dataUsage)} />
       </section>
 
-      <!-- Data Sharing -->
       <section class="mb-10">
         <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section4}</h2>
         <div set:html={renderLegalText(policy.dataSharing)} />
       </section>
 
-      <!-- Data Retention -->
       <section class="mb-10">
         <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section5}</h2>
         <div set:html={renderLegalText(policy.dataRetention)} />
       </section>
 
-      <!-- International Transfers -->
       <section class="mb-10">
         <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section6}</h2>
         <div set:html={renderLegalText(policy.internationalTransfers)} />
       </section>
 
-      <!-- Your Rights -->
       <section class="mb-10">
         <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section7}</h2>
         <div set:html={renderLegalText(policy.yourRights)} />
       </section>
 
-      <!-- Cookies -->
       <section class="mb-10">
         <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section8}</h2>
         <div set:html={renderLegalText(policy.cookies)} />
       </section>
 
-      <!-- Policy Changes -->
       <section class="mb-10">
         <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section9}</h2>
         <div set:html={renderLegalText(policy.policyChanges)} />
       </section>
 
-      <!-- Contact -->
       <section class="mb-10">
         <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section10}</h2>
         <div set:html={renderLegalText(policy.contact)} />
       </section>
-    </article>
+      </article>
+    ) : (
+      <LegalPolicyUnavailable locale={locale} documentTitle={policy.title} />
+    )}
 
     <Footer tagline={t.footer.tagline} copy={t.footer.copy} legalLinks={links} />
   </div>

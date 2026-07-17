@@ -10,17 +10,21 @@ interface Props {
   image?: string
   sameAs?: string[]
   canonicalPath?: string
-  jsonLdType?: 'WebApplication' | 'WebPage'
+  jsonLdType?: 'WebSite' | 'WebPage'
+  noindex?: boolean
+  includeStructuredData?: boolean
 }
 
 const {
-  title = 'Profile Tailors — Schedule smarter, post everywhere',
-  description = 'Create and schedule posts across Instagram, Twitter/X, LinkedIn and Facebook from one place. Join the waitlist for early access.',
+  title = 'Profile Tailors — Social content planning in development',
+  description = 'Preview Profile Tailors, a social content planning workspace currently in development.',
   lang = 'en',
   image = '/og-en.png',
   sameAs,
   canonicalPath,
-  jsonLdType = 'WebApplication',
+  jsonLdType = 'WebSite',
+  noindex = false,
+  includeStructuredData = true,
 } = Astro.props
 
 const path = canonicalPath ?? '/'
@@ -38,32 +42,8 @@ const jsonLd = {
   "name": "Profile Tailors",
   "description": description,
   "url": canonical,
-  "applicationCategory": "BusinessApplication",
-  "operatingSystem": "Web",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  },
-  "featureList": [
-    "Schedule posts to Instagram",
-    "Schedule posts to Twitter/X",
-    "Schedule posts to LinkedIn",
-    "Schedule posts to Facebook",
-    "Analytics dashboard",
-    "Waitlist for early access"
-  ],
-  "areaServed": {
-    "@type": "Place",
-    "name": "Worldwide"
-  },
-  "serviceType": "Social Media Management",
-  "provider": {
-    "@type": "Organization",
-    "name": "Profile Tailors",
-    "url": baseUrl,
-    ...(sameAs && sameAs.length > 0 ? { sameAs } : {})
-  }
+  "inLanguage": lang,
+  ...(sameAs && sameAs.length > 0 ? { sameAs } : {})
 }
 const jsonLdString = JSON.stringify(jsonLd)
 ---
@@ -95,6 +75,7 @@ const jsonLdString = JSON.stringify(jsonLd)
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex,nofollow,noarchive" />}
 
     <!-- Canonical -->
     <link rel="canonical" href={canonical} />
@@ -131,7 +112,7 @@ const jsonLdString = JSON.stringify(jsonLd)
     <title>{title}</title>
 
     <!-- JSON-LD Structured Data -->
-    <script type="application/ld+json" set:html={jsonLdString} />
+    {includeStructuredData && <script is:inline type="application/ld+json" set:html={jsonLdString} />}
   </head>
   <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>

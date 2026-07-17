@@ -1,6 +1,14 @@
 # Verification Report: dallay-488-legal-policies
 
-**Status**: PASS
+> **Superseded result — BLOCKED (2026-07-17).** The PASS below verifies rendering and
+> consistency with the original specification only. A legal and factual revalidation found
+> unresolved publication blockers: incomplete controller identity, unverified production
+> providers and cookies, unsupported retention promises, an AGPL conflict, placeholder governing
+> law, missing contract-acceptance evidence, and incomplete market-specific requirements. See
+> [`docs/compliance/legal-publication-gate.md`](../../../docs/compliance/legal-publication-gate.md).
+> These pages MUST NOT be treated as approved for production publication.
+
+**Status**: SUPERSEDED — BLOCKED FOR PUBLICATION
 **Date**: 2026-07-17
 **Verifier**: sdd-verify executor
 

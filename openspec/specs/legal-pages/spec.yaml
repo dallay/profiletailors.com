@@ -1,52 +1,41 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2026 Profile Tailors
-# =============================================================================
-# Specification: Legal Policy Pages
-# Change: dallay-488-legal-policies
-# Version: 1.0
-# Effective: 2026-07-17
-# Status: Draft — requires qualified legal review before production publication
-# =============================================================================
-# Note: This spec reflects compliance doc references from data-inventory.yaml,
-# controller-processor-matrix.md, and ropa.md. ALL content MUST undergo
-# qualified legal review before the policy pages go live. Content accuracy
-# scenarios marked [LEGAL REVIEW] flag areas requiring lawyer sign-off.
-# =============================================================================
 
 capability: legal-pages
+version: "2.0"
+status: blocked
 
 summary: >
-  Four static legal policy pages (Privacy Policy, Terms of Service, Cookie
-  Policy, Acceptable Use Policy) on the Astro marketing site, each in EN and
-  ES, with footer navigation links and compliance-sourced content.
+  Public legal pages for Profile Tailors. Rendering requirements are necessary
+  but are not evidence of legal approval. Publication is blocked until the
+  factual, operational, market, and qualified-counsel gates in this
+  specification pass for an immutable policy version.
 
-entity_reference: "Profile Tailors" and "Dallay" are used interchangeably as the
-  service entity. The Privacy Policy MUST identify the controller as "Dallay
-  (Profile Tailors)" per GDPR Art. 4(7).
+source_of_truth:
+  publication_gate: docs/compliance/legal-publication-gate.md
+  market_register: docs/compliance/global-legal-readiness.md
+  data_inventory: docs/compliance/data-inventory.yaml
+  processor_register: docs/compliance/controller-processor-matrix.md
+  ropa: docs/compliance/ropa.md
 
-authentication: public
-  # All policy pages MUST be accessible without authentication — they are static
-  # SSG pages on the marketing site, not behind the Vue dashboard.
-
-versioning: |
-  Each policy MUST carry a machine-readable effective date and version string
-  (e.g., "v1.0 — Effective July 17, 2026") in the page header. This enables
-  future consent/acceptance matching when users agree to updated terms.
-
-legal_review: |
-  This spec and the resulting policy pages contain draft legal content sourced
-  from compliance documentation. A qualified legal review is REQUIRED before
-  these pages are published to production. The review MUST verify:
-    - Accuracy of processing activity descriptions
-    - Adequacy of legal bases cited
-    - Third-party processor list completeness
-    - Data subject rights descriptions
-    - Jurisdiction and governing law clauses
-    - Limitation of liability scope
-
-# =============================================================================
-# ROUTE REQUIREMENTS (cross-cutting)
-# =============================================================================
+publication_state:
+  current: blocked
+  reason: >
+    The contracting entity, production vendor set, processing and retention
+    evidence, governing law, customer model, market approvals, and contract
+    acceptance mechanism are not complete.
+  rule: >
+    A draft banner, passing build, test suite, or content-presence assertion
+    MUST NOT change publication_state to approved.
+  technical_control:
+    status_source: apps/web/marketing/src/legal/legal-publication.ts
+    blocked_behavior: >
+      Every legal route renders only a locale-specific unavailable notice, adds
+      noindex,nofollow,noarchive, and omits legal-page structured data.
+    approval_rule: >
+      The status source MUST remain blocked until an immutable approval record
+      satisfies docs/compliance/legal-publication-gate.md. Editing draft copy or
+      passing CI alone MUST NOT authorise a status change.
 
 routes:
   en:
@@ -60,483 +49,241 @@ routes:
     cookies: /es/cookies/
     acceptable_use: /es/acceptable-use/
 
-cross_cutting_scenarios:
-  - id: cc-001
-    summary: EN page renders at correct route
-    given: A visitor navigates to each EN policy route
-    when: The page loads
-    then: The page SHALL render the correct policy content in English
-    and: The page title SHALL reflect the policy name
+approval_record:
+  required_fields:
+    - policy_name
+    - immutable_version_or_commit
+    - languages
+    - enabled_countries
+    - product_approval
+    - technical_approval
+    - business_approval
+    - qualified_legal_approval
+    - approval_date
+    - next_review_date
+    - known_limitations
+    - rollback_owner
 
-  - id: cc-002
-    summary: ES page renders at correct route
-    given: A visitor navigates to each ES policy route
-    when: The page loads
-    then: The page SHALL render the correct policy content in Spanish
-    and: The page title SHALL reflect the policy name in Spanish
+global_requirements:
+  - id: legal-global-000
+    requirement: >
+      While publication_state is blocked, every configured legal route MUST
+      render only the localised unavailable state, MUST be marked
+      noindex,nofollow,noarchive, and MUST NOT emit the draft policy body or
+      legal-page structured data.
 
-  - id: cc-003
-    summary: Footer contains legal link group
-    given: The marketing site footer is rendered
-    when: The legal link group is inspected
-    then: The footer SHALL contain links to all four policies in the current locale
-    and: The links SHALL be grouped under a "Legal" heading or visual separator
+  - id: legal-global-001
+    requirement: >
+      Once approved, every legal page MUST be accessible without authentication
+      and render at the locale-specific route.
 
-  - id: cc-004
-    summary: Footer legal links navigate to correct pages
-    given: The footer legal link group is visible
-    when: The user clicks each legal link
-    then: The browser SHALL navigate to the corresponding policy route
-    and: The target page SHALL render in the same locale
+  - id: legal-global-002
+    requirement: >
+      Every legal page MUST display its immutable version and effective date.
+      A future effective date MUST NOT be displayed as currently effective.
 
-  - id: cc-005
-    summary: Pages are accessible without authentication
-    given: An unauthenticated visitor navigates to any policy route
-    when: The page loads
-    then: The page SHALL render fully with no redirect to login
-    and: The HTTP response SHALL be 200
+  - id: legal-global-003
+    requirement: >
+      Canonical, hreflang, page title, headings, banner, internal links, and
+      operative content MUST preserve the selected locale. English is the
+      x-default locale.
 
-  - id: cc-006
-    summary: Canonical and hreflang tags are present
-    given: A policy page is rendered
-    when: The <head> is inspected
-    then: The page SHALL include a <link rel="canonical"> pointing to the EN version
-    and: The page SHALL include <link rel="alternate" hreflang="en"> for the EN URL
-    and: The page SHALL include <link rel="alternate" hreflang="es"> for the ES URL
+  - id: legal-global-004
+    requirement: >
+      Public content MUST NOT contain placeholders, slash-separated vendor
+      alternatives, future providers, planned controls represented as current,
+      or unsupported legal, privacy, or security claims.
 
-  - id: cc-007
-    summary: EN version has x-default hreflang
-    given: An EN policy page is rendered
-    when: The <head> is inspected
-    then: The page SHALL include <link rel="alternate" hreflang="x-default"> pointing to the EN URL
+  - id: legal-global-005
+    requirement: >
+      Product, technical, business, and qualified legal approvals MUST reference
+      the exact policy version and enabled country set before publication.
 
-  - id: cc-008
-    summary: JSON-LD uses WebPage type for policy pages (not WebApplication)
-    given: A policy page is rendered
-    when: The JSON-LD structured data is inspected
-    then: The @type SHALL be "WebPage" (not "WebApplication")
-    and: The sameAs property SHALL NOT appear on policy pages (sameAs is reserved for external social profiles on the global homepage JSON-LD only)
-
-  - id: cc-009
-    summary: Version and effective date are displayed
-    given: A policy page is rendered
-    when: The page header is inspected
-    then: The page SHALL display a "Last updated" or "Effective" date
-    and: The page SHALL display a version identifier (e.g., "v1.0")
-
-# =============================================================================
-# PRIVACY POLICY
-# =============================================================================
+  - id: legal-global-006
+    requirement: >
+      A country MUST NOT be targeted or enabled unless it has an approved entry
+      under docs/compliance/global-legal-readiness.md.
 
 privacy_policy:
-  summary: >
-    Privacy Policy for Profile Tailors (Dallay). Covers controller identity,
-    11 processing activities (pa-001 to pa-011), data subject rights,
-    international transfers, retention, and third-party recipients.
-
   requirements:
-    - MUST identify the controller as "Dallay (Profile Tailors)"
-    - MUST state that no Data Protection Officer has been appointed (placeholder)
-    - MUST list each of the 11 processing activities (pa-001 through pa-011) with:
-        - Purpose description
-        - Legal basis (contract, consent, legitimate interest, legal obligation)
-        - Personal data categories collected per data-inventory.yaml
-    - MUST describe controller vs. processor role distinction referencing:
-        - Activities where Profile Tailors is controller (pa-001, pa-003, pa-004, pa-005, pa-006 auth, pa-007, pa-010, pa-011)
-        - Activities where Profile Tailors is processor for the customer (pa-002, pa-006 connections, pa-008, pa-009)
-    - MUST list data subject rights: access, rectification, erasure, restriction of processing, data portability, objection, and automated decision-making
-    - MUST describe international transfers to the US, referencing Standard Contractual Clauses (SCCs) as the safeguard mechanism
-    - MUST include a retention schedule summary per activity type (not every row, but clear categories)
-    - MUST list third-party recipients grouped as:
-        - Processors (with DPA status): Vercel Inc., database hosting provider, Cloudflare R2/AWS S3, Sentry, Grafana/Prometheus
-        - Independent controllers: Auth0, LinkedIn, Twitter/X, Facebook, Instagram, TikTok
-    - MUST state the effective date and version
-    - MUST provide contact information for exercising data subject rights
-    - SHOULD include a note that the policy was drafted from compliance documentation
+    - id: privacy-001
+      requirement: >
+        The policy MUST identify the actual controller or service provider by
+        exact legal name, legal form, registration details where required,
+        registered address, and monitored contact channel. A brand name MUST NOT
+        replace the legal person.
 
-  scenarios:
-    - id: pp-001
-      summary: Controller identity is correct
-      given: A visitor opens the Privacy Policy
-      when: The controller identity section is read
-      then: The entity SHALL be identified as "Dallay (Profile Tailors)"
-      and: The DPO field SHALL state "Not appointed" or equivalent
+    - id: privacy-002
+      requirement: >
+        Each processing purpose MUST be derived from verified production
+        behaviour and state the controller/processor role, purpose, data
+        categories, source, lawful basis or customer instruction, recipients,
+        international transfer, retention criterion, and applicable rights.
 
-    - id: pp-002
-      summary: All 11 processing activities are listed
-      given: A visitor reads the Privacy Policy
-      when: The "Data We Process" section is inspected
-      then: It SHALL describe at minimum 11 distinct processing activities
-      and: Each activity SHALL include its purpose and legal basis
-      [LEGAL REVIEW] Verify activity count and descriptions match data-inventory.yaml
+    - id: privacy-003
+      requirement: >
+        Provider names, roles, services, subprocessors, locations, DPA status,
+        and transfer mechanisms MUST match executed production arrangements.
+        Alternative, candidate, and planned providers MUST be excluded.
 
-    - id: pp-003
-      summary: Data subject rights are enumerated
-      given: A visitor reads the Privacy Policy
-      when: The "Your Rights" section is inspected
-      then: The following rights SHALL be listed:
-        - Right of access
-        - Right to rectification
-        - Right to erasure ("right to be forgotten")
-        - Right to restriction of processing
-        - Right to data portability
-        - Right to object
-        - Rights in relation to automated decision-making
-      and: Each right SHALL include instructions on how to exercise it
-      [LEGAL REVIEW] Verify rights language is GDPR-compliant (Arts. 15-22)
+    - id: privacy-004
+      requirement: >
+        A fixed retention period MAY be published only when deletion,
+        anonymisation, backup, hold, and exception behaviour have linked test or
+        operational evidence. Otherwise the policy MUST use an approved
+        purpose-based retention criterion.
 
-    - id: pp-004
-      summary: Controller vs processor distinction is explained
-      given: A visitor reads the Privacy Policy
-      when: The processing descriptions are inspected
-      then: The policy SHALL clearly distinguish when Profile Tailors acts as:
-        - Controller (account management, hosting, waitlist, workspace management, API keys, audit, analytics)
-        - Processor (social publishing, media storage, content delivery)
-      and: A general explanation of the controller/processor roles SHALL be included
+    - id: privacy-005
+      requirement: >
+        Rights and request instructions MUST match the enabled markets and have
+        tested workflows for identity verification, access, correction,
+        deletion, export, objection or opt-out, consent withdrawal, and appeal
+        where applicable.
 
-    - id: pp-005
-      summary: International transfers are disclosed
-      given: A visitor reads the Privacy Policy
-      when: The international transfers section is inspected
-      then: The policy SHALL disclose data transfers to the United States
-      and: It SHALL reference Standard Contractual Clauses (SCCs) as the transfer safeguard
-      [LEGAL REVIEW] Verify SCC reference is current and accurate
+    - id: privacy-006
+      requirement: >
+        International transfer statements MUST name the applicable source
+        jurisdiction and verified mechanism. EU SCCs MUST NOT be presented as a
+        universal mechanism for other countries.
 
-    - id: pp-006
-      summary: Retention schedule is summarized
-      given: A visitor reads the Privacy Policy
-      when: The retention section is inspected
-      then: The policy SHALL include a retention schedule covering:
-        - Account data (30 days after deletion, with statutory exceptions)
-        - Access logs (90 days)
-        - Aggregated analytics (26 months)
-        - Audit logs (1 year standard, 5 years for incidents)
-        - Media assets (7 days grace after deletion)
-        - Waitlist data (30 days after consent withdrawal)
-
-    - id: pp-007
-      summary: Third-party processors are listed
-      given: A visitor reads the Privacy Policy
-      when: The "Third-Party Recipients" or "Data Sharing" section is inspected
-      then: The policy SHALL list Vercel Inc. as a processor (hosting, CDN)
-      and: The policy SHALL list object storage provider (Cloudflare R2 / AWS S3) as a processor
-      and: The policy SHALL note that social media platforms (LinkedIn, Twitter/X, Facebook, Instagram, TikTok) are independent controllers
-      and: The policy SHALL note that Auth0/Clerk is an independent controller for authentication
-      [LEGAL REVIEW] Verify processor list completeness against controller-processor-matrix.md
-
-    - id: pp-008
-      summary: Contact for exercising rights is provided
-      given: A visitor reads the Privacy Policy
-      when: The contact section is inspected
-      then: The policy SHALL provide an email address or contact form URL
-      and: The policy SHALL describe the process for submitting a data subject request
-
-    - id: pp-009
-      summary: Legal review note flag is present
-      given: A developer reads the Privacy Policy source
-      when: The source comments are inspected
-      then: A comment SHALL indicate that content is draft and requires qualified legal review before production publication
-
-# =============================================================================
-# TERMS OF SERVICE
-# =============================================================================
+    - id: privacy-007
+      requirement: >
+        The policy MUST explain the source and categories of personal data
+        obtained from connected social platforms or other third parties where
+        the enabled market requires it.
 
 terms_of_service:
-  summary: >
-    Terms of Service for Profile Tailors (Dallay). Covers service description,
-    account responsibilities, user content license, acceptable use reference,
-    suspension/termination, liability, governing law, and change procedure.
-
   requirements:
-    - MUST describe the service as a social media scheduling and publishing platform
-    - MUST state that account registration requires accurate information
-    - MUST define user responsibilities (lawful use, account security, age eligibility)
-    - MUST include a user content license grant: user grants Profile Tailors the right to access, store, and transmit content for the purpose of providing the service
-    - MUST state that the user retains ownership of their content
-    - MUST reference the Acceptable Use Policy and state it is incorporated by reference
-    - MUST reserve the right to suspend or terminate accounts for Terms violations
-    - MUST include a limitation of liability clause with disclaimers of implied warranties
-    - MUST specify governing law (e.g., laws of [jurisdiction TBD by legal review])
-    - MUST specify jurisdiction for disputes
-    - MUST describe how changes to Terms will be communicated (notice period)
-    - MUST provide contact information for legal inquiries
-    - MUST state the effective date and version
+    - id: terms-001
+      requirement: >
+        The Terms MUST identify the actual contracting entity, supported
+        customer type, eligible age, enabled countries, service scope, support
+        route, and contract language.
 
-  scenarios:
-    - id: tos-001
-      summary: Service description is accurate
-      given: A visitor reads the Terms of Service
-      when: The service description section is inspected
-      then: The Terms SHALL describe Profile Tailors as a social media scheduling and publishing platform
-      [LEGAL REVIEW] Verify service description matches the actual product scope
+    - id: terms-002
+      requirement: >
+        Price, tax, trial, renewal, cancellation, suspension, termination,
+        refund, withdrawal, warranty, liability, governing law, dispute forum,
+        and change terms MUST match the commercial model and mandatory law of
+        every enabled market.
 
-    - id: tos-002
-      summary: User content license is defined
-      given: A visitor reads the Terms of Service
-      when: The "User Content" or "Your Content" section is inspected
-      then: The Terms SHALL grant Profile Tailors a license to access, store, transmit, and display user content
-      and: The license SHALL be limited to providing the service
-      and: The Terms SHALL state that users retain ownership of their content
+    - id: terms-003
+      requirement: >
+        The Terms MUST distinguish software distributed under AGPL-3.0 from the
+        hosted service, trademarks, logos, domain names, and content not
+        licensed under AGPL-3.0. They MUST NOT restrict rights granted by the
+        software licence.
 
-    - id: tos-003
-      summary: Acceptable Use Policy is incorporated by reference
-      given: A visitor reads the Terms of Service
-      when: The acceptable use section is inspected
-      then: The Terms SHALL reference the Acceptable Use Policy
-      and: The Terms SHALL state that the AUP is incorporated by reference and binding
+    - id: terms-004
+      requirement: >
+        The customer MUST retain ownership of customer content and grant only
+        the rights necessary to host, process, and transmit it to the selected
+        services on customer instruction.
 
-    - id: tos-004
-      summary: Suspension and termination rights are reserved
-      given: A visitor reads the Terms of Service
-      when: The termination section is inspected
-      then: The Terms SHALL reserve the right to suspend or terminate accounts
-      and: The Terms SHALL specify that violations of the Terms or AUP may result in suspension or termination
+    - id: terms-005
+      requirement: >
+        Account creation or paid use MUST record affirmative acceptance of the
+        exact Terms and AUP version, timestamp, principal, workspace, and locale.
+        Mere continued use MUST NOT be the sole evidence of initial acceptance.
 
-    - id: tos-005
-      summary: Limitation of liability is included
-      given: A visitor reads the Terms of Service
-      when: The liability section is inspected
-      then: The Terms SHALL include a limitation of liability clause
-      and: The Terms SHALL include a disclaimer of implied warranties
-      [LEGAL REVIEW] Verify liability limitation is enforceable in the chosen jurisdiction
-
-    - id: tos-006
-      summary: Governing law is specified
-      given: A visitor reads the Terms of Service
-      when: The governing law section is inspected
-      then: The Terms SHALL specify the governing law and jurisdiction
-      [LEGAL REVIEW] Governing law must be determined by legal counsel
-
-    - id: tos-007
-      summary: Changes to Terms require notice
-      given: A visitor reads the Terms of Service
-      when: The "Changes to Terms" section is inspected
-      then: The Terms SHALL describe how users will be notified of changes
-      and: The Terms SHALL specify a notice period before changes take effect
-
-    - id: tos-008
-      summary: Legal review flag is present
-      given: A developer reads the Terms of Service source
-      when: The source comments are inspected
-      then: A comment SHALL indicate that content is draft and requires qualified legal review
-
-# =============================================================================
-# COOKIE POLICY
-# =============================================================================
+    - id: terms-006
+      requirement: >
+        Consumer terms MUST NOT waive mandatory rights or impose a governing-law,
+        forum, refund, unilateral-change, or liability term that is prohibited
+        in an enabled consumer market.
 
 cookie_policy:
-  summary: >
-    Cookie Policy for Profile Tailors (Dallay). Explains what cookies are,
-    lists current cookies by provider (Vercel, Cloudflare, Auth0), classifies
-    essential vs non-essential, and provides browser-level control instructions.
-    Note: No cookie consent banner is implemented yet — out of scope.
-
   requirements:
-    - MUST explain what cookies are and how the platform uses them
-    - MUST list current cookies grouped by provider:
-        - Vercel platform cookies (session, CDN, analytics cookies)
-        - Auth0 session cookies (authentication, session management)
-        - Cloudflare security cookies (__cfduid, cf_clearance, WAF)
-    - MUST include Ahrefs Analytics cookie (if analytics is actively configured)
-    - MUST classify each cookie as essential or non-essential
-    - MUST state that no cookie consent banner is currently implemented (planned for a future release)
-    - MUST note that third-party cookies may be set by embedded services
-    - MUST describe how to control cookies through browser settings
-    - MUST list the cookie provider names: Vercel Inc., Auth0, Cloudflare Inc.
-    - MUST state the effective date and version
+    - id: cookies-001
+      requirement: >
+        The cookie and device-storage inventory MUST be generated from measured
+        production-like behaviour, including cookies, local storage, SDKs,
+        pixels, CDN/security behaviour, and connected embeds.
 
-  scenarios:
-    - id: cp-001
-      summary: Cookie definition is included
-      given: A visitor opens the Cookie Policy
-      when: The introductory section is read
-      then: The policy SHALL explain what cookies are
-      and: The policy SHALL explain how cookies are used on the platform
+    - id: cookies-002
+      requirement: >
+        Each entry MUST name the verified setter, purpose, category, first- or
+        third-party status, duration, and whether it is set before or after a
+        consent or opt-out choice.
 
-    - id: cp-002
-      summary: Current cookies are listed by provider
-      given: A visitor reads the Cookie Policy
-      when: The cookie table or list is inspected
-      then: The policy SHALL list cookies from Vercel Inc.
-      and: The policy SHALL list cookies from Auth0
-      and: The policy SHALL list cookies from Cloudflare Inc.
-      [LEGAL REVIEW] Verify list of cookie providers is complete and accurate
+    - id: cookies-003
+      requirement: >
+        Non-essential storage MUST remain disabled until the choice required by
+        the enabled market is recorded. Rejecting and withdrawing MUST be as
+        accessible as accepting.
 
-    - id: cp-003
-      summary: Essential vs non-essential classification
-      given: A visitor reads the Cookie Policy
-      when: The cookie table is inspected
-      then: Each listed cookie SHALL be classified as essential or non-essential
-      and: The classification SHALL include a brief explanation of why each is essential or not
-
-    - id: cp-004
-      summary: Consent banner is noted as planned
-      given: A visitor reads the Cookie Policy
-      when: The consent section is inspected
-      then: The policy SHALL state that a cookie consent banner is not yet implemented
-      and: The policy SHALL indicate that one is planned for a future release
-      and: The policy SHOULD explain that in the meantime, users can manage cookies via browser settings
-
-    - id: cp-005
-      summary: Browser control instructions are provided
-      given: A visitor reads the Cookie Policy
-      when: The "How to Control Cookies" section is inspected
-      then: The policy SHALL provide instructions for managing cookies via browser settings
-      and: The policy SHOULD link to browser-specific help pages
-
-    - id: cp-006
-      summary: Legal review flag is present
-      given: A developer reads the Cookie Policy source
-      when: The source comments are inspected
-      then: A comment SHALL indicate that content is draft and requires qualified legal review
-
-# =============================================================================
-# ACCEPTABLE USE POLICY
-# =============================================================================
+    - id: cookies-004
+      requirement: >
+        A provider's documented cookieless mode MUST NOT be described as setting
+        analytics cookies unless measurement shows that Profile Tailors has
+        configured behaviour that does so.
 
 acceptable_use_policy:
-  summary: >
-    Acceptable Use Policy for Profile Tailors (Dallay). Defines prohibited
-    content categories, API fair use, account suspension, and reporting
-    procedures.
-
   requirements:
-    - MUST define prohibited content categories:
-        - Illegal content and activities
-        - Spam, unsolicited bulk communications
-        - Harassment, threats, and bullying
-        - Hate speech and discriminatory content
-        - Misleading, deceptive, or fraudulent content
-        - Copyright-infringing content
-    - MUST state that Profile Tailors reserves the right to remove prohibited content
-    - MUST describe API fair use and rate limiting as a general principle (no specific numbers)
-    - MUST reserve the right to suspend or terminate accounts for AUP violations
-    - MUST provide a reporting mechanism for suspected violations
-    - MUST state that automated scraping of the platform is not permitted
-    - MUST state the effective date and version
-    - SHOULD incorporate by reference from the Terms of Service
-
-  scenarios:
     - id: aup-001
-      summary: Prohibited content categories are listed
-      given: A visitor reads the Acceptable Use Policy
-      when: The prohibited content section is inspected
-      then: The policy SHALL list at minimum the following categories:
-        - Illegal content
-        - Spam
-        - Harassment and threats
-        - Hate speech
-        - Misleading or deceptive content
-        - Copyright infringement
+      requirement: >
+        The AUP MUST prohibit unlawful access, malware, credential abuse,
+        platform manipulation, scraping that violates applicable rights or
+        platform terms, intellectual-property infringement, exploitation of
+        minors, and illegal or abusive content relevant to the service.
 
     - id: aup-002
-      summary: API fair use is described
-      given: A visitor reads the Acceptable Use Policy
-      when: The API usage section is inspected
-      then: The policy SHALL describe fair use principles for the API
-      and: The policy SHALL reference rate limits as a general concept
-      and: The policy SHALL NOT include specific numerical rate limits (those are documented elsewhere)
+      requirement: >
+        Enforcement MUST include a monitored abuse channel, proportionate
+        investigation, preservation and disclosure rules, suspension and appeal
+        handling where required, and emergency escalation.
 
     - id: aup-003
-      summary: Automated scraping is prohibited
-      given: A visitor reads the Acceptable Use Policy
-      when: The prohibited activities section is inspected
-      then: The policy SHALL prohibit automated scraping of the platform
+      requirement: >
+        AI-assisted content rules MUST identify prohibited uses and applicable
+        transparency or labelling obligations when AI features are enabled.
 
-    - id: aup-004
-      summary: Suspension and reporting are documented
-      given: A visitor reads the Acceptable Use Policy
-      when: The enforcement section is inspected
-      then: The policy SHALL state that violations may result in account suspension or termination
-      and: The policy SHALL describe how to report suspected violations
+verification_scenarios:
+  - id: verify-001
+    given: A legal-page build and test suite pass
+    when: Publication readiness is evaluated
+    then: >
+      The result SHALL remain blocked unless every required approval record and
+      evidence reference exists for the exact version and enabled markets.
 
-    - id: aup-005
-      summary: Legal review flag is present
-      given: A developer reads the Acceptable Use Policy source
-      when: The source comments are inspected
-      then: A comment SHALL indicate that content is draft and requires qualified legal review
+  - id: verify-002
+    given: A required factual field is unknown
+    when: A public policy is generated
+    then: >
+      Generation or publication SHALL fail; a placeholder or alternative list
+      SHALL NOT satisfy the requirement.
 
-# =============================================================================
-# I18N CONTENT COVERAGE
-# =============================================================================
+  - id: verify-003
+    given: A vendor is named in a public policy
+    when: The provider register and executed contracts are inspected
+    then: >
+      The selected production vendor, role, service, location, DPA, and transfer
+      mechanism SHALL match the public statement.
 
-i18n:
-  requirements:
-    - Each policy SHALL have a complete EN translation object in src/i18n/en.ts under the legal key
-    - Each policy SHALL have a complete ES translation object in src/i18n/es.ts under the legal key
-    - The ES version SHALL be a faithful translation, not a machine-generated copy (or if using machine translation, a human review of legal accuracy is required)
-    - ALL user-facing strings in policy pages MUST come from i18n objects — no hardcoded text outside of Astro component structure
-    - The legal key structure SHALL be: legal.privacy.*, legal.terms.*, legal.cookies.*, legal.aup.*
+  - id: verify-004
+    given: A retention period is named in a public policy
+    when: Operational evidence is inspected
+    then: >
+      A deletion or anonymisation control, backup treatment, exception handling,
+      and test evidence SHALL exist for that period.
 
-  coverage_scenarios:
-    - id: i18n-001
-      summary: EN i18n keys exist for all four policies
-      given: The en.ts file is inspected
-      when: The legal key is checked
-      then: It SHALL contain privacy, terms, cookies, and aup sub-keys
-      and: Each sub-key SHALL contain all sections needed by its page component
+  - id: verify-005
+    given: Spanish and English policy versions exist
+    when: Their structure, meaning, headings, banners, and links are compared
+    then: >
+      They SHALL be substantively equivalent and SHALL keep visitors within the
+      selected locale.
 
-    - id: i18n-002
-      summary: ES i18n keys mirror EN structure
-      given: The es.ts file is inspected
-      when: The legal key is checked
-      then: It SHALL contain the same sub-keys as en.ts
-      and: Each sub-key SHALL contain the same section keys as the EN counterpart
+  - id: verify-006
+    given: Terms describe intellectual-property restrictions
+    when: The repository licence and deployed source route are inspected
+    then: >
+      The Terms SHALL preserve AGPL-3.0 rights and the deployed service SHALL
+      satisfy the applicable corresponding-source obligation.
 
-    - id: i18n-003
-      summary: No hardcoded policy text outside i18n files
-      given: All four policy page components are inspected
-      when: The components are checked for policy body text
-      then: Policy body text MUST be rendered from props (i18n references)
-      and: No policy content strings SHALL be hardcoded in Astro templates
-
-# =============================================================================
-# COMPONENT ARCHITECTURE
-# =============================================================================
-
-component_architecture:
-  page_components:
-    - file: src/pages/_{PrivacyPolicy,TermsPage,CookiePolicyPage,AcceptableUsePage}.astro
-      role: Shared page component — receives translated content as props, renders Layout + structured content
-    - file: src/pages/{privacy,terms,cookies,acceptable-use}.astro
-      role: Thin EN route wrapper — imports shared component with locale="en"
-    - file: src/pages/es/{privacy,terms,cookies,acceptable-use}.astro
-      role: Thin ES route wrapper — imports shared component with locale="es"
-    - file: src/components/Footer.astro
-      role: Modified to accept legalLinks prop and render legal link group
-    - file: src/layouts/Layout.astro
-      role: Modified to add sameAs URLs to JSON-LD structured data
-
-  architecture_scenarios:
-    - id: arch-001
-      summary: Thin route wrappers delegate to shared component
-      given: An EN route file (e.g., pages/privacy.astro) is inspected
-      when: The file is read
-      then: It SHALL import _PrivacyPolicy component
-      and: It SHALL render _PrivacyPolicy with locale="en" and the EN i18n section
-
-    - id: arch-002
-      summary: ES routes use the same shared component
-      given: An ES route file (e.g., pages/es/privacy.astro) is inspected
-      when: The file is read
-      then: It SHALL import the same _PrivacyPolicy component as the EN route
-      and: It SHALL render _PrivacyPolicy with locale="es" and the ES i18n section
-
-    - id: arch-003
-      summary: Footer renders legal links in current locale
-      given: A page with the updated footer renders
-      when: The footer is inspected
-      then: The legal link group SHALL contain 4 links with labels in the current locale
-      and: The links SHALL point to the locale-correct routes
-
-# =============================================================================
-# OUT OF SCOPE (unchanged from proposal)
-# =============================================================================
-
-out_of_scope:
-  - Cookie consent banner / cookie management UI (separate change)
-  - Backend changes — all pages are static SSG
-  - Vue dashboard legal pages — link to marketing site URLs
-  - Legal review gate or sign-off workflow
-  - PDF or printable versions of policies
-  - Dedicated /ccpa or /gdpr pages (rights covered within Privacy Policy)
+  - id: verify-007
+    given: A country is enabled
+    when: The market register is inspected
+    then: >
+      An unexpired qualified-counsel approval and tested rollback procedure
+      SHALL exist for that country and policy version.
