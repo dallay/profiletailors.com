@@ -22,6 +22,24 @@ spring:
   # SMTP is intentionally absent here. Set SMP_SMTP_HOST via environment variable to
   # activate SmtpEmailSender (staging/prod). Without it, MockEmailSender is used.
 
+application:
+  rate-limit:
+    auth:
+      enabled: false
+    business:
+      enabled: false
+    resume:
+      enabled: false
+    waitlist:
+      enabled: ${SMP_WAITLIST_RATE_LIMIT_ENABLED:true}
+      endpoints:
+        - /api/waitlists
+      limit:
+        name: waitlist-per-minute
+        capacity: ${SMP_WAITLIST_RATE_LIMIT_CAPACITY:10}
+        refill-tokens: ${SMP_WAITLIST_RATE_LIMIT_REFILL_TOKENS:10}
+        refill-duration: ${SMP_WAITLIST_RATE_LIMIT_REFILL_DURATION:PT1M}
+
 app:
   security:
     cors:
