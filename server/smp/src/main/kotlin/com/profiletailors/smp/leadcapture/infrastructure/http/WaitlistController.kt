@@ -27,11 +27,13 @@ class WaitlistController(private val joinWaitlist: JoinWaitlistHandler) {
         joinWaitlist.handle(request.toCommand(waitlistKey))
         ResponseEntity.status(HttpStatus.ACCEPTED).body(JoinWaitlistResponse())
     } catch (_: WaitlistNotFoundException) {
-        ResponseEntity.status(HttpStatus.NOT_FOUND).body(WaitlistErrorResponse("waitlist_not_found"))
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(WaitlistErrorResponse(WAITLIST_NOT_FOUND_ERROR))
     } catch (_: WaitlistClosedException) {
-        ResponseEntity.status(HttpStatus.CONFLICT).body(WaitlistErrorResponse("waitlist_closed"))
+        ResponseEntity.status(HttpStatus.CONFLICT).body(WaitlistErrorResponse(WAITLIST_CLOSED_ERROR))
     } catch (error: IllegalArgumentException) {
-        ResponseEntity.badRequest().body(WaitlistErrorResponse(error.toPublicErrorCode()))
+        error.toPublicErrorCode()
+            ?.let { code -> ResponseEntity.badRequest().body(WaitlistErrorResponse(code)) }
+            ?: throw error
     }
 
     private fun JoinWaitlistRequest.toCommand(waitlistKey: String): JoinWaitlistCommand = JoinWaitlistCommand(
@@ -60,20 +62,24 @@ class WaitlistController(private val joinWaitlist: JoinWaitlistHandler) {
         consentVersion = this?.get("consent_version"),
     )
 
-    private fun IllegalArgumentException.toPublicErrorCode(): String = when (message) {
-        CONSENT_REQUIRED_ERROR -> CONSENT_REQUIRED_ERROR
-        INVALID_SOURCE_ERROR -> INVALID_SOURCE_ERROR
-        else -> if (message?.contains("Early access consent", ignoreCase = true) == true) {
-            CONSENT_REQUIRED_ERROR
-        } else {
-            INVALID_EMAIL_ERROR
-        }
+    private fun IllegalArgumentException.toPublicErrorCode(): String? = when {
+        message == CONSENT_REQUIRED_ERROR -> CONSENT_REQUIRED_ERROR
+        message == INVALID_SOURCE_ERROR -> INVALID_SOURCE_ERROR
+        message?.startsWith("Email address") == true -> INVALID_EMAIL_ERROR
+        message?.startsWith("Capture source") == true -> INVALID_SOURCE_ERROR
+        message?.startsWith("Capture locale") == true -> INVALID_LOCALE_ERROR
+        message?.startsWith("Consent version") == true -> CONSENT_REQUIRED_ERROR
+        message?.startsWith("Early access consent") == true -> CONSENT_REQUIRED_ERROR
+        else -> null
     }
 
     companion object {
+        private const val WAITLIST_NOT_FOUND_ERROR = "waitlist_not_found"
+        private const val WAITLIST_CLOSED_ERROR = "waitlist_closed"
         private const val CONSENT_REQUIRED_ERROR = "consent_required"
         private const val INVALID_EMAIL_ERROR = "invalid_email"
         private const val INVALID_SOURCE_ERROR = "invalid_source"
+        private const val INVALID_LOCALE_ERROR = "invalid_locale"
         private const val DEFAULT_CONSENT_VERSION = "2026-07-17"
     }
 }

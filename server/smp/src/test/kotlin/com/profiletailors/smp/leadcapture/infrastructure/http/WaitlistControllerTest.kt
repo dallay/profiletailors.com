@@ -150,6 +150,68 @@ class WaitlistControllerTest {
             .expectStatus().is5xxServerError
     }
 
+    @Test
+    fun `join returns 400 invalid_locale when capture locale is blank`() {
+        webClient(entryRepository = CaptureLocaleErrorEntryRepository)
+            .post()
+            .uri("/api/waitlists/profile-tailors-launch/entries")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(validJoinRequest(email = "user@example.com"))
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.error").isEqualTo("invalid_locale")
+    }
+
+    @Test
+    fun `join returns 400 invalid_source when capture source is malformed`() {
+        webClient(entryRepository = CaptureSourceErrorEntryRepository)
+            .post()
+            .uri("/api/waitlists/profile-tailors-launch/entries")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(validJoinRequest(email = "user@example.com"))
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.error").isEqualTo("invalid_source")
+    }
+
+    @Test
+    fun `join returns 400 consent_required when consent object is missing`() {
+        webClient()
+            .post()
+            .uri("/api/waitlists/profile-tailors-launch/entries")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                """
+                {
+                  "email": "user@example.com",
+                  "source": "marketing-site",
+                  "formId": "waitlist-hero",
+                  "locale": "en",
+                  "metadata": { "utm_source": "newsletter" }
+                }
+                """.trimIndent(),
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.error").isEqualTo("consent_required")
+    }
+
+    @Test
+    fun `join does not coerce unknown IllegalArgumentException into invalid_email`() {
+        webClient(entryRepository = UnknownDomainErrorEntryRepository)
+            .post()
+            .uri("/api/waitlists/profile-tailors-launch/entries")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(validJoinRequest(email = "user@example.com"))
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.error").doesNotExist()
+    }
+
     private fun webClient(
         knownWaitlistKey: String = "profile-tailors-launch",
         waitlistStatus: WaitlistStatus = WaitlistStatus.ACTIVE,
@@ -224,5 +286,32 @@ class WaitlistControllerTest {
 
         override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
             throw IllegalStateException("database unavailable")
+    }
+
+    private object UnknownDomainErrorEntryRepository : WaitlistEntryRepository {
+        override fun findByNormalizedEmail(waitlistId: WaitlistId, email: NormalizedEmail): WaitlistEntry? = null
+
+        override fun save(entry: WaitlistEntry): WaitlistEntry = entry
+
+        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
+            throw IllegalArgumentException("Some unmodeled domain invariant was violated")
+    }
+
+    private object CaptureLocaleErrorEntryRepository : WaitlistEntryRepository {
+        override fun findByNormalizedEmail(waitlistId: WaitlistId, email: NormalizedEmail): WaitlistEntry? = null
+
+        override fun save(entry: WaitlistEntry): WaitlistEntry = entry
+
+        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
+            throw IllegalArgumentException("Capture locale must not be blank")
+    }
+
+    private object CaptureSourceErrorEntryRepository : WaitlistEntryRepository {
+        override fun findByNormalizedEmail(waitlistId: WaitlistId, email: NormalizedEmail): WaitlistEntry? = null
+
+        override fun save(entry: WaitlistEntry): WaitlistEntry = entry
+
+        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult =
+            throw IllegalArgumentException("Capture source must contain only alphanumeric characters and hyphens")
     }
 }

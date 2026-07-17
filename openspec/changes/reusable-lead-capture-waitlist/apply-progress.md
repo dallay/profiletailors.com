@@ -119,6 +119,11 @@
 - The DALLAY-439 public success contract was resolved to `202 Accepted` for new and duplicate joins after user confirmation. `spec.md`, `tasks.md`, and tests are now aligned.
 - No functional deviation from the DALLAY-438 persistence design after this continuation. The persisted column uses `normalized_email`, matching existing domain naming and tests, while the OpenSpec task text says `email_normalized`; the requirement/design explicitly require `UNIQUE(waitlist_id, normalized_email)` / normalized email dedupe semantics.
 - The shared lead-capture module Gradle `group` and archive names were adjusted because both `:shared:common` and `:shared:lead-capture:common` otherwise produced identical `com.profiletailors:common` coordinates, causing the server classpath to resolve the wrong artifact.
+- DALLAY-439 Phase 5 review asked to wrap `JoinWaitlistHandler.handle` in `withContext(Dispatchers.IO)` inside a `suspend` controller, ostensibly to keep blocking I/O off the WebFlux event loop. Rejected as a fix for this PR because:
+  - `JoinWaitlistHandler.handle` is not `suspend`; the R2DBC repositories wrap the call in `runBlocking {}` (see warning in `verify-report.md` for DALLAY-438). Wrapping that in `Dispatchers.IO` is a layered `runBlocking` that hides the underlying suspend-port debt instead of fixing it.
+  - The structural fix (changing shared ports to `suspend`) is a separate, cross-cutting change. It must be scoped, specced, and approved independently of DALLAY-439. Tracking hint left here; ticket creation deferred.
+- Post-PR review feedback (PR #367) flagged an `IllegalArgumentException` catch-all in `WaitlistController.toPublicErrorCode()` that mapped any domain failure to `invalid_email`. Fixed by mapping only the known VOs (`EmailAddress`, `CaptureSource`, `CaptureLocale`, `WaitlistConsent`, `WaitlistKey`) and re-throwing unknown `IllegalArgumentException`s to `GlobalExceptionHandler`, which already returns a 400 problem detail. Added a focused test to lock the new contract.
+- Post-PR review feedback (PR #367) asked to make `WaitlistEntryIdGenerator`'s UUID input charset explicit. Changed `"${...}".toByteArray()` to use `StandardCharsets.UTF_8`. JVM defaults already use UTF-8, but explicit is more portable and removes reviewer ambiguity.
 
 ## References
 

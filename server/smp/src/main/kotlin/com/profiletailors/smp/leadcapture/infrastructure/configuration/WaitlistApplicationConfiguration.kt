@@ -7,6 +7,7 @@ import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistReposit
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
@@ -16,7 +17,9 @@ class WaitlistApplicationConfiguration {
     @Bean
     fun waitlistEntryIdGenerator(): WaitlistEntryIdGenerator = WaitlistEntryIdGenerator { waitlistId, normalizedEmail ->
         WaitlistEntryId(
-            UUID.nameUUIDFromBytes("${waitlistId.value}|${normalizedEmail.value}".toByteArray()).toString(),
+            UUID.nameUUIDFromBytes(
+                "${waitlistId.value}|${normalizedEmail.value}".toByteArray(StandardCharsets.UTF_8),
+            ).toString(),
         )
     }
 
