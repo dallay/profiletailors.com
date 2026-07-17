@@ -216,7 +216,7 @@ Chain strategy: pending
 
 ## Phase 5: Verification
 
-### task-14 — Verify all 8 pages build and render at correct routes
+### task-14 [x] — Verify all 8 pages build and render at correct routes
 
 - **Description**: Run Astro build to confirm all pages compile. Verify each of the 8 routes renders the correct policy without errors. Check canonical/hreflang tags via built HTML output. Since these are SSG pages, the build output contains static HTML — verify that each page exists at the expected path.
 - **Files**: (no file changes)

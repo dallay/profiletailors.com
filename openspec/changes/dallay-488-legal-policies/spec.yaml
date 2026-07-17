@@ -100,7 +100,7 @@ cross_cutting_scenarios:
     summary: Canonical and hreflang tags are present
     given: A policy page is rendered
     when: The <head> is inspected
-    then: The page SHALL include a <link rel="canonical"> pointing to the EN version
+    then: The page SHALL include a <link rel="canonical"> pointing to the locale-appropriate version
     and: The page SHALL include <link rel="alternate" hreflang="en"> for the EN URL
     and: The page SHALL include <link rel="alternate" hreflang="es"> for the ES URL
 

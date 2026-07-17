@@ -35,13 +35,7 @@ function renderLegalText(text: string): string {
 >
   <div id="main-content" class="fade-in">
     <article class="max-w-3xl mx-auto px-6 py-16 sm:py-24">
-      <!-- Legal review banner -->
-      <div class="border border-amber-600/30 bg-amber-600/5 rounded-lg px-4 py-3 mb-8">
-        <p class="font-mono text-xs text-amber-500 tracking-wider uppercase">[LEGAL REVIEW]</p>
-        <p class="font-mono text-xs text-text-muted mt-1">
-          This is draft content that requires qualified legal review before production publication.
-        </p>
-      </div>
+      <!-- [LEGAL REVIEW] This is draft content that requires qualified legal review before production publication. DO NOT publish without a lawyer's sign-off. Source flags in i18n files. -->
 
       <!-- Header -->
       <header class="mb-12">
@@ -49,63 +43,63 @@ function renderLegalText(text: string): string {
         <p class="font-mono text-xs text-text-muted tracking-wide">{policy.lastUpdated}</p>
       </header>
 
-      <!-- Service Description & Acceptance -->
+      <!-- Service Description -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">1. Service Description and Acceptance of Terms</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section1}</h2>
         <div set:html={renderLegalText(policy.serviceDescription)} />
       </section>
 
       <!-- Account Terms -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">2. Eligibility and Account Registration</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section2}</h2>
         <div set:html={renderLegalText(policy.accountTerms)} />
       </section>
 
       <!-- Acceptable Use -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">3. Acceptable Use</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section3}</h2>
         <div set:html={renderLegalText(policy.acceptableUse)} />
       </section>
 
       <!-- Fees & Payment -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">4. Fees and Payment</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section4}</h2>
         <div set:html={renderLegalText(policy.feesPayment)} />
       </section>
 
       <!-- Intellectual Property -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">5. Intellectual Property</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section5}</h2>
         <div set:html={renderLegalText(policy.intellectualProperty)} />
       </section>
 
       <!-- Third-Party Services -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">6. Third-Party Services</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section6}</h2>
         <div set:html={renderLegalText(policy.thirdPartyServices)} />
       </section>
 
-      <!-- Disclaimer & Liability -->
+      <!-- Disclaimers & Liability -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">7. Disclaimers and Limitation of Liability</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section7}</h2>
         <div set:html={renderLegalText(policy.limitationLiability)} />
       </section>
 
       <!-- Termination -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">8. Suspension and Termination</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section8}</h2>
         <div set:html={renderLegalText(policy.termination)} />
       </section>
 
       <!-- Governing Law -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">9. Governing Law</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section9}</h2>
         <div set:html={renderLegalText(policy.governingLaw)} />
       </section>
 
       <!-- Contact -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">10. Contact</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section10}</h2>
         <div set:html={renderLegalText(policy.contact)} />
       </section>
     </article>

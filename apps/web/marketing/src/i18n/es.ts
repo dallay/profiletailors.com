@@ -62,6 +62,16 @@ export const es = {
       description:
         'Política de Privacidad de Profile Tailors (Dallay). Conoce cómo recopilamos, usamos y protegemos tus datos personales cuando utilizas nuestra plataforma de programación y publicación en redes sociales.',
       lastUpdated: 'v1.0 — Vigente a partir del 17 de julio de 2026',
+      section1: '1. Responsable del Tratamiento',
+      section2: '2. Datos Personales que Recopilamos',
+      section3: '3. Cómo Usamos tus Datos',
+      section4: '4. Compartición de Datos y Destinatarios Terceros',
+      section5: '5. Conservación de Datos',
+      section6: '6. Transferencias Internacionales de Datos',
+      section7: '7. Tus Derechos',
+      section8: '8. Cookies',
+      section9: '9. Cambios a Esta Política',
+      section10: '10. Contacto',
       intro:
         'Esta Política de Privacidad explica cómo Dallay (Profile Tailors) ("nosotros", "nuestro") recopila, usa, divulga y protege tus datos personales cuando visitas nuestro sitio web o utilizas nuestra plataforma de programación y publicación en redes sociales. Estamos comprometidos a proteger tu privacidad y a tratar tus datos personales de conformidad con las leyes de protección de datos aplicables, incluyendo el Reglamento General de Protección de Datos (RGPD) y la Ley de Privacidad del Consumidor de California (CCPA).\n\nEsta política aplica a todos los visitantes, usuarios registrados y consumidores de API de nuestra plataforma. Te recomendamos leerla detenidamente.',
       dataController:
@@ -194,7 +204,7 @@ export const es = {
         '**Reclamaciones:**\n' +
         'Si consideras que hemos violado tus derechos de protección de datos, tienes derecho a presentar una reclamación ante tu autoridad local de protección de datos. Te recomendamos contactarnos primero para que podamos intentar resolver tu inquietud.',
       cookies:
-        'Utilizamos cookies y tecnologías de seguimiento similares en nuestro sitio web. Para obtener información detallada sobre las cookies que utilizamos, sus fines y cómo gestionarlas, consulta nuestra [Política de Cookies](/cookies/).\n\n' +
+        'Utilizamos cookies y tecnologías de seguimiento similares en nuestro sitio web. Para obtener información detallada sobre las cookies que utilizamos, sus fines y cómo gestionarlas, consulta nuestra [Política de Cookies](/es/cookies/).\n\n' +
         'En resumen, utilizamos:\n' +
         '• Cookies esenciales para el funcionamiento de la plataforma (plataforma Vercel, autenticación Auth0, seguridad Cloudflare).\n' +
         '• Cookies de análisis no esenciales (Ahrefs Analytics — con mecanismo de consentimiento planificado para una versión futura).\n\n' +
@@ -222,6 +232,16 @@ export const es = {
       description:
         'Términos del Servicio de Profile Tailors (Dallay). Estos términos rigen el uso de nuestra plataforma de programación y publicación en redes sociales.',
       lastUpdated: 'v1.0 — Vigente a partir del 17 de julio de 2026',
+      section1: '1. Descripción del Servicio y Aceptación de los Términos',
+      section2: '2. Elegibilidad y Registro de Cuenta',
+      section3: '3. Uso Aceptable',
+      section4: '4. Tarifas y Pagos',
+      section5: '5. Propiedad Intelectual',
+      section6: '6. Servicios de Terceros',
+      section7: '7. Renuncias y Limitación de Responsabilidad',
+      section8: '8. Suspensión y Terminación',
+      section9: '9. Ley Aplicable',
+      section10: '10. Contacto',
       serviceDescription:
         'Profile Tailors (Dallay) proporciona una plataforma de programación y publicación en redes sociales que permite a los usuarios crear, programar y publicar contenido en múltiples cuentas de redes sociales (incluyendo Instagram, Twitter/X, LinkedIn, Facebook y TikTok) desde una sola interfaz. Nuestra plataforma incluye gestión de calendario de contenido, funciones de colaboración en equipo y capacidades de analítica.\n\nEstos Términos del Servicio ("Términos") rigen tu acceso y uso de nuestro sitio web, API y todos los servicios relacionados (colectivamente, el "Servicio"). Al crear una cuenta o utilizar el Servicio, aceptas estar sujeto a estos Términos.',
       accountTerms:
@@ -247,7 +267,7 @@ export const es = {
         '• Infringir derechos de propiedad intelectual.\n' +
         '• Distribuir malware o participar en hacking.\n' +
         '• Extracción automatizada de datos de nuestra plataforma sin permiso.\n\n' +
-        'Al utilizar el Servicio, aceptas cumplir con la AUP. La violación de la AUP es una violación de estos Términos y puede resultar en la suspensión o terminación de tu cuenta. [Lee la Política de Uso Aceptable completa](/acceptable-use/).',
+        'Al utilizar el Servicio, aceptas cumplir con la AUP. La violación de la AUP es una violación de estos Términos y puede resultar en la suspensión o terminación de tu cuenta. [Lee la Política de Uso Aceptable completa](/es/acceptable-use/).',
       feesPayment:
         '**Acceso Durante el Acceso Anticipado**\n' +
         'Durante el período de acceso anticipado / lista de espera, el Servicio se proporciona de forma gratuita. Nos reservamos el derecho de introducir niveles de pago y tarifas de suscripción en el futuro. Cuando introduzcamos funciones de pago, proporcionaremos aviso y una oportunidad para revisar y aceptar los precios aplicables antes de realizar cualquier cobro.\n\n' +
@@ -330,6 +350,12 @@ export const es = {
       description:
         'Política de Cookies de Profile Tailors (Dallay). Conoce las cookies que utilizamos y cómo gestionar tus preferencias de cookies.',
       lastUpdated: 'v1.0 — Vigente a partir del 17 de julio de 2026',
+      section1: '1. ¿Qué Son las Cookies?',
+      section2: '2. Cookies Esenciales',
+      section3: '3. Cookies de Análisis y Rendimiento',
+      section4: '4. Cookies de Terceros',
+      section5: '5. Cómo Gestionar las Cookies',
+      section6: '6. Contacto',
       whatAreCookies:
         'Las cookies son pequeños archivos de texto que se almacenan en tu dispositivo (ordenador, tableta o móvil) cuando visitas un sitio web. Se utilizan ampliamente para hacer que los sitios web funcionen de manera más eficiente, mejorar la experiencia del usuario y proporcionar información a los propietarios del sitio.\n\nUtilizamos cookies y tecnologías de seguimiento similares (como almacenamiento local y balizas web) en nuestro sitio web y plataforma. Esta política explica qué cookies utilizamos, por qué las usamos y cómo puedes controlarlas.\n\n**Tipos de cookies que utilizamos:**\n• Cookies esenciales (estrictamente necesarias) — requeridas para el funcionamiento de la plataforma.\n• Cookies de análisis — nos ayudan a entender cómo los visitantes usan nuestro sitio (no esenciales, dependientes del consentimiento).',
       essentialCookies:
@@ -403,6 +429,10 @@ export const es = {
       description:
         'Política de Uso Aceptable de Profile Tailors (Dallay). Esta política define lo que está y no está permitido al utilizar nuestra plataforma y API.',
       lastUpdated: 'v1.0 — Vigente a partir del 17 de julio de 2026',
+      section1: '1. Usos Prohibidos',
+      section2: '2. Cumplimiento',
+      section3: '3. Reportar Infracciones',
+      section4: '4. Contacto',
       prohibitedActivities:
         'No puedes utilizar el Servicio para participar en ninguna de las siguientes actividades prohibidas. Estas prohibiciones aplican a todo el contenido que publiques, programes o transmitas a través de la plataforma, así como a tu uso de la API y el sitio web.\n\n' +
         '**1. Contenido y Actividades Ilegales**\n' +

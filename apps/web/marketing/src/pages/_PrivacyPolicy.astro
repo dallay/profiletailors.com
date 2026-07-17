@@ -35,13 +35,7 @@ function renderLegalText(text: string): string {
 >
   <div id="main-content" class="fade-in">
     <article class="max-w-3xl mx-auto px-6 py-16 sm:py-24">
-      <!-- Legal review banner -->
-      <div class="border border-amber-600/30 bg-amber-600/5 rounded-lg px-4 py-3 mb-8">
-        <p class="font-mono text-xs text-amber-500 tracking-wider uppercase">[LEGAL REVIEW]</p>
-        <p class="font-mono text-xs text-text-muted mt-1">
-          This is draft content that requires qualified legal review before production publication.
-        </p>
-      </div>
+      <!-- [LEGAL REVIEW] This is draft content that requires qualified legal review before production publication. DO NOT publish without a lawyer's sign-off. Source flags in i18n files. -->
 
       <!-- Header -->
       <header class="mb-12">
@@ -54,61 +48,61 @@ function renderLegalText(text: string): string {
 
       <!-- Data Controller -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">1. Data Controller</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section1}</h2>
         <div set:html={renderLegalText(policy.dataController)} />
       </section>
 
       <!-- Data Collected -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">2. Personal Data We Collect</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section2}</h2>
         <div set:html={renderLegalText(policy.dataCollected)} />
       </section>
 
       <!-- Data Usage -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">3. How We Use Your Data</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section3}</h2>
         <div set:html={renderLegalText(policy.dataUsage)} />
       </section>
 
       <!-- Data Sharing -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">4. Data Sharing and Third-Party Recipients</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section4}</h2>
         <div set:html={renderLegalText(policy.dataSharing)} />
       </section>
 
       <!-- Data Retention -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">5. Data Retention</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section5}</h2>
         <div set:html={renderLegalText(policy.dataRetention)} />
       </section>
 
       <!-- International Transfers -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">6. International Data Transfers</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section6}</h2>
         <div set:html={renderLegalText(policy.internationalTransfers)} />
       </section>
 
       <!-- Your Rights -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">7. Your Rights</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section7}</h2>
         <div set:html={renderLegalText(policy.yourRights)} />
       </section>
 
       <!-- Cookies -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">8. Cookies</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section8}</h2>
         <div set:html={renderLegalText(policy.cookies)} />
       </section>
 
       <!-- Policy Changes -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">9. Changes to This Policy</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section9}</h2>
         <div set:html={renderLegalText(policy.policyChanges)} />
       </section>
 
       <!-- Contact -->
       <section class="mb-10">
-        <h2 class="font-display text-xl font-semibold text-text-display mb-4">10. Contact Us</h2>
+        <h2 class="font-display text-xl font-semibold text-text-display mb-4">{policy.section10}</h2>
         <div set:html={renderLegalText(policy.contact)} />
       </section>
     </article>

@@ -62,6 +62,16 @@ export const en = {
       description:
         'Privacy Policy for Profile Tailors (Dallay). Learn how we collect, use, and protect your personal data when you use our social media scheduling and publishing platform.',
       lastUpdated: 'v1.0 — Effective July 17, 2026',
+      section1: '1. Data Controller',
+      section2: '2. Personal Data We Collect',
+      section3: '3. How We Use Your Data',
+      section4: '4. Data Sharing and Third-Party Recipients',
+      section5: '5. Data Retention',
+      section6: '6. International Data Transfers',
+      section7: '7. Your Rights',
+      section8: '8. Cookies',
+      section9: '9. Changes to This Policy',
+      section10: '10. Contact Us',
       intro:
         "This Privacy Policy explains how Dallay (Profile Tailors) ('we', 'us', or 'our') collects, uses, discloses, and protects your personal data when you visit our website or use our social media scheduling and publishing platform. We are committed to protecting your privacy and handling your personal data in accordance with applicable data protection laws, including the General Data Protection Regulation (GDPR) and the California Consumer Privacy Act (CCPA).\n\nThis policy applies to all visitors, registered users, and API consumers of our platform. Please read it carefully.",
       dataController:
@@ -222,6 +232,16 @@ export const en = {
       description:
         'Terms of Service for Profile Tailors (Dallay). These terms govern your use of our social media scheduling and publishing platform.',
       lastUpdated: 'v1.0 — Effective July 17, 2026',
+      section1: '1. Service Description and Acceptance of Terms',
+      section2: '2. Eligibility and Account Registration',
+      section3: '3. Acceptable Use',
+      section4: '4. Fees and Payment',
+      section5: '5. Intellectual Property',
+      section6: '6. Third-Party Services',
+      section7: '7. Disclaimers and Limitation of Liability',
+      section8: '8. Suspension and Termination',
+      section9: '9. Governing Law',
+      section10: '10. Contact',
       serviceDescription:
         'Profile Tailors (Dallay) provides a social media scheduling and publishing platform that allows users to create, schedule, and publish content across multiple social media accounts (including Instagram, Twitter/X, LinkedIn, Facebook, and TikTok) from a single interface. Our platform includes content calendar management, team collaboration features, and analytics capabilities.\n\nThese Terms of Service ("Terms") govern your access to and use of our website, API, and all related services (collectively, the "Service"). By creating an account or using the Service, you agree to be bound by these Terms.',
       accountTerms:
@@ -330,6 +350,12 @@ export const en = {
       description:
         'Cookie Policy for Profile Tailors (Dallay). Learn about the cookies we use and how to manage your cookie preferences.',
       lastUpdated: 'v1.0 — Effective July 17, 2026',
+      section1: '1. What Are Cookies',
+      section2: '2. Essential Cookies',
+      section3: '3. Analytics and Performance Cookies',
+      section4: '4. Third-Party Cookies',
+      section5: '5. How to Manage Cookies',
+      section6: '6. Contact',
       whatAreCookies:
         "Cookies are small text files that are stored on your device (computer, tablet, or mobile) when you visit a website. They are widely used to make websites work more efficiently, enhance user experience, and provide information to website owners.\n\nWe use cookies and similar tracking technologies (such as local storage and web beacons) on our website and platform. This policy explains what cookies we use, why we use them, and how you can control them.\n\n**Types of cookies we use:**\n• Essential (strictly necessary) cookies — required for the platform to function.\n• Analytics cookies — help us understand how visitors use our site (non-essential, consent-dependent).",
       essentialCookies:
@@ -403,6 +429,10 @@ export const en = {
       description:
         'Acceptable Use Policy for Profile Tailors (Dallay). This policy defines what is and is not permitted when using our platform and API.',
       lastUpdated: 'v1.0 — Effective July 17, 2026',
+      section1: '1. Prohibited Uses',
+      section2: '2. Enforcement',
+      section3: '3. Reporting Violations',
+      section4: '4. Contact',
       prohibitedActivities:
         'You may not use the Service to engage in any of the following prohibited activities. These prohibitions apply to all content you publish, schedule, or transmit through the platform, as well as your use of the API and website.\n\n' +
         '**1. Illegal Content and Activities**\n' +
