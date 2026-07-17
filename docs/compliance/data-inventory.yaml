@@ -1,6 +1,6 @@
 schema_version: "1.0"
 processing_entity: Dallay (Profile Tailors)
-dpo_contact: null
+DPO_contact: null
 
 processing_activities:
   # ── Account & Identity ────────────────────────────────────────────────
@@ -148,7 +148,7 @@ processing_activities:
     retention:
       trigger: session_end
       duration: P90D (access logs), P26M (aggregated analytics)
-      action: delete or anonymize
+      action: delete
       exceptions: []
     security_measures:
       - TLS 1.3 for all data in transit
@@ -187,7 +187,7 @@ processing_activities:
     retention:
       trigger: consent_withdrawn or account_converted
       duration: P30D after withdrawal (anonymize), indefinitely if converted
-      action: anonymize (erase direct identifiers, retain aggregate counts)
+      action: anonymize
       exceptions: []
     security_measures:
       - Email verification before activation
@@ -227,7 +227,7 @@ processing_activities:
     retention:
       trigger: workspace_deleted or member_removed
       duration: P30D after removal (soft reference retained for audit)
-      action: anonymize membership links
+      action: anonymize
       exceptions:
         - Ownership records retained for workspace continuity audit
     security_measures:
@@ -250,11 +250,16 @@ processing_activities:
   - id: pa-006
     name: OAuth authentication and social account connections
     purposes:
-      - purpose: Authenticate users and connect social media accounts for publishing
-        role: controller (auth processing), processor (social connection per customer instruction)
+      - purpose: Authenticate users for platform access
+        role: controller
         legal_basis:
           type: contract
-          reference: GDPR Art. 6(1)(b) (legitimate interest for auth security)
+          reference: GDPR Art. 6(1)(b)
+      - purpose: Connect social media accounts for cross-publishing
+        role: processor
+        legal_basis:
+          type: controller_instruction
+          reference: Data Processing Agreement / controller (customer) instructions
     personal_data_categories:
       - OAuth provider subject identifier (principals.subject, provider)
       - Provider connection reference (social_connections.provider_connection_ref)
@@ -320,7 +325,7 @@ processing_activities:
     retention:
       trigger: key_revoked
       duration: P90D after revocation (rotation audit trail)
-      action: delete verifier, retain metadata-only
+      action: delete
     security_measures:
       - Secret verifier stored as cryptographic hash (not plaintext)
       - Key prefix stored separately for identification
@@ -363,7 +368,7 @@ processing_activities:
     retention:
       trigger: workspace_deleted or asset_removed
       duration: P7D (GC grace period after deletion), then permanent erasure
-      action: delete from storage and database
+      action: delete
       exceptions:
         - Published media remains on social media platforms per their policies
     security_measures:
@@ -408,7 +413,7 @@ processing_activities:
     retention:
       trigger: publication_deleted or workspace_deleted
       duration: P90D after deletion (delivery logs), P7D (jobs)
-      action: delete or anonymize
+      action: delete
       exceptions: []
     security_measures:
       - Author attribution tracked for accountability
@@ -450,7 +455,7 @@ processing_activities:
     retention:
       trigger: event_created
       duration: P1Y (standard), P5Y (security incidents), indefinite (aggregated statistics)
-      action: archive then delete
+      action: archive
       exceptions:
         - Security incidents retained per legal hold
     security_measures:
@@ -505,7 +510,7 @@ processing_activities:
     retention:
       trigger: event_created
       duration: P30D (detailed logs), P13M (aggregated metrics), P90D (error events)
-      action: delete or aggregate
+      action: delete
       exceptions: []
     security_measures:
       - Log scrubbing to exclude credentials and tokens

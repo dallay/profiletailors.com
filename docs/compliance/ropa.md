@@ -1,10 +1,31 @@
 # Record of Processing Activities (ROPA)
 
 > **Classification:** Internal — Compliance
-> **Status:** Active
+> **Status:** Draft
 > **Version:** 1.0
 > **Authority:** GDPR Article 30
 > **Processing entity:** Dallay (Profile Tailors)
+
+## Overview
+
+This document constitutes the Record of Processing Activities for Profile Tailors as required by GDPR Article 30. It is derived from the canonical data inventory at [`data-inventory.yaml`](data-inventory.yaml) and MUST be kept in sync.
+
+> **Status:** Draft — Representative and Contact fields are placeholders pending DPO appointment and establishment of EEA representative.
+
+## Changes
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.0 | 2026-07-17 | Initial ROPA with 11 processing activities |
+
+## Usage
+
+This ROPA serves as:
+
+- The **formal record of processing activities** (Art. 30) for regulatory compliance.
+- An **accountability evidence** source for supervisory authority inquiries.
+- A **baseline for Data Protection Impact Assessments** (DPIAs).
+- A **reference for breach notification** assessments under Art. 33–34.
 
 ## Controller Information
 
@@ -38,13 +59,14 @@
 |----------|--------|
 | **Purpose** | Schedule, compose, and publish content to connected social media accounts |
 | **Controller** | Customer (workspace owner) — Profile Tailors acts as processor |
-| **Processor(s)** | LinkedIn, Twitter/X, Facebook, Instagram, TikTok (independent controllers) |
+| **Processor(s)** | None (processing performed by Profile Tailors on customer instruction) |
+| **Independent controller(s)** | LinkedIn, Twitter/X, Facebook, Instagram, TikTok |
 | **Legal basis** | Controller instruction |
 | **Data categories** | Social media account identifiers, published content, delivery records |
 | **Data subjects** | End recipients; social media account owners |
 | **Recipients** | LinkedIn (US), Twitter/X (US), Facebook (US), Instagram (US), TikTok (US) |
 | **International transfer** | US (social media platforms) |
-| **Retention schedule** | 90 days after account deletion; published content persists per platform policy |
+| **Retention schedule** | 90 days after account deletion (archive); delivery attempt logs retained 180 days; published content persists per platform policy |
 | **Security measures** | OAuth 2.0, token encryption (AES-256-GCM), workspace isolation |
 
 ### 3. Web Application Hosting and Delivery
@@ -98,8 +120,9 @@
 |----------|--------|
 | **Purpose** | Authenticate users and connect social media accounts |
 | **Controller** | Dallay (auth) / Customer (social connections) |
-| **Processor(s)** | Auth0/Clerk (independent controller for auth events) |
-| **Legal basis** | Contract (Art. 6(1)(b)) |
+| **Processor(s)** | None (processing performed by Profile Tailors) |
+| **Independent controller(s)** | Auth0 / Clerk (authentication events) |
+| **Legal basis** | Contract (Art. 6(1)(b)) — auth; Controller instruction — social connections |
 | **Data categories** | OAuth subject identifier, provider connection ref, encrypted tokens |
 | **Data subjects** | Registered users connecting social accounts |
 | **Recipients** | Auth0/Clerk (US); social platforms (US) |
@@ -143,7 +166,8 @@
 |----------|--------|
 | **Purpose** | Execute scheduled content publishing and manage delivery lifecycle |
 | **Controller** | Customer (workspace owner) — Profile Tailors acts as processor |
-| **Processor(s)** | Social media platforms (independent controllers) |
+| **Processor(s)** | None (processing performed by Profile Tailors on customer instruction) |
+| **Independent controller(s)** | LinkedIn, Twitter/X, Facebook, Instagram, TikTok |
 | **Legal basis** | Controller instruction |
 | **Data categories** | Publication content, author identifier, job metadata, delivery error logs |
 | **Data subjects** | Workspace members; social media audience |
@@ -181,6 +205,12 @@
 | **International transfer** | US (SCCs required) |
 | **Retention schedule** | 30 days (detailed logs), 13 months (aggregated metrics), 90 days (errors) |
 | **Security measures** | Log scrubbing, data minimization by design, operations team access only |
+
+## Troubleshooting
+
+- **ROPA and data-inventory.yaml out of sync:** Update `data-inventory.yaml` first, then align this ROPA.
+- **Missing processing activity:** Before adding an entry, ensure the activity is defined in `data-inventory.yaml`.
+- **Placeholder values:** This ROPA is in Draft status while Representative and Contact fields are TBD. Update after DPO appointment.
 
 ---
 

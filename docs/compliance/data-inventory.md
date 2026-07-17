@@ -53,7 +53,7 @@ This data inventory serves as:
 | **Personal data** | Social media account identifiers, published content, delivery records |
 | **Data subjects** | End recipients; social media account owners |
 | **Recipients** | LinkedIn (US), Twitter/X (US), Facebook (US), Instagram (US), TikTok (US) |
-| **Retention** | Archive 90 days after account deletion |
+| **Retention** | Archive 90 days after account deletion (delivery attempt logs retained 180 days) |
 | **Evidence** | `server/smp/.../publishing/` domain models and schemas |
 
 ### pa-003: Web application hosting and delivery

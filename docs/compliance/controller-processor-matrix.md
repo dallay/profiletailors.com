@@ -8,6 +8,21 @@
 
 This document maps the data-processing roles of Profile Tailors, its customers, and its third-party providers for every personal-data processing activity.
 
+## Changes
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.0 | 2026-07-17 | Initial controller–processor matrix |
+
+## Usage
+
+This matrix serves as:
+
+- A **role map** identifying when Profile Tailors acts as controller, processor, or both per activity.
+- A **third-party register** documenting processor and independent-controller relationships.
+- A **DPA tracker** identifying which provider agreements are in place, required, or planned.
+- An **input for Privacy Policy and Terms** drafting (see DALLAY-488).
+
 | Role | Definition |
 |------|------------|
 | **Controller** | Determines the purposes and means of processing (GDPR Art. 4(7)) |
@@ -26,8 +41,7 @@ This document maps the data-processing roles of Profile Tailors, its customers, 
 | Web hosting & delivery | **Controller** | We choose infrastructure and security measures |
 | Lead capture & waitlist | **Controller** | We determine the purpose (first-party marketing) |
 | Workspace & membership management | **Controller** | We provide the collaboration feature set |
-| OAuth authentication | **Controller** | We decide auth requirements and data storage |
-| Social account connections | **Processor** | Customer instructs which accounts to connect |
+| OAuth authentication & social connections (pa-006) | **Controller** (auth) / **Processor** (connections) | We control auth requirements; customer instructs which accounts to connect |
 | API key management | **Controller** | We issue and manage access credentials |
 | Media asset storage | **Processor** | Content belongs to the customer |
 | Content publishing & delivery | **Processor** | Customer provides the content to publish |
@@ -41,7 +55,7 @@ This document maps the data-processing roles of Profile Tailors, its customers, 
 | Provider | Service | Role | Data Accessed | Location | DPA Status | Safeguard Mechanism |
 |----------|---------|------|---------------|----------|------------|---------------------|
 | **Vercel Inc.** | Hosting, CDN, serverless functions | Processor | IP addresses, request metadata, source code | US (global CDN) | ✅ In place | SCCs (Standard Contractual Clauses) |
-| **Neon / AWS RDS / GCP Cloud SQL** | PostgreSQL database hosting | Processor | All personal data stored in database | EEA or US | ⚠️ Required | SCCs; encryption at rest |
+| **Neon / AWS RDS / GCP Cloud SQL** | PostgreSQL database hosting | Processor | Personal data for activities that name database hosting as a processor arrangement (pa-001, pa-010); infrastructure-level metadata across all database-backed activities. See data-inventory.yaml for per-activity classification. | EEA or US | ⚠️ Required | SCCs; encryption at rest |
 | **Cloudflare R2 / AWS S3** | Object storage for media assets | Processor | Media files, filenames, metadata | Bucket region (EEA/US) | ⚠️ Required | SCCs; server-side encryption |
 | **Upstash / AWS ElastiCache** | Redis cache | Processor | Session data (transient), rate-limit counters | Region | ⚠️ Required | No persistent personal data; TTL-based expiry |
 | **CloudAMQP / Confluent Cloud** | Message queue | Processor | Event payloads (may contain identifiers) | Region | ⚠️ Required | Encryption in transit; queue-level access control |
@@ -77,6 +91,12 @@ This document maps the data-processing roles of Profile Tailors, its customers, 
 | 🔵 **P2** | Review social platform ToS for controller obligations | Legal |
 
 ---
+
+## Troubleshooting
+
+- **Activity not listed:** If a data-processing activity is not represented in this matrix, update `data-inventory.yaml` first, then add the corresponding row.
+- **Provider missing from matrix:** Add the provider to the appropriate table (Processor or Independent Controller) with its role, location, and DPA status.
+- **DPA status out of date:** Update the `agreement_reference` or DPA Status column once an agreement is executed.
 
 ## References
 
