@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Data Inventory Schema",
+  "description": "Validates data-inventory.yaml against the schema defined in the legal compliance foundation design spec",
+  "type": "object",
+  "required": ["schema_version", "processing_entity", "processing_activities"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "processing_entity": {
+      "type": "string",
+      "minLength": 1
+    },
+    "DPO_contact": {
+      "type": ["string", "null"]
+    },
+    "processing_activities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "purposes", "personal_data_categories", "recipients", "retention", "evidence_references"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^pa-\\d{3}$" },
+          "name": { "type": "string", "minLength": 1 },
+          "purposes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["purpose", "role", "legal_basis"],
+              "properties": {
+                "purpose": { "type": "string", "minLength": 1 },
+                "role": { "type": "string", "enum": ["controller", "processor"] },
+                "legal_basis": {
+                  "type": "object",
+                  "required": ["type", "reference"],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["consent", "contract", "legal_obligation", "vital_interest", "public_task", "legitimate_interest", "controller_instruction"]
+                    },
+                    "reference": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "personal_data_categories": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" }
+          },
+          "data_subjects": { "type": "string" },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "type", "location_type", "location", "agreement_reference"],
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string", "enum": ["controller", "processor", "none"] },
+                "location_type": { "type": "string", "enum": ["country", "region", "unknown"] },
+                "location": { "type": "string" },
+                "agreement_reference": { "type": "string" }
+              }
+            }
+          },
+          "retention": {
+            "type": "object",
+            "required": ["trigger", "duration", "action"],
+            "properties": {
+              "trigger": { "type": "string" },
+              "duration": { "type": "string" },
+              "action": { "type": "string", "enum": ["delete", "anonymize", "archive"] },
+              "exceptions": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "security_measures": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "evidence_references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["path", "reason"],
+              "properties": {
+                "path": { "type": "string" },
+                "reason": { "type": "string" }
+              }
+            }
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

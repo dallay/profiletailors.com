@@ -1,0 +1,47 @@
+schema_version: "1.0"
+jurisdictions:
+  - code: ES
+    location_type: country
+    name: Spain
+    authority: AEPD
+    authority_url: https://www.aepd.es
+    requirements:
+      authority_notification:
+        deadline: PT72H
+        trigger: responsible_becomes_aware
+        description: Without undue delay and, where feasible, within 72 hours after becoming aware.
+      data_subject_notification:
+        deadline: without_undue_delay
+        trigger: high_risk_likely
+        description: Without undue delay when high risk to data subjects is likely.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Operational policy target; GDPR requires documentation but does not define this deadline.
+      processor_notification:
+        deadline: without_undue_delay
+        trigger: processor_becomes_aware
+        description: Processor notifies controller without undue delay.
+    notes: Lead supervisory authority depends on establishment and cross-border processing analysis.
+  - code: EEA
+    location_type: region
+    name: European Economic Area
+    authority: Lead supervisory authority when applicable
+    authority_url: null
+    requirements:
+      authority_notification:
+        deadline: PT72H
+        trigger: responsible_becomes_aware
+        description: GDPR Art. 33.
+      data_subject_notification:
+        deadline: without_undue_delay
+        trigger: high_risk_likely
+        description: GDPR Art. 34.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: GDPR Art. 33(5) documentation requirement plus internal policy target.
+      processor_notification:
+        deadline: without_undue_delay
+        trigger: processor_becomes_aware
+        description: GDPR Art. 33(2).

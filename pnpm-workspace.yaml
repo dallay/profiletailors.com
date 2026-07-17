@@ -1,6 +1,7 @@
 packages:
   - apps/web/marketing
   - apps/web/app
+  - tools/compliance
 
 allowBuilds:
   vue-demi: true
