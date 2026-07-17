@@ -169,7 +169,6 @@ The C4 model provides a hierarchical set of architecture diagrams for visualizin
 ## 🔗 External Links
 
 - **Repository**: https://github.com/dallay/profiletailors.com
-- **Discussions**: https://github.com/dallay/profiletailors.com/discussions
 - **Issues**: https://github.com/dallay/profiletailors.com/issues
 
 ---
