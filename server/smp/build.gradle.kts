@@ -39,6 +39,8 @@ dependencies {
     implementation(project(":shared:presentation"))
     implementation(project(":shared:spring-boot-common"))
     implementation(project(":shared:storage"))
+    implementation(project(":shared:lead-capture:common"))
+    implementation(project(":shared:lead-capture:waitlist"))
 
     implementation(libs.spring.boot.starter.data.r2dbc)
     implementation(libs.spring.boot.starter.liquibase)

@@ -1,0 +1,174 @@
+databaseChangeLog:
+  - changeSet:
+      id: lead-capture-001-create-waitlists
+      author: sdd-apply
+      changes:
+        - createTable:
+            tableName: waitlists
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: key
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_waitlists_key
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: context
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: waitlists
+            indexName: idx_waitlists_status
+            columns:
+              - column:
+                  name: status
+
+  - changeSet:
+      id: lead-capture-001-create-waitlist-entries
+      author: sdd-apply
+      changes:
+        - createTable:
+            tableName: waitlist_entries
+            columns:
+              - column:
+                  name: id
+                  type: varchar(128)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: waitlist_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_waitlist_entries_waitlist
+                    references: waitlists(id)
+              - column:
+                  name: email_original
+                  type: varchar(320)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: normalized_email
+                  type: varchar(320)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: form_id
+                  type: varchar(128)
+              - column:
+                  name: locale
+                  type: varchar(32)
+              - column:
+                  name: metadata
+                  type: jsonb
+                  defaultValueComputed: "'{}'::jsonb"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: consent_early_access
+                  type: boolean
+                  constraints:
+                    nullable: false
+              - column:
+                  name: consent_marketing
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: consent_version
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: joined_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: invited_at
+                  type: timestamp with time zone
+              - column:
+                  name: converted_at
+                  type: timestamp with time zone
+              - column:
+                  name: cancelled_at
+                  type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: waitlist_entries
+            columnNames: waitlist_id, normalized_email
+            constraintName: uq_waitlist_entries_waitlist_email
+        - createIndex:
+            tableName: waitlist_entries
+            indexName: idx_waitlist_entries_waitlist_joined_at
+            columns:
+              - column:
+                  name: waitlist_id
+              - column:
+                  name: joined_at
+                  descending: true
+        - createIndex:
+            tableName: waitlist_entries
+            indexName: idx_waitlist_entries_normalized_email
+            columns:
+              - column:
+                  name: normalized_email
+        - createIndex:
+            tableName: waitlist_entries
+            indexName: idx_waitlist_entries_status
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            tableName: waitlist_entries
+            indexName: idx_waitlist_entries_source
+            columns:
+              - column:
+                  name: source
+        - createIndex:
+            tableName: waitlist_entries
+            indexName: idx_waitlist_entries_form_id
+            columns:
+              - column:
+                  name: form_id

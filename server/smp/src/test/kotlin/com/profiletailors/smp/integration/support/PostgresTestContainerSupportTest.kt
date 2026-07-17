@@ -1,5 +1,6 @@
 package com.profiletailors.smp.integration.support
 
+import io.kotest.matchers.ints.shouldBeLessThan
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -32,15 +33,15 @@ class PostgresTestContainerSupportTest {
     }
 
     @Test
-    fun `cleanup statements delete workspace file blobs before workspaces`() {
+    fun `cleanup statements delete dependent rows before parent rows`() {
         val statements = PostgresDatabaseCleanup.statements
 
-        assertTrue(
-            statements.indexOf("DELETE FROM media_assets") < statements.indexOf("DELETE FROM workspace_file_blobs"),
-        )
-        assertTrue(
-            statements.indexOf("DELETE FROM workspace_file_blobs") < statements.indexOf("DELETE FROM workspaces"),
-        )
+        statements.indexOf("DELETE FROM media_assets") shouldBeLessThan
+            statements.indexOf("DELETE FROM workspace_file_blobs")
+        statements.indexOf("DELETE FROM workspace_file_blobs") shouldBeLessThan
+            statements.indexOf("DELETE FROM workspaces")
+        statements.indexOf("DELETE FROM waitlist_entries") shouldBeLessThan
+            statements.indexOf("DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'")
     }
 
     @Test

@@ -2,8 +2,12 @@ plugins {
     id("com.profiletailors.kotlin.library")
 }
 
-group = "com.profiletailors"
+group = "com.profiletailors.leadcapture"
 version = "0.0.1-SNAPSHOT"
+
+base {
+    archivesName.set("lead-capture-waitlist")
+}
 
 dependencies {
     api(project(":shared:lead-capture:common"))

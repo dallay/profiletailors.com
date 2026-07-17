@@ -1,155 +1,155 @@
 # Verification Report
 
+## Overview
+
 **Change**: reusable-lead-capture-waitlist
 **Mode**: openspec
-**Verification scope**: Completed shared foundation/domain/application slice only (DALLAY-437 plus completed Phase 8 subset). Phases 4-7, remaining Phase 8 tasks, and Phase 9 are intentionally out of scope and pending.
+**Verification scope**: DALLAY-438 persistence slice only. DALLAY-439 endpoint, DALLAY-440 rate limiting, DALLAY-441 frontend, DALLAY-442 broader QA beyond 8.3, and DALLAY-443 docs are intentionally out of scope.
 **Verdict**: PASS WITH WARNINGS
 
-## Executive Summary
+## Changes
 
-The completed DALLAY-437 shared foundation/domain/application slice now passes focused runtime verification and focused build/type/style checks. I verified the 17 marked-complete tasks against proposal, specs, design, tasks, apply progress, source, tests, and fresh command output. The prior max-line-length failures are resolved; remaining items are scoped warnings around spec wording/test granularity and intentionally pending later phases.
+### Executive Summary
 
-## Completeness
+DALLAY-438 now verifies successfully for the persistence slice. The previous missing-index gap is closed: `waitlist_entries` includes indexes for `status`, `source`, and `form_id`, the Liquibase changelog test asserts them, the R2DBC adapters preserve the shared port semantics, and focused runtime verification passed.
+
+### Completeness
 
 | Metric | Value |
 |--------|-------|
-| Total tasks | 47 |
-| Marked complete | 17 |
-| Incomplete / pending | 30 |
-| In-scope marked-complete tasks assessed | 17 |
-| Out-of-scope pending phases | Phases 4-9 pending work, except completed Phase 8 subset |
+| Total tasks in change | 47 |
+| Marked complete | 24 |
+| In-scope marked-complete tasks assessed | 7 |
+| In-scope tasks passing verification | 7 |
+| In-scope tasks partial / failing verification | 0 |
+| Out-of-scope tasks ignored for this verdict | DALLAY-439, DALLAY-440, DALLAY-441, DALLAY-442 except 8.3, DALLAY-443 |
 
-### Out-of-Scope Pending Work
+### Verification Scope
 
-The following remain pending by design and were not treated as verification failures for this scoped check:
+Validated only:
 
-- Phase 4 persistence: Liquibase, R2DBC repositories, seed data.
-- Phase 5 HTTP endpoint: controller, DTOs, WebTestClient tests.
-- Phase 6 rate limiting.
-- Phase 7 marketing integration.
-- Phase 8 remaining persistence/HTTP/frontend/CI comprehensive tests.
-- Phase 9 documentation/archive updates.
+- Tasks 4.1 through 4.6.
+- Task 8.3.
+- DALLAY-438 persistence semantics: `waitlists`, `waitlist_entries`, per-waitlist dedupe on normalized email, persistence indexes including `status`, `source`, and `form_id`, `profile-tailors-launch` seed, R2DBC adapters implementing shared ports, sealed `WaitlistEntryRepository.SaveResult` semantics, hexagonal dependency direction, and reproducible focused verification evidence.
 
-## Evidence
+Intentionally not required:
 
-| Command | Result | Evidence |
+- DALLAY-439 HTTP endpoint.
+- DALLAY-440 rate limiting.
+- DALLAY-441 frontend integration.
+- DALLAY-442 broader comprehensive QA except marked 8.3.
+- DALLAY-443 documentation/archive work.
+
+### Evidence
+
+| Command / inspection | Result | Evidence |
 |---|---|---|
-| `./gradlew :shared:lead-capture:common:test :shared:lead-capture:waitlist:test --rerun-tasks` | TRANSIENT FAIL | First rerun was attempted in parallel with the build command and failed with Gradle binary test-results corruption (`EOFException`). Treated as environment/concurrency noise, then rerun sequentially with cleaned test state. |
-| `./gradlew :shared:lead-capture:common:build :shared:lead-capture:waitlist:build` | TRANSIENT FAIL | First build was attempted concurrently with test rerun and failed with `NoSuchFileException: .../test-results/test/binary/in-progress-results-generic.bin`, same Gradle concurrent test-results race. |
-| `./gradlew :shared:lead-capture:common:cleanTest :shared:lead-capture:waitlist:cleanTest :shared:lead-capture:common:test :shared:lead-capture:waitlist:test --rerun-tasks` | PASS | Sequential clean rerun passed: `BUILD SUCCESSFUL in 16s`, 16 tasks executed. Test XML shows 88 tests, 0 failures, 0 errors, 0 skipped. |
-| `./gradlew :shared:lead-capture:common:build :shared:lead-capture:waitlist:build` | PASS | Sequential focused build/check passed: `BUILD SUCCESSFUL in 1s`. Includes compile, tests, Spotless, Detekt, Kover verify, and build tasks for the two shared modules. |
-| `./gradlew test` | NOT RERUN | Apply-progress reports the broad configured verify/apply test command passed. I did not rerun the full broad suite because this verify scope is the completed shared slice, and fresh focused tests + build passed after the style fix. |
-| Coverage | PASS / configured threshold 0 | Focused build ran Kover verify tasks for both modules. `coverage_threshold: 0` is configured, so no stricter coverage threshold applies. |
+| Source inspection: `server/smp/src/main/resources/db/changelog/lead-capture/001-create-waitlists.yaml` | PASS | Defines `waitlists` and `waitlist_entries`, FK `fk_waitlist_entries_waitlist`, `UNIQUE(waitlist_id, normalized_email)`, `idx_waitlist_entries_waitlist_joined_at`, `idx_waitlist_entries_normalized_email`, `idx_waitlist_entries_status`, `idx_waitlist_entries_source`, and `idx_waitlist_entries_form_id`. |
+| Source inspection: `server/smp/src/test/kotlin/com/profiletailors/smp/leadcapture/infrastructure/persistence/LeadCaptureLiquibaseChangelogTest.kt` | PASS | The changelog test now asserts `idx_waitlist_entries_status`, `idx_waitlist_entries_source`, and `idx_waitlist_entries_form_id`, closing the previous verification gap. |
+| Source inspection: `server/smp/src/main/resources/db/changelog/lead-capture/002-seed-profile-tailors-launch.yaml` | PASS | Inserts waitlist `id/key = profile-tailors-launch`, `name = Profile Tailors Launch`, `context = profile-tailors`, `status = ACTIVE`. |
+| Source inspection: `server/smp/src/main/resources/db/changelog/db.changelog-master.yaml` | PASS | Includes `db/changelog/lead-capture/001-create-waitlists.yaml` and `002-seed-profile-tailors-launch.yaml`. |
+| Source inspection: `server/smp/src/main/kotlin/com/profiletailors/smp/leadcapture/infrastructure/persistence/R2dbcWaitlistRepositories.kt` | PASS WITH WARNING | `R2dbcWaitlistRepository` implements `WaitlistRepository`; `R2dbcWaitlistEntryRepository` implements `WaitlistEntryRepository`; `saveIfNotExists` returns sealed `SaveResult.Saved` vs `SaveResult.AlreadyExists` using `ON CONFLICT (waitlist_id, normalized_email) DO NOTHING`. Warning: repository methods are synchronous port methods bridged with `runBlocking`, consistent with current shared port shape but worth revisiting if the app layer becomes suspend/reactive. |
+| `SMP_POSTGRES_TEST_PASSWORD=profiletailors-test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.LeadCaptureLiquibaseChangelogTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.persistence.R2dbcWaitlistRepositoriesPostgresTest' --tests 'com.profiletailors.smp.HexagonalArchTest' --rerun-tasks` | PASS | `BUILD SUCCESSFUL in 40s`; test XML shows 17 tests, 0 failures/errors/skipped across Liquibase, R2DBC PostgreSQL, and server hexagonal architecture tests. |
+| `./gradlew :shared:lead-capture:waitlist:test --tests 'com.profiletailors.leadcapture.waitlist.LeadCaptureArchTest' --rerun-tasks` | PASS | `BUILD SUCCESSFUL in 4s`; test XML shows 4 tests, 0 failures/errors/skipped proving shared lead-capture modules stay framework-free and server-free. |
+| Coverage | NOT APPLICABLE | `coverage_threshold: 0` in `openspec/config.yaml`; no meaningful threshold enforcement required for this focused persistence verification. |
 
-### Runtime Test Counts From XML
+#### Runtime Test Counts From XML
 
-| Module | Test suites | Tests | Failed | Errors | Skipped |
-|---|---:|---:|---:|---:|---:|
-| `shared/lead-capture/common` | 5 | 29 | 0 | 0 | 0 |
-| `shared/lead-capture/waitlist` | 11 | 59 | 0 | 0 | 0 |
-| Total focused slice | 16 | 88 | 0 | 0 | 0 |
+| Test suite | Tests | Failed | Errors | Skipped |
+|---|---:|---:|---:|---:|
+| `LeadCaptureLiquibaseChangelogTest` | 3 | 0 | 0 | 0 |
+| `R2dbcWaitlistRepositoriesPostgresTest` | 4 | 0 | 0 | 0 |
+| `HexagonalArchTest` | 10 | 0 | 0 | 0 |
+| `LeadCaptureArchTest` | 4 | 0 | 0 | 0 |
+| Total focused runtime evidence | 21 | 0 | 0 | 0 |
 
-## Completed Task Assessment
+### Completed Task Assessment
 
-| Task | Status | Evidence |
+| Task | Verification status | Evidence |
 |---|---|---|
-| 1.1 ArchUnit/module-boundary forbidden dependencies | IMPLEMENTED | `LeadCaptureArchTest` asserts no `org.springframework..`, `io.r2dbc..`, `com.profiletailors.smp..`, or `com.profiletailors.common..` dependencies. Passed in focused test run. |
-| 1.2 Gradle subprojects registered by auto-discovery | IMPLEMENTED | `settings.gradle.kts` recursively scans `shared` with max depth 3 and includes Gradle project directories; both modules are buildable via `:shared:lead-capture:common` and `:shared:lead-capture:waitlist`. |
-| 1.3 Manifest/import-level framework isolation | IMPLEMENTED | Same ArchUnit coverage verifies compiled lead-capture classes do not depend on Spring/R2DBC/server/common packages. Passed in focused test run. |
-| 1.4 Shared module Gradle framework-free dependencies | IMPLEMENTED | `common/build.gradle.kts` declares only Kotlin library plugin plus test dependencies. `waitlist/build.gradle.kts` depends on `common` and test dependencies only. |
-| 2.1 Common value-object tests | IMPLEMENTED WITH WARNING | Tests exist for `EmailAddress`, `NormalizedEmail`, `CaptureSource`, `CaptureLocale`, `LeadMetadata`; all passed. Warning: spec scenario for unlisted metadata keys is not directly tested as a map input. |
-| 2.2 Common value objects | IMPLEMENTED | `EmailAddress`, `NormalizedEmail`, `CaptureSource`, `CaptureLocale`, `LeadMetadata` exist under `shared/lead-capture/common`. |
-| 2.3 Waitlist aggregate/status tests | IMPLEMENTED | `WaitlistTest` and `WaitlistStatusTest` exist and passed. |
-| 2.4 Waitlist/status transitions | IMPLEMENTED | `Waitlist` and `WaitlistStatus` implement active/paused/closed/archived lifecycle and `acceptsEntries()`. |
-| 2.5 Waitlist entry/status/consent tests | IMPLEMENTED | `WaitlistEntryTest` and `WaitlistConsentTest` exist and passed. |
-| 2.6 WaitlistEntry/status/consent implementation | IMPLEMENTED | `WaitlistEntry`, `WaitlistEntryStatus`, `WaitlistConsent` implement lifecycle timestamps, transitions, early-access requirement, marketing default false. |
-| 3.1 Port contract tests | IMPLEMENTED | `WaitlistRepositoryTest` and `WaitlistEntryRepositoryTest` exist and passed. |
-| 3.2 Ports defined | IMPLEMENTED | `WaitlistRepository` and `WaitlistEntryRepository` interfaces exist under application ports. |
-| 3.3 Join command/handler tests | IMPLEMENTED | `JoinWaitlistCommandTest`, `JoinWaitlistHandlerTest`, and `JoinResultTest` exist and passed. |
-| 3.4 Join handler implementation | IMPLEMENTED | `JoinWaitlistHandler` uses `WaitlistRepository.findByKey`, status check, normalized email, and atomic `entryRepository.saveIfNotExists`. |
-| 8.1 Domain tests | IMPLEMENTED | Domain tests under `shared/lead-capture/waitlist/src/test` passed. |
-| 8.2 Application tests | IMPLEMENTED | Application tests for command, handler, result, ID generator passed. |
-| 8.5 ArchUnit/module-boundary tests | IMPLEMENTED | `LeadCaptureArchTest` passed. |
+| 4.1 RED: Liquibase change-set test asserting tables, per-waitlist unique constraint, and indexes | IMPLEMENTED | `LeadCaptureLiquibaseChangelogTest` asserts both tables, `UNIQUE(waitlist_id, normalized_email)`, and indexes including `idx_waitlist_entries_status`, `idx_waitlist_entries_source`, and `idx_waitlist_entries_form_id`. Passed at runtime. |
+| 4.2 GREEN: Add Liquibase changelogs | IMPLEMENTED | Changelog exists, is included from the master changelog, and defines required tables, FK, per-waitlist dedupe constraint, and all verified indexes. Passed static inspection and runtime changelog test. |
+| 4.3 RED: Repository tests for round-trip and dedupe | IMPLEMENTED | `R2dbcWaitlistRepositoriesPostgresTest` covers seeded waitlist lookup, entry round-trip, duplicate same-waitlist `AlreadyExists`, and same-email different-waitlist success. Passed against Testcontainers PostgreSQL. |
+| 4.4 GREEN: R2DBC repositories implementing shared ports | IMPLEMENTED | `R2dbcWaitlistRepository : WaitlistRepository`; `R2dbcWaitlistEntryRepository : WaitlistEntryRepository`; `saveIfNotExists` preserves sealed `SaveResult` semantics. Compile and focused repository tests passed. |
+| 4.5 RED: Test seed `profile-tailors-launch` exists after migrations | IMPLEMENTED | Changelog test asserts seed content; PostgreSQL repository test verifies `findByKey(profile-tailors-launch)` after Liquibase baseline. Passed at runtime. |
+| 4.6 GREEN: Add Liquibase seed changelog | IMPLEMENTED | `002-seed-profile-tailors-launch.yaml` is included by master changelog and applied during PostgreSQL test. |
+| 8.3: R2DBC repository tests | IMPLEMENTED | `R2dbcWaitlistRepositoriesPostgresTest` exists, is PostgreSQL-backed via Testcontainers, and passed 4/4 focused tests with required environment variable. |
 
-## Spec Compliance Matrix
+### Spec / Roadmap Compliance Matrix
 
-| Requirement | Scenario | Test evidence | Result |
+| Requirement / scenario | Covering test or evidence | Runtime result | Compliance |
 |---|---|---|---|
-| EmailAddress Value Object | Valid email preserved | `EmailAddressTest.valid email is preserved as-is` | COMPLIANT |
-| EmailAddress Value Object | Blank email rejected | `EmailAddressTest.blank email is rejected` | COMPLIANT |
-| EmailAddress Value Object | Invalid email rejected | `EmailAddressTest.email without at sign/domain/local part is rejected` | COMPLIANT |
-| NormalizedEmail Value Object | Normalization is conservative | `NormalizedEmailTest.normalization lowercases already-trimmed email`; original unchanged test | PARTIAL — passed for lowercasing and immutability, but not for leading/trailing whitespace because `EmailAddress` rejects whitespace before normalization. |
-| NormalizedEmail Value Object | No Gmail canonicalization | `NormalizedEmailTest.normalization does not change gmail dots`; `normalization does not strip plus addressing` | COMPLIANT |
-| CaptureSource Value Object | Valid source accepted | `CaptureSourceTest` passed | COMPLIANT |
-| CaptureSource Value Object | Blank source rejected | `CaptureSourceTest` passed | COMPLIANT |
-| CaptureLocale Value Object | Valid locale accepted | `CaptureLocaleTest` passed | COMPLIANT |
-| LeadMetadata Value Object | Whitelisted keys accepted | `LeadMetadataTest.whitelisted keys are accepted` | COMPLIANT |
-| LeadMetadata Value Object | Unlisted keys rejected/ignored | Static typed shape only; no map/factory test exists | PARTIAL — type prevents extra fields, but scenario is not directly covered at runtime. |
-| Common Framework Isolation | No Spring imports | `LeadCaptureArchTest.lead-capture modules must not depend on Spring` | COMPLIANT |
-| Common Framework Isolation | No R2DBC imports | `LeadCaptureArchTest.lead-capture modules must not depend on R2DBC` | COMPLIANT |
-| Common Framework Isolation | No server package dependency | `LeadCaptureArchTest.lead-capture modules must not depend on server` | COMPLIANT |
-| Waitlist Aggregate | Active waitlist accepts entries | `JoinWaitlistHandlerTest.new email join returns Accepted...`; `WaitlistStatusTest` | COMPLIANT |
-| Waitlist Aggregate | Paused waitlist rejects entries | `JoinWaitlistHandlerTest.paused waitlist throws Closed` | COMPLIANT |
-| Waitlist Aggregate | Unknown waitlist key returns not found | `JoinWaitlistHandlerTest.unknown waitlist key throws NotFound` | COMPLIANT |
-| WaitlistEntry Entity | New entry starts pending | `WaitlistEntryTest.new entry starts as pending with joined_at set` | COMPLIANT |
-| WaitlistConsent Value Object | Early access consent required | `WaitlistConsentTest.consent with earlyAccess false is rejected` | COMPLIANT |
-| WaitlistConsent Value Object | Marketing consent defaults false | `WaitlistConsentTest.marketing defaults to false when not specified` | COMPLIANT |
-| Idempotent Join | New join returns accepted | `JoinWaitlistHandlerTest.new email join returns Accepted...` | COMPLIANT |
-| Idempotent Join | Duplicate join returns accepted | `JoinWaitlistHandlerTest.duplicate email join returns Accepted...` | COMPLIANT |
-| Idempotent Join | Internal distinction is not public | `JoinWaitlistHandlerTest.result toString is uniform regardless of distinction`; `JoinResultTest` | COMPLIANT for shared slice. Full public API is out of scope until Phase 5. |
-| Email Deduplication Per Waitlist | Same email different waitlists | `WaitlistEntryRepositoryTest.dedupe key is scoped per waitlist` | COMPLIANT at port contract level. Persistence unique constraint is Phase 4 pending/out of scope. |
-| Email Deduplication Per Waitlist | Same email same waitlist is idempotent | `WaitlistEntryRepositoryTest.saveIfNotExists returns AlreadyExists...`; handler duplicate test | COMPLIANT |
-| Repository Ports | Port is framework-free | `LeadCaptureArchTest`; source inspection of port interfaces | COMPLIANT |
-| Waitlist Framework Isolation | No Spring imports | `LeadCaptureArchTest` | COMPLIANT |
-| Waitlist Framework Isolation | No R2DBC imports | `LeadCaptureArchTest` | COMPLIANT |
-| Waitlist Framework Isolation | No server package dependency | `LeadCaptureArchTest` | COMPLIANT |
+| Schema includes `waitlists` | `LeadCaptureLiquibaseChangelogTest.schema changelog creates waitlists and entries...`; source inspection | PASS | COMPLIANT |
+| Schema includes `waitlist_entries` | `LeadCaptureLiquibaseChangelogTest.schema changelog creates waitlists and entries...`; source inspection | PASS | COMPLIANT |
+| Per-waitlist dedupe via `UNIQUE(waitlist_id, normalized_email)` | Changelog test plus `R2dbcWaitlistRepositoriesPostgresTest.saveIfNotExists returns AlreadyExists...` | PASS | COMPLIANT |
+| Same email can join different waitlists | `R2dbcWaitlistRepositoriesPostgresTest.dedupe key is scoped per waitlist` | PASS | COMPLIANT |
+| Seed `profile-tailors-launch` as active profile-tailors waitlist | Changelog seed test plus `R2dbcWaitlistRepositoriesPostgresTest.findByKey maps the seeded...` | PASS | COMPLIANT |
+| R2DBC adapters implement shared ports | Source inspection plus selected `:server:smp:test` compile/test lifecycle | PASS | COMPLIANT |
+| Preserve `WaitlistEntryRepository.SaveResult` sealed semantics | `R2dbcWaitlistRepositoriesPostgresTest.saveIfNotExists returns AlreadyExists...`; source inspection | PASS | COMPLIANT |
+| Hexagonal direction: shared modules remain framework-free | `LeadCaptureArchTest` | PASS | COMPLIANT |
+| Hexagonal direction: server domain/application do not depend on infrastructure or forbidden frameworks | `HexagonalArchTest` | PASS | COMPLIANT |
+| Required/recommended indexes: `waitlist_id`, `joined_at`, `normalized_email`, `status`, `source`, `form_id` | Changelog source inspection and `LeadCaptureLiquibaseChangelogTest` assertions | PASS | COMPLIANT |
+| Reproducible focused verification evidence | Gradle focused commands above | PASS WITH SETUP REQUIREMENT | COMPLIANT when `SMP_POSTGRES_TEST_PASSWORD` is set. |
 
-**Compliance summary**: 26/28 scenarios compliant, 2/28 partial warnings, 0 failing, 0 untested critical scenarios in the in-scope slice.
+**Compliance summary**: 11/11 DALLAY-438 checks compliant.
 
-## Correctness / Static Evidence
+### Correctness Table
 
-| Area | Status | Notes |
+| Finding | Judge A | Judge B | Severity | Status |
+|---------|---------|---------|----------|--------|
+| Previous missing indexes for `waitlist_entries.status`, `waitlist_entries.source`, and `waitlist_entries.form_id` are now present and tested | ✅ Source inspection | ✅ Runtime changelog test | INFO | Confirmed fixed |
+| `saveIfNotExists` preserves `Saved` vs `AlreadyExists` sealed result semantics | ✅ Source inspection | ✅ Runtime repository test | INFO | Confirmed |
+| Per-waitlist dedupe allows the same email on different waitlists | ✅ Source inspection | ✅ Runtime repository test | INFO | Confirmed |
+| Seed exists and maps through repository after migrations | ✅ Changelog inspection | ✅ Runtime PostgreSQL test | INFO | Confirmed |
+| Hexagonal dependency direction remains valid for shared lead-capture modules and server layers | ✅ ArchUnit source inspection | ✅ Runtime ArchUnit tests | INFO | Confirmed |
+| Local PostgreSQL test command needs `SMP_POSTGRES_TEST_PASSWORD` | ✅ Test infrastructure behavior | ✅ Repository verification command | WARNING | Confirmed |
+
+### Design Coherence Table
+
+| Design decision | Followed? | Notes |
 |---|---|---|
-| Module boundaries | PASS | Modules are discoverable and framework-free by Gradle/source inspection and ArchUnit tests. |
-| Common value objects | PASS WITH WARNING | Implemented and tested. `LeadMetadata` is a fixed typed object rather than a map parser, so unlisted metadata keys are structurally impossible but not directly tested from map input. |
-| Waitlist domain | PASS | Aggregate, status, entry, lifecycle timestamps, and consent invariants are implemented and tested. |
-| Application ports | PASS | Ports exist and are framework-free. `WaitlistEntryRepository.SaveResult` supports atomic save outcomes. |
-| Join handler | PASS | Handler checks waitlist existence/status and uses `saveIfNotExists` for idempotent duplicate handling. |
-| Build/type/style quality | PASS | Focused shared module build passes after the max-line-length fixes. |
+| Infrastructure lives in `server/smp`, shared ports live in `shared/lead-capture/waitlist` | YES | R2DBC adapters are under `server/smp/.../infrastructure/persistence`; ports remain in the shared module. |
+| `server/smp` implements ports and depends on shared modules | YES | Adapters implement shared ports and selected server test lifecycle compiles them. |
+| Shared lead-capture modules stay framework-free | YES | `LeadCaptureArchTest` passed: no Spring, R2DBC, server, or legacy shared-common dependency leakage. |
+| Server hexagonal dependency direction remains valid | YES | `HexagonalArchTest` passed 10/10 selected architecture checks. |
+| `UNIQUE(waitlist_id, normalized_email)` per-waitlist dedupe | YES | Liquibase constraint and repository `ON CONFLICT` target match the design. |
+| Seed `profile-tailors-launch` | YES | Active seeded row exists and is verified through repository lookup. |
+| Required persistence indexes | YES | Missing-index gap is closed for `status`, `source`, and `form_id`; changelog test asserts all three. |
+| Public API uniform response | OUT OF SCOPE | DALLAY-439 endpoint not required for this verification. |
+| Rate limiting | OUT OF SCOPE | DALLAY-440 not required for this verification. |
 
-## Design Coherence
+## Usage
 
-| Decision | Followed? | Notes |
-|---|---|---|
-| `common` contains framework-free value objects only | YES | Source/build files match. |
-| `waitlist` contains pure Kotlin domain + application | YES | No Spring/R2DBC/server dependencies; ArchUnit passed. |
-| `waitlist` depends on `common`, not vice versa | YES | `waitlist` declares `api(project(":shared:lead-capture:common"))`; `common` has no waitlist dependency. |
-| Consent lives in waitlist, not common | YES | `WaitlistConsent` is in waitlist domain. |
-| Conservative email normalization | MOSTLY | Lowercase-only after trim in `NormalizedEmail.from`; however `EmailAddress` rejects leading/trailing whitespace, so trim behavior cannot be exercised through valid `EmailAddress`. |
-| Per-waitlist dedupe | YES for shared slice | Port contract and handler use `(waitlistId, normalizedEmail)`. Database unique constraint remains Phase 4 pending. |
-| Metadata whitelist | PARTIAL | `LeadMetadata` typed constructor only exposes whitelisted fields. No map ingestion/rejection behavior exists in this slice. |
-| Public uniform response | PARTIAL / OUT OF SCOPE | Shared `JoinResult.toString()` is uniform. Actual HTTP public DTO uniformity is Phase 5 pending/out of scope. |
+Run the commands in the Evidence section to reproduce the focused DALLAY-438 verification.
 
-## Gaps or Issues
+## Troubleshooting
 
-### CRITICAL
+### Gaps or Issues
+
+#### CRITICAL
 
 None.
 
-### WARNING
+#### WARNING
 
-1. `LeadMetadata` unlisted-key scenario is only structurally satisfied by using explicit fields; there is no runtime test for rejecting/ignoring unknown map keys.
-2. `NormalizedEmail` spec scenario uses `EmailAddress("  User@example.com  ")`, but `EmailAddress` rejects leading/trailing whitespace. Runtime tests prove lowercasing/no canonicalization, but not that exact scenario.
-3. Initial verify commands were accidentally run concurrently and produced Gradle test-results binary file errors. Sequential clean test/build reruns passed, so this is not a product-code failure, but avoid parallel Gradle test/build commands sharing the same project test output directories.
-4. Configured broad `./gradlew test` was not rerun during this verify; apply-progress reports it passed, and the fresh focused slice test/build verification passed.
+1. Reproducibility requires setting `SMP_POSTGRES_TEST_PASSWORD`; without it, the focused PostgreSQL test suite cannot initialize its Testcontainers database. Use the exact command shown in the evidence table.
+2. Existing unrelated compile warnings remain in `shared/storage/src/main/kotlin/com/profiletailors/storage/infrastructure/S3RetryHelper.kt`, `server/smp/src/main/kotlin/com/profiletailors/smp/media/infrastructure/persistence/R2dbcMediaRepositories.kt`, and `server/smp/src/test/kotlin/com/profiletailors/smp/media/application/MediaCasHandlersTest.kt`. They did not fail the focused verification and are outside DALLAY-438.
+3. The persisted column names differ from the Linear issue's database model wording: implementation uses `metadata`, `consent_early_access`, and `consent_marketing` instead of `metadata_json`, `early_access_consent`, and `marketing_consent`. This does not break the OpenSpec/shared-port behavior, but it remains a roadmap naming deviation worth accepting explicitly or aligning later.
+4. `R2dbcWaitlistEntryRepository.save(entry)` uses plain insert and will surface a database duplicate error on duplicate entries; idempotent semantics are correctly implemented through `saveIfNotExists`, which the handler uses. Keep repository callers disciplined around the correct method.
 
-### SUGGESTION
+#### SUGGESTION
 
-1. Add a small factory or adapter-level test later for mapping raw metadata maps into `LeadMetadata` and dropping/rejecting unlisted keys, if that behavior belongs before HTTP/persistence integration.
-2. Clarify whether `EmailAddress` should reject surrounding whitespace or preserve it for `NormalizedEmail` to trim. Current implementation favors strict email validation.
+1. If the roadmap column names are intentional, record the naming decision in design/OpenSpec so future verification does not treat it as drift.
 
-## Final Verdict
+## References
+
+- `tasks.md`
+- `apply-progress.md`
+- `design.md`
+- `spec.md`
+
+### Final Verdict
 
 PASS WITH WARNINGS
 
-The completed DALLAY-437 shared foundation/domain/application slice is implemented, covered by passing runtime tests, and passes focused build/type/style checks. Do not archive yet; continue with the next implementation slice or address the non-blocking warnings first.
+The DALLAY-438 persistence slice is complete for the requested scope. The missing-index blocker from the previous verification is fixed, all in-scope tasks 4.1-4.6 and 8.3 are implemented, and focused runtime verification passed with 21/21 tests successful.
