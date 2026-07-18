@@ -17,6 +17,17 @@ class LiquibaseBaselineChangelogTest {
     }
 
     @Test
+    fun `release configuration excludes development seed data by default`() {
+        val application = resourceText("application.yaml")
+        val development = resourceText("application-dev.yaml")
+        val developmentSeed = resourceText("db/changelog/dev/001-seed-test-data.yaml")
+
+        assertTrue(application.contains("contexts: \${SMP_LIQUIBASE_CONTEXTS:prod}"))
+        assertTrue(development.contains("contexts: \${SMP_LIQUIBASE_CONTEXTS:dev}"))
+        assertTrue(developmentSeed.contains("context: \"@dev\""))
+    }
+
+    @Test
     fun `external metadata forward rollback changelog drops constraints and columns`() {
         val rollback = "db/changelog/media/006-drop-external-metadata.yaml"
 

@@ -3,7 +3,6 @@ include:
 services:
   postgres:
     image: 'postgres:18-alpine'
-    container_name: profiletailors-db
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-profiletailors_smp}
       POSTGRES_USER: ${POSTGRES_USER:-profiletailors}
@@ -24,4 +23,3 @@ services:
 
 volumes:
   postgres_data:
-

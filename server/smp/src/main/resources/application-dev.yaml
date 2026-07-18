@@ -5,6 +5,8 @@ spring:
   docker:
     compose:
       enabled: true
+  liquibase:
+    contexts: ${SMP_LIQUIBASE_CONTEXTS:dev}
   # Mailpit local SMTP — no auth, no TLS. Web UI: http://localhost:8025
   mail:
     host: ${SMP_SMTP_HOST:localhost}
@@ -27,6 +29,8 @@ logging:
     org.springframework.http.codec.multipart: DEBUG
 
 publishing:
+  linkedin:
+    state-signing-secret: ${SMP_LINKEDIN_STATE_SIGNING_SECRET:profiletailors-dev-oauth-state-secret}
   credentials:
     encryption:
       key: ${PUBLISHING_CREDENTIALS_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key for dev

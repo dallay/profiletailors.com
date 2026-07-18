@@ -31,7 +31,7 @@
         {
           "type": "generic",
           "path": "build.gradle.kts",
-          "search-by-regex": "^version = \"([0-9]+\\.[0-9]+\\.[0-9]+)(-SNAPSHOT)?\""
+          "search-by-regex": "^val defaultVersion = \"([0-9]+\\.[0-9]+\\.[0-9]+)(-SNAPSHOT)?\""
         }
       ]
     }

@@ -522,9 +522,7 @@ class LinkedInPublishingConfiguration(
 
     @Bean
     fun oauthStateSigner(
-        @Value(
-            "\${publishing.linkedin.state-signing-secret:profiletailors-dev-oauth-state-secret}",
-        ) stateSigningSecret: String,
+        @Value("\${publishing.linkedin.state-signing-secret}") stateSigningSecret: String,
         objectMapper: ObjectMapper,
         clock: Clock,
     ): OAuthStateSigner = HmacOAuthStateSigner(stateSigningSecret, objectMapper, clock)

@@ -2,7 +2,7 @@ databaseChangeLog:
   - changeSet:
       id: dev-001-seed-test-data
       author: opencode
-      context: dev
+      context: "@dev"
       preConditions:
         - onFail: MARK_RAN
         - tableExists:

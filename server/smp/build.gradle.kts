@@ -1,9 +1,23 @@
+import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
+
 plugins {
     id("com.profiletailors.spring.boot.application")
 }
 
 group = "com.profiletailors"
-version = "0.0.1-SNAPSHOT"
+val defaultVersion = "0.0.1-SNAPSHOT"
+version = providers.gradleProperty("releaseVersion").getOrElse(defaultVersion)
+
+tasks.named<BootBuildImage>("bootBuildImage") {
+    builder.set(
+        "paketobuildpacks/builder-noble-java-tiny@sha256:" +
+            "c320b12e4d7c9097834090b3e7420e0dd606ac3f55288418ced6b93e348a78cf",
+    )
+    runImage.set(
+        "paketobuildpacks/ubuntu-noble-run-tiny@sha256:" +
+            "ce96dbed676cede92b8c043bf6892edfcf6c96e825437fdd92a179ffa66fad5e",
+    )
+}
 
 // ── .env loader for local development ────────────────────────────────────────
 // Reads the root .env (linked via bin/setup-env.sh) and exports each variable

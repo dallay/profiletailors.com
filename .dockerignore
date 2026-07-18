@@ -1,0 +1,36 @@
+/tmp/
+.playwright-mcp/
+.superpowers/
+.codegraph/
+
+# Source-control and local agent metadata
+.git/
+.github/
+.agents/
+.codex/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+infra/apps/smp/production/secrets/*
+!infra/apps/smp/production/secrets/README.md
+infra/apps/smp/swarm/secrets/*
+!infra/apps/smp/swarm/secrets/README.md
+
+# Dependencies and generated artifacts
+node_modules/
+**/node_modules/
+.pnpm-store/
+.gradle/
+**/build/
+**/dist/
+**/coverage/
+**/test-results/
+**/playwright-report/
+
+# Editor and operating-system files
+.idea/
+.vscode/
+*.iml
+.DS_Store

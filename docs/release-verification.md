@@ -16,7 +16,8 @@ The release gate is tracked in
 
 This document was created as part of MVP launch readiness to document the CI
 and local verification steps required before declaring the product
-release-ready.
+release-ready. The 0.1.0 release path also builds the dashboard artifact and a
+revision-tagged backend OCI image.
 
 ## Usage
 
@@ -134,10 +135,57 @@ npx playwright test -c e2e/playwright.scheduler.config.ts
 
 ```bash
 just frontend-build
+just app-build
 just backend-build
 ```
 
-### Step 5: Dev Server Smoke
+### Step 5: Release Artifacts
+
+Release images must be built from a clean worktree so the image tag identifies
+the exact source revision:
+
+```bash
+just release-dashboard-build https://api.example.com
+just release-backend-image 0.1.0 ghcr.io/dallay/profiletailors-smp
+just release-backend-verify ghcr.io/dallay/profiletailors-smp:0.1.0-<git-sha>
+```
+
+The dashboard command produces `apps/web/app/dist` with the deployed API URL.
+The backend command produces an OCI image tagged as
+`<repository>:0.1.0-<12-character-git-sha>` and prints its local image ID.
+The verification command uses ephemeral PostgreSQL and application containers
+to prove production-profile startup, Liquibase execution, exclusion of the
+development seed, readiness, and liveness. It generates temporary credentials
+in memory and removes the containers and network when it finishes.
+
+The supported self-hosted deployment is validated separately with:
+
+```bash
+just production-prepare
+just production-config
+just production-up
+just production-smoke --restart
+```
+
+See [Production Docker Compose](infrastructure/production-docker-compose.md) for installation,
+upgrade, backup, and reverse-proxy requirements.
+
+For clustered deployment, validate published images and the rendered Swarm stack before rollout:
+
+```bash
+just swarm-prepare
+just swarm-config
+just swarm-deploy
+```
+
+See [Production Docker Swarm](infrastructure/production-docker-swarm.md) for placement, registry,
+secret rotation, backup, and rollback requirements.
+
+Before deploying, set `SMP_LIQUIBASE_CONTEXTS=prod`. The default application
+configuration is also `prod`; only the `dev` profile enables development seed
+data.
+
+### Step 6: Dev Server Smoke
 
 ```bash
 just serve
@@ -218,9 +266,10 @@ After completing the smoke test, capture:
 2. **Test run output** from E2E suites
 3. **Backend logs** showing successful publication webhooks
 
-Attach the evidence to
-[DALLAY-465](https://linear.app/dallay/issue/DALLAY-465/e2e-validate-mvp-core-publishing-journey-end-to-end)
-or the release PR.
+Attach deployed smoke-test evidence to
+[DALLAY-511](https://linear.app/dallay/issue/DALLAY-511/run-deployed-linkedin-publishing-smoke-test-for-010)
+and artifact/deployment evidence to
+[DALLAY-510](https://linear.app/dallay/issue/DALLAY-510/validate-container-build-and-deployment-path-for-010).
 
 ## Troubleshooting
 
@@ -245,6 +294,12 @@ with a canonical category.
 
 Ensure Portless is running (`portless proxy start`). The dashboard uses named
 local HTTPS URLs, not ports.
+
+### Release build refuses a dirty worktree
+
+Commit or otherwise resolve source changes before building the release image.
+This guard prevents an image from being labeled with a revision that does not
+contain its actual source.
 
 ## References
 

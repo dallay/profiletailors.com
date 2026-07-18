@@ -1,38 +1,86 @@
 # Profile Tailors Infrastructure
 
-This directory contains the centralized Docker Compose configuration for the Profile Tailors monorepo services.
+## Overview
 
-## Documentation
-
-All infrastructure documentation has been moved to the centralized docs directory:
-
--   [Modular Infrastructure Overview](../docs/infrastructure/modular-docker-compose.md)
--   [Monitoring Setup (Prometheus & Grafana)](../docs/monitoring/prometheus-grafana-setup.md)
--   [Actuator Security Guide](../docs/monitoring/actuator-security.md)
-
-## Quick Structure
+This directory contains the Docker infrastructure for local development and supported self-hosted
+production deployments.
 
 ```text
 infra/
-├── common.yml                    # Shared network bridge
-├── mailpit/                      # Local SMTP email capture (dev)
-├── postgres/                     # DB Service
-├── monitoring/                   # Prometheus & Grafana
-└── apps/                         # App-specific composite stacks
+├── common.yml
+├── mailpit/
+├── postgres/
+├── monitoring/
+└── apps/smp/
+    ├── compose.yaml
+    ├── production/
+    └── swarm/
 ```
 
-## Quick Start (SMP)
+## Changes
+
+- `apps/smp/compose.yaml` assembles PostgreSQL, Mailpit, WireMock, Prometheus, and Grafana for local
+  development.
+- `apps/smp/production/compose.yaml` deploys the complete application on one server.
+- `apps/smp/swarm/stack.yaml` deploys the complete application to Docker Swarm.
+- Development services use project-scoped container names and configurable host ports, allowing
+  isolated Compose projects to run without global name collisions.
+
+## Usage
+
+### Local development
 
 ```bash
-docker compose -f infra/apps/smp/compose.yaml up -d
+just infra-up
 ```
 
-## Local Email (dev)
+Mailpit is available at `http://localhost:8025`, Prometheus at `http://localhost:9090`, and Grafana
+at `http://localhost:3000` with their default local settings.
 
-Mailpit captures all outgoing emails without delivering them. Open the web UI after starting the stack:
+### Single-server production
+
+Docker Compose is the recommended self-hosting target for the first installation:
 
 ```bash
-open http://localhost:8025
+just production-prepare
+just production-config
+just production-up
+just production-smoke --restart
 ```
 
-See [Local Email Capture with Mailpit](../docs/infrastructure/modular-docker-compose.md#local-email-capture-with-mailpit) for full details.
+Edit `infra/apps/smp/production/.env` and the integration secret files after preparation and before
+starting the stack. Follow the production Compose guide for HTTPS, backup, and upgrade steps.
+
+### Docker Swarm
+
+Use Swarm only when its clustered scheduling or dashboard replication is needed:
+
+```bash
+just swarm-prepare
+just swarm-label-storage <node-name>
+just swarm-config
+just swarm-deploy
+```
+
+The Swarm guide explains the registry, storage-node, secret, backup, and rollback requirements.
+
+## Troubleshooting
+
+### A local port is already in use
+
+Override `SMP_POSTGRES_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`, `WIREMOCK_HOST_PORT`,
+`PROMETHEUS_HOST_PORT`, or `GRAFANA_HOST_PORT` before starting the development stack.
+
+### Production services do not become healthy
+
+Run `just production-status` and `just production-logs <service>`. For Swarm, run
+`just swarm-status` and inspect failed tasks with `docker stack ps profile-tailors-swarm --no-trunc`.
+
+## References
+
+- [Self-hosting guide](../docs/infrastructure/self-hosting.md)
+- [Modular development infrastructure](../docs/infrastructure/modular-docker-compose.md)
+- [Production Docker Compose](../docs/infrastructure/production-docker-compose.md)
+- [Production Docker Swarm](../docs/infrastructure/production-docker-swarm.md)
+- [Monitoring setup](../docs/monitoring/prometheus-grafana-setup.md)
+- [Actuator security](../docs/monitoring/actuator-security.md)
