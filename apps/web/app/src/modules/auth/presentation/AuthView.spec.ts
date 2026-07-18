@@ -128,6 +128,21 @@ describe('AuthView validation', () => {
     expect(wrapper.text()).toContain('auth.ageEligibilityRequired')
   })
 
+  it('blocks registration when terms checkbox is unchecked but age eligibility is checked', async () => {
+    routeState.name = 'register'
+    const wrapper = mountAuthView()
+
+    await wrapper.find('input#email').setValue('user@example.com')
+    await wrapper.find('input#password').setValue('Str0ng!Pass')
+    await wrapper.find('input#confirmPassword').setValue('Str0ng!Pass')
+    // Check only age eligibility, leave terms unchecked
+    await wrapper.find('input#ageEligibility').setValue(true)
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(registerWithPassword).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('auth.termsRequired')
+  })
+
   it('passes eligibility flags to registerWithPassword when both checkboxes are checked', async () => {
     routeState.name = 'register'
     registerWithPassword.mockResolvedValue(undefined)

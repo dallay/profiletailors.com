@@ -1,11 +1,15 @@
 package com.profiletailors.smp.integration
 
+import com.profiletailors.smp.governance.application.RecordConsentHandler
+import com.profiletailors.smp.governance.domain.ConsentRepository
 import com.profiletailors.smp.identity.application.EmailVerificationTokenHasher
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import com.profiletailors.smp.tenancy.infrastructure.R2dbcWorkspaceProvisioningService
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.reactor.awaitSingle
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Tag
@@ -64,6 +68,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
     override suspend fun seedScenario() {
         failWorkspaceProvisioning = false
+        failConsentRecording = false
 
         // Seed the WORKSPACE_OWNER role required by R2dbcWorkspaceProvisioningService
         databaseClient.sql(
@@ -121,6 +126,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 """.trimIndent(),
             ),
         )
+        assertEquals(0, countRows("SELECT COUNT(*) FROM consent_records"))
     }
 
     private suspend fun assertRegistrationArtifactsCreated(email: String) {
@@ -168,6 +174,19 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 """.trimIndent(),
             ),
         )
+        // Verify consent records: two CONTRACT_ACCEPTANCE records should exist
+        assertEquals(
+            2,
+            countRows("SELECT COUNT(*) FROM consent_records WHERE consent_type = 'CONTRACT_ACCEPTANCE'"),
+        )
+        assertEquals(
+            1,
+            countRows("SELECT COUNT(*) FROM consent_records WHERE purpose = 'age-eligibility.18-plus'"),
+        )
+        assertEquals(
+            1,
+            countRows("SELECT COUNT(*) FROM consent_records WHERE purpose = 'terms.acceptance'"),
+        )
     }
 
     override fun cleanupStatements(): List<String> = listOf(
@@ -184,6 +203,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         "DELETE FROM permissions",
         "DELETE FROM workspace_memberships",
         "DELETE FROM workspace_ownerships",
+        "DELETE FROM consent_records",
         "DELETE FROM workspaces",
         "DELETE FROM service_account_credentials",
         "DELETE FROM user_identities",
@@ -336,6 +356,30 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
     fun `registration failure during workspace provisioning rolls back prior writes`() {
         val email = "rollback@example.com"
         failWorkspaceProvisioning = true
+
+        webTestClient.post()
+            .uri("/api/auth/register")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(
+                mapOf(
+                    "email" to email,
+                    "password" to "password123",
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
+                ),
+            )
+            .exchange()
+            .expectStatus().is5xxServerError
+
+        kotlinx.coroutines.runBlocking {
+            assertNoRegistrationArtifacts(email)
+        }
+    }
+
+    @Test
+    fun `registration failure during consent recording rolls back prior writes`() {
+        val email = "consent-rollback@example.com"
+        failConsentRecording = true
 
         webTestClient.post()
             .uri("/api/auth/register")
@@ -653,6 +697,20 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
         @Bean
         @Primary
+        fun recordConsentHandler(repository: ConsentRepository): RecordConsentHandler {
+            val delegate = RecordConsentHandler(repository)
+            return mockk {
+                coEvery { handle(any()) } coAnswers {
+                    if (failConsentRecording) {
+                        error("Simulated consent recording failure")
+                    }
+                    delegate.handle(firstArg())
+                }
+            }
+        }
+
+        @Bean
+        @Primary
         fun reactiveJwtDecoder(@Value("\${app.security.local-jwt.secret}") secret: String): ReactiveJwtDecoder =
             NimbusReactiveJwtDecoder
                 .withSecretKey(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
@@ -667,6 +725,9 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
         @Volatile
         var failWorkspaceProvisioning: Boolean = false
+
+        @Volatile
+        var failConsentRecording: Boolean = false
 
         @JvmStatic
         @DynamicPropertySource

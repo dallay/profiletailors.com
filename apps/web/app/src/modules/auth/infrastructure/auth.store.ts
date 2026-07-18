@@ -172,7 +172,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function registerWithPassword(payload: RegisterPayload) {
+  async function registerWithPassword(payload: RegisterPayload): Promise<AuthTokens> {
     isLoading.value = true
     error.value = null
 

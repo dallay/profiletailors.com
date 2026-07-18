@@ -36,4 +36,6 @@ export default {
   termsLabel: 'Acepto los Términos de Servicio y la Política de Privacidad',
   ageEligibilityRequired: 'Debes confirmar que eres mayor de 18 años',
   termsRequired: 'Debes aceptar los términos',
+  termsOfService: 'Términos de Servicio',
+  privacyPolicy: 'Política de Privacidad',
 }

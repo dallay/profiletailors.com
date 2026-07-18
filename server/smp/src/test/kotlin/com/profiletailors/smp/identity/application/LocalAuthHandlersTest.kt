@@ -20,6 +20,8 @@ import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -29,6 +31,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 
+@Suppress("LargeClass")
 class LocalAuthHandlersTest {
 
     private val validPassword = CredentialGenerator.generateValidPassword()
@@ -50,7 +53,7 @@ class LocalAuthHandlersTest {
         val eventPublisher = RecordingEventPublisher(order)
         val jwtIssuer = FakeLocalJwtIssuer(order)
         val refreshSvc = fakeRefreshLifecycleService(order)
-        val recordConsentHandler = FakeRecordConsentHandler(order)
+        val recordConsentHandler = recordConsentHandler(order)
         val transactionRunner = RecordingAtomicTransactionRunner(order)
         val handler = RegisterUserHandler(
             identityRegistrationGateway = identityRegistrationGateway,
@@ -108,7 +111,7 @@ class LocalAuthHandlersTest {
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = FakeRecordConsentHandler(),
+            recordConsentHandler = recordConsentHandler(),
         )
 
         try {
@@ -140,7 +143,7 @@ class LocalAuthHandlersTest {
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = FakeRecordConsentHandler(),
+            recordConsentHandler = recordConsentHandler(),
         )
 
         try {
@@ -162,7 +165,8 @@ class LocalAuthHandlersTest {
     @Test
     fun `creates two consent records on successful registration`() = runTest {
         val order = mutableListOf<String>()
-        val recordConsentHandler = FakeRecordConsentHandler(order)
+        val recordedPurposes = mutableListOf<String>()
+        val recordConsentHandler = recordConsentHandler(order, recordedPurposes)
         val handler = RegisterUserHandler(
             identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
@@ -187,9 +191,9 @@ class LocalAuthHandlersTest {
             ),
         )
 
-        assertEquals(2, recordConsentHandler.recordedPurposes.size, "Should have recorded 2 consent purposes")
-        assertEquals("age-eligibility.18-plus", recordConsentHandler.recordedPurposes[0])
-        assertEquals("terms.acceptance", recordConsentHandler.recordedPurposes[1])
+        assertEquals(2, recordedPurposes.size, "Should have recorded 2 consent purposes")
+        assertEquals("age-eligibility.18-plus", recordedPurposes[0])
+        assertEquals("terms.acceptance", recordedPurposes[1])
     }
 
     @Test
@@ -212,7 +216,7 @@ class LocalAuthHandlersTest {
             localJwtIssuer = jwtIssuer,
             refreshSessionLifecycleService = refreshSvc,
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = FakeRecordConsentHandler(),
+            recordConsentHandler = recordConsentHandler(),
         )
 
         val result = handler.handle(
@@ -264,7 +268,7 @@ class LocalAuthHandlersTest {
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = FakeRecordConsentHandler(),
+            recordConsentHandler = recordConsentHandler(),
         )
 
         val result = handler.handle(
@@ -298,7 +302,7 @@ class LocalAuthHandlersTest {
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = FakeRecordConsentHandler(),
+            recordConsentHandler = recordConsentHandler(),
         )
 
         try {
@@ -965,42 +969,16 @@ class LocalAuthHandlersTest {
         }
     }
 
-    private open class FakeRecordConsentHandler(private val order: MutableList<String>? = null) :
-        RecordConsentHandler(
-            repository = object : com.profiletailors.smp.governance.domain.ConsentRepository {
-                override suspend fun save(record: ConsentRecord): ConsentRecord = record
-                override suspend fun findById(id: ConsentRecordId): ConsentRecord? = null
-                override suspend fun findActive(
-                    workspaceId: String,
-                    subjectReference: com.profiletailors.smp.governance.domain.SubjectReference,
-                    purpose: String,
-                    policyVersion: String,
-                ): ConsentRecord? = null
-                override fun findActiveByWorkspace(
-                    workspaceId: String,
-                    subjectKind: com.profiletailors.smp.governance.domain.SubjectKind?,
-                    purpose: String?,
-                ): kotlinx.coroutines.flow.Flow<ConsentRecord> = kotlinx.coroutines.flow.emptyFlow()
-                override fun findHistoricalByIdentity(
-                    workspaceId: String,
-                    subjectReference: com.profiletailors.smp.governance.domain.SubjectReference,
-                    purpose: String,
-                ): kotlinx.coroutines.flow.Flow<ConsentRecord> = kotlinx.coroutines.flow.emptyFlow()
-                override suspend fun existsActive(
-                    workspaceId: String,
-                    subjectReference: com.profiletailors.smp.governance.domain.SubjectReference,
-                    purpose: String,
-                    policyVersion: String,
-                ): Boolean = false
-            },
-            clock = java.time.Clock.systemUTC(),
-        ) {
-        val recordedPurposes = mutableListOf<String>()
-
-        override suspend fun handle(command: RecordConsentCommand): ConsentRecord {
+    private fun recordConsentHandler(
+        order: MutableList<String>? = null,
+        recordedPurposes: MutableList<String> = mutableListOf(),
+    ): RecordConsentHandler {
+        val handler = mockk<RecordConsentHandler>()
+        coEvery { handler.handle(any()) } answers {
+            val command = firstArg<RecordConsentCommand>()
             order?.add("consent:record")
             recordedPurposes.add(command.purpose)
-            return ConsentRecord(
+            ConsentRecord(
                 id = ConsentRecordId("test-cs-${java.util.UUID.randomUUID()}"),
                 workspaceId = command.workspaceId,
                 subjectReference = command.subjectReference,
@@ -1012,5 +990,6 @@ class LocalAuthHandlersTest {
                 givenAt = java.time.Instant.now(),
             )
         }
+        return handler
     }
 }

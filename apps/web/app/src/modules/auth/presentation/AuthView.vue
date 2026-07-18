@@ -56,15 +56,13 @@ async function handleSubmit() {
     : authCredentialsSchema.safeParse({ email: email.value, password: password.value })
 
   if (!validationResult.success) {
-    const errors = validationResult.error.flatten().fieldErrors
-    const confirmPasswordErrors =
-      'confirmPassword' in errors && Array.isArray(errors.confirmPassword)
-        ? errors.confirmPassword
-        : undefined
+    const errors = validationResult.error.flatten().fieldErrors as Partial<
+      Record<'email' | 'password' | 'confirmPassword' | 'confirmedAgeEligibility' | 'acceptedTerms', string[]>
+    >
     fieldErrors.value = {
       email: errors.email?.[0],
       password: errors.password?.[0],
-      confirmPassword: confirmPasswordErrors?.[0],
+      confirmPassword: errors.confirmPassword?.[0],
       confirmedAgeEligibility: errors.confirmedAgeEligibility?.[0],
       acceptedTerms: errors.acceptedTerms?.[0],
     }
@@ -219,40 +217,36 @@ async function handleSubmit() {
             </div>
 
             <div v-if="isRegisterMode" class="space-y-4">
-              <div class="flex cursor-pointer items-start gap-3">
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: for/id link is correct; Biome cannot evaluate Vue i18n interpolation as label text -->
+              <label for="ageEligibility" class="flex cursor-pointer items-start gap-3 text-sm leading-5 text-text-body">
                 <input
                   id="ageEligibility"
                   v-model="confirmedAgeEligibility"
                   type="checkbox"
                   class="mt-0.5 size-4 shrink-0 rounded border-border-visible bg-bg-primary text-text-display focus:ring-2 focus:ring-text-display focus:ring-offset-2 focus:ring-offset-bg-primary"
                   :aria-invalid="fieldErrors.confirmedAgeEligibility ? 'true' : 'false'"
-                  :aria-label="String($t('auth.ageEligibilityLabel'))"
                 />
-                <span class="text-sm leading-5 text-text-body">
-                  {{ $t('auth.ageEligibilityLabel') }}
-                </span>
-              </div>
+                {{ $t('auth.ageEligibilityLabel') }}
+              </label>
               <p v-if="fieldErrors.confirmedAgeEligibility" role="alert" class="pl-9 text-sm text-error">
                 {{ t(`auth.${fieldErrors.confirmedAgeEligibility}`) }}
               </p>
 
-              <div class="flex cursor-pointer items-start gap-3">
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: for/id link is correct; Biome cannot evaluate Vue i18n interpolation as label text -->
+              <label for="terms" class="flex cursor-pointer items-start gap-3 text-sm leading-5 text-text-body">
                 <input
                   id="terms"
                   v-model="acceptedTerms"
                   type="checkbox"
                   class="mt-0.5 size-4 shrink-0 rounded border-border-visible bg-bg-primary text-text-display focus:ring-2 focus:ring-text-display focus:ring-offset-2 focus:ring-offset-bg-primary"
                   :aria-invalid="fieldErrors.acceptedTerms ? 'true' : 'false'"
-                  :aria-label="String($t('auth.termsLabel'))"
                 />
-                <span class="text-sm leading-5 text-text-body">
-                  {{ $t('auth.termsLabel') }}
-                </span>
-              </div>
+                {{ $t('auth.termsLabel') }}
+              </label>
               <p class="pl-9 text-xs text-text-secondary">
-                <a href="/terms" class="underline hover:opacity-70 transition-opacity">Terms of Service</a>
+                <a href="/terms" class="underline hover:opacity-70 transition-opacity">{{ $t('auth.termsOfService') }}</a>
                 <span class="mx-1">&middot;</span>
-                <a href="/privacy" class="underline hover:opacity-70 transition-opacity">Privacy Policy</a>
+                <a href="/privacy" class="underline hover:opacity-70 transition-opacity">{{ $t('auth.privacyPolicy') }}</a>
               </p>
               <p v-if="fieldErrors.acceptedTerms" role="alert" class="pl-9 text-sm text-error">
                 {{ t(`auth.${fieldErrors.acceptedTerms}`) }}

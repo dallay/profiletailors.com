@@ -1,156 +1,112 @@
-# Tasks: Age Eligibility Enforcement & Child-Data Safeguards
-
-## Review Workload Forecast
-
-| Field | Value |
-|-------|-------|
-| Estimated changed lines | ~280 |
-| 400-line budget risk | Low |
-| Chained PRs recommended | No |
-| Suggested split | Single PR |
-| Delivery strategy | single-pr |
-| Chain strategy | size-exception |
-
-Decision needed before apply: Yes
-Chained PRs recommended: No
-Chain strategy: size-exception
-400-line budget risk: Low
-
----
-
-## Tasks
-
-### Phase 1: Backend — Foundation (access + exception + handler registration)
-
-#### T-001: Remove `internal` from `RecordConsentHandler`
-- **Description**: Change `internal class RecordConsentHandler` → `class RecordConsentHandler` in `server/smp/src/main/kotlin/com/profiletailors/smp/governance/application/RecordConsentHandler.kt`. This allows Spring to inject it into the identity module.
-- **Acceptance**: `RecordConsentHandler` is injectable into `RegisterUserHandler` without compilation error.
-- **EstimatedSize**: S
-- **DependsOn**: []
-
-#### T-002: Add `RegistrationValidationException`
-- **Description**: Add `class RegistrationValidationException(message: String) : RuntimeException(message)` to `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/LocalAuthExceptions.kt`.
-- **Acceptance**: Exception class exists, extends `RuntimeException`, accepts a message string.
-- **EstimatedSize**: S
-- **DependsOn**: []
-
-#### T-003: Handle `RegistrationValidationException` → HTTP 422
-- **Description**: Add handler method in `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/IdentityProblemDetailsHandler.kt` that catches `RegistrationValidationException` and returns `ProblemDetail` with status 422 (Unprocessable Entity) and title `"Registration validation failed"`.
-- **Acceptance**: When `RegistrationValidationException` is thrown, the controller advice returns 422 with appropriate `ProblemDetail`.
-- **EstimatedSize**: S
-- **DependsOn**: [T-002]
-
-#### T-004: Extend `RegisterUserCommand` with new fields
-- **Description**: Add `confirmedAgeEligibility: Boolean` and `acceptedTermsVersion: String?` to `RegisterUserCommand` in `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/LocalAuthApi.kt`.
-- **Acceptance**: `RegisterUserCommand` accepts both new fields in its constructor. Existing callers (current test) compile because new params have no defaults (compiler catches all usages).
-- **EstimatedSize**: S
-- **DependsOn**: [T-001]
-
-#### T-005: Extend `RegisterUserRequest` DTO with Jakarta validation
-- **Description**: Add to `RegisterUserRequest` in `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/LocalAuthController.kt`:
-  - `@field:AssertTrue(message = "You must confirm you are 18 or older") val confirmedAgeEligibility: Boolean`
-  - `@field:NotBlank(message = "You must accept the terms of service") val acceptedTermsVersion: String`
-  - Add `@Schema` annotations for both. Update `register()` method to pass both fields to `RegisterUserCommand`.
-- **Acceptance**: POST to `/api/auth/register` with missing/new fields triggers Jakarta validation error. Controller passes both fields to `RegisterUserCommand`.
-- **EstimatedSize**: S
-- **DependsOn**: [T-004]
-
-#### T-006: Update `RegisterUserHandler` — validate eligibility + record consent
-- **Description**: In `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/LocalAuthHandlers.kt`:
-  1. Inject `RecordConsentHandler` via constructor.
-  2. Extend `validateRegistration()`: throw `RegistrationValidationException` if `confirmedAgeEligibility != true` or `acceptedTermsVersion.isBlank()`.
-  3. Inside `runRegistrationTransaction`, after `provisionDefaultWorkspace()`: capture workspace, call `recordConsentHandler.handle()` twice — once for age eligibility consent (`purpose = "age-eligibility.18-plus"`, `policyVersion = "terms-v1.0.0"`) and once for terms acceptance (`purpose = "terms.acceptance"`, `policyVersion = command.acceptedTermsVersion`). Both with `CONTRACT_ACCEPTANCE` type and `SubjectReference.workspace(workspaceId)`.
-  4. Define companion constants for `AGE_ELIGIBILITY_POLICY_VERSION`, `CONSENT_SOURCE`, and `CONSENT_LOCALE`.
-- **Acceptance**: Registration with `confirmedAgeEligibility=false` throws 422. Registration with blank `acceptedTermsVersion` throws 422. Successful registration creates two consent records inside the transaction.
-- **EstimatedSize**: M
-- **DependsOn**: [T-003, T-004, T-005]
-
-### Phase 2: Backend — Tests
-
-#### T-007: Handler unit tests for validation and consent recording
-- **Description**: Add tests to `server/smp/src/test/kotlin/com/profiletailors/smp/identity/application/LocalAuthHandlersTest.kt`:
-  1. `rejects when confirmedAgeEligibility is false` — assert `RegistrationValidationException`.
-  2. `rejects when acceptedTermsVersion is blank` — assert `RegistrationValidationException`.
-  3. `creates two consent records on successful registration` — inject a fake/spy `RecordConsentHandler`, verify it was called twice with correct purposes and `SubjectReference.workspace(...)`. Extend test fakes to support this (add a `FakeRecordConsentHandler` or similar).
-  4. Update existing `register wraps writes in transaction` test: add `"consent:record"` (×2) steps to the expected order list.
-- **Acceptance**: All 4 tests pass. Registration flow order includes consent recording steps.
-- **EstimatedSize**: M
-- **DependsOn**: [T-006]
-
-#### T-008: Update controller test for new command fields
-- **Description**: In `server/smp/src/test/kotlin/com/profiletailors/smp/identity/infrastructure/http/LocalAuthControllerTest.kt`:
-  1. Build `RegisterUserRequest` with `confirmedAgeEligibility = true` and `acceptedTermsVersion = "terms-v1.0.0"`.
-  2. Assert the captured `RegisterUserCommand` includes both new fields.
-- **Acceptance**: `dispatches register command and returns 201 with session tokens` test passes with new fields.
-- **EstimatedSize**: S
-- **DependsOn**: [T-005]
-
-### Phase 3: Frontend — Foundation (i18n + schemas + API)
-
-#### T-009: Add i18n keys for age eligibility and terms checkboxes
-- **Description**: Add to `apps/web/app/src/shared/i18n/locales/en/auth.ts` and `apps/web/app/src/shared/i18n/locales/es/auth.ts`:
-  - EN: `ageEligibilityLabel: "I confirm that I am 18 years of age or older"`, `termsLabel: "I accept the Terms of Service and Privacy Policy"`, `ageEligibilityRequired: "You must confirm you are 18 or older"`, `termsRequired: "You must accept the terms"`.
-  - ES: `ageEligibilityLabel: "Confirmo que soy mayor de 18 años"`, `termsLabel: "Acepto los Términos de Servicio y la Política de Privacidad"`, `ageEligibilityRequired: "Debes confirmar que eres mayor de 18 años"`, `termsRequired: "Debes aceptar los términos"`.
-- **Acceptance**: New keys accessible via `$t('auth.ageEligibilityLabel')` etc. in EN and ES.
-- **EstimatedSize**: S
-- **DependsOn**: []
-
-#### T-010: Extend `registerSchema` with checkbox validation
-- **Description**: In `apps/web/app/src/shared/lib/validation/schemas.ts`, extend `registerSchema` with:
-  - `confirmedAgeEligibility: z.literal(true, { message: 'ageEligibilityRequired' })`
-  - `acceptedTerms: z.literal(true, { message: 'termsRequired' })`
-- **Acceptance**: `registerSchema.safeParse({ ...valid, confirmedAgeEligibility: false })` returns error with message key `'ageEligibilityRequired'`.
-- **EstimatedSize**: S
-- **DependsOn**: [T-009]
-
-#### T-011: Create `RegisterPayload` type and update `auth-api.ts`
-- **Description**: In `apps/web/app/src/modules/auth/infrastructure/auth-api.ts`:
-  1. Create `RegisterPayload` type extending `LoginPayload` with `confirmedAgeEligibility: boolean` and `acceptedTermsVersion: string`.
-  2. Update `register()` function to accept `RegisterPayload`, construct the body with all fields (skip `authCredentialsSchema.parse()` for register, or extend the schema used for parsing).
-- **Acceptance**: `register()` sends `confirmedAgeEligibility` and `acceptedTermsVersion` in the POST body. Existing login path unaffected.
-- **EstimatedSize**: S
-- **DependsOn**: [T-010]
-
-### Phase 4: Frontend — Store + View
-
-#### T-012: Update `auth.store.ts` — pass through new fields
-- **Description**: In `apps/web/app/src/modules/auth/infrastructure/auth.store.ts`, update `registerWithPassword(payload)` to accept `RegisterPayload` (with `confirmedAgeEligibility` and `acceptedTermsVersion`) and pass them to `register()`.
-- **Acceptance**: `registerWithPassword` passes through all payload fields to `register()`.
-- **EstimatedSize**: S
-- **DependsOn**: [T-011]
-
-#### T-013: Add checkboxes to `AuthView.vue`
-- **Description**: In `apps/web/app/src/modules/auth/presentation/AuthView.vue`:
-  1. Add `confirmedAgeEligibility` and `acceptedTerms` refs (both `false`).
-  2. Add them to the `fieldErrors` type.
-  3. In `handleSubmit` for register mode: pass both ref values to `registerSchema.safeParse()` and to `registerWithPassword()`.
-  4. In template (`v-if="isRegisterMode"`): add two checkbox fields after the confirmPassword block, each with a label showing `$t('auth.ageEligibilityLabel')` / `$t('auth.termsLabel')`, `v-model` bound to refs, inline error display using `fieldErrors`.
-  5. Add a line with links to Terms of Service and Privacy Policy near the terms checkbox.
-  6. Update the reset logic in the `watch(route.name)` to reset the new refs.
-- **Acceptance**: Registration form shows two unchecked checkboxes; submit is blocked client-side if either is unchecked; submit passes both values to the store.
-- **EstimatedSize**: M
-- **DependsOn**: [T-012]
-
-### Phase 5: Frontend — Tests
-
-#### T-014: Update AuthView spec for checkbox validation
-- **Description**: Add tests to `apps/web/app/src/modules/auth/presentation/AuthView.spec.ts`:
-  1. `blocks registration when age eligibility checkbox is unchecked` — mount in register mode, fill valid fields, submit without checking the checkbox, assert `registerWithPassword` was NOT called, assert error for `ageEligibilityRequired`.
-  2. `passes eligibility flags to registerWithPassword when both checkboxes are checked` — use Chrome DevTools to check the checkboxes, submit, assert `registerWithPassword` was called with `confirmedAgeEligibility: true` and `acceptedTermsVersion: "terms-v1.0.0"`.
-- **Acceptance**: Both tests pass.
-- **EstimatedSize**: S
-- **DependsOn**: [T-013]
-
-### Phase 6: Documentation
-
-#### T-015: Write residual controls documentation
-- **Description**: Create `docs/compliance/underage-account-procedure.md` with sections:
-  1. Report intake (channels, required info).
-  2. Investigation steps (account activity review, identity evidence).
-  3. Account suspension protocol (immediate freeze, notification).
-  4. Data deletion vs. retention decisions (legal hold, evidence preservation).
-  5. Appeal process (verification path, reinstatement criteria).
-  6. Version history and review cadence.
-- **Acceptance**: File exists at `docs/compliance/underage-account-procedure.md`, covers all 6 sections, is reviewable.
-- **EstimatedSize**: S
-- **DependsOn**: []
+title: "Age Eligibility Enforcement & Child-Data Safeguards"
+review_workload_forecast:
+  estimated_changed_lines: "~280"
+  line_budget_risk: low
+  chained_prs_recommended: false
+  suggested_split: single-pr
+  delivery_strategy: single-pr
+  chain_strategy: size-exception
+  decision_needed_before_apply: true
+phases:
+  - name: "Backend — Foundation"
+    tasks:
+      - id: T-001
+        title: Remove internal from RecordConsentHandler
+        description: "Change internal class RecordConsentHandler to class RecordConsentHandler so Spring can inject it into the identity module."
+        acceptance: "RecordConsentHandler is injectable into RegisterUserHandler without compilation error."
+        estimated_size: S
+        depends_on: []
+      - id: T-002
+        title: Add RegistrationValidationException
+        description: "Add RegistrationValidationException(message: String) to LocalAuthExceptions.kt."
+        acceptance: "Exception class exists, extends RuntimeException, and accepts a message string."
+        estimated_size: S
+        depends_on: []
+      - id: T-003
+        title: Handle RegistrationValidationException as HTTP 422
+        description: "Add handler method in IdentityProblemDetailsHandler.kt that catches RegistrationValidationException and returns ProblemDetail with 422 and title Registration validation failed."
+        acceptance: "Controller advice returns 422 with appropriate ProblemDetail."
+        estimated_size: S
+        depends_on: [T-002]
+      - id: T-004
+        title: Extend RegisterUserCommand
+        description: "Add confirmedAgeEligibility and acceptedTermsVersion to RegisterUserCommand."
+        acceptance: "RegisterUserCommand accepts both new fields and callers compile."
+        estimated_size: S
+        depends_on: [T-001]
+      - id: T-005
+        title: Extend RegisterUserRequest DTO
+        description: "Add Jakarta validation and Schema annotations for confirmedAgeEligibility and acceptedTermsVersion, and pass both fields to RegisterUserCommand."
+        acceptance: "Invalid register requests trigger validation and valid requests dispatch both fields."
+        estimated_size: S
+        depends_on: [T-004]
+      - id: T-006
+        title: Validate eligibility and record consent
+        description: "Inject RecordConsentHandler, validate age eligibility and terms version, and record two CONTRACT_ACCEPTANCE consent records inside the registration transaction."
+        acceptance: "Invalid confirmations return validation errors and successful registration creates two consent records inside the transaction."
+        estimated_size: M
+        depends_on: [T-003, T-004, T-005]
+  - name: "Backend — Tests"
+    tasks:
+      - id: T-007
+        title: Handler tests for validation and consent recording
+        description: "Add unit tests for false age eligibility, blank terms version, successful two-record consent, and transaction order."
+        acceptance: "All handler tests pass and transaction order includes two consent recordings."
+        estimated_size: M
+        depends_on: [T-006]
+      - id: T-008
+        title: Controller test for new command fields
+        description: "Update LocalAuthControllerTest request construction and captured command assertions."
+        acceptance: "Controller test passes with confirmedAgeEligibility and acceptedTermsVersion."
+        estimated_size: S
+        depends_on: [T-005]
+  - name: "Frontend — Foundation"
+    tasks:
+      - id: T-009
+        title: Add auth i18n keys
+        description: "Add age eligibility, terms, and validation text keys to English and Spanish auth locales."
+        acceptance: "New keys are available through the auth i18n namespace in both locales."
+        estimated_size: S
+        depends_on: []
+      - id: T-010
+        title: Extend registerSchema
+        description: "Add confirmedAgeEligibility and acceptedTerms literal true validation."
+        acceptance: "Schema rejects unchecked confirmations with expected message keys."
+        estimated_size: S
+        depends_on: [T-009]
+      - id: T-011
+        title: Update RegisterPayload and register API
+        description: "Create RegisterPayload with confirmedAgeEligibility and acceptedTermsVersion and send all fields to the backend."
+        acceptance: "register() sends eligibility and terms fields while login remains unaffected."
+        estimated_size: S
+        depends_on: [T-010]
+  - name: "Frontend — Store and View"
+    tasks:
+      - id: T-012
+        title: Pass registration fields through auth store
+        description: "Update registerWithPassword to accept RegisterPayload and return the registration AuthTokens."
+        acceptance: "registerWithPassword passes all payload fields through to register()."
+        estimated_size: S
+        depends_on: [T-011]
+      - id: T-013
+        title: Add registration checkboxes to AuthView
+        description: "Add refs, validation error handling, checkbox labels, localized legal links, and reset behavior."
+        acceptance: "Registration blocks submit unless both checkboxes are checked and sends the correct payload."
+        estimated_size: M
+        depends_on: [T-012]
+  - name: "Frontend — Tests"
+    tasks:
+      - id: T-014
+        title: AuthView checkbox validation tests
+        description: "Add tests for unchecked age, unchecked terms, and successful both-checkbox submission."
+        acceptance: "AuthView tests pass."
+        estimated_size: S
+        depends_on: [T-013]
+  - name: Documentation
+    tasks:
+      - id: T-015
+        title: Residual controls documentation
+        description: "Create the underage account procedure with report intake, investigation, suspension, deletion, appeal, troubleshooting, and references."
+        acceptance: "Procedure exists and follows the required documentation section order."
+        estimated_size: S
+        depends_on: []

@@ -154,7 +154,7 @@ internal class RegisterUserHandler(
                     displayName = normalizedUsername,
                 )
 
-                recordConsentRecords(workspace.workspaceId, command.acceptedTermsVersion!!)
+                recordConsentRecords(principalId, workspace.workspaceId, command.acceptedTermsVersion)
 
                 // Generate verification token and store hashed
                 val generated = EmailVerificationTokenHasher.generate(clock.instant())
@@ -181,11 +181,11 @@ internal class RegisterUserHandler(
         }
     }
 
-    private suspend fun recordConsentRecords(workspaceId: String, acceptedTermsVersion: String) {
+    private suspend fun recordConsentRecords(principalId: String, workspaceId: String, acceptedTermsVersion: String) {
         recordConsentHandler.handle(
             RecordConsentCommand(
                 workspaceId = workspaceId,
-                subjectReference = SubjectReference.workspace(workspaceId),
+                subjectReference = SubjectReference.user(principalId),
                 consentType = ConsentType.CONTRACT_ACCEPTANCE,
                 purpose = AGE_ELIGIBILITY_PURPOSE,
                 policyVersion = AGE_ELIGIBILITY_POLICY_VERSION,
@@ -197,7 +197,7 @@ internal class RegisterUserHandler(
         recordConsentHandler.handle(
             RecordConsentCommand(
                 workspaceId = workspaceId,
-                subjectReference = SubjectReference.workspace(workspaceId),
+                subjectReference = SubjectReference.user(principalId),
                 consentType = ConsentType.CONTRACT_ACCEPTANCE,
                 purpose = TERMS_ACCEPTANCE_PURPOSE,
                 policyVersion = acceptedTermsVersion,
@@ -212,7 +212,7 @@ internal class RegisterUserHandler(
         password: String,
         username: String,
         confirmedAgeEligibility: Boolean,
-        acceptedTermsVersion: String?,
+        acceptedTermsVersion: String,
     ) {
         val inputError = when {
             email.isBlank() || !EMAIL_REGEX.matches(email) -> "A valid email is required."
@@ -224,7 +224,7 @@ internal class RegisterUserHandler(
 
         val validationError = when {
             !confirmedAgeEligibility -> "You must confirm you are 18 or older."
-            acceptedTermsVersion.isNullOrBlank() -> "You must accept the terms of service."
+            acceptedTermsVersion != CURRENT_TERMS_VERSION -> "You must accept the current terms of service."
             else -> null
         }
         if (validationError != null) throw RegistrationValidationException(validationError)
@@ -234,7 +234,8 @@ internal class RegisterUserHandler(
         private val EMAIL_REGEX = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
         private const val MIN_PASSWORD_LENGTH = 8
         private const val AGE_ELIGIBILITY_PURPOSE = "age-eligibility.18-plus"
-        private const val AGE_ELIGIBILITY_POLICY_VERSION = "terms-v1.0.0"
+        private const val CURRENT_TERMS_VERSION = "terms-v1.0.0"
+        private const val AGE_ELIGIBILITY_POLICY_VERSION = CURRENT_TERMS_VERSION
         private const val TERMS_ACCEPTANCE_PURPOSE = "terms.acceptance"
         private const val CONSENT_SOURCE = "registration"
         private const val CONSENT_LOCALE = "en"

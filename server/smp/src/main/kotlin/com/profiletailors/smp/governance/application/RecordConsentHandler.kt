@@ -8,10 +8,7 @@ import java.time.Clock
 import java.util.UUID
 
 @Service
-open class RecordConsentHandler(
-    private val repository: ConsentRepository,
-    private val clock: Clock = Clock.systemUTC(),
-) {
+class RecordConsentHandler(private val repository: ConsentRepository, private val clock: Clock = Clock.systemUTC()) {
 
     /**
      * Records consent idempotently for the subject + purpose + policy version triple.
@@ -19,7 +16,7 @@ open class RecordConsentHandler(
      * @param command The consent record command.
      * @return The newly persisted record, or the existing active record for duplicate submissions.
      */
-    open suspend fun handle(command: RecordConsentCommand): ConsentRecord {
+    suspend fun handle(command: RecordConsentCommand): ConsentRecord {
         require(command.workspaceId.isNotBlank()) { "workspaceId must not be blank" }
         require(command.purpose.isNotBlank()) { "purpose must not be blank" }
 
