@@ -71,6 +71,8 @@ describe('registerSchema', () => {
       email: 'user@example.com',
       password: 'password123',
       confirmPassword: 'password123',
+      confirmedAgeEligibility: true,
+      acceptedTerms: true,
     })
 
     expect(result.success).toBe(true)
@@ -79,7 +81,41 @@ describe('registerSchema', () => {
         email: 'user@example.com',
         password: 'password123',
         confirmPassword: 'password123',
+        confirmedAgeEligibility: true,
+        acceptedTerms: true,
       })
+    }
+  })
+
+  it('rejects registration if age eligibility is unchecked', () => {
+    const result = registerSchema.safeParse({
+      email: 'user@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+      confirmedAgeEligibility: false,
+      acceptedTerms: true,
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.confirmedAgeEligibility).toContain(
+        'ageEligibilityRequired',
+      )
+    }
+  })
+
+  it('rejects registration if terms are not accepted', () => {
+    const result = registerSchema.safeParse({
+      email: 'user@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+      confirmedAgeEligibility: true,
+      acceptedTerms: false,
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.acceptedTerms).toContain('termsRequired')
     }
   })
 
@@ -88,6 +124,8 @@ describe('registerSchema', () => {
       email: 'user@example.com',
       password: 'password123',
       confirmPassword: 'mismatchingPassword',
+      confirmedAgeEligibility: true,
+      acceptedTerms: true,
     })
 
     expect(result.success).toBe(false)
@@ -101,6 +139,8 @@ describe('registerSchema', () => {
       email: 'user@example.com',
       password: 'password123',
       confirmPassword: '',
+      confirmedAgeEligibility: true,
+      acceptedTerms: true,
     })
 
     expect(result.success).toBe(false)
