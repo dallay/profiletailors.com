@@ -7,14 +7,14 @@ Swarm manager and must never be committed.
 
 ## Changes
 
-`../prepare.sh` generates the application secrets and creates empty files for integration
-credentials. `../deploy.sh` creates the named Swarm secrets when they do not already exist.
+`../prepare.sh` generates the application secrets and initializes optional integration credentials
+with `unconfigured`. `../deploy.sh` creates the named Swarm secrets when they do not already exist.
 
 ## Usage
 
-Populate `linkedin-client-secret` and `resend-api-key` before deployment; Swarm does not accept
-zero-byte secrets. Rotate a secret by changing its versioned name in `swarm/.env`, updating its
-source file, and redeploying.
+Replace `unconfigured` in `linkedin-client-secret` and `resend-api-key` before enabling those
+integrations; Swarm does not accept zero-byte secrets. Rotate a secret by changing its versioned
+name in `swarm/.env`, updating its source file, and redeploying.
 
 ## Troubleshooting
 

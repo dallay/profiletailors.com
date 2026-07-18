@@ -74,6 +74,31 @@ create_secret "${SWARM_LINKEDIN_STATE_SECRET:-profiletailors_linkedin_state_v1}"
 create_secret "${SWARM_LINKEDIN_CLIENT_SECRET:-profiletailors_linkedin_client_v1}" "${secrets_dir}/linkedin-client-secret"
 create_secret "${SWARM_RESEND_API_KEY_SECRET:-profiletailors_resend_api_key_v1}" "${secrets_dir}/resend-api-key"
 
+service_version() {
+    docker service inspect --format '{{.Version.Index}}' "${SWARM_STACK_NAME}_$1" 2>/dev/null || true
+}
+
+backend_version_before="$(service_version backend)"
+dashboard_version_before="$(service_version dashboard)"
+
+rollback_if_changed() {
+    local service="$1"
+    local previous_version="$2"
+    local current_version
+    current_version="$(service_version "$service")"
+    if [ -n "$previous_version" ] && [ -n "$current_version" ] && [ "$previous_version" != "$current_version" ]; then
+        echo "Rolling back ${SWARM_STACK_NAME}_${service} after readiness validation failed."
+        if ! docker service rollback "${SWARM_STACK_NAME}_${service}" >/dev/null; then
+            echo "Automatic rollback failed for ${SWARM_STACK_NAME}_${service}; run just swarm-rollback ${service}."
+        fi
+    fi
+}
+
+rollback_changed_application_services() {
+    rollback_if_changed backend "$backend_version_before"
+    rollback_if_changed dashboard "$dashboard_version_before"
+}
+
 docker stack config --compose-file "$stack_file" >/dev/null
 docker stack deploy \
     --compose-file "$stack_file" \
@@ -100,6 +125,7 @@ for attempt in $(seq 1 120); do
         if [ "$root_status" != "200" ] || [ "$api_status" != "401" ]; then
             docker stack services "$SWARM_STACK_NAME"
             echo "Swarm HTTP smoke test failed: dashboard=${root_status} api=${api_status}."
+            rollback_changed_application_services
             exit 1
         fi
         docker stack services "$SWARM_STACK_NAME"
@@ -109,6 +135,7 @@ for attempt in $(seq 1 120); do
     if [ "$attempt" -eq 120 ]; then
         docker stack services "$SWARM_STACK_NAME"
         echo "Swarm deployment did not become ready within 10 minutes."
+        rollback_changed_application_services
         exit 1
     fi
     sleep 5

@@ -26,8 +26,15 @@ generate_secret "${secrets_dir}/publishing-credentials-key"
 generate_secret "${secrets_dir}/media-preview-signing-secret"
 generate_secret "${secrets_dir}/linkedin-state-signing-secret"
 
-touch "${secrets_dir}/linkedin-client-secret"
-touch "${secrets_dir}/resend-api-key"
+initialize_optional_secret() {
+    local target="$1"
+    if [ ! -s "$target" ]; then
+        printf 'unconfigured\n' >"$target"
+    fi
+}
+
+initialize_optional_secret "${secrets_dir}/linkedin-client-secret"
+initialize_optional_secret "${secrets_dir}/resend-api-key"
 chmod 600 \
     "${secrets_dir}/db-password" \
     "${secrets_dir}/local-jwt-secret" \
@@ -38,4 +45,4 @@ chmod 600 \
     "${secrets_dir}/resend-api-key"
 
 echo "Swarm configuration prepared in ${swarm_dir}."
-echo "Configure ${environment_file}, label one storage node, and populate LinkedIn and Resend secrets before deployment."
+echo "Configure ${environment_file}, label one storage node, and replace optional integration placeholders before enabling them."

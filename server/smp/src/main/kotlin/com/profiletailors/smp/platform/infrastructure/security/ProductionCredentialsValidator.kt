@@ -21,13 +21,13 @@ import kotlin.runCatching
  * - This validator is the safety net — it prevents accidental production deploys with dev credentials.
  *
  * **What it checks:**
- * - `SMP_DB_PASSWORD` must not be `CHANGE_ME_gK2fcFZg5cgVu9U` or empty.
- * - `PUBLISHING_CREDENTIALS_KEY` must not be empty (required for OAuth token encryption).
- * - `SMP_LOCAL_JWT_SECRET` must not be empty when `SMP_LOCAL_JWT_DEV_FALLBACK` is also empty
- *   (enforced separately by `LocalJwtSecretResolver`, but double-checked here).
- * - `SMP_MEDIA_PREVIEW_SIGNING_SECRET` must not be empty because signed public media URLs
- *   rely on it as their access-control boundary.
- * - `SMP_LINKEDIN_STATE_SIGNING_SECRET` must not be empty because it protects the OAuth state.
+ * - `SMP_DB_PASSWORD` must contain at least 32 characters and must not use a placeholder.
+ * - `PUBLISHING_CREDENTIALS_KEY` must be configured without a placeholder.
+ * - `SMP_LOCAL_JWT_SECRET` must be configured without a placeholder outside exclusive development.
+ * - `SMP_MEDIA_PREVIEW_SIGNING_SECRET` must be configured without a placeholder because signed
+ *   public media URLs rely on it as their access-control boundary.
+ * - `SMP_LINKEDIN_STATE_SIGNING_SECRET` must be configured without a placeholder because it
+ *   protects the OAuth state.
  *
  * **When it runs:**
  * - After `ApplicationContext.refresh()` / `finishRefresh()` when the embedded server is already
@@ -81,8 +81,8 @@ class ProductionCredentialsValidator(private val environment: Environment) {
     }
 
     private fun checkDatabasePassword(): String? {
-        val dbPassword = environment.getProperty("SMP_DB_PASSWORD").orEmpty().trim()
-        return if (dbPassword.isBlank() || UNSAFE_CREDENTIAL_PREFIXES.any(dbPassword::startsWith)) {
+        val dbPassword = normalizedCredential("SMP_DB_PASSWORD")
+        return if (isUnsafeCredential(dbPassword) || dbPassword.length < MINIMUM_DATABASE_PASSWORD_LENGTH) {
             "SMP_DB_PASSWORD is not configured or uses an unsafe placeholder. " +
                 "Set a strong password (minimum 32 characters). " +
                 SECRET_GENERATION_GUIDANCE
@@ -92,9 +92,10 @@ class ProductionCredentialsValidator(private val environment: Environment) {
     }
 
     private fun checkPublishingKey(): String? {
-        val credentialsKey = environment.getProperty("PUBLISHING_CREDENTIALS_KEY").orEmpty()
-        return if (credentialsKey.isBlank()) {
-            "PUBLISHING_CREDENTIALS_KEY is not configured. This key is required to encrypt " +
+        val credentialsKey = normalizedCredential("PUBLISHING_CREDENTIALS_KEY")
+        return if (isUnsafeCredential(credentialsKey)) {
+            "PUBLISHING_CREDENTIALS_KEY is not configured or uses an unsafe placeholder. " +
+                "This key is required to encrypt " +
                 "OAuth access/refresh tokens stored in the database. Without it, LinkedIn " +
                 "publishing will fail. $SECRET_GENERATION_GUIDANCE"
         } else {
@@ -103,26 +104,27 @@ class ProductionCredentialsValidator(private val environment: Environment) {
     }
 
     private fun checkJwtSecret(activeProfiles: Set<String>): String? {
-        val jwtSecret = environment.getProperty("SMP_LOCAL_JWT_SECRET").orEmpty()
-        val jwtFallback = environment.getProperty("SMP_LOCAL_JWT_DEV_FALLBACK").orEmpty()
-        if (jwtSecret.isNotBlank()) return null
-        if (jwtFallback.isNotBlank() && "dev" in activeProfiles) return null
+        val jwtSecret = normalizedCredential("SMP_LOCAL_JWT_SECRET")
+        val jwtFallback = normalizedCredential("SMP_LOCAL_JWT_DEV_FALLBACK")
+        if (!isUnsafeCredential(jwtSecret)) return null
+        if (!isUnsafeCredential(jwtFallback) && "dev" in activeProfiles && "prod" !in activeProfiles) return null
 
-        return if (jwtFallback.isNotBlank()) {
+        return if (!isUnsafeCredential(jwtFallback)) {
             "SMP_LOCAL_JWT_DEV_FALLBACK is allowed only with the dev profile. " +
                 "Configure SMP_LOCAL_JWT_SECRET outside development. " +
                 SECRET_GENERATION_GUIDANCE
         } else {
-            "SMP_LOCAL_JWT_SECRET and SMP_LOCAL_JWT_DEV_FALLBACK are both empty. " +
+            "SMP_LOCAL_JWT_SECRET and SMP_LOCAL_JWT_DEV_FALLBACK are both empty or unsafe. " +
                 "Configure SMP_LOCAL_JWT_SECRET outside development. " +
                 SECRET_GENERATION_GUIDANCE
         }
     }
 
     private fun checkMediaSigningSecret(): String? {
-        val signingSecret = environment.getProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET").orEmpty()
-        return if (signingSecret.isBlank()) {
-            "SMP_MEDIA_PREVIEW_SIGNING_SECRET is not configured. This key signs public " +
+        val signingSecret = normalizedCredential("SMP_MEDIA_PREVIEW_SIGNING_SECRET")
+        return if (isUnsafeCredential(signingSecret)) {
+            "SMP_MEDIA_PREVIEW_SIGNING_SECRET is not configured or uses an unsafe placeholder. " +
+                "This key signs public " +
                 "media preview URLs and must be unique per environment. " +
                 SECRET_GENERATION_GUIDANCE
         } else {
@@ -131,10 +133,10 @@ class ProductionCredentialsValidator(private val environment: Environment) {
     }
 
     private fun checkLinkedInStateSecret(): String? {
-        val signingSecret = environment.getProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET").orEmpty().ifBlank {
-            environment.getProperty("publishing.linkedin.state-signing-secret").orEmpty()
+        val signingSecret = normalizedCredential("SMP_LINKEDIN_STATE_SIGNING_SECRET").ifBlank {
+            normalizedCredential("publishing.linkedin.state-signing-secret")
         }
-        return if (signingSecret.isBlank() || UNSAFE_CREDENTIAL_PREFIXES.any(signingSecret::startsWith)) {
+        return if (isUnsafeCredential(signingSecret)) {
             "SMP_LINKEDIN_STATE_SIGNING_SECRET is not configured or uses an unsafe placeholder. " +
                 "This key signs LinkedIn " +
                 "OAuth state and must be unique per environment. " +
@@ -143,6 +145,12 @@ class ProductionCredentialsValidator(private val environment: Environment) {
             null
         }
     }
+
+    private fun normalizedCredential(propertyName: String): String =
+        environment.getProperty(propertyName).orEmpty().trim()
+
+    private fun isUnsafeCredential(value: String): Boolean =
+        value.isBlank() || UNSAFE_CREDENTIAL_PREFIXES.any(value::startsWith)
 
     private fun buildValidationFailureMessage(violations: List<String>): String = buildString {
         appendLine("❌ PRODUCTION CREDENTIAL VALIDATION FAILED")
@@ -188,6 +196,7 @@ class ProductionCredentialsValidator(private val environment: Environment) {
     private companion object {
         private val logger = LoggerFactory.getLogger(ProductionCredentialsValidator::class.java)
         private val UNSAFE_CREDENTIAL_PREFIXES = setOf("CHANGE_ME")
+        private const val MINIMUM_DATABASE_PASSWORD_LENGTH = 32
         private const val SECRET_GENERATION_GUIDANCE = "Generate with: openssl rand -base64 32"
     }
 }

@@ -389,6 +389,20 @@ swarm-logs service:
     set +a
     docker service logs --follow "${SWARM_STACK_NAME}_{{service}}"
 
+# Roll back one application service, for example: just swarm-rollback backend
+swarm-rollback service:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{service}}" in
+        backend|dashboard) ;;
+        *) echo "Service must be backend or dashboard."; exit 1 ;;
+    esac
+    set -a
+    source {{swarm-env}}
+    set +a
+    : "${SWARM_STACK_NAME:?Set SWARM_STACK_NAME in swarm/.env}"
+    docker service rollback "${SWARM_STACK_NAME}_{{service}}"
+
 # Remove the Swarm stack while preserving secrets and persistent volumes
 swarm-remove:
     ./infra/apps/smp/swarm/remove.sh

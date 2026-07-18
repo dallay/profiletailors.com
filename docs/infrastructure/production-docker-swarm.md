@@ -76,10 +76,10 @@ DASHBOARD_IMAGE=registry.example.com/profiletailors/dashboard@sha256:<digest>
 PUBLIC_ORIGIN=https://app.example.com
 ```
 
-Populate the LinkedIn and Resend source files under `swarm/secrets` before deployment. Swarm rejects
-zero-byte secrets, and these integrations are part of the production contract. The deployment
-script validates every source, creates missing native Swarm secrets, and never replaces an existing
-secret with the same name.
+`swarm-prepare` initializes optional LinkedIn and Resend secret sources with `unconfigured`, because
+Swarm rejects zero-byte secrets. Replace those placeholders before enabling either integration. The
+deployment script validates every source, creates missing native Swarm secrets, and never replaces
+an existing secret with the same name.
 
 ### Validate and deploy
 
@@ -92,7 +92,8 @@ just swarm-status
 `swarm-deploy` runs from a manager, validates that exactly one ready node has the storage label,
 creates missing secrets, deploys with registry authentication, and waits for `/healthz` to report
 backend readiness. It succeeds only after every desired service replica has converged and the
-dashboard and protected API proxy return their expected HTTP responses.
+dashboard and protected API proxy return their expected HTTP responses. If readiness fails, it
+requests rollback only for application services changed by that deployment.
 
 After deployment, verify the dashboard and API proxy from a manager or load-balancer host:
 
@@ -131,8 +132,8 @@ state during a rollout.
 Manual rollback remains available:
 
 ```bash
-docker service rollback profile-tailors-swarm_backend
-docker service rollback profile-tailors-swarm_dashboard
+just swarm-rollback backend
+just swarm-rollback dashboard
 ```
 
 ### Rotate a secret
