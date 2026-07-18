@@ -63,7 +63,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'pnpm build && pnpm preview',
+    command: 'WAITLIST_ENABLED=true WAITLIST_API_BASE=http://localhost:7638 pnpm build && pnpm preview',
     url: 'http://localhost:4321',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
