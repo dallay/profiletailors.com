@@ -24,6 +24,7 @@ const wl = t.waitlist
   data-waitlist-form-id={formId ?? 'waitlist-hero'}
   data-waitlist-locale={locale}
   data-waitlist-api-base={resolvedApiBase}
+  aria-label={wl.formAriaLabel}
   data-waitlist-messages={JSON.stringify({
     validEmail: wl.errorValidEmail,
     consentRequired: wl.errorConsentRequired,

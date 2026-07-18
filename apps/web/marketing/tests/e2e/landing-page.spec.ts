@@ -91,7 +91,7 @@ test.describe('Waitlist Form — Hero Container (enabled)', () => {
   test('renders the API base URL as a data attribute', async ({ page }: { page: import('@playwright/test').Page }): Promise<void> => {
     await page.goto('/');
 
-    const form = page.locator('[data-waitlist-form]').first();
+    const form = page.getByRole('form', { name: /early access waitlist form/i });
     await expect(form).toBeVisible();
 
     const apiBase = await form.getAttribute('data-waitlist-api-base');

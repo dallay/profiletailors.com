@@ -167,6 +167,7 @@ export const en = {
     },
   },
   waitlist: {
+    formAriaLabel: 'Early access waitlist form',
     emailLabel: 'EMAIL',
     emailInput: {
       placeholder: 'Email address',

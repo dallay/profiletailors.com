@@ -167,6 +167,7 @@ export const es = {
     },
   },
   waitlist: {
+    formAriaLabel: 'Formulario de lista de espera de acceso anticipado',
     emailLabel: 'CORREO',
     emailInput: {
       placeholder: 'Correo electrónico',
