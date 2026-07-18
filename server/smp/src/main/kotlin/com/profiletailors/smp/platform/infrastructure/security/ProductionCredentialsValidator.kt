@@ -27,6 +27,7 @@ import kotlin.runCatching
  *   (enforced separately by `LocalJwtSecretResolver`, but double-checked here).
  * - `SMP_MEDIA_PREVIEW_SIGNING_SECRET` must not be empty because signed public media URLs
  *   rely on it as their access-control boundary.
+ * - `SMP_LINKEDIN_STATE_SIGNING_SECRET` must not be empty because it protects the OAuth state.
  *
  * **When it runs:**
  * - After `ApplicationContext.refresh()` / `finishRefresh()` when the embedded server is already
@@ -65,8 +66,9 @@ class ProductionCredentialsValidator(private val environment: Environment) {
         val violations: List<String> = listOfNotNull(
             checkDatabasePassword(),
             checkPublishingKey(),
-            checkJwtSecret(),
+            checkJwtSecret(activeProfiles),
             checkMediaSigningSecret(),
+            checkLinkedInStateSecret(),
         )
 
         if (violations.isNotEmpty()) {
@@ -79,11 +81,11 @@ class ProductionCredentialsValidator(private val environment: Environment) {
     }
 
     private fun checkDatabasePassword(): String? {
-        val dbPassword = environment.getProperty("SMP_DB_PASSWORD").orEmpty()
-        return if (dbPassword.isBlank() || dbPassword == UNSAFE_CREDENTIAL_SENTINEL) {
-            "SMP_DB_PASSWORD is not configured or is set to the unsafe default '$UNSAFE_CREDENTIAL_SENTINEL'. " +
+        val dbPassword = environment.getProperty("SMP_DB_PASSWORD").orEmpty().trim()
+        return if (dbPassword.isBlank() || UNSAFE_CREDENTIAL_PREFIXES.any(dbPassword::startsWith)) {
+            "SMP_DB_PASSWORD is not configured or uses an unsafe placeholder. " +
                 "Set a strong password (minimum 32 characters). " +
-                "Generate with: openssl rand -base64 32"
+                SECRET_GENERATION_GUIDANCE
         } else {
             null
         }
@@ -94,21 +96,26 @@ class ProductionCredentialsValidator(private val environment: Environment) {
         return if (credentialsKey.isBlank()) {
             "PUBLISHING_CREDENTIALS_KEY is not configured. This key is required to encrypt " +
                 "OAuth access/refresh tokens stored in the database. Without it, LinkedIn " +
-                "publishing will fail. Generate with: openssl rand -base64 32"
+                "publishing will fail. $SECRET_GENERATION_GUIDANCE"
         } else {
             null
         }
     }
 
-    private fun checkJwtSecret(): String? {
+    private fun checkJwtSecret(activeProfiles: Set<String>): String? {
         val jwtSecret = environment.getProperty("SMP_LOCAL_JWT_SECRET").orEmpty()
         val jwtFallback = environment.getProperty("SMP_LOCAL_JWT_DEV_FALLBACK").orEmpty()
-        return if (jwtSecret.isBlank() && jwtFallback.isBlank()) {
-            "SMP_LOCAL_JWT_SECRET and SMP_LOCAL_JWT_DEV_FALLBACK are both empty. " +
-                "At least one must be configured for JWT signing. " +
-                "Generate with: openssl rand -base64 32"
+        if (jwtSecret.isNotBlank()) return null
+        if (jwtFallback.isNotBlank() && "dev" in activeProfiles) return null
+
+        return if (jwtFallback.isNotBlank()) {
+            "SMP_LOCAL_JWT_DEV_FALLBACK is allowed only with the dev profile. " +
+                "Configure SMP_LOCAL_JWT_SECRET outside development. " +
+                SECRET_GENERATION_GUIDANCE
         } else {
-            null
+            "SMP_LOCAL_JWT_SECRET and SMP_LOCAL_JWT_DEV_FALLBACK are both empty. " +
+                "Configure SMP_LOCAL_JWT_SECRET outside development. " +
+                SECRET_GENERATION_GUIDANCE
         }
     }
 
@@ -117,7 +124,21 @@ class ProductionCredentialsValidator(private val environment: Environment) {
         return if (signingSecret.isBlank()) {
             "SMP_MEDIA_PREVIEW_SIGNING_SECRET is not configured. This key signs public " +
                 "media preview URLs and must be unique per environment. " +
-                "Generate with: openssl rand -base64 32"
+                SECRET_GENERATION_GUIDANCE
+        } else {
+            null
+        }
+    }
+
+    private fun checkLinkedInStateSecret(): String? {
+        val signingSecret = environment.getProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET").orEmpty().ifBlank {
+            environment.getProperty("publishing.linkedin.state-signing-secret").orEmpty()
+        }
+        return if (signingSecret.isBlank() || UNSAFE_CREDENTIAL_PREFIXES.any(signingSecret::startsWith)) {
+            "SMP_LINKEDIN_STATE_SIGNING_SECRET is not configured or uses an unsafe placeholder. " +
+                "This key signs LinkedIn " +
+                "OAuth state and must be unique per environment. " +
+                SECRET_GENERATION_GUIDANCE
         } else {
             null
         }
@@ -166,6 +187,7 @@ class ProductionCredentialsValidator(private val environment: Environment) {
 
     private companion object {
         private val logger = LoggerFactory.getLogger(ProductionCredentialsValidator::class.java)
-        private const val UNSAFE_CREDENTIAL_SENTINEL = "CHANGE_ME"
+        private val UNSAFE_CREDENTIAL_PREFIXES = setOf("CHANGE_ME")
+        private const val SECRET_GENERATION_GUIDANCE = "Generate with: openssl rand -base64 32"
     }
 }

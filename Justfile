@@ -67,6 +67,10 @@ app-dir        := "apps/web/app"
 # Auto-detect Gradle wrapper: `gradlew.bat` on Windows (CMD/PowerShell), `./gradlew` otherwise
 gradle-root    := `if [ -n "${COMSPEC:-}" ] && [ -z "${MSYSTEM:-}" ]; then echo "gradlew.bat"; else echo "./gradlew"; fi`
 docker-compose := "docker compose"
+production-compose := "infra/apps/smp/production/compose.yaml"
+production-env := "infra/apps/smp/production/.env"
+swarm-stack := "infra/apps/smp/swarm/stack.yaml"
+swarm-env := "infra/apps/smp/swarm/.env"
 
 # ═══════════════════════════════════════════════════════════════
 # SETUP
@@ -121,6 +125,14 @@ app:
 # Build frontend for production
 frontend-build:
     cd {{frontend-dir}} && pnpm build
+
+# Build the dashboard SPA for production
+app-build:
+    cd {{app-dir}} && pnpm build
+
+# Build the dashboard SPA against a deployed API
+release-dashboard-build api_base_url:
+    cd {{app-dir}} && VITE_API_BASE_URL='{{api_base_url}}' pnpm build
 
 # Preview production build locally
 frontend-preview:
@@ -180,6 +192,30 @@ app-test-e2e-media: app-test-e2e-media-mocked app-test-e2e-media-real
 # Compile and package backend
 backend-build:
     {{gradle-root}} :server:smp:build --no-daemon
+
+# Build a local OCI backend image from the current source tree
+backend-image image_name="profiletailors/smp:local" version="0.0.1-SNAPSHOT":
+    BP_OCI_VERSION="{{version}}" {{gradle-root}} :server:smp:bootBuildImage -PreleaseVersion="{{version}}" --imageName="{{image_name}}" --no-daemon
+
+# Verify production startup, Liquibase migrations, and health with ephemeral infrastructure
+release-backend-verify image_name:
+    ./scripts/verify-release-image.sh "{{image_name}}"
+
+# Build a revision-tagged OCI backend image with Spring Boot buildpacks
+release-backend-image version="0.1.0" image_repository="profiletailors/smp":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "Release images must be built from a clean worktree."
+        exit 1
+    fi
+    revision="$(git rev-parse HEAD)"
+    short_revision="${revision:0:12}"
+    image_name="{{image_repository}}:{{version}}-${short_revision}"
+    BP_OCI_REVISION="$revision" BP_OCI_VERSION="{{version}}" \
+        {{gradle-root}} :server:smp:bootBuildImage -PreleaseVersion="{{version}}" \
+            --imageName="$image_name" --no-daemon
+    docker image inspect "$image_name" --format 'image={{"{{"}}.RepoTags{{"}}"}} id={{"{{"}}.Id{{"}}"}}'
 
 # Run backend unit tests (optionally exclude tags: just backend-test 'postgres')
 # Postgres integration tests use Testcontainers and require SMP_POSTGRES_TEST_PASSWORD,
@@ -282,6 +318,81 @@ infra-logs *service="":
 infra-restart:
     {{docker-compose}} restart
 
+# Generate local files required by the production Compose stack
+production-prepare:
+    ./infra/apps/smp/production/prepare.sh
+
+# Validate the fully resolved production Compose configuration
+production-config:
+    {{docker-compose}} --env-file {{production-env}} -f {{production-compose}} config --quiet
+
+# Build the production dashboard image from source
+production-build-dashboard:
+    {{docker-compose}} --env-file {{production-env}} -f {{production-compose}} build dashboard
+
+# Pull missing images and start the production Compose stack
+production-up:
+    {{docker-compose}} --env-file {{production-env}} -f {{production-compose}} up -d --wait
+
+# Stop the production stack without deleting persistent data
+production-down:
+    {{docker-compose}} --env-file {{production-env}} -f {{production-compose}} down
+
+# Show production stack status
+production-status:
+    {{docker-compose}} --env-file {{production-env}} -f {{production-compose}} ps
+
+# Verify HTTP routing, migrations, production data, secrets, and container hardening
+production-smoke *flags="":
+    ./infra/apps/smp/production/smoke-test.sh {{flags}}
+
+# Tail production stack logs
+production-logs *service="":
+    {{docker-compose}} --env-file {{production-env}} -f {{production-compose}} logs -f {{service}}
+
+# Generate local configuration and secret sources for Docker Swarm
+swarm-prepare:
+    ./infra/apps/smp/swarm/prepare.sh
+
+# Label the single node that owns PostgreSQL and local media data
+swarm-label-storage node:
+    docker node update --label-add profiletailors.storage=true "{{node}}"
+
+# Validate the rendered Docker Swarm stack
+swarm-config:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    set -a
+    source {{swarm-env}}
+    set +a
+    docker stack config --compose-file {{swarm-stack}} >/dev/null
+
+# Create secrets, deploy the Swarm stack, and wait for readiness
+swarm-deploy:
+    ./infra/apps/smp/swarm/deploy.sh
+
+# Show services in the deployed Swarm stack
+swarm-status:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    set -a
+    source {{swarm-env}}
+    set +a
+    docker stack services "$SWARM_STACK_NAME"
+
+# Tail logs for one Swarm service, for example: just swarm-logs backend
+swarm-logs service:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    set -a
+    source {{swarm-env}}
+    set +a
+    docker service logs --follow "${SWARM_STACK_NAME}_{{service}}"
+
+# Remove the Swarm stack while preserving secrets and persistent volumes
+swarm-remove:
+    ./infra/apps/smp/swarm/remove.sh
+
 # ═══════════════════════════════════════════════════════════════
 # CI / VALIDATION
 # ═══════════════════════════════════════════════════════════════
@@ -303,6 +414,9 @@ ci-local:
     @echo ""
     @echo "▸ App: unit tests..."
     cd {{app-dir}} && pnpm test:run
+    @echo ""
+    @echo "▸ App: production build..."
+    cd {{app-dir}} && pnpm build
     @echo ""
     @echo "▸ Frontend: unit tests + coverage..."
     cd {{frontend-dir}} && pnpm test:coverage
@@ -356,6 +470,7 @@ ci:
     @echo "▸ [3/8] App: Biome lint + unit tests..."
     cd {{app-dir}} && pnpm lint
     cd {{app-dir}} && pnpm test:run
+    cd {{app-dir}} && pnpm build
     @echo ""
     @echo "▸ [4/8] Frontend: unit tests + coverage..."
     cd {{frontend-dir}} && pnpm test:coverage

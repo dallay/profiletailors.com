@@ -29,7 +29,22 @@ class ProductionCredentialsValidatorTest {
         }
 
         exception.message shouldContain "SMP_DB_PASSWORD"
-        exception.message shouldContain "CHANGE_ME"
+        exception.message shouldContain "unsafe placeholder"
+    }
+
+    @Test
+    fun `should fail when SMP_DB_PASSWORD uses the documented placeholder`() {
+        val environment = validEnvironment().apply {
+            setProperty("SMP_DB_PASSWORD", "CHANGE_ME_gK2fcFZg5cgVu9U")
+        }
+        val validator = ProductionCredentialsValidator(environment)
+
+        val exception = shouldThrow<IllegalStateException> {
+            validator.validateCredentials()
+        }
+
+        exception.message shouldContain "SMP_DB_PASSWORD"
+        exception.message shouldContain "unsafe placeholder"
     }
 
     @Test
@@ -102,12 +117,43 @@ class ProductionCredentialsValidatorTest {
     }
 
     @Test
+    fun `should fail when SMP_LINKEDIN_STATE_SIGNING_SECRET is blank`() {
+        val environment = validEnvironment().apply {
+            setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "")
+        }
+        val validator = ProductionCredentialsValidator(environment)
+
+        val exception = shouldThrow<IllegalStateException> {
+            validator.validateCredentials()
+        }
+
+        exception.message shouldContain "SMP_LINKEDIN_STATE_SIGNING_SECRET"
+        exception.message shouldContain "OAuth state"
+    }
+
+    @Test
+    fun `should reject the LinkedIn state placeholder`() {
+        val environment = validEnvironment().apply {
+            setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "CHANGE_ME_LINKEDIN_STATE")
+        }
+        val validator = ProductionCredentialsValidator(environment)
+
+        val exception = shouldThrow<IllegalStateException> {
+            validator.validateCredentials()
+        }
+
+        exception.message shouldContain "SMP_LINKEDIN_STATE_SIGNING_SECRET"
+        exception.message shouldContain "unsafe placeholder"
+    }
+
+    @Test
     fun `should not accept media preview YAML fallback like random uuid`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "strong-password-here")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "valid-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-32-bytes-minimum!")
             setProperty("media.preview-signing-secret", "\${random.uuid}")
+            setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "valid-linkedin-state-secret-32-bytes")
         }
         val validator = ProductionCredentialsValidator(environment)
 
@@ -137,6 +183,7 @@ class ProductionCredentialsValidatorTest {
         exception.message shouldContain "PUBLISHING_CREDENTIALS_KEY"
         exception.message shouldContain "SMP_LOCAL_JWT_SECRET"
         exception.message shouldContain "SMP_MEDIA_PREVIEW_SIGNING_SECRET"
+        exception.message shouldContain "SMP_LINKEDIN_STATE_SIGNING_SECRET"
     }
 
     @Test
@@ -146,6 +193,7 @@ class ProductionCredentialsValidatorTest {
             setProperty("PUBLISHING_CREDENTIALS_KEY", "base64-encoded-32-byte-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-minimum-32-bytes!")
             setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "valid-media-preview-secret-32-bytes")
+            setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "valid-linkedin-state-secret-32-bytes")
         }
         val validator = ProductionCredentialsValidator(environment)
 
@@ -161,11 +209,30 @@ class ProductionCredentialsValidatorTest {
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setProperty("SMP_LOCAL_JWT_DEV_FALLBACK", "valid-fallback-secret-32-bytes!")
             setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "valid-media-preview-secret-32-bytes")
+            setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "valid-linkedin-state-secret-32-bytes")
+            setActiveProfiles("dev")
         }
         val validator = ProductionCredentialsValidator(environment)
 
         // Should not throw (fallback is acceptable)
         validator.validateCredentials()
+    }
+
+    @Test
+    fun `should reject SMP_LOCAL_JWT_DEV_FALLBACK outside dev`() {
+        val environment = validEnvironment().apply {
+            setProperty("SMP_LOCAL_JWT_SECRET", "")
+            setProperty("SMP_LOCAL_JWT_DEV_FALLBACK", "valid-fallback-secret-32-bytes!")
+            setActiveProfiles("prod")
+        }
+        val validator = ProductionCredentialsValidator(environment)
+
+        val exception = shouldThrow<IllegalStateException> {
+            validator.validateCredentials()
+        }
+
+        exception.message shouldContain "SMP_LOCAL_JWT_SECRET"
+        exception.message shouldContain "only with the dev profile"
     }
 
     @Test
@@ -256,5 +323,13 @@ class ProductionCredentialsValidatorTest {
         shouldThrow<IllegalStateException> {
             validator.validateCredentials()
         }
+    }
+
+    private fun validEnvironment() = MockEnvironment().apply {
+        setProperty("SMP_DB_PASSWORD", "strong-random-password-32-chars")
+        setProperty("PUBLISHING_CREDENTIALS_KEY", "base64-encoded-32-byte-key-here")
+        setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-minimum-32-bytes!")
+        setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "valid-media-preview-secret-32-bytes")
+        setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "valid-linkedin-state-secret-32-bytes")
     }
 }

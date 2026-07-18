@@ -1,0 +1,150 @@
+name: profile-tailors-production
+
+services:
+  dashboard:
+    image: ${DASHBOARD_IMAGE:-profiletailors/dashboard:0.1.0}
+    pull_policy: missing
+    build:
+      context: ../../../..
+      dockerfile: infra/apps/smp/production/dashboard.Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+    restart: unless-stopped
+    init: true
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${HTTP_BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: ${DASHBOARD_MEMORY_LIMIT:-256m}
+    cpus: ${DASHBOARD_CPU_LIMIT:-0.50}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - edge
+
+  backend:
+    image: ${SMP_IMAGE:-profiletailors/smp:0.1.0}
+    pull_policy: missing
+    restart: unless-stopped
+    init: true
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: configtree:/run/secrets/
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRINGDOC_API_DOCS_ENABLED: "false"
+      SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+      SMP_BACKEND_PORT: "7638"
+      MANAGEMENT_PORT: "9091"
+      SMP_R2DBC_URL: r2dbc:postgresql://postgresql:5432/${POSTGRES_DB:-profiletailors_smp}
+      SMP_LIQUIBASE_JDBC_URL: jdbc:postgresql://postgresql:5432/${POSTGRES_DB:-profiletailors_smp}
+      SMP_LIQUIBASE_CONTEXTS: prod
+      SMP_DB_USERNAME: ${POSTGRES_USER:-profiletailors}
+      SMP_CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in production/.env}
+      SMP_LOCAL_JWT_ISSUER: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in production/.env}
+      SMP_JWT_ISSUER_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in production/.env}
+      SMP_REFRESH_COOKIE_SECURE: "true"
+      SMP_STORAGE_PROVIDER_TYPE: local
+      SMP_STORAGE_LOCAL_BASE_PATH: /var/lib/profiletailors/media
+      SMP_PUBLISHING_WORKER_ENABLED: "true"
+      SMP_LINKEDIN_CLIENT_ID: ${SMP_LINKEDIN_CLIENT_ID:-}
+      SMP_LINKEDIN_REDIRECT_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in production/.env}/integrations/linkedin/callback
+      SMP_EMAIL_SENDER: ${SMP_EMAIL_SENDER:-noreply@profiletailors.com}
+      SMP_MEDIAPROVIDER_UNSPLASH_ENABLED: ${SMP_MEDIAPROVIDER_UNSPLASH_ENABLED:-false}
+    secrets:
+      - source: db_password
+        target: SMP_DB_PASSWORD
+      - source: local_jwt_secret
+        target: SMP_LOCAL_JWT_SECRET
+      - source: publishing_credentials_key
+        target: PUBLISHING_CREDENTIALS_KEY
+      - source: media_preview_signing_secret
+        target: SMP_MEDIA_PREVIEW_SIGNING_SECRET
+      - source: linkedin_state_signing_secret
+        target: SMP_LINKEDIN_STATE_SIGNING_SECRET
+      - source: linkedin_client_secret
+        target: SMP_LINKEDIN_CLIENT_SECRET
+      - source: resend_api_key
+        target: SMP_RESEND_API_KEY
+    volumes:
+      - media_data:/var/lib/profiletailors/media
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${SMP_MEMORY_LIMIT:-1g}
+    cpus: ${SMP_CPU_LIMIT:-1.50}
+    expose:
+      - "7638"
+      - "9091"
+    networks:
+      - edge
+      - data
+
+  postgresql:
+    image: postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-profiletailors_smp}
+      POSTGRES_USER: ${POSTGRES_USER:-profiletailors}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: db_password
+        target: db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    shm_size: 128mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-1g}
+    cpus: ${POSTGRES_CPU_LIMIT:-1.00}
+    networks:
+      - data
+
+networks:
+  edge:
+    driver: bridge
+  data:
+    driver: bridge
+    internal: true
+
+volumes:
+  postgres_data:
+  media_data:
+
+secrets:
+  db_password:
+    file: ./secrets/db-password
+  local_jwt_secret:
+    file: ./secrets/local-jwt-secret
+  publishing_credentials_key:
+    file: ./secrets/publishing-credentials-key
+  media_preview_signing_secret:
+    file: ./secrets/media-preview-signing-secret
+  linkedin_state_signing_secret:
+    file: ./secrets/linkedin-state-signing-secret
+  linkedin_client_secret:
+    file: ./secrets/linkedin-client-secret
+  resend_api_key:
+    file: ./secrets/resend-api-key

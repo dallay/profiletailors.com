@@ -1,0 +1,251 @@
+version: "3.9"
+
+services:
+  dashboard:
+    image: ${DASHBOARD_IMAGE:?Set DASHBOARD_IMAGE in swarm/.env}
+    init: true
+    ports:
+      - target: 8080
+        published: ${SWARM_HTTP_PORT:-8080}
+        protocol: tcp
+        mode: ingress
+    read_only: true
+    volumes:
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 16777216
+          mode: 1777
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - edge
+    deploy:
+      mode: replicated
+      replicas: ${DASHBOARD_REPLICAS:-2}
+      endpoint_mode: vip
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        order: stop-first
+        monitor: 30s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: "${DASHBOARD_CPU_LIMIT:-0.50}"
+          memory: ${DASHBOARD_MEMORY_LIMIT:-256M}
+        reservations:
+          cpus: "${DASHBOARD_CPU_RESERVATION:-0.10}"
+          memory: ${DASHBOARD_MEMORY_RESERVATION:-64M}
+
+  backend:
+    image: ${SMP_IMAGE:?Set SMP_IMAGE in swarm/.env}
+    init: true
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: configtree:/run/secrets/
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRINGDOC_API_DOCS_ENABLED: "false"
+      SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+      SMP_BACKEND_PORT: "7638"
+      MANAGEMENT_PORT: "9091"
+      SMP_R2DBC_URL: r2dbc:postgresql://postgresql:5432/${POSTGRES_DB:-profiletailors_smp}
+      SMP_LIQUIBASE_JDBC_URL: jdbc:postgresql://postgresql:5432/${POSTGRES_DB:-profiletailors_smp}
+      SMP_LIQUIBASE_CONTEXTS: prod
+      SMP_DB_USERNAME: ${POSTGRES_USER:-profiletailors}
+      SMP_CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in swarm/.env}
+      SMP_LOCAL_JWT_ISSUER: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in swarm/.env}
+      SMP_JWT_ISSUER_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in swarm/.env}
+      SMP_REFRESH_COOKIE_SECURE: "true"
+      SMP_STORAGE_PROVIDER_TYPE: local
+      SMP_STORAGE_LOCAL_BASE_PATH: /var/lib/profiletailors/media
+      SMP_PUBLISHING_WORKER_ENABLED: "true"
+      SMP_LINKEDIN_CLIENT_ID: ${SMP_LINKEDIN_CLIENT_ID:-}
+      SMP_LINKEDIN_REDIRECT_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in swarm/.env}/integrations/linkedin/callback
+      SMP_EMAIL_SENDER: ${SMP_EMAIL_SENDER:-noreply@profiletailors.com}
+      SMP_MEDIAPROVIDER_UNSPLASH_ENABLED: ${SMP_MEDIAPROVIDER_UNSPLASH_ENABLED:-false}
+    secrets:
+      - source: db_password
+        target: SMP_DB_PASSWORD
+        uid: "1002"
+        gid: "1001"
+        mode: 0400
+      - source: local_jwt_secret
+        target: SMP_LOCAL_JWT_SECRET
+        uid: "1002"
+        gid: "1001"
+        mode: 0400
+      - source: publishing_credentials_key
+        target: PUBLISHING_CREDENTIALS_KEY
+        uid: "1002"
+        gid: "1001"
+        mode: 0400
+      - source: media_preview_signing_secret
+        target: SMP_MEDIA_PREVIEW_SIGNING_SECRET
+        uid: "1002"
+        gid: "1001"
+        mode: 0400
+      - source: linkedin_state_signing_secret
+        target: SMP_LINKEDIN_STATE_SIGNING_SECRET
+        uid: "1002"
+        gid: "1001"
+        mode: 0400
+      - source: linkedin_client_secret
+        target: SMP_LINKEDIN_CLIENT_SECRET
+        uid: "1002"
+        gid: "1001"
+        mode: 0400
+      - source: resend_api_key
+        target: SMP_RESEND_API_KEY
+        uid: "1002"
+        gid: "1001"
+        mode: 0400
+    volumes:
+      - type: bind
+        source: ${SWARM_MEDIA_PATH:-/var/lib/profiletailors/media}
+        target: /var/lib/profiletailors/media
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 268435456
+          mode: 1777
+    read_only: true
+    networks:
+      - edge
+      - data
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: vip
+      placement:
+        constraints:
+          - node.labels.${SWARM_STORAGE_NODE_LABEL:-profiletailors.storage} == true
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: stop-first
+        failure_action: rollback
+        monitor: 60s
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        order: stop-first
+        monitor: 60s
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 300s
+      resources:
+        limits:
+          cpus: "${SMP_CPU_LIMIT:-1.50}"
+          memory: ${SMP_MEMORY_LIMIT:-1G}
+        reservations:
+          cpus: "${SMP_CPU_RESERVATION:-0.50}"
+          memory: ${SMP_MEMORY_RESERVATION:-512M}
+
+  postgresql:
+    image: postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-profiletailors_smp}
+      POSTGRES_USER: ${POSTGRES_USER:-profiletailors}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: db_password
+        target: db_password
+        mode: 0400
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - type: tmpfs
+        target: /dev/shm
+        tmpfs:
+          size: 134217728
+          mode: 1777
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - data
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: dnsrr
+      placement:
+        constraints:
+          - node.labels.${SWARM_STORAGE_NODE_LABEL:-profiletailors.storage} == true
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+        monitor: 60s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+        monitor: 60s
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 300s
+      resources:
+        limits:
+          cpus: "${POSTGRES_CPU_LIMIT:-1.00}"
+          memory: ${POSTGRES_MEMORY_LIMIT:-1G}
+        reservations:
+          cpus: "${POSTGRES_CPU_RESERVATION:-0.25}"
+          memory: ${POSTGRES_MEMORY_RESERVATION:-256M}
+
+networks:
+  edge:
+    driver: overlay
+    attachable: false
+  data:
+    driver: overlay
+    internal: true
+    attachable: false
+
+volumes:
+  postgres_data:
+    driver: local
+
+secrets:
+  db_password:
+    external: true
+    name: ${SWARM_DB_PASSWORD_SECRET:-profiletailors_db_password_v1}
+  local_jwt_secret:
+    external: true
+    name: ${SWARM_LOCAL_JWT_SECRET:-profiletailors_local_jwt_v1}
+  publishing_credentials_key:
+    external: true
+    name: ${SWARM_PUBLISHING_KEY_SECRET:-profiletailors_publishing_key_v1}
+  media_preview_signing_secret:
+    external: true
+    name: ${SWARM_MEDIA_SIGNING_SECRET:-profiletailors_media_signing_v1}
+  linkedin_state_signing_secret:
+    external: true
+    name: ${SWARM_LINKEDIN_STATE_SECRET:-profiletailors_linkedin_state_v1}
+  linkedin_client_secret:
+    external: true
+    name: ${SWARM_LINKEDIN_CLIENT_SECRET:-profiletailors_linkedin_client_v1}
+  resend_api_key:
+    external: true
+    name: ${SWARM_RESEND_API_KEY_SECRET:-profiletailors_resend_api_key_v1}
