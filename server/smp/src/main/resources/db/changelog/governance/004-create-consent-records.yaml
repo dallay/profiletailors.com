@@ -1,0 +1,118 @@
+databaseChangeLog:
+  - changeSet:
+      id: governance-004-create-consent-records
+      author: sdd-apply
+      changes:
+        - createTable:
+            tableName: consent_records
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject_kind
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject_value
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: consent_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: purpose
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: policy_version
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: locale
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: given_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: withdrawn_at
+                  type: timestamp with time zone
+              - column:
+                  name: withdrawal_reason
+                  type: varchar(128)
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: consent_records
+            indexName: idx_consent_records_workspace_active
+            columns:
+              - column:
+                  name: workspace_id
+              - column:
+                  name: status
+        - createIndex:
+            tableName: consent_records
+            indexName: idx_consent_records_identity
+            columns:
+              - column:
+                  name: workspace_id
+              - column:
+                  name: subject_kind
+              - column:
+                  name: subject_value
+              - column:
+                  name: purpose
+        - createIndex:
+            tableName: consent_records
+            indexName: idx_consent_records_idempotency
+            columns:
+              - column:
+                  name: workspace_id
+              - column:
+                  name: subject_kind
+              - column:
+                  name: subject_value
+              - column:
+                  name: purpose
+              - column:
+                  name: policy_version
+              - column:
+                  name: status
