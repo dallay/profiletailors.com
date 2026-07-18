@@ -73,18 +73,19 @@ test.describe('Bilingual Support', () => {
   });
 });
 
-test.describe('Early Access Status', () => {
-  test('should display early access status message', async ({ page }) => {
+test.describe('Waitlist Form — Hero Container', () => {
+  test('renders the active waitlist form inside the hero form container', async ({ page }) => {
     await page.goto('/');
 
-    // The waitlist form was replaced with a static early access status component
     const formContainer = page.locator('[data-hero-form]');
     await expect(formContainer).toBeVisible();
 
-    // The status message should be a <p> element
-    const statusMessage = formContainer.locator('p');
-    await expect(statusMessage).toBeVisible();
-    await expect(statusMessage).not.toBeEmpty();
+    const form = formContainer.locator('[data-waitlist-form]').first();
+    await expect(form).toBeVisible();
+
+    const successMessage = formContainer.locator('p[data-waitlist-success]');
+    await expect(successMessage).toHaveCount(1);
+    await expect(successMessage).toBeHidden();
   });
 });
 

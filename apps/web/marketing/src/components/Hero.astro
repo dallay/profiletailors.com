@@ -15,15 +15,18 @@
 
 
 import EarlyAccessStatus from './EarlyAccessStatus.astro'
+import WaitlistForm from './WaitlistForm.astro'
+import type { Locale } from '@i18n/utils'
 
 interface Props {
   label: string
   headline: string
   sub: string
   status: string
+  locale: Locale
 }
 
-const { label, headline, sub, status } = Astro.props
+const { label, headline, sub, status, locale } = Astro.props
 ---
 
 <section class="px-6 pt-20 pb-24 max-w-4xl mx-auto">
@@ -51,8 +54,11 @@ const { label, headline, sub, status } = Astro.props
     {sub}
   </p>
 
-  <div data-hero-form style="opacity:0">
-    <EarlyAccessStatus message={status} />
+  <div data-hero-form style="opacity:0" data-hero-form-active>
+    <WaitlistForm locale={locale} />
+    <noscript>
+      <EarlyAccessStatus message={status} />
+    </noscript>
   </div>
 </section>
 
