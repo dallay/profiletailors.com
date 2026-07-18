@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import jakarta.validation.constraints.AssertTrue
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
@@ -50,6 +51,8 @@ class LocalAuthController(
             RegisterUserCommand(
                 email = request.email,
                 password = request.password,
+                confirmedAgeEligibility = request.confirmedAgeEligibility,
+                acceptedTermsVersion = request.acceptedTermsVersion,
             ),
         )
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -160,6 +163,22 @@ data class RegisterUserRequest(
         format = "password",
     )
     val password: String,
+
+    @field:AssertTrue(message = "You must confirm you are 18 or older")
+    @field:Schema(
+        description = "Confirmation that the user is 18 years of age or older",
+        example = "true",
+        required = true,
+    )
+    val confirmedAgeEligibility: Boolean,
+
+    @field:NotBlank(message = "You must accept the terms of service")
+    @field:Schema(
+        description = "Accepted terms version identifier",
+        example = "terms-v1.0.0",
+        required = true,
+    )
+    val acceptedTermsVersion: String,
 )
 
 /**

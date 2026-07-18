@@ -4,6 +4,7 @@ import {
   type ApiError,
   type AuthTokens,
   type CurrentUserProfile,
+  type RegisterPayload,
   createApiFetch,
   getCurrentUserProfile,
   login,
@@ -171,7 +172,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function registerWithPassword(payload: { email: string; password: string }) {
+  async function registerWithPassword(payload: RegisterPayload): Promise<AuthTokens> {
     isLoading.value = true
     error.value = null
 

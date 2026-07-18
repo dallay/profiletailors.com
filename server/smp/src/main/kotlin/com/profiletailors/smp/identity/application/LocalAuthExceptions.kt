@@ -11,6 +11,8 @@ class UserAlreadyExistsException(email: String) : RuntimeException("A user with 
 
 class InvalidRegistrationInputException(message: String) : RuntimeException(message)
 
+class RegistrationValidationException(message: String) : RuntimeException(message)
+
 class UnverifiedEmailException(val email: String) : RuntimeException("Email verification required for '$email'.")
 
 open class InvalidVerificationTokenException(message: String = "Invalid verification token.") :

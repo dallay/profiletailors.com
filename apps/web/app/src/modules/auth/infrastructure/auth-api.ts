@@ -28,6 +28,11 @@ export type LoginPayload = {
   password: string
 }
 
+export type RegisterPayload = LoginPayload & {
+  confirmedAgeEligibility: boolean
+  acceptedTermsVersion: string
+}
+
 export type ApiError = {
   title?: string
   detail?: string
@@ -131,12 +136,13 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string |
 // Auth endpoints
 // ---------------------------------------------------------------------------
 
-export async function register(payload: LoginPayload): Promise<AuthTokens> {
-  const validatedPayload = authCredentialsSchema.parse(payload)
+export async function register(payload: RegisterPayload): Promise<AuthTokens> {
+  // Validate and transform base credentials (trim, lowercase email) before sending
+  const { email, password } = authCredentialsSchema.parse(payload)
 
   return request<AuthTokens>('/api/auth/register', {
     method: 'POST',
-    body: JSON.stringify(validatedPayload),
+    body: JSON.stringify({ ...payload, email, password }),
   })
 }
 

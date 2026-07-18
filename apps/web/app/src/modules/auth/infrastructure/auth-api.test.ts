@@ -161,6 +161,8 @@ describe('register', () => {
     const result = await register({
       email: 'newuser@example.com',
       password: 'password123',
+      confirmedAgeEligibility: true,
+      acceptedTermsVersion: 'terms-v1.0.0',
     })
 
     expect(result).toEqual(tokens)
@@ -171,6 +173,8 @@ describe('register', () => {
         body: JSON.stringify({
           email: 'newuser@example.com',
           password: 'password123',
+          confirmedAgeEligibility: true,
+          acceptedTermsVersion: 'terms-v1.0.0',
         }),
       }),
     )
@@ -808,7 +812,12 @@ describe('register — Zod validation', () => {
       }),
     )
 
-    await register({ email: '  NewUser@Example.COM  ', password: 'password123' })
+    await register({
+      email: '  NewUser@Example.COM  ',
+      password: 'password123',
+      confirmedAgeEligibility: true,
+      acceptedTermsVersion: 'terms-v1.0.0',
+    })
 
     const sentBody = JSON.parse(
       (fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.body as string,
@@ -820,7 +829,14 @@ describe('register — Zod validation', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(register({ email: 'bad@@email', password: 'password' })).rejects.toThrow()
+    await expect(
+      register({
+        email: 'bad@@email',
+        password: 'password',
+        confirmedAgeEligibility: true,
+        acceptedTermsVersion: 'terms-v1.0.0',
+      }),
+    ).rejects.toThrow()
 
     expect(fetchMock).not.toHaveBeenCalled()
   })
@@ -829,7 +845,14 @@ describe('register — Zod validation', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(register({ email: 'user@example.com', password: '   ' })).rejects.toThrow()
+    await expect(
+      register({
+        email: 'user@example.com',
+        password: '   ',
+        confirmedAgeEligibility: true,
+        acceptedTermsVersion: 'terms-v1.0.0',
+      }),
+    ).rejects.toThrow()
 
     expect(fetchMock).not.toHaveBeenCalled()
   })

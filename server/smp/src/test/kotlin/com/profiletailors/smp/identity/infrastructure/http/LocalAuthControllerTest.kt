@@ -56,6 +56,8 @@ class LocalAuthControllerTest {
             RegisterUserRequest(
                 email = "yuniel@example.com",
                 password = validPassword,
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
             ),
         )
 
@@ -72,6 +74,8 @@ class LocalAuthControllerTest {
             RegisterUserCommand(
                 email = "yuniel@example.com",
                 password = validPassword,
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
             ),
             mediator.lastRequest,
         )

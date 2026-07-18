@@ -8,10 +8,7 @@ import java.time.Clock
 import java.util.UUID
 
 @Service
-internal class RecordConsentHandler(
-    private val repository: ConsentRepository,
-    private val clock: Clock = Clock.systemUTC(),
-) {
+class RecordConsentHandler(private val repository: ConsentRepository, private val clock: Clock = Clock.systemUTC()) {
 
     /**
      * Records consent idempotently for the subject + purpose + policy version triple.

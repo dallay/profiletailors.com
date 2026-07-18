@@ -4,8 +4,13 @@ import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.identity.domain.EmailStatus
 
-data class RegisterUserCommand(val email: String, val password: String, val username: String? = null) :
-    CommandWithResult<LocalAuthSessionResult>
+data class RegisterUserCommand(
+    val email: String,
+    val password: String,
+    val username: String? = null,
+    val confirmedAgeEligibility: Boolean,
+    val acceptedTermsVersion: String,
+) : CommandWithResult<LocalAuthSessionResult>
 
 data class LoginUserCommand(val email: String, val password: String) : CommandWithResult<LocalAuthSessionResult>
 

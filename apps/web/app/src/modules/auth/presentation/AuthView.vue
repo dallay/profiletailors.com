@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { type AuthCredentials, authCredentialsSchema, registerSchema } from '@shared/lib/validation/schemas'
+import type { RegisterPayload } from '@modules/auth/infrastructure/auth-api'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 const { t } = useI18n()
@@ -17,8 +18,10 @@ const alternateRoute = computed(() => isRegisterMode.value ? '/login' : '/regist
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const confirmedAgeEligibility = ref(false)
+const acceptedTerms = ref(false)
 const formError = ref<string | null>(null)
-const fieldErrors = ref<{ email?: string; password?: string; confirmPassword?: string }>({})
+const fieldErrors = ref<{ email?: string; password?: string; confirmPassword?: string; confirmedAgeEligibility?: string; acceptedTerms?: string }>({})
 
 if (auth.error) {
   formError.value = auth.error
@@ -32,6 +35,8 @@ watch(() => route.name, () => {
   email.value = ''
   password.value = ''
   confirmPassword.value = ''
+  confirmedAgeEligibility.value = false
+  acceptedTerms.value = false
   auth.clearError()
 })
 
@@ -45,19 +50,21 @@ async function handleSubmit() {
         email: email.value,
         password: password.value,
         confirmPassword: confirmPassword.value,
+        confirmedAgeEligibility: confirmedAgeEligibility.value,
+        acceptedTerms: acceptedTerms.value,
       })
     : authCredentialsSchema.safeParse({ email: email.value, password: password.value })
 
   if (!validationResult.success) {
-    const errors = validationResult.error.flatten().fieldErrors
-    const confirmPasswordErrors =
-      'confirmPassword' in errors && Array.isArray(errors.confirmPassword)
-        ? errors.confirmPassword
-        : undefined
+    const errors = validationResult.error.flatten().fieldErrors as Partial<
+      Record<'email' | 'password' | 'confirmPassword' | 'confirmedAgeEligibility' | 'acceptedTerms', string[]>
+    >
     fieldErrors.value = {
       email: errors.email?.[0],
       password: errors.password?.[0],
-      confirmPassword: confirmPasswordErrors?.[0],
+      confirmPassword: errors.confirmPassword?.[0],
+      confirmedAgeEligibility: errors.confirmedAgeEligibility?.[0],
+      acceptedTerms: errors.acceptedTerms?.[0],
     }
     return
   }
@@ -68,7 +75,13 @@ async function handleSubmit() {
     if (isRegisterMode.value) {
       // confirmPassword is only for client-side validation; not sent to the server
       const { email, password } = payload as AuthCredentials
-      await auth.registerWithPassword({ email, password })
+      const registerPayload: RegisterPayload = {
+        email,
+        password,
+        confirmedAgeEligibility: true,
+        acceptedTermsVersion: 'terms-v1.0.0',
+      }
+      await auth.registerWithPassword(registerPayload)
     } else {
       await auth.loginWithPassword(payload as AuthCredentials)
     }
@@ -200,6 +213,43 @@ async function handleSubmit() {
               >
               <p v-if="fieldErrors.confirmPassword" role="alert" class="text-sm text-error">
                 {{ t(`auth.${fieldErrors.confirmPassword}`) }}
+              </p>
+            </div>
+
+            <div v-if="isRegisterMode" class="space-y-4">
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: for/id link is correct; Biome cannot evaluate Vue i18n interpolation as label text -->
+              <label for="ageEligibility" class="flex cursor-pointer items-start gap-3 text-sm leading-5 text-text-body">
+                <input
+                  id="ageEligibility"
+                  v-model="confirmedAgeEligibility"
+                  type="checkbox"
+                  class="mt-0.5 size-4 shrink-0 rounded border-border-visible bg-bg-primary text-text-display focus:ring-2 focus:ring-text-display focus:ring-offset-2 focus:ring-offset-bg-primary"
+                  :aria-invalid="fieldErrors.confirmedAgeEligibility ? 'true' : 'false'"
+                />
+                {{ $t('auth.ageEligibilityLabel') }}
+              </label>
+              <p v-if="fieldErrors.confirmedAgeEligibility" role="alert" class="pl-9 text-sm text-error">
+                {{ t(`auth.${fieldErrors.confirmedAgeEligibility}`) }}
+              </p>
+
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: for/id link is correct; Biome cannot evaluate Vue i18n interpolation as label text -->
+              <label for="terms" class="flex cursor-pointer items-start gap-3 text-sm leading-5 text-text-body">
+                <input
+                  id="terms"
+                  v-model="acceptedTerms"
+                  type="checkbox"
+                  class="mt-0.5 size-4 shrink-0 rounded border-border-visible bg-bg-primary text-text-display focus:ring-2 focus:ring-text-display focus:ring-offset-2 focus:ring-offset-bg-primary"
+                  :aria-invalid="fieldErrors.acceptedTerms ? 'true' : 'false'"
+                />
+                {{ $t('auth.termsLabel') }}
+              </label>
+              <p class="pl-9 text-xs text-text-secondary">
+                <a href="/terms" class="underline hover:opacity-70 transition-opacity">{{ $t('auth.termsOfService') }}</a>
+                <span class="mx-1">&middot;</span>
+                <a href="/privacy" class="underline hover:opacity-70 transition-opacity">{{ $t('auth.privacyPolicy') }}</a>
+              </p>
+              <p v-if="fieldErrors.acceptedTerms" role="alert" class="pl-9 text-sm text-error">
+                {{ t(`auth.${fieldErrors.acceptedTerms}`) }}
               </p>
             </div>
 

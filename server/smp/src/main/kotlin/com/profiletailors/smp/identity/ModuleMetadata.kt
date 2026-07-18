@@ -9,6 +9,8 @@ import org.springframework.modulith.ApplicationModule
         "credentials :: application",
         "credentials :: domain",
         "credentials :: infrastructure",
+        "governance :: application",
+        "governance :: domain",
         "platform :: infrastructure",
         "platform :: domain",
         "tenancy :: application",
