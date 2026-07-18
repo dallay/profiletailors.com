@@ -1,14 +1,17 @@
 ---
 import type { Locale } from '@i18n/utils'
+import { WAITLIST_API_BASE } from 'astro:env/client'
 
 interface Props {
   locale: Locale
   waitlistKey?: string
   source?: string
   formId?: string
+  apiBase?: string
 }
 
-const { locale, waitlistKey, source, formId } = Astro.props
+const { locale, waitlistKey, source, formId, apiBase } = Astro.props
+const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
 ---
 
 <form
@@ -17,6 +20,7 @@ const { locale, waitlistKey, source, formId } = Astro.props
   data-waitlist-source={source ?? 'marketing-site'}
   data-waitlist-form-id={formId ?? 'waitlist-hero'}
   data-waitlist-locale={locale}
+  data-waitlist-api-base={resolvedApiBase}
   novalidate
   class="flex flex-col gap-3 max-w-md border-l-2 border-border pl-4"
 >
@@ -164,7 +168,10 @@ const { locale, waitlistKey, source, formId } = Astro.props
         metadata: captureUtm(),
       })
 
-      const endpoint = `/api/waitlists/${encodeURIComponent(waitlistKey)}/entries`
+      const apiBase = form.dataset.waitlistApiBase ?? ''
+      const endpoint = apiBase
+        ? `${apiBase.replace(/\/+$/, '')}/api/waitlists/${encodeURIComponent(waitlistKey)}/entries`
+        : `/api/waitlists/${encodeURIComponent(waitlistKey)}/entries`
       fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

@@ -123,14 +123,14 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await expect(error).toContainText(/too many/i);
   });
 
-  test('submits against the configured waitlist key', async ({ page }) => {
-    let requestPath: string | null = null;
+  test('submits against the configured API base and waitlist key', async ({ page }) => {
+    let requestUrl: string | null = null;
     await page.route('**/api/waitlists/**/entries', async (route, request) => {
       if (request.method() !== 'POST') {
         await route.fallback();
         return;
       }
-      requestPath = new URL(request.url()).pathname;
+      requestUrl = request.url();
       await route.fulfill({
         status: 202,
         contentType: 'application/json',
@@ -144,6 +144,9 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await page.locator('[data-waitlist-submit]').first().click();
 
     await expect(page.locator('[data-waitlist-success]').first()).toBeVisible();
-    expect(requestPath).toBe(`/api/waitlists/${WAITLIST_KEY}/entries`);
+    if (!requestUrl) throw new Error('requestUrl was not captured');
+    const parsed = new URL(requestUrl);
+    expect(parsed.pathname).toBe(`/api/waitlists/${WAITLIST_KEY}/entries`);
+    expect(parsed.host).toBe('localhost:7638');
   });
 });

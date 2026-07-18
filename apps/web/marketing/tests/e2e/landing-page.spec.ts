@@ -73,8 +73,8 @@ test.describe('Bilingual Support', () => {
   });
 });
 
-test.describe('Waitlist Form — Hero Container', () => {
-  test('renders the active waitlist form inside the hero form container', async ({ page }) => {
+test.describe('Waitlist Form — Hero Container (enabled)', () => {
+  test('renders the active waitlist form when WAITLIST_ENABLED=true', async ({ page }) => {
     await page.goto('/');
 
     const formContainer = page.locator('[data-hero-form]');
@@ -86,6 +86,16 @@ test.describe('Waitlist Form — Hero Container', () => {
     const successMessage = formContainer.locator('p[data-waitlist-success]');
     await expect(successMessage).toHaveCount(1);
     await expect(successMessage).toBeHidden();
+  });
+
+  test('renders the API base URL as a data attribute', async ({ page }) => {
+    await page.goto('/');
+
+    const form = page.locator('[data-waitlist-form]').first();
+    await expect(form).toBeVisible();
+
+    const apiBase = await form.getAttribute('data-waitlist-api-base');
+    expect(apiBase).toBe('http://localhost:7638');
   });
 });
 
