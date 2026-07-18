@@ -23,6 +23,7 @@ Compared with the single-server Compose deployment, the Swarm target adds:
 
 - Registry-distributed immutable application images.
 - Native secrets encrypted in the Swarm Raft log.
+- Read-only root filesystems with explicit writable mounts for application and database data.
 - Overlay networks with an internal-only data network.
 - Replicated dashboard tasks behind the Swarm routing mesh.
 - Update and rollback policies with health monitoring.

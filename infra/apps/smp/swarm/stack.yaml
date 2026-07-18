@@ -177,6 +177,17 @@ services:
         tmpfs:
           size: 134217728
           mode: 1777
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 67108864
+          mode: 1777
+      - type: tmpfs
+        target: /var/run/postgresql
+        tmpfs:
+          size: 16777216
+          mode: 0775
+    read_only: true
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s

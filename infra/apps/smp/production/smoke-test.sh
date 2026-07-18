@@ -95,6 +95,7 @@ run_checks() {
 
     assert_read_only_rootfs dashboard
     assert_read_only_rootfs backend
+    assert_read_only_rootfs postgresql
     assert_secret_not_in_environment backend
 
     echo "Production smoke test passed: dashboard=200 api=401 health=UP migrations=${migration_count} dev_seed=0."

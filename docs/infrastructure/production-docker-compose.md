@@ -20,7 +20,8 @@ The production stack differs from `infra/apps/smp/compose.yaml` in these ways:
 - The dashboard is built into a non-root NGINX image and proxies `/api` to the backend.
 - Database, JWT, OAuth, encryption, and signing credentials use Docker Compose secrets.
 - Database and media files use named volumes.
-- Application containers use read-only root filesystems and `no-new-privileges`.
+- All containers use read-only root filesystems; application containers also use
+  `no-new-privileges`.
 - CPU and memory limits are configurable per service.
 - Liquibase always runs with the `prod` context.
 - OpenAPI and Swagger UI endpoints are disabled.

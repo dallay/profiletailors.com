@@ -108,6 +108,10 @@ services:
         target: db_password
     volumes:
       - postgres_data:/var/lib/postgresql
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /var/run/postgresql:size=16m,mode=0775
     shm_size: 128mb
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
