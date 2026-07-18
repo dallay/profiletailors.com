@@ -1,0 +1,20 @@
+change: age-eligibility-enforcement
+current_phase: archive
+completed:
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: none
+updated: 2026-07-18
+
+blocker: false
+verdict: PASS WITH WARNINGS
+summary: >
+  15/15 tasks complete, 6/6 spec requirements implemented.
+  Spec synced to main specs with AD-06 correction (two consent records).
+  Archived to openspec/changes/archive/2026-07-18-age-eligibility-enforcement/.
+  SDD cycle complete.
