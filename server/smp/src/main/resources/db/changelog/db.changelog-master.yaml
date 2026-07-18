@@ -46,6 +46,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/governance/003-seed-compliance-controls.yaml
   - include:
+      file: db/changelog/governance/004-create-consent-records.yaml
+  - include:
       file: db/changelog/publishing/001-create-social-connections.yaml
   - include:
       file: db/changelog/publishing/002-create-social-accounts.yaml

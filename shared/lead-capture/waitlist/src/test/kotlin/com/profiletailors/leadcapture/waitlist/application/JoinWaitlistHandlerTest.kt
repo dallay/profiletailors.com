@@ -5,6 +5,7 @@ import com.profiletailors.leadcapture.common.CaptureSource
 import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.LeadMetadata
 import com.profiletailors.leadcapture.common.NormalizedEmail
+import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
@@ -30,12 +31,14 @@ internal class JoinWaitlistHandlerTest {
     private val waitlistRepo: WaitlistRepository = mockk()
     private val entryRepo: WaitlistEntryRepository = mockk()
     private val idGenerator: WaitlistEntryIdGenerator = mockk()
+    private val consentRecorder: WaitlistConsentRecorder = mockk(relaxed = true)
     private val clock: () -> Instant = { Instant.parse("2026-07-16T12:00:00Z") }
 
     private val handler = JoinWaitlistHandler(
         waitlistRepository = waitlistRepo,
         entryRepository = entryRepo,
         idGenerator = idGenerator,
+        consentRecorder = consentRecorder,
         clock = clock,
     )
 
@@ -70,6 +73,18 @@ internal class JoinWaitlistHandlerTest {
         assertEquals(JoinResult.JOINED_NEW, result)
         assertEquals("Accepted", result.toString())
         verify(exactly = 1) { entryRepo.saveIfNotExists(any()) }
+        verify(exactly = 1) {
+            consentRecorder.record(
+                match {
+                    it.waitlistKey == WaitlistKey("profile-tailors-launch") &&
+                        it.entryId == WaitlistEntryId("e-new") &&
+                        it.normalizedEmail == NormalizedEmail.from(EmailAddress("user@example.com")) &&
+                        it.consent == WaitlistConsent(earlyAccess = true, version = "2026-06-25") &&
+                        it.locale == CaptureLocale("en") &&
+                        it.source == CaptureSource("marketing-homepage")
+                },
+            )
+        }
     }
 
     @Test
@@ -113,6 +128,7 @@ internal class JoinWaitlistHandlerTest {
 
         assertEquals(JoinResult.ALREADY_JOINED, result)
         verify(exactly = 1) { entryRepo.saveIfNotExists(any()) }
+        verify(exactly = 0) { consentRecorder.record(any()) }
     }
 
     @Test

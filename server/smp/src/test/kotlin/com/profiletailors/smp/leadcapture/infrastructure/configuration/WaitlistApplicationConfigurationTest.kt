@@ -3,6 +3,7 @@ package com.profiletailors.smp.leadcapture.infrastructure.configuration
 import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.JoinResult
+import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
@@ -62,6 +63,7 @@ class WaitlistApplicationConfigurationTest {
             waitlistRepository = StubWaitlistRepository,
             entryRepository = RecordingWaitlistEntryRepository(),
             idGenerator = { _, _ -> WaitlistEntryId("test-id") },
+            consentRecorder = WaitlistConsentRecorder.noop,
         )
 
         val fixedClock = Instant.parse("2026-07-17T10:00:00Z")
