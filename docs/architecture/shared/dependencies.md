@@ -1,7 +1,21 @@
 # Shared Module Dependencies
 
 > Quick-reference dependency graph for the `shared/` Gradle modules in the Profile Tailors monorepo.
-> Last updated: 2026-06-13
+> Last updated: 2026-07-18
+
+## Lead Capture Modules
+
+The lead-capture capability is split across two framework-free shared modules per
+[ADR-0011](../adr/0011-reusable-lead-capture-waitlist.md):
+
+| Module                          | Path                                 | Type             | Depends On | Consumed By |
+|---------------------------------|--------------------------------------|------------------|------------|-------------|
+| `:shared:lead-capture:common`   | `shared/lead-capture/common/`        | Foundation       | —          | waitlist    |
+| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/`      | Domain + Ports   | lead-capture:common | server:smp |
+
+Both modules follow the framework-free rules defined by
+[ADR-0010](../adr/0010-shared-kernel-governance.md): no Spring, no R2DBC, no
+`com.profiletailors.smp` imports. ArchUnit assertions enforce this at build time.
 
 ## Dependency Graph
 
@@ -17,6 +31,8 @@ graph TB
     SBC["<b>shared:spring-boot-common</b><br/>Spring Boot integration<br/>Exception handlers, filters, presenters, repos"]
     STORAGE["<b>shared:storage</b><br/>File storage abstraction (S3, R2)"]
     RATELIMIT["<b>shared:shield:ratelimit</b><br/>Rate limiting with Bucket4j + Caffeine"]
+    LC_COMMON["<b>shared:lead-capture:common</b><br/>EmailAddress, NormalizedEmail,<br/>CaptureSource, CaptureLocale, LeadMetadata<br/>Framework-free value objects"]
+    LC_WAITLIST["<b>shared:lead-capture:waitlist</b><br/>Waitlist + WaitlistEntry aggregates,<br/>JoinWaitlistHandler, repository ports<br/>Framework-free domain + application"]
 
     %% CLIENT NODES
     SMP["<b>server:smp</b><br/>Spring Boot API Application<br/>All bounded contexts"]
@@ -35,12 +51,15 @@ graph TB
     RATELIMIT -->|impl| COMMON
     RATELIMIT -->|impl| BUS
     RATELIMIT -->|impl| SBC
+    LC_WAITLIST -->|impl| LC_COMMON
     SMP -->|impl| COMMON
     SMP -->|impl| BUS
     SMP -->|impl| SECURITY
     SMP -->|impl| PRESENTATION
     SMP -->|impl| SBC
     SMP -->|impl| STORAGE
+    SMP -->|impl| LC_COMMON
+    SMP -->|impl| LC_WAITLIST
 
     %% STYLING
     classDef foundation fill:#1a1a2e,stroke:#4a4a6a,color:#e0e0e0,rx:4px
@@ -53,6 +72,7 @@ graph TB
     class BUS,PRESENTATION,SECURITY shared
     class SBC spring
     class STORAGE,RATELIMIT infra
+    class LC_COMMON,LC_WAITLIST foundation
     class SMP client
 ```
 
@@ -67,6 +87,8 @@ graph TB
 | `:shared:spring-boot-common` | `shared/spring-boot-common/` | Spring Boot integration | `:shared:common`, `:shared:bus`, `:shared:security`, `:shared:presentation` | ratelimit, smp               |
 | `:shared:storage`            | `shared/storage/`            | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:shield:ratelimit`                 | smp                          |
 | `:shared:shield:ratelimit`   | `shared/shield/ratelimit/`   | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:spring-boot-common`               | storage                      |
+| `:shared:lead-capture:common`| `shared/lead-capture/common/`| Foundation (no deps)    | —                                                                           | waitlist, smp                |
+| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports     | `:shared:lead-capture:common`                                               | smp                          |
 | `:server:smp`                | `server/smp/`                | Application             | All `shared:*` modules                                                      | —                            |
 
 ## Layer Rules
@@ -82,9 +104,10 @@ graph TB
 ├──────────────────┬──────────────────────────┤
 │ shared:bus       │  shared:presentation     │
 │ shared:security  │  shared:storage          │
+│ shared:lead-capture:waitlist                 │
 │                  │  shared:shield:ratelimit │
 ├──────────────────┴──────────────────────────┤
-│             shared:common                   │
+│  shared:common   │  shared:lead-capture:common │
 │  Pure domain primitives, zero Spring deps   │
 │  DDD building blocks, value objects, errors │
 └─────────────────────────────────────────────┘

@@ -9,8 +9,8 @@
 ### Delivery Strategy
 
 - Approved strategy: `size-exception`
-- Current slice: DALLAY-440 Phase 6 CI regression remediation complete.
-- Rationale: Broader SDD change exceeds the standard review budget, but this apply scope is constrained to preserving SMP's pre-existing effective non-WAITLIST shared rate-limit behavior while keeping WAITLIST enabled and configurable. Marketing integration and documentation remain out of scope.
+- Current slice: DALLAY-441 Phase 7 marketing integration and DALLAY-443 Phase 9 documentation updates complete, except canonical spec sync that belongs to `sdd-archive`.
+- Rationale: Broader SDD change exceeds the standard review budget, but this continuation is constrained to wiring the marketing waitlist form to the existing backend endpoint, verifying the frontend contract, and updating architecture documentation to reflect the implemented Lead Capture bounded context and shared modules.
 
 ### Completed Tasks
 
@@ -64,12 +64,33 @@
 - [x] 6.6 P2 Codex security remediation (PR #378): `RateLimitingFilter.getIdentifier` now keys buckets on `exchange.request.remoteAddress` only and no longer trusts client-supplied `X-Forwarded-For`. Without trusted-proxy wiring at the edge, the prior code let any caller rotate the forwarded header to evade the 10/min WAITLIST and configurable BUSINESS limits. The fix keeps the `IP:` prefix, sanitization (length cap + allowed-character regex), and `"unknown"` fallback semantics. Inline comment in `getIdentifier` documents the deferred `ForwardedHeaderFilter` / trusted-proxy work as a separate, follow-up change. No metrics, events, response contract, or non-WAITLIST strategy semantics were touched. RED tests in `RateLimitingFilterTest` lock the security property (same `remoteAddress` + distinct `X-Forwarded-For` values produce one bucket identifier; the existing `"unknown"`-fallback test is preserved). The SMP integration test's 11th-request scenario now rotates `X-Forwarded-For` per call to prove header rotation cannot bypass the limit; a `@BeforeEach` resets `Bucket4jRateLimiter.clearCache()` so per-method state does not leak across test methods (every test now exercises the same loopback remote address because WebTestClient on `RANDOM_PORT` cannot spoof `remoteAddress`).
 - [x] 6.7 Production safety: WAITLIST default disabled pending distributed bucket + trusted proxy wiring (PR to be opened, citing DALLAY-512 distributed bucket backend and DALLAY-513 trusted-proxy / `ForwardedHeaderFilter` allowlist). `application.rate-limit.waitlist.enabled` now defaults to `false`; the env override `${SMP_WAITLIST_RATE_LIMIT_ENABLED:false}` keeps operator opt-in explicit. RED updated `WaitlistRateLimitConfigurationTest` to assert the new default-off contract, added a sibling `WaitlistRateLimitConfigurationOverrideTest` that proves the env override still flips the bound property to `true` (matches what `WaitlistRateLimitIntegrationTest` already does via `@SpringBootTest(properties = [...])`), and locked the existing non-WAITLIST-disable / endpoint / bandwidth binding. The shared `RateLimitingFilter.getIdentifier` security wire and remoteAddress-only behavior from PR #378 are NOT touched here; no `ForwardedHeaderFilter` is added and no distributed bucket backend is introduced in this PR.
 
-### Phase 8 — Comprehensive Tests, completed subset
+### Phase 7 — Marketing Integration (DALLAY-441)
+
+- [x] 7.1 Added Vitest payload-contract coverage for `buildWaitlistPayload`.
+- [x] 7.2 Replaced the hero-only early-access placeholder with `WaitlistForm.astro`, which builds the backend payload and submits to `POST /api/waitlists/{waitlistKey}/entries`.
+- [x] 7.3 Added Playwright E2E coverage for successful submission when the backend returns `202 Accepted`.
+- [x] 7.4 Stubbed the backend waitlist endpoint via Playwright route interception.
+- [x] 7.5 Added Playwright E2E coverage for empty and invalid email submission paths.
+- [x] 7.6 Added `novalidate` plus JavaScript validation for invalid email and missing early-access consent before any network submission.
+
+### Phase 8 — Comprehensive Tests
 
 - [x] 8.1 Domain tests in `shared/lead-capture/waitlist/src/test/`.
 - [x] 8.2 Application tests for `JoinWaitlistHandler`.
 - [x] 8.3 R2DBC repository tests are Postgres-tagged and run against Testcontainers.
+- [x] 8.4 WebTestClient tests cover `WaitlistController`.
 - [x] 8.5 ArchUnit/module-boundary tests asserting shared modules are framework-free.
+- [x] 8.6 Frontend Vitest + Playwright E2E cover the marketing waitlist form.
+- [x] 8.7 Frontend lint/test/build and focused Playwright coverage are verified locally; full multi-browser E2E remains covered by `just ci`.
+
+### Phase 9 — Documentation (DALLAY-443)
+
+- [x] 9.1 ADR-0011 status flipped from Proposed to Accepted.
+- [x] 9.2 `docs/architecture/shared/dependencies.md` includes `:shared:lead-capture:common` and `:shared:lead-capture:waitlist`.
+- [x] 9.3 C4 container and component docs include the Lead Capture bounded context, database relationship, and waitlist rate-limit caveat.
+- [ ] 9.4 Canonical specs under `openspec/specs/` are deferred to `sdd-archive`.
+- [x] 9.5 Root architecture README links the ADR index.
+- [x] 9.6 `docs/architecture/adr/README.md` indexes ADR-0011.
 
 ### Code Changes in This Apply Continuation
 
@@ -140,14 +161,17 @@
 | `./gradlew :shared:shield:ratelimit:detekt` | 0 | GREEN: no detekt regressions introduced by the security fix. |
 | `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationOverrideTest' --rerun-tasks` | 1 | RED for Phase 6.7: new `SMP defaults shared WAITLIST to disabled ...` assertion failed because the SMP `application.yaml` still defaulted `application.rate-limit.waitlist.enabled` to `true`. The override test, non-WAITLIST-disable assertions, and bandwidth-limit assertions were green. |
 | `./gradlew :server:smp:test --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationTest' --tests 'com.profiletailors.smp.leadcapture.infrastructure.configuration.WaitlistRateLimitConfigurationOverrideTest' --rerun-tasks` | 0 | GREEN after flipping the WAITLIST default to `${SMP_WAITLIST_RATE_LIMIT_ENABLED:false}` in `server/smp/src/main/resources/application.yaml` (with DALLAY-512/DALLAY-513 rationale comment). `BUILD SUCCESSFUL in 20s`. |
+| `pnpm --filter marketing lint && pnpm --filter marketing test && pnpm --filter marketing build` | 0 | GREEN for Phase 7 frontend implementation: Biome checked 45 files with no fixes; Vitest passed 6 files / 43 tests including `waitlist-form.test.ts` and `waitlist-form-validator.test.ts`; Astro built 10 static pages successfully. |
+| `pnpm --filter marketing exec playwright test --project=chromium --grep "Waitlist Form"` | 0 | GREEN for focused Phase 7 E2E: 7 chromium tests passed, covering hero form rendering, 202 success, empty/invalid email blocking, missing early-access consent blocking, 429 friendly error, and configured waitlist key submission. |
+| `git diff --check` | 0 | GREEN after Phase 7/9 edits; no whitespace errors. |
 
 ## Troubleshooting
 
 ### Remaining Tasks
 
-- Phase 7 marketing integration tasks remain incomplete.
-- Phase 8 remaining comprehensive tests for HTTP, frontend, and CI wiring remain incomplete.
-- Phase 9 documentation/archive tasks remain incomplete.
+- Phase 9.4 remains deferred to `sdd-archive`: sync canonical specs to `openspec/specs/lead-capture-common/spec.md` and `openspec/specs/lead-capture-waitlist/spec.md`.
+- Run `sdd-verify` for the full change before archive.
+- The DALLAY-512 distributed bucket backend and DALLAY-513 trusted-proxy / `ForwardedHeaderFilter` allowlist remain separate production-safety follow-up changes before enabling WAITLIST rate limiting outside tests.
 
 ### Deviations
 
@@ -166,4 +190,4 @@
 
 ### Status
 
-33 of 48 tasks are complete. DALLAY-440 Phase 6 is complete (6.6 P2 security remediation added); ready for focused review and verify. No commit, push, or PR action was performed.
+47 of 48 tasks are complete. DALLAY-437 through DALLAY-443 apply work is complete except Phase 9.4 canonical spec sync, which belongs to `sdd-archive`. Phase 7 marketing integration and Phase 9 documentation updates have focused verification evidence. No commit, push, or PR action was performed.

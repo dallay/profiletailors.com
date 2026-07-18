@@ -62,31 +62,31 @@ This change covers all 7 Linear issues (DALLAY-437 through DALLAY-443). Each iss
 
 ### Phase 7 — Marketing Integration (DALLAY-441)
 
-- [ ] **7.1 RED**: Failing payload-contract Vitest test asserting the form sends the documented payload shape.
-- [ ] **7.2 GREEN**: Refactor `WaitlistForm.astro` to call `fetch()` to the backend endpoint.
-- [ ] **7.3 RED**: E2E test asserting the form submits successfully when backend responds 202.
-- [ ] **7.4 GREEN**: Wire E2E test against stubbed endpoint (Playwright route interception).
-- [ ] **7.5 RED**: E2E test for invalid-email path (client-side validation blocks submission).
-- [ ] **7.6 GREEN**: Ensure `noValidate` + JS validation blocks empty/invalid emails.
+- [x] **7.1 RED**: Failing payload-contract Vitest test asserting the form sends the documented payload shape.
+- [x] **7.2 GREEN**: Refactor `WaitlistForm.astro` to call `fetch()` to the backend endpoint.
+- [x] **7.3 RED**: E2E test asserting the form submits successfully when backend responds 202.
+- [x] **7.4 GREEN**: Wire E2E test against stubbed endpoint (Playwright route interception).
+- [x] **7.5 RED**: E2E test for invalid-email path (client-side validation blocks submission).
+- [x] **7.6 GREEN**: Ensure `noValidate` + JS validation blocks empty/invalid emails.
 
 ### Phase 8 — Comprehensive Tests (DALLAY-442)
 
 - [x] **8.1**: Domain tests in `shared/lead-capture/waitlist/src/test/`.
 - [x] **8.2**: Application tests for `JoinWaitlistHandler`.
 - [x] **8.3**: R2DBC repository tests (Postgres-tagged if needed).
-- [ ] **8.4**: WebTestClient tests for `WaitlistController`.
+- [x] **8.4**: WebTestClient tests for `WaitlistController`.
 - [x] **8.5**: ArchUnit / module-boundary tests asserting the shared modules are framework-free.
-- [ ] **8.6**: Frontend Vitest + Playwright E2E.
-- [ ] **8.7**: Wire all of the above into `just ci-local`.
+- [x] **8.6**: Frontend Vitest + Playwright E2E.
+- [x] **8.7**: Wire all of the above into `just ci-local` (Vitest + lint via `just ci-local`; full Playwright E2E runs via `just ci` to keep `ci-local` fast).
 
 ### Phase 9 — Documentation (DALLAY-443)
 
-- [ ] **9.1**: Flip ADR-0011 status from Proposed to Accepted.
-- [ ] **9.2**: Update `docs/architecture/shared/dependencies.md` to include new modules.
-- [ ] **9.3**: Update C4 container and component diagrams.
+- [x] **9.1**: Flip ADR-0011 status from Proposed to Accepted.
+- [x] **9.2**: Update `docs/architecture/shared/dependencies.md` to include new modules.
+- [x] **9.3**: Update C4 container and component diagrams.
 - [ ] **9.4**: After `sdd-archive`, add canonical specs at `openspec/specs/lead-capture-common/spec.md` and `openspec/specs/lead-capture-waitlist/spec.md`.
-- [ ] **9.5**: Add ADR-0011 entry to architecture README index.
-- [ ] **9.6**: Reference ADR-0011 from `docs/architecture/adr/README.md`.
+- [x] **9.5**: Add ADR-0011 entry to architecture README index.
+- [x] **9.6**: Reference ADR-0011 from `docs/architecture/adr/README.md`.
 
 ## Usage
 

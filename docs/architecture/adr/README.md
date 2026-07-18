@@ -35,6 +35,8 @@ as a historical record and a guide for current and future development.
 | 0008 | [Application-Level Multi-tenancy](./0008-application-level-multi-tenancy.md)             | Accepted | 2026-06-21 |
 | 0009 | [JWT & HttpOnly Cookie Authentication](./0009-jwt-and-httponly-cookie-authentication.md) | Accepted | 2026-06-21 |
 | 0010 | [Shared Kernel Governance](./0010-shared-kernel-governance.md)                           | Accepted | 2026-06-21 |
+| 0011 | [Reusable Lead Capture Waitlist Capability](./0011-reusable-lead-capture-waitlist.md)    | Accepted | 2026-06-25 |
+| 0012 | [AGPL-3.0 Commercial Strategy](./0012-agpl-commercial-strategy.md)                       | Accepted | 2026-07-17 |
 
 ## Relationship with other docs
 

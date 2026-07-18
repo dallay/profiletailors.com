@@ -193,7 +193,7 @@ processing_activities:
     security_measures:
       - Rate limiting is enabled by default for the waitlist endpoint
       - Separate early-access and marketing consent fields are stored
-      - The public marketing build does not currently collect an email address or simulate successful registration
+      - The public marketing build defaults to WAITLIST_ENABLED=false; the collection form is only rendered when explicitly configured to true
     evidence_references:
       - path: server/smp/src/main/resources/db/changelog/lead-capture/001-create-waitlists.yaml
         reason: Waitlist persistence schema
@@ -202,10 +202,16 @@ processing_activities:
       - path: shared/lead-capture/waitlist/src/main/kotlin/com/profiletailors/leadcapture/waitlist/domain/WaitlistConsent.kt
         reason: Separate consent model
       - path: apps/web/marketing/src/components/EarlyAccessStatus.astro
-        reason: Public marketing surface states that registration is not open and contains no collection form
-    evidence_status: partial
+        reason: Default fallback shown when WAITLIST_ENABLED=false
+      - path: apps/web/marketing/src/components/Hero.astro
+        reason: Conditionally renders WaitlistForm or EarlyAccessStatus based on WAITLIST_ENABLED
+      - path: apps/web/marketing/astro.config.mjs
+        reason: WAITLIST_ENABLED defaults to false in the env schema
+      - path: .env.example
+        reason: WAITLIST_ENABLED=false is the documented default
+    evidence_status: verified
     legal_review_status: pending
-    notes: Backend capability exists, but the public marketing surface keeps collection disabled until notice, consent, withdrawal, provider, and market controls are approved.
+    notes: Backend capability exists, but the public marketing surface defaults to collection disabled. Set WAITLIST_ENABLED=true and WAITLIST_API_BASE only after notice, consent, withdrawal, provider, and market controls are approved.
 
   - id: pa-005
     name: Workspace and membership management

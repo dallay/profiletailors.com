@@ -1,6 +1,6 @@
 # ADR-0011: Reusable Lead Capture Waitlist Capability
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-06-25
 - Decision owners: Principal Architect
 - Scope: Shared Modules (`shared/lead-capture`), `server/smp`, `apps/web/marketing`

@@ -1,0 +1,226 @@
+---
+import type { Locale } from '@i18n/utils'
+import { WAITLIST_API_BASE } from 'astro:env/client'
+import { useTranslations } from '@i18n/utils'
+
+interface Props {
+  locale: Locale
+  waitlistKey?: string
+  source?: string
+  formId?: string
+  apiBase?: string
+}
+
+const { locale, waitlistKey, source, formId, apiBase } = Astro.props
+const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
+const t = useTranslations(locale)
+const wl = t.waitlist
+---
+
+<form
+  data-waitlist-form
+  data-waitlist-key={waitlistKey ?? 'profile-tailors-launch'}
+  data-waitlist-source={source ?? 'marketing-site'}
+  data-waitlist-form-id={formId ?? 'waitlist-hero'}
+  data-waitlist-locale={locale}
+  data-waitlist-api-base={resolvedApiBase}
+  aria-label={wl.formAriaLabel}
+  data-waitlist-messages={JSON.stringify({
+    validEmail: wl.errorValidEmail,
+    consentRequired: wl.errorConsentRequired,
+    tooManyRequests: wl.errorTooManyRequests,
+    genericError: wl.errorGeneric,
+    success: wl.success,
+  })}
+  novalidate
+  class="flex flex-col gap-3 max-w-md border-l-2 border-border pl-4"
+>
+  <div class="flex flex-col gap-1">
+    <span class="font-mono text-xs tracking-[0.2em] text-text-muted">
+      {wl.emailLabel}
+    </span>
+    <input
+      id="waitlist-email"
+      data-waitlist-email
+      type="email"
+      inputmode="email"
+      autocomplete="email"
+      required
+      aria-describedby="waitlist-email-error"
+      aria-label={wl.emailInput.ariaLabel}
+      class="bg-transparent border-b border-border focus:outline-none focus:border-text-display py-2 text-text-display"
+    />
+  </div>
+
+  <div class="flex items-start gap-2 text-sm text-text-secondary">
+    <input
+      id="waitlist-consent-early"
+      data-waitlist-consent-early
+      type="checkbox"
+      required
+      class="mt-1"
+      aria-label={wl.consentEarly.ariaLabel}
+    />
+    <span>{wl.consentEarly.label}</span>
+  </div>
+
+  <div class="flex items-start gap-2 text-sm text-text-secondary">
+    <input
+      id="waitlist-consent-marketing"
+      data-waitlist-consent-marketing
+      type="checkbox"
+      class="mt-1"
+      aria-label={wl.consentMarketing.ariaLabel}
+    />
+    <span>{wl.consentMarketing.label}</span>
+  </div>
+
+  <p
+    data-waitlist-error
+    id="waitlist-email-error"
+    role="alert"
+    aria-live="polite"
+    class="hidden text-sm text-red-400"
+  ></p>
+
+  <p
+    data-waitlist-success
+    role="status"
+    aria-live="polite"
+    class="hidden text-sm text-text-display"
+  >
+    {wl.success}
+  </p>
+
+  <button
+    data-waitlist-submit
+    type="submit"
+    class="font-mono text-xs tracking-[0.2em] text-text-display border border-border px-4 py-2 hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
+  >
+    {wl.submit}
+  </button>
+</form>
+
+<script>
+  import { buildWaitlistPayload, WAITLIST_KEY_DEFAULT } from './waitlist-form'
+  import { isValidEmail } from './waitlist-form-validator'
+
+  const SUCCESS_HIDDEN = 'hidden'
+
+  interface WaitlistMessages {
+    validEmail: string
+    consentRequired: string
+    tooManyRequests: string
+    genericError: string
+    success: string
+  }
+
+  function captureUtm(): Record<string, string> {
+    const params = new URLSearchParams(window.location.search)
+    const utmSource = params.get('utm_source')
+    const utmMedium = params.get('utm_medium')
+    const utmCampaign = params.get('utm_campaign')
+    const metadata: Record<string, string> = {}
+    if (utmSource) metadata.utm_source = utmSource
+    if (utmMedium) metadata.utm_medium = utmMedium
+    if (utmCampaign) metadata.utm_campaign = utmCampaign
+    const path = window.location.pathname
+    if (path) metadata.page_path = path
+    return metadata
+  }
+
+  for (const form of document.querySelectorAll<HTMLFormElement>('[data-waitlist-form]')) {
+    const emailInput = form.querySelector<HTMLInputElement>('[data-waitlist-email]')
+    const earlyInput = form.querySelector<HTMLInputElement>('[data-waitlist-consent-early]')
+    const marketingInput = form.querySelector<HTMLInputElement>('[data-waitlist-consent-marketing]')
+    const errorEl = form.querySelector<HTMLElement>('[data-waitlist-error]')
+    const successEl = form.querySelector<HTMLElement>('[data-waitlist-success]')
+    const submit = form.querySelector<HTMLButtonElement>('[data-waitlist-submit]')
+    if (!emailInput || !earlyInput || !marketingInput || !errorEl || !successEl || !submit) continue
+
+    const waitlistKey = form.dataset.waitlistKey ?? WAITLIST_KEY_DEFAULT
+    const source = form.dataset.waitlistSource ?? 'marketing-site'
+    const formId = form.dataset.waitlistFormId ?? 'waitlist-hero'
+    const locale = form.dataset.waitlistLocale ?? 'en'
+
+    let messages: WaitlistMessages = {
+      validEmail: 'Please enter a valid email.',
+      consentRequired: 'Early-access consent is required.',
+      tooManyRequests: 'Too many requests. Try again in a minute.',
+      genericError: 'Could not register you. Please try again.',
+      success: "You're on the list.",
+    }
+    try {
+      const raw = form.dataset.waitlistMessages
+      if (raw) messages = JSON.parse(raw) as WaitlistMessages
+    } catch {
+      // fall back to defaults
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault()
+      const email = emailInput.value ?? ''
+      if (!isValidEmail(email)) {
+        errorEl.textContent = messages.validEmail
+        errorEl.classList.remove(SUCCESS_HIDDEN)
+        successEl.classList.add(SUCCESS_HIDDEN)
+        return
+      }
+      if (!earlyInput.checked) {
+        errorEl.textContent = messages.consentRequired
+        errorEl.classList.remove(SUCCESS_HIDDEN)
+        successEl.classList.add(SUCCESS_HIDDEN)
+        return
+      }
+
+      errorEl.classList.add(SUCCESS_HIDDEN)
+      submit.disabled = true
+      const payload = buildWaitlistPayload({
+        email,
+        source,
+        formId,
+        locale,
+        consent: {
+          earlyAccess: earlyInput.checked,
+          marketing: marketingInput.checked,
+        },
+        metadata: captureUtm(),
+      })
+
+      const apiBase = form.dataset.waitlistApiBase ?? ''
+      const endpoint = apiBase
+        ? `${apiBase.replace(/\/+$/, '')}/api/waitlists/${encodeURIComponent(waitlistKey)}/entries`
+        : `/api/waitlists/${encodeURIComponent(waitlistKey)}/entries`
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then(async (response) => {
+          if (response.status === 429) {
+            errorEl.textContent = messages.tooManyRequests
+            errorEl.classList.remove(SUCCESS_HIDDEN)
+            successEl.classList.add(SUCCESS_HIDDEN)
+            return
+          }
+          if (!response.ok && response.status >= 400) {
+            errorEl.textContent = messages.genericError
+            errorEl.classList.remove(SUCCESS_HIDDEN)
+            successEl.classList.add(SUCCESS_HIDDEN)
+            return
+          }
+          successEl.classList.remove(SUCCESS_HIDDEN)
+          errorEl.classList.add(SUCCESS_HIDDEN)
+          form.reset()
+        })
+        .catch(() => {
+          errorEl.textContent = messages.genericError
+          errorEl.classList.remove(SUCCESS_HIDDEN)
+          successEl.classList.add(SUCCESS_HIDDEN)
+        })
+        .finally(() => {
+          submit.disabled = false
+        })
+    })
+  }
+</script>

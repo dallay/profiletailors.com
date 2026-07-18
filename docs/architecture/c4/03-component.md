@@ -54,6 +54,8 @@ Container_Boundary(api, "API Application") {
     Component(analytics, "Analytics Context", "Bounded Context", "Metrics aggregation, reporting (planned)")
     
     Component(integrations, "Integrations Context", "Bounded Context", "Social media platform adapters (planned)")
+
+    Component(lead_capture, "Lead Capture Context", "Bounded Context", "Public waitlist joins, lead storage, consent capture, rate-limited endpoint")
 }
 
 Rel(spa, http_layer, "Makes API calls", "HTTPS/REST, JSON")
@@ -64,6 +66,7 @@ Rel(http_layer, tenancy, "Manages workspaces")
 Rel(http_layer, credentials, "Manages credentials")
 Rel(http_layer, content, "Manages posts")
 Rel(http_layer, analytics, "Queries metrics")
+Rel(http_layer, lead_capture, "Joins waitlists")
 
 Rel(identity, platform, "Uses request context")
 Rel(authorization, platform, "Uses request context")
@@ -86,6 +89,7 @@ Rel(identity, observability, "Reports metrics")
 Rel(authorization, observability, "Reports metrics")
 Rel(tenancy, observability, "Reports metrics")
 Rel(http_layer, observability, "Rate limiting checks")
+Rel(lead_capture, observability, "Rate-limit consumption")
 
 Rel(authorization, tenancy, "Resolves workspace membership")
 Rel(authorization, identity, "Resolves principal identity")
@@ -101,6 +105,7 @@ Rel(credentials, db, "Reads/writes", "R2DBC")
 Rel(governance, db, "Writes", "R2DBC")
 Rel(content, db, "Reads/writes", "R2DBC")
 Rel(analytics, db, "Reads/writes", "R2DBC")
+Rel(lead_capture, db, "Reads/writes", "R2DBC")
 
 Rel(identity, cache, "Caches sessions", "Redis")
 Rel(credentials, cache, "Caches tokens", "Redis")
@@ -141,6 +146,8 @@ graph TB
 
             SHARED_STORAGE[shared:storage<br/>S3/R2 Abstraction]
             SHARED_RL[shared:shield:ratelimit<br/>Rate Limiting]
+            SHARED_LC_COMMON[shared:lead-capture:common<br/>Value Objects]
+            SHARED_LC_WAIT[shared:lead-capture:waitlist<br/>Domain + Ports]
 
             SHARED_BUS --> KERNEL
             SHARED_SEC --> KERNEL
@@ -154,6 +161,7 @@ graph TB
             SHARED_STORAGE --> KERNEL
             SHARED_STORAGE --> SHARED_BUS
             SHARED_STORAGE --> SHARED_RL
+            SHARED_LC_WAIT --> SHARED_LC_COMMON
         end
 
         %% All bounded contexts use the shared kernel
@@ -168,6 +176,9 @@ graph TB
         CONTENT -.->|Uses| SHARED_SBC
         ANALYTICS_CTX -.->|Uses| SHARED_SBC
         INTEGRATIONS -.->|Uses| SHARED_SBC
+        LEAD -.->|Uses| SHARED_SBC
+        LEAD -.->|Uses| SHARED_LC_WAIT
+        LEAD -.->|Uses| SHARED_LC_COMMON
 
         subgraph "Core Bounded Contexts"
             IDENTITY[Identity Context<br/>Authentication & Principals]
@@ -178,6 +189,7 @@ graph TB
             PLATFORM[Platform Context<br/>Cross-Cutting Concerns]
             AUDIT[Audit Context<br/>Request & Decision Tracking]
             OBS[Observability Context<br/>Metrics & Rate Limiting]
+            LEAD[Lead Capture Context<br/>Waitlist Joins & Consent]
         end
         
         subgraph "Domain Bounded Contexts (Planned)"
@@ -195,6 +207,7 @@ graph TB
     HTTP --> CREDS
     HTTP --> CONTENT
     HTTP --> ANALYTICS_CTX
+    HTTP --> LEAD
     
     IDENTITY --> PLATFORM
     AUTHZ --> PLATFORM
@@ -217,6 +230,7 @@ graph TB
     AUTHZ --> OBS
     TENANCY --> OBS
     HTTP --> OBS
+    LEAD --> OBS
     
     AUTHZ --> TENANCY
     AUTHZ --> IDENTITY
@@ -232,6 +246,7 @@ graph TB
     GOV --> DB
     CONTENT --> DB
     ANALYTICS_CTX --> DB
+    LEAD --> DB
     
     IDENTITY --> CACHE
     CREDS --> CACHE
@@ -248,11 +263,11 @@ graph TB
     classDef external fill:#999999,stroke:#6B6B6B,color:#fff
     classDef shared fill:#1a3a5c,stroke:#2a5a8c,color:#fff
 
-    class HTTP,IDENTITY,AUTHZ,TENANCY,CREDS,GOV,PLATFORM,AUDIT,OBS implemented
+    class HTTP,IDENTITY,AUTHZ,TENANCY,CREDS,GOV,PLATFORM,AUDIT,OBS,LEAD implemented
     class CONTENT,ANALYTICS_CTX,INTEGRATIONS planned
     class DB,CACHE infrastructure
     class SPA,SCHED,SOCIAL,AUTH external
-    class KERNEL,SHARED_BUS,SHARED_SEC,SHARED_PRES,SHARED_SBC,SHARED_STORAGE,SHARED_RL shared
+    class KERNEL,SHARED_BUS,SHARED_SEC,SHARED_PRES,SHARED_SBC,SHARED_STORAGE,SHARED_RL,SHARED_LC_COMMON,SHARED_LC_WAIT shared
 ```
 
 > **Full dependency graph:** See [Shared Module Dependencies](../shared/dependencies.md) for
@@ -861,6 +876,7 @@ framework features, it belongs in `shared/spring-boot-common` instead.
 - ✅ Platform Context (request context, mediator)
 - ✅ Audit Context (request outcomes, authorization decisions, mutations)
 - ✅ Observability Context (metrics hooks, rate limiting)
+- ✅ Lead Capture Context (public waitlist joins, consent, rate-limited endpoint)
 
 **Planned Contexts**:
 
@@ -870,4 +886,4 @@ framework features, it belongs in `shared/spring-boot-common` instead.
 
 ---
 
-Last updated: 2026-05-21
+Last updated: 2026-07-18

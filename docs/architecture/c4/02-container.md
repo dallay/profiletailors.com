@@ -376,6 +376,7 @@ graph TB
 
 - Per-user rate limits enforced by API gateway
 - Per-workspace rate limits for fair usage
+- Public waitlist joins use the shared WAITLIST limiter, default-off in SMP until distributed buckets and trusted-proxy address resolution are implemented
 - Social media API rate limit tracking and backoff
 
 ---
@@ -410,6 +411,7 @@ graph TB
 - ✅ API Application (Spring Boot 4, core bounded contexts)
 - ✅ Database (PostgreSQL with R2DBC)
 - ✅ Authentication (JWT + API Key)
+- ✅ Lead Capture Waitlist (public endpoint, persistence, marketing form integration)
 
 **In Progress**:
 
@@ -419,11 +421,11 @@ graph TB
 
 **Planned**:
 
-- 🔲 Redis cache integration
+- 🔲 Redis/distributed bucket backend for production-safe waitlist rate limiting
 - 🔲 Message queue integration
 - 🔲 Social media API integrations
 - 🔲 Cloud storage integration
 
 ---
 
-Last updated: 2026-05-21
+Last updated: 2026-07-18

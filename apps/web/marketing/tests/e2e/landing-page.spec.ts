@@ -73,18 +73,29 @@ test.describe('Bilingual Support', () => {
   });
 });
 
-test.describe('Early Access Status', () => {
-  test('should display early access status message', async ({ page }) => {
+test.describe('Waitlist Form — Hero Container (enabled)', () => {
+  test('renders the active waitlist form when WAITLIST_ENABLED=true', async ({ page }: { page: import('@playwright/test').Page }): Promise<void> => {
     await page.goto('/');
 
-    // The waitlist form was replaced with a static early access status component
     const formContainer = page.locator('[data-hero-form]');
     await expect(formContainer).toBeVisible();
 
-    // The status message should be a <p> element
-    const statusMessage = formContainer.locator('p');
-    await expect(statusMessage).toBeVisible();
-    await expect(statusMessage).not.toBeEmpty();
+    const form = formContainer.locator('[data-waitlist-form]').first();
+    await expect(form).toBeVisible();
+
+    const successMessage = formContainer.locator('p[data-waitlist-success]');
+    await expect(successMessage).toHaveCount(1);
+    await expect(successMessage).toBeHidden();
+  });
+
+  test('renders the API base URL as a data attribute', async ({ page }: { page: import('@playwright/test').Page }): Promise<void> => {
+    await page.goto('/');
+
+    const form = page.getByRole('form', { name: /early access waitlist form/i });
+    await expect(form).toBeVisible();
+
+    const apiBase = await form.getAttribute('data-waitlist-api-base');
+    expect(apiBase).toBe('http://localhost:7638');
   });
 });
 
