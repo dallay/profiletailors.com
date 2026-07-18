@@ -311,6 +311,8 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 mapOf(
                     "email" to "verify@example.com",
                     "password" to "password123",
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
             )
             .exchange()
@@ -342,6 +344,8 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 mapOf(
                     "email" to email,
                     "password" to "password123",
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
             )
             .exchange()
@@ -363,6 +367,8 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 mapOf(
                     "email" to email,
                     "password" to "password123",
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
             )
             .exchange()
@@ -399,6 +405,8 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 mapOf(
                     "email" to "pending-claims@example.com",
                     "password" to "password123",
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
             )
             .exchange()
@@ -502,6 +510,8 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 mapOf(
                     "email" to "badlogin@example.com",
                     "password" to "password123",
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
             )
             .exchange()

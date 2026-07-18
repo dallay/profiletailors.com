@@ -32,4 +32,8 @@ export default {
   passwordRequired: 'Por favor, introduce tu contraseña.',
   confirmPasswordRequired: 'Por favor, confirma tu contraseña.',
   passwordsMustMatch: 'Las contraseñas deben coincidir.',
+  ageEligibilityLabel: 'Confirmo que soy mayor de 18 años',
+  termsLabel: 'Acepto los Términos de Servicio y la Política de Privacidad',
+  ageEligibilityRequired: 'Debes confirmar que eres mayor de 18 años',
+  termsRequired: 'Debes aceptar los términos',
 }

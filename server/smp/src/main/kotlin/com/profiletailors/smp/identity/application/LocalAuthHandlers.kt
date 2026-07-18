@@ -7,6 +7,10 @@ import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
+import com.profiletailors.smp.governance.application.RecordConsentCommand
+import com.profiletailors.smp.governance.application.RecordConsentHandler
+import com.profiletailors.smp.governance.domain.ConsentType
+import com.profiletailors.smp.governance.domain.SubjectReference
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
@@ -60,13 +64,20 @@ internal class RegisterUserHandler(
     private val clock: Clock,
     private val localJwtIssuer: LocalJwtIssuer,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
+    private val recordConsentHandler: RecordConsentHandler,
 ) : CommandWithResultHandler<RegisterUserCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: RegisterUserCommand): LocalAuthSessionResult {
         val normalizedEmail = normalizeEmail(command.email)
         val normalizedUsername = normalizeUsername(command.username, normalizedEmail)
 
-        validateRegistration(normalizedEmail, command.password, normalizedUsername)
+        validateRegistration(
+            email = normalizedEmail,
+            password = command.password,
+            username = normalizedUsername,
+            confirmedAgeEligibility = command.confirmedAgeEligibility,
+            acceptedTermsVersion = command.acceptedTermsVersion,
+        )
 
         if (
             localPasswordCredentialGateway.findByEmail(normalizedEmail) != null ||
@@ -138,10 +149,12 @@ internal class RegisterUserHandler(
                 )
 
                 // Provision a default workspace for the new user
-                workspaceProvisioningService.provisionDefaultWorkspace(
+                val workspace = workspaceProvisioningService.provisionDefaultWorkspace(
                     principalId = principalId,
                     displayName = normalizedUsername,
                 )
+
+                recordConsentRecords(workspace.workspaceId, command.acceptedTermsVersion!!)
 
                 // Generate verification token and store hashed
                 val generated = EmailVerificationTokenHasher.generate(clock.instant())
@@ -168,19 +181,63 @@ internal class RegisterUserHandler(
         }
     }
 
-    private fun validateRegistration(email: String, password: String, username: String) {
-        val error = when {
+    private suspend fun recordConsentRecords(workspaceId: String, acceptedTermsVersion: String) {
+        recordConsentHandler.handle(
+            RecordConsentCommand(
+                workspaceId = workspaceId,
+                subjectReference = SubjectReference.workspace(workspaceId),
+                consentType = ConsentType.CONTRACT_ACCEPTANCE,
+                purpose = AGE_ELIGIBILITY_PURPOSE,
+                policyVersion = AGE_ELIGIBILITY_POLICY_VERSION,
+                source = CONSENT_SOURCE,
+                locale = CONSENT_LOCALE,
+            ),
+        )
+
+        recordConsentHandler.handle(
+            RecordConsentCommand(
+                workspaceId = workspaceId,
+                subjectReference = SubjectReference.workspace(workspaceId),
+                consentType = ConsentType.CONTRACT_ACCEPTANCE,
+                purpose = TERMS_ACCEPTANCE_PURPOSE,
+                policyVersion = acceptedTermsVersion,
+                source = CONSENT_SOURCE,
+                locale = CONSENT_LOCALE,
+            ),
+        )
+    }
+
+    private fun validateRegistration(
+        email: String,
+        password: String,
+        username: String,
+        confirmedAgeEligibility: Boolean,
+        acceptedTermsVersion: String?,
+    ) {
+        val inputError = when {
             email.isBlank() || !EMAIL_REGEX.matches(email) -> "A valid email is required."
             password.length < MIN_PASSWORD_LENGTH -> "Password must contain at least $MIN_PASSWORD_LENGTH characters."
             username.isBlank() -> "Username is required."
             else -> null
         }
-        if (error != null) throw InvalidRegistrationInputException(error)
+        if (inputError != null) throw InvalidRegistrationInputException(inputError)
+
+        val validationError = when {
+            !confirmedAgeEligibility -> "You must confirm you are 18 or older."
+            acceptedTermsVersion.isNullOrBlank() -> "You must accept the terms of service."
+            else -> null
+        }
+        if (validationError != null) throw RegistrationValidationException(validationError)
     }
 
     private companion object {
         private val EMAIL_REGEX = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
         private const val MIN_PASSWORD_LENGTH = 8
+        private const val AGE_ELIGIBILITY_PURPOSE = "age-eligibility.18-plus"
+        private const val AGE_ELIGIBILITY_POLICY_VERSION = "terms-v1.0.0"
+        private const val TERMS_ACCEPTANCE_PURPOSE = "terms.acceptance"
+        private const val CONSENT_SOURCE = "registration"
+        private const val CONSENT_LOCALE = "en"
     }
 }
 
