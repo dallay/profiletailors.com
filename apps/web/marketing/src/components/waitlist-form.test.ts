@@ -17,8 +17,8 @@ const baseValues: WaitlistFormValues = {
   metadata: { utm_source: 'twitter', page_path: '/' },
 }
 
-describe('buildWaitlistPayload', () => {
-  it('emits the documented payload shape for the backend POST contract', () => {
+describe('buildWaitlistPayload', (): void => {
+  it('emits the documented payload shape for the backend POST contract', (): void => {
     const payload = buildWaitlistPayload(baseValues)
 
     expect(payload).toEqual({

@@ -166,4 +166,25 @@ export const es = {
         'La política no será vigente hasta incorporarse a términos aprobados y aceptarse mediante un mecanismo versionado. Siguen sin resolver la entidad operadora, contactos monitorizados de abuso y legal, mercados habilitados, reglas de plataformas, versión, fecha de vigencia y proceso de aviso de cambios.',
     },
   },
+  waitlist: {
+    emailLabel: 'CORREO',
+    emailInput: {
+      placeholder: 'Correo electrónico',
+      ariaLabel: 'Correo electrónico',
+    },
+    consentEarly: {
+      label: 'Quiero acceso anticipado al producto.',
+      ariaLabel: 'Acceso anticipado',
+    },
+    consentMarketing: {
+      label: 'Acepto recibir correos de marketing.',
+      ariaLabel: 'Consentimiento de marketing',
+    },
+    submit: 'SOLICITAR ACCESO',
+    errorValidEmail: 'Introduce un correo válido.',
+    errorConsentRequired: 'Debes aceptar el acceso anticipado.',
+    errorTooManyRequests: 'Demasiadas solicitudes. Inténtalo en un minuto.',
+    errorGeneric: 'No se pudo registrar. Inténtalo de nuevo.',
+    success: '¡Estás en la lista!',
+  },
 } as const

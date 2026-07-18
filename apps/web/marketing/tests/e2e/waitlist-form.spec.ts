@@ -1,12 +1,13 @@
 import { test, expect } from '@bgotink/playwright-coverage';
+import type { Page, Route, Request } from '@playwright/test';
 
 const WAITLIST_KEY = 'profile-tailors-launch';
 
 test.describe('Waitlist Form — Marketing E2E', () => {
-  test('submits successfully when the backend responds 202', async ({ page }) => {
+  test('submits successfully when the backend responds 202', async ({ page }: { page: Page }): Promise<void> => {
     let interceptedBody: unknown = null;
 
-    await page.route('**/api/waitlists/**/entries', async (route, request) => {
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
       if (request.method() !== 'POST') {
         await route.fallback();
         return;
@@ -42,9 +43,9 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     });
   });
 
-  test('blocks submission when the email is empty', async ({ page }) => {
+  test('blocks submission when the email is empty', async ({ page }: { page: Page }): Promise<void> => {
     let posted = false;
-    await page.route('**/api/waitlists/**/entries', async (route, request) => {
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
       if (request.method() === 'POST') posted = true;
       await route.fallback();
     });
@@ -63,9 +64,9 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     expect(posted).toBe(false);
   });
 
-  test('blocks submission when email format is invalid', async ({ page }) => {
+  test('blocks submission when email format is invalid', async ({ page }: { page: Page }): Promise<void> => {
     let posted = false;
-    await page.route('**/api/waitlists/**/entries', async (route, request) => {
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
       if (request.method() === 'POST') posted = true;
       await route.fallback();
     });
@@ -82,9 +83,9 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     expect(posted).toBe(false);
   });
 
-  test('blocks submission when early-access consent is missing', async ({ page }) => {
+  test('blocks submission when early-access consent is missing', async ({ page }: { page: Page }): Promise<void> => {
     let posted = false;
-    await page.route('**/api/waitlists/**/entries', async (route, request) => {
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
       if (request.method() === 'POST') posted = true;
       await route.fallback();
     });
@@ -100,8 +101,8 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     expect(posted).toBe(false);
   });
 
-  test('shows friendly message when the backend returns 429', async ({ page }) => {
-    await page.route('**/api/waitlists/**/entries', async (route, request) => {
+  test('shows friendly message when the backend returns 429', async ({ page }: { page: Page }): Promise<void> => {
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
       if (request.method() !== 'POST') {
         await route.fallback();
         return;
@@ -123,9 +124,9 @@ test.describe('Waitlist Form — Marketing E2E', () => {
     await expect(error).toContainText(/too many/i);
   });
 
-  test('submits against the configured API base and waitlist key', async ({ page }) => {
+  test('submits against the configured API base and waitlist key', async ({ page }: { page: Page }): Promise<void> => {
     let requestUrl: string | null = null;
-    await page.route('**/api/waitlists/**/entries', async (route, request) => {
+    await page.route('**/api/waitlists/**/entries', async (route: Route, request: Request): Promise<void> => {
       if (request.method() !== 'POST') {
         await route.fallback();
         return;

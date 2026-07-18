@@ -1,6 +1,7 @@
 ---
 import type { Locale } from '@i18n/utils'
 import { WAITLIST_API_BASE } from 'astro:env/client'
+import { useTranslations } from '@i18n/utils'
 
 interface Props {
   locale: Locale
@@ -12,6 +13,8 @@ interface Props {
 
 const { locale, waitlistKey, source, formId, apiBase } = Astro.props
 const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
+const t = useTranslations(locale)
+const wl = t.waitlist
 ---
 
 <form
@@ -21,12 +24,19 @@ const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
   data-waitlist-form-id={formId ?? 'waitlist-hero'}
   data-waitlist-locale={locale}
   data-waitlist-api-base={resolvedApiBase}
+  data-waitlist-messages={JSON.stringify({
+    validEmail: wl.emailInput.placeholder,
+    consentRequired: wl.errorConsentRequired,
+    tooManyRequests: wl.errorTooManyRequests,
+    genericError: wl.errorGeneric,
+    success: wl.success,
+  })}
   novalidate
   class="flex flex-col gap-3 max-w-md border-l-2 border-border pl-4"
 >
   <div class="flex flex-col gap-1">
     <span class="font-mono text-xs tracking-[0.2em] text-text-muted">
-      {locale === 'es' ? 'CORREO' : 'EMAIL'}
+      {wl.emailLabel}
     </span>
     <input
       id="waitlist-email"
@@ -36,7 +46,7 @@ const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
       autocomplete="email"
       required
       aria-describedby="waitlist-email-error"
-      aria-label={locale === 'es' ? 'Correo electrónico' : 'Email address'}
+      aria-label={wl.emailInput.ariaLabel}
       class="bg-transparent border-b border-border focus:outline-none focus:border-text-display py-2 text-text-display"
     />
   </div>
@@ -48,13 +58,9 @@ const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
       type="checkbox"
       required
       class="mt-1"
-      aria-label={locale === 'es' ? 'Acceso anticipado' : 'Early access consent'}
+      aria-label={wl.consentEarly.ariaLabel}
     />
-    <span>
-      {locale === 'es'
-        ? 'Quiero acceso anticipado al producto.'
-        : 'I want early product access.'}
-    </span>
+    <span>{wl.consentEarly.label}</span>
   </div>
 
   <div class="flex items-start gap-2 text-sm text-text-secondary">
@@ -63,13 +69,9 @@ const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
       data-waitlist-consent-marketing
       type="checkbox"
       class="mt-1"
-      aria-label={locale === 'es' ? 'Consentimiento de marketing' : 'Marketing consent'}
+      aria-label={wl.consentMarketing.ariaLabel}
     />
-    <span>
-      {locale === 'es'
-        ? 'Acepto recibir correos de marketing.'
-        : 'I agree to receive marketing emails.'}
-    </span>
+    <span>{wl.consentMarketing.label}</span>
   </div>
 
   <p
@@ -86,9 +88,7 @@ const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
     aria-live="polite"
     class="hidden text-sm text-text-display"
   >
-    {locale === 'es'
-      ? '¡Estás en la lista!'
-      : "You're on the list."}
+    {wl.success}
   </p>
 
   <button
@@ -96,7 +96,7 @@ const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
     type="submit"
     class="font-mono text-xs tracking-[0.2em] text-text-display border border-border px-4 py-2 hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
   >
-    {locale === 'es' ? 'SOLICITAR ACCESO' : 'REQUEST ACCESS'}
+    {wl.submit}
   </button>
 </form>
 
@@ -105,6 +105,14 @@ const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
   import { isValidEmail } from './waitlist-form-validator'
 
   const SUCCESS_HIDDEN = 'hidden'
+
+  interface WaitlistMessages {
+    validEmail: string
+    consentRequired: string
+    tooManyRequests: string
+    genericError: string
+    success: string
+  }
 
   function captureUtm(): Record<string, string> {
     const params = new URLSearchParams(window.location.search)
@@ -134,21 +142,31 @@ const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
     const formId = form.dataset.waitlistFormId ?? 'waitlist-hero'
     const locale = form.dataset.waitlistLocale ?? 'en'
 
+    let messages: WaitlistMessages = {
+      validEmail: 'Please enter a valid email.',
+      consentRequired: 'Early-access consent is required.',
+      tooManyRequests: 'Too many requests. Try again in a minute.',
+      genericError: 'Could not register you. Please try again.',
+      success: "You're on the list.",
+    }
+    try {
+      const raw = form.dataset.waitlistMessages
+      if (raw) messages = JSON.parse(raw) as WaitlistMessages
+    } catch {
+      // fall back to defaults
+    }
+
     form.addEventListener('submit', (event) => {
       event.preventDefault()
       const email = emailInput.value ?? ''
       if (!isValidEmail(email)) {
-        errorEl.textContent =
-          locale === 'es' ? 'Introduce un correo válido.' : 'Please enter a valid email.'
+        errorEl.textContent = messages.validEmail
         errorEl.classList.remove(SUCCESS_HIDDEN)
         successEl.classList.add(SUCCESS_HIDDEN)
         return
       }
       if (!earlyInput.checked) {
-        errorEl.textContent =
-          locale === 'es'
-            ? 'Debes aceptar el acceso anticipado.'
-            : 'Early-access consent is required.'
+        errorEl.textContent = messages.consentRequired
         errorEl.classList.remove(SUCCESS_HIDDEN)
         successEl.classList.add(SUCCESS_HIDDEN)
         return
@@ -179,19 +197,13 @@ const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
       })
         .then(async (response) => {
           if (response.status === 429) {
-            errorEl.textContent =
-              locale === 'es'
-                ? 'Demasiadas solicitudes. Inténtalo en un minuto.'
-                : 'Too many requests. Try again in a minute.'
+            errorEl.textContent = messages.tooManyRequests
             errorEl.classList.remove(SUCCESS_HIDDEN)
             successEl.classList.add(SUCCESS_HIDDEN)
             return
           }
           if (!response.ok && response.status >= 400) {
-            errorEl.textContent =
-              locale === 'es'
-                ? 'No se pudo registrar. Inténtalo de nuevo.'
-                : 'Could not register you. Please try again.'
+            errorEl.textContent = messages.genericError
             errorEl.classList.remove(SUCCESS_HIDDEN)
             successEl.classList.add(SUCCESS_HIDDEN)
             return
@@ -201,10 +213,7 @@ const resolvedApiBase = apiBase ?? WAITLIST_API_BASE
           form.reset()
         })
         .catch(() => {
-          errorEl.textContent =
-            locale === 'es'
-              ? 'No se pudo registrar. Inténtalo de nuevo.'
-              : 'Could not register you. Please try again.'
+          errorEl.textContent = messages.genericError
           errorEl.classList.remove(SUCCESS_HIDDEN)
           successEl.classList.add(SUCCESS_HIDDEN)
         })

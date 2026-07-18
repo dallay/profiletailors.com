@@ -166,4 +166,25 @@ export const en = {
         'The policy is not effective until it is incorporated into approved service terms and accepted through a versioned mechanism. The operating legal entity, monitored abuse and legal contacts, enabled markets, applicable platform rules, version, effective date, and change-notice process remain unresolved.',
     },
   },
+  waitlist: {
+    emailLabel: 'EMAIL',
+    emailInput: {
+      placeholder: 'Email address',
+      ariaLabel: 'Email address',
+    },
+    consentEarly: {
+      label: 'I want early product access.',
+      ariaLabel: 'Early access consent',
+    },
+    consentMarketing: {
+      label: 'I agree to receive marketing emails.',
+      ariaLabel: 'Marketing consent',
+    },
+    submit: 'REQUEST ACCESS',
+    errorValidEmail: 'Please enter a valid email.',
+    errorConsentRequired: 'Early-access consent is required.',
+    errorTooManyRequests: 'Too many requests. Try again in a minute.',
+    errorGeneric: 'Could not register you. Please try again.',
+    success: "You're on the list.",
+  },
 } as const

@@ -74,7 +74,7 @@ test.describe('Bilingual Support', () => {
 });
 
 test.describe('Waitlist Form — Hero Container (enabled)', () => {
-  test('renders the active waitlist form when WAITLIST_ENABLED=true', async ({ page }) => {
+  test('renders the active waitlist form when WAITLIST_ENABLED=true', async ({ page }: { page: import('@playwright/test').Page }): Promise<void> => {
     await page.goto('/');
 
     const formContainer = page.locator('[data-hero-form]');
@@ -88,7 +88,7 @@ test.describe('Waitlist Form — Hero Container (enabled)', () => {
     await expect(successMessage).toBeHidden();
   });
 
-  test('renders the API base URL as a data attribute', async ({ page }) => {
+  test('renders the API base URL as a data attribute', async ({ page }: { page: import('@playwright/test').Page }): Promise<void> => {
     await page.goto('/');
 
     const form = page.locator('[data-waitlist-form]').first();
