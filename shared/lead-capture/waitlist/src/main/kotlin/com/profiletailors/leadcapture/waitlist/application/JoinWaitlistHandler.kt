@@ -1,5 +1,7 @@
 package com.profiletailors.leadcapture.waitlist.application
 
+import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecordRequest
+import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistClosedException
@@ -11,6 +13,7 @@ class JoinWaitlistHandler(
     private val waitlistRepository: WaitlistRepository,
     private val entryRepository: WaitlistEntryRepository,
     private val idGenerator: WaitlistEntryIdGenerator,
+    private val consentRecorder: WaitlistConsentRecorder = WaitlistConsentRecorder.noop,
     private val clock: () -> Instant = Instant::now,
 ) {
 
@@ -35,9 +38,23 @@ class JoinWaitlistHandler(
             consent = command.consent,
             joinedAt = clock(),
         )
-        return when (entryRepository.saveIfNotExists(entry)) {
-            is WaitlistEntryRepository.SaveResult.Saved -> JoinResult.JOINED_NEW
-            is WaitlistEntryRepository.SaveResult.AlreadyExists -> JoinResult.ALREADY_JOINED
+        return when (val result = entryRepository.saveIfNotExists(entry)) {
+            is WaitlistEntryRepository.SaveResult.Saved -> {
+                consentRecorder.record(
+                    WaitlistConsentRecordRequest(
+                        waitlistKey = command.waitlistKey,
+                        entryId = result.entry.id,
+                        normalizedEmail = result.entry.normalizedEmail,
+                        consent = result.entry.consent,
+                        locale = result.entry.locale,
+                        source = result.entry.source,
+                    ),
+                )
+                JoinResult.JOINED_NEW
+            }
+            is WaitlistEntryRepository.SaveResult.AlreadyExists -> {
+                JoinResult.ALREADY_JOINED
+            }
         }
     }
 }

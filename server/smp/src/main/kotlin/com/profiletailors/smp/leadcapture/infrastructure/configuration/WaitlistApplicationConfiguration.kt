@@ -2,6 +2,7 @@ package com.profiletailors.smp.leadcapture.infrastructure.configuration
 
 import com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandler
 import com.profiletailors.leadcapture.waitlist.application.WaitlistEntryIdGenerator
+import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
@@ -28,10 +29,12 @@ class WaitlistApplicationConfiguration {
         waitlistRepository: WaitlistRepository,
         entryRepository: WaitlistEntryRepository,
         idGenerator: WaitlistEntryIdGenerator,
+        consentRecorder: WaitlistConsentRecorder,
     ): JoinWaitlistHandler = JoinWaitlistHandler(
         waitlistRepository = waitlistRepository,
         entryRepository = entryRepository,
         idGenerator = idGenerator,
+        consentRecorder = consentRecorder,
         clock = { Instant.now() },
     )
 }
