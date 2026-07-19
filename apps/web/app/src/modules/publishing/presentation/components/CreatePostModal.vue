@@ -5,7 +5,16 @@ import type { DateValue } from 'reka-ui'
 import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { useComposerMediaPicker } from '@modules/publishing/application/useComposerMediaPicker'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
-import { Check, ChevronDown, Hash, Smile, Sparkles, X } from '@lucide/vue'
+import {
+  Calendar as CalendarIcon,
+  Check,
+  ChevronDown,
+  Hash,
+  Image as ImageIcon,
+  Smile,
+  Sparkles,
+  X,
+} from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
 import { useMediaStore } from '@modules/media'
