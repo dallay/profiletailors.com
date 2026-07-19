@@ -75,8 +75,10 @@ export default defineConfig({
       }),
     ],
     resolve: {
-      // Import shared SVGs: import logo from '@shared/assets/profiletailors-logotype.svg'
-      '@shared/assets': SHARED_ASSETS,
+      alias: {
+        // Import shared SVGs: import logo from '@shared/assets/profiletailors-logotype.svg'
+        '@shared/assets': SHARED_ASSETS,
+      },
     },
     server: {
       watch: {

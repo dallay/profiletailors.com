@@ -123,10 +123,10 @@ The dual-licensing deferral MUST be revisited if:
 ## References
 
 - AGPL-3.0 Section 13: Remote network interaction; source code distribution
-- [`LICENSE`](../../LICENSE): Repository licence file
-- [`CONTRIBUTING.md`](../../CONTRIBUTING.md): Contribution guidelines
-- [`CLA.md`](../../CLA.md): Contributor License Agreement
-- [OpenSpec: legal-compliance-foundation](../../../openspec/changes/legal-compliance-foundation/proposal.md)
+- [`LICENSE`](../../../LICENSE): Repository licence file
+- [`CONTRIBUTING.md`](../../../CONTRIBUTING.md): Contribution guidelines
+- [`CLA.md`](../../../CLA.md): Contributor License Agreement
+- [OpenSpec: legal-compliance-foundation](../../../openspec/changes/archive/2026-07-17-dallay-488-legal-policies/proposal.md)
 
 ### Follow-up actions
 

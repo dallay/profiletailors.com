@@ -142,7 +142,7 @@ Test tags exist as infrastructure markers (e.g., `@Tag("postgres")` for Testcont
 - Set `SMP_POSTGRES_TEST_PASSWORD` in `.env` (see `.env.example`)
 - Run `./bin/setup-env.sh` to create subproject symlinks
 
-**Full documentation:** See [`docs/testing/test-tags-and-env.md`](docs/testing/test-tags-and-env.md) for:
+**Full documentation:** See [`docs/testing/test-tags-and-env.md`](../docs/testing/test-tags-and-env.md) for:
 - How to run the full test suite locally
 - Which tags exist and what they mean
 - When to add a tag and how to keep it from becoming a hidden failure
