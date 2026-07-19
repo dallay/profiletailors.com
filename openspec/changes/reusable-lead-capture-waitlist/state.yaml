@@ -1,0 +1,16 @@
+change: reusable-lead-capture-waitlist
+current_phase: archive
+completed:
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: none
+updated: 2026-07-18
+verdict: PASS
+archived: true
+archive_date: 2026-07-18
+archive_path: openspec/changes/archive/2026-07-18-reusable-lead-capture-waitlist/
