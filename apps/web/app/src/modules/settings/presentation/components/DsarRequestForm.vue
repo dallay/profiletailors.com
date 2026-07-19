@@ -66,7 +66,6 @@ function handleSubmit(): void {
   }
 
   emit('submit', payload)
-  resetForm()
 }
 
 function onConfirmDelete(): void {

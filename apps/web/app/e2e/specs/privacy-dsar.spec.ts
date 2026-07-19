@@ -447,9 +447,6 @@ test.describe('Privacy — DSAR Workflows', () => {
     for (let i = 0; i < 3; i++) {
       await submitOneAccess()
       await privacy.expectSuccessVisible()
-      // Wait for the success timeout to clear before next submit
-      // (the success message auto-hides after 5s, but we can continue anyway)
-      await page.waitForTimeout(100)
     }
 
     // Verify 3 requests are in the list

@@ -147,8 +147,8 @@ export class PrivacySettingsPage {
     const option = this.typeOption(type)
     await expect(option).toBeVisible({ timeout: 5_000 })
     await option.click()
-    // Wait for the portal to close and the trigger to update
-    await this.page.waitForTimeout(200)
+    // Wait for the select portal to finish closing before continuing
+    await expect(option).not.toBeVisible({ timeout: 3_000 })
   }
 
   async fillNotes(notes: string): Promise<void> {
