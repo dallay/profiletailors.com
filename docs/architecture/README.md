@@ -18,6 +18,7 @@ The C4 model provides a hierarchical set of architecture diagrams for visualizin
 | **Level 3** | [Component](c4/03-component.md)           | Internal structure, bounded contexts  | Developers, architects |
 | **Level 4** | [Code](c4/04-code.md)                     | Implementation patterns, class design | Developers             |
 | **Shared**  | [Dependencies](shared/dependencies.md)    | Shared module dependency graph        | Developers, architects |
+| **ADRs**    | [Decision Records](adr/README.md)         | Accepted architecture decisions       | Developers, architects |
 
 ### Visual Overview
 
@@ -67,9 +68,9 @@ The C4 model provides a hierarchical set of architecture diagrams for visualizin
 
 ### 2. Domain-Driven Design (DDD)
 
-- **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform
+- **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform, Lead Capture
 - **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md) for all `api` and `implementation` relationships
-- **Foundation**: [`shared:common`](../../shared/common/) — framework-agnostic domain primitives, zero Spring dependencies
+- **Foundation**: [`shared:common`](../../shared/common/) and [`shared:lead-capture:common`](../../shared/lead-capture/common/) — framework-agnostic domain primitives and lead-capture value objects, zero Spring dependencies
 - **Aggregates**: Clear boundaries and consistency rules
 - **Domain Events**: For cross-context communication
 

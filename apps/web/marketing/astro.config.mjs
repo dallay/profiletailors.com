@@ -46,6 +46,8 @@ export default defineConfig({
   env: {
     schema: {
       AHREFS_ANALYTICS_KEY: envField.string({ context: 'client', access: 'public', optional: true }),
+      WAITLIST_ENABLED: envField.boolean({ context: 'client', access: 'public', optional: true, default: false }),
+      WAITLIST_API_BASE: envField.string({ context: 'client', access: 'public', optional: true, default: '' }),
     },
   },
 

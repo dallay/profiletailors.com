@@ -18,6 +18,8 @@ export type AuthCredentials = z.infer<typeof authCredentialsSchema>
 export const registerSchema = authCredentialsSchema
   .extend({
     confirmPassword: z.string().trim().min(1, 'confirmPasswordRequired'),
+    confirmedAgeEligibility: z.literal(true, { message: 'ageEligibilityRequired' }),
+    acceptedTerms: z.literal(true, { message: 'termsRequired' }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'passwordsMustMatch',

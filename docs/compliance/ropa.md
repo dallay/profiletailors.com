@@ -101,9 +101,9 @@ approvals required by [`legal-publication-gate.md`](legal-publication-gate.md).
 | Transfers | Unknown |
 | Proposed basis | Consent; wording and validity require market review |
 | Retention | Missing; no withdrawal endpoint, anonymisation job, or 30-day control |
-| Security evidence | Rate limiting; versioned and separated consent fields |
-| Activation state | Public marketing collection is disabled and states that early-access registration is not open |
-| Required action | Approve notice and market basis, then implement submission, withdrawal, suppression, anonymisation/deletion, consent evidence, and request handling before activation |
+| Security evidence | Rate limiting; versioned and separated consent fields; collection form gated behind WAITLIST_ENABLED=false default |
+| Activation state | Public marketing collection is disabled by default (WAITLIST_ENABLED=false). The EarlyAccessStatus static message is shown until WAITLIST_ENABLED=true is explicitly configured. |
+| Required action | Approve notice and market basis, then implement submission, withdrawal, suppression, anonymisation/deletion, consent evidence, and request handling before activation — and only then flip WAITLIST_ENABLED=true |
 
 #### PA-005 — Workspaces and membership
 

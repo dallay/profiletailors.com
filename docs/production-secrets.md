@@ -171,6 +171,51 @@ Secrets are grouped by risk level and rotation frequency:
 - **Access:** Infrastructure admins only. Not readable by developers or support.
 - **Related issue:** [#176 - PUBLISHING_CREDENTIALS_KEY has no validation](https://github.com/dallay/profiletailors.com/issues/176)
 
+### Media Preview Signing
+
+#### `SMP_MEDIA_PREVIEW_SIGNING_SECRET`
+
+- **Type:** Base64-encoded 32-byte secret.
+- **Description:** Signs public media preview URLs.
+- **Risk:** HIGH.
+- **Generation:** `openssl rand -base64 32`.
+- **Rotation:** Replace the secret and restart the backend. Existing signed URLs become invalid.
+- **Access:** Infrastructure admins and deployment automation.
+
+### LinkedIn OAuth State Signing
+
+#### `SMP_LINKEDIN_STATE_SIGNING_SECRET`
+
+- **Type:** Base64-encoded 32-byte secret.
+- **Description:** Signs and verifies the state carried through the LinkedIn OAuth redirect.
+- **Risk:** CRITICAL.
+- **Generation:** `openssl rand -base64 32`.
+- **Rotation:** Replace only when no LinkedIn OAuth authorization is in progress, then restart the backend.
+- **Access:** Infrastructure admins and deployment automation.
+
+### Object Storage
+
+#### `SMP_STORAGE_R2_ACCESS_KEY_ID`
+
+- **Type:** String.
+- **Description:** Access-key identifier for the configured R2-compatible object store.
+- **Risk:** HIGH.
+- **Rotation:** Create a replacement credential, deploy it, verify media access, then revoke the old credential.
+- **Access:** Infrastructure admins and deployment automation.
+
+#### `SMP_STORAGE_R2_SECRET_ACCESS_KEY`
+
+- **Type:** String.
+- **Description:** Secret key for the configured R2-compatible object store.
+- **Risk:** CRITICAL.
+- **Rotation:** Rotate together with `SMP_STORAGE_R2_ACCESS_KEY_ID`.
+- **Access:** Infrastructure admins and deployment automation.
+
+The non-secret companion settings are `SMP_STORAGE_PROVIDER_TYPE`,
+`SMP_STORAGE_ATTACHMENTS_BUCKET`, `SMP_STORAGE_R2_ACCOUNT_ID`, and
+`SMP_STORAGE_R2_ENDPOINT`. Production publishing with media must not use local
+container storage.
+
 ### CORS & Networking
 
 #### `SMP_CORS_ALLOWED_ORIGINS`
@@ -230,9 +275,13 @@ Before deploying to production, verify:
 - [ ] No default/example credentials in use.
 - [ ] `SMP_LOCAL_JWT_DEV_FALLBACK` is **empty** (production must use explicit `SMP_LOCAL_JWT_SECRET`).
 - [ ] `PUBLISHING_CREDENTIALS_KEY` is exactly 32 bytes (Base64-encoded, 44 chars).
+- [ ] `SMP_MEDIA_PREVIEW_SIGNING_SECRET` is a unique 32-byte secret.
+- [ ] `SMP_LINKEDIN_STATE_SIGNING_SECRET` is unique and not a development fallback.
 - [ ] `SMP_DB_PASSWORD` is strong (≥32 chars, randomly generated).
 - [ ] `SMP_LINKEDIN_CLIENT_SECRET` matches active LinkedIn app configuration.
 - [ ] `SMP_CORS_ALLOWED_ORIGINS` includes only production frontend URLs.
+- [ ] Persistent object storage is configured; local container storage is disabled.
+- [ ] `SMP_LIQUIBASE_CONTEXTS=prod` is set for deployment.
 
 ## Access control guidelines
 
@@ -242,6 +291,9 @@ Before deploying to production, verify:
 | `PUBLISHING_CREDENTIALS_KEY` | Infrastructure admins only | Deployment, key rotation |
 | `SMP_LINKEDIN_CLIENT_SECRET` | Infrastructure admins | Deployment, OAuth app changes |
 | `SMP_LOCAL_JWT_SECRET` | Infrastructure admins | Deployment, security incident |
+| `SMP_MEDIA_PREVIEW_SIGNING_SECRET` | Infrastructure admins | Deployment, URL-signing rotation |
+| `SMP_LINKEDIN_STATE_SIGNING_SECRET` | Infrastructure admins | Deployment, OAuth-state rotation |
+| `SMP_STORAGE_R2_SECRET_ACCESS_KEY` | Infrastructure admins | Deployment, storage credential rotation |
 | `GRAFANA_ADMIN_PASSWORD` | Developers (dev/staging) | Local monitoring setup |
 | `AHREFS_ANALYTICS_KEY` | Frontend developers | Marketing site deployment |
 

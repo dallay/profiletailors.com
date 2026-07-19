@@ -4,6 +4,7 @@ import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequi
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
 import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
+import com.profiletailors.smp.identity.application.RegistrationValidationException
 import com.profiletailors.smp.identity.application.UnverifiedEmailException
 import com.profiletailors.smp.identity.application.UserAlreadyExistsException
 import org.springframework.http.HttpStatus
@@ -53,6 +54,14 @@ class IdentityProblemDetailsHandler {
         title = "Email verification required"
         type = URI("https://api.profiletailors.com/errors/email-verification-required")
         setProperty("code", "EMAIL_VERIFICATION_REQUIRED")
+    }
+
+    @ExceptionHandler(RegistrationValidationException::class)
+    fun handle(exception: RegistrationValidationException): ProblemDetail {
+        val detail = exception.message ?: "Unprocessable entity"
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, detail).apply {
+            title = "Registration validation failed"
+        }
     }
 
     @ExceptionHandler(InvalidVerificationTokenException::class)

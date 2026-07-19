@@ -639,6 +639,8 @@ class AuthorizationBddSteps {
                 mapOf(
                     "email" to email,
                     "password" to "password123",
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
             )
             .exchange()
@@ -677,6 +679,8 @@ class AuthorizationBddSteps {
                 mapOf(
                     "email" to email,
                     "password" to "password123",
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
             )
             .exchange()
