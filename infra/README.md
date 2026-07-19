@@ -68,7 +68,7 @@ The Swarm guide explains the registry, storage-node, secret, backup, and rollbac
 
 ### A local port is already in use
 
-Override `SMP_POSTGRES_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`, `WIREMOCK_HOST_PORT`,
+Override `SMP_DB_PORT`, `MAILPIT_SMTP_PORT`, `MAILPIT_UI_PORT`, `WIREMOCK_HOST_PORT`,
 `PROMETHEUS_HOST_PORT`, or `GRAFANA_HOST_PORT` before starting the development stack.
 
 ### Production services do not become healthy

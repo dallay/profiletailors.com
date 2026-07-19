@@ -8,18 +8,18 @@ Profile Tailors backend tests run with **no exclusions by default** in CI and lo
 
 ## Required Environment Variables
 
-### `SMP_POSTGRES_TEST_PASSWORD`
+### `SMP_DB_TEST_PASSWORD`
 
 **Required for:** Testcontainers-backed PostgreSQL integration tests.
 
 **Setup:**
 1. Copy `.env.example` → `.env` at the project root
-2. Set `SMP_POSTGRES_TEST_PASSWORD` to any non-empty value (e.g., the same as `SMP_POSTGRES_PASSWORD`)
+2. Set `SMP_DB_TEST_PASSWORD` to any non-empty value (e.g., the same as `SMP_DB_PASSWORD`)
 3. Run `./bin/setup-env.sh` to create symlinks for subprojects
 
 **Example:**
 ```bash
-SMP_POSTGRES_TEST_PASSWORD=CHANGE_ME_gK2fcFZg5cgVu9U
+SMP_DB_TEST_PASSWORD=${SMP_DB_PASSWORD}
 ```
 
 The `bootRun` and test tasks automatically load this variable from the root `.env` file.
@@ -62,7 +62,7 @@ just backend-test exclude-tags=slowtest
 
 **CI behavior:** These tests **run by default** in CI. No exclusions.
 
-**Local requirement:** `SMP_POSTGRES_TEST_PASSWORD` must be set in `.env`.
+**Local requirement:** `SMP_DB_TEST_PASSWORD` must be set in `.env`.
 
 ### `@Tag("modularity")` (RESOLVED)
 **Historical note:** This tag was used to exclude `ModularStructureTest` when it failed due to Spring Modulith named-interface issues. The root cause was fixed in [#275](https://github.com/dallay/profiletailors.com/issues/275), and the exclusion was removed. The tag may still exist in test code but is no longer excluded anywhere.
@@ -110,11 +110,11 @@ fun `should fetch data from LinkedIn API`() {
 ## Troubleshooting
 
 ### "Testcontainers could not start PostgreSQL container"
-**Cause:** Docker is not running, or `SMP_POSTGRES_TEST_PASSWORD` is missing.
+**Cause:** Docker is not running, or `SMP_DB_TEST_PASSWORD` is missing.
 
 **Fix:**
 1. Start Docker Desktop or Docker daemon
-2. Verify `.env` contains `SMP_POSTGRES_TEST_PASSWORD`
+2. Verify `.env` contains `SMP_DB_TEST_PASSWORD`
 3. Re-run `./bin/setup-env.sh` if the symlink is missing
 
 ### "Test passed locally but failed in CI"

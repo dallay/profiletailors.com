@@ -139,7 +139,7 @@ IntelliJ.
 Test tags exist as infrastructure markers (e.g., `@Tag("postgres")` for Testcontainers-backed tests, `@Tag("bdd")` for Cucumber scenarios), but they do **not** hide failures.
 
 **Required setup for local testing:**
-- Set `SMP_POSTGRES_TEST_PASSWORD` in `.env` (see `.env.example`)
+- Set `SMP_DB_TEST_PASSWORD` in `.env` (see `.env.example`)
 - Run `./bin/setup-env.sh` to create subproject symlinks
 
 **Full documentation:** See [`docs/testing/test-tags-and-env.md`](docs/testing/test-tags-and-env.md) for:
