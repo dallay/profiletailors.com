@@ -83,12 +83,17 @@ describe('AuthView validation', () => {
     await wrapper.find('input#email').setValue('  user@example.com  ')
     await wrapper.find('input#password').setValue('  password123  ')
     await wrapper.find('input#confirmPassword').setValue('  password123  ')
+    // Check both checkboxes to pass registerSchema validation
+    await wrapper.find('input#ageEligibility').setValue(true)
+    await wrapper.find('input#terms').setValue(true)
     await wrapper.find('form').trigger('submit.prevent')
 
-    // Expecting payload WITHOUT confirmPassword as it is filtered in AuthView.vue
+    // Expecting full RegisterPayload with eligibility fields
     expect(registerWithPassword).toHaveBeenCalledWith({
       email: 'user@example.com',
       password: 'password123',
+      confirmedAgeEligibility: true,
+      acceptedTermsVersion: 'terms-v1.0.0',
     })
     expect(replace).toHaveBeenCalledWith('/')
   })
@@ -100,10 +105,64 @@ describe('AuthView validation', () => {
     await wrapper.find('input#email').setValue('user@example.com')
     await wrapper.find('input#password').setValue('password123')
     await wrapper.find('input#confirmPassword').setValue('mismatch')
+    // Check both checkboxes so validation reaches the password match check
+    await wrapper.find('input#ageEligibility').setValue(true)
+    await wrapper.find('input#terms').setValue(true)
     await wrapper.find('form').trigger('submit.prevent')
 
     expect(registerWithPassword).not.toHaveBeenCalled()
     // Looking for the translated key part
     expect(wrapper.text()).toContain('auth.passwordsMustMatch')
+  })
+
+  it('blocks registration when age eligibility checkbox is unchecked', async () => {
+    routeState.name = 'register'
+    const wrapper = mountAuthView()
+
+    await wrapper.find('input#email').setValue('user@example.com')
+    await wrapper.find('input#password').setValue('Str0ng!Pass')
+    await wrapper.find('input#confirmPassword').setValue('Str0ng!Pass')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(registerWithPassword).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('auth.ageEligibilityRequired')
+  })
+
+  it('blocks registration when terms checkbox is unchecked but age eligibility is checked', async () => {
+    routeState.name = 'register'
+    const wrapper = mountAuthView()
+
+    await wrapper.find('input#email').setValue('user@example.com')
+    await wrapper.find('input#password').setValue('Str0ng!Pass')
+    await wrapper.find('input#confirmPassword').setValue('Str0ng!Pass')
+    // Check only age eligibility, leave terms unchecked
+    await wrapper.find('input#ageEligibility').setValue(true)
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(registerWithPassword).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('auth.termsRequired')
+  })
+
+  it('passes eligibility flags to registerWithPassword when both checkboxes are checked', async () => {
+    routeState.name = 'register'
+    registerWithPassword.mockResolvedValue(undefined)
+    const wrapper = mountAuthView()
+
+    await wrapper.find('input#email').setValue('user@example.com')
+    await wrapper.find('input#password').setValue('Str0ng!Pass')
+    await wrapper.find('input#confirmPassword').setValue('Str0ng!Pass')
+
+    // Check both checkboxes
+    await wrapper.find('input#ageEligibility').setValue(true)
+    await wrapper.find('input#terms').setValue(true)
+
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(registerWithPassword).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      password: 'Str0ng!Pass',
+      confirmedAgeEligibility: true,
+      acceptedTermsVersion: 'terms-v1.0.0',
+    })
   })
 })

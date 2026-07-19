@@ -11,11 +11,17 @@ import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleSer
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
+import com.profiletailors.smp.governance.application.RecordConsentCommand
+import com.profiletailors.smp.governance.application.RecordConsentHandler
+import com.profiletailors.smp.governance.domain.ConsentRecord
+import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.identity.application.EmailVerificationTokenData
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -25,6 +31,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 
+@Suppress("LargeClass")
 class LocalAuthHandlersTest {
 
     private val validPassword = CredentialGenerator.generateValidPassword()
@@ -46,6 +53,7 @@ class LocalAuthHandlersTest {
         val eventPublisher = RecordingEventPublisher(order)
         val jwtIssuer = FakeLocalJwtIssuer(order)
         val refreshSvc = fakeRefreshLifecycleService(order)
+        val recordConsentHandler = recordConsentHandler(order)
         val transactionRunner = RecordingAtomicTransactionRunner(order)
         val handler = RegisterUserHandler(
             identityRegistrationGateway = identityRegistrationGateway,
@@ -58,6 +66,7 @@ class LocalAuthHandlersTest {
             localJwtIssuer = jwtIssuer,
             refreshSessionLifecycleService = refreshSvc,
             transactionRunner = transactionRunner,
+            recordConsentHandler = recordConsentHandler,
         )
 
         handler.handle(
@@ -65,6 +74,8 @@ class LocalAuthHandlersTest {
                 email = " Yuniel@Example.com ",
                 password = validPassword,
                 username = " yuniel ",
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
             ),
         )
 
@@ -74,6 +85,8 @@ class LocalAuthHandlersTest {
                 "identity:create",
                 "credential:create",
                 "workspace:provision",
+                "consent:record",
+                "consent:record",
                 "token:create",
                 "tx:commit",
                 "event:publish",
@@ -83,6 +96,104 @@ class LocalAuthHandlersTest {
             order,
         )
         assertEquals(1, transactionRunner.invocations)
+    }
+
+    @Test
+    fun `rejects when confirmedAgeEligibility is false`() = runTest {
+        val handler = RegisterUserHandler(
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(),
+            eventPublisher = RecordingEventPublisher(),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            transactionRunner = NoopAtomicTransactionRunner,
+            recordConsentHandler = recordConsentHandler(),
+        )
+
+        try {
+            handler.handle(
+                RegisterUserCommand(
+                    email = "user@example.com",
+                    password = validPassword,
+                    username = "user",
+                    confirmedAgeEligibility = false,
+                    acceptedTermsVersion = "terms-v1.0.0",
+                ),
+            )
+            throw AssertionError("Expected RegistrationValidationException")
+        } catch (e: RegistrationValidationException) {
+            assertTrue(e.message?.contains("18 or older") == true)
+        }
+    }
+
+    @Test
+    fun `rejects when acceptedTermsVersion is blank`() = runTest {
+        val handler = RegisterUserHandler(
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(),
+            eventPublisher = RecordingEventPublisher(),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            transactionRunner = NoopAtomicTransactionRunner,
+            recordConsentHandler = recordConsentHandler(),
+        )
+
+        try {
+            handler.handle(
+                RegisterUserCommand(
+                    email = "user@example.com",
+                    password = validPassword,
+                    username = "user",
+                    confirmedAgeEligibility = true,
+                    acceptedTermsVersion = "",
+                ),
+            )
+            throw AssertionError("Expected RegistrationValidationException")
+        } catch (e: RegistrationValidationException) {
+            assertTrue(e.message?.contains("terms of service") == true)
+        }
+    }
+
+    @Test
+    fun `creates two consent records on successful registration`() = runTest {
+        val order = mutableListOf<String>()
+        val recordedPurposes = mutableListOf<String>()
+        val recordConsentHandler = recordConsentHandler(order, recordedPurposes)
+        val handler = RegisterUserHandler(
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(order),
+            eventPublisher = RecordingEventPublisher(order),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(order),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
+            transactionRunner = RecordingAtomicTransactionRunner(order),
+            recordConsentHandler = recordConsentHandler,
+        )
+
+        handler.handle(
+            RegisterUserCommand(
+                email = "user@example.com",
+                password = validPassword,
+                username = "user",
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
+            ),
+        )
+
+        assertEquals(2, recordedPurposes.size, "Should have recorded 2 consent purposes")
+        assertEquals("age-eligibility.18-plus", recordedPurposes[0])
+        assertEquals("terms.acceptance", recordedPurposes[1])
     }
 
     @Test
@@ -105,6 +216,7 @@ class LocalAuthHandlersTest {
             localJwtIssuer = jwtIssuer,
             refreshSessionLifecycleService = refreshSvc,
             transactionRunner = NoopAtomicTransactionRunner,
+            recordConsentHandler = recordConsentHandler(),
         )
 
         val result = handler.handle(
@@ -112,6 +224,8 @@ class LocalAuthHandlersTest {
                 email = " Yuniel@Example.com ",
                 password = validPassword,
                 username = " yuniel ",
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
             ),
         )
 
@@ -154,6 +268,7 @@ class LocalAuthHandlersTest {
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
+            recordConsentHandler = recordConsentHandler(),
         )
 
         val result = handler.handle(
@@ -161,6 +276,8 @@ class LocalAuthHandlersTest {
                 email = " Yuniel@Example.com ",
                 password = validPassword,
                 username = "   ",
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
             ),
         )
 
@@ -185,10 +302,19 @@ class LocalAuthHandlersTest {
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
+            recordConsentHandler = recordConsentHandler(),
         )
 
         try {
-            handler.handle(RegisterUserCommand("yuniel@example.com", validPassword, "yuniel"))
+            handler.handle(
+                RegisterUserCommand(
+                    email = "yuniel@example.com",
+                    password = validPassword,
+                    username = "yuniel",
+                    confirmedAgeEligibility = true,
+                    acceptedTermsVersion = "terms-v1.0.0",
+                ),
+            )
             throw AssertionError("Expected UserAlreadyExistsException")
         } catch (e: UserAlreadyExistsException) {
             assertTrue(e.message?.contains("yuniel@example.com") == true)
@@ -841,5 +967,29 @@ class LocalAuthHandlersTest {
             order?.add("event:publish")
             published.add(event)
         }
+    }
+
+    private fun recordConsentHandler(
+        order: MutableList<String>? = null,
+        recordedPurposes: MutableList<String> = mutableListOf(),
+    ): RecordConsentHandler {
+        val handler = mockk<RecordConsentHandler>()
+        coEvery { handler.handle(any()) } answers {
+            val command = firstArg<RecordConsentCommand>()
+            order?.add("consent:record")
+            recordedPurposes.add(command.purpose)
+            ConsentRecord(
+                id = ConsentRecordId("test-cs-${java.util.UUID.randomUUID()}"),
+                workspaceId = command.workspaceId,
+                subjectReference = command.subjectReference,
+                consentType = command.consentType,
+                purpose = command.purpose,
+                policyVersion = command.policyVersion,
+                source = command.source,
+                locale = command.locale,
+                givenAt = java.time.Instant.now(),
+            )
+        }
+        return handler
     }
 }
