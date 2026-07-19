@@ -13,7 +13,7 @@ export const usePublicCapabilitiesStore = defineStore('public-capabilities', () 
 
   const registrationEnabled = computed(() => _registrationEnabled.value)
 
-  async function load() {
+  async function load(): Promise<void> {
     if (_loadPromise) return _loadPromise
     if (_loaded.value) return
 
@@ -21,7 +21,7 @@ export const usePublicCapabilitiesStore = defineStore('public-capabilities', () 
     return _loadPromise
   }
 
-  async function _load() {
+  async function _load(): Promise<void> {
     if (isLoading.value) return
 
     isLoading.value = true
@@ -36,7 +36,6 @@ export const usePublicCapabilitiesStore = defineStore('public-capabilities', () 
       error.value = err instanceof Error ? err.message : 'Failed to load capabilities'
       // Fail-closed: if the capability endpoint is unreachable, treat registration as disabled
       _registrationEnabled.value = false
-      _loaded.value = true
       capabilityChecked.value = true
     } finally {
       isLoading.value = false

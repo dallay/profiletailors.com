@@ -15,9 +15,7 @@ const router = useRouter()
 const capabilities = usePublicCapabilitiesStore()
 
 onMounted(() => {
-  if (isRegisterMode.value) {
-    capabilities.load()
-  }
+  capabilities.load()
 })
 
 const isRegisterMode = computed(() => route.name === 'register')
@@ -283,13 +281,13 @@ async function handleSubmit() {
           <div class="mt-6 flex items-center justify-between gap-4 border-t border-border-subtle pt-5 text-sm">
             <span class="text-text-secondary">{{ $t(isRegisterMode ? 'auth.alternateLabelRegister' : 'auth.alternateLabelLogin') }}</span>
             <RouterLink
-              v-if="!isRegisterMode && showRegistrationLink"
+              v-if="isRegisterMode || showRegistrationLink"
               :to="alternateRoute"
               class="font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-text-display transition-opacity hover:opacity-70"
             >
-              {{ $t('auth.alternateActionLogin') }}
+              {{ $t(isRegisterMode ? 'auth.alternateActionRegister' : 'auth.alternateActionLogin') }}
             </RouterLink>
-            <span v-else-if="!isRegisterMode" class="font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">
+            <span v-else class="font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">
               {{ $t('auth.registrationClosed') }}
             </span>
           </div>

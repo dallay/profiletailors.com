@@ -4,7 +4,7 @@ import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.RegistrationDisabledException
 import com.profiletailors.smp.identity.application.UnverifiedEmailException
-import org.junit.jupiter.api.Assertions.assertEquals
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -24,14 +24,14 @@ class IdentityProblemDetailsHandlerTest {
     private val handler = IdentityProblemDetailsHandler()
 
     @Test
-    fun `registration disabled maps to exact problem detail`() {
+    fun `should map to exact problem detail when registration disabled`() {
         val result = handler.handle(RegistrationDisabledException())
 
-        assertEquals(HttpStatus.FORBIDDEN.value(), result.status)
-        assertEquals("Registration disabled", result.title)
-        assertEquals(URI("/problems/registration-disabled"), result.type)
-        assertEquals("Registration is not available.", result.detail)
-        assertEquals("registration_disabled", result.properties?.get("code"))
+        result.status shouldBe HttpStatus.FORBIDDEN.value()
+        result.title shouldBe "Registration disabled"
+        result.type shouldBe URI("/problems/registration-disabled")
+        result.detail shouldBe "Registration is not available."
+        result.properties?.get("code") shouldBe "registration_disabled"
     }
 
     @ParameterizedTest

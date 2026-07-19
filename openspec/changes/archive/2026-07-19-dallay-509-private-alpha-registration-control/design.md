@@ -8,18 +8,18 @@ Add one fail-safe Identity infrastructure property and enforce it at the only pr
 
 | Decision | Options / tradeoff | Choice and rationale |
 |---|---|---|
-| Gate placement | Controller is narrow but does not cover hypothetical internal callers; handler policy broadens scope and couples runtime availability to the use case. | Gate at the start of `LocalAuthController.register`, before command construction/dispatch. `POST /api/auth/register` is the sole current registration entry, so this proves zero dispatch/side effects without speculative policy infrastructure. Future inbound registration paths must add equivalent enforcement deliberately. |
+| Gate placement | Controller is narrow but does not cover hypothetical internal callers; handler policy broadens scope and couples runtime availability to the use case. | Gate at the start of `RegisterUserHandler.handle`, before user creation or side effects. The handler obtains the registration-enabled policy through a `RegistrationAvailabilityPort` implemented by `RegistrationAvailabilityAdapter`. This ensures every caller dispatching `RegisterUserCommand` observes the same constraint, not just the HTTP controller. |
 | Configuration | Build-time SPA flag can drift; generic config API leaks operations data. | `RegistrationConfigurationProperties` with prefix `app.identity.registration`, field `enabled: Boolean = false`; bind YAML `enabled: ${SMP_REGISTRATION_ENABLED:false}`. Backend value is authoritative and non-secret. |
-| Capability projection | CQRS query adds ceremony for a static infrastructure value; direct config projection is minimal. | `PublicCapabilitiesController` returns an immutable `PublicCapabilitiesResponse(registrationEnabled)` directly from typed properties. Only `GET /api/capabilities/public` is permitted publicly. |
+| Capability projection | CQRS query adds ceremony for a static infrastructure value; direct config projection is minimal. | `PublicCapabilitiesController` invokes `GetPublicCapabilitiesHandler` with a `GetPublicCapabilitiesQuery`, which delegates to `RegistrationAvailabilityPort` and returns `PublicCapabilities(registrationEnabled)`. This follows the project's CQRS pattern and keeps infrastructure concerns out of the application layer. Only `GET /api/capabilities/public` is permitted publicly. |
 | Vue state | Auth store risks coupling capability failure to session hydration; ad-hoc fetch duplicates state between router/view. | Separate `public-capabilities.store.ts` with cached, shared `load()` and fail-closed `registrationEnabled`. Router loads only for `/register`; `AuthView` loads independently without delaying login. |
 
 ## Data Flow
 
 ```text
-GET /api/capabilities/public -> PublicCapabilitiesController -> typed property -> Vue capability store
-POST /api/auth/register -> LocalAuthController -> enabled? -> Mediator -> existing atomic handler
-                                      | false
-                                      -> RegistrationDisabledException -> Problem Details 403
+GET /api/capabilities/public -> PublicCapabilitiesController -> Mediator -> GetPublicCapabilitiesHandler -> RegistrationAvailabilityPort -> Vue capability store
+POST /api/auth/register -> LocalAuthController -> Mediator -> RegisterUserHandler -> enabled? -> existing atomic workflow
+                                                                         | false
+                                                                         -> RegistrationDisabledException -> Problem Details 403
 ```
 
 ## File Changes
