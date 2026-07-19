@@ -67,10 +67,10 @@ pnpm test:e2e:media:mocked
 Target one scenario:
 
 ```bash
-pnpm test:e2e:media:mocked -- --grep "ML-COMPOSER-014"
+pnpm test:e2e:media:mocked -- --grep "ML-COMPOSER-015"
 ```
 
-### Run real media smoke lane
+### Run real composer smoke lane
 
 Required environment:
 
