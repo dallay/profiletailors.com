@@ -75,7 +75,8 @@ class PostgresTestContainerSupportTest {
         }
 
         assertEquals(
-            "${PostgresTestContainerSupport.PASSWORD_ENV} must be set to run PostgreSQL-backed tests",
+            "${PostgresTestContainerSupport.PASSWORD_ENV} must be set to run PostgreSQL-backed tests " +
+                "(e.g., export SMP_DB_TEST_PASSWORD=\$SMP_DB_PASSWORD)",
             ex.message,
         )
     }
@@ -87,7 +88,8 @@ class PostgresTestContainerSupportTest {
         }
 
         assertEquals(
-            "${PostgresTestContainerSupport.PASSWORD_ENV} must be set to run PostgreSQL-backed tests",
+            "${PostgresTestContainerSupport.PASSWORD_ENV} must be set to run PostgreSQL-backed tests " +
+                "(e.g., export SMP_DB_TEST_PASSWORD=\$SMP_DB_PASSWORD)",
             ex.message,
         )
     }
