@@ -11,8 +11,10 @@ const translations = { en, es } as const
 
 export type Translations = typeof en
 
-/** Legal publication placeholder strings */
-export type LegalPolicy = Translations['legal']['publication']
+/** Shape of any single legal policy section from the i18n structure */
+export type LegalPolicy = Translations['legal']['privacy']
+/** All legal translations (privacy, terms, cookies, aup) */
+export type LegalTranslations = Translations['legal']
 
 export function getLocaleFromUrl(url: URL): Locale {
   const pathname = url.pathname
