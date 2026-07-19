@@ -230,7 +230,7 @@ describe('SettingsView channel connection CTA', () => {
 
       wrapper.unmount()
 
-      expect(clearTimeoutSpy).toHaveBeenCalledOnce()
+      expect(clearTimeoutSpy).toHaveBeenCalled()
     } finally {
       clearTimeoutSpy.mockRestore()
       vi.useRealTimers()

@@ -31,7 +31,7 @@ class LinkedInCredentialGatewayTest : PostgresDatabaseTestBase() {
     @BeforeEach
     fun setUp() {
         val properties = PublishingCredentialsProperties().apply {
-            encryptionKey = "dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI="
+            key = "dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI="
         }
         encryptionService = CredentialEncryptionService(properties)
         gateway = R2dbcLinkedInCredentialGateway(databaseClient, encryptionService)
@@ -208,7 +208,7 @@ class CredentialEncryptionServiceKeyValidationTest {
     fun `init throws IllegalArgumentException for key of invalid size`() {
         val properties = PublishingCredentialsProperties()
         // 8 bytes = 64 bits — not a valid AES key size (must be 128/192/256)
-        properties.encryptionKey = "dGVzdGtleQ==" // 8 bytes base64
+        properties.key = "dGVzdGtleQ==" // 8 bytes base64
 
         val exception = assertThrows(IllegalArgumentException::class.java) {
             CredentialEncryptionService(properties)

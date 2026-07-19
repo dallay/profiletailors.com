@@ -55,19 +55,19 @@ The Dashboard SPA (`apps/web/app`) E2E test matrix officially excludes WebKit (D
 From repo root:
 
 ```bash
-just app-test-e2e-media-mocked-composer
+just app-test-e2e-media-mocked
 ```
 
 From `apps/web/app`:
 
 ```bash
-pnpm test:e2e:media:mocked:composer
+pnpm test:e2e:media:mocked
 ```
 
 Target one scenario:
 
 ```bash
-pnpm test:e2e:media:mocked:composer -- --grep "ML-COMPOSER-015"
+pnpm test:e2e:media:mocked -- --grep "ML-COMPOSER-015"
 ```
 
 ### Run real composer smoke lane
@@ -81,13 +81,13 @@ Required environment:
 From repo root:
 
 ```bash
-just app-test-e2e-media-real-composer
+just app-test-e2e-media-real
 ```
 
 From `apps/web/app`:
 
 ```bash
-pnpm test:e2e:media:real:composer
+pnpm test:e2e:media:real
 ```
 
 ### Aggregated media lane
@@ -99,8 +99,7 @@ just app-test-e2e-media
 This runs:
 
 1. `app-test-e2e-media-mocked`
-2. `app-test-e2e-media-mocked-composer`
-3. `app-test-e2e-media-real`
+2. `app-test-e2e-media-real`
 
 ## Troubleshooting
 
