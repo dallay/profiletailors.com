@@ -19,8 +19,11 @@ private const val ACTION_DSAR_COMPLETED = "dsar.completed"
  *
  * Creates an ACCESS request, aggregates the user's data across all
  * contexts, stores the result, and transitions to COMPLETED synchronously.
+ *
+ * NOTE: `@Service` is intentionally omitted until all port implementations
+ * (`IdentityDataPort`, `CredentialsDataPort`, etc.) are available in the
+ * infrastructure layer. See `PrivacyPorts.kt`.
  */
-@Service
 internal class SubmitAccessRequestHandler(
     private val repository: DataSubjectRequestRepository,
     private val dataAggregationService: DataAggregationService,
@@ -75,8 +78,10 @@ internal class SubmitAccessRequestHandler(
  * Creates an EXPORT request, aggregates the user's data, generates
  * a JSON export, uploads it, and transitions to COMPLETED with
  * a download URL.
+ *
+ * NOTE: `@Service` intentionally omitted — depends on `DataAggregationService`
+ * and `StoragePort`, which are not yet Spring beans.
  */
-@Service
 internal class SubmitExportRequestHandler(
     private val repository: DataSubjectRequestRepository,
     private val dataAggregationService: DataAggregationService,
@@ -135,8 +140,10 @@ internal class SubmitExportRequestHandler(
  * Validates the correction request via [AnonymizationService], applies
  * the identity field change, propagates to waitlist entries on email
  * change, then records the request as COMPLETED.
+ *
+ * NOTE: `@Service` intentionally omitted — depends on `AnonymizationService`
+ * which is not yet a Spring bean.
  */
-@Service
 internal class SubmitCorrectionRequestHandler(
     private val repository: DataSubjectRequestRepository,
     private val anonymizationService: AnonymizationService,
@@ -209,8 +216,11 @@ internal class SubmitCorrectionRequestHandler(
  * 1. Validate not sole-owner, then anonymize PII inside [AtomicTransactionRunner]
  * 2. Revoke sessions + remove memberships
  * 3. Mark media for garbage collection
+ *
+ * NOTE: `@Service` intentionally omitted — depends on `AnonymizationService`
+ * and multiple ports (`TenancyDataPort`, `PublishingDeletionPort`, etc.)
+ * that are not yet implemented in the infrastructure layer.
  */
-@Service
 internal class SubmitDeletionRequestHandler(
     private val repository: DataSubjectRequestRepository,
     private val anonymizationService: AnonymizationService,
