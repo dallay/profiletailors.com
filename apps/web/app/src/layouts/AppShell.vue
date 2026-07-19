@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
-import { Images, LayoutGrid } from '@lucide/vue'
+import { BarChart3, CalendarDays, Images, LayoutGrid, Settings } from '@lucide/vue'
 import {
   Sidebar,
   SidebarContent,
@@ -107,14 +107,14 @@ const navigationGroups = computed<NavGroup[]>(() => [
     label: t('workspace.title'),
     items: [
       { labelKey: 'nav.dashboard', to: '/', icon: LayoutGrid },
-      { labelKey: 'nav.scheduler', to: '/scheduler', icon: LayoutGrid },
-      { labelKey: 'nav.analytics', to: '/analytics', icon: LayoutGrid, badge: 'Live' },
+      { labelKey: 'nav.scheduler', to: '/scheduler', icon: CalendarDays },
+      { labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, badge: 'Live' },
       { labelKey: 'nav.media', to: '/media', icon: Images },
     ],
   },
   {
     label: t('nav.system'),
-    items: [{ labelKey: 'nav.settings', to: '/settings', icon: LayoutGrid }],
+    items: [{ labelKey: 'nav.settings', to: '/settings', icon: Settings }],
   },
 ])
 
