@@ -119,9 +119,10 @@ vi.mock('@/components/ui/button', () => ({
 
 vi.mock('@lucide/vue', () => {
   const stub = { template: '<svg />' }
+  const iconStub = (icon: string) => ({ template: `<svg data-icon="${icon}" />` })
   return {
-    Image: stub,
-    Calendar: stub,
+    Image: iconStub('image'),
+    Calendar: iconStub('calendar'),
     Check: stub,
     ChevronDown: stub,
     FileImage: stub,
@@ -266,6 +267,16 @@ describe('CreatePostModal.vue — media picker foundation', () => {
 
     expect(wrapper.html()).toContain('teleport start')
     expect(getByTestId('add-media-button').textContent).toContain('Add Media')
+  })
+
+  it('renders the media and scheduling icons used by the composer controls', async () => {
+    const wrapper = mountModal([makeChannel('ch-icons')])
+    await flushModal(wrapper)
+
+    expect(document.querySelectorAll('[data-icon="image"]')).toHaveLength(2)
+    expect(document.querySelectorAll('[data-icon="calendar"]')).toHaveLength(1)
+    expect(document.querySelector('imageicon')).toBeNull()
+    expect(document.querySelector('calendaricon')).toBeNull()
   })
 
   it('shows an Add Media entry and opens a staged picker from current draft attachments', async () => {

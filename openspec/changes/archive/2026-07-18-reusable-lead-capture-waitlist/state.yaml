@@ -1,5 +1,5 @@
 change: reusable-lead-capture-waitlist
-current_phase: verify
+current_phase: archive
 completed:
   - explore
   - propose
@@ -8,7 +8,8 @@ completed:
   - tasks
   - apply
   - verify
-next: archive
+  - archive
+next: none
 updated: 2026-07-18
 notes:
   - "P2 Codex security remediation (PR #378): RateLimitingFilter.getIdentifier now uses remoteAddress only; X-Forwarded-For is no longer trusted. ForwardedHeaderFilter / trusted-proxy wiring is deferred to a separate change."
