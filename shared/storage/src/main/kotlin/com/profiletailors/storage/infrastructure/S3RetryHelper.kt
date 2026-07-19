@@ -33,7 +33,7 @@ object S3RetryHelper {
             } catch (e: S3Exception) {
                 lastException = e
                 val statusCode = e.statusCode()
-                if (statusCode != null && statusCode in transientStatusCodes && attempt < maxAttempts) {
+                if (statusCode in transientStatusCodes && attempt < maxAttempts) {
                     val delayMs = min(baseDelayMs * (1 shl (attempt - 1)), 2000L)
                     logger.warn(
                         "Transient S3 error ($statusCode), retrying in ${delayMs}ms (attempt $attempt/$maxAttempts): ${e.message}",
