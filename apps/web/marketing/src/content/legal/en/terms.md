@@ -6,10 +6,6 @@ locale: en
 order: 2
 ---
 
-Profile Tailors is a social content planning and publishing platform operated by Dallay LLC, a Wyoming limited liability company with registered address at 30 N Gould St, Ste R, Sheridan, WY 82801, United States.
-
-The platform consists of a public marketing site, an early-access waitlist, a dashboard application, and an API. These Terms govern your access to and use of all surfaces of Profile Tailors, whether as a visitor, a registered early-access participant, or an authorised workspace member. If you are using Profile Tailors on behalf of an organisation, you represent that you have authority to bind that organisation and references to "you" in these Terms include that organisation.
-
 ## 1. Service Description and Contracting Party
 
 Profile Tailors is a social content planning and publishing platform operated by Dallay LLC, a Wyoming limited liability company with registered address at 30 N Gould St, Ste R, Sheridan, WY 82801, United States.

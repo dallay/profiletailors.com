@@ -14,23 +14,26 @@ interface Props {
 
 const { locale, slug } = Astro.props
 const entry = await getEntry('legal', `${locale}/${slug}`)
-const { Content } = await render(entry)
+const entryMissing = entry === undefined
+const { Content } = entryMissing ? { Content: undefined } : await render(entry)
 const t = useTranslations(locale)
 const publicationApproved = isLegalPublicationApproved()
 const canonicalPath = `/${slug}/`
 ---
 
 <Layout
-  title={entry.data.title}
-  description={entry.data.description}
+  title={entryMissing ? t.navigation.home : entry.data.title}
+  description={entryMissing ? undefined : entry.data.description}
   lang={locale}
   canonicalPath={canonicalPath}
   jsonLdType="WebPage"
-  noindex={!publicationApproved}
-  includeStructuredData={publicationApproved}
+  noindex={!publicationApproved || entryMissing}
+  includeStructuredData={!entryMissing && publicationApproved}
 >
   <div id="main-content" class="fade-in">
-    {publicationApproved ? (
+    {entryMissing ? (
+      <LegalPolicyUnavailable locale={locale} documentTitle={slug} />
+    ) : publicationApproved ? (
       <article class="max-w-3xl mx-auto px-6 py-16 sm:py-24">
 
       <header class="mb-12">

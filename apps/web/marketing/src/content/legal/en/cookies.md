@@ -6,8 +6,6 @@ locale: en
 order: 3
 ---
 
-Cookies are small text files stored on your device by your web browser. Browser storage (local storage, session storage) serves a similar purpose but is managed directly by the website's code rather than through HTTP headers. This policy describes the cookies and browser storage used by the Profile Tailors marketing site and dashboard, their purpose, and your choices.
-
 ## 1. What Are Cookies and Browser Storage
 
 Cookies are small text files stored on your device by your web browser. Browser storage (local storage, session storage) serves a similar purpose but is managed directly by the website's code rather than through HTTP headers. This policy describes the cookies and browser storage used by the Profile Tailors marketing site and dashboard, their purpose, and your choices.

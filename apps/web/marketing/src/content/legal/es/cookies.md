@@ -6,8 +6,6 @@ locale: es
 order: 3
 ---
 
-Las cookies son pequeños archivos de texto que tu navegador web almacena en tu dispositivo. El almacenamiento del navegador (local storage, session storage) cumple un propósito similar pero se gestiona directamente mediante el código del sitio web, no a través de cabeceras HTTP. Esta política describe las cookies y el almacenamiento del navegador utilizados por el sitio de marketing y el panel de Profile Tailors, su finalidad y tus opciones.
-
 ## 1. ¿Qué son las Cookies y el Almacenamiento del Navegador?
 
 Las cookies son pequeños archivos de texto que tu navegador web almacena en tu dispositivo. El almacenamiento del navegador (local storage, session storage) cumple un propósito similar pero se gestiona directamente mediante el código del sitio web, no a través de cabeceras HTTP. Esta política describe las cookies y el almacenamiento del navegador utilizados por el sitio de marketing y el panel de Profile Tailors, su finalidad y tus opciones.
