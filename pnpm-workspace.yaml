@@ -26,7 +26,7 @@ overrides:
   esbuild: ">=0.28.1"
   undici: ">=7.28.0 <8.0.0"
   hono: ">=4.12.27"
-  js-yaml: ">=4.2.0"
+  js-yaml: "4.1.0"
   devalue: ">=5.8.1"
   yaml: "^2.9.0"
   "@babel/core": ">=7.27.0"

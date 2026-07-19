@@ -712,7 +712,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
         status = BlobStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
         failureReason = row.get("failure_reason", String::class.java),
         orphanedAt = row.get("orphaned_at", OffsetDateTime::class.java)?.toInstant(),
-        gcFailureCount = row.get("gc_failure_count", java.lang.Integer::class.javaObjectType)?.toInt() ?: 0,
+        gcFailureCount = row.get("gc_failure_count", Int::class.javaObjectType) ?: 0,
         lastGcAttemptAt = row.get("last_gc_attempt_at", OffsetDateTime::class.java)?.toInstant(),
         createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
         updatedAt = row.get("updated_at", OffsetDateTime::class.java)?.toInstant(),
