@@ -105,9 +105,9 @@ just dev-frontend
 This starts both the marketing site and the dashboard application in parallel.
 
 - Marketing site: [http://localhost:4321](http://localhost:4321)
-- Dashboard app: [https://pt-app.localhost:1355](https://pt-app.localhost:1355) (requires [Portless](portless-setup.md))
+- Dashboard app: [https://pt-app.localhost](https://pt-app.localhost) (requires [Portless](portless-setup.md))
 
-**Prerequisite for dashboard access**: The dashboard app requires Portless to be installed and running. See [Portless Setup](portless-setup.md) for installation instructions. The `just serve` and `just dev-frontend` commands auto-start the proxy on port 1355. For clean URLs without the port number, run `sudo portless proxy start` once first.
+**Prerequisite for dashboard access**: The dashboard app requires Portless to be installed and running. See [Portless Setup](portless-setup.md) for installation instructions. Run `portless proxy start` before accessing the dashboard URL.
 
 Run the full frontend CI subset:
 

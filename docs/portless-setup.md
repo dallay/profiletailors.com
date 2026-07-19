@@ -35,23 +35,14 @@ precedence: CLI flags > `package.json` > `portless.json` > defaults.
 
 ### First-time setup
 
-Start the portless proxy (requires sudo for port 443, or use port 1355 for
-no-sudo development):
+Start the portless proxy (requires sudo for port 443):
 
 ```bash
-# With sudo for clean URLs (port 443):
-sudo portless proxy start
-
-# Without sudo (port 1355, URLs include :1355):
-portless proxy start --port 1355 --https
+portless proxy start
 ```
 
-The `just serve` and `just dev-frontend` commands auto-start the proxy on port 1355.
-If you prefer clean URLs without the port number, run `sudo portless proxy start`
-once before using those commands.
-
-Portless creates a loopback network interface and installs a local TLS certificate
-authority. After the initial setup, the proxy runs in the background.
+This creates a loopback network interface and installs a local TLS certificate authority. After
+the initial setup, the proxy runs in the background.
 
 Optionally, install it as a persistent launchd service (survives reboots):
 

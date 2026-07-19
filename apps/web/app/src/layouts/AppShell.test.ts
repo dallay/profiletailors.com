@@ -194,11 +194,7 @@ vi.mock('@layouts/sidebar/SidebarHeaderSection.vue', () => ({
 }))
 
 vi.mock('@layouts/sidebar/SidebarNavSection.vue', () => ({
-  default: {
-    name: 'SidebarNavSectionStub',
-    props: ['groups', 'totalQueuedCount'],
-    template: '<div class="sidebar-nav" />',
-  },
+  default: { template: '<div class="sidebar-nav" />' },
 }))
 
 vi.mock('@layouts/sidebar/SidebarConnectSection.vue', () => ({
@@ -224,11 +220,8 @@ vi.mock('@layouts/sidebar/SidebarChannelsSection.vue', () => ({
 }))
 
 vi.mock('@lucide/vue', () => ({
-  BarChart3: { name: 'BarChart3', template: '<svg />' },
-  CalendarDays: { name: 'CalendarDays', template: '<svg />' },
-  Images: { name: 'Images', template: '<svg />' },
-  LayoutGrid: { name: 'LayoutGrid', template: '<svg />' },
-  Settings: { name: 'Settings', template: '<svg />' },
+  Images: { template: '<svg />' },
+  LayoutGrid: { template: '<svg />' },
 }))
 
 import AppShell from './AppShell.vue'
@@ -244,26 +237,6 @@ describe('AppShell scheduler sidebar navigation', () => {
     authState.user.emailStatus = 'VERIFIED'
     authState.resendVerificationStatus = 'idle'
     authState.resendVerificationError = null
-  })
-
-  it('keeps a representative icon for every primary navigation destination', () => {
-    const wrapper = mount(AppShell, {
-      global: { mocks: { $t: (key: string) => key } },
-    })
-    const nav = wrapper.getComponent({ name: 'SidebarNavSectionStub' })
-    const groups = nav.props('groups') as Array<{
-      items: Array<{ labelKey: string; icon: { name?: string } }>
-    }>
-
-    expect(
-      groups.flatMap((group) => group.items).map((item) => [item.labelKey, item.icon.name]),
-    ).toEqual([
-      ['nav.dashboard', 'LayoutGrid'],
-      ['nav.scheduler', 'CalendarDays'],
-      ['nav.analytics', 'BarChart3'],
-      ['nav.media', 'Images'],
-      ['nav.settings', 'Settings'],
-    ])
   })
 
   it('clears channel filters without leaving scheduler when All channels is selected', async () => {

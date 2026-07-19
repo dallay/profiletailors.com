@@ -45,7 +45,7 @@ Out of scope:
 
 - Critical patches are released as soon as possible
 - Regular security updates are included in our release cycle
-- All releases are documented in the [Changelog](CHANGELOG.md)
+- All releases are documented in the [Changelog](apps/web/marketing/CHANGELOG.md)
 
 ### Disclosure Policy
 

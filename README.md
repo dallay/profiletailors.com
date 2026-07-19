@@ -122,7 +122,7 @@ just dev-frontend  # starts both Astro and Vue dev servers
 ```
 
 - Marketing site: [http://localhost:4321](http://localhost:4321)
-- Dashboard app: [https://pt-app.localhost:1355](https://pt-app.localhost:1355) (requires [Portless](docs/portless-setup.md))
+- Dashboard app: [https://pt-app.localhost](https://pt-app.localhost) (requires [Portless](docs/portless-setup.md))
 
 ### Command Hub
 

@@ -65,6 +65,6 @@ The endpoint is idempotent: duplicate email joins return the same `accepted` res
 
 ## Related
 
-- ADR: [ADR-0011 Reusable Lead Capture Waitlist Capability](../../docs/architecture/adr/0011-reusable-lead-capture-waitlist.md)
+- ADR: [ADR-0011 Reusable Lead Capture Waitlist Capability](../../../../docs/architecture/adr/0011-reusable-lead-capture-waitlist.md)
 - Linear Epic: DALLAY-436
 - Linear Issues: DALLAY-437 through DALLAY-443

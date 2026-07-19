@@ -5,7 +5,7 @@
 > unresolved publication blockers: incomplete controller identity, unverified production
 > providers and cookies, unsupported retention promises, an AGPL conflict, placeholder governing
 > law, missing contract-acceptance evidence, and incomplete market-specific requirements. See
-> [`docs/compliance/legal-publication-gate.md`](../../../docs/compliance/legal-publication-gate.md).
+> [`docs/compliance/legal-publication-gate.md`](../../../../docs/compliance/legal-publication-gate.md).
 > These pages MUST NOT be treated as approved for production publication.
 
 **Status**: SUPERSEDED — BLOCKED FOR PUBLICATION
