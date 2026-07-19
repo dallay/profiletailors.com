@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { getLocaleFromUrl, useTranslations } from './utils';
 import {
   LEGAL_PUBLICATION_STATUS,
   legalPublicationStatus,
+  isLegalPublicationApproved,
 } from '../legal/legal-publication';
 
 describe('i18n utils', () => {
@@ -41,22 +47,33 @@ describe('i18n utils', () => {
     });
   });
 
-  describe('legal translations', () => {
-    it('EN has legal key with all four policy sections', () => {
-      const t = useTranslations(new URL('https://example.com/'));
-      expect(t.legal.privacy).toBeDefined();
-      expect(t.legal.terms).toBeDefined();
-      expect(t.legal.cookies).toBeDefined();
-      expect(t.legal.aup).toBeDefined();
+  describe('legal content collection', () => {
+    it('has markdown files for all four policy sections in EN', () => {
+      const slugs = ['privacy', 'terms', 'cookies', 'acceptable-use'];
+      for (const slug of slugs) {
+        const filePath = path.resolve(
+          __dirname,
+          '../../src/content/legal/en',
+          `${slug}.md`,
+        );
+        const content = fs.readFileSync(filePath, 'utf-8');
+        expect(content).toContain('---');
+        expect(content).toContain('title:');
+      }
     });
 
-    it('ES has same legal section structure as EN', () => {
-      const tEn = useTranslations(new URL('https://example.com/'));
-      const tEs = useTranslations(new URL('https://example.com/es/'));
-      expect(Object.keys(tEs.legal.privacy)).toEqual(Object.keys(tEn.legal.privacy));
-      expect(Object.keys(tEs.legal.terms)).toEqual(Object.keys(tEn.legal.terms));
-      expect(Object.keys(tEs.legal.cookies)).toEqual(Object.keys(tEn.legal.cookies));
-      expect(Object.keys(tEs.legal.aup)).toEqual(Object.keys(tEn.legal.aup));
+    it('has matching markdown files for all policy sections in ES', () => {
+      const slugs = ['privacy', 'terms', 'cookies', 'acceptable-use'];
+      for (const slug of slugs) {
+        const filePath = path.resolve(
+          __dirname,
+          '../../src/content/legal/es',
+          `${slug}.md`,
+        );
+        const content = fs.readFileSync(filePath, 'utf-8');
+        expect(content).toContain('---');
+        expect(content).toContain('title:');
+      }
     });
 
     it('footer has legalLinks with 4 entries', () => {
@@ -70,15 +87,24 @@ describe('i18n utils', () => {
       });
     });
 
-    it('keeps legal policy publication blocked until the evidence gate is approved', () => {
-      expect(legalPublicationStatus).toBe(LEGAL_PUBLICATION_STATUS.BLOCKED);
+    it('legal policy publication is approved and rendering content', () => {
+      expect(legalPublicationStatus).toBe(LEGAL_PUBLICATION_STATUS.APPROVED);
+      expect(isLegalPublicationApproved()).toBe(true);
     });
 
-    it('does not preserve unsupported provider or contractual claims in either locale', () => {
-      const legalCopy = JSON.stringify({
-        en: useTranslations(new URL('https://example.com/')).legal,
-        es: useTranslations(new URL('https://example.com/es/')).legal,
-      });
+    it('does not contain unsupported provider or contractual claims in markdown files', () => {
+      const locales = ['en', 'es'];
+      const slugs = ['privacy', 'terms', 'cookies', 'acceptable-use'];
+      const legalCopy = locales
+        .flatMap((locale) =>
+          slugs.map((slug) =>
+            fs.readFileSync(
+              path.resolve(__dirname, `../../src/content/legal/${locale}/${slug}.md`),
+              'utf-8',
+            ),
+          ),
+        )
+        .join('\n');
       const unsupportedClaims = [
         'Dallay (Profile Tailors)',
         'Vercel',
