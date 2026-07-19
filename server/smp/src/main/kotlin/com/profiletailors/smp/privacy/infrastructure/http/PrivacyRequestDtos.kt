@@ -25,10 +25,9 @@ data class SubmitPrivacyRequestDto(
     val newUsername: String?,
 ) {
     @AssertTrue(message = "Either newEmail or newUsername must be provided for CORRECTION requests")
-    fun isCorrectionFieldsValid(): Boolean =
-        !type.equals("CORRECTION", ignoreCase = true) ||
-            !newEmail.isNullOrBlank() ||
-            !newUsername.isNullOrBlank()
+    fun isCorrectionFieldsValid(): Boolean = !type.equals("CORRECTION", ignoreCase = true) ||
+        !newEmail.isNullOrBlank() ||
+        !newUsername.isNullOrBlank()
 }
 
 /**

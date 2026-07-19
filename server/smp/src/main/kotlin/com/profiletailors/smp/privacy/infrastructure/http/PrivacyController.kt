@@ -136,49 +136,47 @@ class PrivacyController(
         request: SubmitPrivacyRequestDto,
         principalId: String,
         email: String,
-    ): CommandWithResult<DataSubjectRequestResponse> {
-        return when (request.type.uppercase()) {
-            "ACCESS" -> SubmitAccessRequestCommand(
-                requestedByPrincipalId = principalId,
-                requestedByEmail = email,
-                workspaceId = null,
-                notes = request.notes,
-            )
-            "EXPORT" -> SubmitExportRequestCommand(
-                requestedByPrincipalId = principalId,
-                requestedByEmail = email,
-                workspaceId = null,
-                notes = request.notes,
-            )
-            "CORRECTION" -> {
-                val field = when {
-                    !request.newEmail.isNullOrBlank() -> CorrectionField.EMAIL
-                    !request.newUsername.isNullOrBlank() -> CorrectionField.USERNAME
-                    else -> throw ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Either newEmail or newUsername is required for CORRECTION requests",
-                    )
-                }
-                SubmitCorrectionRequestCommand(
-                    requestedByPrincipalId = principalId,
-                    requestedByEmail = email,
-                    field = field,
-                    newValue = request.newEmail ?: request.newUsername!!,
-                    workspaceId = null,
-                    notes = request.notes,
+    ): CommandWithResult<DataSubjectRequestResponse> = when (request.type.uppercase()) {
+        "ACCESS" -> SubmitAccessRequestCommand(
+            requestedByPrincipalId = principalId,
+            requestedByEmail = email,
+            workspaceId = null,
+            notes = request.notes,
+        )
+        "EXPORT" -> SubmitExportRequestCommand(
+            requestedByPrincipalId = principalId,
+            requestedByEmail = email,
+            workspaceId = null,
+            notes = request.notes,
+        )
+        "CORRECTION" -> {
+            val field = when {
+                !request.newEmail.isNullOrBlank() -> CorrectionField.EMAIL
+                !request.newUsername.isNullOrBlank() -> CorrectionField.USERNAME
+                else -> throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Either newEmail or newUsername is required for CORRECTION requests",
                 )
             }
-            "DELETION" -> SubmitDeletionRequestCommand(
+            SubmitCorrectionRequestCommand(
                 requestedByPrincipalId = principalId,
                 requestedByEmail = email,
+                field = field,
+                newValue = request.newEmail ?: request.newUsername!!,
                 workspaceId = null,
                 notes = request.notes,
             )
-            else -> throw ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Invalid request type: ${request.type}. Must be ACCESS, EXPORT, CORRECTION, or DELETION",
-            )
         }
+        "DELETION" -> SubmitDeletionRequestCommand(
+            requestedByPrincipalId = principalId,
+            requestedByEmail = email,
+            workspaceId = null,
+            notes = request.notes,
+        )
+        else -> throw ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "Invalid request type: ${request.type}. Must be ACCESS, EXPORT, CORRECTION, or DELETION",
+        )
     }
 
     // ——————— Response mapping ———————
@@ -191,12 +189,13 @@ class PrivacyController(
         downloadUrl = if (type == "EXPORT") resultRef else null,
     )
 
-    private fun DataSubjectRequestResponse.toStatusResponse(): PrivacyRequestStatusResponseDto = PrivacyRequestStatusResponseDto(
-        id = id,
-        type = type,
-        status = status,
-        result = if (resultRef != null) mapOf("ref" to resultRef) else null,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-    )
+    private fun DataSubjectRequestResponse.toStatusResponse(): PrivacyRequestStatusResponseDto =
+        PrivacyRequestStatusResponseDto(
+            id = id,
+            type = type,
+            status = status,
+            result = if (resultRef != null) mapOf("ref" to resultRef) else null,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
 }

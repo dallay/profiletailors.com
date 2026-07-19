@@ -26,9 +26,7 @@ import java.time.ZoneOffset
  * @since 1.0.0
  */
 @Repository
-class R2dbcDataSubjectRequestRepository(
-    private val databaseClient: DatabaseClient,
-) : DataSubjectRequestRepository {
+class R2dbcDataSubjectRequestRepository(private val databaseClient: DatabaseClient) : DataSubjectRequestRepository {
 
     override suspend fun save(request: DataSubjectRequest) {
         databaseClient.sql(
@@ -62,7 +60,13 @@ class R2dbcDataSubjectRequestRepository(
             .bindNullable("rejectionReason", request.rejectionReason, String::class.java)
             .bind("createdAt", OffsetDateTime.ofInstant(request.createdAt, ZoneOffset.UTC))
             .bind("updatedAt", OffsetDateTime.ofInstant(request.updatedAt, ZoneOffset.UTC))
-            .bindNullable("completedAt", request.completedAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }, OffsetDateTime::class.java)
+            .bindNullable(
+                "completedAt",
+                request.completedAt?.let {
+                    OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
+                },
+                OffsetDateTime::class.java,
+            )
             .bind("expiresAt", OffsetDateTime.ofInstant(request.expiresAt, ZoneOffset.UTC))
             .then()
             .awaitSingleOrNull()

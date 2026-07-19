@@ -186,12 +186,10 @@ class PrivacyControllerWebTest {
         var lastSent: Any? = null
 
         @Suppress("UNCHECKED_CAST")
-        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse {
-            return when (query) {
-                is ListRequestsQuery -> listQueryResult as TResponse
-                is CheckRequestStatusQuery -> statusQueryResultById[query.requestId] as TResponse
-                else -> error("Unknown query: $query")
-            }
+        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = when (query) {
+            is ListRequestsQuery -> listQueryResult as TResponse
+            is CheckRequestStatusQuery -> statusQueryResultById[query.requestId] as TResponse
+            else -> error("Unknown query: $query")
         }
 
         @Suppress("UNCHECKED_CAST")

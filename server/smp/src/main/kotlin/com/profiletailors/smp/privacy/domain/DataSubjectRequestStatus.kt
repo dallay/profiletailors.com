@@ -12,7 +12,8 @@ enum class DataSubjectRequestStatus {
     PENDING,
     COMPLETED,
     REJECTED,
-    FAILED;
+    FAILED,
+    ;
 
     /**
      * Returns `true` when a transition from this status to [target] is valid.

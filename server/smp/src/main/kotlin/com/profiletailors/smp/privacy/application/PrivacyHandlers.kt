@@ -159,10 +159,12 @@ internal class SubmitCorrectionRequestHandler(
         }
 
         val now = clock.instant()
-        val correctionData = mapToJson(mapOf(
-            "field" to command.field.name.lowercase(),
-            "newValue" to command.newValue,
-        ))
+        val correctionData = mapToJson(
+            mapOf(
+                "field" to command.field.name.lowercase(),
+                "newValue" to command.newValue,
+            ),
+        )
 
         val request = DataSubjectRequest.create(
             id = DataSubjectRequestId.random(),
@@ -285,13 +287,11 @@ internal class SubmitDeletionRequestHandler(
  * Returns the current state of a single request by ID, or null if not found.
  */
 @Service
-internal class CheckRequestStatusHandler(
-    private val repository: DataSubjectRequestRepository,
-) : QueryHandler<CheckRequestStatusQuery, DataSubjectRequestResponse?> {
+internal class CheckRequestStatusHandler(private val repository: DataSubjectRequestRepository) :
+    QueryHandler<CheckRequestStatusQuery, DataSubjectRequestResponse?> {
 
-    override suspend fun handle(query: CheckRequestStatusQuery): DataSubjectRequestResponse? {
-        return repository.findById(query.requestId)?.toResponse()
-    }
+    override suspend fun handle(query: CheckRequestStatusQuery): DataSubjectRequestResponse? =
+        repository.findById(query.requestId)?.toResponse()
 }
 
 /**
@@ -300,15 +300,13 @@ internal class CheckRequestStatusHandler(
  * Returns all requests for a given principal, ordered by most recent first.
  */
 @Service
-internal class ListRequestsHandler(
-    private val repository: DataSubjectRequestRepository,
-) : QueryHandler<ListRequestsQuery, List<DataSubjectRequestResponse>> {
+internal class ListRequestsHandler(private val repository: DataSubjectRequestRepository) :
+    QueryHandler<ListRequestsQuery, List<DataSubjectRequestResponse>> {
 
-    override suspend fun handle(query: ListRequestsQuery): List<DataSubjectRequestResponse> {
-        return repository.findByRequester(query.requesterPrincipalId)
+    override suspend fun handle(query: ListRequestsQuery): List<DataSubjectRequestResponse> =
+        repository.findByRequester(query.requesterPrincipalId)
             .map { it.toResponse() }
             .sortedByDescending { it.createdAt }
-    }
 }
 
 // ——————— Response mapping ———————

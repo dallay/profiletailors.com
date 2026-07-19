@@ -45,30 +45,48 @@ class DataAggregationService(
         val waitlistEntries = leadCapturePort.getWaitlistEntries(email)
 
         return buildMap {
-            put("_metadata", mapOf(
-                "generatedAt" to Instant.now().toString(),
-                "principalId" to principalId,
-            ))
+            put(
+                "_metadata",
+                mapOf(
+                    "generatedAt" to Instant.now().toString(),
+                    "principalId" to principalId,
+                ),
+            )
             put("identity", identityFacts)
-            put("credentials", mapOf(
-                "sessions" to sessions,
-                "apiKeys" to apiKeys,
-            ))
+            put(
+                "credentials",
+                mapOf(
+                    "sessions" to sessions,
+                    "apiKeys" to apiKeys,
+                ),
+            )
             put("workspaces", workspaceMemberships)
-            put("publishing", mapOf(
-                "socialConnections" to socialConnections,
-                "socialAccounts" to socialAccounts,
-                "publications" to publications,
-            ))
-            put("media", mapOf(
-                "assets" to mediaAssets,
-            ))
-            put("governance", mapOf(
-                "consentRecords" to consentRecords,
-            ))
-            put("leadCapture", mapOf(
-                "waitlistEntries" to waitlistEntries,
-            ))
+            put(
+                "publishing",
+                mapOf(
+                    "socialConnections" to socialConnections,
+                    "socialAccounts" to socialAccounts,
+                    "publications" to publications,
+                ),
+            )
+            put(
+                "media",
+                mapOf(
+                    "assets" to mediaAssets,
+                ),
+            )
+            put(
+                "governance",
+                mapOf(
+                    "consentRecords" to consentRecords,
+                ),
+            )
+            put(
+                "leadCapture",
+                mapOf(
+                    "waitlistEntries" to waitlistEntries,
+                ),
+            )
         }
     }
 }

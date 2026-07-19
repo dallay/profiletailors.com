@@ -2,8 +2,6 @@ package com.profiletailors.smp.privacy.application
 
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.privacy.domain.DataSubjectRequest
-import com.profiletailors.smp.privacy.domain.DataSubjectRequestId
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestRepository
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestStatus
 import com.profiletailors.smp.privacy.domain.RequestType
@@ -129,11 +127,13 @@ class SubmitExportRequestHandlerTest {
         handler.handle(command)
 
         coVerify {
-            repository.save(match { request ->
-                request.requestType == RequestType.EXPORT &&
-                    request.status == DataSubjectRequestStatus.COMPLETED &&
-                    request.resultRef == "https://storage.example.com/export.json"
-            })
+            repository.save(
+                match { request ->
+                    request.requestType == RequestType.EXPORT &&
+                        request.status == DataSubjectRequestStatus.COMPLETED &&
+                        request.resultRef == "https://storage.example.com/export.json"
+                },
+            )
         }
     }
 }
@@ -149,7 +149,8 @@ class SubmitCorrectionRequestHandlerTest {
 
     @Test
     fun `handle creates CORRECTION request with COMPLETED status`() = runTest {
-        coEvery { anonymizationService.verifyCorrection(any(), any(), any()) } returns AnonymizationService.CorrectionResult.Success
+        coEvery { anonymizationService.verifyCorrection(any(), any(), any()) } returns
+            AnonymizationService.CorrectionResult.Success
         coEvery { anonymizationService.anonymizeWaitlistByEmail(any(), any()) } returns Unit
         coEvery { repository.save(any()) } returns Unit
 
@@ -170,7 +171,8 @@ class SubmitCorrectionRequestHandlerTest {
 
     @Test
     fun `handle propagates email change to waitlist`() = runTest {
-        coEvery { anonymizationService.verifyCorrection(any(), any(), any()) } returns AnonymizationService.CorrectionResult.Success
+        coEvery { anonymizationService.verifyCorrection(any(), any(), any()) } returns
+            AnonymizationService.CorrectionResult.Success
         coEvery { anonymizationService.anonymizeWaitlistByEmail(any(), any()) } returns Unit
         coEvery { repository.save(any()) } returns Unit
 
@@ -190,7 +192,8 @@ class SubmitCorrectionRequestHandlerTest {
 
     @Test
     fun `handle does NOT propagate username changes to waitlist`() = runTest {
-        coEvery { anonymizationService.verifyCorrection(any(), any(), any()) } returns AnonymizationService.CorrectionResult.Success
+        coEvery { anonymizationService.verifyCorrection(any(), any(), any()) } returns
+            AnonymizationService.CorrectionResult.Success
         coEvery { repository.save(any()) } returns Unit
 
         val command = SubmitCorrectionRequestCommand(
@@ -209,7 +212,8 @@ class SubmitCorrectionRequestHandlerTest {
 
     @Test
     fun `handle throws when principal not found`() = runTest {
-        coEvery { anonymizationService.verifyCorrection(any(), any(), any()) } returns AnonymizationService.CorrectionResult.NotFound
+        coEvery { anonymizationService.verifyCorrection(any(), any(), any()) } returns
+            AnonymizationService.CorrectionResult.NotFound
 
         val command = SubmitCorrectionRequestCommand(
             requestedByPrincipalId = "nonexistent",

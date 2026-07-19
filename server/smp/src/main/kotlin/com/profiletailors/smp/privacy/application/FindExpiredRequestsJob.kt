@@ -14,9 +14,7 @@ import java.time.Instant
  * @since 1.0.0
  */
 @Service
-class FindExpiredRequestsJob(
-    private val repository: DataSubjectRequestRepository,
-) {
+class FindExpiredRequestsJob(private val repository: DataSubjectRequestRepository) {
     private val logger = LoggerFactory.getLogger(FindExpiredRequestsJob::class.java)
 
     /**

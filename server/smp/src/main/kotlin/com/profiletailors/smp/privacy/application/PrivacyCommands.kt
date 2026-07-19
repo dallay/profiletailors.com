@@ -46,10 +46,6 @@ data class SubmitDeletionRequestCommand(
  * Queries for checking request status and listing requests.
  */
 
-data class CheckRequestStatusQuery(
-    val requestId: String,
-) : Query<DataSubjectRequestResponse?>
+data class CheckRequestStatusQuery(val requestId: String) : Query<DataSubjectRequestResponse?>
 
-data class ListRequestsQuery(
-    val requesterPrincipalId: String,
-) : Query<List<DataSubjectRequestResponse>>
+data class ListRequestsQuery(val requesterPrincipalId: String) : Query<List<DataSubjectRequestResponse>>

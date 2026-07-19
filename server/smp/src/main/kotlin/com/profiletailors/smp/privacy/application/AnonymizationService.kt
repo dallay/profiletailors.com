@@ -78,11 +78,7 @@ class AnonymizationService(
      * @return [CorrectionResult.Success] when the correction was applied,
      *         [CorrectionResult.NotFound] if no identity record was found.
      */
-    suspend fun verifyCorrection(
-        principalId: String,
-        field: CorrectionField,
-        newValue: String,
-    ): CorrectionResult {
+    suspend fun verifyCorrection(principalId: String, field: CorrectionField, newValue: String): CorrectionResult {
         val changed = when (field) {
             CorrectionField.EMAIL -> identityPort.correctUserIdentityEmail(principalId, newValue)
             CorrectionField.USERNAME -> identityPort.correctUserIdentityUsername(principalId, newValue)
@@ -118,8 +114,8 @@ class AnonymizationService(
     sealed interface CorrectionResult {
         /** The correction was applied successfully. */
         data object Success : CorrectionResult
+
         /** No identity record was found for the given principal. */
         data object NotFound : CorrectionResult
     }
 }
-

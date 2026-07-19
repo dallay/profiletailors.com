@@ -29,9 +29,7 @@ fun interface RateLimiter {
  * multi-instance deployments — use a Redis-based limiter for scale.
  */
 @Component
-class DefaultRateLimiter(
-    private val clock: Clock = Clock.systemUTC(),
-) : RateLimiter {
+class DefaultRateLimiter(private val clock: Clock = Clock.systemUTC()) : RateLimiter {
 
     private val requestCounts = ConcurrentHashMap<String, MutableList<Instant>>()
 

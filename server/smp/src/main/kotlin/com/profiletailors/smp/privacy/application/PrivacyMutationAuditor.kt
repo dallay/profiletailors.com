@@ -37,11 +37,7 @@ class PrivacyMutationAuditor(
      * @param requestId The DSAR request identifier
      * @param details Additional event details (type, status transitions, etc.)
      */
-    suspend fun recordSuccess(
-        action: String,
-        requestId: String,
-        details: Map<String, String> = emptyMap(),
-    ) {
+    suspend fun recordSuccess(action: String, requestId: String, details: Map<String, String> = emptyMap()) {
         val actor = principalContextProvider.require()
         auditHook.onMutation(
             MutationAuditFact(
