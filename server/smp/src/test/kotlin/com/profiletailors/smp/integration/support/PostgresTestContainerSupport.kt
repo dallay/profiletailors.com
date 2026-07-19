@@ -25,7 +25,7 @@ object PostgresTestContainerSupport {
      * matching the production policy. CI sets this in the workflow; local dev
      * can set it in the shell or a `gradle.properties` env block.
      */
-    const val PASSWORD_ENV = "SMP_POSTGRES_TEST_PASSWORD"
+    const val PASSWORD_ENV = "SMP_DB_TEST_PASSWORD"
 
     /**
      * Resolves the password at container-creation time. The value is sourced from
@@ -34,7 +34,10 @@ object PostgresTestContainerSupport {
     fun resolvePassword(envSupplier: (String) -> String? = System::getenv): String {
         val fromEnv = envSupplier(PASSWORD_ENV).orEmpty()
         if (fromEnv.isNotBlank()) return fromEnv
-        error("$PASSWORD_ENV must be set to run PostgreSQL-backed tests")
+        error(
+            "$PASSWORD_ENV must be set to run PostgreSQL-backed tests " +
+                "(e.g., export $PASSWORD_ENV=\$SMP_DB_PASSWORD)",
+        )
     }
 
     fun newContainer(databaseName: String = DATABASE, password: String = resolvePassword()): PostgreSQLContainer<*> =
