@@ -38,12 +38,12 @@ jobs:
 
       - name: Run backend tests
         env:
-          SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+          SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_DB_PASSWORD }}
         run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:test :shared:bus:test :shared:presentation:test :shared:security:test :shared:spring-boot-common:test :shared:storage:test :shared:shield:ratelimit:test --no-daemon
 
       - name: Generate backend coverage reports
         env:
-          SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+          SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_DB_PASSWORD }}
         run: ./gradlew :server:smp:koverXmlReport -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:koverXmlReport :shared:bus:koverXmlReport :shared:presentation:koverXmlReport :shared:security:koverXmlReport :shared:spring-boot-common:koverXmlReport :shared:storage:koverXmlReport :shared:shield:ratelimit:koverXmlReport --no-daemon
 
       - name: Verify backend coverage reports

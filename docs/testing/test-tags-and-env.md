@@ -14,7 +14,7 @@ Profile Tailors backend tests run with **no exclusions by default** in CI and lo
 
 **Setup:**
 1. Copy `.env.example` → `.env` at the project root
-2. Set `SMP_POSTGRES_TEST_PASSWORD` to any non-empty value (e.g., the same as `SMP_POSTGRES_PASSWORD`)
+2. Set `SMP_DB_TEST_PASSWORD` to any non-empty value (e.g., the same as `SMP_DB_PASSWORD`)
 3. Run `./bin/setup-env.sh` to create symlinks for subprojects
 
 **Example:**
