@@ -202,6 +202,14 @@ export async function resendVerification(email: string): Promise<void> {
   })
 }
 
+export async function fetchPublicCapabilities(): Promise<PublicCapabilitiesResponse> {
+  return request<PublicCapabilitiesResponse>('/api/capabilities/public', { method: 'GET' })
+}
+
+export type PublicCapabilitiesResponse = {
+  registrationEnabled: boolean
+}
+
 export type RenameWorkspaceResult = {
   workspaceId: string
   name: string

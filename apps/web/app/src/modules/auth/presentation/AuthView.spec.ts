@@ -11,6 +11,7 @@ const replace = vi.hoisted(() => vi.fn())
 const loginWithPassword = vi.hoisted(() => vi.fn())
 const registerWithPassword = vi.hoisted(() => vi.fn())
 const clearError = vi.hoisted(() => vi.fn())
+const publicCapabilitiesLoad = vi.hoisted(() => vi.fn())
 
 vi.mock('vue-router', () => ({
   useRoute: () => routeState,
@@ -24,6 +25,14 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
     clearError,
     loginWithPassword,
     registerWithPassword,
+  }),
+}))
+
+vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
+  usePublicCapabilitiesStore: () => ({
+    load: publicCapabilitiesLoad,
+    registrationEnabled: true,
+    capabilityChecked: true,
   }),
 }))
 
