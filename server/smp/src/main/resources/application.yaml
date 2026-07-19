@@ -16,6 +16,7 @@ spring:
   liquibase:
     enabled: ${SMP_LIQUIBASE_ENABLED:true}
     change-log: classpath:db/changelog/db.changelog-master.yaml
+    contexts: ${SMP_LIQUIBASE_CONTEXTS:prod}
     url: ${SMP_LIQUIBASE_JDBC_URL:jdbc:postgresql://localhost:5432/profiletailors_smp}
     user: ${SMP_DB_USERNAME:profiletailors}
     password: ${SMP_DB_PASSWORD:CHANGE_ME}
@@ -112,6 +113,7 @@ publishing:
   linkedin:
     client-id: ${SMP_LINKEDIN_CLIENT_ID:}
     client-secret: ${SMP_LINKEDIN_CLIENT_SECRET:}
+    state-signing-secret: ${SMP_LINKEDIN_STATE_SIGNING_SECRET:CHANGE_ME_LINKEDIN_STATE}
     redirect-uri: ${SMP_LINKEDIN_REDIRECT_URI:}
     scopes: ${SMP_LINKEDIN_SCOPES:w_member_social,openid,profile,email}
     # Keep api-base-url pointed at real LinkedIn for OAuth userinfo; override publishing-api-base-url
@@ -185,6 +187,8 @@ media:
   preview-signing-secret: ${SMP_MEDIA_PREVIEW_SIGNING_SECRET:test-media-preview-signing-secret}
 
 publishing:
+  linkedin:
+    state-signing-secret: ${SMP_LINKEDIN_STATE_SIGNING_SECRET:test-linkedin-oauth-state-secret}
   credentials:
     encryption:
       key: ${PUBLISHING_CREDENTIALS_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key (32 bytes)
