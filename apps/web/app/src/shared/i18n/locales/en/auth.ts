@@ -36,7 +36,4 @@ export default {
   termsRequired: 'You must accept the terms',
   termsOfService: 'Terms of Service',
   privacyPolicy: 'Privacy Policy',
-  registrationClosed: 'Registration closed',
-  registrationClosedMessage:
-    'Public registration is currently disabled. Contact your administrator to request access.',
 }

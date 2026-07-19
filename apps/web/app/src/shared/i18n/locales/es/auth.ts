@@ -38,7 +38,4 @@ export default {
   termsRequired: 'Debes aceptar los términos',
   termsOfService: 'Términos de Servicio',
   privacyPolicy: 'Política de Privacidad',
-  registrationClosed: 'Registro cerrado',
-  registrationClosedMessage:
-    'El registro público está actualmente deshabilitado. Contacta al administrador para solicitar acceso.',
 }
