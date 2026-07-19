@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
+  fetchPublicCapabilities,
   login,
   register,
   refreshSession,
@@ -13,6 +14,7 @@ import {
   verifyEmail,
   type AuthTokens,
   type CurrentUserProfile,
+  type PublicCapabilitiesResponse,
 } from './auth-api'
 
 // ---------------------------------------------------------------------------
@@ -952,6 +954,69 @@ describe('verifyEmail', () => {
         body: JSON.stringify({ token: 'token-123' }),
       }),
     )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// fetchPublicCapabilities
+// ---------------------------------------------------------------------------
+
+describe('fetchPublicCapabilities', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('returns PublicCapabilitiesResponse when server returns 200 with registration enabled', async () => {
+    const capabilities: PublicCapabilitiesResponse = { registrationEnabled: true }
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(capabilities), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await fetchPublicCapabilities()
+
+    expect(result).toEqual(capabilities)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:7638/api/capabilities/public',
+      expect.objectContaining({
+        method: 'GET',
+        credentials: 'include',
+        headers: expect.objectContaining({
+          Accept: 'application/vnd.api.v1+json',
+        }),
+      }),
+    )
+  })
+
+  it('returns PublicCapabilitiesResponse when server returns 200 with registration disabled', async () => {
+    const capabilities: PublicCapabilitiesResponse = { registrationEnabled: false }
+    mockFetch(
+      new Response(JSON.stringify(capabilities), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await fetchPublicCapabilities()
+
+    expect(result).toEqual(capabilities)
+    expect(result.registrationEnabled).toBe(false)
+  })
+
+  it('throws ApiError on network failure', async () => {
+    mockFetch(
+      new Response(JSON.stringify({ title: 'Service Unavailable', detail: 'Backend is down' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(fetchPublicCapabilities()).rejects.toMatchObject({
+      title: 'Service Unavailable',
+      status: 503,
+    })
   })
 })
 
