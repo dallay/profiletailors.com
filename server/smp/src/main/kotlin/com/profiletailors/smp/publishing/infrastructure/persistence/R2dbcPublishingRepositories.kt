@@ -438,6 +438,7 @@ class R2dbcPublicationRepository(
               AND p.retry_count < :maxRetries
               AND a.status = :activeStatus
             ORDER BY p.blocked_at ASC
+            LIMIT 100
             FOR UPDATE OF p SKIP LOCKED
             """.trimIndent(),
         )
@@ -742,8 +743,11 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             .fetch()
             .rowsUpdated()
             .awaitSingle()
-        databaseClient.sql("DELETE FROM publication_jobs WHERE publication_id = :publicationId")
+        databaseClient.sql(
+            "DELETE FROM publication_jobs WHERE publication_id = :publicationId AND workspace_id = :workspaceId"
+        )
             .bind("publicationId", job.publicationId)
+            .bind("workspaceId", job.workspaceId)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
