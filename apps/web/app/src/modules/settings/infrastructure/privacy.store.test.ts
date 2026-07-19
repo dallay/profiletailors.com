@@ -141,8 +141,8 @@ describe('privacy store', () => {
 
     expect(mockApiFetch).toHaveBeenCalledWith('/api/v1/privacy/requests', { workspaceScoped: true })
     expect(store.requests).toHaveLength(2)
-    expect(store.requests[0].type).toBe('ACCESS')
-    expect(store.requests[1].status).toBe('REJECTED')
+    expect(store.requests[0]!.type).toBe('ACCESS')
+    expect(store.requests[1]!.status).toBe('REJECTED')
   })
 
   it('fetchRequest calls apiFetch GET with id and sets currentRequest', async () => {
