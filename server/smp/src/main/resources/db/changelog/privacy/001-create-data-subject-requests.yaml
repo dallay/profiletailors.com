@@ -1,0 +1,81 @@
+databaseChangeLog:
+  - changeSet:
+      id: privacy-001-create-data-subject-requests
+      author: sdd-apply
+      changes:
+        - createTable:
+            tableName: data_subject_requests
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: request_type
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: requested_by
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: requested_by_email
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+              - column:
+                  name: notes
+                  type: text
+              - column:
+                  name: correction_data
+                  type: text
+              - column:
+                  name: result_ref
+                  type: varchar(512)
+              - column:
+                  name: rejection_reason
+                  type: text
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: completed_at
+                  type: timestamp with time zone
+              - column:
+                  name: expires_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: data_subject_requests
+            indexName: idx_dsr_requester
+            columns:
+              - column:
+                  name: requested_by
+        - createIndex:
+            tableName: data_subject_requests
+            indexName: idx_dsr_status
+            columns:
+              - column:
+                  name: status

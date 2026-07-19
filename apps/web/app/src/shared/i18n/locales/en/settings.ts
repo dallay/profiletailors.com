@@ -14,4 +14,51 @@ export default {
   languageEnglish: 'English',
   languageSpanish: 'Spanish',
   quickPreferences: 'Quick preferences',
+  privacy: {
+    title: 'Privacy & Data',
+    description:
+      'Manage your data subject access requests (DSAR). Submit requests to access, export, correct, or delete your personal data.',
+    form: {
+      type: {
+        label: 'Request type',
+        placeholder: 'Select a request type',
+        ACCESS: 'Access Request',
+        EXPORT: 'Data Export',
+        CORRECTION: 'Data Correction',
+        DELETION: 'Deletion Request',
+      },
+      notes: 'Notes',
+      notesPlaceholder: 'Optional — provide additional context for your request...',
+      correctionEmail: 'New email',
+      correctionEmailPlaceholder: 'Enter the corrected email address',
+      correctionUsername: 'New username',
+      correctionUsernamePlaceholder: 'Enter the corrected username',
+      submit: 'Submit Request',
+      submitting: 'Submitting...',
+      cancel: 'Cancel',
+      confirmDeletionTitle: 'Confirm Deletion Request',
+      confirmDeletionDesc:
+        'This will permanently delete your personal data from our systems. This action cannot be undone. Are you sure you want to proceed?',
+      confirmDeletionYes: 'Yes, delete my data',
+      success: 'Your request has been submitted successfully.',
+    },
+    status: {
+      PENDING: 'Pending',
+      PROCESSING: 'Processing',
+      COMPLETED: 'Completed',
+      REJECTED: 'Rejected',
+      FAILED: 'Failed',
+    },
+    list: {
+      title: 'My Requests',
+      empty: 'No requests yet. Submit your first request above.',
+      columns: {
+        type: 'Type',
+        status: 'Status',
+        created: 'Created',
+        actions: 'Actions',
+      },
+      download: 'Download',
+    },
+  },
 }
