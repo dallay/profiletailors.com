@@ -78,11 +78,11 @@ three-layer rule as product contexts (`identity`, `authorization`, `tenancy`, et
 Database-backed backend tests run against Testcontainers PostgreSQL. H2 is not part of the test
 runtime.
 
-Docker must be available and `SMP_POSTGRES_TEST_PASSWORD` must contain a non-empty test-only
+Docker must be available and `SMP_DB_TEST_PASSWORD` must contain a non-empty test-only
 password before running PostgreSQL tests:
 
 ```bash
-export SMP_POSTGRES_TEST_PASSWORD=profiletailors-test
+export SMP_DB_TEST_PASSWORD=$SMP_DB_PASSWORD
 just backend-test-fast
 just backend-bdd-fast
 ```
@@ -90,13 +90,13 @@ just backend-bdd-fast
 The PostgreSQL-tagged integration suite can also be run directly:
 
 ```bash
-SMP_POSTGRES_TEST_PASSWORD=profiletailors-test \
+SMP_DB_TEST_PASSWORD=$SMP_DB_PASSWORD \
   ./gradlew :server:smp:postgresIntegrationTest
 ```
 
 ### Troubleshooting
 
-- **`SMP_POSTGRES_TEST_PASSWORD must be set`**: export a non-empty test-only password in the shell
+- **`SMP_DB_TEST_PASSWORD must be set`**: export a non-empty test-only password in the shell
   that launches Gradle.
 - **Docker unavailable or containers cannot start**: start Docker and verify it with `docker info`.
 - **A PostgreSQL test is unexpectedly skipped**: Testcontainers tests use
