@@ -4,17 +4,17 @@ services:
   postgres:
     image: 'postgres:18-alpine'
     environment:
-      POSTGRES_DB: ${SMP_DB_NAME:-profiletailors_smp}
-      POSTGRES_USER: ${SMP_DB_USERNAME:-profiletailors}
+      POSTGRES_DB: ${POSTGRES_DB:-profiletailors_smp}
+      POSTGRES_USER: ${POSTGRES_USER:-profiletailors}
       # WARNING: Set a local-only password via env before starting Postgres.
       # Do not use production credentials here. See docs/security/
-      POSTGRES_PASSWORD: ${SMP_DB_PASSWORD:-CHANGE_ME_gK2fcFZg5cgVu9U}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_gK2fcFZg5cgVu9U}
     ports:
-      - '${SMP_DB_PORT:-5432}:5432'
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${SMP_DB_USERNAME:-profiletailors} -d ${SMP_DB_NAME:-profiletailors_smp}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-profiletailors} -d ${POSTGRES_DB:-profiletailors_smp}"]
       interval: 10s
       timeout: 5s
       retries: 5
