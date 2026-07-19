@@ -507,7 +507,7 @@ ci:
     {{gradle-root}} :server:smp:test --no-daemon
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_PASSWORD= .env | cut -d= -f2) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_PASSWORD= .env | cut -d= -f2-) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
     cd {{frontend-dir}} && pnpm test:e2e

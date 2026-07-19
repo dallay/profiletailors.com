@@ -36,7 +36,7 @@ object PostgresTestContainerSupport {
         if (fromEnv.isNotBlank()) return fromEnv
         error(
             "$PASSWORD_ENV must be set to run PostgreSQL-backed tests " +
-                "(e.g., export SMP_DB_TEST_PASSWORD=\$SMP_DB_PASSWORD)",
+                "(e.g., export $PASSWORD_ENV=\$SMP_DB_PASSWORD)",
         )
     }
 
