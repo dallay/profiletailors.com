@@ -229,7 +229,7 @@ jobs:
     if: ${{ needs.changes.outputs.backend == 'true' || needs.changes.outputs.repo_security == 'true' }}
     runs-on: ubuntu-latest
     env:
-      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+      SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_DB_PASSWORD }}
       SMP_LOCAL_JWT_DEV_FALLBACK: ${{ secrets.SMP_LOCAL_JWT_SECRET }}
     permissions:
       contents: read
