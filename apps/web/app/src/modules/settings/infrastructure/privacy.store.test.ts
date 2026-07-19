@@ -2,7 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import type { DsarRequest } from './privacy.store'
 
-const mockUser = { principalId: 'user-1', email: 'test@test.com', username: 'testuser', emailStatus: 'VERIFIED', displayIdentity: 'testuser' }
+const mockUser = {
+  principalId: 'user-1',
+  email: 'test@test.com',
+  username: 'testuser',
+  emailStatus: 'VERIFIED',
+  displayIdentity: 'testuser',
+}
 const mockAccessToken = 'mock-token-1'
 const mockWorkspaceId = 'ws-1'
 
@@ -103,8 +109,28 @@ describe('privacy store', () => {
 
   it('fetchRequests calls apiFetch GET and populates requests list', async () => {
     const mockResponse: DsarRequest[] = [
-      { id: 'req-1', workspaceId: mockWorkspaceId, type: 'ACCESS', status: 'COMPLETED', notes: null, correctionData: null, resultRef: 'export-file-1.zip', createdAt: '2026-07-18T10:00:00Z', updatedAt: '2026-07-19T10:00:00Z' },
-      { id: 'req-2', workspaceId: mockWorkspaceId, type: 'DELETION', status: 'REJECTED', notes: null, correctionData: null, resultRef: null, createdAt: '2026-07-17T10:00:00Z', updatedAt: '2026-07-18T10:00:00Z' },
+      {
+        id: 'req-1',
+        workspaceId: mockWorkspaceId,
+        type: 'ACCESS',
+        status: 'COMPLETED',
+        notes: null,
+        correctionData: null,
+        resultRef: 'export-file-1.zip',
+        createdAt: '2026-07-18T10:00:00Z',
+        updatedAt: '2026-07-19T10:00:00Z',
+      },
+      {
+        id: 'req-2',
+        workspaceId: mockWorkspaceId,
+        type: 'DELETION',
+        status: 'REJECTED',
+        notes: null,
+        correctionData: null,
+        resultRef: null,
+        createdAt: '2026-07-17T10:00:00Z',
+        updatedAt: '2026-07-18T10:00:00Z',
+      },
     ]
     mockApiFetch.mockResolvedValue({ requests: mockResponse })
 
@@ -138,7 +164,9 @@ describe('privacy store', () => {
 
     const result = await store.fetchRequest('req-1')
 
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/v1/privacy/requests/req-1', { workspaceScoped: true })
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/v1/privacy/requests/req-1', {
+      workspaceScoped: true,
+    })
     expect(result).toEqual(mockResponse)
     expect(store.currentRequest).toEqual(mockResponse)
   })

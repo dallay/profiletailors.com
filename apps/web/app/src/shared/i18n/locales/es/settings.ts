@@ -17,7 +17,8 @@ export default {
   quickPreferences: 'Preferencias rápidas',
   privacy: {
     title: 'Privacidad & Datos',
-    description: 'Gestiona tus solicitudes de acceso a datos personales (DSAR). Envía solicitudes para acceder, exportar, corregir o eliminar tus datos personales.',
+    description:
+      'Gestiona tus solicitudes de acceso a datos personales (DSAR). Envía solicitudes para acceder, exportar, corregir o eliminar tus datos personales.',
     form: {
       type: {
         label: 'Tipo de solicitud',
@@ -37,7 +38,8 @@ export default {
       submitting: 'Enviando...',
       cancel: 'Cancelar',
       confirmDeletionTitle: 'Confirmar Solicitud de Eliminación',
-      confirmDeletionDesc: 'Esto eliminará permanentemente tus datos personales de nuestros sistemas. Esta acción no se puede deshacer. ¿Estás seguro de que deseas continuar?',
+      confirmDeletionDesc:
+        'Esto eliminará permanentemente tus datos personales de nuestros sistemas. Esta acción no se puede deshacer. ¿Estás seguro de que deseas continuar?',
       confirmDeletionYes: 'Sí, eliminar mis datos',
       success: 'Tu solicitud ha sido enviada correctamente.',
     },

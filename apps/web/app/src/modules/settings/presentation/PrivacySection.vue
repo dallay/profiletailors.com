@@ -11,7 +11,6 @@ const { t } = useI18n()
 const privacy = usePrivacyStore()
 
 const submitSuccess = ref(false)
-let submitSuccessTimeout: ReturnType<typeof setTimeout> | null = null
 
 async function onSubmit(payload: {
   type: DsarRequestType
@@ -21,9 +20,8 @@ async function onSubmit(payload: {
   try {
     await privacy.submitRequest(payload)
     submitSuccess.value = true
-    submitSuccessTimeout = setTimeout(() => {
+    setTimeout(() => {
       submitSuccess.value = false
-      submitSuccessTimeout = null
     }, 5000)
   } catch {
     // Error is handled by the store; the error state displays via the list or inline.

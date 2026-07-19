@@ -16,7 +16,8 @@ export default {
   quickPreferences: 'Quick preferences',
   privacy: {
     title: 'Privacy & Data',
-    description: 'Manage your data subject access requests (DSAR). Submit requests to access, export, correct, or delete your personal data.',
+    description:
+      'Manage your data subject access requests (DSAR). Submit requests to access, export, correct, or delete your personal data.',
     form: {
       type: {
         label: 'Request type',
@@ -36,7 +37,8 @@ export default {
       submitting: 'Submitting...',
       cancel: 'Cancel',
       confirmDeletionTitle: 'Confirm Deletion Request',
-      confirmDeletionDesc: 'This will permanently delete your personal data from our systems. This action cannot be undone. Are you sure you want to proceed?',
+      confirmDeletionDesc:
+        'This will permanently delete your personal data from our systems. This action cannot be undone. Are you sure you want to proceed?',
       confirmDeletionYes: 'Yes, delete my data',
       success: 'Your request has been submitted successfully.',
     },

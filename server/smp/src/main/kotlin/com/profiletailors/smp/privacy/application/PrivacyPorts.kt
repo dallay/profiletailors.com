@@ -20,6 +20,7 @@ interface IdentityAnonymizationPort {
      * Set the principals.display_identity to [REDACTED].
      * Must be idempotent.
      */
+    @Suppress("FunctionNameMaxLength")
     suspend fun anonymizePrincipalDisplayIdentity(principalId: String)
 
     /**

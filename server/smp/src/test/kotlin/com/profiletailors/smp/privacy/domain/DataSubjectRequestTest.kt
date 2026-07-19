@@ -119,7 +119,6 @@ internal class DataSubjectRequestTest {
     private fun createRequest(
         id: DataSubjectRequestId = testId,
         requestType: RequestType = RequestType.ACCESS,
-        status: DataSubjectRequestStatus = DataSubjectRequestStatus.PENDING,
         requestedBy: String = "principal-1",
         requestedByEmail: String = "user@example.com",
         workspaceId: String? = null,

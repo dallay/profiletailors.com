@@ -11,6 +11,9 @@ import com.profiletailors.smp.privacy.domain.DataSubjectRequestStatus
 import com.profiletailors.smp.privacy.domain.RequestType
 import java.time.Clock
 
+private const val ACTION_DSAR_SUBMITTED = "dsar.submitted"
+private const val ACTION_DSAR_COMPLETED = "dsar.completed"
+
 /**
  * Handler for [SubmitAccessRequestCommand].
  *
@@ -38,7 +41,7 @@ internal class SubmitAccessRequestHandler(
         )
 
         auditor.recordSuccess(
-            action = "dsar.submitted",
+            action = ACTION_DSAR_SUBMITTED,
             requestId = request.id.value,
             details = mapOf("type" to "ACCESS"),
         )
@@ -57,7 +60,7 @@ internal class SubmitAccessRequestHandler(
         repository.save(completedRequest)
 
         auditor.recordSuccess(
-            action = "dsar.completed",
+            action = ACTION_DSAR_COMPLETED,
             requestId = request.id.value,
             details = mapOf("type" to "ACCESS"),
         )
@@ -95,7 +98,7 @@ internal class SubmitExportRequestHandler(
         )
 
         auditor.recordSuccess(
-            action = "dsar.submitted",
+            action = ACTION_DSAR_SUBMITTED,
             requestId = request.id.value,
             details = mapOf("type" to "EXPORT"),
         )
@@ -117,7 +120,7 @@ internal class SubmitExportRequestHandler(
         repository.save(completedRequest)
 
         auditor.recordSuccess(
-            action = "dsar.completed",
+            action = ACTION_DSAR_COMPLETED,
             requestId = request.id.value,
             details = mapOf("type" to "EXPORT"),
         )
@@ -178,7 +181,7 @@ internal class SubmitCorrectionRequestHandler(
         )
 
         auditor.recordSuccess(
-            action = "dsar.submitted",
+            action = ACTION_DSAR_SUBMITTED,
             requestId = request.id.value,
             details = mapOf("type" to "CORRECTION", "field" to command.field.name.lowercase()),
         )
@@ -190,7 +193,7 @@ internal class SubmitCorrectionRequestHandler(
         repository.save(completedRequest)
 
         auditor.recordSuccess(
-            action = "dsar.completed",
+            action = ACTION_DSAR_COMPLETED,
             requestId = request.id.value,
             details = mapOf("type" to "CORRECTION", "field" to command.field.name.lowercase()),
         )
@@ -234,15 +237,17 @@ internal class SubmitDeletionRequestHandler(
             )
         }
 
-        // Phase 2: Revoke credentials (best-effort)
+        // Phase 2: Capture workspace IDs before revoking memberships
+        val workspaceIds = tenancyPort.getMembershipWorkspaceIds(command.requestedByPrincipalId)
+
+        // Phase 3: Revoke credentials and memberships (best-effort)
         anonymizationService.revokeCredentials(command.requestedByPrincipalId)
         publishingPort.deleteSocialConnections(command.requestedByPrincipalId)
         publishingPort.deleteSecureCredentials(command.requestedByPrincipalId)
         publishingPort.cancelPendingPublications(command.requestedByPrincipalId)
         tenancyPort.removeAllMemberships(command.requestedByPrincipalId)
 
-        // Phase 3: Mark media for GC
-        val workspaceIds = tenancyPort.getMembershipWorkspaceIds(command.requestedByPrincipalId)
+        // Phase 4: Mark media for GC
         if (workspaceIds.isNotEmpty()) {
             anonymizationService.markMediaForGc(command.requestedByPrincipalId, workspaceIds)
         }
@@ -260,7 +265,7 @@ internal class SubmitDeletionRequestHandler(
         )
 
         auditor.recordSuccess(
-            action = "dsar.submitted",
+            action = ACTION_DSAR_SUBMITTED,
             requestId = request.id.value,
             details = mapOf("type" to "DELETION"),
         )
@@ -272,7 +277,7 @@ internal class SubmitDeletionRequestHandler(
         repository.save(completedRequest)
 
         auditor.recordSuccess(
-            action = "dsar.completed",
+            action = ACTION_DSAR_COMPLETED,
             requestId = request.id.value,
             details = mapOf("type" to "DELETION"),
         )

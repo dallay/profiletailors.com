@@ -273,8 +273,6 @@ test.describe('Privacy — DSAR Workflows', () => {
     await privacy.expectRequestCount(1)
 
     // Step 3: Complete the request (simulate backend processing)
-    const exportId = mocks.requests[0].id
-    const downloadRef = `/api/v1/privacy/requests/${exportId}/download`
     mocks.requests[0] = {
       ...mocks.requests[0],
       status: 'COMPLETED',
@@ -291,16 +289,10 @@ test.describe('Privacy — DSAR Workflows', () => {
     await privacy.expectDownloadLinkVisible()
 
     // Verify the download URL matches the expected API path pattern
-    await expect(privacy.downloadLink).toHaveAttribute(
-      'href',
-      /\/api\/v1\/privacy\/requests\//,
-    )
+    await expect(privacy.downloadLink).toHaveAttribute('href', /\/api\/v1\/privacy\/requests\//)
 
     // Verify the download link has a filename attribute
-    await expect(privacy.downloadLink).toHaveAttribute(
-      'download',
-      /profile-tailors-export-/,
-    )
+    await expect(privacy.downloadLink).toHaveAttribute('download', /profile-tailors-export-/)
   })
 
   // -------------------------------------------------------------------------
@@ -527,8 +519,12 @@ test.describe('Privacy — DSAR Workflows', () => {
 
     // Should have at least 3 GET calls (initial load, after reload, plus auth)
     // and 1 POST call
-    const postCalls = apiCalls.filter((c) => c.method === 'POST' && c.pathname.includes('/privacy/requests'))
-    const getCalls = apiCalls.filter((c) => c.method === 'GET' && c.pathname.includes('/privacy/requests'))
+    const postCalls = apiCalls.filter(
+      (c) => c.method === 'POST' && c.pathname.includes('/privacy/requests'),
+    )
+    const getCalls = apiCalls.filter(
+      (c) => c.method === 'GET' && c.pathname.includes('/privacy/requests'),
+    )
 
     // Verify the frontend made the expected API calls
     expect(postCalls.length).toBeGreaterThanOrEqual(1)

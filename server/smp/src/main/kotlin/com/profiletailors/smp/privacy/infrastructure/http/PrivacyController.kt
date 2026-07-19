@@ -120,10 +120,13 @@ class PrivacyController(
     )
     @GetMapping("/{id}")
     suspend fun getRequest(@PathVariable id: String): PrivacyRequestStatusResponseDto {
+        val principal = principalContextProvider.require()
         val query = CheckRequestStatusQuery(requestId = id)
         val result: DataSubjectRequestResponse? = mediator.send(query)
-        return result?.toStatusResponse()
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found: $id")
+        if (result == null || result.requestedBy != principal.principalId) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found: $id")
+        }
+        return result.toStatusResponse()
     }
 
     // ——————— Private helpers ———————
@@ -131,7 +134,7 @@ class PrivacyController(
     /**
      * Builds the appropriate command based on the request type.
      */
-    @Suppress("UNCHECKED_CAST")
+    @Suppress("UNCHECKED_CAST", "BracesOnWhenStatements")
     private fun buildCommand(
         request: SubmitPrivacyRequestDto,
         principalId: String,
@@ -194,7 +197,7 @@ class PrivacyController(
             id = id,
             type = type,
             status = status,
-            result = if (resultRef != null) mapOf("ref" to resultRef) else null,
+            result = resultRef?.let { mapOf("ref" to it) },
             createdAt = createdAt,
             updatedAt = updatedAt,
         )

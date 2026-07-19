@@ -1,5 +1,6 @@
 package com.profiletailors.smp.privacy.domain
 
+import java.time.Duration
 import java.time.Instant
 
 /**
@@ -128,7 +129,7 @@ data class DataSubjectRequest(
             createdAt = createdAt,
             updatedAt = createdAt,
             completedAt = null,
-            expiresAt = createdAt.plusSeconds(RETENTION_DAYS * 24 * 60 * 60),
+            expiresAt = createdAt.plus(Duration.ofDays(RETENTION_DAYS)),
         )
     }
 }
