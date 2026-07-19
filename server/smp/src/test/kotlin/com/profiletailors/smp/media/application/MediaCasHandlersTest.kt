@@ -1280,9 +1280,9 @@ private object NoopAtomicTransactionRunner : AtomicTransactionRunner {
  * so tests can assert call count and execution.
  */
 private class RecordingAtomicTransactionRunner : AtomicTransactionRunner {
-    val calls = mutableListOf<suspend () -> Unit>()
+    val calls = mutableListOf<suspend () -> Any>()
     override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
-        calls.add(block as suspend () -> Unit)
+        calls.add(block)
         return block()
     }
 }

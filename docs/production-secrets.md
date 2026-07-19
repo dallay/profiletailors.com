@@ -67,6 +67,15 @@ Secrets are grouped by risk level and rotation frequency:
 - **Rotation:** Update password in Postgres, update secret, restart app, verify connectivity.
 - **Access:** Infrastructure admins, deployment automation.
 
+#### `SMP_POSTGRES_PASSWORD`
+
+- **Type:** String
+- **Description:** Alias for `SMP_DB_PASSWORD`, used by Docker Compose compatibility layer.
+- **Risk:** CRITICAL
+- **Generation:** Same as `SMP_DB_PASSWORD`.
+- **Rotation:** Must match `SMP_DB_PASSWORD` rotation.
+- **Access:** Infrastructure admins, deployment automation.
+
 ### Authentication & Authorization
 
 #### `SMP_LOCAL_JWT_SECRET`
@@ -221,10 +230,10 @@ container storage.
 
 ### Optional / Environment-specific
 
-#### `SMP_DB_TEST_PASSWORD`
+#### `SMP_POSTGRES_TEST_PASSWORD`
 
 - **Type:** String
-- **Description:** Password for Testcontainers-backed integration tests (CI only). Typically derived from `SMP_DB_PASSWORD` in local `.env` for consistency.
+- **Description:** Password for Testcontainers-backed integration tests (CI only).
 - **Risk:** LOW (ephemeral container, not production data)
 - **Generation:**
 

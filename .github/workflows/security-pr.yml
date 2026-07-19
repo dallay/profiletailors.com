@@ -184,7 +184,7 @@ jobs:
           test -f semgrep-backend.sarif
       - name: Upload Semgrep backend SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@24ea975727876cf496b1eb0c5b36e96e01600b51 # v4.37.0
+        uses: github/codeql-action/upload-sarif@1a818fd5f97ed0ee9a823421bd5b171add01227f # v4.36.2
         with:
           sarif_file: semgrep-backend.sarif
           category: semgrep-backend
@@ -218,7 +218,7 @@ jobs:
           test -f semgrep-frontend.sarif
       - name: Upload Semgrep frontend SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@24ea975727876cf496b1eb0c5b36e96e01600b51 # v4.37.0
+        uses: github/codeql-action/upload-sarif@1a818fd5f97ed0ee9a823421bd5b171add01227f # v4.36.2
         with:
           sarif_file: semgrep-frontend.sarif
           category: semgrep-frontend
@@ -229,7 +229,7 @@ jobs:
     if: ${{ needs.changes.outputs.backend == 'true' || needs.changes.outputs.repo_security == 'true' }}
     runs-on: ubuntu-latest
     env:
-      SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
       SMP_LOCAL_JWT_DEV_FALLBACK: ${{ secrets.SMP_LOCAL_JWT_SECRET }}
     permissions:
       contents: read
@@ -244,7 +244,7 @@ jobs:
           java-version: '21'
           cache: gradle
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@24ea975727876cf496b1eb0c5b36e96e01600b51 # v4.37.0
+        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
         with:
           languages: java-kotlin
           config-file: ./.github/codeql/codeql-config.yml
@@ -252,7 +252,7 @@ jobs:
       - name: Build backend for CodeQL extraction
         run: ./gradlew build -x test --no-daemon
       - name: Analyze with CodeQL
-        uses: github/codeql-action/analyze@24ea975727876cf496b1eb0c5b36e96e01600b51 # v4.37.0
+        uses: github/codeql-action/analyze@1a818fd5f97ed0ee9a823421bd5b171add01227f # v4.36.2
         with:
           category: codeql-backend
 
@@ -308,7 +308,7 @@ jobs:
           fi
       - name: Upload Trivy SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@24ea975727876cf496b1eb0c5b36e96e01600b51 # v4.37.0
+        uses: github/codeql-action/upload-sarif@1a818fd5f97ed0ee9a823421bd5b171add01227f # v4.36.2
         with:
           sarif_file: trivy-backend.sarif
           category: trivy-backend

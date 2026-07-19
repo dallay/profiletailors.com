@@ -1,19 +1,33 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { type AuthCredentials, authCredentialsSchema, registerSchema } from '@shared/lib/validation/schemas'
 import type { RegisterPayload } from '@modules/auth/infrastructure/auth-api'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import { usePublicCapabilitiesStore } from '@modules/auth/infrastructure/public-capabilities.store'
 
 const { t } = useI18n()
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
+const capabilities = usePublicCapabilitiesStore()
+
+onMounted(() => {
+  if (isRegisterMode.value) {
+    capabilities.load()
+  }
+})
 
 const isRegisterMode = computed(() => route.name === 'register')
 const alternateRoute = computed(() => isRegisterMode.value ? '/login' : '/register')
+const showRegistrationLink = computed(
+  () => !isRegisterMode.value && capabilities.capabilityChecked && capabilities.registrationEnabled,
+)
+const registrationClosed = computed(
+  () => isRegisterMode.value && capabilities.capabilityChecked && !capabilities.registrationEnabled,
+)
 
 const email = ref('')
 const password = ref('')
@@ -269,11 +283,23 @@ async function handleSubmit() {
           <div class="mt-6 flex items-center justify-between gap-4 border-t border-border-subtle pt-5 text-sm">
             <span class="text-text-secondary">{{ $t(isRegisterMode ? 'auth.alternateLabelRegister' : 'auth.alternateLabelLogin') }}</span>
             <RouterLink
+              v-if="!isRegisterMode && showRegistrationLink"
               :to="alternateRoute"
               class="font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-text-display transition-opacity hover:opacity-70"
             >
-              {{ $t(isRegisterMode ? 'auth.alternateActionRegister' : 'auth.alternateActionLogin') }}
+              {{ $t('auth.alternateActionLogin') }}
             </RouterLink>
+            <span v-else-if="!isRegisterMode" class="font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">
+              {{ $t('auth.registrationClosed') }}
+            </span>
+          </div>
+
+          <div
+            v-if="registrationClosed"
+            role="alert"
+            class="mt-4 rounded-2xl border border-text-secondary/20 bg-text-secondary/10 px-4 py-3 text-sm text-text-secondary"
+          >
+            {{ $t('auth.registrationClosedMessage') }}
           </div>
         </section>
       </div>
