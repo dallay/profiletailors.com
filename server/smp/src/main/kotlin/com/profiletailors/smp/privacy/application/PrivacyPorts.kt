@@ -42,7 +42,7 @@ interface IdentityAnonymizationPort {
  * Implemented by an infrastructure adapter that performs the actual
  * database operations against the lead-capture context.
  */
-interface WaitlistAnonymizationPort {
+fun interface WaitlistAnonymizationPort {
     /**
      * Anonymize all waitlist entries matching the given email.
      * Sets email to [REDACTED on {timestamp}] and clears metadata to {}.
@@ -116,7 +116,7 @@ interface MediaDeletionPort {
 /**
  * Port for data aggregation from the identity context.
  */
-interface IdentityDataPort {
+fun interface IdentityDataPort {
     suspend fun getIdentityFacts(principalId: String): PrincipalIdentityFacts?
 }
 
@@ -148,28 +148,28 @@ interface PublishingDataPort {
 /**
  * Port for data aggregation from the media context.
  */
-interface MediaDataPort {
+fun interface MediaDataPort {
     suspend fun getMediaAssets(principalId: String): List<Map<String, Any?>>
 }
 
 /**
  * Port for data aggregation from the governance context.
  */
-interface GovernanceDataPort {
+fun interface GovernanceDataPort {
     suspend fun getConsentRecords(email: String): List<Map<String, Any?>>
 }
 
 /**
  * Port for data aggregation from the lead-capture context.
  */
-interface LeadCaptureDataPort {
+fun interface LeadCaptureDataPort {
     suspend fun getWaitlistEntries(email: String): List<Map<String, Any?>>
 }
 
 /**
  * Port for storage operations (upload + presigned URLs).
  */
-interface StoragePort {
+fun interface StoragePort {
     /**
      * Upload a JSON string and return a downloadable URL.
      *
