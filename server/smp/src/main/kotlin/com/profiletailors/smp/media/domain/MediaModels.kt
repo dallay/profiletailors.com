@@ -164,6 +164,7 @@ data class MediaAsset(
     val authorName: String? = null,
     val authorUrl: String? = null,
     val metadata: Map<String, Any>? = null,
+    val licence: String? = null,
 ) {
     init {
         require(assetId.isNotBlank()) { "Asset ID must not be blank" }

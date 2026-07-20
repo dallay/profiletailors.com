@@ -39,12 +39,14 @@ class R2dbcMediaAssetRepository(
                 asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                 detected_media_type, original_filename, file_size_bytes, status,
                 failure_reason, upload_started_at, created_at, updated_at,
-                source_provider, external_id, source_url, author_name, author_url, metadata
+                source_provider, external_id, source_url, author_name, author_url, metadata,
+                licence
             ) VALUES (
                 :assetId, :workspaceId, :sourceType, :fileHash, :mediaType, :storageKey,
                 :detectedMediaType, :originalFilename, :fileSizeBytes, :status,
                 :failureReason, :uploadStartedAt, :createdAt, :updatedAt,
-                :sourceProvider, :externalId, :sourceUrl, :authorName, :authorUrl, CAST(:metadata AS JSONB)
+                :sourceProvider, :externalId, :sourceUrl, :authorName, :authorUrl, CAST(:metadata AS JSONB),
+                :licence
             )
             """.trimIndent(),
         )
@@ -72,6 +74,7 @@ class R2dbcMediaAssetRepository(
             .bindNullable("authorName", asset.authorName, String::class.java)
             .bindNullable("authorUrl", asset.authorUrl, String::class.java)
             .bindNullable("metadata", asset.metadata?.let { objectMapper.writeValueAsString(it) }, String::class.java)
+            .bindNullable("licence", asset.licence, String::class.java)
             .then()
             .awaitSingleOrNull()
 
@@ -83,7 +86,8 @@ class R2dbcMediaAssetRepository(
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
                    failure_reason, upload_started_at, created_at, updated_at,
-                   source_provider, external_id, source_url, author_name, author_url, metadata
+                   source_provider, external_id, source_url, author_name, author_url, metadata,
+                   licence
             FROM media_assets
             WHERE workspace_id = :workspaceId AND asset_id = :assetId
         """.trimIndent(),
@@ -102,7 +106,8 @@ class R2dbcMediaAssetRepository(
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
                    failure_reason, upload_started_at, created_at, updated_at,
-                   source_provider, external_id, source_url, author_name, author_url, metadata
+                   source_provider, external_id, source_url, author_name, author_url, metadata,
+                   licence
             FROM media_assets
             WHERE workspace_id = :workspaceId AND asset_id IN (:assetIds)
             """.trimIndent(),
@@ -139,7 +144,8 @@ class R2dbcMediaAssetRepository(
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
                    failure_reason, upload_started_at, created_at, updated_at,
-                   source_provider, external_id, source_url, author_name, author_url, metadata
+                   source_provider, external_id, source_url, author_name, author_url, metadata,
+                   licence
             FROM media_assets
             WHERE ${conditions.joinToString(" AND ")}
             ORDER BY created_at DESC, asset_id DESC
@@ -324,7 +330,8 @@ class R2dbcMediaAssetRepository(
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
                    failure_reason, upload_started_at, created_at, updated_at,
-                   source_provider, external_id, source_url, author_name, author_url, metadata
+                   source_provider, external_id, source_url, author_name, author_url, metadata,
+                   licence
             FROM media_assets
             WHERE status = 'PROCESSING'
               AND created_at < :threshold
@@ -348,7 +355,8 @@ class R2dbcMediaAssetRepository(
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
                    failure_reason, upload_started_at, created_at, updated_at,
-                   source_provider, external_id, source_url, author_name, author_url, metadata
+                   source_provider, external_id, source_url, author_name, author_url, metadata,
+                   licence
             FROM media_assets
             WHERE status = 'FAILED'
               AND created_at > :cutoff
@@ -372,7 +380,8 @@ class R2dbcMediaAssetRepository(
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
                    failure_reason, upload_started_at, created_at, updated_at,
-                   source_provider, external_id, source_url, author_name, author_url, metadata
+                   source_provider, external_id, source_url, author_name, author_url, metadata,
+                   licence
             FROM media_assets
             WHERE status = 'PENDING_UPLOAD'
               AND created_at < :cutoff
@@ -396,7 +405,8 @@ class R2dbcMediaAssetRepository(
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
                    failure_reason, upload_started_at, created_at, updated_at,
-                   source_provider, external_id, source_url, author_name, author_url, metadata
+                   source_provider, external_id, source_url, author_name, author_url, metadata,
+                   licence
             FROM media_assets
             WHERE status = 'UPLOADING'
               AND upload_started_at < :cutoff
@@ -433,7 +443,8 @@ class R2dbcMediaAssetRepository(
                 SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                        detected_media_type, original_filename, file_size_bytes, status,
                        failure_reason, upload_started_at, created_at, updated_at,
-                   source_provider, external_id, source_url, author_name, author_url, metadata
+                    source_provider, external_id, source_url, author_name, author_url, metadata,
+                       licence
                 FROM media_assets
                 WHERE workspace_id = :workspaceId
                   AND file_hash = :fileHash
@@ -469,6 +480,7 @@ class R2dbcMediaAssetRepository(
         authorName = row.get("author_name", String::class.java),
         authorUrl = row.get("author_url", String::class.java),
         metadata = readMetadata(row.get("metadata", String::class.java)),
+        licence = row.get("licence", String::class.java),
     )
 
     private fun readMetadata(json: String?): Map<String, Any>? = json?.let {

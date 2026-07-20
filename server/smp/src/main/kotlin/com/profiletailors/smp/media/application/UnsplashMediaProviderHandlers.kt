@@ -125,6 +125,7 @@ class MediaImportService(
             authorName = photo.authorName,
             authorUrl = photo.authorUrl,
             metadata = mapOf("downloadLocation" to photo.downloadLocation),
+            licence = "unsplash",
         ),
     )
 
@@ -177,6 +178,7 @@ class MediaImportService(
         authorName = authorName,
         authorUrl = authorUrl,
         metadata = metadata,
+        licence = licence,
     )
 
     private companion object {
