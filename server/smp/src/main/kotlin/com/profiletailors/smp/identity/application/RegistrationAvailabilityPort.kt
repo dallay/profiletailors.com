@@ -8,6 +8,6 @@ package com.profiletailors.smp.identity.application
  * with [RegistrationDisabledException], regardless of the entry point (HTTP, internal call,
  * future channel).
  */
-interface RegistrationAvailabilityPort {
+fun interface RegistrationAvailabilityPort {
     fun isRegistrationEnabled(): Boolean
 }

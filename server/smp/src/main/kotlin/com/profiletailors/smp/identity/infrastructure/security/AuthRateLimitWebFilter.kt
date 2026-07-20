@@ -98,7 +98,7 @@ class AuthRateLimitWebFilter internal constructor(
         val body =
             """{"title":"Too Many Requests","status":429,"detail":"Authentication rate limit exceeded. Try again later."}"""
         val buffer = response.bufferFactory().wrap(body.toByteArray(Charsets.UTF_8))
-        return response.writeWith(Mono.just(buffer))
+        return response.writeWith(Mono.just(buffer)).then()
     }
 
     internal fun trackedWindowCount(): Int = windows.size

@@ -20,7 +20,7 @@ function bytesToHex(buffer: ArrayBuffer | Uint8Array): string {
 }
 
 export function sanitizeFilename(name: string): string {
-  return name.replaceAll(/[/\\]/g, '_').replaceAll(/\.\./g, '_').replaceAll(/\0/g, '').slice(0, 255)
+  return name.replaceAll(/[/\\]/g, '_').replaceAll('..', '_').replaceAll('\0', '').slice(0, 255)
 }
 
 export async function computeFileHash(file: File): Promise<string> {

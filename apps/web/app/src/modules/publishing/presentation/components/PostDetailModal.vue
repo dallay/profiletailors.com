@@ -9,7 +9,7 @@ import { getProviderBadge } from '@shared/lib/provider-styles'
 
 const props = withDefaults(
   defineProps<{
-    isOpen: boolean
+    isOpen?: boolean
     publication: Publication | null
   }>(),
   { isOpen: false },
@@ -268,7 +268,7 @@ function cancelReschedule() {
               </div>
             </div>
           </div>
-          <button
+          <button type="button"
             @click="closeModal"
             class="flex size-8 items-center justify-center rounded-xl border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display cursor-pointer"
             :aria-label="t('postDetail.close')"
@@ -371,13 +371,13 @@ function cancelReschedule() {
             />
             <p v-if="rescheduleError" role="alert" class="text-[10px] font-mono text-error">{{ rescheduleError }}</p>
             <div class="flex gap-2">
-              <button
+              <button type="button"
                 @click="confirmReschedule"
                 class="px-3 py-2 rounded-xl bg-text-display text-bg-primary hover:opacity-90 transition-opacity text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
               >
                 {{ t('postDetail.rescheduleConfirm') }}
               </button>
-              <button
+              <button type="button"
                 @click="cancelReschedule"
                 class="px-3 py-2 rounded-xl border border-border-visible text-text-body hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
               >
@@ -387,7 +387,7 @@ function cancelReschedule() {
           </div>
           <div v-if="!showReschedule" class="flex items-center justify-between gap-3 p-6">
         <div class="flex items-center gap-2">
-          <button
+          <button type="button"
             v-if="canDelete"
             @click="deletePublication"
             :disabled="isDeleting"
@@ -396,7 +396,7 @@ function cancelReschedule() {
             <Trash2 class="size-3.5" />
             {{ t('postDetail.delete') }}
           </button>
-          <button
+          <button type="button"
             v-if="canEditPublication && props.publication"
             @click="emit('edit', props.publication)"
             class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-text-display text-bg-primary hover:opacity-90 transition-opacity text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
@@ -404,7 +404,7 @@ function cancelReschedule() {
             <Pencil class="size-3.5" />
             {{ t('postDetail.edit') }}
           </button>
-          <button
+          <button type="button"
             v-else-if="!isReadOnly && publication?.status === 'FAILED'"
             @click="retryPublication"
             :disabled="isRetrying"
@@ -413,7 +413,7 @@ function cancelReschedule() {
             <CalendarClock class="size-3.5" />
             {{ t('postDetail.retry') }}
           </button>
-          <button
+          <button type="button"
             v-else-if="!isReadOnly && publication?.scheduledAt"
             @click="openReschedule"
             class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
@@ -426,7 +426,7 @@ function cancelReschedule() {
           </div>
         </div>
           <div class="flex items-center gap-2">
-            <button
+            <button type="button"
               @click="closeModal"
               class="px-3 py-2 rounded-xl border border-border-visible text-text-body hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
             >
@@ -442,7 +442,7 @@ function cancelReschedule() {
               <ExternalLink class="size-3.5" />
               {{ t('postDetail.viewPost') }}
             </a>
-            <button
+            <button type="button"
               v-else
               disabled
               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-text-display/40 text-bg-primary/60 cursor-not-allowed text-xs font-mono uppercase tracking-wider font-bold"

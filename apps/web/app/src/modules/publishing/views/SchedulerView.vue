@@ -719,7 +719,7 @@ watch(
                       </div>
 
                       <!-- Delete button overlay on card hover (not for published posts) -->
-                      <button
+                      <button type="button"
                         v-if="publishingStore.isPublicationDeletable(pub.status)"
                         @click.stop="handleDeletePublication(pub.id)"
                         class="absolute top-1 right-1 opacity-0 group-hover/card:opacity-100 size-5 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-error transition-all"
@@ -738,7 +738,7 @@ watch(
                     </div>
 
                     <!-- Add post button (only in enabled slots) -->
-                    <button
+                    <button type="button"
                       v-if="!isPastSlot(day, slot.hour)"
                       @click.stop="openNewPostForSlot(day, slot.hour)"
                       class="hidden group-hover/cell:flex items-center justify-center size-6 rounded-lg border border-dashed border-text-secondary/30 text-text-secondary/50 hover:border-text-display/40 hover:text-text-display/60 hover:bg-bg-primary/30 transition-all mt-auto cursor-pointer"
