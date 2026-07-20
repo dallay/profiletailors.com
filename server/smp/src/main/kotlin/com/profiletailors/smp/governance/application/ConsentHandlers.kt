@@ -10,12 +10,17 @@ import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRepository
-import com.profiletailors.smp.governance.domain.ConsentType
-import com.profiletailors.smp.governance.domain.SubjectKind
 import com.profiletailors.smp.governance.domain.SubjectReference
 import kotlinx.coroutines.flow.toList
 
 private val CONSENT_READ_PERMISSION = PermissionKey.of("workspace", "consent", "read")
+
+private suspend fun authorizeWorkspaceConsentRead(authorizationDecider: WorkspaceAuthorizationDecider) {
+    val decision = authorizationDecider.decideDetailed(CONSENT_READ_PERMISSION)
+    if (decision.decision != AuthorizationDecision.ALLOW) {
+        throw AuthorizationDeniedException.forDecision(decision, CONSENT_READ_PERMISSION)
+    }
+}
 
 @Service
 internal class RecordWorkspaceConsentHandler(
@@ -23,18 +28,18 @@ internal class RecordWorkspaceConsentHandler(
     private val recordConsentHandler: RecordConsentHandler,
 ) : CommandWithResultHandler<RecordWorkspaceConsentCommand, RecordConsentOutcome> {
     /**
-         * Records consent for the current workspace.
-         *
-         * @param command The command containing the consent details to record.
-         * @return The outcome of recording the consent.
-         * @throws IllegalArgumentException If no workspace is available or an enum value is invalid.
-         */
-        override suspend fun handle(command: RecordWorkspaceConsentCommand): RecordConsentOutcome =
+     * Records consent for the current workspace.
+     *
+     * @param command The command containing the consent details to record.
+     * @return The outcome of recording the consent.
+     * @throws IllegalArgumentException If no workspace is available or an enum value is invalid.
+     */
+    override suspend fun handle(command: RecordWorkspaceConsentCommand): RecordConsentOutcome =
         recordConsentHandler.handle(
             RecordConsentCommand(
                 workspaceId = requireNotNull(resourceContextProvider.require().workspaceId),
-                subjectReference = SubjectReference(command.subjectValue, SubjectKind.valueOf(command.subjectKind)),
-                consentType = ConsentType.valueOf(command.consentType),
+                subjectReference = SubjectReference(command.subjectValue, command.subjectKind),
+                consentType = command.consentType,
                 purpose = command.purpose,
                 policyVersion = command.policyVersion,
                 source = command.source,
@@ -49,17 +54,17 @@ internal class WithdrawWorkspaceConsentHandler(
     private val withdrawConsentHandler: WithdrawConsentHandler,
 ) : CommandWithResultHandler<WithdrawWorkspaceConsentCommand, ConsentRecord> {
     /**
-         * Withdraws a workspace consent for the specified subject.
-         *
-         * @param command The command containing the consent subject and withdrawal details.
-         * @return The withdrawn consent record.
-         * @throws IllegalArgumentException If the workspace ID is missing or an enum value is invalid.
-         */
-        override suspend fun handle(command: WithdrawWorkspaceConsentCommand): ConsentRecord =
+     * Withdraws a workspace consent for the specified subject.
+     *
+     * @param command The command containing the consent subject and withdrawal details.
+     * @return The withdrawn consent record.
+     * @throws IllegalArgumentException If the workspace ID is missing or an enum value is invalid.
+     */
+    override suspend fun handle(command: WithdrawWorkspaceConsentCommand): ConsentRecord =
         withdrawConsentHandler.handle(
             WithdrawConsentCommand(
                 workspaceId = requireNotNull(resourceContextProvider.require().workspaceId),
-                subjectReference = SubjectReference(command.subjectValue, SubjectKind.valueOf(command.subjectKind)),
+                subjectReference = SubjectReference(command.subjectValue, command.subjectKind),
                 purpose = command.purpose,
                 policyVersion = command.policyVersion,
                 reason = command.reason,
@@ -83,24 +88,12 @@ internal class GetWorkspaceConsentRecordsHandler(
      * @throws IllegalArgumentException If the subject kind is invalid.
      */
     override suspend fun handle(query: GetWorkspaceConsentRecordsQuery): List<ConsentRecord> {
-        authorize()
+        authorizeWorkspaceConsentRead(authorizationDecider)
         return repository.findActiveByWorkspace(
             requireNotNull(resourceContextProvider.require().workspaceId),
-            query.subjectKind?.let(SubjectKind::valueOf),
+            query.subjectKind,
             query.purpose,
         ).toList()
-    }
-
-    /**
-     * Authorizes access to consent records.
-     *
-     * @throws AuthorizationDeniedException If the read permission is denied.
-     */
-    private suspend fun authorize() {
-        val decision = authorizationDecider.decideDetailed(CONSENT_READ_PERMISSION)
-        if (decision.decision != AuthorizationDecision.ALLOW) {
-            throw AuthorizationDeniedException.forDecision(decision, CONSENT_READ_PERMISSION)
-        }
     }
 }
 
@@ -119,13 +112,10 @@ internal class GetConsentHistoryHandler(
      * @throws IllegalArgumentException If the workspace context has no workspace ID or the subject kind is invalid.
      */
     override suspend fun handle(query: GetConsentHistoryQuery): List<ConsentRecord> {
-        val decision = authorizationDecider.decideDetailed(CONSENT_READ_PERMISSION)
-        if (decision.decision != AuthorizationDecision.ALLOW) {
-            throw AuthorizationDeniedException.forDecision(decision, CONSENT_READ_PERMISSION)
-        }
+        authorizeWorkspaceConsentRead(authorizationDecider)
         return repository.findHistoricalByIdentity(
             requireNotNull(resourceContextProvider.require().workspaceId),
-            SubjectReference(query.subjectValue, SubjectKind.valueOf(query.subjectKind)),
+            SubjectReference(query.subjectValue, query.subjectKind),
             query.purpose,
         ).toList()
     }

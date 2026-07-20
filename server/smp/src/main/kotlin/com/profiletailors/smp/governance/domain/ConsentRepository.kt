@@ -26,11 +26,11 @@ interface ConsentRepository {
     suspend fun save(record: ConsentRecord): ConsentRecord
 
     /**
- * Atomically inserts an active consent projection and identifies the resulting winning record.
- *
- * @param record The consent record to insert as active.
- * @return A pair containing whether the record became active and the resulting winning record.
- */
+     * Atomically inserts an active consent projection and identifies the resulting winning record.
+     *
+     * @param record The consent record to insert as active.
+     * @return A pair containing whether the record became active and the resulting winning record.
+     */
     suspend fun recordActiveReturning(record: ConsentRecord): Pair<Boolean, ConsentRecord>
 
     /**

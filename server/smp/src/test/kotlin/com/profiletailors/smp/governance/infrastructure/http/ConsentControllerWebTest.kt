@@ -1,11 +1,6 @@
 package com.profiletailors.smp.governance.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
-import com.profiletailors.common.domain.bus.PublishStrategy
-import com.profiletailors.common.domain.bus.command.Command
-import com.profiletailors.common.domain.bus.command.CommandWithResult
-import com.profiletailors.common.domain.bus.notification.Notification
-import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.smp.governance.application.ConsentRecordNotFoundException
 import com.profiletailors.smp.governance.application.GetConsentHistoryQuery
 import com.profiletailors.smp.governance.application.GetWorkspaceConsentRecordsQuery
@@ -17,6 +12,8 @@ import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.governance.domain.ConsentStatus
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
+import io.mockk.coEvery
+import io.mockk.mockk
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -24,7 +21,7 @@ import java.time.Instant
 
 class ConsentControllerWebTest {
 
-    private val mediator = StubMediator()
+    private val mediator: Mediator = mockk()
     private val controller = ConsentController(mediator)
     private val client = WebTestClient
         .bindToController(controller)
@@ -33,7 +30,7 @@ class ConsentControllerWebTest {
 
     @Test
     fun `POST consent returns 201 when consent is created`() {
-        mediator.recordOutcome = RecordConsentOutcome(
+        coEvery { mediator.send(any<RecordWorkspaceConsentCommand>()) } returns RecordConsentOutcome(
             created = true,
             record = ConsentRecord(
                 id = ConsentRecordId("cs-new-001"),
@@ -73,7 +70,7 @@ class ConsentControllerWebTest {
 
     @Test
     fun `POST consent returns 200 when consent is already active (idempotent replay)`() {
-        mediator.recordOutcome = RecordConsentOutcome(
+        coEvery { mediator.send(any<RecordWorkspaceConsentCommand>()) } returns RecordConsentOutcome(
             created = false,
             record = ConsentRecord(
                 id = ConsentRecordId("cs-existing"),
@@ -163,7 +160,7 @@ class ConsentControllerWebTest {
 
     @Test
     fun `POST withdraw returns 200 with withdrawn status`() {
-        mediator.withdrawResult = ConsentRecord(
+        coEvery { mediator.send(any<WithdrawWorkspaceConsentCommand>()) } returns ConsentRecord(
             id = ConsentRecordId("cs-001"),
             workspaceId = "ws-001",
             subjectReference = SubjectReference.user("user-123"),
@@ -203,7 +200,7 @@ class ConsentControllerWebTest {
     fun `POST withdraw returns 404 when no active consent exists`() {
         val msg = "Active consent record not found for workspaceId=ws-001, " +
             "purpose=marketing.emails, policyVersion=2026-07-01"
-        mediator.withdrawError = ConsentRecordNotFoundException(msg)
+        coEvery { mediator.send(any<WithdrawWorkspaceConsentCommand>()) } throws ConsentRecordNotFoundException(msg)
 
         client.post().uri("/api/governance/consent/withdraw")
             .contentType(MediaType.APPLICATION_JSON)
@@ -225,7 +222,7 @@ class ConsentControllerWebTest {
 
     @Test
     fun `GET consent returns workspace consent records`() {
-        mediator.workspaceRecords = listOf(
+        coEvery { mediator.send(any<GetWorkspaceConsentRecordsQuery>()) } returns listOf(
             ConsentRecord(
                 id = ConsentRecordId("cs-001"),
                 workspaceId = "ws-001",
@@ -250,7 +247,7 @@ class ConsentControllerWebTest {
 
     @Test
     fun `GET consent history returns lifecycle records`() {
-        mediator.historyRecords = listOf(
+        coEvery { mediator.send(any<GetConsentHistoryQuery>()) } returns listOf(
             ConsentRecord(
                 id = ConsentRecordId("cs-001"),
                 workspaceId = "ws-001",
@@ -274,47 +271,5 @@ class ConsentControllerWebTest {
             .expectBody()
             .jsonPath("$[0].id").isEqualTo("cs-001")
             .jsonPath("$[0].status").isEqualTo("WITHDRAWN")
-    }
-
-    private class StubMediator : Mediator {
-        var recordOutcome: RecordConsentOutcome? = null
-        var withdrawResult: ConsentRecord? = null
-        var withdrawError: Exception? = null
-        var workspaceRecords: List<ConsentRecord>? = null
-        var historyRecords: List<ConsentRecord>? = null
-
-        @Suppress("UNCHECKED_CAST")
-        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = when (query) {
-            is GetWorkspaceConsentRecordsQuery -> workspaceRecords as TResponse
-            is GetConsentHistoryQuery -> historyRecords as TResponse
-            else -> error("unexpected query: $query")
-        }
-
-        override suspend fun <TCommand : Command> send(command: TCommand) {
-            error("not used")
-        }
-
-        override suspend fun <TCommand : CommandWithResult<TResult>, TResult> send(command: TCommand): TResult {
-            @Suppress("UNCHECKED_CAST")
-            return when (command) {
-                is RecordWorkspaceConsentCommand -> {
-                    recordOutcome as TResult
-                }
-                is WithdrawWorkspaceConsentCommand -> {
-                    withdrawError?.let { throw it }
-                    withdrawResult as TResult
-                }
-                else -> {
-                    error("unexpected command: $command")
-                }
-            }
-        }
-
-        override suspend fun <T : Notification> publish(notification: T) {
-            error("not used")
-        }
-        override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) {
-            error("not used")
-        }
     }
 }

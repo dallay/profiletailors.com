@@ -6,16 +6,16 @@ import com.profiletailors.smp.governance.domain.ConsentRepository
 import com.profiletailors.smp.governance.domain.ConsentStatus
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
-import kotlin.test.assertEquals
 
 internal class WithdrawConsentHandlerTest {
 
@@ -54,13 +54,13 @@ internal class WithdrawConsentHandlerTest {
 
         val result = handler.handle(command)
 
-        assertEquals(ConsentStatus.WITHDRAWN, result.status)
-        assertEquals(fixedClock.instant(), result.withdrawnAt)
-        assertEquals("user_request", result.withdrawalReason)
-        assertEquals(existing.id, result.id)
-        assertEquals(existing.subjectReference, result.subjectReference)
-        assertEquals(existing.purpose, result.purpose)
-        assertEquals(existing.givenAt, result.givenAt)
+        result.status shouldBe ConsentStatus.WITHDRAWN
+        result.withdrawnAt shouldBe fixedClock.instant()
+        result.withdrawalReason shouldBe "user_request"
+        result.id shouldBe existing.id
+        result.subjectReference shouldBe existing.subjectReference
+        result.purpose shouldBe existing.purpose
+        result.givenAt shouldBe existing.givenAt
 
         coVerify {
             repository.withdrawActiveReturning(
@@ -130,7 +130,7 @@ internal class WithdrawConsentHandlerTest {
             )
         } returns null
 
-        assertThrows<ConsentRecordNotFoundException> {
+        shouldThrow<ConsentRecordNotFoundException> {
             handler.handle(command)
         }
 
@@ -155,8 +155,8 @@ internal class WithdrawConsentHandlerTest {
             policyVersion = "2026-07-01",
         )
 
-        val error = assertThrows<IllegalArgumentException> { handler.handle(command) }
-        assertEquals("workspaceId must not be blank", error.message)
+        val error = shouldThrow<IllegalArgumentException> { handler.handle(command) }
+        error.message shouldBe "workspaceId must not be blank"
     }
 
     @Test
@@ -168,8 +168,8 @@ internal class WithdrawConsentHandlerTest {
             policyVersion = "2026-07-01",
         )
 
-        val error = assertThrows<IllegalArgumentException> { handler.handle(command) }
-        assertEquals("purpose must not be blank", error.message)
+        val error = shouldThrow<IllegalArgumentException> { handler.handle(command) }
+        error.message shouldBe "purpose must not be blank"
     }
 
     private fun activeConsent(workspaceId: String = "ws-001"): ConsentRecord = ConsentRecord(

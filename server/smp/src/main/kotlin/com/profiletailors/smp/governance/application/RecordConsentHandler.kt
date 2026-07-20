@@ -21,22 +21,12 @@ class RecordConsentHandler(private val repository: ConsentRepository, private va
         require(command.workspaceId.isNotBlank()) { "workspaceId must not be blank" }
         require(command.purpose.isNotBlank()) { "purpose must not be blank" }
 
-        val existing = if (repository.existsActive(
-                workspaceId = command.workspaceId,
-                subjectReference = command.subjectReference,
-                purpose = command.purpose,
-                policyVersion = command.policyVersion,
-            )
-        ) {
-            repository.findActive(
-                workspaceId = command.workspaceId,
-                subjectReference = command.subjectReference,
-                purpose = command.purpose,
-                policyVersion = command.policyVersion,
-            )
-        } else {
-            null
-        }
+        val existing = repository.findActive(
+            workspaceId = command.workspaceId,
+            subjectReference = command.subjectReference,
+            purpose = command.purpose,
+            policyVersion = command.policyVersion,
+        )
         if (existing != null) return RecordConsentOutcome(created = false, record = existing)
 
         val record = ConsentRecord(

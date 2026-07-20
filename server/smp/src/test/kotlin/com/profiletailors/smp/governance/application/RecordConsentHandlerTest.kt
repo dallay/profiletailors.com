@@ -6,6 +6,8 @@ import com.profiletailors.smp.governance.domain.ConsentRepository
 import com.profiletailors.smp.governance.domain.ConsentStatus
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -15,7 +17,6 @@ import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
-import kotlin.test.assertEquals
 
 internal class RecordConsentHandlerTest {
 
@@ -43,22 +44,22 @@ internal class RecordConsentHandlerTest {
         )
 
         coEvery {
-            repository.existsActive("ws-001", command.subjectReference, "waitlist.early_access", "2026-07-01")
-        } returns false
+            repository.findActive("ws-001", command.subjectReference, "waitlist.early_access", "2026-07-01")
+        } returns null
         coEvery { repository.recordActiveReturning(any()) } answers { true to firstArg() }
 
         val result = handler.handle(command)
 
-        assertEquals(true, result.created)
-        assertEquals(ConsentStatus.ACTIVE, result.record.status)
-        assertEquals(ConsentType.CONSENT, result.record.consentType)
-        assertEquals("waitlist.early_access", result.record.purpose)
-        assertEquals("2026-07-01", result.record.policyVersion)
-        assertEquals(fixedClock.instant(), result.record.givenAt)
+        result.created shouldBe true
+        result.record.status shouldBe ConsentStatus.ACTIVE
+        result.record.consentType shouldBe ConsentType.CONSENT
+        result.record.purpose shouldBe "waitlist.early_access"
+        result.record.policyVersion shouldBe "2026-07-01"
+        result.record.givenAt shouldBe fixedClock.instant()
 
         val saved = slot<ConsentRecord>()
         coVerify { repository.recordActiveReturning(capture(saved)) }
-        assertEquals(result.record, saved.captured)
+        result.record shouldBe saved.captured
     }
 
     @Test
@@ -85,16 +86,13 @@ internal class RecordConsentHandlerTest {
         )
 
         coEvery {
-            repository.existsActive("ws-001", existing.subjectReference, "waitlist.early_access", "2026-07-01")
-        } returns true
-        coEvery {
             repository.findActive("ws-001", existing.subjectReference, "waitlist.early_access", "2026-07-01")
         } returns existing
 
         val result = handler.handle(command)
 
-        assertEquals(false, result.created)
-        assertEquals(existing, result.record)
+        result.created shouldBe false
+        result.record shouldBe existing
         coVerify(exactly = 0) { repository.recordActiveReturning(any()) }
     }
 
@@ -111,13 +109,13 @@ internal class RecordConsentHandlerTest {
         )
 
         coEvery {
-            repository.existsActive("ws-001", command.subjectReference, "waitlist.early_access", "2026-08-01")
-        } returns false
+            repository.findActive("ws-001", command.subjectReference, "waitlist.early_access", "2026-08-01")
+        } returns null
         coEvery { repository.recordActiveReturning(any()) } answers { true to firstArg() }
 
         val result = handler.handle(command)
 
-        assertEquals("2026-08-01", result.record.policyVersion)
+        result.record.policyVersion shouldBe "2026-08-01"
         coVerify(exactly = 1) { repository.recordActiveReturning(any()) }
     }
 
@@ -134,8 +132,8 @@ internal class RecordConsentHandlerTest {
         )
 
         coEvery {
-            repository.existsActive("ws-001", command.subjectReference, "waitlist.early_access", "2026-07-01")
-        } returns false
+            repository.findActive("ws-001", command.subjectReference, "waitlist.early_access", "2026-07-01")
+        } returns null
         coEvery { repository.recordActiveReturning(any()) } answers { true to firstArg() }
 
         handler.handle(command)
@@ -155,14 +153,14 @@ internal class RecordConsentHandlerTest {
         )
 
         coEvery {
-            repository.existsActive("ws-isolated", command.subjectReference, "terms.v1", "2026-07-01")
-        } returns false
+            repository.findActive("ws-isolated", command.subjectReference, "terms.v1", "2026-07-01")
+        } returns null
         coEvery { repository.recordActiveReturning(any()) } answers { true to firstArg() }
 
         handler.handle(command)
 
         coVerify {
-            repository.existsActive("ws-isolated", command.subjectReference, "terms.v1", "2026-07-01")
+            repository.findActive("ws-isolated", command.subjectReference, "terms.v1", "2026-07-01")
         }
         coVerify {
             repository.recordActiveReturning(match { it.workspaceId == "ws-isolated" })
@@ -170,7 +168,7 @@ internal class RecordConsentHandlerTest {
     }
 
     @Test
-    fun `handler rejects blank workspaceId`() {
+    fun `handler rejects blank workspaceId`() = runTest {
         val command = RecordConsentCommand(
             workspaceId = "",
             subjectReference = SubjectReference.workspace("ws-001"),
@@ -181,18 +179,14 @@ internal class RecordConsentHandlerTest {
             locale = "es-ES",
         )
 
-        runTest {
-            try {
-                handler.handle(command)
-                error("expected IllegalArgumentException")
-            } catch (expected: IllegalArgumentException) {
-                assertEquals("workspaceId must not be blank", expected.message)
-            }
+        val error = shouldThrow<IllegalArgumentException> {
+            handler.handle(command)
         }
+        error.message shouldBe "workspaceId must not be blank"
     }
 
     @Test
-    fun `handler rejects blank purpose`() {
+    fun `handler rejects blank purpose`() = runTest {
         val command = RecordConsentCommand(
             workspaceId = "ws-001",
             subjectReference = SubjectReference.workspace("ws-001"),
@@ -203,13 +197,9 @@ internal class RecordConsentHandlerTest {
             locale = "es-ES",
         )
 
-        runTest {
-            try {
-                handler.handle(command)
-                error("expected IllegalArgumentException")
-            } catch (expected: IllegalArgumentException) {
-                assertEquals("purpose must not be blank", expected.message)
-            }
+        val error = shouldThrow<IllegalArgumentException> {
+            handler.handle(command)
         }
+        error.message shouldBe "purpose must not be blank"
     }
 }

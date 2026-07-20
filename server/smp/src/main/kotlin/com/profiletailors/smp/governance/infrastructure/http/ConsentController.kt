@@ -6,8 +6,10 @@ import com.profiletailors.smp.governance.application.GetWorkspaceConsentRecordsQ
 import com.profiletailors.smp.governance.application.RecordWorkspaceConsentCommand
 import com.profiletailors.smp.governance.application.WithdrawWorkspaceConsentCommand
 import com.profiletailors.smp.governance.domain.ConsentRecord
+import com.profiletailors.smp.governance.domain.ConsentStatus
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectKind
+import com.profiletailors.smp.governance.domain.SubjectReference
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import org.springframework.http.HttpStatus
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.time.Instant
 
 class EnumValidationException(val field: String, value: String, valid: Set<String>) :
     IllegalArgumentException("Invalid $field '$value'. Valid values: ${valid.joinToString()}")
@@ -36,12 +39,13 @@ class ConsentController(private val mediator: Mediator) {
      * @throws EnumValidationException If the subject kind, consent type, or locale is invalid.
      */
     @PostMapping
-    suspend fun record(@Valid @RequestBody request: RecordConsentRequest): ResponseEntity<ConsentRecord> {
+    suspend fun record(@Valid @RequestBody request: RecordConsentRequest): ResponseEntity<ConsentRecordResponse> {
         validateEnum(SUBJECT_KIND_FIELD, request.subjectKind, subjectKinds)
         validateEnum(CONSENT_TYPE_FIELD, request.consentType, consentTypes)
         validateLocale(request.locale)
         val outcome = mediator.send(request.toCommand())
-        return ResponseEntity.status(if (outcome.created) HttpStatus.CREATED else HttpStatus.OK).body(outcome.record)
+        return ResponseEntity.status(if (outcome.created) HttpStatus.CREATED else HttpStatus.OK)
+            .body(outcome.record.toResponse())
     }
 
     /**
@@ -52,9 +56,9 @@ class ConsentController(private val mediator: Mediator) {
      * @throws EnumValidationException If the subject kind is invalid.
      */
     @PostMapping("/withdraw")
-    suspend fun withdraw(@Valid @RequestBody request: WithdrawConsentRequest): ConsentRecord {
+    suspend fun withdraw(@Valid @RequestBody request: WithdrawConsentRequest): ConsentRecordResponse {
         validateEnum(SUBJECT_KIND_FIELD, request.subjectKind, subjectKinds)
-        return mediator.send(request.toCommand())
+        return mediator.send(request.toCommand()).toResponse()
     }
 
     /**
@@ -68,9 +72,10 @@ class ConsentController(private val mediator: Mediator) {
     suspend fun list(
         @RequestParam(required = false) subjectKind: String?,
         @RequestParam(required = false) purpose: String?,
-    ): List<ConsentRecord> {
+    ): List<ConsentRecordResponse> {
         subjectKind?.let { validateEnum(SUBJECT_KIND_FIELD, it, subjectKinds) }
-        return mediator.send(GetWorkspaceConsentRecordsQuery(subjectKind, purpose))
+        val kind = subjectKind?.let(SubjectKind::valueOf)
+        return mediator.send(GetWorkspaceConsentRecordsQuery(kind, purpose)).map { it.toResponse() }
     }
 
     /**
@@ -87,9 +92,10 @@ class ConsentController(private val mediator: Mediator) {
         @RequestParam subjectKind: String,
         @RequestParam subjectValue: String,
         @RequestParam purpose: String,
-    ): List<ConsentRecord> {
+    ): List<ConsentRecordResponse> {
         validateEnum(SUBJECT_KIND_FIELD, subjectKind, subjectKinds)
-        return mediator.send(GetConsentHistoryQuery(subjectKind, subjectValue, purpose))
+        return mediator.send(GetConsentHistoryQuery(SubjectKind.valueOf(subjectKind), subjectValue, purpose))
+            .map { it.toResponse() }
     }
 
     /**
@@ -124,6 +130,41 @@ class ConsentController(private val mediator: Mediator) {
     }
 }
 
+/** HTTP response DTO for a consent record, decoupling the API surface from the domain model. */
+data class ConsentRecordResponse(
+    val id: String,
+    val workspaceId: String,
+    val subjectReference: SubjectReference,
+    val consentType: ConsentType,
+    val purpose: String,
+    val policyVersion: String,
+    val source: String,
+    val locale: String,
+    val givenAt: Instant,
+    val status: ConsentStatus,
+    val withdrawnAt: Instant?,
+    val withdrawalReason: String?,
+    val createdAt: Instant,
+    val version: Long,
+)
+
+private fun ConsentRecord.toResponse() = ConsentRecordResponse(
+    id = id.value,
+    workspaceId = workspaceId,
+    subjectReference = subjectReference,
+    consentType = consentType,
+    purpose = purpose,
+    policyVersion = policyVersion,
+    source = source,
+    locale = locale,
+    givenAt = givenAt,
+    status = status,
+    withdrawnAt = withdrawnAt,
+    withdrawalReason = withdrawalReason,
+    createdAt = createdAt,
+    version = version,
+)
+
 data class RecordConsentRequest(
     @field:NotBlank val subjectKind: String,
     @field:NotBlank val subjectValue: String,
@@ -139,9 +180,9 @@ data class RecordConsentRequest(
      * @return The workspace consent recording command.
      */
     fun toCommand() = RecordWorkspaceConsentCommand(
-        subjectKind,
+        SubjectKind.valueOf(subjectKind),
         subjectValue,
-        consentType,
+        ConsentType.valueOf(consentType),
         purpose,
         policyVersion,
         source,
@@ -157,9 +198,15 @@ data class WithdrawConsentRequest(
     val reason: String? = null,
 ) {
     /**
- * Converts this request into a workspace consent withdrawal command.
- *
- * @return The workspace consent withdrawal command.
- */
-fun toCommand() = WithdrawWorkspaceConsentCommand(subjectKind, subjectValue, purpose, policyVersion, reason)
+     * Converts this request into a workspace consent withdrawal command.
+     *
+     * @return The workspace consent withdrawal command.
+     */
+    fun toCommand() = WithdrawWorkspaceConsentCommand(
+        SubjectKind.valueOf(subjectKind),
+        subjectValue,
+        purpose,
+        policyVersion,
+        reason,
+    )
 }

@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
-import org.springframework.r2dbc.connection.R2dbcTransactionManager
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.reactive.TransactionalOperator
@@ -24,9 +23,7 @@ import java.time.OffsetDateTime
 @Repository
 class R2dbcConsentRepository(
     private val databaseClient: DatabaseClient,
-    private val transaction: TransactionalOperator = TransactionalOperator.create(
-        R2dbcTransactionManager(databaseClient.connectionFactory),
-    ),
+    private val transaction: TransactionalOperator,
 ) : ConsentRepository {
 
     /**
@@ -36,22 +33,9 @@ class R2dbcConsentRepository(
      * @return The saved consent record.
      */
     override suspend fun save(record: ConsentRecord): ConsentRecord {
-        var spec = databaseClient.sql(UPSERT_CONSENT)
-            .bind("id", record.id.value)
-            .bind("workspaceId", record.workspaceId)
-            .bind("subjectKind", record.subjectReference.kind.name)
-            .bind("subjectValue", record.subjectReference.value)
-            .bind("consentType", record.consentType.name)
-            .bind("purpose", record.purpose)
-            .bind("policyVersion", record.policyVersion)
-            .bind("source", record.source)
-            .bind("locale", record.locale)
-            .bind("status", record.status.name)
-            .bind("givenAt", record.givenAt)
-
+        var spec = bindRecord(databaseClient.sql(UPSERT_CONSENT), record)
         spec = bindNullableInstant(spec, "withdrawnAt", record.withdrawnAt)
         spec = bindNullable(spec, "withdrawalReason", record.withdrawalReason)
-
         spec.fetch().rowsUpdated().awaitSingle()
         return record
     }
@@ -119,12 +103,12 @@ class R2dbcConsentRepository(
     }
 
     /**
-         * Finds a consent record by its identifier.
-         *
-         * @param id The identifier of the consent record.
-         * @return The matching consent record, or `null` if no record exists.
-         */
-        override suspend fun findById(id: ConsentRecordId): ConsentRecord? = databaseClient.sql(SELECT_BY_ID)
+     * Finds a consent record by its identifier.
+     *
+     * @param id The identifier of the consent record.
+     * @return The matching consent record, or `null` if no record exists.
+     */
+    override suspend fun findById(id: ConsentRecordId): ConsentRecord? = databaseClient.sql(SELECT_BY_ID)
         .bind("id", id.value)
         .map { row, _ -> mapConsent(row) }
         .first()
@@ -198,13 +182,13 @@ class R2dbcConsentRepository(
     ): Boolean = findActive(workspaceId, subjectReference, purpose, policyVersion) != null
 
     /**
-         * Binds the consent record fields required by an SQL statement.
-         *
-         * @param spec The SQL execution specification to populate.
-         * @param record The consent record whose fields are bound.
-         * @return The execution specification with the record fields bound.
-         */
-        private fun bindRecord(
+     * Binds the consent record fields required by an SQL statement.
+     *
+     * @param spec The SQL execution specification to populate.
+     * @param record The consent record whose fields are bound.
+     * @return The execution specification with the record fields bound.
+     */
+    private fun bindRecord(
         spec: DatabaseClient.GenericExecuteSpec,
         record: ConsentRecord,
     ): DatabaseClient.GenericExecuteSpec = spec
@@ -268,14 +252,14 @@ class R2dbcConsentRepository(
         if (value != null) spec.bind(name, value) else spec.bindNull(name, String::class.java)
 
     /**
-         * Binds an instant value to a named parameter, or binds SQL `NULL` when the value is absent.
-         *
-         * @param spec The database statement to update.
-         * @param name The name of the parameter.
-         * @param value The instant value to bind, or `null`.
-         * @return The updated database statement.
-         */
-        private fun bindNullableInstant(
+     * Binds an instant value to a named parameter, or binds SQL `NULL` when the value is absent.
+     *
+     * @param spec The database statement to update.
+     * @param name The name of the parameter.
+     * @param value The instant value to bind, or `null`.
+     * @return The updated database statement.
+     */
+    private fun bindNullableInstant(
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: Instant?,
