@@ -197,8 +197,13 @@ class PrivacyController(
             id = id,
             type = type,
             status = status,
-            result = resultRef?.let { mapOf("ref" to it) },
+            result = toRequestResult(this),
             createdAt = createdAt,
             updatedAt = updatedAt,
         )
+
+    internal companion object {
+        internal fun toRequestResult(response: DataSubjectRequestResponse): PrivacyRequestResult? =
+            response.resultRef?.let { PrivacyRequestResult(ref = it) }
+    }
 }
