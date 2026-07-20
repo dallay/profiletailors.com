@@ -13,6 +13,7 @@ import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
 import com.profiletailors.smp.governance.application.RecordConsentCommand
 import com.profiletailors.smp.governance.application.RecordConsentHandler
+import com.profiletailors.smp.governance.application.RecordConsentOutcome
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.identity.application.EmailVerificationTokenData
@@ -1018,16 +1019,19 @@ class LocalAuthHandlersTest {
             val command = firstArg<RecordConsentCommand>()
             order?.add("consent:record")
             recordedPurposes.add(command.purpose)
-            ConsentRecord(
-                id = ConsentRecordId("test-cs-${java.util.UUID.randomUUID()}"),
-                workspaceId = command.workspaceId,
-                subjectReference = command.subjectReference,
-                consentType = command.consentType,
-                purpose = command.purpose,
-                policyVersion = command.policyVersion,
-                source = command.source,
-                locale = command.locale,
-                givenAt = java.time.Instant.now(),
+            RecordConsentOutcome(
+                created = true,
+                record = ConsentRecord(
+                    id = ConsentRecordId("test-cs-${java.util.UUID.randomUUID()}"),
+                    workspaceId = command.workspaceId,
+                    subjectReference = command.subjectReference,
+                    consentType = command.consentType,
+                    purpose = command.purpose,
+                    policyVersion = command.policyVersion,
+                    source = command.source,
+                    locale = command.locale,
+                    givenAt = java.time.Instant.now(),
+                ),
             )
         }
         return handler
