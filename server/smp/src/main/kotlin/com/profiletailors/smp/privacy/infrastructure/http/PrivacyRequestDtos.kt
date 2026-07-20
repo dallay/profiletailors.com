@@ -53,7 +53,8 @@ data class SubmitPrivacyResponseDto(
  * @property id The unique request identifier
  * @property type The DSAR type
  * @property status The current lifecycle status
- * @property result The result payload (if completed)
+ * @property result The typed result payload, or `null` while the request is still
+ *                  being processed
  * @property createdAt ISO-8601 timestamp of creation
  * @property updatedAt ISO-8601 timestamp of last update
  */
@@ -61,7 +62,7 @@ data class PrivacyRequestStatusResponseDto(
     val id: String,
     val type: String,
     val status: String,
-    val result: Map<String, Any?>?,
+    val result: PrivacyRequestResult?,
     val createdAt: Instant,
     val updatedAt: Instant,
 )

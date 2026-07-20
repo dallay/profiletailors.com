@@ -55,6 +55,7 @@ dependencies {
     implementation(project(":shared:storage"))
     implementation(project(":shared:lead-capture:common"))
     implementation(project(":shared:lead-capture:waitlist"))
+    implementation(project(":shared:notifications"))
     implementation(project(":shared:shield:ratelimit"))
 
     implementation(libs.spring.boot.starter.data.r2dbc)
