@@ -205,7 +205,7 @@ class LocalAuthHandlersTest {
         val recordConsentHandler = recordConsentHandler(order, recordedPurposes)
         val handler = RegisterUserHandler(
             registrationAvailability = FakeRegistrationAvailability(enabled = true),
-            identityRegistrationGateway =FakeIdentityRegistrationGateway(order),
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
             passwordHasher = FakePasswordHasher(),

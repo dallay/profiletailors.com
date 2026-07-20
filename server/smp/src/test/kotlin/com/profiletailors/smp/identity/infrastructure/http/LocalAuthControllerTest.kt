@@ -17,13 +17,11 @@ import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
 import com.profiletailors.smp.identity.application.LogoutUserSessionResult
 import com.profiletailors.smp.identity.application.RefreshUserSessionCommand
 import com.profiletailors.smp.identity.application.RegisterUserCommand
-import com.profiletailors.smp.identity.application.RegistrationDisabledException
 import com.profiletailors.smp.identity.application.ResendVerificationCommand
 import com.profiletailors.smp.identity.application.ResendVerificationResult
 import com.profiletailors.smp.identity.application.VerifyEmailCommand
-import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.server.reactive.ServerHttpRequest
@@ -63,20 +61,23 @@ class LocalAuthControllerTest {
             ),
         )
 
-        response.statusCode.value() shouldBe 201
-        response.body?.accessToken shouldBe "token-1"
-        response.body?.principalId shouldBe "user-1"
-        response.body?.email shouldBe "yuniel@example.com"
-        response.body?.emailStatus shouldBe "PENDING"
+        assertEquals(201, response.statusCode.value())
+        assertEquals("token-1", response.body?.accessToken)
+        assertEquals("user-1", response.body?.principalId)
+        assertEquals("yuniel@example.com", response.body?.email)
+        assertEquals("PENDING", response.body?.emailStatus)
         // Verify refresh cookie is set
         assertTrue(
             response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true,
         )
-        mediator.lastRequest shouldBe RegisterUserCommand(
-            email = "yuniel@example.com",
-            password = validPassword,
-            confirmedAgeEligibility = true,
-            acceptedTermsVersion = "terms-v1.0.0",
+        assertEquals(
+            RegisterUserCommand(
+                email = "yuniel@example.com",
+                password = validPassword,
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
+            ),
+            mediator.lastRequest,
         )
     }
 

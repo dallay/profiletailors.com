@@ -34,11 +34,11 @@ class PublicCapabilitiesControllerTest {
 
     private class FakeMediator(private val registrationEnabled: Boolean) : Mediator {
         @Suppress("UNCHECKED_CAST")
-        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse {
-            return when (query) {
-                is GetPublicCapabilitiesQuery -> PublicCapabilities(registrationEnabled = registrationEnabled) as TResponse
-                else -> error("Unexpected query: $query")
-            }
+        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = when (query) {
+            is GetPublicCapabilitiesQuery -> PublicCapabilities(
+                registrationEnabled = registrationEnabled,
+            ) as TResponse
+            else -> error("Unexpected query: $query")
         }
 
         override suspend fun <TCommand : Command> send(command: TCommand) {
