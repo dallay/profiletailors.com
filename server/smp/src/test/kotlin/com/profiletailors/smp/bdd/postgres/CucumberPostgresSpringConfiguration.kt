@@ -18,6 +18,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
     properties = [
         "spring.liquibase.enabled=true",
         "bdd.variant=postgres",
+        "app.identity.registration.enabled=true",
         "management.health.defaults.enabled=false",
         "management.endpoint.health.probes.enabled=false",
         "management.endpoint.health.group.readiness.include=",

@@ -47,6 +47,7 @@ import javax.crypto.spec.SecretKeySpec
         "app.security.local-jwt.issuer=http://localhost/profiletailors-local",
         "app.security.refresh-session.cookie-name=pt_refresh",
         "app.security.refresh-session.cookie-path=/api/auth",
+        "app.identity.registration.enabled=true",
         "app.security.auth-rate-limit.enabled=false",
         "management.endpoint.health.group.readiness.include=readinessState",
         "management.endpoint.health.group.liveness.include=livenessState",
@@ -209,6 +210,23 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         "DELETE FROM user_identities",
         "DELETE FROM principals",
     )
+
+    @Test
+    fun `public capabilities is unauthenticated and exposes only registration availability`() {
+        webTestClient.get()
+            .uri("/api/capabilities/public")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("""{"registrationEnabled":true}""", true)
+    }
+
+    @Test
+    fun `non allow-listed public route still requires authentication`() {
+        webTestClient.get()
+            .uri("/api/auth/me")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
 
     @Test
     fun `verifies email without authentication and returns session tokens`() {

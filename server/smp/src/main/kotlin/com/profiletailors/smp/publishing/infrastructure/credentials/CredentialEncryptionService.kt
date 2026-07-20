@@ -16,7 +16,7 @@ class CredentialEncryptionService(private val properties: PublishingCredentialsP
     init {
         val keyBase64 = properties.key?.takeIf { it.isNotBlank() }
             ?: throw IllegalStateException(
-                "Credential encryption key (publishing.credentials.encryption.key) is missing or blank."
+                "Credential encryption key (publishing.credentials.encryption.key) is missing or blank.",
             )
         val bytes = Base64.getDecoder().decode(keyBase64)
         if (bytes.size !in VALID_KEY_SIZES) {
