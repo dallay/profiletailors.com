@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: authorization-010-seed-consent-permission
+      author: sdd-apply
+      changes:
+        - sql:
+            sql: >-
+              INSERT INTO permissions (id, permission_key, created_at)
+              VALUES ('perm-consent-read', 'workspace:consent:read', CURRENT_TIMESTAMP)
+              ON CONFLICT (permission_key) DO NOTHING
+        - sql:
+            sql: >-
+              INSERT INTO role_permissions (role_id, permission_id, created_at)
+              SELECT role.id, permission.id, CURRENT_TIMESTAMP
+              FROM roles role CROSS JOIN permissions permission
+              WHERE role.role_key = 'WORKSPACE_OWNER'
+                AND permission.permission_key = 'workspace:consent:read'
+              ON CONFLICT (role_id, permission_id) DO NOTHING

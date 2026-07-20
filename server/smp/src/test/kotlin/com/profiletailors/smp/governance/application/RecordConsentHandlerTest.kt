@@ -45,19 +45,20 @@ internal class RecordConsentHandlerTest {
         coEvery {
             repository.existsActive("ws-001", command.subjectReference, "waitlist.early_access", "2026-07-01")
         } returns false
-        coEvery { repository.save(any()) } answers { firstArg() }
+        coEvery { repository.recordActiveReturning(any()) } answers { true to firstArg() }
 
         val result = handler.handle(command)
 
-        assertEquals(ConsentStatus.ACTIVE, result.status)
-        assertEquals(ConsentType.CONSENT, result.consentType)
-        assertEquals("waitlist.early_access", result.purpose)
-        assertEquals("2026-07-01", result.policyVersion)
-        assertEquals(fixedClock.instant(), result.givenAt)
+        assertEquals(true, result.created)
+        assertEquals(ConsentStatus.ACTIVE, result.record.status)
+        assertEquals(ConsentType.CONSENT, result.record.consentType)
+        assertEquals("waitlist.early_access", result.record.purpose)
+        assertEquals("2026-07-01", result.record.policyVersion)
+        assertEquals(fixedClock.instant(), result.record.givenAt)
 
         val saved = slot<ConsentRecord>()
-        coVerify { repository.save(capture(saved)) }
-        assertEquals(result, saved.captured)
+        coVerify { repository.recordActiveReturning(capture(saved)) }
+        assertEquals(result.record, saved.captured)
     }
 
     @Test
@@ -92,8 +93,9 @@ internal class RecordConsentHandlerTest {
 
         val result = handler.handle(command)
 
-        assertEquals(existing, result)
-        coVerify(exactly = 0) { repository.save(any()) }
+        assertEquals(false, result.created)
+        assertEquals(existing, result.record)
+        coVerify(exactly = 0) { repository.recordActiveReturning(any()) }
     }
 
     @Test
@@ -111,12 +113,12 @@ internal class RecordConsentHandlerTest {
         coEvery {
             repository.existsActive("ws-001", command.subjectReference, "waitlist.early_access", "2026-08-01")
         } returns false
-        coEvery { repository.save(any()) } answers { firstArg() }
+        coEvery { repository.recordActiveReturning(any()) } answers { true to firstArg() }
 
         val result = handler.handle(command)
 
-        assertEquals("2026-08-01", result.policyVersion)
-        coVerify(exactly = 1) { repository.save(any()) }
+        assertEquals("2026-08-01", result.record.policyVersion)
+        coVerify(exactly = 1) { repository.recordActiveReturning(any()) }
     }
 
     @Test
@@ -134,10 +136,10 @@ internal class RecordConsentHandlerTest {
         coEvery {
             repository.existsActive("ws-001", command.subjectReference, "waitlist.early_access", "2026-07-01")
         } returns false
-        coEvery { repository.save(any()) } answers { firstArg() }
+        coEvery { repository.recordActiveReturning(any()) } answers { true to firstArg() }
 
         handler.handle(command)
-        coVerify(exactly = 1) { repository.save(any()) }
+        coVerify(exactly = 1) { repository.recordActiveReturning(any()) }
     }
 
     @Test
@@ -155,14 +157,16 @@ internal class RecordConsentHandlerTest {
         coEvery {
             repository.existsActive("ws-isolated", command.subjectReference, "terms.v1", "2026-07-01")
         } returns false
-        coEvery { repository.save(any()) } answers { firstArg() }
+        coEvery { repository.recordActiveReturning(any()) } answers { true to firstArg() }
 
         handler.handle(command)
 
         coVerify {
             repository.existsActive("ws-isolated", command.subjectReference, "terms.v1", "2026-07-01")
         }
-        coVerify { repository.save(any()) }
+        coVerify {
+            repository.recordActiveReturning(match { it.workspaceId == "ws-isolated" })
+        }
     }
 
     @Test

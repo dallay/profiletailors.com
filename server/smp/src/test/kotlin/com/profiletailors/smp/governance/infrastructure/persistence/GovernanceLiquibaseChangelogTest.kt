@@ -41,6 +41,21 @@ class GovernanceLiquibaseChangelogTest {
         assertContains(seed, "ctrl-accessibility")
     }
 
+    @Test
+    fun `consent ledger and permission changelogs are registered`() {
+        val master = changelog("db.changelog-master.yaml")
+        val ledger = changelog("governance/005-create-consent-record-events.yaml")
+        val permission = changelog("authorization/010-seed-consent-permission.yaml")
+
+        assertContains(master, "db/changelog/governance/005-create-consent-record-events.yaml")
+        assertContains(master, "db/changelog/authorization/010-seed-consent-permission.yaml")
+        assertContains(ledger, "tableName: consent_record_events")
+        assertContains(ledger, "CREATE UNIQUE INDEX uq_consent_active")
+        assertContains(ledger, "WHERE status = 'ACTIVE'")
+        assertContains(permission, "workspace:consent:read")
+        assertContains(permission, "WORKSPACE_OWNER")
+    }
+
     private fun changelog(relativePath: String): String {
         val resource = requireNotNull(javaClass.classLoader.getResource("db/changelog/$relativePath")) {
             "Missing changelog: db/changelog/$relativePath"

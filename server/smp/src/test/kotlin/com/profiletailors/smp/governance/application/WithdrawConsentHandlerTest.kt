@@ -9,7 +9,6 @@ import com.profiletailors.smp.governance.domain.SubjectReference
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -43,9 +42,15 @@ internal class WithdrawConsentHandlerTest {
         )
 
         coEvery {
-            repository.findActive("ws-001", existing.subjectReference, existing.purpose, existing.policyVersion)
-        } returns existing
-        coEvery { repository.save(any()) } answers { firstArg() }
+            repository.withdrawActiveReturning(
+                workspaceId = "ws-001",
+                subjectReference = existing.subjectReference,
+                purpose = existing.purpose,
+                policyVersion = existing.policyVersion,
+                withdrawnAt = fixedClock.instant(),
+                reason = "user_request",
+            )
+        } returns existing.withdraw(fixedClock.instant(), "user_request")
 
         val result = handler.handle(command)
 
@@ -57,9 +62,16 @@ internal class WithdrawConsentHandlerTest {
         assertEquals(existing.purpose, result.purpose)
         assertEquals(existing.givenAt, result.givenAt)
 
-        val saved = slot<ConsentRecord>()
-        coVerify { repository.save(capture(saved)) }
-        assertEquals(result, saved.captured)
+        coVerify {
+            repository.withdrawActiveReturning(
+                workspaceId = "ws-001",
+                subjectReference = existing.subjectReference,
+                purpose = existing.purpose,
+                policyVersion = existing.policyVersion,
+                withdrawnAt = fixedClock.instant(),
+                reason = "user_request",
+            )
+        }
     }
 
     @Test
@@ -73,14 +85,27 @@ internal class WithdrawConsentHandlerTest {
         )
 
         coEvery {
-            repository.findActive("ws-isolated", existing.subjectReference, existing.purpose, existing.policyVersion)
-        } returns existing
-        coEvery { repository.save(any()) } answers { firstArg() }
+            repository.withdrawActiveReturning(
+                "ws-isolated",
+                existing.subjectReference,
+                existing.purpose,
+                existing.policyVersion,
+                fixedClock.instant(),
+                null,
+            )
+        } returns existing.withdraw(fixedClock.instant())
 
         handler.handle(command)
 
         coVerify {
-            repository.findActive("ws-isolated", existing.subjectReference, existing.purpose, existing.policyVersion)
+            repository.withdrawActiveReturning(
+                "ws-isolated",
+                existing.subjectReference,
+                existing.purpose,
+                existing.policyVersion,
+                fixedClock.instant(),
+                null,
+            )
         }
     }
 
@@ -94,13 +119,31 @@ internal class WithdrawConsentHandlerTest {
             policyVersion = "2026-07-01",
         )
 
-        coEvery { repository.findActive("ws-001", subject, "marketing_emails", "2026-07-01") } returns null
+        coEvery {
+            repository.withdrawActiveReturning(
+                "ws-001",
+                subject,
+                "marketing_emails",
+                "2026-07-01",
+                fixedClock.instant(),
+                null,
+            )
+        } returns null
 
         assertThrows<ConsentRecordNotFoundException> {
             handler.handle(command)
         }
 
-        coVerify(exactly = 0) { repository.save(any()) }
+        coVerify(exactly = 1) {
+            repository.withdrawActiveReturning(
+                "ws-001",
+                subject,
+                "marketing_emails",
+                "2026-07-01",
+                fixedClock.instant(),
+                null,
+            )
+        }
     }
 
     @Test

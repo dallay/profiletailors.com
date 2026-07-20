@@ -16,7 +16,7 @@ class RecordConsentHandler(private val repository: ConsentRepository, private va
      * @param command The consent record command.
      * @return The newly persisted record, or the existing active record for duplicate submissions.
      */
-    suspend fun handle(command: RecordConsentCommand): ConsentRecord {
+    suspend fun handle(command: RecordConsentCommand): RecordConsentOutcome {
         require(command.workspaceId.isNotBlank()) { "workspaceId must not be blank" }
         require(command.purpose.isNotBlank()) { "purpose must not be blank" }
 
@@ -36,7 +36,7 @@ class RecordConsentHandler(private val repository: ConsentRepository, private va
         } else {
             null
         }
-        if (existing != null) return existing
+        if (existing != null) return RecordConsentOutcome(created = false, record = existing)
 
         val record = ConsentRecord(
             id = ConsentRecordId("cs-${UUID.randomUUID()}"),
@@ -49,6 +49,7 @@ class RecordConsentHandler(private val repository: ConsentRepository, private va
             locale = command.locale,
             givenAt = clock.instant(),
         )
-        return repository.save(record)
+        val (created, persisted) = repository.recordActiveReturning(record)
+        return RecordConsentOutcome(created = created, record = persisted)
     }
 }

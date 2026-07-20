@@ -25,6 +25,19 @@ interface ConsentRepository {
      */
     suspend fun save(record: ConsentRecord): ConsentRecord
 
+    /** Atomically inserts an active projection and returns the winning record. */
+    suspend fun recordActiveReturning(record: ConsentRecord): Pair<Boolean, ConsentRecord>
+
+    /** Atomically withdraws the active projection and appends immutable evidence. */
+    suspend fun withdrawActiveReturning(
+        workspaceId: String,
+        subjectReference: SubjectReference,
+        purpose: String,
+        policyVersion: String,
+        withdrawnAt: Instant,
+        reason: String?,
+    ): ConsentRecord?
+
     /**
      * Finds a consent record by its primary identifier.
      *
@@ -62,8 +75,8 @@ interface ConsentRepository {
      * Returns every record (including withdrawn ones) for the supplied identity,
      * ordered by [ConsentRecord.givenAt] ascending.
      *
-     * Identity is the subject reference + purpose combination, scoped to a
-     * workspace.
+     * Reads from the current projection table. Identity is the subject reference +
+     * purpose combination, scoped to a workspace.
      */
     fun findHistoricalByIdentity(
         workspaceId: String,

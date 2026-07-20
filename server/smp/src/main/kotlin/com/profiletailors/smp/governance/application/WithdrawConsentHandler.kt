@@ -23,11 +23,13 @@ internal class WithdrawConsentHandler(
         require(command.workspaceId.isNotBlank()) { "workspaceId must not be blank" }
         require(command.purpose.isNotBlank()) { "purpose must not be blank" }
 
-        val existing = repository.findActive(
+        return repository.withdrawActiveReturning(
             workspaceId = command.workspaceId,
             subjectReference = command.subjectReference,
             purpose = command.purpose,
             policyVersion = command.policyVersion,
+            withdrawnAt = clock.instant(),
+            reason = command.reason,
         ) ?: throw ConsentRecordNotFoundException(
             buildString {
                 append("Active consent record not found for ")
@@ -36,7 +38,5 @@ internal class WithdrawConsentHandler(
                 append("policyVersion=${command.policyVersion}")
             },
         )
-
-        return repository.save(existing.withdraw(at = clock.instant(), reason = command.reason))
     }
 }
