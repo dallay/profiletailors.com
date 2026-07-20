@@ -1,0 +1,11 @@
+change: media-copyright-takedown
+current_phase: tasks
+completed:
+  - init
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+next: apply (Phase 1)
+updated: "2026-07-20T21:42:00Z"

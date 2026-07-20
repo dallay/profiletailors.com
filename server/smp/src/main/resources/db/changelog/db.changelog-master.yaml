@@ -90,6 +90,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/media/005-add-external-metadata.yaml
   - include:
+      file: db/changelog/media/007-add-licence-column.yaml
+  - include:
       file: db/changelog/lead-capture/001-create-waitlists.yaml
   - include:
       file: db/changelog/lead-capture/002-seed-profile-tailors-launch.yaml
