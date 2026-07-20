@@ -50,7 +50,7 @@ class LocalAuthControllerTest {
     fun `dispatches register command and returns 201 with session tokens`() = runTest {
         val registrationResult = sessionResult("token-1", "user-1", "yuniel@example.com", "yuniel", "PENDING")
         val mediator = CapturingMediator(sessionResult = registrationResult)
-        val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
+        val controller = controller(mediator)
 
         val response = controller.register(
             RegisterUserRequest(
@@ -85,7 +85,7 @@ class LocalAuthControllerTest {
     fun `dispatches login command for pending user and sets refresh cookie`() = runTest {
         val expected = sessionResult("token-2", "user-2", "login@example.com", "login", "PENDING")
         val mediator = CapturingMediator(sessionResult = expected)
-        val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
+        val controller = controller(mediator)
 
         val response = controller.login(
             LoginUserRequest(
@@ -113,7 +113,7 @@ class LocalAuthControllerTest {
     fun `dispatches refresh command using refresh cookie`() = runTest {
         val expected = sessionResult("token-3", "user-3", "refresh@example.com", "refresh", "VERIFIED")
         val mediator = CapturingMediator(sessionResult = expected)
-        val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
+        val controller = controller(mediator)
 
         val response = controller.refresh(requestWithCookie("pt_refresh", "refresh-lookup.refresh-secret"))
 
@@ -128,7 +128,7 @@ class LocalAuthControllerTest {
                 sessionResult = sessionResult("token-4", "user-4", "logout@example.com", "logout", "VERIFIED"),
             )
         mediator.logoutResult = LogoutUserSessionResult()
-        val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
+        val controller = controller(mediator)
 
         val response = controller.logout(requestWithCookie("pt_refresh", "refresh-lookup.refresh-secret"))
 
@@ -141,7 +141,7 @@ class LocalAuthControllerTest {
     fun `dispatches verify email command from request body token and returns verified session`() = runTest {
         val expected = sessionResult("token-5", "user-5", "verify@example.com", "verify", "VERIFIED")
         val mediator = CapturingMediator(sessionResult = expected)
-        val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
+        val controller = controller(mediator)
 
         val response = controller.verifyEmail(VerifyEmailRequest(token = "test-token"))
 
@@ -158,7 +158,7 @@ class LocalAuthControllerTest {
     fun `dispatches resend verification command and returns 202`() = runTest {
         val mediator = CapturingMediator()
         mediator.resendResult = ResendVerificationResult()
-        val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
+        val controller = controller(mediator)
 
         val response = controller.resendVerification(
             ResendVerificationRequest(
@@ -172,6 +172,12 @@ class LocalAuthControllerTest {
             mediator.lastRequest,
         )
     }
+
+    private fun controller(mediator: Mediator) = LocalAuthController(
+        mediator = mediator,
+        refreshSessionCookieFactory = cookieFactory,
+        refreshSessionProperties = cookieProperties,
+    )
 
     private fun sessionResult(
         accessToken: String,

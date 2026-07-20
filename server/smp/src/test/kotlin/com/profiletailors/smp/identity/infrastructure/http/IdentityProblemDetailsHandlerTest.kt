@@ -2,8 +2,10 @@ package com.profiletailors.smp.identity.infrastructure.http
 
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
+import com.profiletailors.smp.identity.application.RegistrationDisabledException
 import com.profiletailors.smp.identity.application.UnverifiedEmailException
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -20,6 +22,17 @@ import java.net.URI
 class IdentityProblemDetailsHandlerTest {
 
     private val handler = IdentityProblemDetailsHandler()
+
+    @Test
+    fun `registration disabled maps to exact problem detail`() {
+        val result = handler.handle(RegistrationDisabledException())
+
+        assertEquals(HttpStatus.FORBIDDEN.value(), result.status)
+        assertEquals("Registration disabled", result.title)
+        assertEquals(URI("/problems/registration-disabled"), result.type)
+        assertEquals("Registration is not available.", result.detail)
+        assertEquals("registration_disabled", result.properties?.get("code"))
+    }
 
     @ParameterizedTest
     @MethodSource("emailVerificationExceptions")
