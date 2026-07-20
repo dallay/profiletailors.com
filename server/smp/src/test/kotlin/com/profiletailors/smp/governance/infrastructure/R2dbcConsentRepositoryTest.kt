@@ -31,7 +31,7 @@ class R2dbcConsentRepositoryTest : PostgresDatabaseTestBase() {
 
     override val postgres = postgresContainer
 
-    private val repository by lazy { R2dbcConsentRepository(databaseClient) }
+    private val repository by lazy { R2dbcConsentRepository(databaseClient, transactionalOperator) }
 
     @Test
     fun `saves and finds consent by id`() = runTest {

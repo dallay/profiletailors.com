@@ -40,6 +40,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/authorization/009-backfill-owner-roles.yaml
   - include:
+      file: db/changelog/authorization/010-seed-consent-permission.yaml
+  - include:
       file: db/changelog/governance/001-create-audit-events.yaml
   - include:
       file: db/changelog/governance/002-create-compliance-controls.yaml
@@ -47,6 +49,8 @@ databaseChangeLog:
       file: db/changelog/governance/003-seed-compliance-controls.yaml
   - include:
       file: db/changelog/governance/004-create-consent-records.yaml
+  - include:
+      file: db/changelog/governance/005-create-consent-record-events.yaml
   - include:
       file: db/changelog/publishing/001-create-social-connections.yaml
   - include:
