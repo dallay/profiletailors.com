@@ -27,6 +27,7 @@ class IdentityProblemDetailsHandler {
     fun handle(exception: UserAlreadyExistsException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.message ?: "Conflict").apply {
             title = "User already exists"
+            setProperty("code", "USER_ALREADY_EXISTS")
         }
 
     @ExceptionHandler(InvalidRegistrationInputException::class)
