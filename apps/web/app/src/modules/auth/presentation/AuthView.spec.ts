@@ -11,6 +11,7 @@ const replace = vi.hoisted(() => vi.fn())
 const loginWithPassword = vi.hoisted(() => vi.fn())
 const registerWithPassword = vi.hoisted(() => vi.fn())
 const clearError = vi.hoisted(() => vi.fn())
+const publicCapabilitiesLoad = vi.hoisted(() => vi.fn())
 
 vi.mock('vue-router', () => ({
   useRoute: () => routeState,
@@ -24,6 +25,23 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
     clearError,
     loginWithPassword,
     registerWithPassword,
+  }),
+}))
+
+const publicCapabilitiesState = vi.hoisted(() => ({
+  registrationEnabled: true,
+  capabilityChecked: true,
+}))
+
+vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
+  usePublicCapabilitiesStore: () => ({
+    load: publicCapabilitiesLoad,
+    get registrationEnabled() {
+      return publicCapabilitiesState.registrationEnabled
+    },
+    get capabilityChecked() {
+      return publicCapabilitiesState.capabilityChecked
+    },
   }),
 }))
 
@@ -56,10 +74,13 @@ describe('AuthView validation', () => {
     setActivePinia(createPinia())
     routeState.name = 'login'
     routeState.query = {}
+    publicCapabilitiesState.registrationEnabled = true
+    publicCapabilitiesState.capabilityChecked = true
     replace.mockReset()
     clearError.mockReset()
     loginWithPassword.mockReset()
     registerWithPassword.mockReset()
+    publicCapabilitiesLoad.mockReset()
   })
 
   it('does not submit login when client-side auth validation fails', async () => {
@@ -164,5 +185,76 @@ describe('AuthView validation', () => {
       confirmedAgeEligibility: true,
       acceptedTermsVersion: 'terms-v1.0.0',
     })
+  })
+})
+
+describe('AuthView capability loading', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    routeState.name = 'login'
+    routeState.query = {}
+    publicCapabilitiesState.registrationEnabled = true
+    publicCapabilitiesState.capabilityChecked = true
+    replace.mockReset()
+    clearError.mockReset()
+    loginWithPassword.mockReset()
+    registerWithPassword.mockReset()
+    publicCapabilitiesLoad.mockReset()
+  })
+
+  it('loads capabilities on mount in login mode', () => {
+    routeState.name = 'login'
+    mountAuthView()
+
+    expect(publicCapabilitiesLoad).toHaveBeenCalledOnce()
+  })
+
+  it('loads capabilities on mount in registration mode', () => {
+    routeState.name = 'register'
+    mountAuthView()
+
+    expect(publicCapabilitiesLoad).toHaveBeenCalledOnce()
+  })
+
+  it('shows registration link in login mode when capabilities checked and enabled', () => {
+    routeState.name = 'login'
+    publicCapabilitiesState.capabilityChecked = true
+    publicCapabilitiesState.registrationEnabled = true
+    const wrapper = mountAuthView()
+
+    const link = wrapper.find('a')
+    expect(link.exists()).toBe(true)
+  })
+
+  it('hides registration link in login mode when capabilities not yet checked', () => {
+    routeState.name = 'login'
+    publicCapabilitiesState.capabilityChecked = false
+    publicCapabilitiesState.registrationEnabled = true
+    const wrapper = mountAuthView()
+
+    const spans = wrapper.findAll('span')
+    const closedMessage = spans.find((s) => s.text().includes('auth.registrationClosed'))
+    expect(closedMessage).toBeDefined()
+  })
+
+  it('hides registration link in login mode when capabilities checked but disabled', () => {
+    routeState.name = 'login'
+    publicCapabilitiesState.capabilityChecked = true
+    publicCapabilitiesState.registrationEnabled = false
+    const wrapper = mountAuthView()
+
+    const spans = wrapper.findAll('span')
+    const closedMessage = spans.find((s) => s.text().includes('auth.registrationClosed'))
+    expect(closedMessage).toBeDefined()
+  })
+
+  it('shows back-to-login link in registration mode regardless of capability state', () => {
+    routeState.name = 'register'
+    publicCapabilitiesState.capabilityChecked = false
+    publicCapabilitiesState.registrationEnabled = false
+    const wrapper = mountAuthView()
+
+    const link = wrapper.find('a')
+    expect(link.exists()).toBe(true)
   })
 })

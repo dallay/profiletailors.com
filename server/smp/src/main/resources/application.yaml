@@ -46,6 +46,9 @@ application:
         refill-duration: ${SMP_WAITLIST_RATE_LIMIT_REFILL_DURATION:PT1M}
 
 app:
+  identity:
+    registration:
+      enabled: ${SMP_REGISTRATION_ENABLED:false}
   security:
     cors:
       allowed-origins: ${SMP_CORS_ALLOWED_ORIGINS:}  # comma-separated, empty = no CORS access
