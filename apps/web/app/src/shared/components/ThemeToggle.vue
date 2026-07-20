@@ -55,7 +55,7 @@ function handleClick() {
 </script>
 
 <template>
-  <button
+  <button type="button"
     @click="handleClick"
     :disabled="isAnimating"
     class="p-1.5 hover:text-text-display transition-colors rounded-full border border-border-subtle focus:outline-none focus:ring-1 focus:ring-text-secondary cursor-pointer disabled:opacity-50"

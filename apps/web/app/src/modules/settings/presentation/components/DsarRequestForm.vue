@@ -80,11 +80,11 @@ defineExpose({ submitting })
   <div class="space-y-5">
     <div class="space-y-2">
       <!-- biome-ignore lint/a11y/noLabelWithoutControl: $t() provides accessible text, Biome can't resolve i18n keys statically -->
-      <label class="text-sm font-medium text-text-display">
+      <label for="dsar-request-type" class="text-sm font-medium text-text-display">
         {{ t('settings.privacy.form.type.label') }}
       </label>
       <Select v-model="requestType">
-        <SelectTrigger data-testid="dsar-type-select">
+        <SelectTrigger id="dsar-request-type" data-testid="dsar-type-select">
           <SelectValue :placeholder="t('settings.privacy.form.type.placeholder')" />
         </SelectTrigger>
         <SelectContent>
