@@ -14,6 +14,7 @@ import com.profiletailors.smp.governance.domain.SubjectReference
 import kotlinx.coroutines.flow.toList
 
 private val CONSENT_READ_PERMISSION = PermissionKey.of("workspace", "consent", "read")
+private val CONSENT_WRITE_PERMISSION = PermissionKey.of("workspace", "consent", "write")
 
 private suspend fun authorizeWorkspaceConsentRead(authorizationDecider: WorkspaceAuthorizationDecider) {
     val decision = authorizationDecider.decideDetailed(CONSENT_READ_PERMISSION)
@@ -22,20 +23,30 @@ private suspend fun authorizeWorkspaceConsentRead(authorizationDecider: Workspac
     }
 }
 
+private suspend fun authorizeWorkspaceConsentWrite(authorizationDecider: WorkspaceAuthorizationDecider) {
+    val decision = authorizationDecider.decideDetailed(CONSENT_WRITE_PERMISSION)
+    if (decision.decision != AuthorizationDecision.ALLOW) {
+        throw AuthorizationDeniedException.forDecision(decision, CONSENT_WRITE_PERMISSION)
+    }
+}
+
 @Service
 internal class RecordWorkspaceConsentHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val recordConsentHandler: RecordConsentHandler,
+    private val authorizationDecider: WorkspaceAuthorizationDecider,
 ) : CommandWithResultHandler<RecordWorkspaceConsentCommand, RecordConsentOutcome> {
     /**
      * Records consent for the current workspace.
      *
      * @param command The command containing the consent details to record.
      * @return The outcome of recording the consent.
+     * @throws AuthorizationDeniedException If the caller lacks consent-write permission.
      * @throws IllegalArgumentException If no workspace is available or an enum value is invalid.
      */
-    override suspend fun handle(command: RecordWorkspaceConsentCommand): RecordConsentOutcome =
-        recordConsentHandler.handle(
+    override suspend fun handle(command: RecordWorkspaceConsentCommand): RecordConsentOutcome {
+        authorizeWorkspaceConsentWrite(authorizationDecider)
+        return recordConsentHandler.handle(
             RecordConsentCommand(
                 workspaceId = requireNotNull(resourceContextProvider.require().workspaceId),
                 subjectReference = SubjectReference(command.subjectValue, command.subjectKind),
@@ -46,22 +57,26 @@ internal class RecordWorkspaceConsentHandler(
                 locale = command.locale,
             ),
         )
+    }
 }
 
 @Service
 internal class WithdrawWorkspaceConsentHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val withdrawConsentHandler: WithdrawConsentHandler,
+    private val authorizationDecider: WorkspaceAuthorizationDecider,
 ) : CommandWithResultHandler<WithdrawWorkspaceConsentCommand, ConsentRecord> {
     /**
      * Withdraws a workspace consent for the specified subject.
      *
      * @param command The command containing the consent subject and withdrawal details.
      * @return The withdrawn consent record.
+     * @throws AuthorizationDeniedException If the caller lacks consent-write permission.
      * @throws IllegalArgumentException If the workspace ID is missing or an enum value is invalid.
      */
-    override suspend fun handle(command: WithdrawWorkspaceConsentCommand): ConsentRecord =
-        withdrawConsentHandler.handle(
+    override suspend fun handle(command: WithdrawWorkspaceConsentCommand): ConsentRecord {
+        authorizeWorkspaceConsentWrite(authorizationDecider)
+        return withdrawConsentHandler.handle(
             WithdrawConsentCommand(
                 workspaceId = requireNotNull(resourceContextProvider.require().workspaceId),
                 subjectReference = SubjectReference(command.subjectValue, command.subjectKind),
@@ -70,6 +85,7 @@ internal class WithdrawWorkspaceConsentHandler(
                 reason = command.reason,
             ),
         )
+    }
 }
 
 @Service
