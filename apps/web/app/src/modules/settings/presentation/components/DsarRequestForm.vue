@@ -39,14 +39,6 @@ const isCorrection = computed(() => requestType.value === 'CORRECTION')
 const isDeletion = computed(() => requestType.value === 'DELETION')
 const canSubmit = computed(() => requestType.value !== '')
 
-function resetForm(): void {
-  requestType.value = ''
-  notes.value = ''
-  newEmail.value = ''
-  newUsername.value = ''
-  showConfirmDeletion.value = false
-}
-
 function handleSubmit(): void {
   if (!requestType.value) return
 

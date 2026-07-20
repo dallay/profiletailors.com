@@ -233,7 +233,7 @@ describe('AuthView capability loading', () => {
     const wrapper = mountAuthView()
 
     const spans = wrapper.findAll('span')
-    const closedMessage = spans.find(s => s.text().includes('auth.registrationClosed'))
+    const closedMessage = spans.find((s) => s.text().includes('auth.registrationClosed'))
     expect(closedMessage).toBeDefined()
   })
 
@@ -244,7 +244,7 @@ describe('AuthView capability loading', () => {
     const wrapper = mountAuthView()
 
     const spans = wrapper.findAll('span')
-    const closedMessage = spans.find(s => s.text().includes('auth.registrationClosed'))
+    const closedMessage = spans.find((s) => s.text().includes('auth.registrationClosed'))
     expect(closedMessage).toBeDefined()
   })
 
