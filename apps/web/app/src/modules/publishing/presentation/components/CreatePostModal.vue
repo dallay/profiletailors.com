@@ -53,7 +53,7 @@ type ComposerInlineAttachment =
 
 const props = withDefaults(
   defineProps<{
-    isOpen: boolean
+    isOpen?: boolean
     initialDate?: string // ISO string
     editingPublication?: Publication // Pre-fill for editing
     /**
@@ -897,7 +897,7 @@ async function handleCreateSubmit(
         aria-labelledby="create-post-title"
         class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row"
       >
-        <button
+        <button type="button"
           @click="emit('close')"
           class="absolute top-4 right-4 z-50 flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display lg:hidden"
         >
@@ -909,7 +909,7 @@ async function handleCreateSubmit(
               <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
                 {{ isEditMode ? $t('composer.editTitle') : $t('composer.title') }}
               </h3>
-            <button
+            <button type="button"
               @click="emit('close')"
               class="hidden lg:flex size-7 items-center justify-center rounded-xl border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display cursor-pointer"
             >
@@ -922,7 +922,7 @@ async function handleCreateSubmit(
               {{ $t('dashboard.selectChannels') }}
             </span>
             <div class="flex flex-wrap gap-2 items-center">
-              <button
+              <button type="button"
                 v-for="ch in publishingStore.channels.filter(ch => ch.status === 'ACTIVE')"
                 :key="ch.id"
                 @click="isEditMode ? undefined : selectChannel(ch.id)"
@@ -958,7 +958,7 @@ async function handleCreateSubmit(
                 </span>
               </button>
 
-              <button
+              <button type="button"
                 class="flex size-8 items-center justify-center rounded-full border border-dashed border-border-visible text-text-secondary hover:text-text-display hover:border-text-display bg-transparent transition-colors cursor-pointer"
                 title="Connect another channel"
               >
@@ -1111,21 +1111,21 @@ async function handleCreateSubmit(
                     </PopoverContent>
                   </Popover>
 
-                  <button
+                  <button type="button"
                     @click="handleEmojiPicker"
                     class="flex h-10 w-10 items-center justify-center rounded-xl text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
                     title="Open emoji picker"
                   >
                     <Smile class="size-4" />
                   </button>
-                  <button
+                  <button type="button"
                     @click="appendHashtag"
                     class="flex h-10 w-10 items-center justify-center rounded-xl text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
                     title="Insert tag"
                   >
                     <Hash class="size-4" />
                   </button>
-                  <button
+                  <button type="button"
                     @click="handleAiAssist"
                     class="flex h-10 items-center gap-1 rounded-xl px-2 text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
                     title="AI Assist"
@@ -1301,7 +1301,7 @@ async function handleCreateSubmit(
               </p>
 
               <div class="grid grid-cols-3 gap-3">
-                <button
+                <button type="button"
                   @click="emit('close')"
                   class="col-span-1 border border-border-visible text-text-body hover:border-text-display hover:text-text-display font-mono text-[10px] font-bold uppercase tracking-wider rounded-full py-2.5 transition-all text-center cursor-pointer"
                 >
