@@ -1,7 +1,7 @@
 // src/components/waitlist-form-validator.ts
 // Client-side email validation mirroring the backend EmailAddress VO rules.
 // Reference regex lives in shared/lead-capture/common.
-const EMAIL_REGEX = /^\S+@\S+\.\S+$/
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function isValidEmail(value: string): boolean {
   const trimmed = value.trim()
