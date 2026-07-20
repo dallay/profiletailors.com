@@ -8,11 +8,10 @@ import com.profiletailors.smp.governance.application.WithdrawWorkspaceConsentCom
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectKind
-import com.profiletailors.smp.governance.domain.SubjectReference
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -74,12 +73,11 @@ class ConsentController(private val mediator: Mediator) {
     suspend fun list(
         @RequestParam(required = false) subjectKind: String?,
         @RequestParam(required = false) purpose: String?,
-    ): List<ConsentRecordResponse> {
+    ): Flow<ConsentRecordResponse> {
         subjectKind?.let { validateEnum(SUBJECT_KIND_FIELD, it, subjectKinds) }
         val kind = subjectKind?.let(SubjectKind::valueOf)
         return mediator.send(GetWorkspaceConsentRecordsQuery(kind, purpose))
             .map { it.toResponse() }
-            .toList()
     }
 
     /**
@@ -96,11 +94,10 @@ class ConsentController(private val mediator: Mediator) {
         @RequestParam subjectKind: String,
         @RequestParam subjectValue: String,
         @RequestParam purpose: String,
-    ): List<ConsentRecordResponse> {
+    ): Flow<ConsentRecordResponse> {
         validateEnum(SUBJECT_KIND_FIELD, subjectKind, subjectKinds)
         return mediator.send(GetConsentHistoryQuery(SubjectKind.valueOf(subjectKind), subjectValue, purpose))
             .map { it.toResponse() }
-            .toList()
     }
 
     /**
@@ -140,7 +137,8 @@ class ConsentController(private val mediator: Mediator) {
 data class ConsentRecordResponse(
     val id: String,
     val workspaceId: String,
-    val subjectReference: SubjectReference,
+    val subjectKind: String,
+    val subjectValue: String,
     val consentType: String,
     val purpose: String,
     val policyVersion: String,
@@ -157,7 +155,8 @@ data class ConsentRecordResponse(
 private fun ConsentRecord.toResponse() = ConsentRecordResponse(
     id = id.value,
     workspaceId = workspaceId,
-    subjectReference = subjectReference,
+    subjectKind = subjectReference.kind.name,
+    subjectValue = subjectReference.value,
     consentType = consentType.name,
     purpose = purpose,
     policyVersion = policyVersion,
