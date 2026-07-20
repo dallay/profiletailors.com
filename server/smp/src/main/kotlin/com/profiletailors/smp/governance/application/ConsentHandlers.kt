@@ -11,7 +11,7 @@ import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRepository
 import com.profiletailors.smp.governance.domain.SubjectReference
-import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.Flow
 
 private val CONSENT_READ_PERMISSION = PermissionKey.of("workspace", "consent", "read")
 private val CONSENT_WRITE_PERMISSION = PermissionKey.of("workspace", "consent", "write")
@@ -93,7 +93,7 @@ internal class GetWorkspaceConsentRecordsHandler(
     private val repository: ConsentRepository,
     private val resourceContextProvider: ResourceContextProvider,
     private val authorizationDecider: WorkspaceAuthorizationDecider,
-) : QueryHandler<GetWorkspaceConsentRecordsQuery, List<ConsentRecord>> {
+) : QueryHandler<GetWorkspaceConsentRecordsQuery, Flow<ConsentRecord>> {
     /**
      * Retrieves active consent records for the current workspace.
      *
@@ -103,13 +103,13 @@ internal class GetWorkspaceConsentRecordsHandler(
      * @throws NullPointerException If no workspace ID is available.
      * @throws IllegalArgumentException If the subject kind is invalid.
      */
-    override suspend fun handle(query: GetWorkspaceConsentRecordsQuery): List<ConsentRecord> {
+    override suspend fun handle(query: GetWorkspaceConsentRecordsQuery): Flow<ConsentRecord> {
         authorizeWorkspaceConsentRead(authorizationDecider)
         return repository.findActiveByWorkspace(
             requireNotNull(resourceContextProvider.require().workspaceId),
             query.subjectKind,
             query.purpose,
-        ).toList()
+        )
     }
 }
 
@@ -118,7 +118,7 @@ internal class GetConsentHistoryHandler(
     private val repository: ConsentRepository,
     private val resourceContextProvider: ResourceContextProvider,
     private val authorizationDecider: WorkspaceAuthorizationDecider,
-) : QueryHandler<GetConsentHistoryQuery, List<ConsentRecord>> {
+) : QueryHandler<GetConsentHistoryQuery, Flow<ConsentRecord>> {
     /**
      * Retrieves historical consent records for the current workspace identity.
      *
@@ -127,12 +127,12 @@ internal class GetConsentHistoryHandler(
      * @throws AuthorizationDeniedException If the caller lacks permission to read consent records.
      * @throws IllegalArgumentException If the workspace context has no workspace ID or the subject kind is invalid.
      */
-    override suspend fun handle(query: GetConsentHistoryQuery): List<ConsentRecord> {
+    override suspend fun handle(query: GetConsentHistoryQuery): Flow<ConsentRecord> {
         authorizeWorkspaceConsentRead(authorizationDecider)
         return repository.findHistoricalByIdentity(
             requireNotNull(resourceContextProvider.require().workspaceId),
             SubjectReference(query.subjectValue, query.subjectKind),
             query.purpose,
-        ).toList()
+        )
     }
 }

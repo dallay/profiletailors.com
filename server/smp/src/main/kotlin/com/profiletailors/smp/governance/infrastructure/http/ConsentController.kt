@@ -6,12 +6,13 @@ import com.profiletailors.smp.governance.application.GetWorkspaceConsentRecordsQ
 import com.profiletailors.smp.governance.application.RecordWorkspaceConsentCommand
 import com.profiletailors.smp.governance.application.WithdrawWorkspaceConsentCommand
 import com.profiletailors.smp.governance.domain.ConsentRecord
-import com.profiletailors.smp.governance.domain.ConsentStatus
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectKind
 import com.profiletailors.smp.governance.domain.SubjectReference
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
+import java.util.Locale
 
 class EnumValidationException(val field: String, value: String, valid: Set<String>) :
     IllegalArgumentException("Invalid $field '$value'. Valid values: ${valid.joinToString()}")
@@ -75,7 +77,9 @@ class ConsentController(private val mediator: Mediator) {
     ): List<ConsentRecordResponse> {
         subjectKind?.let { validateEnum(SUBJECT_KIND_FIELD, it, subjectKinds) }
         val kind = subjectKind?.let(SubjectKind::valueOf)
-        return mediator.send(GetWorkspaceConsentRecordsQuery(kind, purpose)).map { it.toResponse() }
+        return mediator.send(GetWorkspaceConsentRecordsQuery(kind, purpose))
+            .map { it.toResponse() }
+            .toList()
     }
 
     /**
@@ -96,6 +100,7 @@ class ConsentController(private val mediator: Mediator) {
         validateEnum(SUBJECT_KIND_FIELD, subjectKind, subjectKinds)
         return mediator.send(GetConsentHistoryQuery(SubjectKind.valueOf(subjectKind), subjectValue, purpose))
             .map { it.toResponse() }
+            .toList()
     }
 
     /**
@@ -117,8 +122,8 @@ class ConsentController(private val mediator: Mediator) {
      * @throws EnumValidationException If the locale is invalid.
      */
     private fun validateLocale(locale: String) {
-        val parsed = runCatching { java.util.Locale.Builder().setLanguageTag(locale).build() }.getOrNull()
-        if (parsed == null || parsed.language !in java.util.Locale.getISOLanguages()) {
+        val parsed = runCatching { Locale.Builder().setLanguageTag(locale).build() }.getOrNull()
+        if (parsed == null || parsed.language !in ISO_LANGUAGES) {
             throw EnumValidationException(LOCALE_FIELD, locale, setOf("ISO 639-1 language tag"))
         }
     }
@@ -127,6 +132,7 @@ class ConsentController(private val mediator: Mediator) {
         private const val SUBJECT_KIND_FIELD = "subjectKind"
         private const val CONSENT_TYPE_FIELD = "consentType"
         private const val LOCALE_FIELD = "locale"
+        private val ISO_LANGUAGES: Set<String> = Locale.getISOLanguages().toSet()
     }
 }
 
@@ -135,13 +141,13 @@ data class ConsentRecordResponse(
     val id: String,
     val workspaceId: String,
     val subjectReference: SubjectReference,
-    val consentType: ConsentType,
+    val consentType: String,
     val purpose: String,
     val policyVersion: String,
     val source: String,
     val locale: String,
     val givenAt: Instant,
-    val status: ConsentStatus,
+    val status: String,
     val withdrawnAt: Instant?,
     val withdrawalReason: String?,
     val createdAt: Instant,
@@ -152,13 +158,13 @@ private fun ConsentRecord.toResponse() = ConsentRecordResponse(
     id = id.value,
     workspaceId = workspaceId,
     subjectReference = subjectReference,
-    consentType = consentType,
+    consentType = consentType.name,
     purpose = purpose,
     policyVersion = policyVersion,
     source = source,
     locale = locale,
     givenAt = givenAt,
-    status = status,
+    status = status.name,
     withdrawnAt = withdrawnAt,
     withdrawalReason = withdrawalReason,
     createdAt = createdAt,

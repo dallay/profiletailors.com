@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectKind
+import kotlinx.coroutines.flow.Flow
 
 /** HTTP command whose workspace is resolved from the authenticated resource context. */
 data class RecordWorkspaceConsentCommand(
@@ -26,7 +27,7 @@ data class WithdrawWorkspaceConsentCommand(
 ) : CommandWithResult<ConsentRecord>
 
 data class GetWorkspaceConsentRecordsQuery(val subjectKind: SubjectKind? = null, val purpose: String? = null) :
-    Query<List<ConsentRecord>>
+    Query<Flow<ConsentRecord>>
 
 data class GetConsentHistoryQuery(val subjectKind: SubjectKind, val subjectValue: String, val purpose: String) :
-    Query<List<ConsentRecord>>
+    Query<Flow<ConsentRecord>>

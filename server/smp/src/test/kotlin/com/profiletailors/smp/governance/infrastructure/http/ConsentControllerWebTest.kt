@@ -14,6 +14,7 @@ import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
 import io.mockk.coEvery
 import io.mockk.mockk
+import kotlinx.coroutines.flow.flowOf
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -222,7 +223,7 @@ class ConsentControllerWebTest {
 
     @Test
     fun `GET consent returns workspace consent records`() {
-        coEvery { mediator.send(any<GetWorkspaceConsentRecordsQuery>()) } returns listOf(
+        coEvery { mediator.send(any<GetWorkspaceConsentRecordsQuery>()) } returns flowOf(
             ConsentRecord(
                 id = ConsentRecordId("cs-001"),
                 workspaceId = "ws-001",
@@ -247,7 +248,7 @@ class ConsentControllerWebTest {
 
     @Test
     fun `GET consent history returns lifecycle records`() {
-        coEvery { mediator.send(any<GetConsentHistoryQuery>()) } returns listOf(
+        coEvery { mediator.send(any<GetConsentHistoryQuery>()) } returns flowOf(
             ConsentRecord(
                 id = ConsentRecordId("cs-001"),
                 workspaceId = "ws-001",
