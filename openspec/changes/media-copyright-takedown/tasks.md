@@ -25,15 +25,15 @@ Chain strategy: pending
 
 ## Phase 1 — Schema & Attribution
 
-- [ ] 1.1 Delete dead `db/changelog/media/006-drop-external-metadata.yaml` from git
-- [ ] 1.2 Create `db/changelog/media/007-add-licence-column.yaml` — nullable `licence VARCHAR(64)` on `media_assets`
-- [ ] 1.3 Add `val licence: String? = null` to `MediaAsset` domain model
-- [ ] 1.4 Add `licence` to `MediaAssetResponse` DTO and `MediaAssetSummary` DTO
-- [ ] 1.5 Add `licence` to all SQL queries + `rowToMediaAsset()` in `R2dbcMediaRepositories.kt`
-- [ ] 1.6 Set `licence = "unsplash"` in `UnsplashMediaProviderHandlers.persistPhoto()`
-- [ ] 1.7 Add `licence?: string | null` to frontend `MediaAssetSummary` type in `media-api.ts`
-- [ ] 1.8 Create `MediaAttribution.vue` — displays author, source, licence when non-null
-- [ ] 1.9 Integrate `<MediaAttribution>` into `MediaLibraryView.vue` asset cards
+- [x] 1.1 Delete dead `db/changelog/media/006-drop-external-metadata.yaml` from git
+- [x] 1.2 Create `db/changelog/media/007-add-licence-column.yaml` — nullable `licence VARCHAR(64)` on `media_assets`
+- [x] 1.3 Add `val licence: String? = null` to `MediaAsset` domain model
+- [x] 1.4 Add `licence` to `MediaAssetResponse` DTO and `MediaAssetSummary` DTO
+- [x] 1.5 Add `licence` to all SQL queries + `rowToMediaAsset()` in `R2dbcMediaRepositories.kt`
+- [x] 1.6 Set `licence = "unsplash"` in `UnsplashMediaProviderHandlers.persistPhoto()`
+- [x] 1.7 Add `licence?: string | null` to frontend `MediaAssetSummary` type in `media-api.ts`
+- [x] 1.8 Create `MediaAttribution.vue` — displays author, source, licence when non-null
+- [x] 1.9 Integrate `<MediaAttribution>` into `MediaLibraryView.vue` asset cards
 - [x] 1.10 Test: licence maps correctly in R2DBC repository read/write
 - [x] 1.11 Test: Unsplash import produces asset with `licence = "unsplash"`
 
