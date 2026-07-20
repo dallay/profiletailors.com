@@ -29,6 +29,12 @@ class R2dbcConsentRepository(
     ),
 ) : ConsentRepository {
 
+    /**
+     * Saves a consent record, updating an existing record with the same identifier.
+     *
+     * @param record The consent record to save.
+     * @return The saved consent record.
+     */
     override suspend fun save(record: ConsentRecord): ConsentRecord {
         var spec = databaseClient.sql(UPSERT_CONSENT)
             .bind("id", record.id.value)
@@ -50,6 +56,14 @@ class R2dbcConsentRepository(
         return record
     }
 
+    /**
+     * Records an active consent and retrieves the current active record for the same identity,
+     * purpose, and policy version.
+     *
+     * @param record The consent record to record.
+     * @return A pair containing whether the record was newly inserted and the active consent record.
+     * @throws IllegalStateException If the active consent record cannot be found after insertion.
+     */
     override suspend fun recordActiveReturning(record: ConsentRecord): Pair<Boolean, ConsentRecord> = requireNotNull(
         transaction.executeAndAwait {
             bindRecord(databaseClient.sql(INSERT_ACTIVE), record)
@@ -74,6 +88,17 @@ class R2dbcConsentRepository(
         },
     )
 
+    /**
+     * Withdraws the active consent matching the specified identity, purpose, and policy version.
+     *
+     * @param workspaceId The workspace containing the consent.
+     * @param subjectReference The subject identity associated with the consent.
+     * @param purpose The purpose for which consent was given.
+     * @param policyVersion The policy version governing the consent.
+     * @param withdrawnAt The timestamp at which the consent was withdrawn.
+     * @param reason The optional reason for withdrawal.
+     * @return The withdrawn consent record, or `null` if no matching active consent exists.
+     */
     override suspend fun withdrawActiveReturning(
         workspaceId: String,
         subjectReference: SubjectReference,
@@ -93,7 +118,13 @@ class R2dbcConsentRepository(
         spec.map { row, _ -> mapConsent(row) }.first().awaitSingleOrNull()?.also { appendEvent(it) }
     }
 
-    override suspend fun findById(id: ConsentRecordId): ConsentRecord? = databaseClient.sql(SELECT_BY_ID)
+    /**
+         * Finds a consent record by its identifier.
+         *
+         * @param id The identifier of the consent record.
+         * @return The matching consent record, or `null` if no record exists.
+         */
+        override suspend fun findById(id: ConsentRecordId): ConsentRecord? = databaseClient.sql(SELECT_BY_ID)
         .bind("id", id.value)
         .map { row, _ -> mapConsent(row) }
         .first()
@@ -150,6 +181,15 @@ class R2dbcConsentRepository(
         .all()
         .asFlow()
 
+    /**
+     * Determines whether an active consent exists for the specified identity and purpose.
+     *
+     * @param workspaceId The workspace identifier.
+     * @param subjectReference The subject identity.
+     * @param purpose The consent purpose.
+     * @param policyVersion The policy version.
+     * @return `true` if an active consent exists, `false` otherwise.
+     */
     override suspend fun existsActive(
         workspaceId: String,
         subjectReference: SubjectReference,
@@ -157,7 +197,14 @@ class R2dbcConsentRepository(
         policyVersion: String,
     ): Boolean = findActive(workspaceId, subjectReference, purpose, policyVersion) != null
 
-    private fun bindRecord(
+    /**
+         * Binds the consent record fields required by an SQL statement.
+         *
+         * @param spec The SQL execution specification to populate.
+         * @param record The consent record whose fields are bound.
+         * @return The execution specification with the record fields bound.
+         */
+        private fun bindRecord(
         spec: DatabaseClient.GenericExecuteSpec,
         record: ConsentRecord,
     ): DatabaseClient.GenericExecuteSpec = spec
@@ -173,6 +220,11 @@ class R2dbcConsentRepository(
         .bind("status", record.status.name)
         .bind("givenAt", record.givenAt)
 
+    /**
+     * Appends an event for the specified consent record.
+     *
+     * @param record The consent record to record as an event.
+     */
     private suspend fun appendEvent(record: ConsentRecord) {
         var spec = bindRecord(databaseClient.sql(INSERT_EVENT), record)
             .bind("eventId", "ce-${java.util.UUID.randomUUID()}")
@@ -182,6 +234,12 @@ class R2dbcConsentRepository(
         spec.fetch().rowsUpdated().awaitSingle()
     }
 
+    /**
+     * Maps a database row to a consent record.
+     *
+     * @param row The database row containing consent record fields.
+     * @return The consent record represented by the row.
+     */
     private fun mapConsent(row: Row): ConsentRecord = ConsentRecord(
         id = ConsentRecordId(requireNotNull(row.get("id", String::class.java))),
         workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
@@ -209,7 +267,15 @@ class R2dbcConsentRepository(
     ): DatabaseClient.GenericExecuteSpec =
         if (value != null) spec.bind(name, value) else spec.bindNull(name, String::class.java)
 
-    private fun bindNullableInstant(
+    /**
+         * Binds an instant value to a named parameter, or binds SQL `NULL` when the value is absent.
+         *
+         * @param spec The database statement to update.
+         * @param name The name of the parameter.
+         * @param value The instant value to bind, or `null`.
+         * @return The updated database statement.
+         */
+        private fun bindNullableInstant(
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: Instant?,

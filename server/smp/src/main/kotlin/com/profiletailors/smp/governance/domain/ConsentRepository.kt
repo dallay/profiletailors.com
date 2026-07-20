@@ -25,10 +25,25 @@ interface ConsentRepository {
      */
     suspend fun save(record: ConsentRecord): ConsentRecord
 
-    /** Atomically inserts an active projection and returns the winning record. */
+    /**
+ * Atomically inserts an active consent projection and identifies the resulting winning record.
+ *
+ * @param record The consent record to insert as active.
+ * @return A pair containing whether the record became active and the resulting winning record.
+ */
     suspend fun recordActiveReturning(record: ConsentRecord): Pair<Boolean, ConsentRecord>
 
-    /** Atomically withdraws the active projection and appends immutable evidence. */
+    /**
+     * Withdraws the active consent and appends immutable withdrawal evidence.
+     *
+     * @param workspaceId The workspace containing the consent.
+     * @param subjectReference The identity associated with the consent.
+     * @param purpose The purpose of the consent.
+     * @param policyVersion The policy version of the consent.
+     * @param withdrawnAt The time of withdrawal.
+     * @param reason The optional reason for withdrawal.
+     * @return The appended withdrawal record, or `null` if no applicable active consent exists.
+     */
     suspend fun withdrawActiveReturning(
         workspaceId: String,
         subjectReference: SubjectReference,
@@ -72,11 +87,13 @@ interface ConsentRepository {
     ): Flow<ConsentRecord>
 
     /**
-     * Returns every record (including withdrawn ones) for the supplied identity,
+     * Streams all consent records for an identity within a workspace, including withdrawn records,
      * ordered by [ConsentRecord.givenAt] ascending.
      *
-     * Reads from the current projection table. Identity is the subject reference +
-     * purpose combination, scoped to a workspace.
+     * @param workspaceId The workspace containing the records.
+     * @param subjectReference The identity reference associated with the records.
+     * @param purpose The consent purpose associated with the records.
+     * @return A flow of matching consent records.
      */
     fun findHistoricalByIdentity(
         workspaceId: String,

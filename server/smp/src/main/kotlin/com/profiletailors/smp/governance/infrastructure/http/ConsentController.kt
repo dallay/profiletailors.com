@@ -28,6 +28,13 @@ class ConsentController(private val mediator: Mediator) {
     private val subjectKinds: Set<String> = SubjectKind.entries.map { it.name }.toSet()
     private val consentTypes: Set<String> = ConsentType.entries.map { it.name }.toSet()
 
+    /**
+     * Records consent for the specified subject.
+     *
+     * @param request The consent details to validate and record.
+     * @return A response containing the recorded consent and an appropriate HTTP status.
+     * @throws EnumValidationException If the subject kind, consent type, or locale is invalid.
+     */
     @PostMapping
     suspend fun record(@Valid @RequestBody request: RecordConsentRequest): ResponseEntity<ConsentRecord> {
         validateEnum(SUBJECT_KIND_FIELD, request.subjectKind, subjectKinds)
@@ -37,12 +44,26 @@ class ConsentController(private val mediator: Mediator) {
         return ResponseEntity.status(if (outcome.created) HttpStatus.CREATED else HttpStatus.OK).body(outcome.record)
     }
 
+    /**
+     * Withdraws consent for the specified subject and purpose.
+     *
+     * @param request The validated consent withdrawal request.
+     * @return The resulting consent record.
+     * @throws EnumValidationException If the subject kind is invalid.
+     */
     @PostMapping("/withdraw")
     suspend fun withdraw(@Valid @RequestBody request: WithdrawConsentRequest): ConsentRecord {
         validateEnum(SUBJECT_KIND_FIELD, request.subjectKind, subjectKinds)
         return mediator.send(request.toCommand())
     }
 
+    /**
+     * Lists workspace consent records, optionally filtered by subject kind and purpose.
+     *
+     * @param subjectKind Optional subject kind filter.
+     * @param purpose Optional consent purpose filter.
+     * @return The matching consent records.
+     */
     @GetMapping
     suspend fun list(
         @RequestParam(required = false) subjectKind: String?,
@@ -52,6 +73,15 @@ class ConsentController(private val mediator: Mediator) {
         return mediator.send(GetWorkspaceConsentRecordsQuery(subjectKind, purpose))
     }
 
+    /**
+     * Retrieves the consent history for a subject and purpose.
+     *
+     * @param subjectKind The subject kind to retrieve consent history for.
+     * @param subjectValue The subject's value.
+     * @param purpose The purpose associated with the consent.
+     * @return The consent records matching the specified subject and purpose.
+     * @throws EnumValidationException If `subjectKind` is not valid.
+     */
     @GetMapping("/history")
     suspend fun history(
         @RequestParam subjectKind: String,
@@ -62,10 +92,24 @@ class ConsentController(private val mediator: Mediator) {
         return mediator.send(GetConsentHistoryQuery(subjectKind, subjectValue, purpose))
     }
 
+    /**
+     * Validates that a value belongs to the allowed set.
+     *
+     * @param field The name of the field being validated.
+     * @param value The value to validate.
+     * @param valid The allowed values.
+     * @throws EnumValidationException If the value is not in the allowed set.
+     */
     private fun validateEnum(field: String, value: String, valid: Set<String>) {
         if (value !in valid) throw EnumValidationException(field, value, valid)
     }
 
+    /**
+     * Validates that a locale is an ISO 639-1 language tag.
+     *
+     * @param locale The locale value to validate.
+     * @throws EnumValidationException If the locale is invalid.
+     */
     private fun validateLocale(locale: String) {
         val parsed = runCatching { java.util.Locale.Builder().setLanguageTag(locale).build() }.getOrNull()
         if (parsed == null || parsed.language !in java.util.Locale.getISOLanguages()) {
@@ -89,6 +133,11 @@ data class RecordConsentRequest(
     @field:NotBlank val source: String,
     @field:NotBlank val locale: String,
 ) {
+    /**
+     * Converts this request into a command for recording workspace consent.
+     *
+     * @return The workspace consent recording command.
+     */
     fun toCommand() = RecordWorkspaceConsentCommand(
         subjectKind,
         subjectValue,
@@ -107,5 +156,10 @@ data class WithdrawConsentRequest(
     @field:NotBlank val policyVersion: String,
     val reason: String? = null,
 ) {
-    fun toCommand() = WithdrawWorkspaceConsentCommand(subjectKind, subjectValue, purpose, policyVersion, reason)
+    /**
+ * Converts this request into a workspace consent withdrawal command.
+ *
+ * @return The workspace consent withdrawal command.
+ */
+fun toCommand() = WithdrawWorkspaceConsentCommand(subjectKind, subjectValue, purpose, policyVersion, reason)
 }

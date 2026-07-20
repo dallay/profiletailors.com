@@ -22,7 +22,14 @@ internal class RecordWorkspaceConsentHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val recordConsentHandler: RecordConsentHandler,
 ) : CommandWithResultHandler<RecordWorkspaceConsentCommand, RecordConsentOutcome> {
-    override suspend fun handle(command: RecordWorkspaceConsentCommand): RecordConsentOutcome =
+    /**
+         * Records consent for the current workspace.
+         *
+         * @param command The command containing the consent details to record.
+         * @return The outcome of recording the consent.
+         * @throws IllegalArgumentException If no workspace is available or an enum value is invalid.
+         */
+        override suspend fun handle(command: RecordWorkspaceConsentCommand): RecordConsentOutcome =
         recordConsentHandler.handle(
             RecordConsentCommand(
                 workspaceId = requireNotNull(resourceContextProvider.require().workspaceId),
@@ -41,7 +48,14 @@ internal class WithdrawWorkspaceConsentHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val withdrawConsentHandler: WithdrawConsentHandler,
 ) : CommandWithResultHandler<WithdrawWorkspaceConsentCommand, ConsentRecord> {
-    override suspend fun handle(command: WithdrawWorkspaceConsentCommand): ConsentRecord =
+    /**
+         * Withdraws a workspace consent for the specified subject.
+         *
+         * @param command The command containing the consent subject and withdrawal details.
+         * @return The withdrawn consent record.
+         * @throws IllegalArgumentException If the workspace ID is missing or an enum value is invalid.
+         */
+        override suspend fun handle(command: WithdrawWorkspaceConsentCommand): ConsentRecord =
         withdrawConsentHandler.handle(
             WithdrawConsentCommand(
                 workspaceId = requireNotNull(resourceContextProvider.require().workspaceId),
@@ -59,6 +73,15 @@ internal class GetWorkspaceConsentRecordsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val authorizationDecider: WorkspaceAuthorizationDecider,
 ) : QueryHandler<GetWorkspaceConsentRecordsQuery, List<ConsentRecord>> {
+    /**
+     * Retrieves active consent records for the current workspace.
+     *
+     * @param query The query containing optional subject kind and purpose filters.
+     * @return The matching active consent records.
+     * @throws AuthorizationDeniedException If the caller lacks consent-read permission.
+     * @throws NullPointerException If no workspace ID is available.
+     * @throws IllegalArgumentException If the subject kind is invalid.
+     */
     override suspend fun handle(query: GetWorkspaceConsentRecordsQuery): List<ConsentRecord> {
         authorize()
         return repository.findActiveByWorkspace(
@@ -68,6 +91,11 @@ internal class GetWorkspaceConsentRecordsHandler(
         ).toList()
     }
 
+    /**
+     * Authorizes access to consent records.
+     *
+     * @throws AuthorizationDeniedException If the read permission is denied.
+     */
     private suspend fun authorize() {
         val decision = authorizationDecider.decideDetailed(CONSENT_READ_PERMISSION)
         if (decision.decision != AuthorizationDecision.ALLOW) {
@@ -82,6 +110,14 @@ internal class GetConsentHistoryHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val authorizationDecider: WorkspaceAuthorizationDecider,
 ) : QueryHandler<GetConsentHistoryQuery, List<ConsentRecord>> {
+    /**
+     * Retrieves historical consent records for the current workspace identity.
+     *
+     * @param query The query specifying the subject and consent purpose.
+     * @return The historical consent records matching the query.
+     * @throws AuthorizationDeniedException If the caller lacks permission to read consent records.
+     * @throws IllegalArgumentException If the workspace context has no workspace ID or the subject kind is invalid.
+     */
     override suspend fun handle(query: GetConsentHistoryQuery): List<ConsentRecord> {
         val decision = authorizationDecider.decideDetailed(CONSENT_READ_PERMISSION)
         if (decision.decision != AuthorizationDecision.ALLOW) {

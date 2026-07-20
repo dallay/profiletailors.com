@@ -14,10 +14,12 @@ internal class WithdrawConsentHandler(
 ) {
 
     /**
-     * Withdraws an active consent while preserving the original record identity and given timestamp.
+     * Withdraws an active consent record matching the command.
      *
-     * @param command The withdrawal command.
-     * @return The persisted withdrawn record.
+     * @param command The command specifying the consent record and withdrawal reason.
+     * @return The persisted withdrawn consent record.
+     * @throws IllegalArgumentException If the workspace ID or purpose is blank.
+     * @throws ConsentRecordNotFoundException If no matching active consent record exists.
      */
     suspend fun handle(command: WithdrawConsentCommand): ConsentRecord {
         require(command.workspaceId.isNotBlank()) { "workspaceId must not be blank" }
