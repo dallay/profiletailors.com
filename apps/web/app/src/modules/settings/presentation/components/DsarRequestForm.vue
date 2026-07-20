@@ -83,8 +83,8 @@ defineExpose({ submitting })
       <label for="dsar-request-type" class="text-sm font-medium text-text-display">
         {{ t('settings.privacy.form.type.label') }}
       </label>
-      <Select id="dsar-request-type" v-model="requestType">
-        <SelectTrigger data-testid="dsar-type-select">
+      <Select v-model="requestType">
+        <SelectTrigger id="dsar-request-type" data-testid="dsar-type-select">
           <SelectValue :placeholder="t('settings.privacy.form.type.placeholder')" />
         </SelectTrigger>
         <SelectContent>
