@@ -1,0 +1,16 @@
+change: dallay-491-governance-consent-http-api
+current_phase: apply
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+next: apply
+note: |
+  Apply stopped after the persistence/application foundation because the actual code diff reached
+  594 changed lines before required controller tests, authorization-handler tests, and the focused
+  concurrent Postgres test were added. Continuing would violate the explicitly approved single-PR
+  400-line budget. Focused handler and changelog tests pass; backend-test-fast is blocked by the
+  local Docker/Testcontainers environment.
+updated: 2026-07-20T08:40:00.000Z
