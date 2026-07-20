@@ -21,13 +21,15 @@ import org.springframework.stereotype.Component
  * subscribed to it — most notably the welcome email consumer in the notifications module.
  */
 @Component
-internal class WaitlistEntryJoinedEventAdapter(private val eventPublisher: EventPublisher<DomainEvent>) :
-    WaitlistEntryJoinedNotifier {
+internal class WaitlistEntryJoinedEventAdapter(
+    private val eventPublisher: EventPublisher<DomainEvent>,
+    private val publishScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+) : WaitlistEntryJoinedNotifier {
 
     @Suppress("TooGenericExceptionCaught")
     override fun notify(notification: WaitlistEntryJoinedNotification) {
         try {
-            scope.launch {
+            publishScope.launch {
                 eventPublisher.publish(
                     WaitlistEntryJoined(
                         waitlistEntryId = notification.waitlistEntryId,
@@ -50,6 +52,5 @@ internal class WaitlistEntryJoinedEventAdapter(private val eventPublisher: Event
 
     companion object {
         private val log = LoggerFactory.getLogger(WaitlistEntryJoinedEventAdapter::class.java)
-        private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     }
 }
