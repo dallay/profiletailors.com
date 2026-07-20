@@ -6,11 +6,17 @@ completed:
   - spec
   - design
   - tasks
-next: apply
+  - apply
+next: verify
 note: |
-  Apply stopped after the persistence/application foundation because the actual code diff reached
-  594 changed lines before required controller tests, authorization-handler tests, and the focused
-  concurrent Postgres test were added. Continuing would violate the explicitly approved single-PR
-  400-line budget. Focused handler and changelog tests pass; backend-test-fast is blocked by the
-  local Docker/Testcontainers environment.
-updated: 2026-07-20T08:40:00.000Z
+  Single-PR size:exception approved. Implementation covers the trimmed task list:
+  - Append-only consent_record_events ledger + partial unique index on consent_records
+  - Atomic recordActiveReturning / withdrawActiveReturning inside one R2DBC transaction
+  - RecordConsentOutcome(created, record) for 201/200 semantics
+  - 4 HTTP endpoints (record/withdraw/list/history) with workspace context derived from
+    ResourceContextProvider, no workspaceId or principalId in the request
+  - workspace:consent:read permission seeded for WORKSPACE_OWNER
+  - Problem Details for 400 (enum/locale) and 404 (missing record)
+  - Strict TDD: ConsentControllerWebTest (9 scenarios), updated handler tests
+  - just backend-check passes (Detekt + tests + Kover)
+updated: 2026-07-20T10:40:00.000Z
