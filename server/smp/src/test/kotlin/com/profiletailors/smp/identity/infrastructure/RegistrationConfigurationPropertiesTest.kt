@@ -1,6 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure
 
-import org.assertj.core.api.Assertions.assertThat
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
@@ -12,18 +12,18 @@ class RegistrationConfigurationPropertiesTest {
         .withUserConfiguration(TestConfiguration::class.java)
 
     @Test
-    fun `registration defaults disabled`() {
+    fun `should default to disabled when property not set`() {
         contextRunner.run { context ->
-            assertThat(context.getBean(RegistrationConfigurationProperties::class.java).enabled).isFalse()
+            context.getBean(RegistrationConfigurationProperties::class.java).enabled shouldBe false
         }
     }
 
     @Test
-    fun `registration binds explicit enabled value`() {
+    fun `should bind explicit enabled value when property set`() {
         contextRunner
             .withPropertyValues("app.identity.registration.enabled=true")
             .run { context ->
-                assertThat(context.getBean(RegistrationConfigurationProperties::class.java).enabled).isTrue()
+                context.getBean(RegistrationConfigurationProperties::class.java).enabled shouldBe true
             }
     }
 

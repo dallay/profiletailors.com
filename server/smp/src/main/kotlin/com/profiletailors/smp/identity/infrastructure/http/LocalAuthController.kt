@@ -12,10 +12,8 @@ import com.profiletailors.smp.identity.application.LoginUserCommand
 import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
 import com.profiletailors.smp.identity.application.RefreshUserSessionCommand
 import com.profiletailors.smp.identity.application.RegisterUserCommand
-import com.profiletailors.smp.identity.application.RegistrationDisabledException
 import com.profiletailors.smp.identity.application.ResendVerificationCommand
 import com.profiletailors.smp.identity.application.VerifyEmailCommand
-import com.profiletailors.smp.identity.infrastructure.RegistrationConfigurationProperties
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -44,14 +42,11 @@ class LocalAuthController(
     private val mediator: Mediator,
     private val refreshSessionCookieFactory: RefreshSessionCookieFactory,
     private val refreshSessionProperties: RefreshSessionProperties,
-    private val registrationProperties: RegistrationConfigurationProperties,
 ) {
 
     @Operation(summary = "Register a new user account")
     @PostMapping("/register", consumes = ["application/json"], version = "1")
     suspend fun register(@Valid @RequestBody request: RegisterUserRequest): ResponseEntity<AuthTokens> {
-        if (!registrationProperties.enabled) throw RegistrationDisabledException()
-
         val result = mediator.send(
             RegisterUserCommand(
                 email = request.email,

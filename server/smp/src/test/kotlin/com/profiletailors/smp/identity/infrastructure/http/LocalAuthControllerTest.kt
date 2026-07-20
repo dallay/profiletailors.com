@@ -21,11 +21,9 @@ import com.profiletailors.smp.identity.application.RegistrationDisabledException
 import com.profiletailors.smp.identity.application.ResendVerificationCommand
 import com.profiletailors.smp.identity.application.ResendVerificationResult
 import com.profiletailors.smp.identity.application.VerifyEmailCommand
-import com.profiletailors.smp.identity.infrastructure.RegistrationConfigurationProperties
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.server.reactive.ServerHttpRequest
@@ -54,7 +52,7 @@ class LocalAuthControllerTest {
     fun `dispatches register command and returns 201 with session tokens`() = runTest {
         val registrationResult = sessionResult("token-1", "user-1", "yuniel@example.com", "yuniel", "PENDING")
         val mediator = CapturingMediator(sessionResult = registrationResult)
-        val controller = controller(mediator, registrationEnabled = true)
+        val controller = controller(mediator)
 
         val response = controller.register(
             RegisterUserRequest(
@@ -65,44 +63,21 @@ class LocalAuthControllerTest {
             ),
         )
 
-        assertEquals(201, response.statusCode.value())
-        assertEquals("token-1", response.body?.accessToken)
-        assertEquals("user-1", response.body?.principalId)
-        assertEquals("yuniel@example.com", response.body?.email)
-        assertEquals("PENDING", response.body?.emailStatus)
+        response.statusCode.value() shouldBe 201
+        response.body?.accessToken shouldBe "token-1"
+        response.body?.principalId shouldBe "user-1"
+        response.body?.email shouldBe "yuniel@example.com"
+        response.body?.emailStatus shouldBe "PENDING"
         // Verify refresh cookie is set
         assertTrue(
             response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true,
         )
-        assertEquals(
-            RegisterUserCommand(
-                email = "yuniel@example.com",
-                password = validPassword,
-                confirmedAgeEligibility = true,
-                acceptedTermsVersion = "terms-v1.0.0",
-            ),
-            mediator.lastRequest,
+        mediator.lastRequest shouldBe RegisterUserCommand(
+            email = "yuniel@example.com",
+            password = validPassword,
+            confirmedAgeEligibility = true,
+            acceptedTermsVersion = "terms-v1.0.0",
         )
-    }
-
-    @Test
-    fun `rejects registration before command dispatch when disabled`() {
-        val mediator = CapturingMediator()
-        val controller = controller(mediator, registrationEnabled = false)
-
-        assertThrows(RegistrationDisabledException::class.java) {
-            kotlinx.coroutines.runBlocking {
-                controller.register(
-                    RegisterUserRequest(
-                        email = "blocked@example.com",
-                        password = validPassword,
-                        confirmedAgeEligibility = true,
-                        acceptedTermsVersion = "terms-v1.0.0",
-                    ),
-                )
-            }
-        }
-        assertNull(mediator.lastRequest)
     }
 
     @Test
@@ -197,11 +172,10 @@ class LocalAuthControllerTest {
         )
     }
 
-    private fun controller(mediator: Mediator, registrationEnabled: Boolean = false) = LocalAuthController(
+    private fun controller(mediator: Mediator) = LocalAuthController(
         mediator = mediator,
         refreshSessionCookieFactory = cookieFactory,
         refreshSessionProperties = cookieProperties,
-        registrationProperties = RegistrationConfigurationProperties(enabled = registrationEnabled),
     )
 
     private fun sessionResult(
