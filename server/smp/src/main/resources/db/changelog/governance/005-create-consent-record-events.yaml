@@ -1,0 +1,37 @@
+databaseChangeLog:
+  - changeSet:
+      id: governance-005-create-consent-record-events
+      author: sdd-apply
+      changes:
+        - createTable:
+            tableName: consent_record_events
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: consent_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: workspace_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: subject_kind, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: subject_value, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: consent_type, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: purpose, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: policy_version, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: source, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: locale, type: varchar(16), constraints: { nullable: false } }
+              - column: { name: status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: given_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: withdrawn_at, type: timestamp with time zone }
+              - column: { name: withdrawal_reason, type: varchar(128) }
+              - column: { name: event_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - sql:
+            sql: >-
+              CREATE UNIQUE INDEX uq_consent_active ON consent_records
+              (workspace_id, subject_kind, subject_value, purpose, policy_version)
+              WHERE status = 'ACTIVE'
+        - createIndex:
+            tableName: consent_record_events
+            indexName: idx_consent_events_identity
+            columns:
+              - column: { name: workspace_id }
+              - column: { name: subject_kind }
+              - column: { name: subject_value }
+              - column: { name: purpose }
+              - column: { name: event_at }
