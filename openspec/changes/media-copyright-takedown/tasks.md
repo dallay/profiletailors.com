@@ -34,8 +34,8 @@ Chain strategy: pending
 - [ ] 1.7 Add `licence?: string | null` to frontend `MediaAssetSummary` type in `media-api.ts`
 - [ ] 1.8 Create `MediaAttribution.vue` — displays author, source, licence when non-null
 - [ ] 1.9 Integrate `<MediaAttribution>` into `MediaLibraryView.vue` asset cards
-- [ ] 1.10 Test: licence maps correctly in R2DBC repository read/write
-- [ ] 1.11 Test: Unsplash import produces asset with `licence = "unsplash"`
+- [x] 1.10 Test: licence maps correctly in R2DBC repository read/write
+- [x] 1.11 Test: Unsplash import produces asset with `licence = "unsplash"`
 
 ## Phase 2 — Takedown Workflow
 

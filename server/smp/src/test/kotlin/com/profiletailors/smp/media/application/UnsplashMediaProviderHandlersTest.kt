@@ -77,6 +77,7 @@ class UnsplashMediaProviderHandlersTest {
         result.externalId shouldBe "photo-1"
         result.fileSizeBytes shouldBe 4L
         result.authorUrl shouldBe "https://unsplash.com/@test-author"
+        result.licence shouldBe "unsplash"
         result.previewUrl.shouldNotBeNull()
         result.previewUrl shouldStartWith "/preview/"
         coVerifyOrder {
