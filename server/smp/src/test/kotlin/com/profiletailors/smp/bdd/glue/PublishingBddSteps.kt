@@ -275,7 +275,11 @@ class PublishingBddSteps {
     @Then("the publishing response status should be {int}")
     fun thenPublishingResponseStatusShouldBe(status: Int) {
         val response = latestPublishingResponse ?: error("No publishing response captured")
-        assertEquals(status, response.status.value())
+        val body = String(response.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
+        println("DEBUG: Expected status=$status, actual=${response.status.value()}, body=$body")
+        assertEquals(status, response.status.value()) {
+            "Expected $status but got ${response.status.value()}. Body: $body"
+        }
     }
 
     @Then("the response should contain a publicationId")
