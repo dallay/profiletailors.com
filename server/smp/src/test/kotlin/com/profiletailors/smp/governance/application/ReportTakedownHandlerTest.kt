@@ -31,6 +31,7 @@ internal class ReportTakedownHandlerTest {
     private val repository: TakedownReportRepository = mockk()
     private val resourceContextProvider: ResourceContextProvider = mockk()
     private val principalContextProvider: com.profiletailors.common.domain.context.PrincipalContextProvider = mockk()
+    private val principalIdentityPort: PrincipalIdentityPort = mockk()
     private val authorizationDecider: WorkspaceAuthorizationDecider = mockk()
     private val auditHook: AuditHook = mockk()
     private val eventPublisher: EventPublisher<DomainEvent> = mockk()
@@ -40,6 +41,7 @@ internal class ReportTakedownHandlerTest {
         repository = repository,
         resourceContextProvider = resourceContextProvider,
         principalContextProvider = principalContextProvider,
+        principalIdentityPort = principalIdentityPort,
         authorizationService = authorizationService,
         auditHook = auditHook,
         eventPublisher = eventPublisher,
@@ -57,8 +59,9 @@ internal class ReportTakedownHandlerTest {
             PrincipalContext(
                 principalId = "user-001",
                 principalType = PrincipalType.USER,
-                subject = "reporter@example.com",
+                subject = "user-001",
             )
+        coEvery { principalIdentityPort.findEmailByPrincipalId("user-001") } returns "reporter@example.com"
         coEvery { repository.findExisting("ws-001", "asset-001", "user-001") } returns null
         coEvery { repository.save(any()) } answers { firstArg() }
         coEvery { auditHook.onMutation(any()) } returns Unit
@@ -67,7 +70,7 @@ internal class ReportTakedownHandlerTest {
         val command = ReportTakedownCommand(
             assetId = "asset-001",
             reason = "Copyright infringement",
-            reporterEmail = "reporter@example.com",
+            reporterEmail = "ignored@example.com",
             mediaReferenceUrl = "https://example.com/original",
         )
 

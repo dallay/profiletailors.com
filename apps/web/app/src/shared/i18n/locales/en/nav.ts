@@ -3,6 +3,7 @@ export default {
   scheduler: 'Scheduler',
   analytics: 'Analytics',
   media: 'Media Library',
+  governance: 'Governance',
   settings: 'Settings',
   system: 'System',
   logout: 'Log Out',

@@ -13,6 +13,7 @@ import workspace from './workspace'
 import analytics from './analytics'
 import media from './media'
 import settings from './settings'
+import governance from './governance'
 
 export default {
   common,
@@ -30,4 +31,5 @@ export default {
   analytics,
   media,
   settings,
+  governance,
 }

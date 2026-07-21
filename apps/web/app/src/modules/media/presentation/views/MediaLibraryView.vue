@@ -26,7 +26,7 @@ const isRefreshing = ref(false)
 const uploadRequiresVerification = ref(false)
 const selectedLibraryAssetIds = ref<string[]>([])
 const searchQuery = ref('')
-const statusFilter = ref<'ALL' | 'READY' | 'PROCESSING' | 'FAILED'>('ALL')
+const statusFilter = ref<'ALL' | 'READY' | 'PROCESSING' | 'FAILED' | 'SUSPENDED'>('ALL')
 const typeFilter = ref<'ALL' | 'IMAGE' | 'VIDEO' | 'PDF' | 'OTHER'>('ALL')
 const sortBy = ref<'newest' | 'oldest' | 'filename-asc' | 'filename-desc' | 'size-desc' | 'size-asc' | 'status'>('newest')
 
@@ -105,6 +105,8 @@ function statusClass(status: MediaStatus) {
       return 'border-success/30 bg-success/10 text-success'
     case 'FAILED':
       return 'border-error/30 bg-error/10 text-error'
+    case 'SUSPENDED':
+      return 'border-warning/30 bg-warning/10 text-warning'
     default:
       return 'border-border-visible bg-bg-primary text-text-secondary'
   }
@@ -367,6 +369,7 @@ onMounted(async () => {
         <option value="READY">READY</option>
         <option value="PROCESSING">PROCESSING</option>
         <option value="FAILED">FAILED</option>
+        <option value="SUSPENDED">SUSPENDED</option>
       </select>
 
       <select v-model="typeFilter" data-testid="filter-type" :aria-label="$t('media.typeFilter')" class="rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
