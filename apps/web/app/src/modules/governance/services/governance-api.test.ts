@@ -64,13 +64,12 @@ describe('governance-api', () => {
       expect(result).toEqual(defaultReport)
     })
 
-    it('includes reporterEmail and mediaReferenceUrl when provided', async () => {
+    it('includes mediaReferenceUrl when provided', async () => {
       mockApiFetch.mockResolvedValue(defaultReport)
 
       await reportTakedown({
         assetId: 'ast-1',
         reason: 'Copyright infringement',
-        reporterEmail: 'author@example.com',
         mediaReferenceUrl: 'https://example.com/original',
       })
 
@@ -79,9 +78,10 @@ describe('governance-api', () => {
       expect(body).toMatchObject({
         assetId: 'ast-1',
         reason: 'Copyright infringement',
-        reporterEmail: 'author@example.com',
         mediaReferenceUrl: 'https://example.com/original',
       })
+      // reporterEmail is derived from the authenticated principal on the server side
+      expect(body).not.toHaveProperty('reporterEmail')
     })
 
     it('serializes empty mediaReferenceUrl as empty string (component responsibility to trim)', async () => {
