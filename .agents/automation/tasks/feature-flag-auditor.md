@@ -50,7 +50,7 @@ Never enable features or remove rollout controls without direct evidence. If unc
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/feature-flag-audit.yaml and ../reports/feature-flag-audit.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

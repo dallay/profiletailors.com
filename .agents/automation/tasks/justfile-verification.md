@@ -50,7 +50,7 @@ Do not redesign build infrastructure. If uncertainty persists, record it and con
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/justfile-verification.yaml and ../reports/justfile-verification.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

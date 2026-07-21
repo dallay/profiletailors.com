@@ -50,7 +50,7 @@ Never reproduce sensitive values in reports. If uncertainty persists, record it 
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/logging-hygiene.yaml and ../reports/logging-hygiene.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

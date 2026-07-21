@@ -50,7 +50,7 @@ Security-sensitive config is HIGH RISK; never invent defaults or weaken validati
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/spring-configuration-binding.yaml and ../reports/spring-configuration-binding.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

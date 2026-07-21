@@ -50,7 +50,7 @@ Never redesign APIs; correct client drift only when backend is tested and unambi
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/api-contract-drift.yaml and ../reports/api-contract-drift.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

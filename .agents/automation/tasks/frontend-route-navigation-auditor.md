@@ -50,7 +50,7 @@ Never redesign navigation or authorization. If uncertainty persists, record it a
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/frontend-route-navigation.yaml and ../reports/frontend-route-navigation.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

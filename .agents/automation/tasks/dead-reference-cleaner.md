@@ -50,7 +50,7 @@ Correct deterministic replacements only; never guess. If uncertainty persists, r
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/dead-reference-cleanup.yaml and ../reports/dead-reference-cleanup.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

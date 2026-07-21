@@ -50,7 +50,7 @@ Never expose secrets or invent values. If uncertainty persists, record it and co
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/environment-configuration.yaml and ../reports/environment-configuration.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

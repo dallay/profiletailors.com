@@ -50,7 +50,7 @@ No legal conclusions or compliance claims; never remove [LEGAL REVIEW]. If uncer
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/compliance-evidence.yaml and ../reports/compliance-evidence.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

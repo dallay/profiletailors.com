@@ -50,7 +50,7 @@ Never weaken assertions, delete tests, or hide failures. If uncertainty persists
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/test-suite-hygiene.yaml and ../reports/test-suite-hygiene.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

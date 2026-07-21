@@ -50,7 +50,7 @@ Correct documentation only; never change behavior to make docs true. If uncertai
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/documentation-maintenance.yaml and ../reports/documentation-maintenance.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

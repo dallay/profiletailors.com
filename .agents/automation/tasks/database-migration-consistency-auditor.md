@@ -50,7 +50,7 @@ Never create complex production migrations or destructive changes. If uncertaint
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/database-migration-consistency.yaml and ../reports/database-migration-consistency.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

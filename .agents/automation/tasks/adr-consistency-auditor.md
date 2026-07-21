@@ -50,7 +50,7 @@ Never rewrite history to hide drift or architect autonomously. If uncertainty pe
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/adr-consistency.yaml and ../reports/adr-consistency.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 

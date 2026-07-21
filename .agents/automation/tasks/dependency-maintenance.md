@@ -50,7 +50,7 @@ Allow patch/safe minor only; never major, framework, auth, or database migration
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/dependency-maintenance.yaml and ../reports/dependency-maintenance.md.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
 
 ## Prohibited Changes
 
