@@ -2,6 +2,8 @@ package com.profiletailors.smp.governance.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.audit.domain.AuditHook
@@ -10,7 +12,10 @@ import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
 import com.profiletailors.smp.governance.domain.TakedownReportStatus
+import com.profiletailors.smp.governance.domain.event.TakedownReported
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 
 /**
@@ -27,6 +32,7 @@ internal class ReportTakedownHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val authorizationService: GovernanceAuthorizationService,
     private val auditHook: AuditHook,
+    private val eventPublisher: EventPublisher<DomainEvent>,
 ) : CommandWithResultHandler<ReportTakedownCommand, TakedownReport> {
 
     override suspend fun handle(command: ReportTakedownCommand): TakedownReport {
@@ -64,6 +70,20 @@ internal class ReportTakedownHandler(
                     "assetId" to command.assetId,
                     "reason" to command.reason,
                 ),
+            ),
+        )
+
+        // Publish domain event for email notification
+        eventPublisher.publish(
+            TakedownReported(
+                reportId = saved.reportId,
+                workspaceId = saved.workspaceId,
+                assetId = saved.assetId,
+                reportedById = saved.reportedById,
+                reason = saved.reason,
+                reporterEmail = saved.reporterEmail,
+                mediaReferenceUrl = saved.mediaReferenceUrl,
+                occurredAt = LocalDateTime.ofInstant(saved.createdAt, ZoneOffset.UTC),
             ),
         )
 

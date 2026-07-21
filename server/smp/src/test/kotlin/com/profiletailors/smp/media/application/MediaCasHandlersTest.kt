@@ -1034,6 +1034,13 @@ private class InMemoryMediaAssetRepository : MediaAssetRepository {
         return updated
     }
 
+    override suspend fun updateStatus(assetId: String, workspaceId: String, status: MediaAssetStatus): MediaAsset? {
+        val asset = asset(workspaceId, assetId) ?: return null
+        val updated = asset.copy(status = status)
+        assets[workspaceId to assetId] = updated
+        return updated
+    }
+
     override suspend fun softDelete(assetId: String, workspaceId: String): MediaAsset? {
         val asset = asset(workspaceId, assetId) ?: return null
         val updated = asset.copy(status = MediaAssetStatus.DELETED)

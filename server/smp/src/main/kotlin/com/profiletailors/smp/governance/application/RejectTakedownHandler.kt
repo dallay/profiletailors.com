@@ -2,6 +2,8 @@ package com.profiletailors.smp.governance.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.audit.domain.AuditHook
@@ -9,7 +11,10 @@ import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
+import com.profiletailors.smp.governance.domain.event.TakedownRejected
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 /**
  * Handles rejection/dismissal of a pending takedown report.
@@ -29,6 +34,7 @@ internal class RejectTakedownHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val authorizationService: GovernanceAuthorizationService,
     private val auditHook: AuditHook,
+    private val eventPublisher: EventPublisher<DomainEvent>,
 ) : CommandWithResultHandler<RejectTakedownCommand, TakedownReport> {
 
     override suspend fun handle(command: RejectTakedownCommand): TakedownReport {
@@ -58,6 +64,19 @@ internal class RejectTakedownHandler(
                     "previousStatus" to report.status.name,
                     "rejectionReason" to (command.reason ?: ""),
                 ),
+            ),
+        )
+
+        // Publish domain event for email notification to reporter
+        eventPublisher.publish(
+            TakedownRejected(
+                reportId = saved.reportId,
+                workspaceId = saved.workspaceId,
+                assetId = saved.assetId,
+                reporterEmail = saved.reporterEmail,
+                reviewedById = saved.reviewedById!!,
+                rejectionReason = saved.rejectionReason,
+                occurredAt = LocalDateTime.ofInstant(saved.updatedAt, ZoneOffset.UTC),
             ),
         )
 

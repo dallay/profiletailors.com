@@ -2,6 +2,8 @@ package com.profiletailors.smp.governance.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.audit.domain.AuditHook
@@ -9,7 +11,12 @@ import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
+import com.profiletailors.smp.governance.domain.event.TakedownApproved
+import com.profiletailors.smp.media.application.MediaAssetRepository
+import com.profiletailors.smp.media.domain.MediaAssetStatus
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 /**
  * Handles approval of a pending takedown report.
@@ -25,10 +32,12 @@ import java.time.Instant
 @Service
 internal class ApproveTakedownHandler(
     private val repository: TakedownReportRepository,
+    private val mediaAssetRepository: MediaAssetRepository,
     private val resourceContextProvider: ResourceContextProvider,
     private val principalContextProvider: PrincipalContextProvider,
     private val authorizationService: GovernanceAuthorizationService,
     private val auditHook: AuditHook,
+    private val eventPublisher: EventPublisher<DomainEvent>,
 ) : CommandWithResultHandler<ApproveTakedownCommand, TakedownReport> {
 
     override suspend fun handle(command: ApproveTakedownCommand): TakedownReport {
@@ -45,6 +54,9 @@ internal class ApproveTakedownHandler(
         val approved = report.approve(actor.principalId, Instant.now())
         val saved = repository.save(approved)
 
+        // Suspend the underlying media asset
+        mediaAssetRepository.updateStatus(report.assetId, workspaceId, MediaAssetStatus.SUSPENDED)
+
         auditHook.onMutation(
             MutationAuditFact(
                 action = "MEDIA_TAKEDOWN_APPROVED",
@@ -57,6 +69,18 @@ internal class ApproveTakedownHandler(
                     "assetId" to report.assetId,
                     "previousStatus" to report.status.name,
                 ),
+            ),
+        )
+
+        // Publish domain event for email notification to reporter
+        eventPublisher.publish(
+            TakedownApproved(
+                reportId = saved.reportId,
+                workspaceId = saved.workspaceId,
+                assetId = saved.assetId,
+                reporterEmail = saved.reporterEmail,
+                reviewedById = saved.reviewedById!!,
+                occurredAt = LocalDateTime.ofInstant(saved.updatedAt, ZoneOffset.UTC),
             ),
         )
 

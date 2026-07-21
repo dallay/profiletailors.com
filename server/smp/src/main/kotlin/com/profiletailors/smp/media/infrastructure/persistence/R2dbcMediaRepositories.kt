@@ -59,7 +59,7 @@ class R2dbcMediaAssetRepository(
             .bind("detectedMediaType", asset.detectedMediaType)
             .bind("originalFilename", asset.originalFilename)
             .bind("fileSizeBytes", asset.fileSizeBytes)
-            .bind("status", asset.status.name)
+            .bind(STATUS_COLUMN, asset.status.name)
             .bind("failureReason", asset.failureReason)
             .bind("uploadStartedAt", asset.uploadStartedAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) })
             .bind("createdAt", OffsetDateTime.ofInstant(asset.createdAt, ZoneOffset.UTC))
@@ -304,6 +304,24 @@ class R2dbcMediaAssetRepository(
         return findByWorkspaceAndId(workspaceId, assetId)
     }
 
+    override suspend fun updateStatus(assetId: String, workspaceId: String, status: MediaAssetStatus): MediaAsset? {
+        databaseClient.sql(
+            """
+            UPDATE media_assets
+            SET status = :status,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE asset_id = :assetId AND workspace_id = :workspaceId
+            """.trimIndent(),
+        )
+            .bind("assetId", assetId)
+            .bind("workspaceId", workspaceId)
+            .bind(STATUS_COLUMN, status.name)
+            .then()
+            .awaitSingleOrNull()
+
+        return findByWorkspaceAndId(workspaceId, assetId)
+    }
+
     override suspend fun softDelete(assetId: String, workspaceId: String): MediaAsset? {
         databaseClient.sql(
             """
@@ -469,7 +487,7 @@ class R2dbcMediaAssetRepository(
         detectedMediaType = row.get("detected_media_type", String::class.java),
         originalFilename = row.get("original_filename", String::class.java),
         fileSizeBytes = row.get("file_size_bytes", Long::class.javaObjectType),
-        status = MediaAssetStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
+        status = MediaAssetStatus.valueOf(requireNotNull(row.get(STATUS_COLUMN, String::class.java))),
         failureReason = row.get("failure_reason", String::class.java),
         uploadStartedAt = row.get("upload_started_at", OffsetDateTime::class.java)?.toInstant(),
         createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
@@ -485,6 +503,10 @@ class R2dbcMediaAssetRepository(
 
     private fun readMetadata(json: String?): Map<String, Any>? = json?.let {
         objectMapper.readValue(it, object : TypeReference<Map<String, Any>>() {})
+    }
+
+    private companion object {
+        const val STATUS_COLUMN = "status"
     }
 }
 

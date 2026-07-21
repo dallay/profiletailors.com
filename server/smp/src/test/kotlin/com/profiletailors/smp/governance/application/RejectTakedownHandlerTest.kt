@@ -1,5 +1,7 @@
 package com.profiletailors.smp.governance.application
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
@@ -16,6 +18,7 @@ import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
 import com.profiletailors.smp.governance.domain.TakedownReportStatus
+import com.profiletailors.smp.governance.domain.event.TakedownRejected
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
@@ -32,6 +35,7 @@ internal class RejectTakedownHandlerTest {
     private val principalContextProvider: com.profiletailors.common.domain.context.PrincipalContextProvider = mockk()
     private val authorizationDecider: WorkspaceAuthorizationDecider = mockk()
     private val auditHook: AuditHook = mockk()
+    private val eventPublisher: EventPublisher<DomainEvent> = mockk()
 
     private val authorizationService = GovernanceAuthorizationService(authorizationDecider)
     private val handler = RejectTakedownHandler(
@@ -40,6 +44,7 @@ internal class RejectTakedownHandlerTest {
         principalContextProvider = principalContextProvider,
         authorizationService = authorizationService,
         auditHook = auditHook,
+        eventPublisher = eventPublisher,
     )
 
     @Test
@@ -71,6 +76,7 @@ internal class RejectTakedownHandlerTest {
         coEvery { repository.findById("ws-001", "report-001") } returns report
         coEvery { repository.save(any()) } answers { firstArg() }
         coEvery { auditHook.onMutation(any()) } returns Unit
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
         val result = handler.handle(RejectTakedownCommand("report-001", "Insufficient evidence"))
 
@@ -84,6 +90,14 @@ internal class RejectTakedownHandlerTest {
                     fact.action == "MEDIA_TAKEDOWN_REJECTED" &&
                         fact.targetType == "takedown_report" &&
                         fact.outcome == MutationAuditOutcome.SUCCESS
+                },
+            )
+            eventPublisher.publish(
+                match<TakedownRejected> { event ->
+                    event.workspaceId == "ws-001" &&
+                        event.assetId == "asset-001" &&
+                        event.reporterEmail == "reporter@example.com" &&
+                        event.rejectionReason == "Insufficient evidence"
                 },
             )
         }
@@ -118,6 +132,7 @@ internal class RejectTakedownHandlerTest {
         coEvery { repository.findById("ws-001", "report-001") } returns report
         coEvery { repository.save(any()) } answers { firstArg() }
         coEvery { auditHook.onMutation(any()) } returns Unit
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
         val result = handler.handle(RejectTakedownCommand("report-001"))
 

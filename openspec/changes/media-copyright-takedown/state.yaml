@@ -1,5 +1,5 @@
 change: media-copyright-takedown
-current_phase: apply (Phase 2)
+current_phase: apply (Phase 2 — backend core)
 completed:
   - init
   - explore
@@ -9,5 +9,6 @@ completed:
   - tasks
   - apply (Phase 1)
   - verify (Phase 1)
-next: apply (Phase 2)
-updated: "2026-07-20T22:20:00Z"
+  - apply (Phase 2 backend core)
+next: apply (Phase 2 remaining — email, frontend, integration tests)
+updated: "2026-07-21T05:26:00Z"
