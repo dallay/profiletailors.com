@@ -14,9 +14,6 @@ class WorkspaceContextWebFilter(
     private val resolver: ActiveWorkspaceContextResolver,
     private val properties: WorkspaceContextProperties,
 ) : WebFilter {
-    companion object {
-        private const val SETUP_DONE_ATTRIBUTE = "WorkspaceContextWebFilter.setupDone"
-    }
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val headerValue = exchange.request.headers.getFirst(properties.headerName)
@@ -44,5 +41,9 @@ class WorkspaceContextWebFilter(
                 requestContextStore.setResourceContext(previousResourceContext)
                 exchange.attributes.remove(SETUP_DONE_ATTRIBUTE)
             }
+    }
+
+    companion object {
+        private const val SETUP_DONE_ATTRIBUTE = "WorkspaceContextWebFilter.setupDone"
     }
 }
