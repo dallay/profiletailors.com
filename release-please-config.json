@@ -22,7 +22,7 @@
       "tag-separator": "@"
     },
     "server/smp": {
-      "release-type": "maven",
+      "release-type": "simple",
       "component": "smp",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": true,
