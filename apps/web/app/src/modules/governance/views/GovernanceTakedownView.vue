@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -7,15 +7,15 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { approveTakedown, listTakedownReports, rejectTakedown, type TakedownReportResponse } from '@modules/governance/services/governance-api'
+import { approveTakedown, listTakedownReports, rejectTakedown, type TakedownReportResponse, type TakedownReportStatus } from '@modules/governance/services/governance-api'
 
 const { t } = useI18n()
 
 const reports = ref<TakedownReportResponse[]>([])
 const isLoading = ref(false)
-const isMutating = ref<string | null>(null)
+const mutatingIds = reactive(new Set<string>())
 const error = ref<string | null>(null)
-const statusFilter = ref<'ALL' | 'REPORTED' | 'APPROVED' | 'DISMISSED'>('ALL')
+const statusFilter = ref<TakedownReportStatus | 'ALL'>('ALL')
 
 const rejectReportId = ref<string | null>(null)
 const rejectionReason = ref('')
@@ -33,15 +33,14 @@ async function loadReports() {
   try {
     reports.value = await listTakedownReports()
   } catch (err) {
-    const apiError = err as { message?: string }
-    error.value = apiError.message ?? t('governance.takedown.review.errors.loadFailed')
+    error.value = err instanceof Error ? err.message : t('governance.takedown.review.errors.loadFailed')
   } finally {
     isLoading.value = false
   }
 }
 
 async function handleApprove(reportId: string) {
-  isMutating.value = reportId
+  mutatingIds.add(reportId)
   error.value = null
   try {
     const updated = await approveTakedown(reportId)
@@ -50,10 +49,9 @@ async function handleApprove(reportId: string) {
       reports.value[idx] = updated
     }
   } catch (err) {
-    const apiError = err as { message?: string }
-    error.value = apiError.message ?? t('governance.takedown.review.errors.approveFailed')
+    error.value = err instanceof Error ? err.message : t('governance.takedown.review.errors.approveFailed')
   } finally {
-    isMutating.value = null
+    mutatingIds.delete(reportId)
   }
 }
 
@@ -63,26 +61,26 @@ function openRejectDialog(reportId: string) {
 }
 
 async function handleReject() {
-  if (!rejectReportId.value || !rejectionReason.value.trim()) {
+  const id = rejectReportId.value
+  if (!id || !rejectionReason.value.trim()) {
     return
   }
-  isMutating.value = rejectReportId.value
+  mutatingIds.add(id)
   error.value = null
   try {
-    const updated = await rejectTakedown(rejectReportId.value, {
+    const updated = await rejectTakedown(id, {
       rejectionReason: rejectionReason.value.trim(),
     })
-    const idx = reports.value.findIndex((r) => r.reportId === rejectReportId.value)
+    const idx = reports.value.findIndex((r) => r.reportId === id)
     if (idx !== -1) {
       reports.value[idx] = updated
     }
     rejectReportId.value = null
     rejectionReason.value = ''
   } catch (err) {
-    const apiError = err as { message?: string }
-    error.value = apiError.message ?? t('governance.takedown.review.errors.rejectFailed')
+    error.value = err instanceof Error ? err.message : t('governance.takedown.review.errors.rejectFailed')
   } finally {
-    isMutating.value = null
+    mutatingIds.delete(id)
   }
 }
 
@@ -132,9 +130,9 @@ loadReports()
         class="rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display"
       >
         <option value="ALL">{{ $t('governance.takedown.review.filterAll') }}</option>
-        <option value="REPORTED">REPORTED</option>
-        <option value="APPROVED">APPROVED</option>
-        <option value="DISMISSED">DISMISSED</option>
+        <option value="REPORTED">{{ $t('governance.takedown.review.statusReported') }}</option>
+        <option value="APPROVED">{{ $t('governance.takedown.review.statusApproved') }}</option>
+        <option value="DISMISSED">{{ $t('governance.takedown.review.statusDismissed') }}</option>
       </select>
 
       <Button type="button" variant="outline" size="sm" @click="loadReports">
@@ -190,7 +188,7 @@ loadReports()
               variant="outline"
               size="sm"
               class="text-success border-success/30 hover:bg-success/10"
-              :disabled="isMutating === report.reportId"
+              :disabled="mutatingIds.has(report.reportId)"
               @click="handleApprove(report.reportId)"
             >
               {{ $t('governance.takedown.review.approveAction') }}
@@ -202,7 +200,7 @@ loadReports()
                   variant="outline"
                   size="sm"
                   class="text-error border-error/30 hover:bg-error/10"
-                  :disabled="isMutating === report.reportId"
+                  :disabled="mutatingIds.has(report.reportId)"
                   @click="openRejectDialog(report.reportId)"
                 >
                   {{ $t('governance.takedown.review.rejectAction') }}
@@ -228,8 +226,8 @@ loadReports()
                 <AlertDialogFooter>
                   <AlertDialogCancel @click="rejectReportId = null">{{ $t('workspace.cancel') }}</AlertDialogCancel>
                   <AlertDialogAction
-                    class="bg-error text-white hover:bg-error/90"
-                    :disabled="!rejectionReason.trim() || isMutating === report.reportId"
+                    class="bg-error text-text-display hover:bg-error/90"
+                    :disabled="!rejectionReason.trim() || mutatingIds.has(report.reportId)"
                     @click="handleReject"
                   >
                     {{ $t('governance.takedown.review.rejectAction') }}

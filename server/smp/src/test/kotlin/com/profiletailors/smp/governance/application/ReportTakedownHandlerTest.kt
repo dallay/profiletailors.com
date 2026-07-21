@@ -70,7 +70,6 @@ internal class ReportTakedownHandlerTest {
         val command = ReportTakedownCommand(
             assetId = "asset-001",
             reason = "Copyright infringement",
-            reporterEmail = "ignored@example.com",
             mediaReferenceUrl = "https://example.com/original",
         )
 
@@ -113,7 +112,6 @@ internal class ReportTakedownHandlerTest {
         val command = ReportTakedownCommand(
             assetId = "asset-001",
             reason = "Copyright infringement",
-            reporterEmail = "reporter@example.com",
         )
 
         shouldThrow<AuthorizationDeniedException> { handler.handle(command) }

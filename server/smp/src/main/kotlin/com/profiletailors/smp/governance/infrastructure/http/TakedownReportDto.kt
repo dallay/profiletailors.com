@@ -42,19 +42,17 @@ internal fun TakedownReport.toResponse() = TakedownReportResponse(
 /**
  * Request DTO for creating a new takedown report.
  *
- * The [reporterEmail] is optional; when omitted the backend derives it from the
+ * The reporter email is NOT in the DTO — the backend derives it from the
  * authenticated principal's verified email address.
  */
 data class ReportTakedownRequest(
     @field:NotBlank val assetId: String,
     @field:NotBlank val reason: String,
-    val reporterEmail: String? = null,
     val mediaReferenceUrl: String? = null,
 ) {
     fun toCommand() = ReportTakedownCommand(
         assetId = assetId,
         reason = reason,
-        reporterEmail = reporterEmail ?: "pending@derived",
         mediaReferenceUrl = mediaReferenceUrl,
     )
 }

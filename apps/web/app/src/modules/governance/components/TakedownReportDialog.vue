@@ -61,8 +61,7 @@ async function handleSubmit() {
     isOpen.value = false
     emit('reported')
   } catch (err) {
-    const apiError = err as { message?: string }
-    error.value = apiError.message ?? t('governance.takedown.report.errors.submitFailed')
+    error.value = err instanceof Error ? err.message : t('governance.takedown.report.errors.submitFailed')
   } finally {
     isSubmitting.value = false
   }

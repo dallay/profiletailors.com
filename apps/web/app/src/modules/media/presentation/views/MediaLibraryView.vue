@@ -95,7 +95,7 @@ const failedAssets = computed(() => assets.value.filter((asset) => asset.status 
 const canUploadMedia = computed(() => authStore.isEmailVerified && !uploadRequiresVerification.value)
 const showVerificationGuidance = computed(() => !canUploadMedia.value)
 
-function statusClass(status: MediaStatus) {
+function statusClass(status: MediaStatus): string {
   if (isProcessingStatus(status)) {
     return 'border-text-display/30 bg-text-display/10 text-text-display'
   }
@@ -214,14 +214,14 @@ async function deleteSelectedAssets() {
 async function refreshLibrary() {
   isRefreshing.value = true
   try {
-    await mediaStore.loadAssets('READY,PENDING_UPLOAD,UPLOADING,FAILED')
+    await mediaStore.loadAssets('READY,PENDING_UPLOAD,UPLOADING,FAILED,SUSPENDED')
   } finally {
     isRefreshing.value = false
   }
 }
 
 async function loadMore() {
-  await mediaStore.loadNextPage('READY,PENDING_UPLOAD,UPLOADING,FAILED')
+  await mediaStore.loadNextPage('READY,PENDING_UPLOAD,UPLOADING,FAILED,SUSPENDED')
 }
 
 function openFilePicker() {

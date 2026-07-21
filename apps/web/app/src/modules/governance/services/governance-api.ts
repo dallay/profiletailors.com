@@ -6,7 +6,7 @@ import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 export type TakedownReportStatus = 'REPORTED' | 'APPROVED' | 'DISMISSED'
 
-export interface TakedownReportResponse {
+export type TakedownReportResponse = {
   reportId: string
   workspaceId: string
   assetId: string
@@ -20,14 +20,13 @@ export interface TakedownReportResponse {
   reviewedBy?: string
 }
 
-export interface ReportTakedownRequest {
+export type ReportTakedownRequest = {
   assetId: string
   reason: string
-  reporterEmail?: string
   mediaReferenceUrl?: string
 }
 
-export interface ReviewTakedownRequest {
+export type ReviewTakedownRequest = {
   rejectionReason: string
 }
 

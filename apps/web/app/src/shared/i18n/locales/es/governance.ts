@@ -1,4 +1,4 @@
-export default {
+export const governance = {
   takedown: {
     report: {
       action: 'Reportar problema de derechos de autor',
@@ -24,6 +24,9 @@ export default {
       subtitle: 'Revisa y actúa sobre los reportes de derechos de autor enviados por usuarios.',
       statusFilter: 'Filtrar por estado',
       filterAll: 'Todos',
+      statusReported: 'Reportado',
+      statusApproved: 'Aprobado',
+      statusDismissed: 'Desestimado',
       refresh: 'Actualizar',
       loading: 'Cargando reportes…',
       empty: 'No se encontraron reportes.',

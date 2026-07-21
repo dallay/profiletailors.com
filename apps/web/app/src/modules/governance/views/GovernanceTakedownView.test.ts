@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { shallowMount, flushPromises } from '@vue/test-utils'
+import { shallowMount, mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import type { TakedownReportResponse } from '@modules/governance/services/governance-api'
 
@@ -24,6 +24,41 @@ vi.mock('vue-i18n', () => ({
     t: (key: string) => key,
     locale: { value: 'en' },
   }),
+}))
+
+vi.mock('@/components/ui/button', () => ({
+  Button: {
+    name: 'Button',
+    props: ['type', 'variant', 'size', 'disabled'],
+    emits: ['click'],
+    template: '<button :disabled="disabled" @click.stop="$emit(\'click\')"><slot /></button>',
+  },
+}))
+
+vi.mock('@/components/ui/badge', () => ({
+  Badge: { name: 'Badge', template: '<span class="ui-badge"><slot /></span>' },
+}))
+
+vi.mock('@/components/ui/alert-dialog', () => ({
+  AlertDialog: { template: '<div class="ui-alert-dialog"><slot /></div>' },
+  AlertDialogTrigger: { template: '<span class="ui-alert-dialog-trigger"><slot /></span>' },
+  AlertDialogContent: { template: '<div class="ui-alert-dialog-content"><slot /></div>' },
+  AlertDialogHeader: { template: '<div class="ui-alert-dialog-header"><slot /></div>' },
+  AlertDialogTitle: { template: '<span class="ui-alert-dialog-title"><slot /></span>' },
+  AlertDialogDescription: { template: '<p class="ui-alert-dialog-description"><slot /></p>' },
+  AlertDialogFooter: { template: '<div class="ui-alert-dialog-footer"><slot /></div>' },
+  AlertDialogCancel: { template: '<button class="ui-alert-dialog-cancel"><slot /></button>' },
+  AlertDialogAction: {
+    template: '<button class="ui-alert-dialog-action" @click="$emit(\'click\')"><slot /></button>',
+  },
+}))
+
+vi.mock('@/components/ui/label', () => ({
+  Label: { template: '<label><slot /></label>' },
+}))
+
+vi.mock('@/components/ui/textarea', () => ({
+  Textarea: { template: '<textarea />' },
 }))
 
 vi.mock('@lucide/vue', () => {
@@ -132,30 +167,31 @@ describe('GovernanceTakedownView.vue', () => {
   })
 
   it('calls approveTakedown when approve button is clicked', async () => {
-    const reports = [makeReport({ reportId: 'rpt-1' })]
     mockApprove.mockResolvedValue(makeReport({ reportId: 'rpt-1', status: 'APPROVED' }))
-    await mountView(reports)
+    mockListReports.mockResolvedValue([makeReport({ reportId: 'rpt-1' })])
+
+    const wrapper = mount(GovernanceTakedownView, {
+      global: {
+        stubs: { Teleport: true },
+        mocks: { $t: (key: string) => key },
+      },
+    })
     await flushPromises()
 
-    // In shallowMount, child component stubs don't render their default slot
-    // text content. We verify the state is correct after mount.
-    expect(mockListReports).toHaveBeenCalledTimes(1)
-    expect(mockApprove).not.toHaveBeenCalled()
-  })
+    const buttons = wrapper.findAll('button')
+    const approveBtn = buttons.find((b) => b.text() === 'governance.takedown.review.approveAction')
+    expect(approveBtn).toBeDefined()
 
-  it('calls rejectTakedown with rejection reason', async () => {
-    const reports = [makeReport({ reportId: 'rpt-1' })]
-    mockReject.mockResolvedValue(
-      makeReport({ reportId: 'rpt-1', status: 'DISMISSED', rejectionReason: 'Not valid' }),
-    )
-    await mountView(reports)
+    // Dispatch a native click event directly on the button element
+    approveBtn!.element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await flushPromises()
 
-    // With shallowMount, stub components don't render their slots,
-    // so we can't interact with the form directly.
-    // The approve/reject tests above need a full mount approach.
-    // For coverage, the remaining tests validate render paths.
-    expect(mockListReports).toHaveBeenCalledTimes(1)
-    expect(mockReject).not.toHaveBeenCalled()
+    expect(mockApprove).toHaveBeenCalledTimes(1)
+    expect(mockApprove).toHaveBeenCalledWith('rpt-1')
   })
+
+  // Reject-flow interaction test needs AlertDialog open/close orchestration
+  // which depends on Radix-vue internals. The approve test above validates
+  // the click → handler → API pattern for the simpler case.
+  it.todo('calls rejectTakedown with rejection reason after opening reject dialog')
 })
