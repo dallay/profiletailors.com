@@ -327,6 +327,7 @@ class R2dbcMediaAssetRepository(
             """
             UPDATE media_assets
             SET status = 'DELETED',
+                storage_key = NULL,
                 updated_at = CURRENT_TIMESTAMP
             WHERE asset_id = :assetId AND workspace_id = :workspaceId
             """.trimIndent(),
