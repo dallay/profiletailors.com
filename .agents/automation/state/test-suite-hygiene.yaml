@@ -1,0 +1,5 @@
+schemaVersion: 1
+task: test-suite-hygiene
+lastExecution: null
+findings: []
+checks: []
