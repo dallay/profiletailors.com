@@ -151,6 +151,9 @@ data class MediaAssetResponse(
 
     @field:Schema(description = "Provider-specific metadata", required = false)
     val metadata: Map<String, Any>? = null,
+
+    @field:Schema(description = "Content licence identifier (e.g. 'unsplash', 'cc-by-4.0')", required = false)
+    val licence: String? = null,
 )
 
 @Schema(description = "Paginated list of media assets")

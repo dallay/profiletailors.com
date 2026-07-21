@@ -475,6 +475,7 @@ internal fun MediaAssetSummary.toMediaAssetResponse() = MediaAssetResponse(
     authorName = authorName,
     authorUrl = authorUrl,
     metadata = metadata,
+    licence = licence,
 )
 
 /**
