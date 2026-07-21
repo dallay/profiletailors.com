@@ -7,12 +7,10 @@ import com.profiletailors.notifications.domain.IdempotencyKey
 import com.profiletailors.notifications.domain.Notification
 import com.profiletailors.notifications.domain.NotificationRepository
 import com.profiletailors.notifications.domain.NotificationStatus
+import com.profiletailors.smp.governance.application.PrincipalIdentityPort
 import com.profiletailors.smp.governance.domain.event.TakedownApproved
 import com.profiletailors.smp.governance.domain.event.TakedownRejected
 import com.profiletailors.smp.governance.domain.event.TakedownReported
-import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
-import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipRepository
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import io.mockk.coEvery
@@ -40,7 +38,7 @@ internal class TakedownEmailConsumersTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
-        val identityLookup = mockk<PrincipalIdentityLookup>()
+        val identityPort = mockk<PrincipalIdentityPort>()
 
         coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
             WorkspaceOwnership(
@@ -54,24 +52,8 @@ internal class TakedownEmailConsumersTest {
                 ownerPrincipalType = PrincipalType.USER,
             ),
         )
-        coEvery { identityLookup.findByPrincipalId("owner-1") } returns PrincipalIdentityFacts(
-            principalId = "owner-1",
-            principalType = PrincipalType.USER,
-            subject = "owner1@example.com",
-            provider = null,
-            displayIdentity = null,
-            email = "owner1@example.com",
-            username = null,
-        )
-        coEvery { identityLookup.findByPrincipalId("owner-2") } returns PrincipalIdentityFacts(
-            principalId = "owner-2",
-            principalType = PrincipalType.USER,
-            subject = "owner2@example.com",
-            provider = null,
-            displayIdentity = null,
-            email = "owner2@example.com",
-            username = null,
-        )
+        coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
+        coEvery { identityPort.findEmailByPrincipalId("owner-2") } returns "owner2@example.com"
         coEvery { repository.findByIdempotencyKey(any()) } returns null
         coEvery { repository.save(any()) } answers { firstArg() }
         coEvery { repository.update(any()) } answers { firstArg() }
@@ -81,7 +63,7 @@ internal class TakedownEmailConsumersTest {
             emailDispatcher = dispatcher,
             notificationRepository = repository,
             workspaceOwnershipRepository = ownershipRepository,
-            principalIdentityLookup = identityLookup,
+            principalIdentityPort = identityPort,
             clock = clock,
         )
         consumer.consume(reportedEvent())
@@ -96,7 +78,7 @@ internal class TakedownEmailConsumersTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
-        val identityLookup = NoOpPrincipalIdentityLookup()
+        val identityPort = mockk<PrincipalIdentityPort>()
 
         coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
             WorkspaceOwnership(
@@ -105,13 +87,14 @@ internal class TakedownEmailConsumersTest {
                 ownerPrincipalType = PrincipalType.USER,
             ),
         )
+        coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns null
         coEvery { repository.findByIdempotencyKey(any()) } returns null
 
         val consumer = SendTakedownReportedEmailConsumer(
             emailDispatcher = dispatcher,
             notificationRepository = repository,
             workspaceOwnershipRepository = ownershipRepository,
-            principalIdentityLookup = identityLookup,
+            principalIdentityPort = identityPort,
             clock = clock,
         )
         consumer.consume(reportedEvent())
@@ -124,7 +107,7 @@ internal class TakedownEmailConsumersTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
-        val identityLookup = mockk<PrincipalIdentityLookup>()
+        val identityPort = mockk<PrincipalIdentityPort>()
 
         coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
             WorkspaceOwnership(
@@ -133,22 +116,14 @@ internal class TakedownEmailConsumersTest {
                 ownerPrincipalType = PrincipalType.USER,
             ),
         )
-        coEvery { identityLookup.findByPrincipalId("owner-1") } returns PrincipalIdentityFacts(
-            principalId = "owner-1",
-            principalType = PrincipalType.USER,
-            subject = "owner1@example.com",
-            provider = null,
-            displayIdentity = null,
-            email = "owner1@example.com",
-            username = null,
-        )
+        coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
         coEvery { repository.findByIdempotencyKey(any()) } returns mockk<Notification>(relaxed = true)
 
         val consumer = SendTakedownReportedEmailConsumer(
             emailDispatcher = dispatcher,
             notificationRepository = repository,
             workspaceOwnershipRepository = ownershipRepository,
-            principalIdentityLookup = identityLookup,
+            principalIdentityPort = identityPort,
             clock = clock,
         )
         consumer.consume(reportedEvent())
@@ -162,7 +137,7 @@ internal class TakedownEmailConsumersTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
-        val identityLookup = mockk<PrincipalIdentityLookup>()
+        val identityPort = mockk<PrincipalIdentityPort>()
 
         coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
             WorkspaceOwnership(
@@ -171,15 +146,8 @@ internal class TakedownEmailConsumersTest {
                 ownerPrincipalType = PrincipalType.USER,
             ),
         )
-        coEvery { identityLookup.findByPrincipalId("owner-1") } returns PrincipalIdentityFacts(
-            principalId = "owner-1",
-            principalType = PrincipalType.USER,
-            subject = "owner1@example.com",
-            provider = null,
-            displayIdentity = null,
-            email = "owner1@example.com",
-            username = null,
-        )
+        coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
+        coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
         val seenKey = slot<IdempotencyKey>()
         coEvery { repository.findByIdempotencyKey(capture(seenKey)) } returns null
         coEvery { repository.save(any()) } answers { firstArg() }
@@ -190,7 +158,7 @@ internal class TakedownEmailConsumersTest {
             emailDispatcher = dispatcher,
             notificationRepository = repository,
             workspaceOwnershipRepository = ownershipRepository,
-            principalIdentityLookup = identityLookup,
+            principalIdentityPort = identityPort,
             clock = clock,
         )
         consumer.consume(reportedEvent(reportId = "report-42"))
@@ -203,7 +171,7 @@ internal class TakedownEmailConsumersTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
-        val identityLookup = mockk<PrincipalIdentityLookup>()
+        val identityPort = mockk<PrincipalIdentityPort>()
 
         coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
             WorkspaceOwnership(
@@ -212,15 +180,7 @@ internal class TakedownEmailConsumersTest {
                 ownerPrincipalType = PrincipalType.USER,
             ),
         )
-        coEvery { identityLookup.findByPrincipalId("owner-1") } returns PrincipalIdentityFacts(
-            principalId = "owner-1",
-            principalType = PrincipalType.USER,
-            subject = "owner1@example.com",
-            provider = null,
-            displayIdentity = null,
-            email = "owner1@example.com",
-            username = null,
-        )
+        coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
         coEvery { repository.findByIdempotencyKey(any()) } returns null
         coEvery { repository.save(any()) } answers { firstArg() }
         coEvery { repository.update(any()) } answers { firstArg() }
@@ -230,7 +190,7 @@ internal class TakedownEmailConsumersTest {
             emailDispatcher = dispatcher,
             notificationRepository = repository,
             workspaceOwnershipRepository = ownershipRepository,
-            principalIdentityLookup = identityLookup,
+            principalIdentityPort = identityPort,
             clock = clock,
         )
         consumer.consume(reportedEvent())
@@ -247,7 +207,7 @@ internal class TakedownEmailConsumersTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
-        val identityLookup = mockk<PrincipalIdentityLookup>()
+        val identityPort = mockk<PrincipalIdentityPort>()
 
         coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns emptySet()
 
@@ -255,7 +215,7 @@ internal class TakedownEmailConsumersTest {
             emailDispatcher = dispatcher,
             notificationRepository = repository,
             workspaceOwnershipRepository = ownershipRepository,
-            principalIdentityLookup = identityLookup,
+            principalIdentityPort = identityPort,
             clock = clock,
         )
         consumer.consume(reportedEvent())
@@ -406,7 +366,7 @@ internal class TakedownEmailConsumersTest {
         val repository = mockk<NotificationRepository>()
         val dispatcher = mockk<EmailDispatcher>()
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
-        val identityLookup = mockk<PrincipalIdentityLookup>()
+        val identityPort = mockk<PrincipalIdentityPort>()
 
         coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
             WorkspaceOwnership(
@@ -415,15 +375,7 @@ internal class TakedownEmailConsumersTest {
                 ownerPrincipalType = PrincipalType.USER,
             ),
         )
-        coEvery { identityLookup.findByPrincipalId("owner-1") } returns PrincipalIdentityFacts(
-            principalId = "owner-1",
-            principalType = PrincipalType.USER,
-            subject = "owner1@example.com",
-            provider = null,
-            displayIdentity = null,
-            email = "owner1@example.com",
-            username = null,
-        )
+        coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
         coEvery { repository.findByIdempotencyKey(any()) } returns null
         coEvery { repository.save(any()) } answers { firstArg() }
         coEvery { repository.update(any()) } answers { firstArg() }
@@ -433,7 +385,7 @@ internal class TakedownEmailConsumersTest {
             emailDispatcher = dispatcher,
             notificationRepository = repository,
             workspaceOwnershipRepository = ownershipRepository,
-            principalIdentityLookup = identityLookup,
+            principalIdentityPort = identityPort,
             clock = clock,
         )
         consumer.consume(reportedEvent())

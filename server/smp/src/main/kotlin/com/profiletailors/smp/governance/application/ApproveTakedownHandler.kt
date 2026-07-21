@@ -12,8 +12,6 @@ import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
 import com.profiletailors.smp.governance.domain.event.TakedownApproved
-import com.profiletailors.smp.media.application.MediaAssetRepository
-import com.profiletailors.smp.media.domain.MediaAssetStatus
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -32,7 +30,7 @@ import java.time.ZoneOffset
 @Service
 internal class ApproveTakedownHandler(
     private val repository: TakedownReportRepository,
-    private val mediaAssetRepository: MediaAssetRepository,
+    private val mediaAssetStatusPort: MediaAssetStatusPort,
     private val resourceContextProvider: ResourceContextProvider,
     private val principalContextProvider: PrincipalContextProvider,
     private val authorizationService: GovernanceAuthorizationService,
@@ -55,7 +53,13 @@ internal class ApproveTakedownHandler(
         val saved = repository.save(approved)
 
         // Suspend the underlying media asset
-        mediaAssetRepository.updateStatus(report.assetId, workspaceId, MediaAssetStatus.SUSPENDED)
+        mediaAssetStatusPort.updateAssetStatus(
+            AssetStatusUpdate(
+                workspaceId = workspaceId,
+                assetId = report.assetId,
+                status = AssetStatus.SUSPENDED,
+            ),
+        )
 
         auditHook.onMutation(
             MutationAuditFact(

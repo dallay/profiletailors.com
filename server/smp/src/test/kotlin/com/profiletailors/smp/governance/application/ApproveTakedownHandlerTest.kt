@@ -19,8 +19,6 @@ import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
 import com.profiletailors.smp.governance.domain.TakedownReportStatus
 import com.profiletailors.smp.governance.domain.event.TakedownApproved
-import com.profiletailors.smp.media.application.MediaAssetRepository
-import com.profiletailors.smp.media.domain.MediaAssetStatus
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
@@ -33,7 +31,7 @@ import java.time.Instant
 internal class ApproveTakedownHandlerTest {
 
     private val repository: TakedownReportRepository = mockk()
-    private val mediaAssetRepository: MediaAssetRepository = mockk()
+    private val mediaAssetStatusPort: MediaAssetStatusPort = mockk()
     private val resourceContextProvider: ResourceContextProvider = mockk()
     private val principalContextProvider: com.profiletailors.common.domain.context.PrincipalContextProvider = mockk()
     private val authorizationDecider: WorkspaceAuthorizationDecider = mockk()
@@ -43,7 +41,7 @@ internal class ApproveTakedownHandlerTest {
     private val authorizationService = GovernanceAuthorizationService(authorizationDecider)
     private val handler = ApproveTakedownHandler(
         repository = repository,
-        mediaAssetRepository = mediaAssetRepository,
+        mediaAssetStatusPort = mediaAssetStatusPort,
         resourceContextProvider = resourceContextProvider,
         principalContextProvider = principalContextProvider,
         authorizationService = authorizationService,
@@ -79,8 +77,7 @@ internal class ApproveTakedownHandlerTest {
             )
         coEvery { repository.findById("ws-001", "report-001") } returns report
         coEvery { repository.save(any()) } answers { firstArg() }
-        coEvery { mediaAssetRepository.updateStatus("asset-001", "ws-001", MediaAssetStatus.SUSPENDED) } returns
-            mockk()
+        coEvery { mediaAssetStatusPort.updateAssetStatus(any()) } returns Unit
         coEvery { auditHook.onMutation(any()) } returns Unit
         coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
@@ -90,7 +87,13 @@ internal class ApproveTakedownHandlerTest {
         result.reviewedById shouldBe "reviewer-001"
 
         coVerify {
-            mediaAssetRepository.updateStatus("asset-001", "ws-001", MediaAssetStatus.SUSPENDED)
+            mediaAssetStatusPort.updateAssetStatus(
+                match { update: AssetStatusUpdate ->
+                    update.workspaceId == "ws-001" &&
+                        update.assetId == "asset-001" &&
+                        update.status == AssetStatus.SUSPENDED
+                },
+            )
             auditHook.onMutation(
                 match { fact: MutationAuditFact ->
                     fact.action == "MEDIA_TAKEDOWN_APPROVED" &&
