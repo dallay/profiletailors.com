@@ -60,4 +60,6 @@ export default {
     'Esto elimina permanentemente todos los assets seleccionados de la librería del workspace y del storage local.',
   deleteSelectedAction: 'Eliminar seleccionados',
   loadMore: 'Cargar más',
+  attributionBy: 'Por',
+  viaProvider: 'Vía',
 }

@@ -184,7 +184,7 @@ describe('MediaLibraryView', () => {
     expect(wrapper.text()).toContain('media.noFilteredAssetsBody')
   })
 
-  it('does not render external attribution metadata', async () => {
+  it('renders external attribution metadata when available', async () => {
     const mediaStore = useMediaStore()
     mediaStore.assetsById['external-asset'] = makeAsset({
       assetId: 'external-asset',
@@ -206,12 +206,10 @@ describe('MediaLibraryView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('external.jpg')
-    expect(wrapper.text()).not.toContain('Attribution Author Sentinel')
-    expect(wrapper.html()).not.toContain('attribution-author-sentinel')
+    expect(wrapper.text()).toContain('media.attributionBy')
+    expect(wrapper.text()).toContain('Attribution Author Sentinel')
+    expect(wrapper.html()).toContain('attribution-author-sentinel')
     expect(wrapper.html()).not.toContain('hidden-provider-metadata')
-    expect(wrapper.html()).not.toContain('unsplash')
-    expect(wrapper.html()).not.toContain('source-photo-123')
-    expect(wrapper.html()).not.toContain('https://example.test/source-photo-123')
   })
 
   it('renders asset cards when assets exist', async () => {

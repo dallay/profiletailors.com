@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: media-007-add-licence-column
+      author: sdd-apply
+      changes:
+        - addColumn:
+            tableName: media_assets
+            columns:
+              - column:
+                  name: licence
+                  type: VARCHAR(64)
+                  constraints: { nullable: true }
