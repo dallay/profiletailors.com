@@ -1,0 +1,150 @@
+name: Release Image
+
+on:
+  push:
+    tags:
+      - 'smp@*'
+  workflow_call:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-backend:
+    name: Build Backend Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-backend
+
+      - name: Build backend image
+        run: |
+          release_version="${GITHUB_REF_NAME#smp@}"
+          export BP_OCI_VERSION="$release_version"
+          export BP_OCI_REVISION="${GITHUB_SHA}"
+          ./gradlew :server:smp:bootBuildImage \
+            -PreleaseVersion="$release_version" \
+            --imageName="ghcr.io/dallay/profiletailors-smp:$release_version" \
+            --no-daemon
+
+      - name: Tag backend image as latest
+        run: |
+          release_version="${GITHUB_REF_NAME#smp@}"
+          docker tag \
+            "ghcr.io/dallay/profiletailors-smp:$release_version" \
+            "ghcr.io/dallay/profiletailors-smp:latest"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@74a5f142fd8d9095883d91f705905d39c6d7f4a2 # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push backend images
+        run: |
+          release_version="${GITHUB_REF_NAME#smp@}"
+          docker push "ghcr.io/dallay/profiletailors-smp:$release_version"
+          docker push "ghcr.io/dallay/profiletailors-smp:latest"
+
+  build-dashboard:
+    name: Build Dashboard Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-frontend
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@74a5f142fd8d9095883d91f705905d39c6d7f4a2 # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push dashboard image
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+        run: |
+          release_version="${GITHUB_REF_NAME#smp@}"
+          docker build \
+            -f infra/apps/smp/production/dashboard.Dockerfile \
+            -t "ghcr.io/dallay/profiletailors-dashboard:$release_version" \
+            -t "ghcr.io/dallay/profiletailors-dashboard:latest" \
+            --build-arg VITE_API_BASE_URL="${VITE_API_BASE_URL}" \
+            .
+          docker push "ghcr.io/dallay/profiletailors-dashboard:$release_version"
+          docker push "ghcr.io/dallay/profiletailors-dashboard:latest"
+
+  smoke-test:
+    name: Smoke Test
+    needs:
+      - build-backend
+      - build-dashboard
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@74a5f142fd8d9095883d91f705905d39c6d7f4a2 # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate temporary environment and secrets
+        run: |
+          production_dir="infra/apps/smp/production"
+          secrets_dir="${production_dir}/secrets"
+          release_version="${GITHUB_REF_NAME#smp@}"
+          mkdir -p "$secrets_dir"
+          umask 077
+          cat > "${production_dir}/.env" <<EOF
+          SMP_IMAGE=ghcr.io/dallay/profiletailors-smp:${release_version}
+          DASHBOARD_IMAGE=ghcr.io/dallay/profiletailors-dashboard:${release_version}
+          HTTP_BIND_ADDRESS=127.0.0.1
+          HTTP_PORT=8080
+          PUBLIC_ORIGIN=https://app.example.com
+          POSTGRES_DB=profiletailors_smp
+          POSTGRES_USER=profiletailors
+          SMP_EMAIL_SENDER=noreply@example.com
+          SMP_MEDIAPROVIDER_UNSPLASH_ENABLED=false
+          SMP_REGISTRATION_ENABLED=false
+          EOF
+          openssl rand -base64 32 > "${secrets_dir}/db-password"
+          openssl rand -base64 32 > "${secrets_dir}/local-jwt-secret"
+          openssl rand -base64 32 > "${secrets_dir}/publishing-credentials-key"
+          openssl rand -base64 32 > "${secrets_dir}/media-preview-signing-secret"
+          openssl rand -base64 32 > "${secrets_dir}/linkedin-state-signing-secret"
+          openssl rand -base64 32 > "${secrets_dir}/linkedin-client-secret"
+          openssl rand -base64 32 > "${secrets_dir}/resend-api-key"
+          chmod 600 "${secrets_dir}"/*
+
+      - name: Start production stack
+        run: |
+          docker compose \
+            -f infra/apps/smp/production/compose.yaml \
+            --env-file infra/apps/smp/production/.env \
+            up -d --wait
+
+      - name: Run smoke test
+        run: |
+          infra/apps/smp/production/smoke-test.sh
+
+      - name: Tear down stack
+        if: always()
+        run: |
+          docker compose \
+            -f infra/apps/smp/production/compose.yaml \
+            --env-file infra/apps/smp/production/.env \
+            down

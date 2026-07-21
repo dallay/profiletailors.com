@@ -141,8 +141,21 @@ just backend-build
 
 ### Step 5: Release Artifacts
 
-Release images must be built from a clean worktree so the image tag identifies
-the exact source revision:
+**Automated Pipeline** (0.1.0+): Release images are built and pushed automatically
+when release-please creates an `smp@*` tag:
+
+1. **Trigger**: Push to `main` triggers `release-please.yml`
+2. **Release creation**: If a new version is ready, release-please creates the tag
+   (e.g., `smp@0.1.0`)
+3. **Automatic build**: The `release-image.yml` workflow is invoked:
+   - Builds backend via Spring Boot buildpacks (`bootBuildImage`)
+   - Builds dashboard via `infra/apps/smp/production/dashboard.Dockerfile`
+   - Pushes both to `ghcr.io/dallay/profiletailors-smp:<version>` and `:latest`
+   - Pushes `ghcr.io/dallay/profiletailors-dashboard:<version>` and `:latest`
+   - Runs a non-blocking smoke test against the published images
+4. **Result**: Images are available in GitHub Container Registry for deployment
+
+**Manual Verification** (if needed for testing or rollback):
 
 ```bash
 just release-dashboard-build https://api.example.com
@@ -150,15 +163,11 @@ just release-backend-image 0.1.0 ghcr.io/dallay/profiletailors-smp
 just release-backend-verify ghcr.io/dallay/profiletailors-smp:0.1.0-<git-sha>
 ```
 
-The dashboard command produces `apps/web/app/dist` with the deployed API URL.
-The backend command produces an OCI image tagged as
-`<repository>:0.1.0-<12-character-git-sha>` and prints its local image ID.
-The verification command uses ephemeral PostgreSQL and application containers
-to prove production-profile startup, Liquibase execution, exclusion of the
-development seed, readiness, and liveness. It generates temporary credentials
-in memory and removes the containers and network when it finishes.
+The manual commands produce the same artifacts locally. The verification command
+uses ephemeral containers to prove production-profile startup, Liquibase
+execution, exclusion of development seeds, and readiness/liveness checks.
 
-The supported self-hosted deployment is validated separately with:
+**Deployment Validation**: The supported self-hosted deployment is validated with:
 
 ```bash
 just production-prepare
