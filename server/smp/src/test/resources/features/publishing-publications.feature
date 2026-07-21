@@ -6,7 +6,7 @@ Feature: Publications management
     Given an authorized workspace member exists
     And a connected LinkedIn social account exists
 
-  Scenario: Create draft publication
+  Scenario: Create queued publication
     When the client creates a publication with title "Draft Post" and body "Hello"
     Then the publishing response status should be 200
     And the response should contain a publicationId

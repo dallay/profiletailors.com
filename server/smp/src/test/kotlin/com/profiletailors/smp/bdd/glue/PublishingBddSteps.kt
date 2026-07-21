@@ -1,0 +1,339 @@
+package com.profiletailors.smp.bdd.glue
+
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import io.cucumber.java.Before
+import io.cucumber.java.en.Given
+import io.cucumber.java.en.Then
+import io.cucumber.java.en.When
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.test.web.reactive.server.EntityExchangeResult
+import org.springframework.test.web.reactive.server.WebTestClient
+import java.nio.charset.StandardCharsets
+import java.time.Instant
+
+class PublishingBddSteps {
+    @Autowired
+    private lateinit var webTestClient: WebTestClient
+
+    @Autowired
+    private lateinit var bddDatabaseSupport: BddDatabaseSupport
+
+    private var latestPublishingResponse: EntityExchangeResult<ByteArray>? = null
+    private var latestPublicationId: String? = null
+    private var currentSocialConnectionId: String? = null
+    private var currentSocialAccountId: String? = null
+    private var currentPublicationId: String? = null
+    private val objectMapper: ObjectMapper = jacksonObjectMapper()
+
+    @Before
+    fun resetPublishingState() {
+        latestPublishingResponse = null
+        latestPublicationId = null
+        currentSocialConnectionId = null
+        currentSocialAccountId = null
+        currentPublicationId = null
+    }
+
+    @Given("a connected LinkedIn social account exists")
+    fun givenConnectedLinkedInSocialAccountExists() = runBlocking {
+        bddDatabaseSupport.seedSocialConnection("social-conn-1", "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.seedSocialAccount(
+            accountId = "social-acc-1",
+            connectionId = "social-conn-1",
+            provider = "LINKEDIN",
+            providerAccountId = "linkedin-profile-1",
+            accountKind = "PERSONAL_PROFILE",
+            displayName = "Yuniel Acosta",
+        )
+        currentSocialConnectionId = "social-conn-1"
+        currentSocialAccountId = "social-acc-1"
+    }
+
+    @Given("a draft publication exists")
+    fun givenDraftPublicationExists() = runBlocking {
+        if (currentSocialAccountId == null) {
+            givenConnectedLinkedInSocialAccountExists()
+        }
+        val socialAccountId = requireNotNull(currentSocialAccountId) {
+            "No social account seeded. Ensure 'a connected LinkedIn social account exists' step runs first."
+        }
+        bddDatabaseSupport.seedDraftPublication(
+            publicationId = "pub-bdd-draft-1",
+            socialAccountId = socialAccountId,
+            title = "Draft Post",
+            bodyText = "Draft body",
+        )
+        currentPublicationId = "pub-bdd-draft-1"
+    }
+
+    @Given("a scheduled publication exists")
+    fun givenScheduledPublicationExists() = runBlocking {
+        if (currentSocialAccountId == null) {
+            givenConnectedLinkedInSocialAccountExists()
+        }
+        val socialAccountId = requireNotNull(currentSocialAccountId) {
+            "No social account seeded. Ensure 'a connected LinkedIn social account exists' step runs first."
+        }
+        bddDatabaseSupport.seedScheduledPublication(
+            publicationId = "pub-bdd-scheduled-1",
+            socialAccountId = socialAccountId,
+            scheduledFor = Instant.parse("2026-08-01T12:00:00Z"),
+            title = "Scheduled Post",
+            bodyText = "Scheduled body",
+        )
+        currentPublicationId = "pub-bdd-scheduled-1"
+    }
+
+    @Given("a draft and a scheduled publication exist")
+    fun givenDraftAndScheduledPublicationsExist() = runBlocking {
+        if (currentSocialAccountId == null) {
+            givenConnectedLinkedInSocialAccountExists()
+        }
+        val socialAccountId = requireNotNull(currentSocialAccountId) {
+            "No social account seeded. Ensure 'a connected LinkedIn social account exists' step runs first."
+        }
+        bddDatabaseSupport.seedDraftPublication(
+            publicationId = "pub-bdd-draft-2",
+            socialAccountId = socialAccountId,
+            title = "Draft Post 2",
+            bodyText = "Draft body 2",
+        )
+        bddDatabaseSupport.seedScheduledPublication(
+            publicationId = "pub-bdd-scheduled-2",
+            socialAccountId = socialAccountId,
+            scheduledFor = Instant.parse("2026-08-01T14:00:00Z"),
+            title = "Scheduled Post 2",
+            bodyText = "Scheduled body 2",
+        )
+    }
+
+    @When("the client creates a publication with title {string} and body {string}")
+    fun whenClientCreatesPublication(title: String?, body: String?) = runBlocking {
+        if (currentSocialAccountId == null) {
+            givenConnectedLinkedInSocialAccountExists()
+        }
+        val bodyMap = mutableMapOf<String, Any?>(
+            "socialAccountId" to currentSocialAccountId,
+            "bodyText" to body,
+            "scheduleMode" to "NOW",
+        )
+        if (title != null) bodyMap["title"] = title
+        val json = objectMapper.writeValueAsString(bodyMap)
+        latestPublishingResponse = webTestClient.post()
+            .uri(bddDatabaseSupport.publishingPublicationsPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(json)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client creates a scheduled publication for {string} with title {string} and body {string}")
+    fun whenClientCreatesScheduledPublication(scheduledFor: String, title: String?, body: String?) = runBlocking {
+        if (currentSocialAccountId == null) {
+            givenConnectedLinkedInSocialAccountExists()
+        }
+        val bodyMap = mutableMapOf<String, Any?>(
+            "socialAccountId" to currentSocialAccountId,
+            "bodyText" to body,
+            "scheduleMode" to "SCHEDULED_AT",
+            "scheduledFor" to scheduledFor,
+        )
+        if (title != null) bodyMap["title"] = title
+        val json = objectMapper.writeValueAsString(bodyMap)
+        latestPublishingResponse = webTestClient.post()
+            .uri(bddDatabaseSupport.publishingPublicationsPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(json)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client edits the publication with new title {string}")
+    fun whenClientEditsPublication(newTitle: String) = runBlocking {
+        val pubId = currentPublicationId ?: extractPublicationIdFromResponse()
+        val bodyMap = mapOf<String, Any?>(
+            "socialAccountId" to currentSocialAccountId,
+            "title" to newTitle,
+            "bodyText" to "Updated body",
+            "scheduleMode" to "NOW",
+        )
+        val json = objectMapper.writeValueAsString(bodyMap)
+        latestPublishingResponse = webTestClient.patch()
+            .uri("${bddDatabaseSupport.publishingPublicationsPath()}/$pubId")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(json)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client cancels the publication")
+    fun whenClientCancelsPublication() = runBlocking {
+        val pubId = currentPublicationId ?: extractPublicationIdFromResponse()
+        latestPublishingResponse = webTestClient.post()
+            .uri("${bddDatabaseSupport.publishingPublicationsPath()}/$pubId/cancel")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client deletes the publication")
+    fun whenClientDeletesPublication() = runBlocking {
+        val pubId = currentPublicationId ?: extractPublicationIdFromResponse()
+        latestPublishingResponse = webTestClient.delete()
+            .uri("${bddDatabaseSupport.publishingPublicationsPath()}/$pubId")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client quick-creates a publication for {string} with title {string} and body {string}")
+    fun whenClientQuickCreatesPublication(scheduledFor: String, title: String?, body: String?) = runBlocking {
+        if (currentSocialAccountId == null) {
+            givenConnectedLinkedInSocialAccountExists()
+        }
+        val bodyMap = mutableMapOf<String, Any?>(
+            "socialAccountId" to currentSocialAccountId,
+            "scheduledFor" to scheduledFor,
+        )
+        if (title != null) bodyMap["title"] = title
+        if (body != null) bodyMap["bodyText"] = body
+        val json = objectMapper.writeValueAsString(bodyMap)
+        latestPublishingResponse = webTestClient.post()
+            .uri("${bddDatabaseSupport.publishingPublicationsPath()}/quick-create")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(json)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client lists publications")
+    fun whenClientListsPublications() {
+        latestPublishingResponse = webTestClient.get()
+            .uri(bddDatabaseSupport.publishingPublicationsPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client lists connected channels")
+    fun whenClientListsConnectedChannels() {
+        latestPublishingResponse = webTestClient.get()
+            .uri(bddDatabaseSupport.publishingChannelsPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client lists configured providers")
+    fun whenClientListsConfiguredProviders() {
+        latestPublishingResponse = webTestClient.get()
+            .uri(bddDatabaseSupport.publishingChannelProvidersPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @Then("the publishing response status should be {int}")
+    fun thenPublishingResponseStatusShouldBe(status: Int) {
+        val response = latestPublishingResponse ?: error("No publishing response captured")
+        assertEquals(status, response.status.value())
+    }
+
+    @Then("the response should contain a publicationId")
+    fun thenResponseShouldContainPublicationId() {
+        val body = publishingResponseBodyText()
+        val publicationId = parsePublishingResponseField<String>("publicationId")
+        assertNotNull(publicationId, "Expected publicationId in response: $body")
+        latestPublicationId = publicationId
+    }
+
+    @Then("the publication status should be {string}")
+    fun thenPublicationStatusShouldBe(expectedStatus: String) {
+        val actualStatus: String = parsePublishingResponseField("status")
+        assertEquals(expectedStatus, actualStatus)
+    }
+
+    @Then("the response title should be {string}")
+    fun thenResponseTitleShouldBe(expectedTitle: String) {
+        val actualTitle: String? = parsePublishingResponseField("title")
+        assertEquals(expectedTitle, actualTitle)
+    }
+
+    @Then("the response should contain {int} publications")
+    fun thenResponseShouldContainPublications(expectedCount: Int) {
+        val body = publishingResponseBodyText()
+        val total = parsePublishingResponseField<Int>("total")
+        assertEquals(expectedCount, total)
+    }
+
+    @Then("the channels list should be empty")
+    fun thenChannelsListShouldBeEmpty() {
+        val body = publishingResponseBodyText()
+        assertTrue(body.contains("\"channels\":[]") || body.contains("\"channels\": []"), body)
+    }
+
+    @Then("the providers list should contain {string}")
+    fun thenProvidersListShouldContain(provider: String) {
+        val body = publishingResponseBodyText()
+        assertTrue(body.contains(""""name":"$provider""""), body)
+    }
+
+    private fun extractPublicationIdFromResponse(): String =
+        latestPublicationId ?: error("No publication ID available from previous response")
+
+    private fun publishingResponseBodyText(): String =
+        String(latestPublishingResponse?.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
+
+    private inline fun <reified T> parsePublishingResponseField(field: String): T {
+        val body = publishingResponseBodyText()
+        return try {
+            val map: Map<String, Any?> = objectMapper.readValue(body)
+
+            @Suppress("UNCHECKED_CAST")
+            val value = map[field] as T?
+                ?: error("Field '$field' is null in response: $body")
+            value
+        } catch (e: Exception) {
+            error("Failed to parse field '$field' from response: $body. Error: ${e.message}")
+        }
+    }
+}

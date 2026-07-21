@@ -539,6 +539,13 @@ class BddDatabaseSupport(
         ).fetch().rowsUpdated().awaitSingle()
     }
 
+    /**
+     * Seeds a [social_connections] row for the default workspace.
+     *
+     * @param connectionId  Unique connection identifier (used as the row's primary key).
+     * @param provider      Social provider name (e.g. "LINKEDIN").
+     * @param status        Connection status (e.g. "ACTIVE", "EXPIRED").
+     */
     suspend fun seedSocialConnection(connectionId: String, provider: String, status: String) {
         databaseClient.sql(
             """
@@ -558,6 +565,16 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
+    /**
+     * Seeds a [social_accounts] row linked to an existing social connection.
+     *
+     * @param accountId         Unique account identifier.
+     * @param connectionId      Foreign key to [seedSocialConnection].
+     * @param provider          Social provider name (e.g. "LINKEDIN").
+     * @param providerAccountId Account ID on the provider side.
+     * @param accountKind       Type of account (e.g. "PERSONAL_PROFILE", "COMPANY_PAGE").
+     * @param displayName       Human-readable display name.
+     */
     suspend fun seedSocialAccount(
         accountId: String,
         connectionId: String,
@@ -587,6 +604,14 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
+    /**
+     * Seeds a [publications] row in **DRAFT** status with **NOW** schedule mode.
+     *
+     * @param publicationId  Unique publication identifier.
+     * @param socialAccountId Foreign key to a seeded social account.
+     * @param title          Optional publication title.
+     * @param bodyText       Optional publication body text.
+     */
     suspend fun seedDraftPublication(
         publicationId: String,
         socialAccountId: String,
@@ -618,6 +643,15 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
+    /**
+     * Seeds a [publications] row in **SCHEDULED** status with **SCHEDULED_AT** schedule mode.
+     *
+     * @param publicationId   Unique publication identifier.
+     * @param socialAccountId Foreign key to a seeded social account.
+     * @param scheduledFor    The future timestamp at which the publication should go live.
+     * @param title           Optional publication title.
+     * @param bodyText        Optional publication body text.
+     */
     suspend fun seedScheduledPublication(
         publicationId: String,
         socialAccountId: String,
@@ -651,6 +685,14 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
+    /**
+     * Seeds a [publications] row in **QUEUED** status with **NOW** schedule mode.
+     *
+     * @param publicationId   Unique publication identifier.
+     * @param socialAccountId Foreign key to a seeded social account.
+     * @param title           Optional publication title.
+     * @param bodyText        Optional publication body text.
+     */
     suspend fun seedQueuedPublication(
         publicationId: String,
         socialAccountId: String,
