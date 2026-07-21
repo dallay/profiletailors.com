@@ -106,6 +106,7 @@ data class DataSubjectRequest(
          * @return A new [DataSubjectRequest] with [DataSubjectRequestStatus.PENDING] and
          *         [expiresAt] set to [createdAt] + 30 days
          */
+        @Suppress("S107")
         fun create(
             id: DataSubjectRequestId,
             requestType: RequestType,

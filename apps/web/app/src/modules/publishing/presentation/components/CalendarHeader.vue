@@ -87,14 +87,14 @@ const statusIcon = computed(() => {
         v-if="surface !== 'list'"
         class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold"
       >
-        <button
+        <button type="button"
           class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
           :class="calendarView === 'month' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
           @click="emit('change:view', 'calendar-month')"
         >
           {{ $t('scheduler.calendar') || 'Month' }}
         </button>
-        <button
+        <button type="button"
           class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
           :class="calendarView === 'week' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
           @click="emit('change:view', 'calendar-week')"
@@ -104,14 +104,14 @@ const statusIcon = computed(() => {
       </div>
 
       <div class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold">
-        <button
+        <button type="button"
           class="cursor-pointer rounded-full px-3 py-1 transition-all"
           :class="surface !== 'list' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
           @click="emit('change:view', calendarSurface)"
         >
           {{ $t('scheduler.calendar') || 'Calendar' }}
         </button>
-        <button
+        <button type="button"
           class="cursor-pointer rounded-full px-3 py-1 transition-all"
           :class="surface === 'list' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
           @click="emit('change:view', 'list')"
@@ -200,13 +200,13 @@ const statusIcon = computed(() => {
 
   <div class="flex items-center justify-between bg-bg-surface border border-border-subtle p-3 rounded-xl">
     <div class="flex items-center gap-1">
-      <button
+      <button type="button"
         @click="emit('change:date', 'backward')"
         class="size-8 flex items-center justify-center rounded-lg border border-border-visible hover:border-text-secondary hover:text-text-display bg-bg-primary transition-colors cursor-pointer text-text-secondary"
       >
         <ChevronLeft class="size-4" />
       </button>
-      <button
+      <button type="button"
         @click="emit('change:date', 'forward')"
         class="size-8 flex items-center justify-center rounded-lg border border-border-visible hover:border-text-secondary hover:text-text-display bg-bg-primary transition-colors cursor-pointer text-text-secondary"
       >
@@ -219,7 +219,7 @@ const statusIcon = computed(() => {
     </span>
 
     <div class="flex items-center gap-2">
-      <button
+      <button type="button"
         @click="emit('change:date', 'today')"
         class="border border-border-visible hover:border-text-secondary bg-bg-primary text-text-secondary hover:text-text-display font-mono text-[9px] uppercase tracking-wider font-bold rounded-lg px-3 py-1.5 transition-colors cursor-pointer"
       >
