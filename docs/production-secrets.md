@@ -230,7 +230,7 @@ container storage.
 
 ### Optional / Environment-specific
 
-#### `SMP_POSTGRES_TEST_PASSWORD`
+#### `SMP_DB_TEST_PASSWORD`
 
 - **Type:** String
 - **Description:** Password for Testcontainers-backed integration tests (CI only).
