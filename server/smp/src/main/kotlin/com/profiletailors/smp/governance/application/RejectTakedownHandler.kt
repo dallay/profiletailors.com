@@ -68,13 +68,17 @@ internal class RejectTakedownHandler(
         )
 
         // Publish domain event for email notification to reporter
+        val reviewedById = requireNotNull(saved.reviewedById) {
+            "Takedown report ${saved.reportId} is missing a reviewer after rejection"
+        }
+
         eventPublisher.publish(
             TakedownRejected(
                 reportId = saved.reportId,
                 workspaceId = saved.workspaceId,
                 assetId = saved.assetId,
                 reporterEmail = saved.reporterEmail,
-                reviewedById = saved.reviewedById!!,
+                reviewedById = reviewedById,
                 rejectionReason = saved.rejectionReason,
                 occurredAt = LocalDateTime.ofInstant(saved.updatedAt, ZoneOffset.UTC),
             ),

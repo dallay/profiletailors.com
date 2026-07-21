@@ -66,7 +66,7 @@ class UnsplashMediaProviderHandlersTest {
     }
 
     @Test
-    fun `import persists a ready attributed asset after storage and download tracking`() = runTest {
+    fun `should persist a ready attributed asset when storage and download tracking succeed`() = runTest {
         val fixture = fixture(flowOf(byteArrayOf(1, 2), byteArrayOf(3, 4)))
 
         val result = fixture.handler.handle(ImportUnsplashPhotoCommand("workspace-1", "photo-1"))

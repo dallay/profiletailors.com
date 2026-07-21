@@ -24,7 +24,6 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 internal class TakedownEmailConsumersTest {
 
@@ -437,9 +436,4 @@ internal class TakedownEmailConsumersTest {
             rejectionReason = rejectionReason,
             occurredAt = LocalDateTime.ofInstant(fixedNow, ZoneOffset.UTC),
         )
-
-    @Suppress("unused")
-    private fun unusedAssertions() {
-        assertTrue(true)
-    }
 }

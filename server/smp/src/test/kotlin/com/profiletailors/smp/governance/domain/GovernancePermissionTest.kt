@@ -1,24 +1,20 @@
 package com.profiletailors.smp.governance.domain
 
 import com.profiletailors.smp.authorization.domain.PermissionKey
-import org.junit.jupiter.api.Assertions.assertEquals
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 
 class GovernancePermissionTest {
 
     @Test
     fun `MEDIA_READ has correct permission key`() {
-        assertEquals(
-            PermissionKey.of("workspace", "governance", "media-read"),
-            GovernancePermission.MEDIA_READ.permissionKey,
-        )
+        GovernancePermission.MEDIA_READ.permissionKey shouldBe
+            PermissionKey.of("workspace", "governance", "media-read")
     }
 
     @Test
     fun `MEDIA_TAKEDOWN has correct permission key`() {
-        assertEquals(
-            PermissionKey.of("workspace", "governance", "media-takedown"),
-            GovernancePermission.MEDIA_TAKEDOWN.permissionKey,
-        )
+        GovernancePermission.MEDIA_TAKEDOWN.permissionKey shouldBe
+            PermissionKey.of("workspace", "governance", "media-takedown")
     }
 }

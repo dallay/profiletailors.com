@@ -91,9 +91,9 @@ data class TakedownReportedEmail(
         |  <body style="margin:0;padding:0;background:#0a0a0a;color:#e5e5e5;font-family:'Space Grotesk',Arial,sans-serif;">
         |    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#0a0a0a;border-collapse:collapse;">
         |      <tr><td align="center" style="padding:32px 16px;">
-        |        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#1a1a1a;border:1px solid #333333;border-collapse:collapse;">
-        |          <td style="padding:32px;">
-        |            <p style="margin:0 0 16px;color:#a3a3a3;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.08em;">PROFILE TAILORS / GOVERNANCE</p>
+|        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#1a1a1a;border:1px solid #333333;border-collapse:collapse;">
+|          <tr><td style="padding:32px;">
+|            <p style="margin:0 0 16px;color:#a3a3a3;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.08em;">PROFILE TAILORS / GOVERNANCE</p>
         |            <h1 style="margin:0 0 24px;color:#ffffff;font-size:24px;font-weight:500;line-height:1.2;">${escapeHtml(
         "New takedown report requires review",
     )}</h1>
@@ -124,7 +124,7 @@ data class TakedownReportedEmail(
         |            <p style="margin:0;color:#a3a3a3;font-size:14px;line-height:1.5;">${escapeHtml(
         "Please review the report and approve or reject it at your earliest convenience.",
     )}</p>
-        |          </td>
+        |          </td></tr>
         |        </table>
         |      </td></tr>
         |    </table>

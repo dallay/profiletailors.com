@@ -125,7 +125,7 @@ class MediaImportService(
             authorName = photo.authorName,
             authorUrl = photo.authorUrl,
             metadata = mapOf("downloadLocation" to photo.downloadLocation),
-            licence = "unsplash",
+            licence = UNSPLASH_PROVIDER,
         ),
     )
 

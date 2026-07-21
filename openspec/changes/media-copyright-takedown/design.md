@@ -353,7 +353,7 @@ Follows the `R2dbcConsentRepository.kt` pattern:
 
 **Takedown Report → Review → Approve → Suspend → Notify**
 
-```
+```text
 Reporter                    TakedownReportController          SubmitHandler       TakedownReportRepo  MediaAssetRepo    EmailSender    AuditEventWriter
    │                              │                              │                      │                  │                  │               │
    │── POST /takedown-reports ───►│                              │                      │                  │                  │               │
@@ -375,7 +375,7 @@ Reporter                    TakedownReportController          SubmitHandler     
 
 **Counter-Notice → Review → Restore → Notify**
 
-```
+```text
    Reporter                    TakedownReportController     SubmitCounterHandler    MediaTakedownRepo   MediaAssetRepo   EmailSender    AuditWriter
       │                              │                              │                     │                  │               │              │
       │── POST .../counter-notice ──►│                              │                     │                  │               │              │
@@ -397,7 +397,7 @@ Reporter                    TakedownReportController          SubmitHandler     
 
 ### Data Flow — Media Query Filtering
 
-```
+```text
 MediaAssetController.listAssets()
   └── ListWorkspaceAssetsQuery(statuses = defaultReadyStatuses)
        └── MediaAssetRepository.listByWorkspace(statuses)

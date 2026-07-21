@@ -1,6 +1,6 @@
 package com.profiletailors.smp.governance.domain
 
-import org.junit.jupiter.api.Assertions.assertEquals
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 
 class TakedownReportStatusTest {
@@ -9,6 +9,6 @@ class TakedownReportStatusTest {
     fun `has all expected status values`() {
         val statuses = TakedownReportStatus.entries.map { it.name }.toSet()
 
-        assertEquals(setOf("REPORTED", "APPROVED", "DISMISSED", "SUSPENDED"), statuses)
+        statuses shouldBe setOf("REPORTED", "APPROVED", "DISMISSED", "SUSPENDED")
     }
 }

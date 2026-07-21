@@ -5,11 +5,11 @@ import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -86,9 +86,9 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
 
         val active = mediaRepository.findActiveByWorkspaceAndHash(workspaceId, HASH_A)
 
-        assertNotNull(active)
-        assertEquals("asset-a", active!!.assetId, "oldest active asset by created_at wins")
-        assertEquals(MediaAssetStatus.READY, active.status)
+        active.shouldNotBeNull()
+        active.assetId shouldBe "asset-a"
+        active.status shouldBe MediaAssetStatus.READY
     }
 
     @Test
@@ -103,7 +103,7 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
 
         val active = mediaRepository.findActiveByWorkspaceAndHash(workspaceId, HASH_A)
 
-        assertNull(active, "DELETED/FAILED must not block re-upload of the same hash")
+        active.shouldBeNull()
     }
 
     @Test
@@ -137,9 +137,9 @@ class R2dbcMediaAssetRepositoryTest : PostgresDatabaseTestBase() {
 
         val read = mediaRepository.findByWorkspaceAndId(workspaceId, "asset-licence")
 
-        assertNotNull(read)
-        assertEquals("unsplash", created.licence)
-        assertEquals("unsplash", read!!.licence)
+        read.shouldNotBeNull()
+        created.licence shouldBe "unsplash"
+        read.licence shouldBe "unsplash"
     }
 
     private suspend fun insertAsset(workspaceId: String, assetId: String, fileHash: String, status: String) {

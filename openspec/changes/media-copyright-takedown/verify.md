@@ -39,7 +39,7 @@ Phase 1 implementation is **functionally complete**. All 9 code tasks (1.1–1.9
 
 ### Test Command: `just backend-test-fast`
 
-```
+```text
 BUILD SUCCESSFUL in 3s
 29 actionable tasks: 29 up-to-date
 ```

@@ -1,8 +1,7 @@
 package com.profiletailors.smp.governance.domain
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import java.time.Instant
 
@@ -12,10 +11,10 @@ class TakedownReportTest {
     fun `creates report in REPORTED status`() {
         val report = createReport()
 
-        assertEquals(TakedownReportStatus.REPORTED, report.status)
-        assertNull(report.reviewedById)
-        assertNull(report.reviewedAt)
-        assertNull(report.rejectionReason)
+        report.status shouldBe TakedownReportStatus.REPORTED
+        report.reviewedById shouldBe null
+        report.reviewedAt shouldBe null
+        report.rejectionReason shouldBe null
     }
 
     @Test
@@ -23,9 +22,9 @@ class TakedownReportTest {
         val report = createReport()
         val approved = report.approve("reviewer-1", Instant.parse("2026-07-21T10:00:00Z"))
 
-        assertEquals(TakedownReportStatus.APPROVED, approved.status)
-        assertEquals("reviewer-1", approved.reviewedById)
-        assertEquals(Instant.parse("2026-07-21T10:00:00Z"), approved.reviewedAt)
+        approved.status shouldBe TakedownReportStatus.APPROVED
+        approved.reviewedById shouldBe "reviewer-1"
+        approved.reviewedAt shouldBe Instant.parse("2026-07-21T10:00:00Z")
     }
 
     @Test
@@ -33,37 +32,39 @@ class TakedownReportTest {
         val report = createReport()
         val dismissed = report.dismiss("reviewer-1", "Insufficient evidence", Instant.parse("2026-07-21T10:00:00Z"))
 
-        assertEquals(TakedownReportStatus.DISMISSED, dismissed.status)
-        assertEquals("reviewer-1", dismissed.reviewedById)
-        assertEquals("Insufficient evidence", dismissed.rejectionReason)
+        dismissed.status shouldBe TakedownReportStatus.DISMISSED
+        dismissed.reviewedById shouldBe "reviewer-1"
+        dismissed.rejectionReason shouldBe "Insufficient evidence"
     }
 
     @Test
     fun `approve on already approved report throws`() {
         val report = createReport().approve("reviewer-1")
 
-        val error = assertThrows(IllegalStateException::class.java) {
-            report.approve("reviewer-2")
-        }
-
         val expectedApproved =
             "Cannot approve report ${report.reportId} in status ${TakedownReportStatus.APPROVED}" +
                 " — only REPORTED or SUSPENDED reports can be approved"
-        assertEquals(expectedApproved, error.message)
+
+        val error = shouldThrow<IllegalStateException> {
+            report.approve("reviewer-2")
+        }
+
+        error.message shouldBe expectedApproved
     }
 
     @Test
     fun `dismiss on already dismissed report throws`() {
         val report = createReport().dismiss("reviewer-1")
 
-        val error = assertThrows(IllegalStateException::class.java) {
-            report.dismiss("reviewer-2")
-        }
-
         val expectedDismissed =
             "Cannot dismiss report ${report.reportId} in status ${TakedownReportStatus.DISMISSED}" +
                 " — only REPORTED or SUSPENDED reports can be dismissed"
-        assertEquals(expectedDismissed, error.message)
+
+        val error = shouldThrow<IllegalStateException> {
+            report.dismiss("reviewer-2")
+        }
+
+        error.message shouldBe expectedDismissed
     }
 
     @Test
@@ -71,7 +72,7 @@ class TakedownReportTest {
         val report = createReport().copy(status = TakedownReportStatus.SUSPENDED)
         val approved = report.approve("reviewer-1")
 
-        assertEquals(TakedownReportStatus.APPROVED, approved.status)
+        approved.status shouldBe TakedownReportStatus.APPROVED
     }
 
     @Test
@@ -79,34 +80,34 @@ class TakedownReportTest {
         val report = createReport().copy(status = TakedownReportStatus.SUSPENDED)
         val dismissed = report.dismiss("reviewer-1", "No infringement found")
 
-        assertEquals(TakedownReportStatus.DISMISSED, dismissed.status)
+        dismissed.status shouldBe TakedownReportStatus.DISMISSED
     }
 
     @Test
     fun `rejects blank reportId`() {
-        val error = assertThrows(IllegalArgumentException::class.java) {
+        val error = shouldThrow<IllegalArgumentException> {
             createReport().copy(reportId = "  ")
         }
 
-        assertEquals("Takedown report ID must not be blank", error.message)
+        error.message shouldBe "Takedown report ID must not be blank"
     }
 
     @Test
     fun `rejects blank workspaceId`() {
-        val error = assertThrows(IllegalArgumentException::class.java) {
+        val error = shouldThrow<IllegalArgumentException> {
             createReport().copy(workspaceId = "")
         }
 
-        assertEquals("Workspace ID must not be blank", error.message)
+        error.message shouldBe "Workspace ID must not be blank"
     }
 
     @Test
     fun `rejects blank reporterEmail`() {
-        val error = assertThrows(IllegalArgumentException::class.java) {
+        val error = shouldThrow<IllegalArgumentException> {
             createReport().copy(reporterEmail = "")
         }
 
-        assertEquals("Reporter email must not be blank", error.message)
+        error.message shouldBe "Reporter email must not be blank"
     }
 
     private fun createReport() = TakedownReport(

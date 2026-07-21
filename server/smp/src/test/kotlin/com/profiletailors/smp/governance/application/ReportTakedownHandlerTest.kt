@@ -59,6 +59,7 @@ internal class ReportTakedownHandlerTest {
                 principalType = PrincipalType.USER,
                 subject = "reporter@example.com",
             )
+        coEvery { repository.findExisting("ws-001", "asset-001", "user-001") } returns null
         coEvery { repository.save(any()) } answers { firstArg() }
         coEvery { auditHook.onMutation(any()) } returns Unit
         coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit

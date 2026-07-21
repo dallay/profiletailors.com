@@ -1,7 +1,7 @@
 package com.profiletailors.smp.infrastructure.db
 
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.string.shouldContain
 import org.junit.jupiter.api.Test
 
 class LiquibaseBaselineChangelogTest {
@@ -11,8 +11,8 @@ class LiquibaseBaselineChangelogTest {
         val master = resourceText("db/changelog/db.changelog-master.yaml")
 
         expectedResources().forEach { resource ->
-            assertTrue(master.contains(resource), "Master changelog should include $resource")
-            assertNotNull(javaClass.classLoader.getResource(resource), "Resource $resource must exist")
+            master shouldContain resource
+            javaClass.classLoader.getResource(resource).shouldNotBeNull()
         }
     }
 
@@ -22,19 +22,19 @@ class LiquibaseBaselineChangelogTest {
         val development = resourceText("application-dev.yaml")
         val developmentSeed = resourceText("db/changelog/dev/001-seed-test-data.yaml")
 
-        assertTrue(application.contains("contexts: \${SMP_LIQUIBASE_CONTEXTS:prod}"))
-        assertTrue(development.contains("contexts: \${SMP_LIQUIBASE_CONTEXTS:dev}"))
-        assertTrue(developmentSeed.contains("context: \"@dev\""))
+        application shouldContain "contexts: \${SMP_LIQUIBASE_CONTEXTS:prod}"
+        development shouldContain "contexts: \${SMP_LIQUIBASE_CONTEXTS:dev}"
+        developmentSeed shouldContain "context: \"@dev\""
     }
 
     @Test
     fun `licence column changelog adds nullable column`() {
         val changelog = "db/changelog/media/007-add-licence-column.yaml"
 
-        assertNotNull(javaClass.classLoader.getResource(changelog), "Resource $changelog must exist")
+        javaClass.classLoader.getResource(changelog).shouldNotBeNull()
         val changeset = resourceText(changelog)
-        assertTrue(changeset.contains("licence"))
-        assertTrue(changeset.contains("VARCHAR(64)"))
+        changeset shouldContain "licence"
+        changeset shouldContain "VARCHAR(64)"
     }
 
     @Test
@@ -66,7 +66,7 @@ class LiquibaseBaselineChangelogTest {
     }
 
     private fun assertHasTable(path: String, tableName: String) {
-        assertTrue(resourceText(path).contains("tableName: $tableName"))
+        resourceText(path) shouldContain "tableName: $tableName"
     }
 
     private fun resourceText(path: String): String =

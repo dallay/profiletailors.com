@@ -43,6 +43,11 @@ internal class ReportTakedownHandler(
         }
         val actor = principalContextProvider.require()
 
+        val existing = repository.findExisting(workspaceId, command.assetId, actor.principalId)
+        if (existing != null) {
+            return existing
+        }
+
         val report = TakedownReport(
             reportId = UUID.randomUUID().toString(),
             workspaceId = workspaceId,
@@ -73,7 +78,6 @@ internal class ReportTakedownHandler(
             ),
         )
 
-        // Publish domain event for email notification
         eventPublisher.publish(
             TakedownReported(
                 reportId = saved.reportId,

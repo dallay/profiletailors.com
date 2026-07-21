@@ -3,6 +3,8 @@ package com.profiletailors.smp.media.domain
 import java.time.Instant
 import java.util.UUID
 
+private const val MAX_LICENCE_LENGTH = 64
+
 /**
  * Source type for media assets.
  */
@@ -177,6 +179,9 @@ data class MediaAsset(
         require(assetId.isNotBlank()) { "Asset ID must not be blank" }
         require(workspaceId.isNotBlank()) { "Workspace ID must not be blank" }
         require(mediaType.isNotBlank()) { "Media type must not be blank" }
+        require(licence == null || licence.length <= MAX_LICENCE_LENGTH) {
+            "Licence must not exceed 64 characters"
+        }
 
         when (sourceType) {
             MediaSourceType.UPLOADED -> {

@@ -70,6 +70,21 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
         .one()
         .awaitSingleOrNull()
 
+    override suspend fun findExisting(workspaceId: String, assetId: String, reportedById: String): TakedownReport? =
+        databaseClient.sql(
+            """
+            $SELECT_COLUMNS
+            FROM takedown_reports
+            WHERE workspace_id = :workspaceId AND asset_id = :assetId AND reported_by_id = :reportedById
+            """.trimIndent(),
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("assetId", assetId)
+            .bind("reportedById", reportedById)
+            .map { row, _ -> rowToTakedownReport(row) }
+            .one()
+            .awaitSingleOrNull()
+
     override fun findByWorkspace(workspaceId: String, status: TakedownReportStatus?): Flow<TakedownReport> {
         val query = if (status != null) {
             databaseClient.sql(
@@ -126,8 +141,11 @@ internal class R2dbcTakedownReportRepository(private val databaseClient: Databas
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: Instant?,
-    ): DatabaseClient.GenericExecuteSpec =
-        if (value != null) spec.bind(name, value) else spec.bindNull(name, Instant::class.java)
+    ): DatabaseClient.GenericExecuteSpec = if (value != null) {
+        spec.bind(name, OffsetDateTime.ofInstant(value, ZoneOffset.UTC))
+    } else {
+        spec.bindNull(name, OffsetDateTime::class.java)
+    }
 
     companion object {
         private val SELECT_COLUMNS = """

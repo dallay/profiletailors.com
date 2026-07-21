@@ -1,5 +1,6 @@
 package com.profiletailors.smp.governance.infrastructure.http
 
+import com.profiletailors.smp.governance.application.ReportTakedownCommand
 import com.profiletailors.smp.governance.domain.TakedownReport
 import jakarta.validation.constraints.NotBlank
 
@@ -47,7 +48,7 @@ data class ReportTakedownRequest(
     @field:NotBlank val reporterEmail: String,
     val mediaReferenceUrl: String? = null,
 ) {
-    fun toCommand() = com.profiletailors.smp.governance.application.ReportTakedownCommand(
+    fun toCommand() = ReportTakedownCommand(
         assetId = assetId,
         reason = reason,
         reporterEmail = reporterEmail,

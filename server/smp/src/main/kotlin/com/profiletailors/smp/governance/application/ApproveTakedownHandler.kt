@@ -77,13 +77,17 @@ internal class ApproveTakedownHandler(
         )
 
         // Publish domain event for email notification to reporter
+        val reviewedById = requireNotNull(saved.reviewedById) {
+            "Takedown report ${saved.reportId} is missing a reviewer after approval"
+        }
+
         eventPublisher.publish(
             TakedownApproved(
                 reportId = saved.reportId,
                 workspaceId = saved.workspaceId,
                 assetId = saved.assetId,
                 reporterEmail = saved.reporterEmail,
-                reviewedById = saved.reviewedById!!,
+                reviewedById = reviewedById,
                 occurredAt = LocalDateTime.ofInstant(saved.updatedAt, ZoneOffset.UTC),
             ),
         )
