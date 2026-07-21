@@ -42,6 +42,8 @@ class BddDatabaseSupport(
         const val LOCAL_AUTH_RESEND_PATH = "/api/auth/resend-verification"
         const val CURRENT_USER_PROFILE_PATH = "/api/auth/me"
         const val MEDIA_ASSETS_PATH = "/api/media/assets"
+        const val MEDIA_ASSET_ID = "asset-bdd-1"
+        const val MEDIA_ASSET_FILE_HASH = "b591d9820ae723ef0604a2014276dea6a9a26566b5f857a146a51fae9b22da41"
         const val PUBLISHING_PUBLICATIONS_PATH = "/api/publishing/publications"
         const val PUBLISHING_CHANNELS_PATH = "/api/publishing/channels"
         const val PUBLISHING_CHANNEL_PROVIDERS_PATH = "/api/publishing/channels/providers"
@@ -475,12 +477,105 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
+    suspend fun seedMediaAsset(
+        assetId: String = MEDIA_ASSET_ID,
+        workspaceId: String = WORKSPACE_ID,
+        fileHash: String = MEDIA_ASSET_FILE_HASH,
+        sourceType: String = "UPLOADED",
+        mediaType: String = "image/png",
+        status: String = "READY",
+        fileSizeBytes: Long? = 12_345,
+        originalFilename: String? = "bdd-asset.png",
+    ) {
+        // Ensure a matching blob exists for FK constraint
+        seedFileBlob(workspaceId = workspaceId, fileHash = fileHash)
+
+        val storageKey = "uploads/$workspaceId/$fileHash"
+        databaseClient.sql(
+            """
+            INSERT INTO media_assets (asset_id, workspace_id, source_type, media_type, storage_key,
+                                      file_hash, original_filename, file_size_bytes, status, created_at)
+            VALUES (:assetId, :workspaceId, :sourceType, :mediaType, :storageKey,
+                    :fileHash, :originalFilename, :fileSizeBytes, :status, NOW())
+            """.trimIndent(),
+        )
+            .bind("assetId", assetId)
+            .bind("workspaceId", workspaceId)
+            .bind("sourceType", sourceType)
+            .bind("mediaType", mediaType)
+            .bind("storageKey", storageKey)
+            .bind("fileHash", fileHash)
+            .let { spec ->
+                if (originalFilename != null) {
+                    spec.bind("originalFilename", originalFilename)
+                } else {
+                    spec.bindNull("originalFilename", String::class.java)
+                }
+            }
+            .let { spec ->
+                if (fileSizeBytes != null) {
+                    spec.bind("fileSizeBytes", fileSizeBytes)
+                } else {
+                    spec.bindNull("fileSizeBytes", Long::class.java)
+                }
+            }
+            .bind("status", status)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    private suspend fun seedFileBlob(
+        workspaceId: String = WORKSPACE_ID,
+        fileHash: String = MEDIA_ASSET_FILE_HASH,
+        storageKey: String? = null,
+        status: String = "READY",
+    ) {
+        val existing: String? = databaseClient.sql(
+            "SELECT workspace_id FROM workspace_file_blobs WHERE workspace_id = :workspaceId AND file_hash = :fileHash",
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("fileHash", fileHash)
+            .map { row, _ -> row.get("workspace_id", String::class.java) as String }
+            .one()
+            .awaitSingleOrNull()
+        if (existing != null) return
+
+        val key = storageKey ?: "uploads/$workspaceId/$fileHash"
+        databaseClient.sql(
+            """
+            INSERT INTO workspace_file_blobs (workspace_id, file_hash, storage_key, file_size_bytes,
+                                              detected_media_type, status, created_at, updated_at)
+            VALUES (:workspaceId, :fileHash, :storageKey, 12345, 'image/png', :status, NOW(), NOW())
+            """.trimIndent(),
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("fileHash", fileHash)
+            .bind("storageKey", key)
+            .bind("status", status)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
     suspend fun countMediaAssets(workspaceId: String = WORKSPACE_ID): Long =
         databaseClient.sql("SELECT COUNT(*) AS total FROM media_assets WHERE workspace_id = :workspaceId")
             .bind("workspaceId", workspaceId)
             .map { row, _ -> (row.get("total") as Number).toLong() }
             .one()
             .awaitSingle()
+
+    suspend fun findMediaAssetStatus(assetId: String, workspaceId: String = WORKSPACE_ID): String? = databaseClient.sql(
+        """
+            SELECT status FROM media_assets
+            WHERE asset_id = :assetId AND workspace_id = :workspaceId
+        """.trimIndent(),
+    )
+        .bind("assetId", assetId)
+        .bind("workspaceId", workspaceId)
+        .map { row, _ -> row.get("status") as String }
+        .one()
+        .awaitSingleOrNull()
 
     suspend fun firstWorkspaceIdForPrincipal(principalId: String): String? = databaseClient.sql(
         """

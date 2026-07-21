@@ -222,6 +222,7 @@ vi.mock('@layouts/sidebar/SidebarChannelsSection.vue', () => ({
 vi.mock('@lucide/vue', () => ({
   Images: { template: '<svg />' },
   LayoutGrid: { template: '<svg />' },
+  Shield: { template: '<svg />' },
 }))
 
 import AppShell from './AppShell.vue'
