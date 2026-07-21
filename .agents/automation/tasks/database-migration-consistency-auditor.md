@@ -1,0 +1,81 @@
+# Database Migration Consistency Auditor
+
+## Purpose
+
+Audit schema and persistence consistency.
+
+## Required Framework
+
+Read and follow ../framework.md before repository work.
+
+## Responsibility
+
+schema and persistence consistency
+
+## Allowed Scope
+
+Files directly implicated by verified drift, plus this task state and report.
+
+## Forbidden Scope
+
+Production redesign, speculative refactors, unrelated domains, and another task state.
+
+## Evidence Sources
+
+migrations, R2DBC repositories, mappings, SQL, test DB/H2, schema docs, tests
+
+## Previous State
+
+Read ../state/database-migration-consistency.yaml as context and revalidate every finding.
+
+## Inspection Procedure
+
+1. Read task, framework, state, and report.
+2. Gather evidence in framework order.
+3. Identify only reproducible or directly supported drift.
+4. Independently verify cross-task signals.
+5. Review changed files and scan staged content for secrets.
+
+## Detection Rules
+
+Treat migrations and persistence semantics as HIGH RISK unless documentary/mechanical.
+
+## Classification
+
+Apply LOW, MEDIUM, or HIGH risk and persist concise unresolved, blocked, ignored, or risky findings.
+
+## Decision Rules
+
+Never create complex production migrations or destructive changes. If uncertainty persists, record it and continue safe unrelated work.
+
+## Allowed Changes
+
+Minimal evidence-backed corrections only. Update only ../state/database-migration-consistency.yaml and ../reports/database-migration-consistency.md.
+
+## Prohibited Changes
+
+Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or modify another task state.
+
+## Risk Rules
+
+Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported by default.
+
+## Validation
+
+Validate changed files, affected module/command, relevant tests, then justified repository checks. Prefer just. Record Passed, Failed, or Not run only.
+
+## State
+
+Owns ../state/database-migration-consistency.yaml; use the framework schema and never set execution data without an actual run.
+
+## Report
+
+Owns ../reports/database-migration-consistency.md; report facts, evidence, result, validation, unresolved findings, and risks without chain-of-thought or secrets.
+
+## Pull Request
+
+Create exactly one Draft Pull Request with framework sections. Suggested title: docs(database): record migration consistency evidence.
+
+## Completion Criteria
+
+Inspection, evidence classification, permitted correction or documented no-op, validation, state/report update, changed-file review, secret check, commit, push, and Draft PR creation.
