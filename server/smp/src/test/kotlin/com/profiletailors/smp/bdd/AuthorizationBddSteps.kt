@@ -718,6 +718,11 @@ class AuthorizationBddSteps {
         assertEquals(status, requireNotNull(latestMembershipStatusResponse).status.name)
     }
 
+    @Given("an authorized workspace member exists")
+    fun givenAuthorizedWorkspaceMemberExists() = runBlocking {
+        bddDatabaseSupport.seedEntitledAuthorizedMember()
+    }
+
     private fun submitLogin(email: String, password: String) {
         latestStatusCode = null
         latestResult = webTestClient.post()

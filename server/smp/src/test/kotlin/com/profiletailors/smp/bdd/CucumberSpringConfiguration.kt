@@ -1,5 +1,6 @@
 package com.profiletailors.smp.bdd.fast
 
+import com.profiletailors.smp.bdd.glue.BddTestProperties
 import com.profiletailors.smp.bdd.glue.CommonBddTestConfiguration
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import io.cucumber.spring.CucumberContextConfiguration
@@ -32,6 +33,9 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "management.endpoint.health.group.liveness.include=",
         "platform.workspace-context.header-name=X-Workspace-Id",
         "spring.main.allow-bean-definition-overriding=true",
+        BddTestProperties.LINKEDIN_CLIENT_ID,
+        BddTestProperties.LINKEDIN_CLIENT_SECRET,
+        BddTestProperties.LINKEDIN_REDIRECT_URI,
     ],
 )
 @Import(CommonBddTestConfiguration::class, FastBddTestConfiguration::class)

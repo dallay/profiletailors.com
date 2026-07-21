@@ -42,6 +42,9 @@ class BddDatabaseSupport(
         const val LOCAL_AUTH_RESEND_PATH = "/api/auth/resend-verification"
         const val CURRENT_USER_PROFILE_PATH = "/api/auth/me"
         const val MEDIA_ASSETS_PATH = "/api/media/assets"
+        const val PUBLISHING_PUBLICATIONS_PATH = "/api/publishing/publications"
+        const val PUBLISHING_CHANNELS_PATH = "/api/publishing/channels"
+        const val PUBLISHING_CHANNEL_PROVIDERS_PATH = "/api/publishing/channels/providers"
         const val GOVERNANCE_AUDIT_EVENTS_PATH = "/api/governance/audit-events"
         const val TENANCY_OWNERSHIP_TRANSFER_PATH = "/api/tenancy/workspace-ownership/owners/transfer"
         const val TENANCY_MEMBERSHIP_STATUS_PATH_TEMPLATE = "/api/tenancy/workspace-memberships/%s/status"
@@ -288,6 +291,12 @@ class BddDatabaseSupport(
 
     fun mediaAssetsPath(): String = MEDIA_ASSETS_PATH
 
+    fun publishingPublicationsPath(): String = PUBLISHING_PUBLICATIONS_PATH
+
+    fun publishingChannelsPath(): String = PUBLISHING_CHANNELS_PATH
+
+    fun publishingChannelProvidersPath(): String = PUBLISHING_CHANNEL_PROVIDERS_PATH
+
     fun governanceAuditEventsPath(): String = GOVERNANCE_AUDIT_EVENTS_PATH
 
     fun tenancyOwnershipTransferPath(): String = TENANCY_OWNERSHIP_TRANSFER_PATH
@@ -530,6 +539,203 @@ class BddDatabaseSupport(
         ).fetch().rowsUpdated().awaitSingle()
     }
 
+    /**
+     * Seeds a [social_connections] row for the default workspace.
+     *
+     * @param connectionId  Unique connection identifier (used as the row's primary key).
+     * @param provider      Social provider name (e.g. "LINKEDIN").
+     * @param status        Connection status (e.g. "ACTIVE", "EXPIRED").
+     */
+    suspend fun seedSocialConnection(connectionId: String, provider: String, status: String) {
+        databaseClient.sql(
+            """
+            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status,
+                                            credential_reference, connected_at, last_synced_at, created_at)
+            VALUES (:id, :workspaceId, :provider, :providerConnectionRef, :status,
+                    NULL, NOW(), NOW(), NOW())
+            """.trimIndent(),
+        )
+            .bind("id", connectionId)
+            .bind("workspaceId", WORKSPACE_ID)
+            .bind("provider", provider)
+            .bind("providerConnectionRef", "ref-$connectionId")
+            .bind("status", status)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
+     * Seeds a [social_accounts] row linked to an existing social connection.
+     *
+     * @param accountId         Unique account identifier.
+     * @param connectionId      Foreign key to [seedSocialConnection].
+     * @param provider          Social provider name (e.g. "LINKEDIN").
+     * @param providerAccountId Account ID on the provider side.
+     * @param accountKind       Type of account (e.g. "PERSONAL_PROFILE", "COMPANY_PAGE").
+     * @param displayName       Human-readable display name.
+     */
+    suspend fun seedSocialAccount(
+        accountId: String,
+        connectionId: String,
+        provider: String,
+        providerAccountId: String,
+        accountKind: String,
+        displayName: String,
+    ) {
+        databaseClient.sql(
+            """
+            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id,
+                                         account_type, display_name, profile_urn, status, created_at)
+            VALUES (:id, :connectionId, :workspaceId, :provider, :providerAccountId,
+                    :accountKind, :displayName, :profileUrn, 'ACTIVE', NOW())
+            """.trimIndent(),
+        )
+            .bind("id", accountId)
+            .bind("connectionId", connectionId)
+            .bind("workspaceId", WORKSPACE_ID)
+            .bind("provider", provider)
+            .bind("providerAccountId", providerAccountId)
+            .bind("accountKind", accountKind)
+            .bind("displayName", displayName)
+            .bind("profileUrn", providerSocialProfileUrn(provider, providerAccountId))
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
+     * Seeds a [publications] row in **DRAFT** status with **NOW** schedule mode.
+     *
+     * @param publicationId  Unique publication identifier.
+     * @param socialAccountId Foreign key to a seeded social account.
+     * @param title          Optional publication title.
+     * @param bodyText       Optional publication body text.
+     */
+    suspend fun seedDraftPublication(
+        publicationId: String,
+        socialAccountId: String,
+        title: String?,
+        bodyText: String?,
+    ) {
+        databaseClient.sql(
+            """
+            INSERT INTO publications (id, workspace_id, author_principal_id, provider, social_account_id,
+                                      status, schedule_mode, priority, title, body_text,
+                                      scheduled_for, created_at, updated_at)
+            VALUES (:id, :workspaceId, :authorPrincipalId, 'LINKEDIN', :socialAccountId,
+                    'DRAFT', 'NOW', FALSE, :title, :bodyText,
+                    NOW(), NOW(), NOW())
+            """.trimIndent(),
+        )
+            .bind("id", publicationId)
+            .bind("workspaceId", WORKSPACE_ID)
+            .bind("authorPrincipalId", PRINCIPAL_ID)
+            .bind("socialAccountId", socialAccountId)
+            .let { spec ->
+                if (title != null) spec.bind("title", title) else spec.bindNull("title", String::class.java)
+            }
+            .let { spec ->
+                if (bodyText != null) spec.bind("bodyText", bodyText) else spec.bindNull("bodyText", String::class.java)
+            }
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
+     * Seeds a [publications] row in **SCHEDULED** status with **SCHEDULED_AT** schedule mode.
+     *
+     * @param publicationId   Unique publication identifier.
+     * @param socialAccountId Foreign key to a seeded social account.
+     * @param scheduledFor    The future timestamp at which the publication should go live.
+     * @param title           Optional publication title.
+     * @param bodyText        Optional publication body text.
+     */
+    suspend fun seedScheduledPublication(
+        publicationId: String,
+        socialAccountId: String,
+        scheduledFor: Instant,
+        title: String?,
+        bodyText: String?,
+    ) {
+        databaseClient.sql(
+            """
+            INSERT INTO publications (id, workspace_id, author_principal_id, provider, social_account_id,
+                                      status, schedule_mode, priority, title, body_text, scheduled_for,
+                                      created_at, updated_at)
+            VALUES (:id, :workspaceId, :authorPrincipalId, 'LINKEDIN', :socialAccountId,
+                    'SCHEDULED', 'SCHEDULED_AT', FALSE, :title, :bodyText, :scheduledFor,
+                    NOW(), NOW())
+            """.trimIndent(),
+        )
+            .bind("id", publicationId)
+            .bind("workspaceId", WORKSPACE_ID)
+            .bind("authorPrincipalId", PRINCIPAL_ID)
+            .bind("socialAccountId", socialAccountId)
+            .bind("scheduledFor", scheduledFor)
+            .let { spec ->
+                if (title != null) spec.bind("title", title) else spec.bindNull("title", String::class.java)
+            }
+            .let { spec ->
+                if (bodyText != null) spec.bind("bodyText", bodyText) else spec.bindNull("bodyText", String::class.java)
+            }
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
+     * Seeds a [publications] row in **QUEUED** status with **NOW** schedule mode.
+     *
+     * @param publicationId   Unique publication identifier.
+     * @param socialAccountId Foreign key to a seeded social account.
+     * @param title           Optional publication title.
+     * @param bodyText        Optional publication body text.
+     */
+    suspend fun seedQueuedPublication(
+        publicationId: String,
+        socialAccountId: String,
+        title: String?,
+        bodyText: String?,
+    ) {
+        databaseClient.sql(
+            """
+            INSERT INTO publications (id, workspace_id, author_principal_id, provider, social_account_id,
+                                      status, schedule_mode, priority, title, body_text,
+                                      created_at, updated_at)
+            VALUES (:id, :workspaceId, :authorPrincipalId, 'LINKEDIN', :socialAccountId,
+                    'QUEUED', 'NOW', FALSE, :title, :bodyText,
+                    NOW(), NOW())
+            """.trimIndent(),
+        )
+            .bind("id", publicationId)
+            .bind("workspaceId", WORKSPACE_ID)
+            .bind("authorPrincipalId", PRINCIPAL_ID)
+            .bind("socialAccountId", socialAccountId)
+            .let { spec ->
+                if (title != null) spec.bind("title", title) else spec.bindNull("title", String::class.java)
+            }
+            .let { spec ->
+                if (bodyText != null) spec.bind("bodyText", bodyText) else spec.bindNull("bodyText", String::class.java)
+            }
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
+     * Returns the social-profile URN for a given [provider] and [providerAccountId].
+     *
+     * Known providers:
+     * - **LINKEDIN**: `urn:li:profile:{providerAccountId}`
+     * - **Other**: `urn:{provider}:profile:{providerAccountId}`
+     */
+    private fun providerSocialProfileUrn(provider: String, providerAccountId: String): String = when (provider) {
+        "LINKEDIN" -> "urn:li:profile:$providerAccountId"
+        else -> "urn:${provider.lowercase()}:profile:$providerAccountId"
+    }
+
     private suspend fun seedServiceAccountCredential(status: String) {
         databaseClient.sql(
             """
@@ -601,6 +807,13 @@ class BddDatabaseSupport(
         "DELETE FROM local_password_credentials",
         "DELETE FROM api_key_credentials",
         "DELETE FROM service_account_credentials",
+        "DELETE FROM publication_asset_links",
+        "DELETE FROM delivery_attempts",
+        "DELETE FROM publication_jobs",
+        "DELETE FROM publication_assets",
+        "DELETE FROM publications",
+        "DELETE FROM social_accounts",
+        "DELETE FROM social_connections",
         "DELETE FROM media_assets",
         "DELETE FROM workspace_file_blobs",
         "DELETE FROM workspace_upload_slots",
@@ -655,8 +868,8 @@ class BddDatabaseSupport(
         }
         databaseClient.sql(
             """
-            INSERT INTO user_identities (principal_id, email, username)
-            VALUES ('$PRINCIPAL_ID', 'jwt-user@example.com', 'jwt-user')
+            INSERT INTO user_identities (principal_id, email, username, email_status)
+            VALUES ('$PRINCIPAL_ID', 'jwt-user@example.com', 'jwt-user', 'VERIFIED')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
