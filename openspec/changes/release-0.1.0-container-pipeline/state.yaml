@@ -1,5 +1,0 @@
-change: release-0.1.0-container-pipeline
-current_phase: apply
-completed: [init, explore, propose, spec, design, tasks]
-next: apply
-updated: 2026-07-21T16:45:00Z
