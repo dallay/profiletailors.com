@@ -1,0 +1,7 @@
+services:
+  dashboard:
+    build:
+      context: ../../../..
+      dockerfile: infra/apps/smp/production/dashboard.Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
