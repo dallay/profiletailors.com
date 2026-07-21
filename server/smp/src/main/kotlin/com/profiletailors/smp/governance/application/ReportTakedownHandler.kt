@@ -30,6 +30,7 @@ internal class ReportTakedownHandler(
     private val repository: TakedownReportRepository,
     private val resourceContextProvider: ResourceContextProvider,
     private val principalContextProvider: PrincipalContextProvider,
+    private val principalIdentityPort: PrincipalIdentityPort,
     private val authorizationService: GovernanceAuthorizationService,
     private val auditHook: AuditHook,
     private val eventPublisher: EventPublisher<DomainEvent>,
@@ -48,6 +49,11 @@ internal class ReportTakedownHandler(
             return existing
         }
 
+        // Derive reporter email from identity service; fallback to subject or placeholder
+        val reporterEmail = principalIdentityPort.findEmailByPrincipalId(actor.principalId)
+            ?: actor.subject.takeIf { it.contains('@') }
+            ?: "${actor.principalId}@placeholder"
+
         val report = TakedownReport(
             reportId = UUID.randomUUID().toString(),
             workspaceId = workspaceId,
@@ -55,7 +61,7 @@ internal class ReportTakedownHandler(
             reportedById = actor.principalId,
             reason = command.reason,
             status = TakedownReportStatus.REPORTED,
-            reporterEmail = command.reporterEmail,
+            reporterEmail = reporterEmail,
             mediaReferenceUrl = command.mediaReferenceUrl,
             createdAt = Instant.now(),
             updatedAt = Instant.now(),

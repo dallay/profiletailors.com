@@ -5,10 +5,9 @@ import com.profiletailors.smp.governance.domain.TakedownReport
 
 /**
  * Command to report a media asset for copyright/takedown.
+ *
+ * The [reporterEmail] is NOT passed here — [ReportTakedownHandler] derives it
+ * from the authenticated principal's verified email address.
  */
-data class ReportTakedownCommand(
-    val assetId: String,
-    val reason: String,
-    val reporterEmail: String,
-    val mediaReferenceUrl: String? = null,
-) : CommandWithResult<TakedownReport>
+data class ReportTakedownCommand(val assetId: String, val reason: String, val mediaReferenceUrl: String? = null) :
+    CommandWithResult<TakedownReport>

@@ -3,6 +3,7 @@ export default {
   scheduler: 'Programador',
   analytics: 'Analítica',
   media: 'Librería de Medios',
+  governance: 'Gobernanza',
   settings: 'Ajustes',
   system: 'Sistema',
   logout: 'Cerrar Sesión',

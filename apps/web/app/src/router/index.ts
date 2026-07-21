@@ -83,6 +83,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/governance/takedown',
+      name: 'governance-takedown',
+      component: () => import('@modules/governance/views/GovernanceTakedownView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@modules/settings/presentation/SettingsView.vue'),

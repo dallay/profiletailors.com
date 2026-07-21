@@ -134,10 +134,10 @@ internal class RejectTakedownHandlerTest {
         coEvery { auditHook.onMutation(any()) } returns Unit
         coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
-        val result = handler.handle(RejectTakedownCommand("report-001"))
+        val result = handler.handle(RejectTakedownCommand("report-001", "Not enough evidence"))
 
         result.status shouldBe TakedownReportStatus.DISMISSED
-        result.rejectionReason shouldBe null
+        result.rejectionReason shouldBe "Not enough evidence"
     }
 
     @Test
@@ -148,7 +148,7 @@ internal class RejectTakedownHandlerTest {
         )
 
         shouldThrow<AuthorizationDeniedException> {
-            handler.handle(RejectTakedownCommand("report-001"))
+            handler.handle(RejectTakedownCommand("report-001", "Some reason"))
         }
     }
 }

@@ -81,6 +81,7 @@ vi.mock('@lucide/vue', () => {
     PanelLeft: stub,
     Plus: stub,
     Settings: stub,
+    Shield: stub,
     Users: stub,
   }
 })

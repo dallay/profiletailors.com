@@ -62,7 +62,7 @@ internal class RejectTakedownHandler(
                 details = mapOf(
                     "assetId" to report.assetId,
                     "previousStatus" to report.status.name,
-                    "rejectionReason" to (command.reason ?: ""),
+                    "rejectionReason" to command.reason,
                 ),
             ),
         )

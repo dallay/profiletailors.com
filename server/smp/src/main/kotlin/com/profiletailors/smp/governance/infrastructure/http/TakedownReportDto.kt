@@ -41,17 +41,18 @@ internal fun TakedownReport.toResponse() = TakedownReportResponse(
 
 /**
  * Request DTO for creating a new takedown report.
+ *
+ * The reporter email is NOT in the DTO — the backend derives it from the
+ * authenticated principal's verified email address.
  */
 data class ReportTakedownRequest(
     @field:NotBlank val assetId: String,
     @field:NotBlank val reason: String,
-    @field:NotBlank val reporterEmail: String,
     val mediaReferenceUrl: String? = null,
 ) {
     fun toCommand() = ReportTakedownCommand(
         assetId = assetId,
         reason = reason,
-        reporterEmail = reporterEmail,
         mediaReferenceUrl = mediaReferenceUrl,
     )
 }
@@ -59,4 +60,4 @@ data class ReportTakedownRequest(
 /**
  * Request DTO for reviewing a takedown report (approve/reject).
  */
-data class ReviewTakedownRequest(val rejectionReason: String? = null)
+data class ReviewTakedownRequest(@field:NotBlank val rejectionReason: String)

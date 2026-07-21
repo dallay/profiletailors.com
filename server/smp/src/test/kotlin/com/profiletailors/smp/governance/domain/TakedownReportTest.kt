@@ -54,14 +54,14 @@ class TakedownReportTest {
 
     @Test
     fun `dismiss on already dismissed report throws`() {
-        val report = createReport().dismiss("reviewer-1")
+        val report = createReport().dismiss("reviewer-1", "First dismissal")
 
         val expectedDismissed =
             "Cannot dismiss report ${report.reportId} in status ${TakedownReportStatus.DISMISSED}" +
                 " — only REPORTED or SUSPENDED reports can be dismissed"
 
         val error = shouldThrow<IllegalStateException> {
-            report.dismiss("reviewer-2")
+            report.dismiss("reviewer-2", "Second attempt")
         }
 
         error.message shouldBe expectedDismissed

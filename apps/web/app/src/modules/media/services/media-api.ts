@@ -5,7 +5,13 @@
 /**
  * CAS media asset status values.
  */
-export type MediaStatus = 'PENDING_UPLOAD' | 'UPLOADING' | 'READY' | 'FAILED' | 'DELETED'
+export type MediaStatus =
+  | 'PENDING_UPLOAD'
+  | 'UPLOADING'
+  | 'READY'
+  | 'FAILED'
+  | 'SUSPENDED'
+  | 'DELETED'
 export type MediaSourceType = 'UPLOADED' | 'EXTERNAL'
 export type MediaType =
   | 'image/jpeg'
