@@ -9,8 +9,8 @@
 
 ## Phase 2: Release-Please Integration
 
-- [ ] 2.1 Update `.github/workflows/release-please.yml` to call `.github/workflows/release-image.yml` using the `smp--tag_name` output after an `smp` release.
-- [ ] 2.2 Ensure `release-please.yml` passes the correct tag input to `release-image.yml` and does not duplicate echo placeholders.
+- [x] 2.1 Update `.github/workflows/release-please.yml` to call `.github/workflows/release-image.yml` using the `smp--tag_name` output after an `smp` release.
+- [x] 2.2 Ensure `release-please.yml` passes the correct tag input to `release-image.yml` and does not duplicate echo placeholders.
 
 ## Phase 3: Documentation
 
@@ -47,3 +47,6 @@
 
 1. `b9af52b7` — feat(infra): add release-image workflow and default compose to GHCR
 2. `63610f99` — fix(infra): separate build override and add registration env var
+3. `784b1d0c` — feat(infra): wire release-please to invoke image build workflow
+
+## Next: Phase 3 (Documentation)
