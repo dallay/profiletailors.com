@@ -1,0 +1,5 @@
+schemaVersion: 1
+task: justfile-verification
+lastExecution: null
+findings: []
+checks: []

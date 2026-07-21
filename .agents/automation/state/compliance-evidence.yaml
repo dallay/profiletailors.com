@@ -1,0 +1,5 @@
+schemaVersion: 1
+task: compliance-evidence-synchronizer
+lastExecution: null
+findings: []
+checks: []
