@@ -64,6 +64,13 @@ enum class MediaAssetStatus {
      * be scheduled for GC depending on whether other active assets reference it.
      */
     DELETED,
+
+    /**
+     * Asset has been temporarily removed from public view pending review of
+     * a copyright or DMCA takedown report. The binary is retained so content
+     * can be reinstated if the report is dismissed.
+     */
+    SUSPENDED,
 }
 
 /**

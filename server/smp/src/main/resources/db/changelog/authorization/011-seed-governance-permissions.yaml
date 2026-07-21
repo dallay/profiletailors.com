@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: authorization-011-seed-governance-permissions
+      author: sdd-apply
+      changes:
+        - sql:
+            sql: >-
+              INSERT INTO permissions (id, permission_key, created_at)
+              VALUES ('perm-governance-media-read', 'workspace:governance:media-read', CURRENT_TIMESTAMP)
+              ON CONFLICT (permission_key) DO NOTHING
+        - sql:
+            sql: >-
+              INSERT INTO permissions (id, permission_key, created_at)
+              VALUES ('perm-governance-media-takedown', 'workspace:governance:media-takedown', CURRENT_TIMESTAMP)
+              ON CONFLICT (permission_key) DO NOTHING
+        - sql:
+            sql: >-
+              INSERT INTO role_permissions (role_id, permission_id, created_at)
+              SELECT role.id, permission.id, CURRENT_TIMESTAMP
+              FROM roles role CROSS JOIN permissions permission
+              WHERE role.role_key = 'WORKSPACE_OWNER'
+                AND permission.permission_key = 'workspace:governance:media-read'
+              ON CONFLICT (role_id, permission_id) DO NOTHING
+        - sql:
+            sql: >-
+              INSERT INTO role_permissions (role_id, permission_id, created_at)
+              SELECT role.id, permission.id, CURRENT_TIMESTAMP
+              FROM roles role CROSS JOIN permissions permission
+              WHERE role.role_key = 'WORKSPACE_OWNER'
+                AND permission.permission_key = 'workspace:governance:media-takedown'
+              ON CONFLICT (role_id, permission_id) DO NOTHING

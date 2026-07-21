@@ -42,6 +42,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/authorization/010-seed-consent-permission.yaml
   - include:
+      file: db/changelog/authorization/011-seed-governance-permissions.yaml
+  - include:
       file: db/changelog/governance/001-create-audit-events.yaml
   - include:
       file: db/changelog/governance/002-create-compliance-controls.yaml
@@ -51,6 +53,8 @@ databaseChangeLog:
       file: db/changelog/governance/004-create-consent-records.yaml
   - include:
       file: db/changelog/governance/005-create-consent-record-events.yaml
+  - include:
+      file: db/changelog/governance/006-create-takedown-reports.yaml
   - include:
       file: db/changelog/publishing/001-create-social-connections.yaml
   - include:

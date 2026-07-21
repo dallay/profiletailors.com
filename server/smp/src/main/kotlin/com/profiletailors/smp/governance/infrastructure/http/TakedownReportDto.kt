@@ -1,0 +1,61 @@
+package com.profiletailors.smp.governance.infrastructure.http
+
+import com.profiletailors.smp.governance.domain.TakedownReport
+import jakarta.validation.constraints.NotBlank
+
+/**
+ * HTTP response DTO for a [TakedownReport].
+ */
+data class TakedownReportResponse(
+    val reportId: String,
+    val workspaceId: String,
+    val assetId: String,
+    val reportedById: String,
+    val reason: String,
+    val status: String,
+    val rejectionReason: String?,
+    val reviewedById: String?,
+    val reviewedAt: String?,
+    val reporterEmail: String,
+    val mediaReferenceUrl: String?,
+    val createdAt: String,
+    val updatedAt: String,
+)
+
+internal fun TakedownReport.toResponse() = TakedownReportResponse(
+    reportId = reportId,
+    workspaceId = workspaceId,
+    assetId = assetId,
+    reportedById = reportedById,
+    reason = reason,
+    status = status.name,
+    rejectionReason = rejectionReason,
+    reviewedById = reviewedById,
+    reviewedAt = reviewedAt?.toString(),
+    reporterEmail = reporterEmail,
+    mediaReferenceUrl = mediaReferenceUrl,
+    createdAt = createdAt.toString(),
+    updatedAt = updatedAt.toString(),
+)
+
+/**
+ * Request DTO for creating a new takedown report.
+ */
+data class ReportTakedownRequest(
+    @field:NotBlank val assetId: String,
+    @field:NotBlank val reason: String,
+    @field:NotBlank val reporterEmail: String,
+    val mediaReferenceUrl: String? = null,
+) {
+    fun toCommand() = com.profiletailors.smp.governance.application.ReportTakedownCommand(
+        assetId = assetId,
+        reason = reason,
+        reporterEmail = reporterEmail,
+        mediaReferenceUrl = mediaReferenceUrl,
+    )
+}
+
+/**
+ * Request DTO for reviewing a takedown report (approve/reject).
+ */
+data class ReviewTakedownRequest(val rejectionReason: String? = null)

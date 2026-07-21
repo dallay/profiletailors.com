@@ -1,5 +1,5 @@
 change: media-copyright-takedown
-current_phase: verify
+current_phase: apply (Phase 2)
 completed:
   - init
   - explore
@@ -8,6 +8,6 @@ completed:
   - design
   - tasks
   - apply (Phase 1)
-  - verify
-next: archive (or Phase 2 apply)
-updated: "2026-07-20T22:15:00Z"
+  - verify (Phase 1)
+next: apply (Phase 2)
+updated: "2026-07-20T22:20:00Z"
