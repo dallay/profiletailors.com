@@ -1,5 +1,6 @@
 package com.profiletailors.smp.bdd.postgres
 
+import com.profiletailors.smp.bdd.glue.BddTestProperties
 import com.profiletailors.smp.bdd.glue.CommonBddTestConfiguration
 import io.cucumber.spring.CucumberContextConfiguration
 import org.springframework.boot.test.context.SpringBootTest
@@ -18,12 +19,16 @@ import org.testcontainers.junit.jupiter.Testcontainers
     properties = [
         "spring.liquibase.enabled=true",
         "bdd.variant=postgres",
+        "app.identity.registration.enabled=true",
         "management.health.defaults.enabled=false",
         "management.endpoint.health.probes.enabled=false",
         "management.endpoint.health.group.readiness.include=",
         "management.endpoint.health.group.liveness.include=",
         "platform.workspace-context.header-name=X-Workspace-Id",
         "spring.main.allow-bean-definition-overriding=true",
+        BddTestProperties.LINKEDIN_CLIENT_ID,
+        BddTestProperties.LINKEDIN_CLIENT_SECRET,
+        BddTestProperties.LINKEDIN_REDIRECT_URI,
     ],
 )
 @Import(CommonBddTestConfiguration::class, PostgresBddTestConfiguration::class)

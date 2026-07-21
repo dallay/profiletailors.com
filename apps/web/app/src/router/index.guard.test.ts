@@ -18,6 +18,17 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   login: vi.fn(),
   register: vi.fn(),
   logoutSession: vi.fn(),
+  fetchPublicCapabilities: vi.fn(),
+}))
+
+const mockPublicCapabilitiesLoad = vi.fn()
+
+vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
+  usePublicCapabilitiesStore: () => ({
+    load: mockPublicCapabilitiesLoad,
+    registrationEnabled: false,
+    capabilityChecked: true,
+  }),
 }))
 
 const fakeTokens: AuthTokens = {
@@ -71,5 +82,35 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
 
     expect(router.currentRoute.value.path).toBe('/login')
     expect(router.currentRoute.value.query.redirect).toBe('/media')
+  })
+
+  it('redirects from /register to /login when registration is disabled', async () => {
+    mockRefreshSession.mockResolvedValue(null)
+    mockPublicCapabilitiesLoad.mockResolvedValue(undefined)
+    const { default: router } = await import('./index')
+
+    await router.push('/register')
+    await router.isReady()
+
+    expect(router.currentRoute.value.path).toBe('/login')
+  })
+
+  it('allows navigation to /register when registration is enabled', async () => {
+    mockRefreshSession.mockResolvedValue(null)
+    mockPublicCapabilitiesLoad.mockResolvedValue(undefined)
+    vi.doMock('@modules/auth/infrastructure/public-capabilities.store', () => ({
+      usePublicCapabilitiesStore: () => ({
+        load: mockPublicCapabilitiesLoad,
+        registrationEnabled: true,
+        capabilityChecked: true,
+      }),
+    }))
+    vi.resetModules()
+    const { default: router } = await import('./index')
+
+    await router.push('/register')
+    await router.isReady()
+
+    expect(router.currentRoute.value.path).toBe('/register')
   })
 })

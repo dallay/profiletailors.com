@@ -88,7 +88,7 @@ const priorityDot = (priority: AiInsight['priority']) => {
                 {{ t('dashboard.insights.highPriority') }}
               </Badge>
             </div>
-            <button
+            <button type="button"
               class="text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-display)] font-[var(--font-space-mono)] uppercase tracking-wider transition-colors shrink-0"
               @click="emit('dismiss', heroInsight.id)"
             >
@@ -135,7 +135,7 @@ const priorityDot = (priority: AiInsight['priority']) => {
                   {{ typeLabel(insight.type) }}
                 </Badge>
               </div>
-              <button
+              <button type="button"
                 class="text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-display)] font-[var(--font-space-mono)] uppercase tracking-wider transition-colors shrink-0"
                 @click="emit('dismiss', insight.id)"
               >

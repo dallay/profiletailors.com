@@ -13,6 +13,7 @@ import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { useSettingsStore } from '@modules/settings/infrastructure/settings.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
+import PrivacySection from '@modules/settings/presentation/PrivacySection.vue'
 
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -412,6 +413,8 @@ function segmentedControlClass(active: boolean) {
         </CardContent>
       </Card>
     </div>
+
+    <PrivacySection />
 
     <WorkspaceIconModal
       v-model:open="iconModalOpen"

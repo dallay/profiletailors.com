@@ -40,6 +40,10 @@ databaseChangeLog:
   - include:
       file: db/changelog/authorization/009-backfill-owner-roles.yaml
   - include:
+      file: db/changelog/authorization/010-seed-consent-permission.yaml
+  - include:
+      file: db/changelog/authorization/011-seed-governance-permissions.yaml
+  - include:
       file: db/changelog/governance/001-create-audit-events.yaml
   - include:
       file: db/changelog/governance/002-create-compliance-controls.yaml
@@ -47,6 +51,10 @@ databaseChangeLog:
       file: db/changelog/governance/003-seed-compliance-controls.yaml
   - include:
       file: db/changelog/governance/004-create-consent-records.yaml
+  - include:
+      file: db/changelog/governance/005-create-consent-record-events.yaml
+  - include:
+      file: db/changelog/governance/006-create-takedown-reports.yaml
   - include:
       file: db/changelog/publishing/001-create-social-connections.yaml
   - include:
@@ -86,9 +94,13 @@ databaseChangeLog:
   - include:
       file: db/changelog/media/005-add-external-metadata.yaml
   - include:
+      file: db/changelog/media/007-add-licence-column.yaml
+  - include:
       file: db/changelog/lead-capture/001-create-waitlists.yaml
   - include:
       file: db/changelog/lead-capture/002-seed-profile-tailors-launch.yaml
+  - include:
+      file: db/changelog/privacy/001-create-data-subject-requests.yaml
   # ── Dev seed data (context: dev only) ──────────────────────────
   - include:
       file: db/changelog/dev/001-seed-test-data.yaml

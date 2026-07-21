@@ -201,6 +201,11 @@ class MediaAssetPreviewControllerTest {
                 fileSizeBytes: Long?,
             ): MediaAsset? = null
             override suspend fun markAsFailed(assetId: String, workspaceId: String, reason: String?): MediaAsset? = null
+            override suspend fun updateStatus(
+                assetId: String,
+                workspaceId: String,
+                status: MediaAssetStatus,
+            ): MediaAsset? = null
             override suspend fun softDelete(assetId: String, workspaceId: String): MediaAsset? = null
             override suspend fun findStaleProcessingAssets(
                 thresholdHours: Long,

@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Source: [ADR-0011](../../docs/architecture/adr/0011-reusable-lead-capture-waitlist.md)
+Source: [ADR-0011](../../../../docs/architecture/adr/0011-reusable-lead-capture-waitlist.md)
 
 ### Module Layout
 

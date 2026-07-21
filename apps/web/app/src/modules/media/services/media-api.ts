@@ -37,6 +37,7 @@ export type MediaAssetSummary = {
   authorName?: string | null
   authorUrl?: string | null
   metadata?: Record<string, unknown> | null
+  licence?: string | null
 }
 
 /** Paginated list response from GET /api/media/assets */

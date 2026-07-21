@@ -13,6 +13,8 @@ class InvalidRegistrationInputException(message: String) : RuntimeException(mess
 
 class RegistrationValidationException(message: String) : RuntimeException(message)
 
+class RegistrationDisabledException : RuntimeException("Registration is not available.")
+
 class UnverifiedEmailException(val email: String) : RuntimeException("Email verification required for '$email'.")
 
 open class InvalidVerificationTokenException(message: String = "Invalid verification token.") :

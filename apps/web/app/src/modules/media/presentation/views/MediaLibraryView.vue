@@ -5,6 +5,7 @@ import { useMediaStore } from '@modules/media/infrastructure/media.store'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import type { MediaStatus } from '@modules/media/services/media-api'
+import MediaAttribution from '@modules/media/presentation/components/MediaAttribution.vue'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -556,6 +557,12 @@ onMounted(async () => {
                   {{ formatFileSize(asset.fileSizeBytes) ?? '—' }}
                 </p>
               </div>
+              <MediaAttribution
+                :author-name="asset.authorName"
+                :author-url="asset.authorUrl"
+                :source-provider="asset.sourceProvider"
+                :licence="asset.licence"
+              />
             </article>
           </div>
 
