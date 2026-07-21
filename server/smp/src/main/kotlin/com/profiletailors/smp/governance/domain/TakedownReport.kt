@@ -40,6 +40,7 @@ data class TakedownReport(
         if (status == TakedownReportStatus.DISMISSED) {
             require(reviewedById != null) { "Reviewed by is required for DISMISSED reports" }
             require(reviewedAt != null) { "Reviewed at is required for DISMISSED reports" }
+            require(!rejectionReason.isNullOrBlank()) { "Rejection reason is required for DISMISSED reports" }
         }
 
         if (status == TakedownReportStatus.APPROVED) {
@@ -71,14 +72,15 @@ data class TakedownReport(
      * Returns a copy with status set to [TakedownReportStatus.DISMISSED].
      *
      * @param reviewerId The principal ID of the reviewer.
-     * @param reason Optional reason for dismissal.
+     * @param reason Mandatory reason for dismissal.
      * @param at The timestamp of the dismissal.
      * @throws IllegalStateException if the report is not in REPORTED or SUSPENDED status.
      */
-    fun dismiss(reviewerId: String, reason: String? = null, at: Instant = Instant.now()): TakedownReport {
+    fun dismiss(reviewerId: String, reason: String, at: Instant = Instant.now()): TakedownReport {
         check(status == TakedownReportStatus.REPORTED || status == TakedownReportStatus.SUSPENDED) {
             "Cannot dismiss report $reportId in status $status — only REPORTED or SUSPENDED reports can be dismissed"
         }
+        require(reason.isNotBlank()) { "Rejection reason must not be blank" }
         return copy(
             status = TakedownReportStatus.DISMISSED,
             reviewedById = reviewerId,
