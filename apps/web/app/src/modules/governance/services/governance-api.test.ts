@@ -74,7 +74,8 @@ describe('governance-api', () => {
         mediaReferenceUrl: 'https://example.com/original',
       })
 
-      const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+      expect(mockApiFetch).toHaveBeenCalledTimes(1)
+      const body = JSON.parse(mockApiFetch.mock.calls[0]![1]!.body as string)
       expect(body).toMatchObject({
         assetId: 'ast-1',
         reason: 'Copyright infringement',
@@ -92,7 +93,8 @@ describe('governance-api', () => {
         mediaReferenceUrl: '',
       })
 
-      const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+      expect(mockApiFetch).toHaveBeenCalledTimes(1)
+      const body = JSON.parse(mockApiFetch.mock.calls[0]![1]!.body as string)
       // The API layer does not trim — that's the component's job
       expect(body).toHaveProperty('mediaReferenceUrl', '')
     })
@@ -162,7 +164,8 @@ describe('governance-api', () => {
         '/api/governance/takedown/reports/rpt-1/reject',
         expect.objectContaining({ method: 'POST', workspaceScoped: true }),
       )
-      const body = JSON.parse(mockApiFetch.mock.calls[0][1].body)
+      expect(mockApiFetch).toHaveBeenCalledTimes(1)
+      const body = JSON.parse(mockApiFetch.mock.calls[0]![1]!.body as string)
       expect(body).toEqual({ rejectionReason: 'Not valid' })
       expect(result).toEqual(dismissed)
     })

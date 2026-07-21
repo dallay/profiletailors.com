@@ -166,7 +166,7 @@ describe('TakedownReportDialog.vue', () => {
     // URL input is the second input (after email)
     const inputs = wrapper.findAll('input.ui-input')
     if (inputs.length > 1) {
-      await inputs[1].setValue('https://example.com/original')
+      await inputs[1]!.setValue('https://example.com/original')
     }
 
     await wrapper.find('form').trigger('submit')
