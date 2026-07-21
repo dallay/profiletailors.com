@@ -34,6 +34,9 @@ Feature: Publications management
     Given a draft publication exists
     When the client deletes the publication
     Then the publishing response status should be 200
+    When the client lists publications
+    Then the publishing response status should be 200
+    And the response should contain 0 publications
 
   Scenario: Quick-create a scheduled publication
     When the client quick-creates a publication for "2026-08-01T12:00:00Z" with title "Quick Post" and body "Quick body"

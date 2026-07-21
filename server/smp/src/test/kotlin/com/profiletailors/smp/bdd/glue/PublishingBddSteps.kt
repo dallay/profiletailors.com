@@ -307,14 +307,18 @@ class PublishingBddSteps {
 
     @Then("the channels list should be empty")
     fun thenChannelsListShouldBeEmpty() {
-        val body = publishingResponseBodyText()
-        assertTrue(body.contains("\"channels\":[]") || body.contains("\"channels\": []"), body)
+        val channels: List<*> = parsePublishingResponseField("channels")
+        assertTrue(channels.isEmpty()) {
+            "Expected empty channels list but got: $channels (body: ${publishingResponseBodyText()})"
+        }
     }
 
     @Then("the providers list should contain {string}")
     fun thenProvidersListShouldContain(provider: String) {
-        val body = publishingResponseBodyText()
-        assertTrue(body.contains(""""name":"$provider""""), body)
+        val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
+        assertTrue(providers.any { it["name"] == provider }) {
+            "Expected '$provider' in providers list but got: $providers (body: ${publishingResponseBodyText()})"
+        }
     }
 
     private fun extractPublicationIdFromResponse(): String =
@@ -327,11 +331,19 @@ class PublishingBddSteps {
         val body = publishingResponseBodyText()
         return try {
             val map: Map<String, Any?> = objectMapper.readValue(body)
-
-            @Suppress("UNCHECKED_CAST")
-            val value = map[field] as T?
-                ?: error("Field '$field' is null in response: $body")
-            value
+            val raw = map[field]
+            when {
+                raw == null && null is T ->
+                    @Suppress("UNCHECKED_CAST")
+                    null
+                        as T
+                raw == null -> error("Field '$field' is null in response: $body")
+                raw is T -> raw
+                else -> error(
+                    "Field '$field' has type ${raw::class.simpleName} " +
+                        "but expected ${T::class.simpleName} in response: $body",
+                )
+            }
         } catch (e: Exception) {
             error("Failed to parse field '$field' from response: $body. Error: ${e.message}")
         }

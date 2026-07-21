@@ -598,7 +598,7 @@ class BddDatabaseSupport(
             .bind("providerAccountId", providerAccountId)
             .bind("accountKind", accountKind)
             .bind("displayName", displayName)
-            .bind("profileUrn", "urn:li:profile:$providerAccountId")
+            .bind("profileUrn", providerSocialProfileUrn(provider, providerAccountId))
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -722,6 +722,18 @@ class BddDatabaseSupport(
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+    }
+
+    /**
+     * Returns the social-profile URN for a given [provider] and [providerAccountId].
+     *
+     * Known providers:
+     * - **LINKEDIN**: `urn:li:profile:{providerAccountId}`
+     * - **Other**: `urn:{provider}:profile:{providerAccountId}`
+     */
+    private fun providerSocialProfileUrn(provider: String, providerAccountId: String): String = when (provider) {
+        "LINKEDIN" -> "urn:li:profile:$providerAccountId"
+        else -> "urn:${provider.lowercase()}:profile:$providerAccountId"
     }
 
     private suspend fun seedServiceAccountCredential(status: String) {
