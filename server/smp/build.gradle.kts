@@ -46,6 +46,13 @@ tasks.bootRun {
     }
 }
 
+tasks.withType<Test>().configureEach {
+    // Increase heap for integration tests that load full Spring contexts with Testcontainers.
+    // Default 512m is insufficient for tests like PublishingWorkerTransactionPostgresIntegrationTest.
+    maxHeapSize = "2g"
+    jvmArgs("-XX:MaxMetaspaceSize=512m")
+}
+
 dependencies {
     implementation(project(":shared:common"))
     implementation(project(":shared:bus"))

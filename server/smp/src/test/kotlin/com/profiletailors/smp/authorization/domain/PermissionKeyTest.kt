@@ -21,4 +21,18 @@ class PermissionKeyTest {
 
         assertEquals("Permission keys must use the format <domain>:<resource>:<action>.", error.message)
     }
+
+    @Test
+    fun `creates permission key with dash in action segment`() {
+        val permissionKey = PermissionKey.of("workspace", "governance", "media-read")
+
+        assertEquals("workspace:governance:media-read", permissionKey.value)
+    }
+
+    @Test
+    fun `creates permission key with dash in resource segment`() {
+        val permissionKey = PermissionKey.of("workspace", "governance", "media-takedown")
+
+        assertEquals("workspace:governance:media-takedown", permissionKey.value)
+    }
 }

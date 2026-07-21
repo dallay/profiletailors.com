@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: governance-006-create-takedown-reports
+      author: sdd-apply
+      changes:
+        - createTable:
+            tableName: takedown_reports
+            columns:
+              - column: { name: report_id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: workspace_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: asset_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: reported_by_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: reason, type: text, constraints: { nullable: false } }
+              - column: { name: status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: rejection_reason, type: text }
+              - column: { name: reviewed_by_id, type: varchar(64) }
+              - column: { name: reviewed_at, type: timestamp with time zone }
+              - column: { name: reporter_email, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: media_reference_url, type: text }
+              - column: { name: created_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - createIndex:
+            tableName: takedown_reports
+            indexName: idx_takedown_reports_workspace
+            columns:
+              - column: { name: workspace_id }
+              - column: { name: status }
+        - createIndex:
+            tableName: takedown_reports
+            indexName: idx_takedown_reports_asset
+            columns:
+              - column: { name: workspace_id }
+              - column: { name: asset_id }
