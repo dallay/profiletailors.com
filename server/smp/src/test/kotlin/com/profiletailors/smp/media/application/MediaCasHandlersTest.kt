@@ -1034,6 +1034,13 @@ private class InMemoryMediaAssetRepository : MediaAssetRepository {
         return updated
     }
 
+    override suspend fun updateStatus(assetId: String, workspaceId: String, status: MediaAssetStatus): MediaAsset? {
+        val asset = asset(workspaceId, assetId) ?: return null
+        val updated = asset.copy(status = status)
+        assets[workspaceId to assetId] = updated
+        return updated
+    }
+
     override suspend fun softDelete(assetId: String, workspaceId: String): MediaAsset? {
         val asset = asset(workspaceId, assetId) ?: return null
         val updated = asset.copy(status = MediaAssetStatus.DELETED)
@@ -1280,9 +1287,9 @@ private object NoopAtomicTransactionRunner : AtomicTransactionRunner {
  * so tests can assert call count and execution.
  */
 private class RecordingAtomicTransactionRunner : AtomicTransactionRunner {
-    val calls = mutableListOf<suspend () -> Unit>()
+    val calls = mutableListOf<suspend () -> Any>()
     override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
-        calls.add(block as suspend () -> Unit)
+        calls.add(block)
         return block()
     }
 }

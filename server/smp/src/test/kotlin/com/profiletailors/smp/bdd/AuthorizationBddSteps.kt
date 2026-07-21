@@ -26,6 +26,7 @@ import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.springframework.beans.factory.annotation.Autowired
@@ -236,6 +237,34 @@ class AuthorizationBddSteps {
         givenPreviouslyRegisteredLocalUserSessionExists()
     }
 
+    @Given("a previously registered local user exists")
+    fun givenPreviouslyRegisteredLocalUserExists() {
+        registerLocalUser(email = "owner@example.com", login = false, verifyEmail = true)
+    }
+
+    @Given("a previously registered local user exists with email {string}")
+    fun givenPreviouslyRegisteredLocalUserExistsWithEmail(email: String) {
+        registerLocalUser(email = email, login = false, verifyEmail = true)
+    }
+
+    @Given("an existing user with email {string}")
+    fun givenExistingUserWithEmail(email: String) {
+        registerLocalUser(email = email, login = false, verifyEmail = false)
+    }
+
+    @Given("the user has no active session")
+    fun givenUserHasNoActiveSession() {
+        latestLocalAuthSession = null
+    }
+
+    @Given("the user has an expired session")
+    fun givenUserHasExpiredSession() {
+        latestLocalAuthSession = BddDatabaseSupport.LocalAuthSession(
+            accessToken = "expired-token",
+            refreshCookie = "refresh_token=invalid; Path=/api/auth",
+        )
+    }
+
     @When("the client registers a local user")
     fun whenClientRegistersLocalUser() {
         registerLocalUser(email = "yuniel@example.com", login = false)
@@ -369,6 +398,42 @@ class AuthorizationBddSteps {
             .returnResult()
     }
 
+    @When("the client logs out without a valid session")
+    fun whenClientLogsOutWithoutValidSession() {
+        latestStatusCode = null
+        latestResult = webTestClient.post()
+            .uri(bddDatabaseSupport.localAuthLogoutPath())
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the user submits invalid credentials")
+    fun whenUserSubmitsInvalidCredentials() {
+        submitLogin(email = "owner@example.com", password = "wrongpassword")
+    }
+
+    @When("the user submits credentials for {string}")
+    fun whenUserSubmitsCredentialsFor(email: String) {
+        submitLogin(email = email, password = "password123")
+    }
+
+    @When("the user submits credentials with email {string}")
+    fun whenUserSubmitsCredentialsWithEmail(email: String) {
+        submitLogin(email = email, password = "password123")
+    }
+
+    @When("the client registers with email {string}")
+    fun whenClientRegistersWithEmail(email: String) {
+        submitRegistration(email = email)
+    }
+
+    @When("the client registers with password {string}")
+    fun whenClientRegistersWithPassword(password: String) {
+        submitRegistration(email = "newuser@example.com", password = password)
+    }
+
     @And("the auth response should include an access token")
     fun andAuthResponseShouldIncludeAccessToken() {
         val body = requireResponseBodyText()
@@ -418,6 +483,31 @@ class AuthorizationBddSteps {
     fun andResponseShouldNotSetRefreshCookie() {
         val cookie = requireLatestResult().responseHeaders.getFirst(HttpHeaders.SET_COOKIE)
         assertTrue(cookie.isNullOrBlank(), "Expected no Set-Cookie header for registration")
+    }
+
+    @And("the problem response should include detail {string}")
+    fun andProblemResponseShouldIncludeDetail(detail: String) {
+        val body = requireResponseBodyText()
+        assertTrue(body.contains(""""detail":"$detail""""), body)
+    }
+
+    @And("the response body should contain {string}")
+    fun andResponseBodyShouldContain(text: String) {
+        val body = requireResponseBodyText()
+        assertTrue(body.contains(text), body)
+    }
+
+    @Then("the response should contain a workspaceId")
+    fun thenResponseShouldContainWorkspaceId() {
+        val body = requireResponseBodyText()
+        assertTrue(body.contains(""""workspaceId":"""), body)
+    }
+
+    @Then("the email in the response should be normalized to lowercase")
+    fun thenEmailInResponseShouldBeNormalizedToLowercase() {
+        val body = requireResponseBodyText()
+        assertTrue(Regex(""""email":"[a-z@.]+"""").containsMatchIn(body), body)
+        assertFalse(body.contains(""""email":"Test@Example.COM""""), body)
     }
 
     @Given("an entitled authorized service-account principal exists")
@@ -628,6 +718,42 @@ class AuthorizationBddSteps {
         assertEquals(status, requireNotNull(latestMembershipStatusResponse).status.name)
     }
 
+    @Given("an authorized workspace member exists")
+    fun givenAuthorizedWorkspaceMemberExists() = runBlocking {
+        bddDatabaseSupport.seedEntitledAuthorizedMember()
+    }
+
+    private fun submitLogin(email: String, password: String) {
+        latestStatusCode = null
+        latestResult = webTestClient.post()
+            .uri(bddDatabaseSupport.localAuthLoginPath())
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .bodyValue(mapOf("email" to email, "password" to password))
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    private fun submitRegistration(email: String, password: String = "password123") {
+        latestStatusCode = null
+        latestResult = webTestClient.post()
+            .uri(bddDatabaseSupport.localAuthRegisterPath())
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .bodyValue(
+                mapOf(
+                    "email" to email,
+                    "password" to password,
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
+                ),
+            )
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
     private fun registerLocalUser(email: String, verifyEmail: Boolean = true, login: Boolean = true) {
         // Step 1: Register — returns 201 with RegistrationResult, no tokens, PENDING
         latestStatusCode = null
@@ -719,8 +845,9 @@ class AuthorizationBddSteps {
 
     private fun captureLocalAuthSessionFrom(result: EntityExchangeResult<ByteArray>, source: String) {
         val body = String(result.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
+        val status = result.status.value()
         val accessToken = Regex("\"accessToken\":\"([^\"]+)\"").find(body)?.groupValues?.get(1)
-            ?: error("Missing access token in $source response")
+            ?: error("Missing access token in $source response (status=$status, body=$body)")
         val refreshCookie = result.responseHeaders.getFirst(HttpHeaders.SET_COOKIE)
             ?.substringBefore(';')
             ?: error("Missing refresh cookie in $source response")

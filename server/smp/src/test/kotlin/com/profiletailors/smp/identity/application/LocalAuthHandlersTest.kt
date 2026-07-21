@@ -13,6 +13,7 @@ import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
 import com.profiletailors.smp.governance.application.RecordConsentCommand
 import com.profiletailors.smp.governance.application.RecordConsentHandler
+import com.profiletailors.smp.governance.application.RecordConsentOutcome
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.identity.application.EmailVerificationTokenData
@@ -56,6 +57,7 @@ class LocalAuthHandlersTest {
         val recordConsentHandler = recordConsentHandler(order)
         val transactionRunner = RecordingAtomicTransactionRunner(order)
         val handler = RegisterUserHandler(
+            registrationAvailability = FakeRegistrationAvailability(enabled = true),
             identityRegistrationGateway = identityRegistrationGateway,
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = passwordGateway,
@@ -99,8 +101,42 @@ class LocalAuthHandlersTest {
     }
 
     @Test
+    fun `should throw when registration disabled`() = runTest {
+        val handler = RegisterUserHandler(
+            registrationAvailability = FakeRegistrationAvailability(enabled = false),
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(),
+            eventPublisher = RecordingEventPublisher(),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            transactionRunner = NoopAtomicTransactionRunner,
+            recordConsentHandler = recordConsentHandler(),
+        )
+
+        try {
+            handler.handle(
+                RegisterUserCommand(
+                    email = "user@example.com",
+                    password = validPassword,
+                    username = "user",
+                    confirmedAgeEligibility = true,
+                    acceptedTermsVersion = "terms-v1.0.0",
+                ),
+            )
+            throw AssertionError("Expected RegistrationDisabledException")
+        } catch (e: RegistrationDisabledException) {
+            assertTrue(e.message?.contains("not available") == true)
+        }
+    }
+
+    @Test
     fun `rejects when confirmedAgeEligibility is false`() = runTest {
         val handler = RegisterUserHandler(
+            registrationAvailability = FakeRegistrationAvailability(enabled = true),
             identityRegistrationGateway = FakeIdentityRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
@@ -133,6 +169,7 @@ class LocalAuthHandlersTest {
     @Test
     fun `rejects when acceptedTermsVersion is blank`() = runTest {
         val handler = RegisterUserHandler(
+            registrationAvailability = FakeRegistrationAvailability(enabled = true),
             identityRegistrationGateway = FakeIdentityRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
@@ -168,6 +205,7 @@ class LocalAuthHandlersTest {
         val recordedPurposes = mutableListOf<String>()
         val recordConsentHandler = recordConsentHandler(order, recordedPurposes)
         val handler = RegisterUserHandler(
+            registrationAvailability = FakeRegistrationAvailability(enabled = true),
             identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
@@ -206,6 +244,7 @@ class LocalAuthHandlersTest {
         val jwtIssuer = FakeLocalJwtIssuer()
         val refreshSvc = fakeRefreshLifecycleService()
         val handler = RegisterUserHandler(
+            registrationAvailability = FakeRegistrationAvailability(enabled = true),
             identityRegistrationGateway = identityRegistrationGateway,
             principalIdentityLookup = principalLookup,
             localPasswordCredentialGateway = passwordGateway,
@@ -258,6 +297,7 @@ class LocalAuthHandlersTest {
     fun `registers user with email local-part when username is blank`() = runTest {
         val identityRegistrationGateway = FakeIdentityRegistrationGateway()
         val handler = RegisterUserHandler(
+            registrationAvailability = FakeRegistrationAvailability(enabled = true),
             identityRegistrationGateway = identityRegistrationGateway,
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
@@ -290,6 +330,7 @@ class LocalAuthHandlersTest {
     @Test
     fun `rejects duplicate registration`() = runTest {
         val handler = RegisterUserHandler(
+            registrationAvailability = FakeRegistrationAvailability(enabled = true),
             identityRegistrationGateway = FakeIdentityRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 existingEmail = "yuniel@example.com",
@@ -978,18 +1019,25 @@ class LocalAuthHandlersTest {
             val command = firstArg<RecordConsentCommand>()
             order?.add("consent:record")
             recordedPurposes.add(command.purpose)
-            ConsentRecord(
-                id = ConsentRecordId("test-cs-${java.util.UUID.randomUUID()}"),
-                workspaceId = command.workspaceId,
-                subjectReference = command.subjectReference,
-                consentType = command.consentType,
-                purpose = command.purpose,
-                policyVersion = command.policyVersion,
-                source = command.source,
-                locale = command.locale,
-                givenAt = java.time.Instant.now(),
+            RecordConsentOutcome(
+                created = true,
+                record = ConsentRecord(
+                    id = ConsentRecordId("test-cs-${java.util.UUID.randomUUID()}"),
+                    workspaceId = command.workspaceId,
+                    subjectReference = command.subjectReference,
+                    consentType = command.consentType,
+                    purpose = command.purpose,
+                    policyVersion = command.policyVersion,
+                    source = command.source,
+                    locale = command.locale,
+                    givenAt = java.time.Instant.now(),
+                ),
             )
         }
         return handler
+    }
+
+    private class FakeRegistrationAvailability(private val enabled: Boolean = true) : RegistrationAvailabilityPort {
+        override fun isRegistrationEnabled(): Boolean = enabled
     }
 }

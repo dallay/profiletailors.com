@@ -17,12 +17,14 @@ import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
 import com.profiletailors.smp.identity.infrastructure.security.LocalJwtProperties
 import com.profiletailors.smp.identity.infrastructure.security.NimbusLocalJwtIssuer
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.oauth2.jwt.JwtEncoder
 import java.time.Clock
 
 @Configuration
+@EnableConfigurationProperties(RegistrationConfigurationProperties::class)
 class IdentityBootstrapConfiguration {
 
     @Bean

@@ -4,6 +4,7 @@ import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequi
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
 import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
+import com.profiletailors.smp.identity.application.RegistrationDisabledException
 import com.profiletailors.smp.identity.application.RegistrationValidationException
 import com.profiletailors.smp.identity.application.UnverifiedEmailException
 import com.profiletailors.smp.identity.application.UserAlreadyExistsException
@@ -26,6 +27,7 @@ class IdentityProblemDetailsHandler {
     fun handle(exception: UserAlreadyExistsException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.message ?: "Conflict").apply {
             title = "User already exists"
+            setProperty("code", "USER_ALREADY_EXISTS")
         }
 
     @ExceptionHandler(InvalidRegistrationInputException::class)
@@ -54,6 +56,16 @@ class IdentityProblemDetailsHandler {
         title = "Email verification required"
         type = URI("https://api.profiletailors.com/errors/email-verification-required")
         setProperty("code", "EMAIL_VERIFICATION_REQUIRED")
+    }
+
+    @ExceptionHandler(RegistrationDisabledException::class)
+    fun handle(exception: RegistrationDisabledException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.FORBIDDEN,
+        exception.message ?: "Registration is not available.",
+    ).apply {
+        title = "Registration disabled"
+        type = URI("/problems/registration-disabled")
+        setProperty("code", "registration_disabled")
     }
 
     @ExceptionHandler(RegistrationValidationException::class)

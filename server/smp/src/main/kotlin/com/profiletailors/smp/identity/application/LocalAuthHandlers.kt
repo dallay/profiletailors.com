@@ -54,6 +54,7 @@ internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSes
 
 @Service
 internal class RegisterUserHandler(
+    private val registrationAvailability: RegistrationAvailabilityPort,
     private val identityRegistrationGateway: IdentityRegistrationGateway,
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val localPasswordCredentialGateway: LocalPasswordCredentialGateway,
@@ -68,6 +69,9 @@ internal class RegisterUserHandler(
 ) : CommandWithResultHandler<RegisterUserCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: RegisterUserCommand): LocalAuthSessionResult {
+        if (!registrationAvailability.isRegistrationEnabled()) {
+            throw RegistrationDisabledException()
+        }
         val normalizedEmail = normalizeEmail(command.email)
         val normalizedUsername = normalizeUsername(command.username, normalizedEmail)
 

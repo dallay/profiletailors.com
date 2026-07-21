@@ -82,6 +82,12 @@ interface MediaAssetRepository {
     suspend fun markAsFailed(assetId: String, workspaceId: String, reason: String? = null): MediaAsset?
 
     /**
+     * Update the status of a media asset.
+     * Returns the updated asset, or null if the asset was not found.
+     */
+    suspend fun updateStatus(assetId: String, workspaceId: String, status: MediaAssetStatus): MediaAsset?
+
+    /**
      * Soft-delete an asset: transition to DELETED status.
      * Does NOT physically delete the row.
      */

@@ -56,6 +56,7 @@ data class MediaAssetSummary(
     val authorName: String? = null,
     val authorUrl: String? = null,
     val metadata: Map<String, Any>? = null,
+    val licence: String? = null,
 )
 
 /**

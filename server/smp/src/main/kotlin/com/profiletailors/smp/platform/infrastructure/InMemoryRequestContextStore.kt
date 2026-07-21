@@ -5,8 +5,13 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
 
 class InMemoryRequestContextStore : RequestContextStore {
+    @Volatile
     private var principalContext: PrincipalContext? = null
+
+    @Volatile
     private var resourceContext: ResourceContext? = null
+
+    @Volatile
     private var requestPath: String? = null
 
     override fun currentPrincipalContext(): PrincipalContext? = principalContext

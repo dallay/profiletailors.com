@@ -15,4 +15,51 @@ export default {
   languageEnglish: 'Inglés',
   languageSpanish: 'Español',
   quickPreferences: 'Preferencias rápidas',
+  privacy: {
+    title: 'Privacidad & Datos',
+    description:
+      'Gestiona tus solicitudes de acceso a datos personales (DSAR). Envía solicitudes para acceder, exportar, corregir o eliminar tus datos personales.',
+    form: {
+      type: {
+        label: 'Tipo de solicitud',
+        placeholder: 'Selecciona un tipo',
+        ACCESS: 'Solicitud de Acceso',
+        EXPORT: 'Exportación de Datos',
+        CORRECTION: 'Corrección de Datos',
+        DELETION: 'Solicitud de Eliminación',
+      },
+      notes: 'Notas',
+      notesPlaceholder: 'Opcional — proporciona contexto adicional para tu solicitud...',
+      correctionEmail: 'Nuevo correo',
+      correctionEmailPlaceholder: 'Introduce el correo corregido',
+      correctionUsername: 'Nuevo usuario',
+      correctionUsernamePlaceholder: 'Introduce el nombre de usuario corregido',
+      submit: 'Enviar Solicitud',
+      submitting: 'Enviando...',
+      cancel: 'Cancelar',
+      confirmDeletionTitle: 'Confirmar Solicitud de Eliminación',
+      confirmDeletionDesc:
+        'Esto eliminará permanentemente tus datos personales de nuestros sistemas. Esta acción no se puede deshacer. ¿Estás seguro de que deseas continuar?',
+      confirmDeletionYes: 'Sí, eliminar mis datos',
+      success: 'Tu solicitud ha sido enviada correctamente.',
+    },
+    status: {
+      PENDING: 'Pendiente',
+      PROCESSING: 'Procesando',
+      COMPLETED: 'Completado',
+      REJECTED: 'Rechazado',
+      FAILED: 'Fallido',
+    },
+    list: {
+      title: 'Mis Solicitudes',
+      empty: 'Aún no hay solicitudes. Envía tu primera solicitud arriba.',
+      columns: {
+        type: 'Tipo',
+        status: 'Estado',
+        created: 'Creado',
+        actions: 'Acciones',
+      },
+      download: 'Descargar',
+    },
+  },
 }
