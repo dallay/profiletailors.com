@@ -33,10 +33,17 @@
 ### Notes
 
 - The image tags use the release version stripped of the `smp@` prefix (e.g., `0.1.0`) because Docker references do not allow `@` in tags.
-- `compose.yaml` retains the `build:` blocks so local builds remain possible when `SMP_IMAGE`/`DASHBOARD_IMAGE` are pointed at a local tag.
+- **Corrected**: Moved `build:` block to `compose.override.yaml` so `compose.yaml` defaults to GHCR registry pull, preserving local build via override.
+- **Corrected**: Added `SMP_REGISTRATION_ENABLED` env var to backend (missing from DALLAY-509).
 - The `smoke-test` job is `continue-on-error: true` per the design decision for 0.1.0.
 
 ## Files Changed in Phase 1
 
 - `.github/workflows/release-image.yml` — created
-- `infra/apps/smp/production/compose.yaml` — modified
+- `infra/apps/smp/production/compose.yaml` — modified (removed build block, added SMP_REGISTRATION_ENABLED)
+- `infra/apps/smp/production/compose.override.yaml` — created (local build override)
+
+## Commits
+
+1. `b9af52b7` — feat(infra): add release-image workflow and default compose to GHCR
+2. `63610f99` — fix(infra): separate build override and add registration env var
