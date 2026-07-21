@@ -261,6 +261,19 @@ serve $force="":
         echo "Usage: just serve [--force]"
         exit 2
     fi
+    # Ensure portless proxy is running so HTTPS dashboard URLs work
+    if ! pgrep -f "portless.*proxy" >/dev/null 2>&1; then
+        echo "Portless proxy not running."
+        read -r -p "Start it now? (requires sudo for port 443, or falls back to :1355) [Y/n] " reply
+        reply="${reply:-Y}"
+        if [[ "$reply" =~ ^[Yy]$ ]]; then
+            sudo portless proxy start
+        else
+            echo "Skipping portless. Dashboard will only be reachable at http://localhost:<vite-port>."
+        fi
+    else
+        echo "Portless proxy already running."
+    fi
     echo "Starting backend (Spring Boot) + frontend app (Vite)..."
     {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev' &
     cd {{app-dir}} && pnpm dev
