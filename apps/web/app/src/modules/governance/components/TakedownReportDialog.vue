@@ -27,12 +27,12 @@ const error = ref<string | null>(null)
 
 const reason = ref('')
 const mediaReferenceUrl = ref('')
-const reporterEmail = ref(auth.email ?? '')
+const reporterEmail = ref(auth.user?.email ?? '')
 
 function resetForm() {
   reason.value = ''
   mediaReferenceUrl.value = ''
-  reporterEmail.value = auth.email ?? ''
+  reporterEmail.value = auth.user?.email ?? ''
   error.value = null
 }
 

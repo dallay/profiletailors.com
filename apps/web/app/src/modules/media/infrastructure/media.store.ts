@@ -16,7 +16,13 @@ import {
 /**
  * CAS media asset statuses.
  */
-export type MediaAssetStatus = 'PENDING_UPLOAD' | 'UPLOADING' | 'READY' | 'FAILED' | 'DELETED'
+export type MediaAssetStatus =
+  | 'PENDING_UPLOAD'
+  | 'UPLOADING'
+  | 'READY'
+  | 'FAILED'
+  | 'SUSPENDED'
+  | 'DELETED'
 
 /**
  * Upload item statuses tracked by the store.
