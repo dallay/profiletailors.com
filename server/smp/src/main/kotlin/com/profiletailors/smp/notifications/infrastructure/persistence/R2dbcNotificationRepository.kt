@@ -146,11 +146,17 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
             val templateId = get("template_id", String::class.java)!!
             val payload = get("payload", String::class.java)!!
             val status = get("status", String::class.java)!!
-            val sentAt = get("sent_at", OffsetDateTime::class.java)?.toInstant()
-            val failedAt = get("failed_at", OffsetDateTime::class.java)?.toInstant()
+            val sentAt = get("sent_at", java.time.LocalDateTime::class.java)
+                ?.toInstant(java.time.ZoneOffset.UTC)
+            val failedAt = get("failed_at", java.time.LocalDateTime::class.java)
+                ?.toInstant(java.time.ZoneOffset.UTC)
             val errorMessage = get("error_message", String::class.java)
-            val createdAt = get("created_at", OffsetDateTime::class.java)!!.toInstant()
-            val updatedAt = get("updated_at", OffsetDateTime::class.java)!!.toInstant()
+            val createdAtValue = get("created_at", java.time.LocalDateTime::class.java)
+                ?: error("created_at is null")
+            val createdAt = createdAtValue.toInstant(java.time.ZoneOffset.UTC)
+            val updatedAtValue = get("updated_at", java.time.LocalDateTime::class.java)
+                ?: error("updated_at is null")
+            val updatedAt = updatedAtValue.toInstant(java.time.ZoneOffset.UTC)
 
             return Notification(
                 id = NotificationId(id),
