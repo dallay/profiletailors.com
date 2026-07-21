@@ -25,6 +25,9 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "management.endpoint.health.group.liveness.include=",
         "platform.workspace-context.header-name=X-Workspace-Id",
         "spring.main.allow-bean-definition-overriding=true",
+        "publishing.linkedin.client-id=test-client-id",
+        "publishing.linkedin.client-secret=test-client-secret",
+        "publishing.linkedin.redirect-uri=http://localhost:9999/callback",
     ],
 )
 @Import(CommonBddTestConfiguration::class, PostgresBddTestConfiguration::class)
