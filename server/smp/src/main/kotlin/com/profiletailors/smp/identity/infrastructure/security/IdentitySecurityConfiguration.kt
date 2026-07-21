@@ -63,23 +63,17 @@ class IdentitySecurityConfiguration {
     data class IdentityWebFilters(
         val apiKeyAuthentication: WebFilter,
         val authenticatedPrincipalContext: WebFilter,
-        val requestPath: WebFilter,
-        val workspaceContext: WebFilter,
         val revokedCredentialAudit: WebFilter,
     )
 
     @Bean
     fun identityWebFilters(
         apiKeyAuthenticationWebFilter: WebFilter,
-        authenticatedPrincipalContextWebFilter: WebFilter,
-        requestPathWebFilter: WebFilter,
-        workspaceContextWebFilter: WebFilter,
         revokedCredentialAuditWebFilter: WebFilter,
+        requestContextStore: RequestContextStore,
     ): IdentityWebFilters = IdentityWebFilters(
         apiKeyAuthentication = apiKeyAuthenticationWebFilter,
-        authenticatedPrincipalContext = authenticatedPrincipalContextWebFilter,
-        requestPath = requestPathWebFilter,
-        workspaceContext = workspaceContextWebFilter,
+        authenticatedPrincipalContext = AuthenticatedPrincipalContextWebFilter(requestContextStore),
         revokedCredentialAudit = revokedCredentialAuditWebFilter,
     )
 
@@ -121,10 +115,6 @@ class IdentitySecurityConfiguration {
         apiKeyPrincipalAuthenticationConverter: ApiKeyPrincipalAuthenticationConverter,
         authenticationEntryPoint: ServerAuthenticationEntryPoint,
     ): WebFilter = ApiKeyAuthenticationWebFilter(apiKeyPrincipalAuthenticationConverter, authenticationEntryPoint)
-
-    @Bean
-    fun authenticatedPrincipalContextWebFilter(requestContextStore: RequestContextStore): WebFilter =
-        AuthenticatedPrincipalContextWebFilter(requestContextStore)
 
     @Bean
     fun securityWebFilterChain(
@@ -180,8 +170,6 @@ class IdentitySecurityConfiguration {
         .addFilterAt(filters.apiKeyAuthentication, SecurityWebFiltersOrder.AUTHENTICATION)
         .addFilterBefore(filters.revokedCredentialAudit, SecurityWebFiltersOrder.AUTHENTICATION)
         .addFilterAfter(filters.authenticatedPrincipalContext, SecurityWebFiltersOrder.AUTHENTICATION)
-        .addFilterAfter(filters.requestPath, SecurityWebFiltersOrder.AUTHENTICATION)
-        .addFilterAfter(filters.workspaceContext, SecurityWebFiltersOrder.AUTHENTICATION)
         .build()
 
     @Bean
