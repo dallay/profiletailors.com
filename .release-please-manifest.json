@@ -1,4 +1,4 @@
 {
-  "apps/web/marketing": "0.0.1",
-  "server/smp": "0.1.0"
+  "apps/web/marketing": "0.1.0",
+  "server/smp": "0.2.0"
 }
