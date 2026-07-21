@@ -2,8 +2,8 @@ name: profile-tailors-production
 
 services:
   dashboard:
-    image: ${DASHBOARD_IMAGE:-profiletailors/dashboard:0.1.0}
-    pull_policy: missing
+    image: ${DASHBOARD_IMAGE:-ghcr.io/dallay/profiletailors-dashboard:latest}
+    pull_policy: always
     build:
       context: ../../../..
       dockerfile: infra/apps/smp/production/dashboard.Dockerfile
@@ -35,8 +35,8 @@ services:
       - edge
 
   backend:
-    image: ${SMP_IMAGE:-profiletailors/smp:0.1.0}
-    pull_policy: missing
+    image: ${SMP_IMAGE:-ghcr.io/dallay/profiletailors-smp:latest}
+    pull_policy: always
     restart: unless-stopped
     init: true
     depends_on:
