@@ -2,13 +2,8 @@ name: profile-tailors-production
 
 services:
   dashboard:
-    image: ${DASHBOARD_IMAGE:-profiletailors/dashboard:0.1.0}
-    pull_policy: missing
-    build:
-      context: ../../../..
-      dockerfile: infra/apps/smp/production/dashboard.Dockerfile
-      args:
-        VITE_API_BASE_URL: ""
+    image: ${DASHBOARD_IMAGE:-ghcr.io/dallay/profiletailors-dashboard:latest}
+    pull_policy: always
     restart: unless-stopped
     init: true
     depends_on:
@@ -35,8 +30,8 @@ services:
       - edge
 
   backend:
-    image: ${SMP_IMAGE:-profiletailors/smp:0.1.0}
-    pull_policy: missing
+    image: ${SMP_IMAGE:-ghcr.io/dallay/profiletailors-smp:latest}
+    pull_policy: always
     restart: unless-stopped
     init: true
     depends_on:
@@ -65,6 +60,7 @@ services:
       SMP_LINKEDIN_REDIRECT_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in production/.env}/integrations/linkedin/callback
       SMP_EMAIL_SENDER: ${SMP_EMAIL_SENDER:-noreply@profiletailors.com}
       SMP_MEDIAPROVIDER_UNSPLASH_ENABLED: ${SMP_MEDIAPROVIDER_UNSPLASH_ENABLED:-false}
+      SMP_REGISTRATION_ENABLED: ${SMP_REGISTRATION_ENABLED:-false}
     secrets:
       - source: db_password
         target: SMP_DB_PASSWORD

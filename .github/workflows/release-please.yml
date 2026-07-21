@@ -44,12 +44,11 @@ jobs:
           echo "🚀 landing released: ${{ needs.release-please.outputs['landing--tag_name'] }}"
 
   # ── Post-release: smp ──────────────────────────────────────────────────────
-  # Extend this job later to build & push the Docker image, deploy to staging, etc.
-  notify-smp:
+  build-and-push-smp:
     needs: release-please
     if: ${{ needs.release-please.outputs['smp--release_created'] == 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: SMP released
-        run: |
-          echo "🚀 smp released: ${{ needs.release-please.outputs['smp--tag_name'] }}"
+    uses: ./.github/workflows/release-image.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
