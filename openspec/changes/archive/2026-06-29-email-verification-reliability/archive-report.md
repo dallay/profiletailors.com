@@ -10,13 +10,13 @@
 
 ## Delta Specs Synced
 
-| Domain | Action | Details |
-|---|---|---|
-| `app-shell` | Updated | Added 1 requirement: Global Unverified Email Guidance |
-| `media-library` | Updated | Added 1 requirement: Email Verification Required for Media Upload |
-| `email-notifications` | Updated | Added 1 requirement: Verification Consumers Are Active at Runtime |
-| `email-verification` | Updated | Added 2 requirements: Verification Email Dispatch Reliability; Current User Profile Exposes Authoritative Email Status |
-| `publishing` | Updated | Added 1 requirement: Email Verification Required for Publishing and Social Connection |
+| Domain                | Action  | Details                                                                                                                |
+|-----------------------|---------|------------------------------------------------------------------------------------------------------------------------|
+| `app-shell`           | Updated | Added 1 requirement: Global Unverified Email Guidance                                                                  |
+| `media-library`       | Updated | Added 1 requirement: Email Verification Required for Media Upload                                                      |
+| `email-notifications` | Updated | Added 1 requirement: Verification Consumers Are Active at Runtime                                                      |
+| `email-verification`  | Updated | Added 2 requirements: Verification Email Dispatch Reliability; Current User Profile Exposes Authoritative Email Status |
+| `publishing`          | Updated | Added 1 requirement: Email Verification Required for Publishing and Social Connection                                  |
 
 ## Archive Location
 
@@ -46,7 +46,9 @@
 
 ## Verification Notes
 
-The verification report recorded PASS WITH WARNINGS and no CRITICAL issues. Warnings were limited to missing manual Mailpit/browser verification due to local infrastructure requirements, dashboard tests being run separately from `just frontend-test`, and an unrelated pnpm workspace warning.
+The verification report recorded PASS WITH WARNINGS and no CRITICAL issues. Warnings were limited to
+missing manual Mailpit/browser verification due to local infrastructure requirements, dashboard
+tests being run separately from `just frontend-test`, and an unrelated pnpm workspace warning.
 
 ## State
 

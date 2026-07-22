@@ -13,16 +13,16 @@ Change archived: PASS-WITH-WARNINGS → SDD cycle complete.
 - Verification verdict: PASS WITH WARNINGS
 - Critical issues: 0
 - Non-critical warnings: 3
-  - TC-HIST-01 skipped (recoverable)
-  - TC-19 marked `fixme` by design (recoverable)
-  - No docs discoverability check (recoverable)
+    - TC-HIST-01 skipped (recoverable)
+    - TC-19 marked `fixme` by design (recoverable)
+    - No docs discoverability check (recoverable)
 
 ## Spec Sync (delta → main)
 
-| Domain                        | Action   | Details                                                                         |
-|-------------------------------|----------|---------------------------------------------------------------------------------|
-| scheduler-url-state-standard  | Synced   | Main spec already matched delta byte-for-byte; preserved as-is. No edit needed. |
-| visual-calendar               | Updated  | 1 MODIFIED requirement (`Multi-View Calendar` + 3 new scenarios), 1 ADDED requirement (`Durable scheduler URL-state guidance`). All original requirements preserved. |
+| Domain                       | Action  | Details                                                                                                                                                              |
+|------------------------------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| scheduler-url-state-standard | Synced  | Main spec already matched delta byte-for-byte; preserved as-is. No edit needed.                                                                                      |
+| visual-calendar              | Updated | 1 MODIFIED requirement (`Multi-View Calendar` + 3 new scenarios), 1 ADDED requirement (`Durable scheduler URL-state guidance`). All original requirements preserved. |
 
 ## Archive Contents
 
@@ -38,7 +38,8 @@ Change archived: PASS-WITH-WARNINGS → SDD cycle complete.
 ## Source of Truth Updated
 
 - `openspec/specs/scheduler-url-state-standard/spec.md` — represents canonical URL contract.
-- `openspec/specs/visual-calendar/spec.md` — `Multi-View Calendar` now mandates full route-owned query contract + post-detail scenarios; `Durable scheduler URL-state guidance` requirement added.
+- `openspec/specs/visual-calendar/spec.md` — `Multi-View Calendar` now mandates full route-owned
+  query contract + post-detail scenarios; `Durable scheduler URL-state guidance` requirement added.
 
 ## SDD Cycle Complete
 

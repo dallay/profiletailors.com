@@ -4,8 +4,14 @@
 
 ### Requirement: Parent-owned interaction contract
 
-The picker MUST accept typed presentation inputs and MUST emit typed search, filter, selection, apply, and close interactions. It MUST NOT fetch, persist, or publish media assets itself. The picker SHALL support explicit browsable sources `Library` and `Unsplash` when the parent supplies that provider, and SHALL treat `Upload` as an action within the picker flow rather than as a browsable source. The parent MUST supply `provider="unsplash"` only when the provider is configured and enabled.
-(Previously: The shell only emitted search, filter, and close interactions and could not support selection, upload, or draft attachment flows.)
+The picker MUST accept typed presentation inputs and MUST emit typed search, filter, selection,
+apply, and close interactions. It MUST NOT fetch, persist, or publish media assets itself. The
+picker SHALL support explicit browsable sources `Library` and `Unsplash` when the parent supplies
+that provider, and SHALL treat `Upload` as an action within the picker flow rather than as a
+browsable source. The parent MUST supply `provider="unsplash"` only when the provider is configured
+and enabled.
+(Previously: The shell only emitted search, filter, and close interactions and could not support
+selection, upload, or draft attachment flows.)
 
 #### Scenario: Emit parent-owned browse and selection interactions
 
@@ -19,12 +25,17 @@ The picker MUST accept typed presentation inputs and MUST emit typed search, fil
 - GIVEN the picker is open
 - WHEN the author chooses Upload
 - THEN the picker MUST treat it as an action in the current flow
-- AND it MUST NOT present Upload as a Library-like source unless an existing parent contract requires it
+- AND it MUST NOT present Upload as a Library-like source unless an existing parent contract
+  requires it
 
 ### Requirement: Provider tab is shell-only and parent-owned
 
-The composer media picker MUST accept an optional `provider: "unsplash" | null` prop and MUST emit `provider-search` and `provider-import` interactions. The shell MUST NOT call any HTTP endpoint directly, and provider import MUST keep the picker open so the parent can continue staged multi-selection after import.
-(Previously: The shell emitted provider interactions, but import completion did not explicitly preserve the open picker session for continued multi-selection.)
+The composer media picker MUST accept an optional `provider: "unsplash" | null` prop and MUST emit
+`provider-search` and `provider-import` interactions. The shell MUST NOT call any HTTP endpoint
+directly, and provider import MUST keep the picker open so the parent can continue staged
+multi-selection after import.
+(Previously: The shell emitted provider interactions, but import completion did not explicitly
+preserve the open picker session for continued multi-selection.)
 
 #### Scenario: Provider tab is conditional
 
@@ -42,8 +53,15 @@ The composer media picker MUST accept an optional `provider: "unsplash" | null` 
 
 ### Requirement: Asset region presentation
 
-The picker MUST provide a dedicated asset-grid region for parent-provided media items and MUST support staged multi-selection for draft attachment flows. `READY` assets MUST be selectable. When a `READY` asset has a usable preview it MUST render a thumbnail; when it has no usable preview, or when its preview fails to load, it MUST render fallback visuals without losing selectability. `PROCESSING` assets MUST remain visible with a placeholder or status and MUST NOT be selectable. `FAILED` assets MUST remain visible with fallback or failure presentation and MUST NOT be selectable.
-(Previously: The asset region was presentation-only and could show a non-interactive ready state without attachment behavior.)
+The picker MUST provide a dedicated asset-grid region for parent-provided media items and MUST
+support staged multi-selection for draft attachment flows. `READY` assets MUST be selectable. When a
+`READY` asset has a usable preview it MUST render a thumbnail; when it has no usable preview, or
+when its preview fails to load, it MUST render fallback visuals without losing selectability.
+`PROCESSING` assets MUST remain visible with a placeholder or status and MUST NOT be selectable.
+`FAILED` assets MUST remain visible with fallback or failure presentation and MUST NOT be
+selectable.
+(Previously: The asset region was presentation-only and could show a non-interactive ready state
+without attachment behavior.)
 
 #### Scenario: Render and stage ready assets
 
@@ -70,7 +88,10 @@ The picker MUST provide a dedicated asset-grid region for parent-provided media 
 
 ### Requirement: Staged selection lifecycle
 
-Opening the picker MUST copy current `draftAttachmentIds` into transient `pickerSelectionIds`. Any dismissal that occurs without a successful apply MUST discard staged changes. Confirm or apply MUST replace the draft attachment set with the staged selection exactly, and only then may the picker close.
+Opening the picker MUST copy current `draftAttachmentIds` into transient `pickerSelectionIds`. Any
+dismissal that occurs without a successful apply MUST discard staged changes. Confirm or apply MUST
+replace the draft attachment set with the staged selection exactly, and only then may the picker
+close.
 
 #### Scenario: Reopen starts from current draft attachments
 

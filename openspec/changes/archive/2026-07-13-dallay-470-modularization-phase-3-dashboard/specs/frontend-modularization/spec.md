@@ -4,7 +4,8 @@
 
 ### Requirement: Dashboard module placement
 
-Dashboard-owned frontend files MUST live under `apps/web/app/src/modules/dashboard/` using the existing module layering convention.
+Dashboard-owned frontend files MUST live under `apps/web/app/src/modules/dashboard/` using the
+existing module layering convention.
 
 #### Scenario: Dashboard views are module views
 
@@ -18,7 +19,8 @@ Dashboard-owned frontend files MUST live under `apps/web/app/src/modules/dashboa
 - GIVEN dashboard components and dashboard shared atoms are moved
 - WHEN a maintainer inspects dashboard UI files and their tests
 - THEN they SHALL reside under `modules/dashboard/presentation/components/`
-- AND shadcn-vue primitives, generic app components, and `CreatePostModal` MUST NOT be moved in this phase
+- AND shadcn-vue primitives, generic app components, and `CreatePostModal` MUST NOT be moved in this
+  phase
 
 #### Scenario: Dashboard state and domain files are module-owned
 
@@ -26,29 +28,34 @@ Dashboard-owned frontend files MUST live under `apps/web/app/src/modules/dashboa
 - WHEN a maintainer inspects dashboard, analytics, insights, and content-pipeline state
 - THEN the stores SHALL reside under `modules/dashboard/infrastructure/`
 - AND dashboard types SHALL reside under `modules/dashboard/domain/`
-- AND dashboard mock data SHALL be module-local under `modules/dashboard/infrastructure/mock-data/` or an equivalent dashboard-owned path
+- AND dashboard mock data SHALL be module-local under `modules/dashboard/infrastructure/mock-data/`
+  or an equivalent dashboard-owned path
 
 ### Requirement: Dashboard imports and tests use module paths
 
-Source files, tests, router entries, and Vitest mocks MUST reference moved dashboard files through `@modules/dashboard/...` or valid local relative imports.
+Source files, tests, router entries, and Vitest mocks MUST reference moved dashboard files through
+`@modules/dashboard/...` or valid local relative imports.
 
 #### Scenario: Legacy dashboard paths are removed
 
 - GIVEN dashboard files have moved into the dashboard module
 - WHEN source files, router entries, tests, or mocks import moved dashboard code
-- THEN they MUST NOT use legacy `@/views/*`, `@/components/dashboard/*`, `@/stores/*`, or dashboard-owned `@/lib/*` paths
+- THEN they MUST NOT use legacy `@/views/*`, `@/components/dashboard/*`, `@/stores/*`, or
+  dashboard-owned `@/lib/*` paths
 - AND they SHALL resolve through the dashboard module or colocated relative paths
 
 #### Scenario: Existing dashboard behavior is preserved
 
 - GIVEN imports now resolve from the dashboard module
 - WHEN users load the dashboard, analytics page, dashboard widgets, stores, and mock-backed data
-- THEN rendered UI, Pinia behavior, route loading, and test-observable data behavior SHALL match the pre-migration behavior
+- THEN rendered UI, Pinia behavior, route loading, and test-observable data behavior SHALL match the
+  pre-migration behavior
 - AND no compatibility shim SHOULD be required for moved dashboard files
 
 ### Requirement: Dashboard modularization verification
 
-The migration MUST be verified as a behavior-preserving relocation with app-specific checks and relocation guards.
+The migration MUST be verified as a behavior-preserving relocation with app-specific checks and
+relocation guards.
 
 #### Scenario: App checks pass
 

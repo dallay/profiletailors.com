@@ -9,7 +9,8 @@ affirmatively confirms they are 18+ and accepts the Terms of Service and Privacy
 account is created. Both confirmations are recorded as `CONTRACT_ACCEPTANCE` consent records using
 the existing `RecordConsentHandler`, with explicit policy version references. No Date of Birth is
 collected — the mechanism is checkbox-only, relying on safe-harbor principles for age-gating.
-A documented residual-controls procedure handles suspected underage accounts discovered post-registration.
+A documented residual-controls procedure handles suspected underage accounts discovered
+post-registration.
 
 ---
 
@@ -107,7 +108,8 @@ of defined procedure steps.
 - AND the user checks "I accept the Terms of Service and Privacy Policy"
 - WHEN the user submits the form with valid email and password
 - THEN the system SHALL create the user account
-- AND the system SHALL create a `CONTRACT_ACCEPTANCE` consent record with `policyVersion: "terms-v1.0.0"`
+- AND the system SHALL create a `CONTRACT_ACCEPTANCE` consent record with
+  `policyVersion: "terms-v1.0.0"`
 - AND the consent record SHALL reference the workspace via `SubjectReference.workspace(workspaceId)`
 - AND the response SHALL be HTTP 201 with AuthTokens
 - AND the user SHALL be redirected to the dashboard
@@ -138,7 +140,8 @@ of defined procedure steps.
 
 ### Scenario: Registration rejected when both confirmations are missing
 
-- GIVEN a client sends a POST to `/api/auth/register` with `confirmedAgeEligibility: false` AND `acceptedTermsVersion` blank
+- GIVEN a client sends a POST to `/api/auth/register` with `confirmedAgeEligibility: false` AND
+  `acceptedTermsVersion` blank
 - WHEN the backend processes the request
 - THEN the backend SHALL reject with HTTP 422
 - AND the error SHALL include both missing age confirmation and missing terms acceptance
@@ -155,7 +158,8 @@ of defined procedure steps.
 
 ### Scenario: Frontend tampering does not bypass backend validation
 
-- GIVEN a malicious client sends a POST to `/api/auth/register` with `confirmedAgeEligibility: false`
+- GIVEN a malicious client sends a POST to `/api/auth/register` with
+  `confirmedAgeEligibility: false`
 - AND the `acceptedTermsVersion` is missing
 - WHEN the backend processes the request
 - THEN the backend SHALL reject regardless of what the frontend rendered
@@ -165,10 +169,10 @@ of defined procedure steps.
 
 ## Policy Versions
 
-| Policy                | Version      | Source                                     |
-|-----------------------|--------------|--------------------------------------------|
-| Terms of Service      | `terms-v1.0.0` | `legal-pages` spec, requirement `terms-001` |
-| Privacy Policy        | `privacy-v1.0.0` | `legal-pages` spec, requirement `privacy-001` |
+| Policy           | Version          | Source                                        |
+|------------------|------------------|-----------------------------------------------|
+| Terms of Service | `terms-v1.0.0`   | `legal-pages` spec, requirement `terms-001`   |
+| Privacy Policy   | `privacy-v1.0.0` | `legal-pages` spec, requirement `privacy-001` |
 
 Both versions are referenced by the single consent record. The `policyVersion` in the
 `RecordConsentCommand` stores the full version string (`"terms-v1.0.0"`). When policy versions

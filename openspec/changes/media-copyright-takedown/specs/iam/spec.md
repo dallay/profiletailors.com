@@ -2,7 +2,8 @@
 
 ## Overview
 
-Adds two new governance media permission keys (`workspace:governance:media:read` and `workspace:governance:media:takedown`) to gate takedown report access and approval actions.
+Adds two new governance media permission keys (`workspace:governance:media:read` and
+`workspace:governance:media:takedown`) to gate takedown report access and approval actions.
 
 ## Changes
 
@@ -10,12 +11,14 @@ Adds two new governance media permission keys (`workspace:governance:media:read`
 
 #### Requirement: Governance Media Permissions
 
-The permission registry MUST register two new `PermissionKey` entries: `workspace:governance:media:read` and `workspace:governance:media:takedown`. Both SHALL follow the `<domain>:<resource>:<action>` format established by the existing IAM platform.
+The permission registry MUST register two new `PermissionKey` entries:
+`workspace:governance:media:read` and `workspace:governance:media:takedown`. Both SHALL follow the
+`<domain>:<resource>:<action>` format established by the existing IAM platform.
 
-| Permission Key | Default Roles | Purpose |
-|---------------|---------------|---------|
-| `workspace:governance:media:read` | `OWNER`, `ADMIN`, `MEMBER` | View takedown reports |
-| `workspace:governance:media:takedown` | `OWNER`, `ADMIN` | Approve/reject takedowns |
+| Permission Key                        | Default Roles              | Purpose                  |
+|---------------------------------------|----------------------------|--------------------------|
+| `workspace:governance:media:read`     | `OWNER`, `ADMIN`, `MEMBER` | View takedown reports    |
+| `workspace:governance:media:takedown` | `OWNER`, `ADMIN`           | Approve/reject takedowns |
 
 (Previously: no `governance:media` permission keys existed.)
 
@@ -42,15 +45,19 @@ The permission registry MUST register two new `PermissionKey` entries: `workspac
 
 ## Usage
 
-Permissions are enforced by `GovernanceAuthorizationService` (authorizeMediaTakedown) called from `ReportTakedownHandler`, `ApproveTakedownHandler`, and `RejectTakedownHandler`.
+Permissions are enforced by `GovernanceAuthorizationService` (authorizeMediaTakedown) called from
+`ReportTakedownHandler`, `ApproveTakedownHandler`, and `RejectTakedownHandler`.
 
 ## Troubleshooting
 
-- **403 on legitimate request**: Verify the user has the `media-takedown` permission through their role assignments.
-- **Missing permission key**: Ensure the `011-seed-governance-permissions.yaml` changelog has been applied.
+- **403 on legitimate request**: Verify the user has the `media-takedown` permission through their
+  role assignments.
+- **Missing permission key**: Ensure the `011-seed-governance-permissions.yaml` changelog has been
+  applied.
 
 ## References
 
-- Parent spec: [`../../../../specs/media-takedown/spec.md`](../../../../specs/media-takedown/spec.md)
+- Parent spec: [
+  `../../../../specs/media-takedown/spec.md`](../../../../specs/media-takedown/spec.md)
 - Parent change: [`../../proposal.md`](../../proposal.md)
 - Design: [`../../design.md`](../../design.md)

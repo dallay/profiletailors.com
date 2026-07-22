@@ -4,9 +4,11 @@
 
 ### Requirement: Email Verification Required for Media Upload
 
-The system MUST require `emailStatus = VERIFIED` before an authenticated user can create or upload media assets to the workspace media library.
+The system MUST require `emailStatus = VERIFIED` before an authenticated user can create or upload
+media assets to the workspace media library.
 
-This policy MUST align with other verification-gated product capabilities so unverified users receive the same denial reason and no media asset is created or uploaded on their behalf.
+This policy MUST align with other verification-gated product capabilities so unverified users
+receive the same denial reason and no media asset is created or uploaded on their behalf.
 
 #### Scenario: Unverified user cannot create uploadable asset
 

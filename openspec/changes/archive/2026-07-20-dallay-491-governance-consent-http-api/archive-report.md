@@ -23,9 +23,9 @@ step; this phase only synced SDD artifacts.
 
 ## Specs Synced
 
-| Domain | Action | Added | Modified | Removed |
-|--------|--------|-------|----------|---------|
-| `governance-consent-api` | Created | 14 | 0 | 0 |
+| Domain                   | Action  | Added | Modified | Removed |
+|--------------------------|---------|-------|----------|---------|
+| `governance-consent-api` | Created | 14    | 0        | 0       |
 
 `openspec/specs/governance-consent-api/spec.md` did not exist before this
 archive step. The delta spec under

@@ -12,6 +12,7 @@ change.
 ## Goals and Non-Goals
 
 **Goals**
+
 - Move picker state, computeds, methods, and constants out of the modal into a dedicated
   composable.
 - Reduce `CreatePostModal.vue` below 900 lines, with no picker-orchestration logic left in
@@ -23,6 +24,7 @@ change.
   changed only.
 
 **Non-Goals**
+
 - No product, UX, or copy change.
 - No new media providers or wiring to a real Unsplash backend.
 - No changes to `ComposerMediaPickerShell.vue`, `MediaProviderPanel.vue`,
@@ -44,14 +46,14 @@ and is encapsulated behind a tiny internal helper so it remains a single source 
 
 ### Inputs (params)
 
-| Param | Type | Purpose |
-|-------|------|---------|
-| `mediaStore` | `ReturnType<typeof useMediaStore>` | Injected media store. Required. |
-| `publishingStore` | `ReturnType<typeof usePublishingStore>` | Injected publishing store. Required (channel list → limit calc). |
-| `initialChannelId` | `MaybeRefOrGetter<string \| null>` | Optional initial channel id. Read once on setup. |
-| `editingPublication` | `MaybeRefOrGetter<Publication \| undefined>` | Reactive so edit-mode flips propagate. |
-| `isUnsplashProviderEnabled` | `MaybeRefOrGetter<boolean>` | Feature flag, reactive. |
-| `provider` | `MaybeRefOrGetter<'unsplash' \| null>` | Parent-supplied provider, reactive. |
+| Param                       | Type                                         | Purpose                                                          |
+|-----------------------------|----------------------------------------------|------------------------------------------------------------------|
+| `mediaStore`                | `ReturnType<typeof useMediaStore>`           | Injected media store. Required.                                  |
+| `publishingStore`           | `ReturnType<typeof usePublishingStore>`      | Injected publishing store. Required (channel list → limit calc). |
+| `initialChannelId`          | `MaybeRefOrGetter<string \| null>`           | Optional initial channel id. Read once on setup.                 |
+| `editingPublication`        | `MaybeRefOrGetter<Publication \| undefined>` | Reactive so edit-mode flips propagate.                           |
+| `isUnsplashProviderEnabled` | `MaybeRefOrGetter<boolean>`                  | Feature flag, reactive.                                          |
+| `provider`                  | `MaybeRefOrGetter<'unsplash' \| null>`       | Parent-supplied provider, reactive.                              |
 
 `MaybeRefOrGetter` (Vue 3.3+) is used for reactive inputs to avoid stale-closure bugs when
 parent props change after setup. The composable unwraps them with `toValue()` at the
@@ -60,6 +62,7 @@ read site.
 ### Outputs
 
 **Refs**
+
 - `isMediaPickerOpen: Ref<boolean>`
 - `mediaPickerCollectionState: Ref<ComposerMediaPickerCollectionState>`
 - `draftAttachmentIds: Ref<string[]>`
@@ -74,6 +77,7 @@ read site.
 - `providerImportResolution: Ref<Record<string, string>>`
 
 **Computeds**
+
 - `effectiveProvider: ComputedRef<'unsplash' | null>`
 - `activeChannels: ComputedRef<Channel[]>`
 - `effectiveAttachmentLimit: ComputedRef<number>`
@@ -83,6 +87,7 @@ read site.
 - `draftAttachmentAssets: ComputedRef<MediaAssetSummary[]>`
 
 **Methods**
+
 - `openMediaPicker()`
 - `closeMediaPicker()`
 - `togglePickerAsset(assetId: string)`
@@ -93,6 +98,7 @@ read site.
 - `handleProviderImport(payload: { externalId: string }): Promise<void>`
 
 **Internal-only (not re-exported, but accessible for tests via the return shape)**
+
 - `startAssetReconciliation`, `scheduleAssetReconciliation`, `stopReconciliationPoller`,
   `resetPickerSessionTracking`, `clearPendingPickerAsset`, `ensurePickerAssetVisible`,
   `addPendingPickerAsset`, `stageAssetOnce`, `getLibraryCollectionState`,
@@ -100,17 +106,20 @@ read site.
   `isAssetSelectableStatus`.
 
 **Constants** (exported for tests)
+
 - `RECONCILIATION_POLL_INTERVAL_MS = 1000`
 - `RECONCILIATION_MAX_ATTEMPTS = 5`
 
 ### Lifecycle ownership
 
 The composable owns the polling maps internally:
+
 - `reconciliationPollers: Map<string, ReturnType<typeof setTimeout>>` — internal.
 - `pickerSessionActiveAssetIds: Set<string>` — internal.
 - `pendingPickerAssets: Ref<string[]>` — exposed.
 
 It exposes:
+
 - `stopReconciliationPoller(assetId)` — internal
 - **`stopAllReconciliationPollers()` — exposed; modal MUST call it from `onUnmounted`.**
 
@@ -131,16 +140,16 @@ leak. The modal's `onUnmounted` call remains the primary contract.
 
 ## File Changes
 
-| File | Change | Notes |
-|------|--------|-------|
-| `apps/web/app/src/composables/useComposerMediaPicker.ts` | Added | New composable. Exports `useComposerMediaPicker`, `RECONCILIATION_POLL_INTERVAL_MS`, `RECONCILIATION_MAX_ATTEMPTS`. |
-| `apps/web/app/src/composables/useComposerMediaPicker.test.ts` | Added | Vitest unit tests with fake timers covering state transitions, auto-stage, manual deselect, limit enforcement, polling start/stop, provider search/import. |
-| `apps/web/app/src/components/CreatePostModal.vue` | Modified | Removes ~500 lines of picker orchestration. Replaces inline refs/methods with `const picker = useComposerMediaPicker(...)`. Removes `defineExpose({ __... })`. Wires `picker.*` into `<ComposerMediaPickerShell>` and `<MediaProviderPanel>`. Calls `picker.stopAllReconciliationPollers()` from `onUnmounted`. |
-| `apps/web/app/src/components/CreatePostModal.test.ts` | Modified | Same external contract; internals updated only where the test currently drives the modal via the now-removed `defineExpose` seam. No semantic assertion changes. (Audit confirmed: no test reads the `__...` keys today, so changes are likely zero.) |
-| `apps/web/app/src/components/composer/ComposerMediaPickerShell.vue` | **Unchanged** | Public props/emits stay identical. |
-| `apps/web/app/src/features/media-composer/providers/MediaProviderPanel.vue` | **Unchanged** | Public props/emits stay identical. |
-| `apps/web/app/src/components/composer/composer-media-picker.types.ts` | **Unchanged** | Types already cover the composable surface. |
-| `apps/web/app/src/stores/media.ts`, `stores/publishing.ts` | **Unchanged** | Injected as parameters; no signature change. |
+| File                                                                        | Change        | Notes                                                                                                                                                                                                                                                                                                           |
+|-----------------------------------------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `apps/web/app/src/composables/useComposerMediaPicker.ts`                    | Added         | New composable. Exports `useComposerMediaPicker`, `RECONCILIATION_POLL_INTERVAL_MS`, `RECONCILIATION_MAX_ATTEMPTS`.                                                                                                                                                                                             |
+| `apps/web/app/src/composables/useComposerMediaPicker.test.ts`               | Added         | Vitest unit tests with fake timers covering state transitions, auto-stage, manual deselect, limit enforcement, polling start/stop, provider search/import.                                                                                                                                                      |
+| `apps/web/app/src/components/CreatePostModal.vue`                           | Modified      | Removes ~500 lines of picker orchestration. Replaces inline refs/methods with `const picker = useComposerMediaPicker(...)`. Removes `defineExpose({ __... })`. Wires `picker.*` into `<ComposerMediaPickerShell>` and `<MediaProviderPanel>`. Calls `picker.stopAllReconciliationPollers()` from `onUnmounted`. |
+| `apps/web/app/src/components/CreatePostModal.test.ts`                       | Modified      | Same external contract; internals updated only where the test currently drives the modal via the now-removed `defineExpose` seam. No semantic assertion changes. (Audit confirmed: no test reads the `__...` keys today, so changes are likely zero.)                                                           |
+| `apps/web/app/src/components/composer/ComposerMediaPickerShell.vue`         | **Unchanged** | Public props/emits stay identical.                                                                                                                                                                                                                                                                              |
+| `apps/web/app/src/features/media-composer/providers/MediaProviderPanel.vue` | **Unchanged** | Public props/emits stay identical.                                                                                                                                                                                                                                                                              |
+| `apps/web/app/src/components/composer/composer-media-picker.types.ts`       | **Unchanged** | Types already cover the composable surface.                                                                                                                                                                                                                                                                     |
+| `apps/web/app/src/stores/media.ts`, `stores/publishing.ts`                  | **Unchanged** | Injected as parameters; no signature change.                                                                                                                                                                                                                                                                    |
 
 ## Key Decisions
 
@@ -174,6 +183,7 @@ leak. The modal's `onUnmounted` call remains the primary contract.
 ## Test Strategy
 
 **Unit tests (new file `useComposerMediaPicker.test.ts`)**
+
 - `vi.useFakeTimers()` + `vi.advanceTimersByTime()` for reconciliation polling.
 - Use a minimal store fake object (no full Pinia) — methods are plain `vi.fn()`s the
   composable calls. This matches the proposal's "inject fakes" guidance and is faster
@@ -182,7 +192,9 @@ leak. The modal's `onUnmounted` call remains the primary contract.
   and asserts the internal map is empty.
 
 **Required coverage**
-- open/close lifecycle: `openMediaPicker` seeds `mediaPickerCollectionState` and `pickerSelectionIds`,
+
+- open/close lifecycle: `openMediaPicker` seeds `mediaPickerCollectionState` and
+  `pickerSelectionIds`,
   `closeMediaPicker` clears staged state and stops pollers.
 - `applyPickerSelection` snapshot: confirms `pickerSessionActiveAssetIds` is reset and
   picker closes.
@@ -211,6 +223,7 @@ leak. The modal's `onUnmounted` call remains the primary contract.
   `mediaPickerCollectionState` flips to READY; prod-guard returns early with error.
 
 **Existing modal tests (`CreatePostModal.test.ts`)**
+
 - All assertions must continue passing with **no semantic changes**. The refactor only
   relocates code, it does not change observable behavior. The audit shows no test reads
   the `__...` keys, so the only test-file edits needed are housekeeping imports if a test
@@ -242,7 +255,8 @@ leak. The modal's `onUnmounted` call remains the primary contract.
 - **`pickerSessionUploadInput` ref.** The template binds `ref="pickerSessionUploadInput"`
   on a hidden file input. This is purely a modal-DOM concern (clearing `target.value` on
   change), not picker orchestration. **Stays in the modal.**
-- **`handleFileSelect` branching.** Currently `if (isMediaPickerOpen.value) handlePickerUploadSelection(...)`
+- **`handleFileSelect` branching.** Currently
+  `if (isMediaPickerOpen.value) handlePickerUploadSelection(...)`
   else `addFiles(...)`. After extraction, the modal calls
   `picker.handlePickerUploadSelection(files)` when open. The file's `@change` handler
   remains in the modal; only the routing changes.

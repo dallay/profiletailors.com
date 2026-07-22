@@ -6,8 +6,12 @@
 
 The system MUST provide email templates for notification content.
 
-The system MUST provide verification email content with a semantically complete plain-text body and a styled HTML body aligned with Profile Tailors design language. The system MUST include the same verification URL in both bodies. The system MUST preserve verification instructions, 24-hour expiry copy, and graceful fallback behavior when template rendering fails.
-(Previously: verification email templates allowed optional HTML or multipart output but only guaranteed plain text completeness.)
+The system MUST provide verification email content with a semantically complete plain-text body and
+a styled HTML body aligned with Profile Tailors design language. The system MUST include the same
+verification URL in both bodies. The system MUST preserve verification instructions, 24-hour expiry
+copy, and graceful fallback behavior when template rendering fails.
+(Previously: verification email templates allowed optional HTML or multipart output but only
+guaranteed plain text completeness.)
 
 #### Scenario: Verification email template rendered
 
@@ -45,8 +49,13 @@ The system MUST provide verification email content with a semantically complete 
 
 The system MUST use adapter pattern for email sending infrastructure.
 
-The system MUST define an email sender port in the application layer that accepts subject, recipient, and email content containing required text plus optional HTML. Sending adapters that support HTML MUST deliver both HTML and text when HTML is present. Mock and development adapters MUST expose enough text and HTML content to debug delivery and support assertions. Adapters MUST remain swappable without changing application code.
-(Previously: the sender port accepted a single body and did not require adapters to deliver or expose HTML plus text.)
+The system MUST define an email sender port in the application layer that accepts subject,
+recipient, and email content containing required text plus optional HTML. Sending adapters that
+support HTML MUST deliver both HTML and text when HTML is present. Mock and development adapters
+MUST expose enough text and HTML content to debug delivery and support assertions. Adapters MUST
+remain swappable without changing application code.
+(Previously: the sender port accepted a single body and did not require adapters to deliver or
+expose HTML plus text.)
 
 #### Scenario: Email sender port defined
 
@@ -82,8 +91,11 @@ The system MUST define an email sender port in the application layer that accept
 
 The system MUST generate verification email links from the configured public application URL.
 
-The system MUST separate the public app URL used in emails from backend API base URL concerns. Verification email links MUST use `app.email.public-app-url` plus `/verify-email?token=...` in both plain-text and HTML bodies. This change MUST NOT require new frontend behavior.
-(Previously: links used the configured public app URL and frontend route, but the exact route/query contract was not repeated for both text and HTML bodies.)
+The system MUST separate the public app URL used in emails from backend API base URL concerns.
+Verification email links MUST use `app.email.public-app-url` plus `/verify-email?token=...` in both
+plain-text and HTML bodies. This change MUST NOT require new frontend behavior.
+(Previously: links used the configured public app URL and frontend route, but the exact route/query
+contract was not repeated for both text and HTML bodies.)
 
 #### Scenario: Verification link uses configured public app URL
 

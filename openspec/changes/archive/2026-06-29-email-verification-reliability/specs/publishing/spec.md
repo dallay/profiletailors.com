@@ -4,9 +4,11 @@
 
 ### Requirement: Email Verification Required for Publishing and Social Connection
 
-The system MUST require `emailStatus = VERIFIED` before a user can publish content or connect a social account.
+The system MUST require `emailStatus = VERIFIED` before a user can publish content or connect a
+social account.
 
-This verification gate MUST apply consistently across immediate publishing, scheduled publishing requests, and social connection initiation or completion flows.
+This verification gate MUST apply consistently across immediate publishing, scheduled publishing
+requests, and social connection initiation or completion flows.
 
 #### Scenario: Unverified user cannot publish
 

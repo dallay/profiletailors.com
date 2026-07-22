@@ -5,23 +5,26 @@
 > draft and is blocked by `docs/compliance/legal-publication-gate.md`.
 
 **Archived**: 2026-07-17
-**Phase Sequence**: init → explore → propose → spec → design → tasks → apply (3 PRs) → verify (PASS) → archive
+**Phase Sequence**: init → explore → propose → spec → design → tasks → apply (3 PRs) → verify (
+PASS) → archive
 
 ## Summary
 
-Created four static legal policy pages (Privacy Policy, Terms of Service, Cookie Policy, Acceptable Use Policy) on the Astro marketing site, each in EN and ES, with footer navigation links and compliance-sourced content.
+Created four static legal policy pages (Privacy Policy, Terms of Service, Cookie Policy, Acceptable
+Use Policy) on the Astro marketing site, each in EN and ES, with footer navigation links and
+compliance-sourced content.
 
 ### Artifacts
 
-| Artifact | Path |
-|----------|------|
-| Proposal | `proposal.md` |
-| Spec | `spec.yaml` |
-| Design | `design.md` |
-| Tasks | `tasks.yaml` |
-| Apply progress | `apply-progress.md` |
-| Verification report | `verification.md` |
-| Archive report | `archive.md` |
+| Artifact            | Path                |
+|---------------------|---------------------|
+| Proposal            | `proposal.md`       |
+| Spec                | `spec.yaml`         |
+| Design              | `design.md`         |
+| Tasks               | `tasks.yaml`        |
+| Apply progress      | `apply-progress.md` |
+| Verification report | `verification.md`   |
+| Archive report      | `archive.md`        |
 
 ### Spec Synced
 

@@ -2,8 +2,10 @@
 
 > Last updated: 2026-07-08  
 > Primary UI: `https://pt-app.localhost:1355/` → `Create Post` modal  
-> Scope: composer inline attachments, local upload UX, media-library staging, social preview reconciliation, and attachment-limit behavior  
-> Evidence: live authenticated browser exploration with `dev@profiletailors.com` on the running frontend
+> Scope: composer inline attachments, local upload UX, media-library staging, social preview
+> reconciliation, and attachment-limit behavior  
+> Evidence: live authenticated browser exploration with `dev@profiletailors.com` on the running
+> frontend
 
 ## Overview
 
@@ -16,9 +18,11 @@ reviewing inline thumbnails, reconciling uploads, and validating staged picker b
 
 This plan intentionally separates:
 
-- **observable browser behavior** — inline preview cards, modal states, selection styling, preview swapping, focus retention;
+- **observable browser behavior** — inline preview cards, modal states, selection styling, preview
+  swapping, focus retention;
 - **network/protocol behavior** — upload progress, failure recovery, persisted asset reconciliation;
-- **non-browser invariants** — storage cleanup, exact upload state transitions, backend provider import contracts.
+- **non-browser invariants** — storage cleanup, exact upload state transitions, backend provider
+  import contracts.
 
 A passing browser test MUST only claim what the browser can observe.
 
@@ -26,67 +30,67 @@ A passing browser test MUST only claim what the browser can observe.
 
 Authenticated exploration on `2026-07-08` established the following current baseline in the live UI.
 
-| Area | Live evidence |
-|---|---|
-| Composer entry | `New Post` opens `CREATE POST` modal from dashboard |
-| Inline tile | The drag-drop/upload tile is a `118x118` dashed card labeled `Drag & drop or select a file` |
-| Local image preview | Uploading a local PNG shows an immediate inline preview card before persistence |
-| Local preview size | Inline preview card container is `118x118`; rendered image area is `116x116` |
-| Local filename rendering | Filename is not rendered as visible text below the preview |
-| Remove action | Local preview exposes `aria-label="Remove attachment <filename>"` and removal restores only the upload tile |
-| Social preview | Immediately after local selection, LinkedIn preview uses a `blob:` URL without waiting for persistence |
-| Media Library default source | Opening the picker from composer lands on `Library` |
-| Unsplash availability | This environment did **not** expose an `Unsplash` tab or provider switch |
-| Library selection visuals | Clicking a library card adds visual selected styling to the whole card (`border-[#8ccf70]`, darker background, subtle ring) |
-| Library deselection | Clicking the same selected card again removes selected styling |
-| Multi-select apply | Selecting multiple library items and applying renders inline previews in the composer |
-| Draft removal from library assets | Removing one library asset removes only that attachment and leaves the others intact |
-| Overflow presentation | With five staged attachments, the composer shows four inline cards plus a `+1` overflow card |
-| Overflow sizing | `+1` card is `118x118`, matching the upload tile footprint |
+| Area                                     | Live evidence                                                                                                                                         |
+|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Composer entry                           | `New Post` opens `CREATE POST` modal from dashboard                                                                                                   |
+| Inline tile                              | The drag-drop/upload tile is a `118x118` dashed card labeled `Drag & drop or select a file`                                                           |
+| Local image preview                      | Uploading a local PNG shows an immediate inline preview card before persistence                                                                       |
+| Local preview size                       | Inline preview card container is `118x118`; rendered image area is `116x116`                                                                          |
+| Local filename rendering                 | Filename is not rendered as visible text below the preview                                                                                            |
+| Remove action                            | Local preview exposes `aria-label="Remove attachment <filename>"` and removal restores only the upload tile                                           |
+| Social preview                           | Immediately after local selection, LinkedIn preview uses a `blob:` URL without waiting for persistence                                                |
+| Media Library default source             | Opening the picker from composer lands on `Library`                                                                                                   |
+| Unsplash availability                    | This environment did **not** expose an `Unsplash` tab or provider switch                                                                              |
+| Library selection visuals                | Clicking a library card adds visual selected styling to the whole card (`border-[#8ccf70]`, darker background, subtle ring)                           |
+| Library deselection                      | Clicking the same selected card again removes selected styling                                                                                        |
+| Multi-select apply                       | Selecting multiple library items and applying renders inline previews in the composer                                                                 |
+| Draft removal from library assets        | Removing one library asset removes only that attachment and leaves the others intact                                                                  |
+| Overflow presentation                    | With five staged attachments, the composer shows four inline cards plus a `+1` overflow card                                                          |
+| Overflow sizing                          | `+1` card is `118x118`, matching the upload tile footprint                                                                                            |
 | Social preview with multiple attachments | The visible LinkedIn preview shows a single media image at a time; browser evidence suggests the first visible/primary asset drives preview rendering |
 
 ### Evidence-backed status of requested behaviors
 
 The requested scenarios split into three categories:
 
-| Status | Meaning |
-|---|---|
-| **Observed live** | Verified directly in the browser during exploration |
+| Status                               | Meaning                                                                                            |
+|--------------------------------------|----------------------------------------------------------------------------------------------------|
+| **Observed live**                    | Verified directly in the browser during exploration                                                |
 | **Plannable, not directly observed** | UI exists, but the specific transient/network condition was not induced safely in live exploration |
-| **Environment-gated** | Could not be observed because the provider/flag was absent in this environment |
+| **Environment-gated**                | Could not be observed because the provider/flag was absent in this environment                     |
 
-| # | Topic | Status |
-|---|---|---|
-| 1 | Local select-file shows immediate inline thumbnail | Observed live |
-| 2 | Drag & drop local image shows inline thumbnail | Plannable, not directly observed |
-| 3 | Local inline thumbnail matches tile size/proportion | Observed live |
-| 4 | Filename hidden below thumbnail, only tooltip on hover | Partially observed live; visible filename absent, tooltip not exposed in current DOM |
-| 5 | Removing local thumbnail clears transient state and leaves tile only | Observed live |
-| 6 | Removing Media Library thumbnail removes only that asset | Observed live |
-| 7 | Uploading local thumbnail shows overlay + spinner + state text + progress bar | Plannable, not directly observed |
-| 8 | Loader appears only for true `uploading` state | Plannable, not directly observed |
-| 9 | Upload progress text/bar update over time | Plannable, not directly observed |
-| 10 | Final progress text changes to `Finishing up...` | Plannable, not directly observed |
-| 11 | User can keep typing while local upload is in progress | Plannable, not directly observed |
-| 12 | Successful local upload reconciles from loader to persisted asset | Plannable, partially evidenced by blob-first behavior |
-| 13 | Failed local upload exits uploading state cleanly | Plannable, not directly observed |
-| 14 | Library card selection changes full-card visual state | Observed live |
-| 15 | Clicking selected library image deselects it | Observed live |
-| 16 | Multiple selected/non-selected images remain distinguishable | Observed live |
-| 17 | Media modal defaults to `Library` | Observed live |
-| 18 | If Unsplash enabled, modal shows `Library` + `Unsplash` and allows switching | Environment-gated |
-| 19 | If Unsplash disabled, modal hides `Unsplash` | Observed live in this environment |
-| 20 | Switching Library → Unsplash preserves staged selection | Environment-gated |
-| 21 | Unsplash search renders results inside same modal container | Environment-gated |
-| 22 | Unsplash import keeps modal open and reconciles inside picker flow | Environment-gated |
-| 23 | Unsplash import ends as selected composer attachment | Environment-gated |
-| 24 | Apply blocked when staged selection exceeds active-channel attachment limit | Plannable, not directly observed |
-| 25 | Limit warning appears for workspace assets and external imports alike | External-import half environment-gated |
-| 26 | More than four inline attachments show `+N` card | Observed live |
-| 27 | `+N` card matches tile and thumbnail size | Observed live |
-| 28 | Social preview uses local blob immediately after local selection | Observed live |
-| 29 | Social preview swaps from blob to persisted asset after upload completes | Plannable, not directly observed |
-| 30 | Local inline flow accepts only first valid file from multiple local files | Plannable, not directly observed |
+| #  | Topic                                                                         | Status                                                                               |
+|----|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| 1  | Local select-file shows immediate inline thumbnail                            | Observed live                                                                        |
+| 2  | Drag & drop local image shows inline thumbnail                                | Plannable, not directly observed                                                     |
+| 3  | Local inline thumbnail matches tile size/proportion                           | Observed live                                                                        |
+| 4  | Filename hidden below thumbnail, only tooltip on hover                        | Partially observed live; visible filename absent, tooltip not exposed in current DOM |
+| 5  | Removing local thumbnail clears transient state and leaves tile only          | Observed live                                                                        |
+| 6  | Removing Media Library thumbnail removes only that asset                      | Observed live                                                                        |
+| 7  | Uploading local thumbnail shows overlay + spinner + state text + progress bar | Plannable, not directly observed                                                     |
+| 8  | Loader appears only for true `uploading` state                                | Plannable, not directly observed                                                     |
+| 9  | Upload progress text/bar update over time                                     | Plannable, not directly observed                                                     |
+| 10 | Final progress text changes to `Finishing up...`                              | Plannable, not directly observed                                                     |
+| 11 | User can keep typing while local upload is in progress                        | Plannable, not directly observed                                                     |
+| 12 | Successful local upload reconciles from loader to persisted asset             | Plannable, partially evidenced by blob-first behavior                                |
+| 13 | Failed local upload exits uploading state cleanly                             | Plannable, not directly observed                                                     |
+| 14 | Library card selection changes full-card visual state                         | Observed live                                                                        |
+| 15 | Clicking selected library image deselects it                                  | Observed live                                                                        |
+| 16 | Multiple selected/non-selected images remain distinguishable                  | Observed live                                                                        |
+| 17 | Media modal defaults to `Library`                                             | Observed live                                                                        |
+| 18 | If Unsplash enabled, modal shows `Library` + `Unsplash` and allows switching  | Environment-gated                                                                    |
+| 19 | If Unsplash disabled, modal hides `Unsplash`                                  | Observed live in this environment                                                    |
+| 20 | Switching Library → Unsplash preserves staged selection                       | Environment-gated                                                                    |
+| 21 | Unsplash search renders results inside same modal container                   | Environment-gated                                                                    |
+| 22 | Unsplash import keeps modal open and reconciles inside picker flow            | Environment-gated                                                                    |
+| 23 | Unsplash import ends as selected composer attachment                          | Environment-gated                                                                    |
+| 24 | Apply blocked when staged selection exceeds active-channel attachment limit   | Plannable, not directly observed                                                     |
+| 25 | Limit warning appears for workspace assets and external imports alike         | External-import half environment-gated                                               |
+| 26 | More than four inline attachments show `+N` card                              | Observed live                                                                        |
+| 27 | `+N` card matches tile and thumbnail size                                     | Observed live                                                                        |
+| 28 | Social preview uses local blob immediately after local selection              | Observed live                                                                        |
+| 29 | Social preview swaps from blob to persisted asset after upload completes      | Plannable, not directly observed                                                     |
+| 30 | Local inline flow accepts only first valid file from multiple local files     | Plannable, not directly observed                                                     |
 
 ## Changes
 
@@ -105,26 +109,26 @@ covers inline attachment UX that the library-wide plan does not describe in enou
 
 ### Preconditions
 
-| Requirement | Check |
-|---|---|
-| Frontend | `https://pt-app.localhost:1355` is running and reachable |
-| Auth | Test user can sign in with local credentials |
-| Active channel | Composer opens with at least one active channel selected |
-| Media fixtures | Test workspace contains at least 5 READY image assets for picker scenarios |
-| Upload fixtures | Local test files include valid image(s), invalid file(s), and multi-file selections |
-| Browser support | Playwright worker can upload files and perform drag-and-drop |
-| Network control | Mocked mode or interceptable backend is available for progress/failure scenarios |
-| Feature flags | Unsplash-enabled and Unsplash-disabled environments are both available for provider coverage |
-| Limits | At least one channel exposes a finite `maxAttachments` low enough to test overflow/limit blocking |
+| Requirement     | Check                                                                                             |
+|-----------------|---------------------------------------------------------------------------------------------------|
+| Frontend        | `https://pt-app.localhost:1355` is running and reachable                                          |
+| Auth            | Test user can sign in with local credentials                                                      |
+| Active channel  | Composer opens with at least one active channel selected                                          |
+| Media fixtures  | Test workspace contains at least 5 READY image assets for picker scenarios                        |
+| Upload fixtures | Local test files include valid image(s), invalid file(s), and multi-file selections               |
+| Browser support | Playwright worker can upload files and perform drag-and-drop                                      |
+| Network control | Mocked mode or interceptable backend is available for progress/failure scenarios                  |
+| Feature flags   | Unsplash-enabled and Unsplash-disabled environments are both available for provider coverage      |
+| Limits          | At least one channel exposes a finite `maxAttachments` low enough to test overflow/limit blocking |
 
 ### Recommended execution lanes
 
-| Lane | Layer | Purpose | CI |
-|---|---|---|---|
-| `@composer-ui-mocked` | Playwright with stateful route mocks | Deterministic progress, failure, limit, and provider-state scenarios | PR |
-| `@composer-smoke-real` | Playwright against live backend | Prove local preview, library selection, removal, and overflow basics | scheduled/manual |
-| `@composer-provider-real` | Playwright against provider-enabled environment | Prove real Unsplash tab/search/import integration | deferred |
-| `@backend-contract` | API/integration tests, no browser | True upload-state semantics, provider import lifecycle, attachment-limit business rules | separate |
+| Lane                      | Layer                                           | Purpose                                                                                 | CI               |
+|---------------------------|-------------------------------------------------|-----------------------------------------------------------------------------------------|------------------|
+| `@composer-ui-mocked`     | Playwright with stateful route mocks            | Deterministic progress, failure, limit, and provider-state scenarios                    | PR               |
+| `@composer-smoke-real`    | Playwright against live backend                 | Prove local preview, library selection, removal, and overflow basics                    | scheduled/manual |
+| `@composer-provider-real` | Playwright against provider-enabled environment | Prove real Unsplash tab/search/import integration                                       | deferred         |
+| `@backend-contract`       | API/integration tests, no browser               | True upload-state semantics, provider import lifecycle, attachment-limit business rules | separate         |
 
 Use **real-browser** coverage only where browser-visible evidence matters. Use **mocked** coverage
 for transient upload states that are too timing-sensitive or expensive to rely on in the live
@@ -198,7 +202,8 @@ visible filename caption below the image.
 - **When** the author hovers the preview card and its remove affordance
 - **Then** the filename exposure mechanism SHALL match the product contract
 - **And** if the contract is tooltip-based, the tooltip text SHALL match the selected filename
-- **And** if the current implementation uses only accessible naming on the remove button, the test SHALL flag drift rather than silently passing tooltip expectations
+- **And** if the current implementation uses only accessible naming on the remove button, the test
+  SHALL flag drift rather than silently passing tooltip expectations
 
 ### Requirement: Removing attachments MUST be scoped and consistent
 
@@ -207,7 +212,8 @@ state consistent.
 
 #### Scenario: Removing local inline preview restores tile-only state
 
-- **Given** exactly one local inline preview exists and has not yet become a persisted visible selection
+- **Given** exactly one local inline preview exists and has not yet become a persisted visible
+  selection
 - **When** the author clicks the preview remove button
 - **Then** the inline preview SHALL disappear
 - **And** transient local attachment state SHALL be cleared
@@ -310,7 +316,8 @@ The picker must clearly communicate staged selection state at the card level.
 - **Given** the media picker is open in `Library`
 - **When** the author clicks one READY asset card
 - **Then** the full card SHALL show selected styling
-- **And** selected styling SHALL include card-level visual change such as border, background/overlay, or confirmation affordance
+- **And** selected styling SHALL include card-level visual change such as border,
+  background/overlay, or confirmation affordance
 
 #### Scenario: Clicking selected card deselects it
 
@@ -431,11 +438,11 @@ card without disturbing layout consistency.
 
 The suite SHALL organize composer scenarios into three Playwright lane projects.
 
-| Tag | Project | Purpose | CI |
-|---|---|---|---|
-| `@composer-ui-mocked` | `media-mocked-chromium` | Progress / failure / limit / deselection | PR |
-| `@composer-smoke-real` | `media-real-chromium` | Real-backend happy paths | scheduled/manual |
-| `@composer-provider-real` | `media-real-chromium` | Real Unsplash | deferred |
+| Tag                       | Project                 | Purpose                                  | CI               |
+|---------------------------|-------------------------|------------------------------------------|------------------|
+| `@composer-ui-mocked`     | `media-mocked-chromium` | Progress / failure / limit / deselection | PR               |
+| `@composer-smoke-real`    | `media-real-chromium`   | Real-backend happy paths                 | scheduled/manual |
+| `@composer-provider-real` | `media-real-chromium`   | Real Unsplash                            | deferred         |
 
 #### Scenario: Single lane tag per scenario
 
@@ -526,11 +533,11 @@ failure, and per-scenario tag in the report header.
 The implementation MUST cover 26 of 30 plan items browser-observable today. Items 18, 20, 21, 22,
 23 (Unsplash provider real flows) are environment-gated and deferred.
 
-| Plan items | Lane | Coverage |
-|---|---|---|
-| 1, 3, 5, 14-17, 19, 26, 27, 28 | `@composer-smoke-real` | Live-observable behavior |
-| 2, 4, 6, 7-13, 24, 25, 29, 30 | `@composer-ui-mocked` | Stateful mocked scenarios |
-| 18, 20, 21, 22, 23 | `@composer-provider-real` | **Deferred** - needs real Unsplash |
+| Plan items                     | Lane                      | Coverage                           |
+|--------------------------------|---------------------------|------------------------------------|
+| 1, 3, 5, 14-17, 19, 26, 27, 28 | `@composer-smoke-real`    | Live-observable behavior           |
+| 2, 4, 6, 7-13, 24, 25, 29, 30  | `@composer-ui-mocked`     | Stateful mocked scenarios          |
+| 18, 20, 21, 22, 23             | `@composer-provider-real` | **Deferred** - needs real Unsplash |
 
 #### Scenario: Deferred rationale is recorded
 
@@ -566,12 +573,12 @@ seam. `page.waitForTimeout` is prohibited for deterministic assertions.
 
 ### Local upload fixtures
 
-| Fixture | Purpose |
-|---|---|
-| `inline-image.png` | Basic valid local image for select-file and drag-drop flows |
-| `inline-image-2.png` | Second valid local image for multi-file ordering checks |
-| `inline-image-large.png` | Larger valid image for progress-state scenarios |
-| `invalid.txt` | Unsupported file type rejection |
+| Fixture                       | Purpose                                                      |
+|-------------------------------|--------------------------------------------------------------|
+| `inline-image.png`            | Basic valid local image for select-file and drag-drop flows  |
+| `inline-image-2.png`          | Second valid local image for multi-file ordering checks      |
+| `inline-image-large.png`      | Larger valid image for progress-state scenarios              |
+| `invalid.txt`                 | Unsupported file type rejection                              |
 | `multi-first-valid/` manifest | Explicit ordered list for “first valid file only” assertions |
 
 ### Workspace media prerequisites
@@ -640,7 +647,8 @@ If modal open/close is animation-sensitive in Playwright:
 
 If the social preview media element is unstable:
 
-1. assert the media source URL kind (`blob:` vs `/api/media/assets/...`) rather than pixel screenshots first;
+1. assert the media source URL kind (`blob:` vs `/api/media/assets/...`) rather than pixel
+   screenshots first;
 2. add a visual snapshot only after the source transition is stable.
 
 ### Library selection styling
@@ -661,5 +669,7 @@ If Unsplash is absent in local dev:
 
 - `openspec/specs/e2e/cas-media-library-test-plan.md` — broader media-library and CAS coverage
 - `apps/web/app/e2e/pages/compose-modal-page.ts` — existing page object with basic composer locators
-- `apps/web/app/src/composables/useComposerMediaPicker.ts` — picker staging, source switching, attachment limits, and provider import/search stubs
-- `apps/web/app/src/components/composer/composer-media-picker.types.ts` — picker source and asset-state types
+- `apps/web/app/src/composables/useComposerMediaPicker.ts` — picker staging, source switching,
+  attachment limits, and provider import/search stubs
+- `apps/web/app/src/components/composer/composer-media-picker.types.ts` — picker source and
+  asset-state types

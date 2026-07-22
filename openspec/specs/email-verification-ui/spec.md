@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Define the SPA-owned email verification landing flow that consumes verification tokens, submits them to the backend verification contract, and presents user-facing verification outcomes.
+Define the SPA-owned email verification landing flow that consumes verification tokens, submits them
+to the backend verification contract, and presents user-facing verification outcomes.
 
 ## Requirements
 

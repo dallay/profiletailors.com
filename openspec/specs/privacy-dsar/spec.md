@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Define the Data Subject Access Request (DSAR) aggregate, lifecycle state machine, request types, authorization model, rate limits, audit requirements, deletion workflow, and frontend UI for ACCESS, EXPORT, CORRECTION, and DELETION requests under GDPR/CCPA.
+Define the Data Subject Access Request (DSAR) aggregate, lifecycle state machine, request types,
+authorization model, rate limits, audit requirements, deletion workflow, and frontend UI for ACCESS,
+EXPORT, CORRECTION, and DELETION requests under GDPR/CCPA.
 
 ---
 
@@ -10,16 +12,22 @@ Define the Data Subject Access Request (DSAR) aggregate, lifecycle state machine
 
 ### Requirement: DSAR Request Types and State Machine
 
-The system MUST support four DSAR types: `ACCESS`, `EXPORT`, `CORRECTION`, `DELETION`. Every request MUST follow the state machine: `PENDING → COMPLETED | REJECTED | FAILED`. Transitions from `COMPLETED`, `REJECTED`, or `FAILED` MUST be terminal. A `REJECTED` request MUST carry a `rejection_reason`.
+The system MUST support four DSAR types: `ACCESS`, `EXPORT`, `CORRECTION`, `DELETION`. Every request
+MUST follow the state machine: `PENDING → COMPLETED | REJECTED | FAILED`. Transitions from
+`COMPLETED`, `REJECTED`, or `FAILED` MUST be terminal. A `REJECTED` request MUST carry a
+`rejection_reason`.
 
-| From | To | Trigger |
-|------|----|---------|
-| PENDING | COMPLETED | Handler finishes successfully |
-| PENDING | REJECTED | Validation failure or manual rejection |
-| PENDING | FAILED | Unrecoverable system error |
-| Any terminal | — | No further transitions allowed |
+| From         | To        | Trigger                                |
+|--------------|-----------|----------------------------------------|
+| PENDING      | COMPLETED | Handler finishes successfully          |
+| PENDING      | REJECTED  | Validation failure or manual rejection |
+| PENDING      | FAILED    | Unrecoverable system error             |
+| Any terminal | —         | No further transitions allowed         |
 
-Note: `IN_REVIEW` was considered during design but intentionally omitted from the initial implementation. The state machine transitions directly from `PENDING` to a terminal state. If a manual review step is needed in the future, `IN_REVIEW` can be reintroduced as a non-terminal intermediate state between `PENDING` and `COMPLETED | REJECTED`.
+Note: `IN_REVIEW` was considered during design but intentionally omitted from the initial
+implementation. The state machine transitions directly from `PENDING` to a terminal state. If a
+manual review step is needed in the future, `IN_REVIEW` can be reintroduced as a non-terminal
+intermediate state between `PENDING` and `COMPLETED | REJECTED`.
 
 #### Scenario: Full lifecycle for a successful request
 
@@ -41,22 +49,22 @@ Note: `IN_REVIEW` was considered during design but intentionally omitted from th
 
 `DataSubjectRequest` MUST be an aggregate root with the following fields:
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | `DataSubjectRequestId` | Value type wrapping UUID |
-| `type` | `DsarType` | `ACCESS`, `EXPORT`, `CORRECTION`, `DELETION` |
-| `status` | `DsarStatus` | `PENDING`, `COMPLETED`, `REJECTED`, `FAILED` |
-| `requested_by` | `PrincipalId` | Submitting principal |
-| `requested_by_email` | String | Snapshot of email at time of request |
-| `workspace_id` | `WorkspaceId?` | Null for global (e.g., deletion spans all workspaces) |
-| `notes` | String? | Optional user-provided notes |
-| `correction_data` | JSON? | Fields to correct (for `CORRECTION` type) |
-| `result_ref` | String? | URL or path to result payload |
-| `created_at` | Instant | |
-| `updated_at` | Instant | |
-| `completed_at` | Instant? | Set when terminal |
-| `expires_at` | Instant? | Result download expiry |
-| `rejection_reason` | String? | Required for `REJECTED` |
+| Field                | Type                   | Notes                                                 |
+|----------------------|------------------------|-------------------------------------------------------|
+| `id`                 | `DataSubjectRequestId` | Value type wrapping UUID                              |
+| `type`               | `DsarType`             | `ACCESS`, `EXPORT`, `CORRECTION`, `DELETION`          |
+| `status`             | `DsarStatus`           | `PENDING`, `COMPLETED`, `REJECTED`, `FAILED`          |
+| `requested_by`       | `PrincipalId`          | Submitting principal                                  |
+| `requested_by_email` | String                 | Snapshot of email at time of request                  |
+| `workspace_id`       | `WorkspaceId?`         | Null for global (e.g., deletion spans all workspaces) |
+| `notes`              | String?                | Optional user-provided notes                          |
+| `correction_data`    | JSON?                  | Fields to correct (for `CORRECTION` type)             |
+| `result_ref`         | String?                | URL or path to result payload                         |
+| `created_at`         | Instant                |                                                       |
+| `updated_at`         | Instant                |                                                       |
+| `completed_at`       | Instant?               | Set when terminal                                     |
+| `expires_at`         | Instant?               | Result download expiry                                |
+| `rejection_reason`   | String?                | Required for `REJECTED`                               |
 
 #### Scenario: Aggregate is created in PENDING state
 
@@ -69,10 +77,12 @@ Note: `IN_REVIEW` was considered during design but intentionally omitted from th
 ### Requirement: Authorization
 
 The system MUST allow only the following to submit a DSAR:
+
 - **The data subject themselves** (authenticated as the `USER` principal matching `requested_by`)
 - **Workspace admins** for workspace-scoped requests affecting workspace members
 
-DELETION requests MUST require the subject's own identity. Admins MUST NOT submit deletion on behalf of others.
+DELETION requests MUST require the subject's own identity. Admins MUST NOT submit deletion on behalf
+of others.
 
 #### Scenario: User submits own DSAR
 
@@ -90,12 +100,12 @@ DELETION requests MUST require the subject's own identity. Admins MUST NOT submi
 
 The system MUST enforce:
 
-| Limit | Value |
-|-------|-------|
-| Max DSAR requests per user per day | 3 |
-| Correction cooldown | 7 days between successful corrections of the same field |
-| Max export payload size (inline) | 10 MB |
-| Download URL TTL | 7 days |
+| Limit                              | Value                                                   |
+|------------------------------------|---------------------------------------------------------|
+| Max DSAR requests per user per day | 3                                                       |
+| Correction cooldown                | 7 days between successful corrections of the same field |
+| Max export payload size (inline)   | 10 MB                                                   |
+| Download URL TTL                   | 7 days                                                  |
 
 #### Scenario: Rate limit blocks fourth request
 
@@ -105,15 +115,17 @@ The system MUST enforce:
 
 ### Requirement: Audit
 
-Every DSAR lifecycle event MUST be logged to `audit_events` via a `PrivacyMutationAuditor`. The auditor SHALL follow the `TenancyMutationAuditor` pattern. Cross-workspace DSAR events MUST use a sentinel `workspace_id` value to distinguish them from workspace-scoped events.
+Every DSAR lifecycle event MUST be logged to `audit_events` via a `PrivacyMutationAuditor`. The
+auditor SHALL follow the `TenancyMutationAuditor` pattern. Cross-workspace DSAR events MUST use a
+sentinel `workspace_id` value to distinguish them from workspace-scoped events.
 
-| Event | `event_type` |
-|-------|-------------|
-| DSAR submitted | `dsar.submitted` |
+| Event              | `event_type`          |
+|--------------------|-----------------------|
+| DSAR submitted     | `dsar.submitted`      |
 | DSAR status change | `dsar.status_changed` |
-| DSAR completed | `dsar.completed` |
-| DSAR rejected | `dsar.rejected` |
-| DSAR failed | `dsar.failed` |
+| DSAR completed     | `dsar.completed`      |
+| DSAR rejected      | `dsar.rejected`       |
+| DSAR failed        | `dsar.failed`         |
 
 #### Scenario: DSAR lifecycle is fully audited
 
@@ -124,11 +136,13 @@ Every DSAR lifecycle event MUST be logged to `audit_events` via a `PrivacyMutati
 ### Requirement: Deletion Request Pre-Validation
 
 Before any deletion phase, the system MUST validate:
+
 1. The principal is not the sole owner of any workspace (`WorkspaceOwnershipPolicy`)
 2. No publications are in `PENDING`/`PUBLISHING` state
 3. No outstanding contractual obligations (active subscriptions)
 
-If sole owner, the system MUST reject with `sole_workspace_owner` and a message directing to transfer ownership first.
+If sole owner, the system MUST reject with `sole_workspace_owner` and a message directing to
+transfer ownership first.
 
 #### Scenario: Deletion blocked for sole workspace owner
 
@@ -139,43 +153,43 @@ If sole owner, the system MUST reject with `sole_workspace_owner` and a message 
 
 ### Requirement: Deletion Phase 1 — Anonymization
 
-| Table | Action |
-|-------|--------|
-| `user_identities` | Replace `email`, `username` with `[REDACTED on {timestamp}]` |
-| `principals.display_identity` | Set to `[REDACTED]` |
-| `audit_events.details_json` | Redact PII via scan-and-replace |
-| `waitlist_entries` | Anonymize email and clear metadata for matching entries |
-| `email_verification_tokens` | Delete all tokens for the principal |
+| Table                         | Action                                                       |
+|-------------------------------|--------------------------------------------------------------|
+| `user_identities`             | Replace `email`, `username` with `[REDACTED on {timestamp}]` |
+| `principals.display_identity` | Set to `[REDACTED]`                                          |
+| `audit_events.details_json`   | Redact PII via scan-and-replace                              |
+| `waitlist_entries`            | Anonymize email and clear metadata for matching entries      |
+| `email_verification_tokens`   | Delete all tokens for the principal                          |
 
 ### Requirement: Deletion Phase 2 — Removal
 
-| Entity | Action |
-|--------|--------|
+| Entity                  | Action                                      |
+|-------------------------|---------------------------------------------|
 | `workspace_memberships` | Set status to `REMOVED` for all memberships |
-| `refresh_sessions` | Delete all sessions |
-| `api_key_credentials` | Delete all API keys |
-| `social_connections` | Delete OAuth connections |
-| `secure_credentials` | Delete encrypted tokens |
+| `refresh_sessions`      | Delete all sessions                         |
+| `api_key_credentials`   | Delete all API keys                         |
+| `social_connections`    | Delete OAuth connections                    |
+| `secure_credentials`    | Delete encrypted tokens                     |
 
 ### Requirement: Deletion Phase 3 — Cleanup
 
-| Entity | Action |
-|--------|--------|
-| `media_assets` | Set status to `DELETED` |
-| `workspace_file_blobs` | Set status to `READY_FOR_GC` |
-| `publications` | Cancel any `DRAFT`/`SCHEDULED`/`QUEUED` publications |
+| Entity                 | Action                                               |
+|------------------------|------------------------------------------------------|
+| `media_assets`         | Set status to `DELETED`                              |
+| `workspace_file_blobs` | Set status to `READY_FOR_GC`                         |
+| `publications`         | Cancel any `DRAFT`/`SCHEDULED`/`QUEUED` publications |
 
 ### Requirement: Legal Holds — What Cannot Be Deleted
 
 The following tables MUST NOT have rows deleted or anonymized beyond PII redaction:
 
-| Table | Reason |
-|-------|--------|
-| `audit_events` | Legal obligation (GDPR Art. 17.3.b) |
-| `delivery_attempts` | Delivery proof |
-| `consent_records` | Consent proof |
-| `publications` (completed only) | Published content history |
-| `local_password_credentials` | Auth audit (anonymize principal reference if needed) |
+| Table                           | Reason                                               |
+|---------------------------------|------------------------------------------------------|
+| `audit_events`                  | Legal obligation (GDPR Art. 17.3.b)                  |
+| `delivery_attempts`             | Delivery proof                                       |
+| `consent_records`               | Consent proof                                        |
+| `publications` (completed only) | Published content history                            |
+| `local_password_credentials`    | Auth audit (anonymize principal reference if needed) |
 
 #### Scenario: Deletion completes all three phases
 
@@ -190,15 +204,15 @@ The following tables MUST NOT have rows deleted or anonymized beyond PII redacti
 
 The settings page MUST include a "Privacy" section with:
 
-| Component | Behavior |
-|-----------|----------|
-| Request type selector | Dropdown: Access, Export, Correction, Deletion |
-| Notes field | Optional textarea for user context |
-| Submit button | Creates DSAR, shows confirmation |
-| Status list | Table of past requests: type, status, submitted date, download link |
-| Download link | Visible when EXPORT/ACCESS is COMPLETED with result URL |
-| Correction form | Email and username fields with validation |
-| Deletion warning | Confirmation dialog warning of irreversible action |
+| Component             | Behavior                                                            |
+|-----------------------|---------------------------------------------------------------------|
+| Request type selector | Dropdown: Access, Export, Correction, Deletion                      |
+| Notes field           | Optional textarea for user context                                  |
+| Submit button         | Creates DSAR, shows confirmation                                    |
+| Status list           | Table of past requests: type, status, submitted date, download link |
+| Download link         | Visible when EXPORT/ACCESS is COMPLETED with result URL             |
+| Correction form       | Email and username fields with validation                           |
+| Deletion warning      | Confirmation dialog warning of irreversible action                  |
 
 #### Scenario: User submits an export request from settings
 

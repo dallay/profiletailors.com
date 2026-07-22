@@ -42,7 +42,9 @@ shared:lead-capture:common  ←── shared:lead-capture:waitlist
                           server:smp (implements ports)
 ```
 
-`shared:lead-capture:waitlist` depends on `shared:lead-capture:common`. Neither depends on `server:smp` or any framework. `server:smp` depends on both shared modules and provides infrastructure adapters.
+`shared:lead-capture:waitlist` depends on `shared:lead-capture:common`. Neither depends on
+`server:smp` or any framework. `server:smp` depends on both shared modules and provides
+infrastructure adapters.
 
 ### Gradle Configuration
 
@@ -56,29 +58,38 @@ dependencies {
 }
 ```
 
-Or more simply: do not add Spring/R2DBC to the dependencies at all. Use `kotlin-test` only for testing.
+Or more simply: do not add Spring/R2DBC to the dependencies at all. Use `kotlin-test` only for
+testing.
 
 ## Key Design Decisions
 
 ### 1. Consent lives in waitlist, not common
 
-`WaitlistConsent` is inside the waitlist domain because consent is bounded-context-specific. Different bounded contexts (newsletter, forms) will have different consent models. Putting a `ConsentSnapshot` in `common` would couple all contexts to one consent schema.
+`WaitlistConsent` is inside the waitlist domain because consent is bounded-context-specific.
+Different bounded contexts (newsletter, forms) will have different consent models. Putting a
+`ConsentSnapshot` in `common` would couple all contexts to one consent schema.
 
 ### 2. Idempotent join via uniform response
 
-The `JoinWaitlistHandler` internally distinguishes `joined_new`, `already_joined`, and `reactivated` for metrics/events. The public response is always `{ "message": "You're on the list.", "status": "accepted" }`. This prevents email enumeration.
+The `JoinWaitlistHandler` internally distinguishes `joined_new`, `already_joined`, and `reactivated`
+for metrics/events. The public response is always
+`{ "message": "You're on the list.", "status": "accepted" }`. This prevents email enumeration.
 
 ### 3. Conservative email normalization
 
-`NormalizedEmail` does trim + lowercase only. No Gmail dot/plus canonicalization. This avoids edge-case bugs and preserves the original email. The original and normalized values are both stored.
+`NormalizedEmail` does trim + lowercase only. No Gmail dot/plus canonicalization. This avoids
+edge-case bugs and preserves the original email. The original and normalized values are both stored.
 
 ### 4. Per-waitlist deduplication
 
-`UNIQUE(waitlist_id, email_normalized)` — the same email can join different waitlists. Global deduplication would prevent cross-product reuse.
+`UNIQUE(waitlist_id, email_normalized)` — the same email can join different waitlists. Global
+deduplication would prevent cross-product reuse.
 
 ### 5. Metadata whitelist
 
-`LeadMetadata` enforces a fixed key set: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `referrer`, `page_path`, `user_agent_family`, `consent_version`. Unlisted keys are rejected. This prevents PII leakage through metadata.
+`LeadMetadata` enforces a fixed key set: `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`,
+`utm_term`, `referrer`, `page_path`, `user_agent_family`, `consent_version`. Unlisted keys are
+rejected. This prevents PII leakage through metadata.
 
 ## Sequence: Join Waitlist
 
@@ -100,6 +111,8 @@ Client → POST /api/waitlists/{waitlistKey}/entries
 ## Enforcement
 
 - Gradle: `shared:lead-capture:*` modules do not include Spring or R2DBC in dependencies.
-- ArchUnit: tests forbid `shared/lead-capture/**` from importing `org.springframework.*`, `io.r2dbc.*`, or `com.profiletailors.smp.*`.
-- Domain tests: assert `earlyAccess` required, `marketing` default false, idempotent dedupe, valid lifecycle transitions.
+- ArchUnit: tests forbid `shared/lead-capture/**` from importing `org.springframework.*`,
+  `io.r2dbc.*`, or `com.profiletailors.smp.*`.
+- Domain tests: assert `earlyAccess` required, `marketing` default false, idempotent dedupe, valid
+  lifecycle transitions.
 - HTTP tests: assert 202 (new + duplicate), 400, 404, 409, 429.

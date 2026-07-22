@@ -165,7 +165,9 @@ The system MUST support the following authentication mechanisms in phase one:
 
 ### Requirement: User Identity PII Anonymization
 
-The Identity context MUST support anonymization of PII fields in `user_identities` (`email`, `username` → `[REDACTED on {timestamp}]`) and `principals.display_identity` (→ `[REDACTED]`). The operation MUST be idempotent: calling anonymize on an already-anonymized record MUST NOT fail.
+The Identity context MUST support anonymization of PII fields in `user_identities` (`email`,
+`username` → `[REDACTED on {timestamp}]`) and `principals.display_identity` (→ `[REDACTED]`). The
+operation MUST be idempotent: calling anonymize on an already-anonymized record MUST NOT fail.
 
 #### Scenario: Anonymize replaces PII fields
 
@@ -183,7 +185,9 @@ The Identity context MUST support anonymization of PII fields in `user_identitie
 
 ### Requirement: PII Correction Through CQRS
 
-The Identity context MUST expose a `CorrectUserIdentityCommand` handler for `email` and `username`. Validation: `email` MUST match RFC 5322; `username` MUST be 3–50 alphanumeric characters. The handler MUST return old values as a snapshot for rollback.
+The Identity context MUST expose a `CorrectUserIdentityCommand` handler for `email` and `username`.
+Validation: `email` MUST match RFC 5322; `username` MUST be 3–50 alphanumeric characters. The
+handler MUST return old values as a snapshot for rollback.
 
 #### Scenario: Correction validates email format
 
@@ -239,7 +243,8 @@ preserved across all proving-slice endpoints.
 
 ### Requirement: Existing Authentication Remains Available
 
-Registration availability MUST NOT alter login, refresh, or authentication of existing users in either configuration state.
+Registration availability MUST NOT alter login, refresh, or authentication of existing users in
+either configuration state.
 
 #### Scenario: Existing user authenticates while registration is disabled
 

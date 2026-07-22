@@ -6,21 +6,25 @@
 
 ## Context
 
-Profile Tailors needs a waitlist for the MVP launch (`profile-tailors-launch`). The waitlist must be a reusable capability — not coupled to a single product or marketing campaign — so future products can join the same infrastructure.
+Profile Tailors needs a waitlist for the MVP launch (`profile-tailors-launch`). The waitlist must be
+a reusable capability — not coupled to a single product or marketing campaign — so future products
+can join the same infrastructure.
 
 ## Problem
 
-The marketing site has no backend for email capture. A bespoke form-in-marketing approach would couple lead capture to Astro, prevent reuse by other products, and create data silos. Without clear consent separation, captured emails cannot be safely used for future outreach.
+The marketing site has no backend for email capture. A bespoke form-in-marketing approach would
+couple lead capture to Astro, prevent reuse by other products, and create data silos. Without clear
+consent separation, captured emails cannot be safely used for future outreach.
 
 ## Goals
 
-| # | Goal |
-|---|------|
-| G1 | Shared modules (`common` + `waitlist`) with zero server dependency |
-| G2 | Public join API returning idempotent `accepted` for new and duplicate entries |
+| #  | Goal                                                                           |
+|----|--------------------------------------------------------------------------------|
+| G1 | Shared modules (`common` + `waitlist`) with zero server dependency             |
+| G2 | Public join API returning idempotent `accepted` for new and duplicate entries  |
 | G3 | Separate early-access and marketing consent; no marketing reuse without opt-in |
-| G4 | Email deduplication via `UNIQUE(waitlist_id, normalized_email)` |
-| G5 | Metadata whitelist with payload limits to prevent abuse |
+| G4 | Email deduplication via `UNIQUE(waitlist_id, normalized_email)`                |
+| G5 | Metadata whitelist with payload limits to prevent abuse                        |
 
 ## Non-goals
 
@@ -31,7 +35,11 @@ The marketing site has no backend for email capture. A bespoke form-in-marketing
 
 ## Architecture Decision
 
-**Decision:** Two-tier shared module layout (`common` → `waitlist`) with `server/smp` adapters on top. The `common` module holds pure value objects (VOs) with zero dependencies. The `waitlist` module depends on `common` and contains domain logic, aggregate roots, repository ports, and service interfaces. Adapters in `server/smp` implement repository ports, HTTP handlers, config, and rate limiting.
+**Decision:** Two-tier shared module layout (`common` → `waitlist`) with `server/smp` adapters on
+top. The `common` module holds pure value objects (VOs) with zero dependencies. The `waitlist`
+module depends on `common` and contains domain logic, aggregate roots, repository ports, and service
+interfaces. Adapters in `server/smp` implement repository ports, HTTP handlers, config, and rate
+limiting.
 
 ## Module Boundaries
 
@@ -73,36 +81,36 @@ apps/web/marketing/
 
 ### Value Objects (`common`)
 
-| VO | Fields | Validation |
-|----|--------|------------|
-| `EmailAddress` | `value: String` | RFC-like reasonable regex, max 320 chars |
-| `NormalizedEmail` | `value: String` | Trim, lowercase, reasonable regex |
-| `CaptureSource` | `value: String` | Max 50 chars, alphanumeric + hyphens |
-| `CaptureLocale` | `language: String`, `country: String?` | BCP 47 tag, max 10 chars |
-| `LeadMetadata` | `fields: Map<String, String>` | Whitelist-only keys, max 5 entries, 200 bytes each |
+| VO                | Fields                                 | Validation                                         |
+|-------------------|----------------------------------------|----------------------------------------------------|
+| `EmailAddress`    | `value: String`                        | RFC-like reasonable regex, max 320 chars           |
+| `NormalizedEmail` | `value: String`                        | Trim, lowercase, reasonable regex                  |
+| `CaptureSource`   | `value: String`                        | Max 50 chars, alphanumeric + hyphens               |
+| `CaptureLocale`   | `language: String`, `country: String?` | BCP 47 tag, max 10 chars                           |
+| `LeadMetadata`    | `fields: Map<String, String>`          | Whitelist-only keys, max 5 entries, 200 bytes each |
 
 ### `WaitlistStatus`
 
 `draft` → `active` → `paused` ←→ `active` → `closed` → `archived`
 
-| Status | Meaning |
-|--------|---------|
-| `draft` | Being configured, not accepting entries |
-| `active` | Accepting new entries |
-| `paused` | Temporarily stopped, returns `409 waitlist_closed` |
-| `closed` | Permanently stopped, returns `409 waitlist_closed` |
-| `archived` | Soft-deleted, not visible |
+| Status     | Meaning                                            |
+|------------|----------------------------------------------------|
+| `draft`    | Being configured, not accepting entries            |
+| `active`   | Accepting new entries                              |
+| `paused`   | Temporarily stopped, returns `409 waitlist_closed` |
+| `closed`   | Permanently stopped, returns `409 waitlist_closed` |
+| `archived` | Soft-deleted, not visible                          |
 
 ### `WaitlistEntryStatus`
 
 `pending` → `invited` → `converted` | `pending` → `cancelled`
 
-| Status | Meaning |
-|--------|---------|
-| `pending` | Joined, awaiting next action |
-| `invited` | Invitation sent |
+| Status      | Meaning                                |
+|-------------|----------------------------------------|
+| `pending`   | Joined, awaiting next action           |
+| `invited`   | Invitation sent                        |
 | `converted` | Completed conversion (signed up, etc.) |
-| `cancelled` | Opted out or removed |
+| `cancelled` | Opted out or removed                   |
 
 ### Aggregate: `Waitlist`
 
@@ -167,19 +175,21 @@ data class WaitlistEntry(
 }
 ```
 
-| Status | Code | Body Error |
-|--------|------|------------|
-| New entry accepted | `202` | `{ "status": "accepted" }` |
-| Duplicate accepted | `202` | `{ "status": "accepted" }` |
-| Waitlist not found | `404` | `{ "error": "waitlist_not_found" }` |
-| Waitlist closed/paused | `409` | `{ "error": "waitlist_closed" }` |
-| Invalid email | `400` | `{ "error": "invalid_email" }` |
-| Consent missing | `400` | `{ "error": "consent_required" }` |
-| Rate limited | `429` | `{ "error": "rate_limited" }` |
+| Status                 | Code  | Body Error                          |
+|------------------------|-------|-------------------------------------|
+| New entry accepted     | `202` | `{ "status": "accepted" }`          |
+| Duplicate accepted     | `202` | `{ "status": "accepted" }`          |
+| Waitlist not found     | `404` | `{ "error": "waitlist_not_found" }` |
+| Waitlist closed/paused | `409` | `{ "error": "waitlist_closed" }`    |
+| Invalid email          | `400` | `{ "error": "invalid_email" }`      |
+| Consent missing        | `400` | `{ "error": "consent_required" }`   |
+| Rate limited           | `429` | `{ "error": "rate_limited" }`       |
 
 ### Idempotency
 
-The endpoint SHALL return `202 accepted` for duplicate joins (same `normalizedEmail` + `waitlistId`). The public response MUST NOT expose a duplicate flag. External observers MUST NOT be able to distinguish between a fresh join and a duplicate join to prevent email enumeration.
+The endpoint SHALL return `202 accepted` for duplicate joins (same `normalizedEmail` +
+`waitlistId`). The public response MUST NOT expose a duplicate flag. External observers MUST NOT be
+able to distinguish between a fresh join and a duplicate join to prevent email enumeration.
 
 ## Persistence Model
 
@@ -215,66 +225,69 @@ Seed data: one waitlist row with `key = 'profile-tailors-launch'`, `status = 'ac
 
 ## Metadata Policy
 
-| Rule | Constraint |
-|------|-----------|
-| Whitelist | `utm_source`, `utm_medium`, `utm_campaign`, `page_url`, `page_title` |
-| Max entries | 5 keys per request |
-| Max key length | 50 characters |
-| Max value length | 200 bytes (UTF-8) |
-| Rejection | `400` with `invalid_metadata` if any key outside whitelist or limit exceeded |
+| Rule             | Constraint                                                                   |
+|------------------|------------------------------------------------------------------------------|
+| Whitelist        | `utm_source`, `utm_medium`, `utm_campaign`, `page_url`, `page_title`         |
+| Max entries      | 5 keys per request                                                           |
+| Max key length   | 50 characters                                                                |
+| Max value length | 200 bytes (UTF-8)                                                            |
+| Rejection        | `400` with `invalid_metadata` if any key outside whitelist or limit exceeded |
 
 ## Consent Model
 
-| Field | Required | Default | Semantics |
-|-------|----------|---------|-----------|
-| `earlyAccess` | YES | — | User explicitly wants early product access |
-| `marketing` | NO | `false` | User opts in to marketing/newsletter emails |
+| Field         | Required | Default | Semantics                                   |
+|---------------|----------|---------|---------------------------------------------|
+| `earlyAccess` | YES      | —       | User explicitly wants early product access  |
+| `marketing`   | NO       | `false` | User opts in to marketing/newsletter emails |
 
 **Rules:**
+
 - A waitlist entry with `consent.earlyAccess = false` SHALL be rejected (`400 consent_required`).
-- A waitlist entry with `consent.marketing = false` SHALL NOT be used for any newsletter/marketing send.
-- The `marketing` consent field MUST be a separate, explicit affirmative opt-in (not inferred from `earlyAccess`).
+- A waitlist entry with `consent.marketing = false` SHALL NOT be used for any newsletter/marketing
+  send.
+- The `marketing` consent field MUST be a separate, explicit affirmative opt-in (not inferred from
+  `earlyAccess`).
 
 ## Security & Abuse Prevention
 
-| Measure | Detail |
-|---------|--------|
-| Rate limit | Per-waitlist, per-IP: 10 req/min, returned as `429 rate_limited` |
-| Email normalization | Trim whitespace, lowercase, validate format; no provider-specific canonicalization |
-| Metadata limits | Whitelist-only keys, 5 max, 200 bytes per value |
-| Input validation | Email regex on server AND client; all strings length-validated |
-| Enumeration prevention | Duplicate joins return same `202 accepted` as new joins |
+| Measure                | Detail                                                                             |
+|------------------------|------------------------------------------------------------------------------------|
+| Rate limit             | Per-waitlist, per-IP: 10 req/min, returned as `429 rate_limited`                   |
+| Email normalization    | Trim whitespace, lowercase, validate format; no provider-specific canonicalization |
+| Metadata limits        | Whitelist-only keys, 5 max, 200 bytes per value                                    |
+| Input validation       | Email regex on server AND client; all strings length-validated                     |
+| Enumeration prevention | Duplicate joins return same `202 accepted` as new joins                            |
 
 ## Integration Plan
 
-| Step | Description |
-|------|-------------|
-| 1 | Create `shared/lead-capture/common` module with VOs |
-| 2 | Create `shared/lead-capture/waitlist` module with domain model, ports, service |
-| 3 | Add server/smp adapters: HTTP controller, R2DBC repository, config, rate limiter |
-| 4 | Create DB migration (waitlists + waitlist_entries tables) and seed `profile-tailors-launch` |
-| 5 | Build `WaitlistForm.astro` component in marketing app; post to backend |
-| 6 | Wire rate limiting per IP/waitlist |
-| 7 | Write tests at every layer |
-| 8 | Roll out behind feature flag |
+| Step | Description                                                                                 |
+|------|---------------------------------------------------------------------------------------------|
+| 1    | Create `shared/lead-capture/common` module with VOs                                         |
+| 2    | Create `shared/lead-capture/waitlist` module with domain model, ports, service              |
+| 3    | Add server/smp adapters: HTTP controller, R2DBC repository, config, rate limiter            |
+| 4    | Create DB migration (waitlists + waitlist_entries tables) and seed `profile-tailors-launch` |
+| 5    | Build `WaitlistForm.astro` component in marketing app; post to backend                      |
+| 6    | Wire rate limiting per IP/waitlist                                                          |
+| 7    | Write tests at every layer                                                                  |
+| 8    | Roll out behind feature flag                                                                |
 
 ## Testing Strategy
 
-| Layer | Focus | Tools |
-|-------|-------|-------|
-| Domain | Value object validation, status transitions, consent rules | JUnit 5, Kotlin test |
-| Application | `WaitlistService` use cases, dedupe, error mapping | JUnit 5, mock repository |
-| Persistence | R2DBC repository CRUD, UNIQUE constraint, seed data | `@DataR2dbcTest`, Testcontainers |
-| HTTP | Controller integration, response codes, validation errors, rate limit | `@WebFluxTest` |
-| Frontend | `WaitlistForm.astro` render, submit, success/error states | Vitest, Playwright |
+| Layer       | Focus                                                                 | Tools                            |
+|-------------|-----------------------------------------------------------------------|----------------------------------|
+| Domain      | Value object validation, status transitions, consent rules            | JUnit 5, Kotlin test             |
+| Application | `WaitlistService` use cases, dedupe, error mapping                    | JUnit 5, mock repository         |
+| Persistence | R2DBC repository CRUD, UNIQUE constraint, seed data                   | `@DataR2dbcTest`, Testcontainers |
+| HTTP        | Controller integration, response codes, validation errors, rate limit | `@WebFluxTest`                   |
+| Frontend    | `WaitlistForm.astro` render, submit, success/error states             | Vitest, Playwright               |
 
 ## Rollout Plan
 
-| Phase | What |
-|-------|------|
-| Alpha | Deploy backend behind feature flag; test manually with curl |
-| Beta | Enable form on staging; verify 202/400/404/409/429 paths |
-| Launch | Remove feature flag; monitor error rates and abuse patterns |
+| Phase    | What                                                                                  |
+|----------|---------------------------------------------------------------------------------------|
+| Alpha    | Deploy backend behind feature flag; test manually with curl                           |
+| Beta     | Enable form on staging; verify 202/400/404/409/429 paths                              |
+| Launch   | Remove feature flag; monitor error rates and abuse patterns                           |
 | Rollback | Disable form, unregister route, remove config — all non-destructive to persisted data |
 
 ## Open Questions
@@ -292,7 +305,8 @@ Seed data: one waitlist row with `key = 'profile-tailors-launch'`, `status = 'ac
 
 #### Requirement: EmailAddress Value Object
 
-The system SHALL provide an `EmailAddress` value object that validates RFC-like reasonable email format.
+The system SHALL provide an `EmailAddress` value object that validates RFC-like reasonable email
+format.
 
 ##### Scenario: Valid email accepted
 
@@ -308,7 +322,8 @@ The system SHALL provide an `EmailAddress` value object that validates RFC-like 
 
 #### Requirement: NormalizedEmail Dedupe Key
 
-The system SHALL provide `NormalizedEmail` as a separate type from `EmailAddress`, performing trim+lowercase normalization without provider-specific canonicalization.
+The system SHALL provide `NormalizedEmail` as a separate type from `EmailAddress`, performing
+trim+lowercase normalization without provider-specific canonicalization.
 
 ##### Scenario: Normalization preserves original
 
@@ -337,7 +352,8 @@ The system SHALL enforce a metadata whitelist with maximum entry limits.
 
 #### Requirement: Public Join API — Happy Path
 
-The system SHALL expose `POST /api/waitlists/{waitlistKey}/entries` that accepts new entries with early-access consent.
+The system SHALL expose `POST /api/waitlists/{waitlistKey}/entries` that accepts new entries with
+early-access consent.
 
 ##### Scenario: New entry accepted
 

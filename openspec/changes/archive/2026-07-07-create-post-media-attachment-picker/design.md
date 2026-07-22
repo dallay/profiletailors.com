@@ -140,20 +140,20 @@ CreatePostModal
 ## References
 
 - Specs:
-  - `openspec/specs/composer-media-picker/spec.md`
-  - `openspec/specs/media-library/spec.md`
-  - `openspec/specs/media-provider-unsplash/spec.md`
-  - `openspec/specs/publishing/spec.md`
+    - `openspec/specs/composer-media-picker/spec.md`
+    - `openspec/specs/media-library/spec.md`
+    - `openspec/specs/media-provider-unsplash/spec.md`
+    - `openspec/specs/publishing/spec.md`
 - Source:
-  - `apps/web/app/src/components/CreatePostModal.vue`
-  - `apps/web/app/src/components/composer/ComposerMediaPickerShell.vue`
-  - `apps/web/app/src/components/composer/composer-media-picker.types.ts`
-  - `apps/web/app/src/features/media-composer/providers/MediaProviderPanel.vue`
-  - `apps/web/app/src/stores/media.ts`
-  - `apps/web/app/src/stores/publishing.ts`
+    - `apps/web/app/src/components/CreatePostModal.vue`
+    - `apps/web/app/src/components/composer/ComposerMediaPickerShell.vue`
+    - `apps/web/app/src/components/composer/composer-media-picker.types.ts`
+    - `apps/web/app/src/features/media-composer/providers/MediaProviderPanel.vue`
+    - `apps/web/app/src/stores/media.ts`
+    - `apps/web/app/src/stores/publishing.ts`
 - Tests:
-  - `apps/web/app/src/components/CreatePostModal.test.ts`
-  - `apps/web/app/src/components/composer/ComposerMediaPickerShell.test.ts`
-  - `apps/web/app/src/features/media-composer/providers/MediaProviderPanel.test.ts`
-  - `apps/web/app/src/stores/media.test.ts`
-  - `apps/web/app/src/stores/publishing.test.ts`
+    - `apps/web/app/src/components/CreatePostModal.test.ts`
+    - `apps/web/app/src/components/composer/ComposerMediaPickerShell.test.ts`
+    - `apps/web/app/src/features/media-composer/providers/MediaProviderPanel.test.ts`
+    - `apps/web/app/src/stores/media.test.ts`
+    - `apps/web/app/src/stores/publishing.test.ts`

@@ -4,8 +4,13 @@
 
 ### Requirement: Multi-View Calendar
 
-The system MUST provide day, week, and month views. Week and month views are addressable via `/scheduler/calendar/week` and `/scheduler/calendar/month`. Day view is NOT a top-level route; clicking a day in month/week focuses `date=YYYY-MM-DD` within the current week/month context without a separate route. The scheduler MUST honor route-owned `date`, `timezone`, `status`, `q`, repeated `channels[]`, and `postId` when restoring calendar or list state.
-(Previously: Week and month were addressable and day was not a top-level route, but the requirement did not define the full route-owned query contract or modal deep-link restoration.)
+The system MUST provide day, week, and month views. Week and month views are addressable via
+`/scheduler/calendar/week` and `/scheduler/calendar/month`. Day view is NOT a top-level route;
+clicking a day in month/week focuses `date=YYYY-MM-DD` within the current week/month context without
+a separate route. The scheduler MUST honor route-owned `date`, `timezone`, `status`, `q`, repeated
+`channels[]`, and `postId` when restoring calendar or list state.
+(Previously: Week and month were addressable and day was not a top-level route, but the requirement
+did not define the full route-owned query contract or modal deep-link restoration.)
 
 #### Scenario: User switches to week view
 
@@ -51,7 +56,8 @@ The system MUST provide day, week, and month views. Week and month views are add
 #### Scenario: Stale selected post is auto-closed and canonicalized
 
 - GIVEN the URL contains `postId=post-42`
-- WHEN date, timezone, status, q, channels, or surface changes and `post-42` no longer resolves in the current scheduler context
+- WHEN date, timezone, status, q, channels, or surface changes and `post-42` no longer resolves in
+  the current scheduler context
 - THEN the detail modal MUST close
 - AND the URL MUST remove `postId` with replace semantics
 
@@ -59,7 +65,10 @@ The system MUST provide day, week, and month views. Week and month views are add
 
 ### Requirement: Durable scheduler URL-state guidance
 
-The project MUST maintain durable documentation at `docs/architecture/scheduler-url-state-standard.md` describing the canonical scheduler surfaces, query params, route-owned state model, and push-vs-replace rules. `docs/README.md` MUST index that document for future development guidance.
+The project MUST maintain durable documentation at
+`docs/architecture/scheduler-url-state-standard.md` describing the canonical scheduler surfaces,
+query params, route-owned state model, and push-vs-replace rules. `docs/README.md` MUST index that
+document for future development guidance.
 
 #### Scenario: Scheduler URL guidance is discoverable
 

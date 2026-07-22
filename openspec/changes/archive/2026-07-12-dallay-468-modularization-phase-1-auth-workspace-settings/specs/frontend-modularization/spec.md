@@ -4,7 +4,8 @@
 
 ### Requirement: Phase 1 module placement
 
-The application MUST relocate auth, workspace, and settings frontend code into the Phase 0 module structure without changing runtime behavior.
+The application MUST relocate auth, workspace, and settings frontend code into the Phase 0 module
+structure without changing runtime behavior.
 
 #### Scenario: Auth files are module-owned
 
@@ -22,20 +23,23 @@ The application MUST relocate auth, workspace, and settings frontend code into t
 
 ### Requirement: Import and mock stability
 
-All source, test, and Vitest mock references to moved files MUST use `@modules/*` paths, while existing product behavior SHALL remain unchanged.
+All source, test, and Vitest mock references to moved files MUST use `@modules/*` paths, while
+existing product behavior SHALL remain unchanged.
 
 #### Scenario: Legacy moved-path imports are removed
 
 - GIVEN files have moved into auth, workspace, and settings modules
 - WHEN source and tests import those moved files
-- THEN they MUST NOT use legacy `@/stores/*`, `@/views/*`, `@/components/workspace/*`, or `@/lib/auth-api` paths
+- THEN they MUST NOT use legacy `@/stores/*`, `@/views/*`, `@/components/workspace/*`, or
+  `@/lib/auth-api` paths
 - AND they MUST resolve through the corresponding `@modules/<feature>/...` path
 
 #### Scenario: Route and state behavior is preserved
 
 - GIVEN routes and stores reference modularized files
 - WHEN users authenticate, handle OAuth callback, select workspace state, or update settings
-- THEN routes, rendered UI, Pinia state behavior, and API behavior SHALL match pre-migration behavior
+- THEN routes, rendered UI, Pinia state behavior, and API behavior SHALL match pre-migration
+  behavior
 
 #### Scenario: Test mocks follow moved paths
 

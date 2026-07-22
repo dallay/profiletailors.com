@@ -4,17 +4,21 @@
 
 ### Requirement: Shell File Layout
 
-| File | Role | Owns |
-|---|---|---|
-| `App.vue` | thin wrapper | `isAuthRoute` gate only |
-| `layouts/AppShell.vue` | authenticated shell | providers, auth bootstrap watcher, sidebar/header/outlet composition |
-| `layouts/sidebar/*.vue` | sidebar sections | section state and upward emits; no direct shell orchestration |
-| `layouts/AppHeader.vue` | sticky header | route/settings-derived title, status pill, language pill, main outlet wrapper |
-| `@shared/composables/*` | generic shared behaviors | generic focus/popover behavior only |
-| module composables | domain behaviors | publishing/auth/media-owned route, callback, queue, upload logic |
+| File                    | Role                     | Owns                                                                          |
+|-------------------------|--------------------------|-------------------------------------------------------------------------------|
+| `App.vue`               | thin wrapper             | `isAuthRoute` gate only                                                       |
+| `layouts/AppShell.vue`  | authenticated shell      | providers, auth bootstrap watcher, sidebar/header/outlet composition          |
+| `layouts/sidebar/*.vue` | sidebar sections         | section state and upward emits; no direct shell orchestration                 |
+| `layouts/AppHeader.vue` | sticky header            | route/settings-derived title, status pill, language pill, main outlet wrapper |
+| `@shared/composables/*` | generic shared behaviors | generic focus/popover behavior only                                           |
+| module composables      | domain behaviors         | publishing/auth/media-owned route, callback, queue, upload logic              |
 
-App shell placement MUST move shell-owned layout/sidebar files from `components/layout` and `components/sidebar` into `@layouts`, while preserving route, shell, provider, and outlet behavior. Generic shell-independent behavior MAY move to `@shared`; domain-owned behavior MUST stay in the owning module.
-(Previously: shell files were specified under `components/layout`, `components/sidebar`, and root `composables`.)
+App shell placement MUST move shell-owned layout/sidebar files from `components/layout` and
+`components/sidebar` into `@layouts`, while preserving route, shell, provider, and outlet behavior.
+Generic shell-independent behavior MAY move to `@shared`; domain-owned behavior MUST stay in the
+owning module.
+(Previously: shell files were specified under `components/layout`, `components/sidebar`, and root
+`composables`.)
 
 #### Scenario: `App.vue` remains a route gate
 
@@ -39,7 +43,11 @@ App shell placement MUST move shell-owned layout/sidebar files from `components/
 
 ### Requirement: AppShell Composition Contract
 
-`@layouts/AppShell.vue` MUST compose the relocated sidebar and header in the same observable order: `SidebarHeaderSection`, `SidebarNavSection`, `SidebarChannelsSection`, `SidebarConnectSection`, `SidebarAccountSection`, `SidebarRail`, then `AppHeader` and `<main>` containing `<RouterView />` inside `SidebarInset`. The shell owns orchestration handlers; sections only emit upward and never mutate stores directly. State local to a section lives in that section.
+`@layouts/AppShell.vue` MUST compose the relocated sidebar and header in the same observable order:
+`SidebarHeaderSection`, `SidebarNavSection`, `SidebarChannelsSection`, `SidebarConnectSection`,
+`SidebarAccountSection`, `SidebarRail`, then `AppHeader` and `<main>` containing `<RouterView />`
+inside `SidebarInset`. The shell owns orchestration handlers; sections only emit upward and never
+mutate stores directly. State local to a section lives in that section.
 (Previously: the same contract applied to files under `components/layout` and `components/sidebar`.)
 
 #### Scenario: Sidebar sections are composed in order after relocation

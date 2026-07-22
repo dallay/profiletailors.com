@@ -1,17 +1,20 @@
 # Delta for Governance Consent HTTP API
 
 > **Status**: Active change — parallel design in progress
-> **Corrected against**: proposal.md, exploration.md, ConsentRecordModels.kt, ConsentController.kt, R2dbcConsentRepository.kt, ContextProviders.kt, GovernanceWaitlistConsentRecorder.kt
+> **Corrected against**: proposal.md, exploration.md, ConsentRecordModels.kt, ConsentController.kt,
+> R2dbcConsentRepository.kt, ContextProviders.kt, GovernanceWaitlistConsentRecorder.kt
 
 ---
 
 ## Context: Corrections Applied
 
-This spec supersedes the draft version with corrections grounded in actual repository types and runtime behavior:
+This spec supersedes the draft version with corrections grounded in actual repository types and
+runtime behavior:
 
 1. `ResourceContext` has `workspaceId` only — `principalId` comes from `PrincipalContextProvider`
 2. `SubjectKind` enum is `WORKSPACE | USER | ANONYMOUS` — CONTACT does not exist
-3. Waitlist adapter (`GovernanceWaitlistConsentRecorder`) calls governance; HTTP changes must NOT notify or mutate waitlist
+3. Waitlist adapter (`GovernanceWaitlistConsentRecorder`) calls governance; HTTP changes must NOT
+   notify or mutate waitlist
 4. `RecordConsentOutcome` defined as `data class(created: Boolean, record: ConsentRecord)`
 5. Current UPSERT implementation replaces one row — append-only claim is **not implemented**
 6. Status logic `if (record.status == WITHDRAWN) OK else CREATED` is inverted
@@ -23,13 +26,19 @@ This spec supersedes the draft version with corrections grounded in actual repos
 
 ### Requirement: Workspace-scoped consent recording with idempotent semantics
 
-The system **MUST** accept a consent record via `POST /api/governance/consent` for the authenticated workspace context.
+The system **MUST** accept a consent record via `POST /api/governance/consent` for the authenticated
+workspace context.
 
-The system **MUST** derive `workspaceId` from `ResourceContext` populated by the JWT filter — controllers **MUST NOT** accept `workspaceId` as a request parameter or method parameter.
+The system **MUST** derive `workspaceId` from `ResourceContext` populated by the JWT filter —
+controllers **MUST NOT** accept `workspaceId` as a request parameter or method parameter.
 
-The system **MUST** check for an existing active record (same workspace, subject, purpose, policy version) before persisting. If one exists, the system **MUST** return HTTP 200 with the existing record. If none exists, the system **MUST** persist a new record and return HTTP 201.
+The system **MUST** check for an existing active record (same workspace, subject, purpose, policy
+version) before persisting. If one exists, the system **MUST** return HTTP 200 with the existing
+record. If none exists, the system **MUST** persist a new record and return HTTP 201.
 
-The response **MUST** include `RecordConsentOutcome(created: Boolean, record: ConsentRecordResponse)` to distinguish new creation from idempotent return.
+The response **MUST** include
+`RecordConsentOutcome(created: Boolean, record: ConsentRecordResponse)` to distinguish new creation
+from idempotent return.
 
 ```kotlin
 data class RecordConsentOutcome(
@@ -38,9 +47,12 @@ data class RecordConsentOutcome(
 )
 ```
 
-The controller **MUST** implement the idempotency check by calling `existsActive` before `recordConsentHandler.handle`.
+The controller **MUST** implement the idempotency check by calling `existsActive` before
+`recordConsentHandler.handle`.
 
-The system **MUST NOT** bind `principalId` from the request — `principalId` is available via `PrincipalContextProvider` for logging or audit but is not required for workspace-scoped consent recording.
+The system **MUST NOT** bind `principalId` from the request — `principalId` is available via
+`PrincipalContextProvider` for logging or audit but is not required for workspace-scoped consent
+recording.
 
 #### Scenario: New consent record — first submission for subject + purpose
 
@@ -70,15 +82,21 @@ The system **MUST NOT** bind `principalId` from the request — `principalId` is
 - AND `RecordConsentOutcome.created == true`
 - AND both the withdrawn and new records remain queryable via `GET /history`
 
-> **Note**: This behavior requires `RecordConsentHandler` to generate a new `ConsentRecordId` on each call rather than reusing the withdrawn record's ID. The current `R2dbcConsentRepository` uses `ON CONFLICT (id) DO UPDATE` which replaces the row — this must be changed to INSERT with a new ID to satisfy DALLAY-491 historical evidence preservation.
+> **Note**: This behavior requires `RecordConsentHandler` to generate a new `ConsentRecordId` on
+> each call rather than reusing the withdrawn record's ID. The current `R2dbcConsentRepository` uses
+`ON CONFLICT (id) DO UPDATE` which replaces the row — this must be changed to INSERT with a new ID
+> to satisfy DALLAY-491 historical evidence preservation.
 
 ---
 
 ### Requirement: Enum validation returns 400 with clear error detail
 
-The system **MUST** handle invalid enum values for `subjectKind` and `consentType` by catching `IllegalArgumentException` from `valueOf()` and returning HTTP 400 with a RFC 9457 Problem Details body.
+The system **MUST** handle invalid enum values for `subjectKind` and `consentType` by catching
+`IllegalArgumentException` from `valueOf()` and returning HTTP 400 with a RFC 9457 Problem Details
+body.
 
-The error response **MUST** include `type: "about:blank"`, `title: "Bad Request"`, `status: 400`, and a `detail` field describing the invalid value and valid options.
+The error response **MUST** include `type: "about:blank"`, `title: "Bad Request"`, `status: 400`,
+and a `detail` field describing the invalid value and valid options.
 
 ```kotlin
 // Controller-level handling
@@ -104,13 +122,16 @@ try {
 
 ### Requirement: GET /history requires subjectValue, subjectKind, purpose
 
-The system **MUST** require all three query parameters on `GET /api/governance/consent/history`: `subjectValue`, `subjectKind`, and `purpose`. These are **not** optional.
+The system **MUST** require all three query parameters on `GET /api/governance/consent/history`:
+`subjectValue`, `subjectKind`, and `purpose`. These are **not** optional.
 
-The system **MUST** use `PrincipalContextProvider` to obtain `principalId` for audit logging, but **MUST NOT** expose it in the API contract.
+The system **MUST** use `PrincipalContextProvider` to obtain `principalId` for audit logging, but *
+*MUST NOT** expose it in the API contract.
 
 #### Scenario: History returns all records for subject including withdrawn
 
-- GIVEN an authenticated request with `subjectValue="user-123"`, `subjectKind="USER"`, `purpose="marketing.emails"`
+- GIVEN an authenticated request with `subjectValue="user-123"`, `subjectKind="USER"`,
+  `purpose="marketing.emails"`
 - WHEN `GET /api/governance/consent/history` is called
 - THEN all records for that subject + purpose are returned ordered by `givenAt ASC`
 - AND each record includes its `status` (ACTIVE or WITHDRAWN)
@@ -120,9 +141,11 @@ The system **MUST** use `PrincipalContextProvider` to obtain `principalId` for a
 
 ### Requirement: GET /list supports optional subjectKind and purpose filters
 
-The system **MUST** accept optional `subjectKind` and `purpose` query parameters on `GET /api/governance/consent`.
+The system **MUST** accept optional `subjectKind` and `purpose` query parameters on
+`GET /api/governance/consent`.
 
-When filters are provided, the system **MUST** return only active records matching all supplied criteria.
+When filters are provided, the system **MUST** return only active records matching all supplied
+criteria.
 
 When no filters are provided, the system **MUST** return all active records for the workspace.
 
@@ -145,12 +168,19 @@ When no filters are provided, the system **MUST** return all active records for 
 
 ### Requirement: Consent withdrawal preserves historical evidence
 
-The system **MUST** record a withdrawal without destroying the evidence of prior consent. Withdrawal **MUST NOT** delete any existing row.
+The system **MUST** record a withdrawal without destroying the evidence of prior consent. Withdrawal
+**MUST NOT** delete any existing row.
 
-The system **MUST** update the existing record's `status` to `WITHDRAWN`, set `withdrawnAt` to the current timestamp, and optionally record a `withdrawalReason`.
+The system **MUST** update the existing record's `status` to `WITHDRAWN`, set `withdrawnAt` to the
+current timestamp, and optionally record a `withdrawalReason`.
 
-> **(Previously: domain model comment claimed append-only but implementation uses UPSERT that replaces row)**  
-> The actual behavior depends on `RecordConsentHandler.handle` creating a new `ConsentRecord` with a new ID on each call. The `R2dbcConsentRepository.UPSERT_CONSENT` SQL uses `ON CONFLICT (id) DO UPDATE` — if the handler reuses the same ID, the row is replaced, not preserved. For DALLAY-491 compliance, `RecordConsentHandler` **MUST** generate a fresh `ConsentRecordId` on each invocation.
+> **(Previously: domain model comment claimed append-only but implementation uses UPSERT that
+replaces row)**  
+> The actual behavior depends on `RecordConsentHandler.handle` creating a new `ConsentRecord` with a
+> new ID on each call. The `R2dbcConsentRepository.UPSERT_CONSENT` SQL uses
+`ON CONFLICT (id) DO UPDATE` — if the handler reuses the same ID, the row is replaced, not
+> preserved. For DALLAY-491 compliance, `RecordConsentHandler` **MUST** generate a fresh
+`ConsentRecordId` on each invocation.
 
 #### Scenario: Withdraw active consent — original record preserved
 
@@ -166,7 +196,8 @@ The system **MUST** update the existing record's `status` to `WITHDRAWN`, set `w
 
 The system **MUST** return HTTP 200 when an active consent is successfully withdrawn.
 
-The system **MUST** return HTTP 404 with a problem detail body when no active consent exists for the requested subject + purpose + policy version.
+The system **MUST** return HTTP 404 with a problem detail body when no active consent exists for the
+requested subject + purpose + policy version.
 
 #### Scenario: Withdraw returns 200 on success
 
@@ -188,19 +219,26 @@ The system **MUST** return HTTP 404 with a problem detail body when no active co
 
 ### Requirement: (Removed) principalId as controller method parameter
 
-The previous spec implied `principalId` should be passed as a controller method parameter. This is **incorrect**.
+The previous spec implied `principalId` should be passed as a controller method parameter. This is *
+*incorrect**.
 
-`principalId` is available via `PrincipalContextProvider.require().principalId` for internal audit logging, but controllers **MUST NOT** accept it as a method parameter from the HTTP layer.
+`principalId` is available via `PrincipalContextProvider.require().principalId` for internal audit
+logging, but controllers **MUST NOT** accept it as a method parameter from the HTTP layer.
 
 ---
 
 ### Requirement: (Clarified — not implemented) Append-only persistence claim
 
-The `ConsentRepository` interface comment stated "Records are append-only: save never updates an existing row." This is **not reflected in the actual implementation**.
+The `ConsentRepository` interface comment stated "Records are append-only: save never updates an
+existing row." This is **not reflected in the actual implementation**.
 
-The `R2dbcConsentRepository.save()` uses `UPSERT_CONSENT` with `ON CONFLICT (id) DO UPDATE` which **replaces** the existing row. The domain model (`ConsentRecord.withdraw()`) creates a new instance, but the repository implementation does not persist both rows.
+The `R2dbcConsentRepository.save()` uses `UPSERT_CONSENT` with `ON CONFLICT (id) DO UPDATE` which *
+*replaces** the existing row. The domain model (`ConsentRecord.withdraw()`) creates a new instance,
+but the repository implementation does not persist both rows.
 
-For DALLAY-491 compliance (historical evidence preservation), the implementation **MUST** be corrected to:
+For DALLAY-491 compliance (historical evidence preservation), the implementation **MUST** be
+corrected to:
+
 1. Generate a new `ConsentRecordId` on each call to `RecordConsentHandler.handle()`
 2. Remove or change the `ON CONFLICT (id) DO UPDATE` clause to INSERT only
 
@@ -221,27 +259,29 @@ This is a **required fix** before the HTTP API can claim GDPR accountability com
 
 Verification **MUST** include:
 
-| Layer | Tests | Rationale |
-|-------|-------|-----------|
-| Unit | `ConsentControllerWebTest` (9 tests) | HTTP contract, status codes, validation |
-| Unit | `RecordConsentHandlerTest` | Idempotency logic, new ID generation |
-| Unit | `WithdrawConsentHandlerTest` | Withdrawal preserves evidence |
-| Integration | `R2dbcConsentRepositoryTest` | Repository query methods against real DB |
-| Authorization | `GetWorkspaceConsentRecordsHandler` permission test | `workspace:consent:read` enforcement |
-| Authorization | `GetConsentHistoryHandler` permission test | `workspace:consent:read` enforcement |
+| Layer         | Tests                                               | Rationale                                |
+|---------------|-----------------------------------------------------|------------------------------------------|
+| Unit          | `ConsentControllerWebTest` (9 tests)                | HTTP contract, status codes, validation  |
+| Unit          | `RecordConsentHandlerTest`                          | Idempotency logic, new ID generation     |
+| Unit          | `WithdrawConsentHandlerTest`                        | Withdrawal preserves evidence            |
+| Integration   | `R2dbcConsentRepositoryTest`                        | Repository query methods against real DB |
+| Authorization | `GetWorkspaceConsentRecordsHandler` permission test | `workspace:consent:read` enforcement     |
+| Authorization | `GetConsentHistoryHandler` permission test          | `workspace:consent:read` enforcement     |
 
-> **Note**: Full BDD/E2E suite is deferred unless meaningful gaps remain after the above tests pass. Governance data is legally sensitive but the proposed test layers provide substantive coverage without mandating a broad Cucumber suite.
+> **Note**: Full BDD/E2E suite is deferred unless meaningful gaps remain after the above tests pass.
+> Governance data is legally sensitive but the proposed test layers provide substantive coverage
+> without mandating a broad Cucumber suite.
 
 ---
 
 ## Key Corrections Summary
 
-| # | Issue | Correction |
-|---|-------|------------|
-| 1 | `ResourceContext` has no `principalId` | `workspaceId` from `ResourceContext`; `principalId` from `PrincipalContextProvider` if needed for audit |
-| 2 | `SubjectKind` enum wrong | Actual: `WORKSPACE \| USER \| ANONYMOUS` — no `CONTACT` |
-| 3 | Waitlist integration direction wrong | Waitlist calls governance via `GovernanceWaitlistConsentRecorder`; HTTP changes do NOT affect waitlist |
-| 4 | `RecordConsentOutcome` undefined | Defined as `data class(created: Boolean, record: ConsentRecordResponse)` |
+| # | Issue                                        | Correction                                                                                                    |
+|---|----------------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| 1 | `ResourceContext` has no `principalId`       | `workspaceId` from `ResourceContext`; `principalId` from `PrincipalContextProvider` if needed for audit       |
+| 2 | `SubjectKind` enum wrong                     | Actual: `WORKSPACE \| USER \| ANONYMOUS` — no `CONTACT`                                                       |
+| 3 | Waitlist integration direction wrong         | Waitlist calls governance via `GovernanceWaitlistConsentRecorder`; HTTP changes do NOT affect waitlist        |
+| 4 | `RecordConsentOutcome` undefined             | Defined as `data class(created: Boolean, record: ConsentRecordResponse)`                                      |
 | 5 | Append-only claim contradicts implementation | Current UPSERT **replaces** row; DALLAY-491 requires `RecordConsentHandler` to generate new `ConsentRecordId` |
-| 6 | Status logic inverted | `if (WITHDRAWN) OK else CREATED` is wrong — should be `if (existsActive) OK else CREATED` |
-| 7 | Scope creep in tests | Targeted unit + integration + authorization tests sufficient; BDD/E2E deferred |
+| 6 | Status logic inverted                        | `if (WITHDRAWN) OK else CREATED` is wrong — should be `if (existsActive) OK else CREATED`                     |
+| 7 | Scope creep in tests                         | Targeted unit + integration + authorization tests sufficient; BDD/E2E deferred                                |

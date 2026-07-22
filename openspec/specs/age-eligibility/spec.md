@@ -6,7 +6,8 @@
 
 The age-eligibility capability ensures that during self-service registration, every user
 affirmatively confirms they are 18+ and accepts the Terms of Service and Privacy Policy before an
-account is created. Both confirmations are recorded as separate `CONTRACT_ACCEPTANCE` consent records
+account is created. Both confirmations are recorded as separate `CONTRACT_ACCEPTANCE` consent
+records
 using the existing `RecordConsentHandler`, with explicit policy version references and distinct
 purposes for independent withdrawal. No Date of Birth is collected — the mechanism is checkbox-only,
 relying on safe-harbor principles for age-gating. A documented residual-controls procedure handles
@@ -65,8 +66,10 @@ After successful validation and workspace provisioning, the system SHALL create 
 `CONTRACT_ACCEPTANCE` consent records using the existing `RecordConsentHandler`, each with a
 distinct purpose to allow independent withdrawal:
 
-1. **Age eligibility consent:** `purpose = "age-eligibility.18-plus"`, `policyVersion = "terms-v1.0.0"`
-2. **Terms acceptance consent:** `purpose = "terms.acceptance"`, `policyVersion = <acceptedTermsVersion from command>`
+1. **Age eligibility consent:** `purpose = "age-eligibility.18-plus"`,
+   `policyVersion = "terms-v1.0.0"`
+2. **Terms acceptance consent:** `purpose = "terms.acceptance"`,
+   `policyVersion = <acceptedTermsVersion from command>`
 
 Both consent records SHALL use `SubjectReference.workspace(workspaceId)` where `workspaceId` is
 captured from `provisionDefaultWorkspace()`. The consent recording MUST happen inside the same
@@ -77,7 +80,8 @@ publication. If either consent record fails, the entire registration transaction
 > be withdrawn independently. A single combined record would couple these concerns, making it
 > impossible to revoke one without the other.
 
-**Verification:** Integration test asserts two rows exist in `consent_records` table after successful
+**Verification:** Integration test asserts two rows exist in `consent_records` table after
+successful
 registration, with correct `consentType`, `workspaceId`, `subjectReference`, `purpose`, and
 `policyVersion` for each.
 
@@ -117,9 +121,10 @@ of defined procedure steps.
 - WHEN the user submits the form with valid email and password
 - THEN the system SHALL create the user account
 - AND the system SHALL create two `CONTRACT_ACCEPTANCE` consent records:
-  - one with `purpose: "age-eligibility.18-plus"` and `policyVersion: "terms-v1.0.0"`
-  - one with `purpose: "terms.acceptance"` and `policyVersion: "terms-v1.0.0"`
-- AND both consent records SHALL reference the workspace via `SubjectReference.workspace(workspaceId)`
+    - one with `purpose: "age-eligibility.18-plus"` and `policyVersion: "terms-v1.0.0"`
+    - one with `purpose: "terms.acceptance"` and `policyVersion: "terms-v1.0.0"`
+- AND both consent records SHALL reference the workspace via
+  `SubjectReference.workspace(workspaceId)`
 - AND the response SHALL be HTTP 201 with AuthTokens
 - AND the user SHALL be redirected to the dashboard
 
@@ -149,7 +154,8 @@ of defined procedure steps.
 
 ### Scenario: Registration rejected when both confirmations are missing
 
-- GIVEN a client sends a POST to `/api/auth/register` with `confirmedAgeEligibility: false` AND `acceptedTermsVersion` blank
+- GIVEN a client sends a POST to `/api/auth/register` with `confirmedAgeEligibility: false` AND
+  `acceptedTermsVersion` blank
 - WHEN the backend processes the request
 - THEN the backend SHALL reject with HTTP 422
 - AND the error SHALL include both missing age confirmation and missing terms acceptance
@@ -162,12 +168,14 @@ of defined procedure steps.
 - AND the `subjectReference.kind` SHALL be `WORKSPACE`
 - AND the `subjectReference.value` SHALL be the workspace ID
 - AND the `consentType` SHALL be `CONTRACT_ACCEPTANCE` for both records
-- AND the first record SHALL have `purpose: "age-eligibility.18-plus"` and `policyVersion: "terms-v1.0.0"`
+- AND the first record SHALL have `purpose: "age-eligibility.18-plus"` and
+  `policyVersion: "terms-v1.0.0"`
 - AND the second record SHALL have `purpose: "terms.acceptance"` and `policyVersion: "terms-v1.0.0"`
 
 ### Scenario: Frontend tampering does not bypass backend validation
 
-- GIVEN a malicious client sends a POST to `/api/auth/register` with `confirmedAgeEligibility: false`
+- GIVEN a malicious client sends a POST to `/api/auth/register` with
+  `confirmedAgeEligibility: false`
 - AND the `acceptedTermsVersion` is missing
 - WHEN the backend processes the request
 - THEN the backend SHALL reject regardless of what the frontend rendered
@@ -177,10 +185,10 @@ of defined procedure steps.
 
 ## Policy Versions
 
-| Policy                | Version      | Source                                     |
-|-----------------------|--------------|--------------------------------------------|
-| Terms of Service      | `terms-v1.0.0` | `legal-pages` spec, requirement `terms-001` |
-| Privacy Policy        | `privacy-v1.0.0` | `legal-pages` spec, requirement `privacy-001` |
+| Policy           | Version          | Source                                        |
+|------------------|------------------|-----------------------------------------------|
+| Terms of Service | `terms-v1.0.0`   | `legal-pages` spec, requirement `terms-001`   |
+| Privacy Policy   | `privacy-v1.0.0` | `legal-pages` spec, requirement `privacy-001` |
 
 The `policyVersion` in the age eligibility consent record stores the hardcoded constant
 `"terms-v1.0.0"`. The `policyVersion` in the terms acceptance consent record stores the

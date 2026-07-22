@@ -4,7 +4,11 @@
 
 ### Requirement: Active picker session refresh after upload or import
 
-When an upload or provider import creates or returns persisted assets during an open composer picker session, the media library MUST refresh or upsert those persisted assets into the active picker session. Assets successfully uploaded or imported through the active picker session MUST become staged automatically once they resolve to selectable persisted assets, and they MUST become visible without requiring the author to reopen the picker.
+When an upload or provider import creates or returns persisted assets during an open composer picker
+session, the media library MUST refresh or upsert those persisted assets into the active picker
+session. Assets successfully uploaded or imported through the active picker session MUST become
+staged automatically once they resolve to selectable persisted assets, and they MUST become visible
+without requiring the author to reopen the picker.
 
 #### Scenario: Upload adds persisted assets into the active picker session
 
@@ -22,7 +26,12 @@ When an upload or provider import creates or returns persisted assets during an 
 
 ### Requirement: Picker-facing asset readiness presentation
 
-The media library MUST expose asset state so picker surfaces can distinguish selection readiness. `READY` assets MUST be selectable. When a `READY` asset has a preview it MUST provide a thumbnail; when it has no preview, or when preview loading fails, it MUST provide fallback visuals while remaining selectable. `PROCESSING` assets MUST remain visible with status or placeholder presentation and MUST NOT be selectable. `FAILED` assets MUST remain visible with failure or fallback presentation and MUST NOT be selectable.
+The media library MUST expose asset state so picker surfaces can distinguish selection readiness.
+`READY` assets MUST be selectable. When a `READY` asset has a preview it MUST provide a thumbnail;
+when it has no preview, or when preview loading fails, it MUST provide fallback visuals while
+remaining selectable. `PROCESSING` assets MUST remain visible with status or placeholder
+presentation and MUST NOT be selectable. `FAILED` assets MUST remain visible with failure or
+fallback presentation and MUST NOT be selectable.
 
 #### Scenario: READY asset is selectable in picker surfaces
 
