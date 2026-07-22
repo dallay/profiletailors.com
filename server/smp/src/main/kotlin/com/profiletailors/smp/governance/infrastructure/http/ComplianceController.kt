@@ -77,6 +77,41 @@ class ComplianceController(private val mediator: Mediator) {
     }
 
     /**
+     * Simple release gate evaluation for 0.1.0.
+     * Returns PASS if all required controls pass, FAIL if any fail, NOT_APPLICABLE if no controls apply.
+     *
+     * @param release Release identifier (e.g., "0.1.0")
+     * @return Simple gate status: PASS, FAIL, or NOT_APPLICABLE
+     */
+    @GetMapping("/release-gate")
+    @ResponseStatus(HttpStatus.OK)
+    suspend fun releaseGate(release: String = "0.1.0"): Map<String, Any> {
+        val query = EvaluateComplianceQuery(
+            context = ComplianceEvaluationContext(release = release),
+        )
+        val evaluation: ComplianceEvaluation = mediator.send(query)
+
+        val gateStatus = when {
+            evaluation.summary.totalControls == 0 -> "NOT_APPLICABLE"
+            evaluation.summary.failed > 0 -> "FAIL"
+            evaluation.summary.passed > 0 || evaluation.summary.waived > 0 -> "PASS"
+            else -> "NOT_APPLICABLE"
+        }
+
+        return mapOf(
+            "release" to release,
+            "gateStatus" to gateStatus,
+            "summary" to mapOf(
+                "totalControls" to evaluation.summary.totalControls,
+                "passed" to evaluation.summary.passed,
+                "failed" to evaluation.summary.failed,
+                "waived" to evaluation.summary.waived,
+            ),
+            "evaluatedAt" to evaluation.evaluatedAt.toString(),
+        )
+    }
+
+    /**
      * Reports that the compliance service is available.
      *
      * @return A map containing the status value `"ok"`.

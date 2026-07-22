@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: governance-007-evidence-links-and-review-at
+      author: sdd-apply
+      changes:
+        - addColumn:
+            tableName: compliance_evidences
+            columns:
+              - column:
+                  name: review_at
+                  type: timestamp with time zone
+
+        - createTable:
+            tableName: evidence_links
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: evidence_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_evidence_link_evidence
+                    references: compliance_evidences(id)
+                    deleteCascade: false
+              - column:
+                  name: link_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target_reference
+                  type: varchar(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+              - column:
+                  name: linked_by
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: linked_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: evidence_links
+            indexName: idx_evidence_links_evidence_id
+            columns:
+              - column:
+                  name: evidence_id
