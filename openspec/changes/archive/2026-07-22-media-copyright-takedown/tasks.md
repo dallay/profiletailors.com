@@ -8,12 +8,12 @@
 | 400-line budget risk    | High                                                   |
 | Chained PRs recommended | Yes                                                    |
 | Suggested split         | PR 1 (Phase 1: Attribution) → PR 2 (Phase 2: Takedown) |
-| Delivery strategy       | ask-on-risk                                            |
-| Chain strategy          | pending                                                |
+| Delivery strategy       | size:exception                                         |
+| Chain strategy          | n/a                                                    |
 
-Decision needed before apply: Yes
+Decision needed before apply: Resolved — maintainer approved `size:exception` for one larger implementation pass.
 Chained PRs recommended: Yes
-Chain strategy: pending
+Chain strategy: n/a
 400-line budget risk: High
 
 ### Suggested Work Units
@@ -64,11 +64,14 @@ of colons._
 - [x] 2.11 Create `ReportTakedownHandler` — validates asset, saves, audits. Email not yet wired.
 - [x] 2.12 Create `ApproveTakedownHandler` + `RejectTakedownHandler` — status transitions, audit.
   Email not yet wired. Asset status update not yet wired.
-- [ ] 2.13 Counter-notice — removed from scope (simplified)
+- [x] 2.13 Counter-notice — removed from implementation scope by the recorded simplification;
+  no counter-notice behavior was implemented
 - [x] 2.14 Create DTOs: `ReportTakedownRequest`, `ReviewTakedownRequest`, `TakedownReportResponse`
 - [x] 2.15 Create `TakedownController` with 4 endpoints: POST /reports, POST /reports/{id}/approve,
   POST /reports/{id}/reject, GET /reports. Feature flag not implemented.
-- [ ] 2.16 Add audit event types — deferred. Handlers use generic audit wiring.
+- [x] 2.16 Audit milestones — handlers emit `MEDIA_TAKEDOWN_REPORTED`,
+  `MEDIA_TAKEDOWN_APPROVED`, and `MEDIA_TAKEDOWN_REJECTED` through the generic `AuditHook` action
+  string contract; the audit domain intentionally has no event-type enum
 - [x] 2.17 Email templates — TakedownReported/Approved/Rejected templates with render() +
   idempotencyKey() + payload
 - [x] 2.18 Email wiring — 3 event-driven consumers (SendTakedownReportedEmailConsumer,
@@ -79,15 +82,19 @@ of colons._
   `setOf(MediaAssetStatus.READY)`, no change required
 - [x] 2.20 Wire auth checks via `GovernanceAuthorizationService` with `media-read` and
   `media-takedown` permissions
-- [ ] 2.21 Frontend: report form — not yet implemented
-- [ ] 2.22 Frontend: review dashboard — not yet implemented
-- [ ] 2.23 Frontend: SUSPENDED badge in MediaLibraryView — not yet implemented
+- [x] 2.21 Frontend: report form — `TakedownReportDialog.vue` with validation, authenticated
+  reporter identity, optional reference URL, API service, localization, and unit tests
+- [x] 2.22 Frontend: review dashboard — routed governance view with report listing, status filter,
+  approve/reject actions, localization, API service, and unit tests
+- [x] 2.23 Frontend: SUSPENDED badge in MediaLibraryView — status filter and warning-styled badge
 - [x] 2.24 Unit tests: domain invariants and state machine — 11 test cases covering create, approve,
   dismiss, double-approve, double-dismiss, status transitions
 - [x] 2.25 Unit tests: all command handlers with mocked repos + auth — 11 test cases (
   ReportTakedownHandler: 2, ApproveTakedownHandler: 3, RejectTakedownHandler: 3,
   ListTakedownReportsHandler: 3)
-- [ ] 2.26 Integration tests (Postgres-backed) — not yet implemented
+- [x] 2.26 Integration tests (Postgres-backed) — repository save/read, workspace isolation,
+  status filtering, updates, and duplicate-report lookup
 - [x] 2.27 WebFlux tests — TakedownControllerWebTest with 8 cases (
   report/approve/reject/list/validation)
-- [ ] 2.28 E2E tests — not yet implemented
+- [x] 2.28 E2E tests — mocked authenticated review-and-approve flow passes on Chromium,
+  Firefox, and Mobile Chrome

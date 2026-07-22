@@ -309,10 +309,10 @@ separate media bounded context.
 
 An asset that has not completed the supported upload flow SHALL NOT be treated as `READY` for
 publication attachment. The system MUST expose enough status information for the client to
-distinguish `PROCESSING`, `READY`, and `FAILED` assets. Assets created for upload MUST begin in
-`PROCESSING` state and MUST only become `READY` after successful binary persistence. `FAILED` assets
-are retryable; the state transition for retry is `FAILED` → `PROCESSING`. The client does not need
-to create a new asset to retry a failed upload.
+distinguish `PROCESSING`, `READY`, `FAILED`, `DELETED`, and `SUSPENDED` assets. Assets created for
+upload MUST begin in `PROCESSING` state and MUST only become `READY` after successful binary
+persistence. `FAILED` assets are retryable; the state transition for retry is `FAILED` →
+`PROCESSING`. The client does not need to create a new asset to retry a failed upload.
 
 `PROCESSING` assets with `created_at` older than 2 hours MUST be transitioned to `FAILED` by a
 scheduled stale reconciler. The reconciler MUST run at minimum every 15 minutes. The reconciler MUST
@@ -325,12 +325,19 @@ MUST NOT be exposed by the MVP API surface in this change. Internal persistence 
 publishing-era storage structures MAY occur as an implementation detail, but it MUST NOT change the
 media library's bounded-context ownership in this specification.
 
+**SUSPENDED status**: Assets in `SUSPENDED` state are not retryable and SHALL NOT transition
+to `PROCESSING`. The `FAILED → PROCESSING` retry path SHALL NOT apply to `SUSPENDED` assets.
+`SUSPENDED` assets SHALL be excluded from default list/query results. Callers with the
+`media-read` permission MAY include `SUSPENDED` via explicit status query.
+
 Asset lifecycle state transitions:
 
 - `PROCESSING` → `READY` (upload completes successfully)
 - `PROCESSING` → `FAILED` (upload fails, is interrupted, times out, or is cleaned up by the stale
   reconciler)
 - `FAILED` → `PROCESSING` (client retries upload for the same asset)
+- `READY` → `SUSPENDED` (takedown approved)
+- `SUSPENDED` → `DELETED` (legal hold resolved, deletion follows standard delete path)
 
 #### Scenario: Incomplete asset is not treated as ready for reuse
 
@@ -364,6 +371,13 @@ Asset lifecycle state transitions:
 - WHEN two concurrent upload requests target the same asset simultaneously
 - THEN only one MUST succeed in transitioning to the upload-in-progress state
 - AND the other MUST receive HTTP 409 `ASSET_UPLOAD_IN_PROGRESS`
+
+#### Scenario: READY asset transitions to SUSPENDED on takedown
+
+- GIVEN a READY media asset
+- WHEN a takedown report against that asset is approved
+- THEN the asset SHALL transition to `SUSPENDED`
+- AND the asset SHALL NOT appear in standard library list results
 
 ### Requirement: DeleteWorkspaceAssetHandler — Storage Delete + DB Soft-Delete in Atomic Transaction
 
@@ -716,3 +730,58 @@ The integration test suite MUST verify the following with a real Postgres databa
 - [ ] New blob + new asset both commit atomically
 - [ ] Blob upsert succeeds + asset creation fails → blob upsert is rolled back, no orphaned blob
 - [ ] `handleExistedBlob` path (line 781) is NOT affected by the change
+
+---
+
+## Media Copyright & Takedown Additions
+
+The following requirements were added as part of the media copyright takedown change
+(archived `2026-07-22`).
+
+### Requirement: Licence Field on DTOs
+
+`MediaAssetResponse` and `MediaAssetSummary` MUST include a nullable `licence: String?` field
+alongside the existing attribution fields (`authorName`, `authorUrl`, `sourceProvider`,
+`sourceUrl`). The field SHALL serialize as `null` for legacy assets.
+
+#### Scenario: Licence field present in response
+
+- GIVEN a `MediaAsset` with `licence = "unsplash"`
+- WHEN serialized to `MediaAssetResponse`
+- THEN the JSON SHALL include `"licence": "unsplash"`
+
+### Requirement: Attribution Display in MediaLibraryView
+
+`MediaLibraryView.vue` MUST render attribution information (author name, author URL, source
+provider, source URL, licence) when available. The component SHALL NOT make additional API calls —
+all fields are already present in `MediaAssetSummary`. When attribution fields are null, the
+component SHALL hide the attribution section gracefully.
+
+#### Scenario: Attribution renders inline
+
+- GIVEN `MediaLibraryView.vue` receives a `MediaAssetSummary` with `authorName = "John Doe"` and
+  `licence = "unsplash"`
+- WHEN the component renders
+- THEN author name SHALL be displayed
+- AND licence value SHALL be displayed
+- AND no additional HTTP request SHALL be made
+
+### Requirement: SUSPENDED Status in List Filtering
+
+Media library list queries MUST exclude assets with `MediaAssetStatus.SUSPENDED` from all picker,
+composer, and public API responses. The default list filter (`status=READY`) SHALL remain unchanged.
+Explicit `status` query parameters SHALL also exclude `SUSPENDED` assets unless the caller holds
+`workspace:governance:media-read`.
+(Previously: no moderation/exclusion status existed; all READY assets were returned.)
+
+#### Scenario: Library list excludes SUSPENDED
+
+- GIVEN a workspace contains both `READY` and `SUSPENDED` assets
+- WHEN a member requests the media library list with default filters
+- THEN the response SHALL include only non-`SUSPENDED` assets
+
+### Requirement: SUSPENDED Badge in MediaLibraryView
+
+`MediaLibraryView.vue` MUST render a warning-styled badge for assets with status `SUSPENDED`
+when the asset appears in an admin/review context. The badge SHALL use the existing status-badge
+pattern and SHALL display the text "Suspended".

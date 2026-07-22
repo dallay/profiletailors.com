@@ -273,3 +273,45 @@ The following capabilities are explicitly deferred beyond phase one:
 - Multi-workspace batch evaluation or automatic workspace switching
 - Generalized deny-rule subsystem beyond direct DENY grants
 - Full RBAC-to-ABAC policy engine
+
+---
+
+## Media Governance Permission Additions
+
+The following requirements were added as part of the media copyright takedown change
+(archived `2026-07-22`).
+
+### Requirement: Governance Media Permissions
+
+The permission registry MUST register two new `PermissionKey` entries:
+`workspace:governance:media-read` and `workspace:governance:media-takedown`. Both SHALL follow the
+`<domain>:<resource>:<action>` format established by the existing IAM platform, with dashes for
+multi-word actions.
+
+| Permission Key                        | Default Roles              | Purpose                  |
+|---------------------------------------|----------------------------|--------------------------|
+| `workspace:governance:media-read`     | `OWNER`, `ADMIN`, `MEMBER` | View takedown reports    |
+| `workspace:governance:media-takedown` | `OWNER`, `ADMIN`           | Approve/reject takedowns |
+
+(Previously: no `governance:media` permission keys existed.)
+
+#### Scenario: Permission keys registered in PermissionRegistry
+
+- GIVEN the IAM platform starts
+- WHEN the permission registry initializes
+- THEN `workspace:governance:media-read` SHALL be a valid permission key
+- AND `workspace:governance:media-takedown` SHALL be a valid permission key
+
+#### Scenario: Takedown action gated by permission
+
+- GIVEN a user with `workspace:governance:media-read` but NOT `workspace:governance:media-takedown`
+- WHEN calling `POST .../approve` or `POST .../reject` on a takedown report
+- THEN the `GovernanceAuthorizationService` SHALL deny access
+- AND the endpoint SHALL return `403 Forbidden`
+
+#### Scenario: Owner/Admin can take takedown action
+
+- GIVEN a user with role `OWNER` or `ADMIN` in the workspace
+- WHEN calling `POST .../approve` or `POST .../reject` on a takedown report
+- THEN the `GovernanceAuthorizationService` SHALL grant access
+- AND the action SHALL proceed

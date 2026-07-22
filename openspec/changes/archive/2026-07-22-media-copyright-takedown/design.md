@@ -1,5 +1,17 @@
 # Design: Media Copyright, Attribution & Takedown Workflow
 
+> **Archive note**: Reconciled to match shipped implementation. See verify-report.md for
+> full deviation log. Key differences from original design:
+> - **ADR-005**: Feature flag dropped — endpoints are always-on (simplification)
+> - **REST surface**: Split `POST .../approve` + `POST .../reject` replaced single `POST .../action`
+> - **Permission keys**: Dash-delimited (`media-read`, `media-takedown`) per codebase convention
+> - **Counter-notice flow**: Entirely removed from implementation scope
+> - **Detail endpoint**: `GET .../{id}` intentionally omitted (YAGNI)
+> - **TakedownReportStatus**: Shipped as `REPORTED`, `APPROVED`, `DISMISSED`, `SUSPENDED` (reserved)
+> - **Email implementation**: `TakedownEmailTemplates` + domain-event consumers instead of direct
+>   `EmailSender.send()` on templates class
+> - **Audit events**: Generic `AuditHook.onMutation()` action strings instead of dedicated event-type enum
+
 ## Technical Approach
 
 Two-phase incremental implementation. Phase 1 adds `licence` schema + attribution display. Phase 2
@@ -107,46 +119,35 @@ compliance in Phase 1 while Phase 2 addresses DMCA readiness.
 |-------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **ADR-003**: TakedownReport in governance vs media context  | Embedding in media context places legal/compliance logic alongside upload/storage concerns, violating separation of concerns. Governance owns audit trail and compliance controls.                      | **Governance context** — new `media/takedown` sub-domain within governance. Audit trail belongs under governance.                                                        |
 | **ADR-004**: `SUSPENDED` status vs separate blocklist table | Blocklist table adds JOIN overhead for every media query and requires a new exclusion pattern. Status field already models asset lifecycle; SUSPENDED is a natural extension of the existing CAS model. | **New `SUSPENDED` value in `MediaAssetStatus`** — simpler queries, works with existing `listByWorkspace(statuses: Set<>)` filtering, status already models availability. |
-| **ADR-005**: Feature flag for takedown endpoints            | Takedown workflow is new functionality; a flag allows safe rollout and instant disable if issues arise. Use Spring Boot `@ConditionalOnProperty`.                                                       | **Feature flag `media.takedown.enabled=true`** — flag-gate the controller bean and task scheduler.                                                                       |
+| **ADR-005**: Feature flag for takedown endpoints            | Takedown workflow is new functionality; a flag allows safe rollout and instant disable if issues arise. Use Spring Boot `@ConditionalOnProperty`.                                                       | **DROPPED during implementation** — endpoints are always-on. Tradeoff accepted: no instant disable without a deploy. Simpler wiring, fewer configuration paths. See W-03 in verify-report. |
 
 ### Domain Model — TakedownReport
 
 **New file**:
 `server/smp/src/main/kotlin/com/profiletailors/smp/governance/domain/MediaTakedownModels.kt`
 
+> **Shipped implementation** (simplified): Single `TakedownReportStatus` enum replaces separate
+> `TakedownStatus`, `TakedownResolution`, and `CounterNoticeStatus`. Counter-notice fields removed
+> from `TakedownReport`. String IDs instead of value objects. `SUSPENDED` status reserved for
+> future use but not produced by the state machine.
+
 ```kotlin
 package com.profiletailors.smp.governance.domain
 
 import java.time.Instant
-import java.util.UUID
 
-enum class TakedownCategory { COPYRIGHT, TRADEMARK, OTHER }
-enum class TakedownStatus { SUBMITTED, UNDER_REVIEW, RESOLVED }
-enum class TakedownResolution { TAKEDOWN_APPROVED, REPORT_REJECTED }
-enum class CounterNoticeStatus { NONE, SUBMITTED, ACCEPTED, REJECTED }
-
-data class TakedownReportId(val value: String) {
-    companion object {
-        fun generate(): TakedownReportId = TakedownReportId("tdr-${UUID.randomUUID()}")
-    }
-}
+enum class TakedownReportStatus { REPORTED, APPROVED, DISMISSED, SUSPENDED }
 
 data class TakedownReport(
-    val reportId: TakedownReportId,
+    val reportId: String,
     val assetId: String,
     val workspaceId: String,
     val reportedBy: String,
     val reporterContact: String,
-    val category: TakedownCategory,
+    val category: String,
     val description: String,
     val evidenceUrls: List<String>,
-    val status: TakedownStatus,
-    val resolution: TakedownResolution? = null,
-    val resolvedBy: String? = null,
-    val resolvedAt: Instant? = null,
-    val counterNoticeStatus: CounterNoticeStatus = CounterNoticeStatus.NONE,
-    val counterNoticeDescription: String? = null,
-    val counterNoticeSubmittedAt: Instant? = null,
+    val status: TakedownReportStatus,
     val createdAt: Instant,
     val updatedAt: Instant? = null,
 )
@@ -236,40 +237,34 @@ SUSPENDED,
 
 Package: `com.profiletailors.smp.governance.infrastructure.http`
 
-| Method | Path                                                                      | Auth                                           | Handler                       |
-|--------|---------------------------------------------------------------------------|------------------------------------------------|-------------------------------|
-| `POST` | `/api/governance/media/takedown-reports`                                  | `governance:media:read` (workspace membership) | `SubmitTakedownReportHandler` |
-| `GET`  | `/api/governance/media/takedown-reports`                                  | `governance:media:takedown`                    | `ListTakedownReportsHandler`  |
-| `GET`  | `/api/governance/media/takedown-reports/{reportId}`                       | `governance:media:takedown`                    | `GetTakedownReportHandler`    |
-| `POST` | `/api/governance/media/takedown-reports/{reportId}/action`                | `governance:media:takedown`                    | `ReviewTakedownReportHandler` |
-| `POST` | `/api/governance/media/takedown-reports/{reportId}/counter-notice`        | `governance:media:takedown`                    | `SubmitCounterNoticeHandler`  |
-| `POST` | `/api/governance/media/takedown-reports/{reportId}/counter-notice/action` | `governance:media:takedown`                    | `ReviewCounterNoticeHandler`  |
+> **Shipped implementation** (4 endpoints, simplified): Detail endpoint `GET .../{reportId}` omitted
+> (YAGNI). Counter-notice endpoints removed. Single `POST .../action` replaced by split `POST
+> .../approve` and `POST .../reject`. Permission keys use dashes per codebase convention.
+
+| Method | Path                                                    | Auth                                     | Handler                       |
+|--------|---------------------------------------------------------|------------------------------------------|-------------------------------|
+| `POST` | `/api/governance/media/takedown-reports`                | `media-read` (workspace membership)      | `ReportTakedownHandler`       |
+| `GET`  | `/api/governance/media/takedown-reports`                | `media-read`                             | `ListTakedownReportsHandler`  |
+| `POST` | `/api/governance/media/takedown-reports/{id}/approve`   | `media-takedown`                         | `ApproveTakedownHandler`      |
+| `POST` | `/api/governance/media/takedown-reports/{id}/reject`    | `media-takedown`                         | `RejectTakedownHandler`       |
 
 ### Request/Response DTOs
 
 **New file**:
 `server/smp/src/main/kotlin/com/profiletailors/smp/governance/infrastructure/http/TakedownDtos.kt`
 
+> **Shipped implementation** (simplified): No `TakedownActionRequest` — approve/reject are distinct
+> POST endpoints with separate DTOs. Counter-notice DTOs removed.
+
 ```kotlin
-data class TakedownReportRequest(
+data class ReportTakedownRequest(
     val assetId: String,
-    val reason: String,              // COPYRIGHT | TRADEMARK | OTHER
+    val reason: String,
     val description: String,
-    val evidenceUrls: List<String> = emptyList(),
+    val referenceUrl: String? = null,
 )
 
-data class TakedownActionRequest(
-    val action: String,              // APPROVE | REJECT
-    val notes: String? = null,
-)
-
-data class CounterNoticeRequest(
-    val description: String,
-    val evidence: List<String> = emptyList(),
-)
-
-data class CounterNoticeActionRequest(
-    val action: String,              // ACCEPT | REJECT
+data class ReviewTakedownRequest(
     val notes: String? = null,
 )
 
@@ -281,8 +276,6 @@ data class TakedownReportResponse(
     val description: String,
     val evidenceUrls: List<String>,
     val status: String,
-    val resolution: String?,
-    val counterNoticeStatus: String,
     val createdAt: String,
 )
 ```
@@ -291,68 +284,83 @@ data class TakedownReportResponse(
 
 **New files** in `server/smp/src/main/kotlin/com/profiletailors/smp/governance/application/`:
 
-| File                             | Handler                       | Key behavior                                                                                                                                                                                                                                                                                                           |
-|----------------------------------|-------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `SubmitTakedownReportCommand.kt` | `SubmitTakedownReportHandler` | Validates asset exists in workspace. Creates `TakedownReport` with status `SUBMITTED`. Persists via `MediaTakedownRepository`. Records audit event `MEDIA_TAKEDOWN_REPORTED`. Sends confirmation email. Returns report response.                                                                                       |
-| `ListTakedownReportsQuery.kt`    | —                             | Query object + handler. Lists reports for workspace.                                                                                                                                                                                                                                                                   |
-| `GetTakedownReportQuery.kt`      | —                             | Fetch single report by ID + workspace.                                                                                                                                                                                                                                                                                 |
-| `ReviewTakedownReportCommand.kt` | `ReviewTakedownReportHandler` | Validates report is reviewable. On `APPROVE`: sets asset status to `SUSPENDED` via `MediaAssetRepository.updateStatus()` (add new method), resolves report, records audit event `MEDIA_TAKEDOWN_APPROVED`, sends notification. On `REJECT`: resolves report, records `MEDIA_TAKEDOWN_REJECTED`, sends rejection email. |
-| `SubmitCounterNoticeCommand.kt`  | `SubmitCounterNoticeHandler`  | Sets counter-notice status to `SUBMITTED`. Records `MEDIA_TAKEDOWN_COUNTER_NOTICE`. Sends `counterNoticeReceivedEmail` to admin.                                                                                                                                                                                       |
-| `ReviewCounterNoticeCommand.kt`  | `ReviewCounterNoticeHandler`  | On `ACCEPT`: restores asset to `READY`, records `MEDIA_TAKEDOWN_RESTORED`, sends `assetRestoredNotificationEmail`. On `REJECT`: sets counter-notice status to `REJECTED`, updates report.                                                                                                                              |
+> **Shipped implementation** (4 handlers): No `GetTakedownReportQuery` (detail endpoint omitted).
+> No counter-notice handlers. Split approve/reject replaces single `ReviewTakedownReportHandler`.
+
+| File                                | Handler                        | Key behavior                                                                                                                                                    |
+|-------------------------------------|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `TakedownHandlers.kt`              | `ReportTakedownHandler`        | Validates asset exists in workspace. Creates `TakedownReport` with status `REPORTED`. Persists. Records audit event `MEDIA_TAKEDOWN_REPORTED`. Sends domain event for email. Returns report response. |
+| `TakedownHandlers.kt`              | `ApproveTakedownHandler`       | Validates report is reviewable. Sets asset status to `SUSPENDED`. Sets report status to `APPROVED`. Records `MEDIA_TAKEDOWN_APPROVED`. Sends domain event for email. |
+| `TakedownHandlers.kt`              | `RejectTakedownHandler`        | Validates report is reviewable. Sets report status to `DISMISSED`. Asset untouched. Records `MEDIA_TAKEDOWN_REJECTED`. Sends domain event for email.             |
+| `ListTakedownReportsQuery.kt`      | `ListTakedownReportsHandler`   | Lists reports for workspace. Returned by `GET /reports` endpoint.                                                                                               |
+
+> **Shipped implementation**: Permission keys use dashes (`media-read`, `media-takedown`)
+> matching codebase convention (see `workspace:consent:read`, `workspace:audit:read`).
+> Authorization via `GovernanceAuthorizationService` (auth decider pattern) instead of direct
+> `PermissionKey.of(...)` calls.
 
 **Authorization pattern** — all handlers use:
 
 ```kotlin
-authorizationService.authorize(resourceContext, PermissionKey.of("workspace", "governance", "media:takedown"))
+governanceAuthorizationService.authorizeMediaRead(resourceContext)
+governanceAuthorizationService.authorizeMediaTakedown(resourceContext)
 ```
 
-The submit handler uses `PermissionKey.of("workspace", "governance", "media:read")` as a lighter
-membership gate.
+The submit handler uses `authorizeMediaRead()` as a lighter membership gate. The approve/reject
+handlers use `authorizeMediaTakedown()`.
 
 ### Authorization Permission Keys
 
 **New file**: `db/changelog/authorization/011-seed-governance-media-permissions.yaml`
 
+> **Shipped implementation**: Dash-delimited keys match existing codebase convention.
+
 Seeds permissions:
 
-- `workspace:governance:media:read` — workspace membership gate for submitting reports
-- `workspace:governance:media:takedown` — review/action on reports
+- `workspace:governance:media-read` — workspace membership gate for submitting reports
+- `workspace:governance:media-takedown` — review/action on reports
 
-Add both to `Role.kt` / seed data for `admin` and `owner` roles (consult existing role-permission
-seed patterns in `003-create-role-permissions.yaml` / `008-seed-default-permissions.yaml`).
+Both keys are seeded for `WORKSPACE_OWNER` role via `011-seed-governance-permissions.yaml`.
 
 ### Email Notifications
 
-**File**:
-`server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/email/EmailTemplates.kt`
+> **Shipped implementation**: Separate `TakedownEmailTemplates` class under governance context.
+> Event-driven via `TakedownEmailConsumers` instead of direct `EmailTemplates` methods.
+> Counter-notice templates removed from scope.
 
-Add methods following the existing `verificationEmail()` pattern:
+**File**:
+`server/smp/src/main/kotlin/com/profiletailors/smp/governance/infrastructure/email/TakedownEmailTemplates.kt`
+
+Three template methods:
 
 ```kotlin
-fun takedownReportConfirmationEmail(recipientEmail: String, reportId: String): EmailMessage
-fun takedownApprovedNotificationEmail(recipientEmail: String, assetId: String, reportId: String): EmailMessage
-fun takedownRejectedNotificationEmail(recipientEmail: String, assetId: String, reportId: String): EmailMessage
-fun counterNoticeReceivedEmail(adminEmail: String, reportId: String): EmailMessage
-fun assetRestoredNotificationEmail(recipientEmail: String, assetId: String, reportId: String): EmailMessage
+fun takedownReportedEmail(reportId: String): EmailMessage
+fun takedownApprovedEmail(reportId: String, assetId: String): EmailMessage
+fun takedownRejectedEmail(reportId: String, assetId: String): EmailMessage
 ```
 
+**Consumers** in `TakedownEmailConsumers.kt`:
+
+- `SendTakedownReportedEmailConsumer` — resolves workspace admins via `WorkspaceOwnershipRepository`
+- `SendTakedownApprovedEmailConsumer` — dispatches approved notification
+- `SendTakedownRejectedEmailConsumer` — dispatches rejected notification
+
 Templates follow the existing HTML pattern (`Space Grotesk` body, `Space Mono` labels, dark theme,
-monochrome palette).
+monochrome palette). Idempotency keys follow `governance.takedown.{event}:{reportId}:{adminEmail}`.
 
 ### Audit Events
 
-**File**:
-`server/smp/src/main/kotlin/com/profiletailors/smp/governance/domain/AuditEventModels.kt` (applies
-to AuditEventItem)
+> **Shipped implementation**: Generic `AuditHook.onMutation()` action strings instead of dedicated
+> event-type enum. Counter-notice audit events removed.
 
-New event types used in handler audit calls (use `auditEventWriter.write(...)` following existing
-pattern from governance handlers):
+**File**: Audit events use the existing `AuditHook.onMutation(action, ...)` contract from the
+governance module. No new event-type enum was added.
 
-- `MEDIA_TAKEDOWN_REPORTED`
-- `MEDIA_TAKEDOWN_APPROVED`
-- `MEDIA_TAKEDOWN_REJECTED`
-- `MEDIA_TAKEDOWN_COUNTER_NOTICE`
-- `MEDIA_TAKEDOWN_RESTORED`
+Action strings emitted:
+
+- `MEDIA_TAKEDOWN_REPORTED` — on `ReportTakedownHandler`
+- `MEDIA_TAKEDOWN_APPROVED` — on `ApproveTakedownHandler`
+- `MEDIA_TAKEDOWN_REJECTED` — on `RejectTakedownHandler`
 
 ### R2DBC Persistence — Takedown Reports
 
@@ -382,48 +390,38 @@ Follows the `R2dbcConsentRepository.kt` pattern:
 
 ### Flow Sequences
 
-**Takedown Report → Review → Approve → Suspend → Notify**
+**Takedown Report → Submit → Approve → Suspend → Notify** (shipped flow)
 
 ```text
-Reporter                    TakedownReportController          SubmitHandler       TakedownReportRepo  MediaAssetRepo    EmailSender    AuditEventWriter
-   │                              │                              │                      │                  │                  │               │
-   │── POST /takedown-reports ───►│                              │                      │                  │                  │               │
-   │                              │── SubmitTakedownReportCmd ──►│                      │                  │                  │               │
-   │                              │                              │── save(report) ─────►│                  │                  │               │
-   │                              │                              │── audit(MEDIA_TAKEDOWN_REPORTED) ────────────────►─────│               │
-   │                              │                              │── send(confirmationEmail) ────────────────────►          │               │
-   │◄── 201 Created ──────────────┤                              │                      │                  │                  │               │
-   │                              │                              │                      │                  │                  │               │
-   │ Admin                        │                              │                      │                  │                  │               │
-   │── POST .../reportId/action ──►│                              │                      │                  │                  │               │
-   │                              │── ReviewTakedownReportCmd ──►│                      │                  │                  │               │
-   │                              │                              │── update(report) ───►│                  │                  │               │
-   │                              │                              │── updateStatus(assetId, SUSPENDED) ───────►                │               │
-   │                              │                              │── audit(MEDIA_TAKEDOWN_APPROVED) ─────────────────►───────│               │
-   │                              │                              │── send(approvedEmail) ───────────────────────────►        │               │
-   │◄── 200 OK ───────────────────┤                              │                      │                  │                  │               │
+ Reporter                     TakedownController         ReportTakedownHandler     TakedownReportRepo  MediaAssetRepo   EmailConsumer    AuditHook
+    │                              │                              │                      │                  │               │              │
+    │── POST /takedown-reports ───►│                              │                      │                  │               │              │
+    │                              │── ReportTakedownCmd ────────►│                      │                  │               │              │
+    │                              │                              │── save(report) ─────►│                  │               │              │
+    │                              │                              │── AuditHook.onMutation(MEDIA_TAKEDOWN_REPORTED) ──────────────────►              │
+    │                              │                              │── publish(TakedownReported) ──────────────────────────────►                      │
+    │◄── 201 Created ──────────────┤                              │                      │                  │               │              │
+    │                              │                              │                      │                  │               │              │
+    │ Admin                        │                              │                      │                  │               │              │
+    │── POST .../{id}/approve ────►│                              │                      │                  │               │              │
+    │                              │── ApproveTakedownCmd ───────►│                      │                  │               │              │
+    │                              │                              │── update(report) ───►│                  │               │              │
+    │                              │                              │── updateStatus(SUSPENDED) ─────────────►                   │              │
+    │                              │                              │── AuditHook.onMutation(MEDIA_TAKEDOWN_APPROVED) ───────────────────►      │
+    │                              │                              │── publish(TakedownApproved) ───────────────────────────►                   │
+    │◄── 200 OK ───────────────────┤                              │                      │                  │               │              │
 ```
 
-**Counter-Notice → Review → Restore → Notify**
+**Reject flow** (shipped, no counter-notice):
 
 ```text
-   Reporter                    TakedownReportController     SubmitCounterHandler    MediaTakedownRepo   MediaAssetRepo   EmailSender    AuditWriter
-      │                              │                              │                     │                  │               │              │
-      │── POST .../counter-notice ──►│                              │                     │                  │               │              │
-      │                              │── SubmitCounterNoticeCmd ──►│                     │                  │               │              │
-      │                              │                              │── update(report) ──►│                  │               │              │
-      │                              │                              │── audit(COUNTER_NOTICE) ─────────────────────────►─────│              │
-      │                              │                              │── send(adminEmail) ────────────────────────────►        │              │
-      │◄── 200 OK ───────────────────┤                              │                     │                  │               │              │
-      │                              │                              │                     │                  │               │              │
-      │ Admin                        │                              │                     │                  │               │              │
-      │── POST .../counter-notice/action ──►│                        │                     │                  │               │              │
-      │                              │── ReviewCounterNoticeCmd ──►│                     │                  │               │              │
-      │                              │                              │── update(report) ──►│                  │               │              │
-      │                              │                              │── updateStatus(assetId, READY) ───────────────────►                  │
-      │                              │                              │── audit(RESTORED) ───────────────────────────────►─────              │
-      │                              │                              │── send(restoredEmail) ───────────────────────────►                  │
-      │◄── 200 OK ───────────────────┤                              │                     │                  │               │              │
+    │ Admin                        │                              │                      │                  │               │              │
+    │── POST .../{id}/reject ─────►│                              │                      │                  │               │              │
+    │                              │── RejectTakedownCmd ────────►│                      │                  │               │              │
+    │                              │                              │── update(report) ───►│                  │               │              │
+    │                              │                              │── AuditHook.onMutation(MEDIA_TAKEDOWN_REJECTED) ───────────────────►     │
+    │                              │                              │── publish(TakedownRejected) ──────────────────────────►                  │
+    │◄── 200 OK ───────────────────┤                              │                      │                  │               │              │
 ```
 
 ### Data Flow — Media Query Filtering
@@ -462,35 +460,39 @@ Phase 2 change: the default statuses list in `MediaQueries.kt` / `MediaAssetCont
 | `server/smp/src/main/kotlin/.../governance/infrastructure/R2dbcTakedownReportRepository.kt`           | Create | R2DBC adapter                                                 |
 | `server/smp/src/main/resources/db/changelog/governance/006-create-takedown-reports.yaml`              | Create | Takedown reports table                                        |
 | `server/smp/src/main/resources/db/changelog/authorization/011-seed-governance-media-permissions.yaml` | Create | New permission keys                                           |
-| `server/smp/src/main/kotlin/.../identity/infrastructure/email/EmailTemplates.kt`                      | Modify | Add takedown email templates                                  |
+| `server/smp/src/main/kotlin/.../governance/infrastructure/email/TakedownEmailTemplates.kt`              | Create | Takedown email templates (separate from `EmailTemplates`)     |
+| `server/smp/src/main/kotlin/.../governance/infrastructure/email/TakedownEmailConsumers.kt`             | Create | Domain-event consumers for email dispatch                     |
 | `apps/web/app/src/modules/media/services/media-api.ts`                                                | Modify | Add `licence` to `MediaAssetSummary` type                     |
 | `apps/web/app/src/modules/media/presentation/components/MediaAttribution.vue`                         | Create | Attribution display component                                 |
-| `apps/web/app/src/modules/media/presentation/views/MediaLibraryView.vue`                              | Modify | Integrate `<MediaAttribution>` in asset cards                 |
+| `apps/web/app/src/modules/media/presentation/views/MediaLibraryView.vue`                              | Modify | Integrate `<MediaAttribution>` + SUSPENDED badge              |
+| `apps/web/app/src/modules/governance/components/TakedownReportDialog.vue`                              | Create | Takedown report submission form                               |
+| `apps/web/app/src/modules/governance/views/GovernanceTakedownView.vue`                                 | Create | Governance takedown review dashboard                          |
 
 ### Testing Strategy
 
-| Layer                                  | What to Test                                                                | Approach                                               |
-|----------------------------------------|-----------------------------------------------------------------------------|--------------------------------------------------------|
-| Unit — domain                          | TakedownReport invariants, status transitions, counter-notice state machine | Kotest table-driven tests                              |
-| Unit — handlers                        | Submit/Review/CounterNotice flows with mocked repos                         | Handler unit tests with mock repository + mock auth    |
-| Integration — R2DBC                    | `R2dbcTakedownReportRepository` CRUD + pagination                           | `@DataR2dbcTest` with embedded Postgres/Testcontainers |
-| Integration — REST                     | Controller endpoint contracts, auth enforcement, validation errors          | `@WebFluxTest` with mock handlers                      |
-| Integration — Email template rendering | Each template renders with expected variables                               | `EmailTemplatesTest` (follow existing pattern)         |
-| E2E — Frontend                         | Attribution display visibility for Unsplash vs uploaded assets              | Playwright `MediaLibraryView` test                     |
+| Layer                                  | What to Test                                                                | Approach                                                |
+|----------------------------------------|-----------------------------------------------------------------------------|---------------------------------------------------------|
+| Unit — domain                          | TakedownReport state machine (approve, dismiss, invariants)                 | Kotest table-driven (11 test cases)                    |
+| Unit — handlers                        | Report/Approve/Reject/List flows with mocked repos + auth                   | Handler unit tests (11 test cases)                     |
+| Integration — R2DBC                    | `R2dbcTakedownReportRepository` CRUD + workspace isolation + filtering      | `@DataR2dbcTest` with Postgres Testcontainers (3 cases)|
+| Integration — REST                     | Controller endpoint contracts, auth enforcement, validation errors          | `@WebFluxTest` with mock handlers (8 test cases)       |
+| Integration — Email consumers          | TakedownEmailConsumers dispatch with idempotency keys                      | Event consumer tests (15 cases)                        |
+| Unit — Frontend (Vitest)               | TakedownReportDialog, GovernanceTakedownView, governance-api service        | Vitest (25 passed, 1 todo)                             |
+| E2E — Frontend                         | Mocked authenticated review-and-approve flow                                | Playwright (3 browsers, 1 spec)                        |
 
 ### Migration / Rollout
 
 - Phase 1: Deploy anytime (backward-compatible, `licence` is nullable)
-- Phase 2: Feature flag `media.takedown.enabled=false` by default. Enable per-workspace after
-  review.
+- Phase 2: Always-on (feature flag dropped during simplification per ADR-005). Takedown endpoints
+  are unconditionally registered.
 - Rollback Phase 1: `liquibase rollback count 1` reverts licence column
-- Rollback Phase 2: Disable flag. Bulk-update `SUSPENDED → READY`. Remove changelogs.
+- Rollback Phase 2: Remove takedown controller + changelogs. Bulk-update `SUSPENDED → READY`.
 
-### Open Questions
+### Open Questions (Resolved)
 
-- [ ] Should `SUSPENDED` assets be visible with a "restricted" indicator, or fully hidden in the
-  library view?
-- [ ] Rate-limit strategy for takedown submissions per IP/principal? (Proposal mentions
-  rate-limiting but design doesn't specify)
-- [ ] Confirm admin email address for counter-notice notifications — does the app store a tenant
-  admin contact?
+- [x] **SUSPENDED visibility**: Hidden from default list (status=READY). Visible with a warning-styled
+  "Suspended" badge when reviewer opts into `SUSPENDED` status filter. Shipped implementation.
+- [x] **Rate-limiting**: Not implemented. Deferred — proposal mention was aspirational, no concrete
+  requirement in shipped scope.
+- [x] **Admin email**: Resolved via `WorkspaceOwnershipRepository` + `PrincipalIdentityLookup`. All
+  workspace owners receive notifications. Counter-notice notification not applicable (removed).

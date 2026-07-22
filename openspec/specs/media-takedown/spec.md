@@ -1,10 +1,14 @@
 # Media Takedown Specification
 
+> Reconciled to match shipped implementation (archive date: 2026-07-22).
+> Counter-notice flow removed from scope. Detail endpoint intentionally omitted (YAGNI).
+> Permission keys use dashes per codebase convention.
+
 ## Overview
 
 Define the takedown report lifecycle and asset suspension workflow for copyright and content
-moderation. Enables DMCA-compliant reporting, staff review, counter-notice process, and audit trail
-with email notifications at each state transition.
+moderation. Enables DMCA-compliant reporting, staff review, and audit trail with email
+notifications at each state transition.
 
 ## Requirements
 
@@ -13,7 +17,7 @@ with email notifications at each state transition.
 `MediaAssetStatus` MUST include `SUSPENDED` as a valid state alongside `PROCESSING`,
 `PENDING_UPLOAD`, `UPLOADING`, `READY`, `FAILED`, and `DELETED`. Assets in `SUSPENDED` state MUST be
 excluded from media picker/composer views, publication previews, and all public API responses unless
-the caller holds `workspace:governance:media:read`.
+the caller holds `workspace:governance:media-read`.
 
 #### Scenario: Assets do not surface in picker
 
@@ -24,113 +28,108 @@ the caller holds `workspace:governance:media:read`.
 
 ### Requirement: TakedownReport Domain
 
-The system MUST model a `TakedownReport` with the following state machine:
-`SUBMITTED → UNDER_REVIEW → RESOLVED` (resolution: `TAKEDOWN_APPROVED | REPORT_REJECTED`).
-Counter-notice path: `COUNTER_NOTICE_SUBMITTED → RESTORED | ESCALATED`. Reports SHALL contain:
-report ID, asset ID, workspace ID, reporter identity, reason/category, evidence/description, status,
-resolution, and timestamps.
-
-### Requirement: REST API
-
-| Endpoint                                                          | Auth                                  | Description           |
-|-------------------------------------------------------------------|---------------------------------------|-----------------------|
-| `POST /api/governance/media/takedown-reports`                     | Any workspace member                  | Submit report         |
-| `GET /api/governance/media/takedown-reports`                      | `workspace:governance:media:read`     | List reports          |
-| `GET /api/governance/media/takedown-reports/{id}`                 | `workspace:governance:media:read`     | Report detail         |
-| `POST /api/governance/media/takedown-reports/{id}/action`         | `workspace:governance:media:takedown` | Approve/reject        |
-| `POST /api/governance/media/takedown-reports/{id}/counter-notice` | Asset owner/workspace member          | Submit counter-notice |
+The system MUST model a `TakedownReport` with status enum `TakedownReportStatus` containing
+`REPORTED`, `APPROVED`, `DISMISSED`, and `SUSPENDED` (reserved for future use — not produced by the
+state machine). State transitions: `REPORTED → APPROVED` (on staff approve), `REPORTED → DISMISSED`
+(on staff reject). Reports SHALL contain: report ID (String), asset ID, workspace ID, reporter
+identity, category, description, evidence URLs, status, and timestamps.
 
 #### Scenario: Submit valid report
 
 - GIVEN an authenticated workspace member viewing a `READY` media asset
 - WHEN the member submits via `POST /api/governance/media/takedown-reports` with `reason`,
   `description`, `assetId`
-- THEN the system SHALL create a `TakedownReport` with status `SUBMITTED`
+- THEN the system SHALL create a `TakedownReport` with status `REPORTED`
 - AND the response SHALL return `201` with the report ID
-- AND an audit event SHALL be recorded
+- AND an audit event SHALL be recorded via `AuditHook.onMutation`
+
+### Requirement: REST API
+
+| Method | Path                                                    | Auth                                     | Description     |
+|--------|---------------------------------------------------------|------------------------------------------|-----------------|
+| POST   | `/api/governance/media/takedown-reports`                | `workspace:governance:media-read`        | Submit report   |
+| GET    | `/api/governance/media/takedown-reports`                | `workspace:governance:media-read`        | List reports    |
+| POST   | `/api/governance/media/takedown-reports/{id}/approve`   | `workspace:governance:media-takedown`    | Approve report  |
+| POST   | `/api/governance/media/takedown-reports/{id}/reject`    | `workspace:governance:media-takedown`    | Reject report   |
+
+The detail endpoint `GET /api/governance/media/takedown-reports/{id}` was intentionally omitted as
+YAGNI — the list endpoint plus the per-report approve/reject sub-paths provide sufficient
+addressability. The counter-notice endpoint was removed from scope.
 
 #### Scenario: Unauthorized user blocked
 
-- GIVEN a workspace `MEMBER` WITHOUT `workspace:governance:media:takedown`
-- WHEN accessing `POST .../action`
+- GIVEN a workspace `MEMBER` WITHOUT `workspace:governance:media-takedown`
+- WHEN accessing `POST .../approve` or `POST .../reject`
 - THEN system SHALL return `403 Forbidden`
 - AND no state change SHALL occur
 
 ### Requirement: Approval Flow
 
-When staff approves a takedown, the asset MUST transition to `SUSPENDED`, the report to `RESOLVED`/
-`TAKEDOWN_APPROVED`, an audit event `MEDIA_TAKEDOWN_APPROVED` SHALL be recorded, and an email SHALL
-be sent to the submitter. On rejection, the asset remains `READY`, report → `RESOLVED`/
-`REPORT_REJECTED`, audit event `MEDIA_TAKEDOWN_REJECTED`, email sent.
+When staff approves a takedown, the asset MUST transition to `SUSPENDED`, the report status to
+`APPROVED`, an audit event `MEDIA_TAKEDOWN_APPROVED` SHALL be recorded via `AuditHook.onMutation`,
+and a `TakedownApproved` domain event SHALL be published for email dispatch. On rejection,
+the report status becomes `DISMISSED`, asset remains `READY`, `MEDIA_TAKEDOWN_REJECTED` audit
+recorded, and `TakedownRejected` domain event published.
 
 #### Scenario: Approve → asset suspended
 
-- GIVEN a `TakedownReport` with status `UNDER_REVIEW`
-- WHEN a user with `workspace:governance:media:takedown` calls `POST .../action` with
-  `action = "APPROVE"`
+- GIVEN a `TakedownReport` with status `REPORTED`
+- WHEN a user with `workspace:governance:media-takedown` calls `POST .../approve`
 - THEN asset SHALL transition to `SUSPENDED`
-- AND report SHALL transition to `RESOLVED` with resolution `TAKEDOWN_APPROVED`
-- AND submitter SHALL receive a resolution email
+- AND report SHALL transition to `APPROVED`
+- AND workspace admins SHALL receive a notification email
 - AND an audit event SHALL be recorded
 
 #### Scenario: Reject → asset stays READY
 
-- GIVEN a `TakedownReport` with status `UNDER_REVIEW`
-- WHEN authorized user calls `POST .../action` with `action = "REJECT"`
+- GIVEN a `TakedownReport` with status `REPORTED`
+- WHEN authorized user calls `POST .../reject`
 - THEN asset SHALL remain `READY`
-- AND report SHALL transition to `RESOLVED`/`REPORT_REJECTED`
+- AND report SHALL transition to `DISMISSED`
 - AND submitter SHALL receive a rejection email
 
-### Requirement: Counter-Notice Flow
+### Requirement: SUSPENDED Badge
 
-The asset owner or workspace member MAY submit a counter-notice on a `SUSPENDED` asset. If staff
-accepts the counter-notice, asset → `READY`, report → `RESTORED`, submitter emailed. If rejected,
-asset stays `SUSPENDED`, report → `ESCALATED`.
+`MediaLibraryView.vue` SHALL render a warning-styled "Suspended" badge when assets with status
+`SUSPENDED` appear in reviewer/admin contexts. The badge follows the existing status-badge patterns.
 
-#### Scenario: Counter-notice accepted → restored
+### Requirement: Email Notifications
 
-- GIVEN a `TakedownReport` with resolution `TAKEDOWN_APPROVED` and asset `SUSPENDED`
-- WHEN the owner submits a counter-notice via `POST .../counter-notice`
-- AND staff reviews and approves the counter-notice
-- THEN asset SHALL transition to `READY`
-- AND report SHALL transition to `RESTORED`
-- AND submitter SHALL receive a restoration email
+Three email templates dispatched via domain-event consumers:
 
-#### Scenario: Counter-notice rejected → stays suspended
+| Template              | Trigger               | Consumer                                |
+|-----------------------|-----------------------|-----------------------------------------|
+| Takedown Confirmation | Report submitted      | `SendTakedownReportedEmailConsumer`     |
+| Takedown Approved     | Staff approves        | `SendTakedownApprovedEmailConsumer`     |
+| Takedown Rejected     | Staff rejects         | `SendTakedownRejectedEmailConsumer`     |
 
-- GIVEN a counter-notice has been submitted on a `SUSPENDED` asset
-- WHEN staff reviews and rejects the counter-notice
-- THEN asset SHALL remain `SUSPENDED`
-- AND report SHALL transition to `ESCALATED`
+Templates live in `TakedownEmailTemplates.kt` under `governance/infrastructure/email/`. Consumers
+resolve workspace admins via `WorkspaceOwnershipRepository` + `PrincipalIdentityLookup`. All emails
+use idempotency keys.
 
 ### Requirement: Audit Trail
 
-Every state transition (submission, approval, rejection, counter-notice, restoration, escalation)
-MUST be recorded in the `audit_events` table with: actor ID, action type (
-`MEDIA_TAKEDOWN_SUBMITTED`, `MEDIA_TAKEDOWN_APPROVED`, `MEDIA_TAKEDOWN_REJECTED`,
-`COUNTER_NOTICE_SUBMITTED`, `MEDIA_RESTORED`, `MEDIA_ESCALATED`), target type (`TAKEDOWN_REPORT`),
-target ID, and metadata JSON containing report ID and reason.
+Every state transition (submission, approval, rejection) MUST be recorded via
+`AuditHook.onMutation(action, ...)` with action strings `MEDIA_TAKEDOWN_REPORTED`,
+`MEDIA_TAKEDOWN_APPROVED`, and `MEDIA_TAKEDOWN_REJECTED`. The audit mechanism uses the existing
+generic `AuditHook` contract — no dedicated event-type enum was added.
 
-## Changes
+### Out of Scope
 
-This specification is implemented across the following change artifacts:
-
-- Change: [
-  `../../changes/media-copyright-takedown/proposal.md`](../../changes/media-copyright-takedown/proposal.md)
-- Spec: [
-  `../../changes/media-copyright-takedown/spec.md`](../../changes/media-copyright-takedown/spec.md)
-- Design: [
-  `../../changes/media-copyright-takedown/design.md`](../../changes/media-copyright-takedown/design.md)
-- Tasks: [
-  `../../changes/media-copyright-takedown/tasks.md`](../../changes/media-copyright-takedown/tasks.md)
+The following capabilities were explicitly removed from scope:
+- Counter-notice submit / review / accept / reject / restore workflow
+- Detail endpoint `GET /reports/{id}`
+- Feature flag for takedown endpoints (always-on)
+- Public DMCA agent registration page
+- Third-party reporting API integration (Lumen, etc.)
 
 ## Usage
 
 The requirements in this document drive:
 
 - Domain model: `TakedownReport`, `TakedownReportStatus`, `MediaAssetStatus.SUSPENDED`
-- HTTP API: `TakedownController` endpoints
-- Authorization: `GovernanceAuthorizationService` permission checks
+- HTTP API: `TakedownController` (4 endpoints)
+- Authorization: `GovernanceAuthorizationService` (`media-read`, `media-takedown`)
 - Event publishing: `TakedownReported`, `TakedownApproved`, `TakedownRejected`
 - Notification consumers: `SendTakedownReportedEmailConsumer`, `SendTakedownApprovedEmailConsumer`,
   `SendTakedownRejectedEmailConsumer`
@@ -147,11 +146,6 @@ The requirements in this document drive:
 ## References
 
 - Issue: `DALLAY-499`
-- Phase 1 design: [
-  `../../changes/media-copyright-takedown/design.md`](../../changes/media-copyright-takedown/design.md)
-- Phase 1 tasks: [
-  `../../changes/media-copyright-takedown/tasks.md`](../../changes/media-copyright-takedown/tasks.md)
-- Email spec: [
-  `../../changes/media-copyright-takedown/specs/email-notifications/spec.md`](../../changes/media-copyright-takedown/specs/email-notifications/spec.md)
-- IAM spec: [
-  `../../changes/media-copyright-takedown/specs/iam/spec.md`](../../changes/media-copyright-takedown/specs/iam/spec.md)
+- Change proposal: `../../changes/archive/2026-07-22-media-copyright-takedown/proposal.md`
+- Design: `../../changes/archive/2026-07-22-media-copyright-takedown/design.md`
+- Tasks: `../../changes/archive/2026-07-22-media-copyright-takedown/tasks.md`
