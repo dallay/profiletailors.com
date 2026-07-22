@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import java.net.URI
 
+private const val BAD_REQUEST_DETAIL = "Bad request"
+
 @RestControllerAdvice
 class IdentityProblemDetailsHandler {
 
@@ -34,7 +36,7 @@ class IdentityProblemDetailsHandler {
 
     @ExceptionHandler(InvalidRegistrationInputException::class)
     fun handle(exception: InvalidRegistrationInputException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: BAD_REQUEST_DETAIL).apply {
             title = "Invalid registration input"
         }
 
@@ -80,13 +82,13 @@ class IdentityProblemDetailsHandler {
 
     @ExceptionHandler(InvalidVerificationTokenException::class)
     fun handle(exception: InvalidVerificationTokenException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: BAD_REQUEST_DETAIL).apply {
             title = "Invalid verification token"
         }
 
     @ExceptionHandler(CloseAccountConfirmationException::class)
     fun handle(exception: CloseAccountConfirmationException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: BAD_REQUEST_DETAIL).apply {
             title = "Invalid account closure confirmation"
         }
 
