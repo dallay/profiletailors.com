@@ -12,6 +12,7 @@ addressed.
 ### Attribution Data in Domain Model
 
 The `MediaAsset` domain model already carries full attribution fields:
+
 - `sourceType: MediaSourceType` — `UPLOADED`, `UNSPLASH`, `TENOR`, etc.
 - `sourceProvider: String?` — e.g. `"unsplash"`
 - `externalId: String?`
@@ -30,8 +31,8 @@ DTOs.
   (jsonb) columns with NOT NULL + CHECK constraints
 - Changelog `006-drop-external-metadata.yaml` **drops** all those columns
 - The domain models and DTOs still reference these fields, meaning either:
-  - The drop was never applied, OR
-  - The domain model is out of sync with the schema
+    - The drop was never applied, OR
+    - The domain model is out of sync with the schema
 
 ### Unsplash Integration
 

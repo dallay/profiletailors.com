@@ -2,13 +2,16 @@
 
 ## Purpose
 
-Define the minimum public runtime contract needed by unauthenticated clients to reflect registration availability.
+Define the minimum public runtime contract needed by unauthenticated clients to reflect registration
+availability.
 
 ## Requirements
 
 ### Requirement: Allow-Listed Public Capability
 
-`GET /api/capabilities/public` MUST be unauthenticated and MUST return exactly `{ "registrationEnabled": boolean }`. It MUST NOT expose generic configuration, environment metadata, secrets, or additional settings.
+`GET /api/capabilities/public` MUST be unauthenticated and MUST return exactly
+`{ "registrationEnabled": boolean }`. It MUST NOT expose generic configuration, environment
+metadata, secrets, or additional settings.
 
 #### Scenario: Capability reports disabled registration
 

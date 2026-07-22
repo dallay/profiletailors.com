@@ -10,11 +10,11 @@
 
 The suite SHALL organize composer scenarios into three Playwright lane projects.
 
-| Tag | Project | Purpose | CI |
-|---|---|---|---|
-| `@composer-ui-mocked` | `media-mocked-chromium` | Progress / failure / limit / deselection | PR |
-| `@composer-smoke-real` | `media-real-chromium` | Real-backend happy paths | scheduled/manual |
-| `@composer-provider-real` | `media-real-chromium` | Real Unsplash | deferred |
+| Tag                       | Project                 | Purpose                                  | CI               |
+|---------------------------|-------------------------|------------------------------------------|------------------|
+| `@composer-ui-mocked`     | `media-mocked-chromium` | Progress / failure / limit / deselection | PR               |
+| `@composer-smoke-real`    | `media-real-chromium`   | Real-backend happy paths                 | scheduled/manual |
+| `@composer-provider-real` | `media-real-chromium`   | Real Unsplash                            | deferred         |
 
 #### Scenario: Single lane tag per scenario
 
@@ -105,11 +105,11 @@ failure, and per-scenario tag in the report header.
 The implementation MUST cover 26 of 30 plan items browser-observable today. Items 18, 20, 21, 22,
 23 (Unsplash provider real flows) are environment-gated and deferred.
 
-| Plan items | Lane | Coverage |
-|---|---|---|
-| 1, 3, 5, 14-17, 19, 26, 27, 28 | `@composer-smoke-real` | Live-observable behavior |
-| 2, 4, 6, 7-13, 24, 25, 29, 30 | `@composer-ui-mocked` | Stateful mocked scenarios |
-| 18, 20, 21, 22, 23 | `@composer-provider-real` | **Deferred** - needs real Unsplash |
+| Plan items                     | Lane                      | Coverage                           |
+|--------------------------------|---------------------------|------------------------------------|
+| 1, 3, 5, 14-17, 19, 26, 27, 28 | `@composer-smoke-real`    | Live-observable behavior           |
+| 2, 4, 6, 7-13, 24, 25, 29, 30  | `@composer-ui-mocked`     | Stateful mocked scenarios          |
+| 18, 20, 21, 22, 23             | `@composer-provider-real` | **Deferred** - needs real Unsplash |
 
 #### Scenario: Deferred rationale is recorded
 
@@ -147,10 +147,10 @@ None.
 
 ## Deferred Plan Items
 
-| # | Topic | Reason |
-|---|---|---|
-| 18 | Unsplash tab visible when enabled | Provider-enabled env absent |
-| 20 | Source switch preserves staged selection | Requires provider-enabled env |
-| 21 | Unsplash search renders in picker | Requires provider-enabled env |
-| 22 | Unsplash import keeps modal open | Requires provider-enabled env |
+| #  | Topic                                      | Reason                        |
+|----|--------------------------------------------|-------------------------------|
+| 18 | Unsplash tab visible when enabled          | Provider-enabled env absent   |
+| 20 | Source switch preserves staged selection   | Requires provider-enabled env |
+| 21 | Unsplash search renders in picker          | Requires provider-enabled env |
+| 22 | Unsplash import keeps modal open           | Requires provider-enabled env |
 | 23 | Imported asset becomes composer attachment | Requires provider-enabled env |

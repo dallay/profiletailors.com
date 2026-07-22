@@ -62,35 +62,35 @@ raised as a separate follow-up against the owning capability.
 
 ## Affected Areas
 
-| Area | Impact |
-|------|--------|
-| `apps/web/app/e2e/specs/media-composer.spec.ts` | Rewrite; lane tags |
-| `apps/web/app/e2e/pages/compose-modal-page.ts` | Picker, overflow, overlay, dropzone, preview-source APIs |
-| `apps/web/app/e2e/fixtures/media-mocks.ts` | Deferred upload, progress, binary failure, transitions, external assets, channel-limit provider |
-| `apps/web/app/e2e/fixtures/media-mocked-test.ts` | Composer-specific state controls |
-| `apps/web/app/e2e/fixtures/media-real-test.ts` | Run-scoped isolation; channel-limit seed |
-| `apps/web/app/e2e/fixtures/media-files.ts` | Second inline image, invalid file, ordered manifest, larger fixture |
-| `apps/web/app/e2e/playwright.media-mocked.config.ts` | `@composer-ui-mocked` tags |
-| `apps/web/app/e2e/playwright.media-real.config.ts` | `@composer-smoke-real` project; isolation guarantees |
-| `apps/web/app/package.json` | `just` recipes for composer lanes |
-| `.github/workflows/ci.yml` | Mocked in PR CI; real smoke and provider in scheduled/manual jobs |
-| `apps/web/app/src/components/CreatePostModal.vue` | Test seam only; tracked separately |
-| `apps/web/app/src/components/composer/ComposerMediaPickerShell.vue` | Test seam only; tracked separately |
-| `apps/web/app/src/components/composer/PostPreviewPanel.vue` | Test seam only; tracked separately |
+| Area                                                                | Impact                                                                                          |
+|---------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `apps/web/app/e2e/specs/media-composer.spec.ts`                     | Rewrite; lane tags                                                                              |
+| `apps/web/app/e2e/pages/compose-modal-page.ts`                      | Picker, overflow, overlay, dropzone, preview-source APIs                                        |
+| `apps/web/app/e2e/fixtures/media-mocks.ts`                          | Deferred upload, progress, binary failure, transitions, external assets, channel-limit provider |
+| `apps/web/app/e2e/fixtures/media-mocked-test.ts`                    | Composer-specific state controls                                                                |
+| `apps/web/app/e2e/fixtures/media-real-test.ts`                      | Run-scoped isolation; channel-limit seed                                                        |
+| `apps/web/app/e2e/fixtures/media-files.ts`                          | Second inline image, invalid file, ordered manifest, larger fixture                             |
+| `apps/web/app/e2e/playwright.media-mocked.config.ts`                | `@composer-ui-mocked` tags                                                                      |
+| `apps/web/app/e2e/playwright.media-real.config.ts`                  | `@composer-smoke-real` project; isolation guarantees                                            |
+| `apps/web/app/package.json`                                         | `just` recipes for composer lanes                                                               |
+| `.github/workflows/ci.yml`                                          | Mocked in PR CI; real smoke and provider in scheduled/manual jobs                               |
+| `apps/web/app/src/components/CreatePostModal.vue`                   | Test seam only; tracked separately                                                              |
+| `apps/web/app/src/components/composer/ComposerMediaPickerShell.vue` | Test seam only; tracked separately                                                              |
+| `apps/web/app/src/components/composer/PostPreviewPanel.vue`         | Test seam only; tracked separately                                                              |
 
 ## Risks
 
-| Risk | Lik | Mitigation |
-|------|-----|------------|
+| Risk                                                                   | Lik  | Mitigation                                                          |
+|------------------------------------------------------------------------|------|---------------------------------------------------------------------|
 | Client-driven upload progress cannot be granular via route fulfillment | High | Track test-controlled upload transport seam as follow-up; no sleeps |
-| Existing selectors reflect old single-attachment markup | High | Rewrite selectors; audit before merge |
-| Shared workspace causes destructive cleanup in real-smoke | High | Unique run ID; isolation contract; no shared mutation |
-| Attachment limits depend on channel `maxAttachments` | Med | Deterministic channel-limit provider in mocks; assert in setup |
-| Unsplash is DEV/test synthetic and absent in real environment | High | Provider-enabled opt-in only and out of PR CI |
-| Utility-class assertions on selected cards are brittle | Med | Computed-style or screenshot diff; no raw class-name coupling |
-| Blob URL lifecycle races with fast mocked completion | Med | Mocks defer final response on demand |
-| One serial spec produces hard-to-diagnose failures | Med | Tag per lane; align `describe` boundaries with plan IDs |
-| Test seams added to product blur scope | Med | Any required seam is a separate SDD change |
+| Existing selectors reflect old single-attachment markup                | High | Rewrite selectors; audit before merge                               |
+| Shared workspace causes destructive cleanup in real-smoke              | High | Unique run ID; isolation contract; no shared mutation               |
+| Attachment limits depend on channel `maxAttachments`                   | Med  | Deterministic channel-limit provider in mocks; assert in setup      |
+| Unsplash is DEV/test synthetic and absent in real environment          | High | Provider-enabled opt-in only and out of PR CI                       |
+| Utility-class assertions on selected cards are brittle                 | Med  | Computed-style or screenshot diff; no raw class-name coupling       |
+| Blob URL lifecycle races with fast mocked completion                   | Med  | Mocks defer final response on demand                                |
+| One serial spec produces hard-to-diagnose failures                     | Med  | Tag per lane; align `describe` boundaries with plan IDs             |
+| Test seams added to product blur scope                                 | Med  | Any required seam is a separate SDD change                          |
 
 ### Test Seams (tracked but not pre-approved)
 
@@ -102,9 +102,11 @@ test-controlled upload transport seam in `useComposerMediaPicker.ts`; stable ide
 
 Follow-up seam references:
 
-- `composer-media-picker`: `data-testid="media-dropzone"`, `data-testid="upload-overlay-local-upload"`, `data-testid="attachment-overflow"`
+- `composer-media-picker`: `data-testid="media-dropzone"`,
+  `data-testid="upload-overlay-local-upload"`, `data-testid="attachment-overflow"`
 - `composer-preview`: `data-media-src-kind` on the preview media element
-- `useComposerMediaPicker.ts`: transport-level seam for deterministic upload-progress callbacks without browser-timing dependence
+- `useComposerMediaPicker.ts`: transport-level seam for deterministic upload-progress callbacks
+  without browser-timing dependence
 
 ## Rollback Plan
 
@@ -127,6 +129,6 @@ frontend test seam was merged, revert it separately.
 - [ ] `@composer-ui-mocked` runs deterministically in parallel and reports clear failures.
 - [ ] `@composer-smoke-real` validates happy paths with run-scoped data.
 - [ ] Scenarios cover 26 of 30 plan items browser-observable today; the remaining 4 are deferred
-      with rationale recorded.
+  with rationale recorded.
 - [ ] Any required frontend test seam is tracked as a separate follow-up proposal, not inlined.
 - [ ] Mocked lane passes locally and in PR CI; real smoke passes in its scheduled/manual lane.

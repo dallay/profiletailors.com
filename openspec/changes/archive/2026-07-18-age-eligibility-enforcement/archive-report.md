@@ -8,15 +8,15 @@
 
 ## SDD Cycle Completion
 
-| Phase   | Status     | Artifact                              |
-|---------|------------|---------------------------------------|
-| propose | ✅ Complete | `proposal.md`                         |
-| spec    | ✅ Complete | `spec.md`                             |
-| design  | ✅ Complete | `design.md`                           |
-| tasks   | ✅ Complete | `tasks.yaml`                          |
-| apply   | ✅ Complete | Implementation per tasks              |
+| Phase   | Status     | Artifact                                |
+|---------|------------|-----------------------------------------|
+| propose | ✅ Complete | `proposal.md`                           |
+| spec    | ✅ Complete | `spec.md`                               |
+| design  | ✅ Complete | `design.md`                             |
+| tasks   | ✅ Complete | `tasks.yaml`                            |
+| apply   | ✅ Complete | Implementation per tasks                |
 | verify  | ✅ Complete | `verify-report.md` — PASS WITH WARNINGS |
-| archive | ✅ Complete | This report                           |
+| archive | ✅ Complete | This report                             |
 
 ---
 
@@ -28,31 +28,33 @@
 
 **Changes applied during sync:**
 
-| Domain          | Action   | Details                                                                        |
-|-----------------|----------|--------------------------------------------------------------------------------|
-| age-eligibility | Created  | New capability spec. 6 requirements (RQ-001 through RQ-006).                   |
+| Domain          | Action  | Details                                                      |
+|-----------------|---------|--------------------------------------------------------------|
+| age-eligibility | Created | New capability spec. 6 requirements (RQ-001 through RQ-006). |
 
 **Design Deviation Corrected:**
 
-- **RQ-004** originally specified ONE consent record with `purpose: "registration_terms_and_eligibility"`.
+- **RQ-004** originally specified ONE consent record with
+  `purpose: "registration_terms_and_eligibility"`.
   Per **AD-06** (design decision), the implementation creates TWO records with distinct purposes:
   `"age-eligibility.18-plus"` and `"terms.acceptance"`.
   Rationale: independent withdrawal. The main spec reflects the two-record design.
-- **Scenarios** updated to match: the successful registration scenario now asserts two consent records.
+- **Scenarios** updated to match: the successful registration scenario now asserts two consent
+  records.
 
 ---
 
 ## Archive Contents
 
-| Artifact        | Status | Notes                                           |
-|-----------------|--------|-------------------------------------------------|
-| `proposal.md`   | ✅     | Original proposal (Spanish)                     |
-| `spec.md`       | ✅     | Delta spec (pre-sync version)                   |
-| `design.md`     | ✅     | Technical design with 6 ADs                     |
-| `tasks.yaml`    | ✅     | 15 tasks across 6 phases                        |
-| `verify-report.md` | ✅  | PASS WITH WARNINGS, 903 frontend + backend tests|
-| `state.yaml`    | ✅     | Archived state                                  |
-| `archive-report.md` | ✅ | This file                                       |
+| Artifact            | Status | Notes                                            |
+|---------------------|--------|--------------------------------------------------|
+| `proposal.md`       | ✅      | Original proposal (Spanish)                      |
+| `spec.md`           | ✅      | Delta spec (pre-sync version)                    |
+| `design.md`         | ✅      | Technical design with 6 ADs                      |
+| `tasks.yaml`        | ✅      | 15 tasks across 6 phases                         |
+| `verify-report.md`  | ✅      | PASS WITH WARNINGS, 903 frontend + backend tests |
+| `state.yaml`        | ✅      | Archived state                                   |
+| `archive-report.md` | ✅      | This file                                        |
 
 ### Task Completion
 
@@ -66,13 +68,14 @@
 
 ### Test Results
 
-| Suite                     | Count    | Status |
-|---------------------------|----------|--------|
-| Backend unit tests        | 1,050    | 1,043 ✅ / 5 ⚠️ / 2 skipped |
-| Frontend (app)            | 903      | ✅ All pass |
-| Frontend (marketing)      | 29       | ✅ All pass |
+| Suite                | Count | Status                     |
+|----------------------|-------|----------------------------|
+| Backend unit tests   | 1,050 | 1,043 ✅ / 5 ⚠️ / 2 skipped |
+| Frontend (app)       | 903   | ✅ All pass                 |
+| Frontend (marketing) | 29    | ✅ All pass                 |
 
-5 integration test failures: `LocalAuthEndpointIntegrationTest` payloads need `confirmedAgeEligibility` and
+5 integration test failures: `LocalAuthEndpointIntegrationTest` payloads need
+`confirmedAgeEligibility` and
 `acceptedTermsVersion` added (test hygiene, not logic defect). Left for post-archive follow-up.
 
 ---

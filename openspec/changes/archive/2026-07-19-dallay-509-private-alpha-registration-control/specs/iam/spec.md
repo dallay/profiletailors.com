@@ -4,7 +4,8 @@
 
 ### Requirement: Existing Authentication Remains Available
 
-Registration availability MUST NOT alter login, refresh, or authentication of existing users in either configuration state.
+Registration availability MUST NOT alter login, refresh, or authentication of existing users in
+either configuration state.
 
 #### Scenario: Existing user authenticates while registration is disabled
 

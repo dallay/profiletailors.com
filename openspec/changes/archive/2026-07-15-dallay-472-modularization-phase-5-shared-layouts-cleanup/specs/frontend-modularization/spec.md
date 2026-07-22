@@ -4,7 +4,8 @@
 
 ### Requirement: Phase 5 shared, layout, and cleanup placement
 
-The application MUST remove root-level leftovers by relocating files to the smallest correct owner without changing runtime behavior.
+The application MUST remove root-level leftovers by relocating files to the smallest correct owner
+without changing runtime behavior.
 
 #### Scenario: Composable placement is evaluated by ownership
 
@@ -22,7 +23,8 @@ The application MUST remove root-level leftovers by relocating files to the smal
 
 ### Requirement: shadcn-vue compatibility boundary
 
-The migration MUST preserve shadcn-vue compatibility by keeping generated primitives under `src/components/ui` and protecting `@/lib/utils` consumers.
+The migration MUST preserve shadcn-vue compatibility by keeping generated primitives under
+`src/components/ui` and protecting `@/lib/utils` consumers.
 
 #### Scenario: UI primitives remain generated-compatible
 
@@ -40,7 +42,8 @@ The migration MUST preserve shadcn-vue compatibility by keeping generated primit
 
 ### Requirement: Empty legacy folder cleanup
 
-Legacy root folders MUST be removed once emptied, except folders retained for approved compatibility.
+Legacy root folders MUST be removed once emptied, except folders retained for approved
+compatibility.
 
 #### Scenario: Empty folders are removed or justified
 

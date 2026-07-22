@@ -61,7 +61,7 @@ media asset and its asset ID follows the same publication path as uploaded media
 
 - The parent renders `MediaProviderPanel` inside the shell's `provider` slot.
 - The panel emits typed events:
-  - `provider-import` with `{ externalId: string }` on Import click
+    - `provider-import` with `{ externalId: string }` on Import click
 - The panel's Import button is `:disabled` whenever the parent marks a result as
   `selectedForImport: true` — the parent owns the in-flight import state and
   controls duplicate emit prevention.

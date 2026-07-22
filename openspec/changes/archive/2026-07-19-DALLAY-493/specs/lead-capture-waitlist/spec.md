@@ -4,7 +4,9 @@
 
 ### Requirement: Waitlist Entry DSAR Lookup and Anonymization
 
-`WaitlistEntryRepository` MUST support lookup by normalized email (case-insensitive, trimmed). An `anonymizeEmail(entryId)` operation MUST replace the `email` field with `[REDACTED on {timestamp}]` and clear PII in `metadata` (→ `{}`).
+`WaitlistEntryRepository` MUST support lookup by normalized email (case-insensitive, trimmed). An
+`anonymizeEmail(entryId)` operation MUST replace the `email` field with `[REDACTED on {timestamp}]`
+and clear PII in `metadata` (→ `{}`).
 
 #### Scenario: Lookup matches normalized email
 
@@ -21,7 +23,9 @@
 
 ### Requirement: Correction Propagation
 
-When `email` is corrected on a `user_identities` row, the correction MUST propagate to waitlist entries matching BOTH old and new email (entries with the old email are updated to the new email). Entries matching only the old or only the new email MUST NOT be affected.
+When `email` is corrected on a `user_identities` row, the correction MUST propagate to waitlist
+entries matching BOTH old and new email (entries with the old email are updated to the new email).
+Entries matching only the old or only the new email MUST NOT be affected.
 
 #### Scenario: Propagation updates matching entries
 

@@ -4,7 +4,12 @@
 
 ### Requirement: Publication Asset PATCH Tri-State Semantics
 
-The publishing API MUST preserve CREATE asset behavior while giving PATCH publication edits explicit tri-state `assetIds` semantics. For edit requests, absent or `null` `assetIds` MUST preserve the publication's current asset IDs, an empty array MUST clear all current assets, and a non-empty array MUST replace current assets exactly in request order. CREATE semantics MUST remain unchanged: absent/default `assetIds` creates no assets, and provided IDs are used. Workspace-scoped targeting, update-not-found behavior, and the existing #224/#225 edit hardening behavior MUST remain unchanged.
+The publishing API MUST preserve CREATE asset behavior while giving PATCH publication edits explicit
+tri-state `assetIds` semantics. For edit requests, absent or `null` `assetIds` MUST preserve the
+publication's current asset IDs, an empty array MUST clear all current assets, and a non-empty array
+MUST replace current assets exactly in request order. CREATE semantics MUST remain unchanged:
+absent/default `assetIds` creates no assets, and provided IDs are used. Workspace-scoped targeting,
+update-not-found behavior, and the existing #224/#225 edit hardening behavior MUST remain unchanged.
 
 #### Scenario: PATCH assetIds absent preserves current assets
 
@@ -46,7 +51,11 @@ The publishing API MUST preserve CREATE asset behavior while giving PATCH public
 
 ### Requirement: Composer Edit Asset Hydration and Submission
 
-The scheduler composer MUST hydrate resolvable existing asset summaries when opened in edit mode and display previews for those assets. Missing or deleted assets MUST be handled gracefully without crashing the editor and MUST NOT silently clear unrelated valid asset IDs. Saving an edit without asset interaction MUST omit `assetIds` from PATCH. Explicit remove-all MUST send `assetIds: []`. Selecting or replacing assets MUST send the selected asset IDs exactly.
+The scheduler composer MUST hydrate resolvable existing asset summaries when opened in edit mode and
+display previews for those assets. Missing or deleted assets MUST be handled gracefully without
+crashing the editor and MUST NOT silently clear unrelated valid asset IDs. Saving an edit without
+asset interaction MUST omit `assetIds` from PATCH. Explicit remove-all MUST send `assetIds: []`.
+Selecting or replacing assets MUST send the selected asset IDs exactly.
 
 #### Scenario: Edit modal hydrates and previews existing assets
 
@@ -84,4 +93,5 @@ The scheduler composer MUST hydrate resolvable existing asset summaries when ope
 
 - GIVEN backend and frontend regression tests are written first
 - WHEN the focused suites run
-- THEN they MUST cover all PATCH tri-state cases, CREATE compatibility, hydration, missing assets, untouched save omission, clear-all, replacement, and unchanged workspace/#224/#225 behavior
+- THEN they MUST cover all PATCH tri-state cases, CREATE compatibility, hydration, missing assets,
+  untouched save omission, clear-all, replacement, and unchanged workspace/#224/#225 behavior

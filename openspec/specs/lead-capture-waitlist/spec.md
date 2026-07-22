@@ -2,7 +2,9 @@
 
 ## Overview
 
-This delta defines the waitlist bounded context: aggregate, entity, consent value object, CQRS commands/handlers, and repository ports. All types MUST be pure Kotlin with no framework dependencies.
+This delta defines the waitlist bounded context: aggregate, entity, consent value object, CQRS
+commands/handlers, and repository ports. All types MUST be pure Kotlin with no framework
+dependencies.
 
 ## Changes
 
@@ -10,7 +12,10 @@ This delta defines the waitlist bounded context: aggregate, entity, consent valu
 
 #### Requirement: Waitlist Aggregate
 
-`Waitlist` MUST be an aggregate root with a `WaitlistStatus` (`draft`, `active`, `paused`, `closed`, `archived`). A waitlist with status `active` MUST accept new entries. A waitlist with status `paused`, `closed`, or `archived` MUST NOT accept new entries. Status transitions MUST follow valid lifecycle paths.
+`Waitlist` MUST be an aggregate root with a `WaitlistStatus` (`draft`, `active`, `paused`, `closed`,
+`archived`). A waitlist with status `active` MUST accept new entries. A waitlist with status
+`paused`, `closed`, or `archived` MUST NOT accept new entries. Status transitions MUST follow valid
+lifecycle paths.
 
 #### Scenario: Active waitlist accepts entries
 
@@ -32,7 +37,9 @@ This delta defines the waitlist bounded context: aggregate, entity, consent valu
 
 #### Requirement: WaitlistEntry Entity
 
-`WaitlistEntry` MUST have a `WaitlistEntryStatus` (`pending`, `invited`, `converted`, `cancelled`). It MUST track lifecycle timestamps: `joined_at`, `invited_at` (nullable), `converted_at` (nullable), `cancelled_at` (nullable). A new entry starts as `pending`.
+`WaitlistEntry` MUST have a `WaitlistEntryStatus` (`pending`, `invited`, `converted`, `cancelled`).
+It MUST track lifecycle timestamps: `joined_at`, `invited_at` (nullable), `converted_at` (nullable),
+`cancelled_at` (nullable). A new entry starts as `pending`.
 
 #### Scenario: New entry starts pending
 
@@ -43,7 +50,9 @@ This delta defines the waitlist bounded context: aggregate, entity, consent valu
 
 #### Requirement: WaitlistConsent Value Object
 
-`WaitlistConsent` MUST live inside the waitlist domain (NOT in `common`). It MUST have explicit `earlyAccess` (boolean, required true) and `marketing` (boolean, default false) flags and a `version` tag. Marketing consent MUST NEVER be implicit from joining the waitlist.
+`WaitlistConsent` MUST live inside the waitlist domain (NOT in `common`). It MUST have explicit
+`earlyAccess` (boolean, required true) and `marketing` (boolean, default false) flags and a
+`version` tag. Marketing consent MUST NEVER be implicit from joining the waitlist.
 
 #### Scenario: Early access consent required
 
@@ -60,7 +69,9 @@ This delta defines the waitlist bounded context: aggregate, entity, consent valu
 
 #### Requirement: Idempotent Join
 
-`JoinWaitlistHandler` MUST be idempotent: the same email joining the same waitlist returns the same `accepted` result whether the entry is new or already exists. The handler MUST NOT leak the distinction between `joined_new`, `already_joined`, and `reactivated` to the public API.
+`JoinWaitlistHandler` MUST be idempotent: the same email joining the same waitlist returns the same
+`accepted` result whether the entry is new or already exists. The handler MUST NOT leak the
+distinction between `joined_new`, `already_joined`, and `reactivated` to the public API.
 
 #### Scenario: New join returns accepted
 
@@ -82,7 +93,8 @@ This delta defines the waitlist bounded context: aggregate, entity, consent valu
 
 #### Requirement: Email Deduplication Per Waitlist
 
-Email deduplication MUST be per waitlist, not global. The same email MAY join different waitlists. The constraint is `UNIQUE(waitlist_id, normalized_email)`.
+Email deduplication MUST be per waitlist, not global. The same email MAY join different waitlists.
+The constraint is `UNIQUE(waitlist_id, normalized_email)`.
 
 #### Scenario: Same email different waitlists
 
@@ -98,7 +110,9 @@ Email deduplication MUST be per waitlist, not global. The same email MAY join di
 
 #### Requirement: Repository Ports
 
-`WaitlistRepository` and `WaitlistEntryRepository` MUST be defined as ports in `shared/lead-capture/waitlist/application/ports`. They MUST be interfaces with no framework dependencies. The infrastructure layer provides R2DBC implementations.
+`WaitlistRepository` and `WaitlistEntryRepository` MUST be defined as ports in
+`shared/lead-capture/waitlist/application/ports`. They MUST be interfaces with no framework
+dependencies. The infrastructure layer provides R2DBC implementations.
 
 #### Scenario: Port is framework-free
 
@@ -108,7 +122,9 @@ Email deduplication MUST be per waitlist, not global. The same email MAY join di
 
 #### Requirement: Framework Isolation
 
-All types in `shared/lead-capture/waitlist` MUST NOT import or depend on `org.springframework.*`, `io.r2dbc.*`, `com.profiletailors.smp.*`, or any server-side framework. This MUST be verified by ArchUnit or equivalent module-boundary tests.
+All types in `shared/lead-capture/waitlist` MUST NOT import or depend on `org.springframework.*`,
+`io.r2dbc.*`, `com.profiletailors.smp.*`, or any server-side framework. This MUST be verified by
+ArchUnit or equivalent module-boundary tests.
 
 #### Scenario: No Spring imports in waitlist
 
@@ -134,7 +150,9 @@ All types in `shared/lead-capture/waitlist` MUST NOT import or depend on `org.sp
 
 #### Requirement: Waitlist Entry DSAR Lookup and Anonymization
 
-`WaitlistEntryRepository` MUST support lookup by normalized email (case-insensitive, trimmed). An `anonymizeEmail(entryId)` operation MUST replace the `email` field with `[REDACTED on {timestamp}]` and clear PII in `metadata` (→ `{}`).
+`WaitlistEntryRepository` MUST support lookup by normalized email (case-insensitive, trimmed). An
+`anonymizeEmail(entryId)` operation MUST replace the `email` field with `[REDACTED on {timestamp}]`
+and clear PII in `metadata` (→ `{}`).
 
 ##### Scenario: Lookup matches normalized email
 
@@ -151,7 +169,9 @@ All types in `shared/lead-capture/waitlist` MUST NOT import or depend on `org.sp
 
 #### Requirement: Correction Propagation
 
-When `email` is corrected on a `user_identities` row, the correction MUST propagate to waitlist entries matching BOTH old and new email (entries with the old email are updated to the new email). Entries matching only the old or only the new email MUST NOT be affected.
+When `email` is corrected on a `user_identities` row, the correction MUST propagate to waitlist
+entries matching BOTH old and new email (entries with the old email are updated to the new email).
+Entries matching only the old or only the new email MUST NOT be affected.
 
 ##### Scenario: Propagation updates matching entries
 

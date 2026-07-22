@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Define the automated container pipeline that turns a release-please tag into published, runnable production images for the SMP backend and dashboard.
+Define the automated container pipeline that turns a release-please tag into published, runnable
+production images for the SMP backend and dashboard.
 
 ## Requirements
 
@@ -12,31 +13,38 @@ The pipeline MUST trigger when release-please creates a release tag for the `ser
 
 ### R2 — Build backend image
 
-The pipeline MUST build a reproducible backend image from the tagged commit using the existing `bootBuildImage` Gradle task or a new `server/smp/Dockerfile`.
+The pipeline MUST build a reproducible backend image from the tagged commit using the existing
+`bootBuildImage` Gradle task or a new `server/smp/Dockerfile`.
 
 ### R3 — Build dashboard image
 
-The pipeline MUST build the dashboard image using the existing `infra/apps/smp/production/dashboard.Dockerfile`.
+The pipeline MUST build the dashboard image using the existing
+`infra/apps/smp/production/dashboard.Dockerfile`.
 
 ### R4 — Push both images to GHCR
 
-The pipeline MUST push the backend image to `ghcr.io/dallay/profiletailors-smp` and the dashboard image to `ghcr.io/dallay/profiletailors-dashboard`, tagged with the release tag and `latest`.
+The pipeline MUST push the backend image to `ghcr.io/dallay/profiletailors-smp` and the dashboard
+image to `ghcr.io/dallay/profiletailors-dashboard`, tagged with the release tag and `latest`.
 
 ### R5 — Production Compose runnable from published images
 
-`infra/apps/smp/production/compose.yaml` MUST default to the published registry images so a clean server can start without a local image build.
+`infra/apps/smp/production/compose.yaml` MUST default to the published registry images so a clean
+server can start without a local image build.
 
 ### R6 — Smoke test
 
-The pipeline SHOULD run `infra/apps/smp/production/smoke-test.sh` against the published images. It MAY be non-blocking initially and reported as a warning.
+The pipeline SHOULD run `infra/apps/smp/production/smoke-test.sh` against the published images. It
+MAY be non-blocking initially and reported as a warning.
 
 ### R7 — Reproducible from a clean checkout
 
-The pipeline MUST be reproducible from a clean checkout without relying on local files, uncommitted changes, or external credentials beyond repository secrets.
+The pipeline MUST be reproducible from a clean checkout without relying on local files, uncommitted
+changes, or external credentials beyond repository secrets.
 
 ### R8 — No secrets in workflow files
 
-No secrets MUST be hardcoded in workflow files. GitHub secrets MUST be referenced only through `secrets.*` or `vars.*` and the workflow MUST use the principle of least privilege.
+No secrets MUST be hardcoded in workflow files. GitHub secrets MUST be referenced only through
+`secrets.*` or `vars.*` and the workflow MUST use the principle of least privilege.
 
 ### R9 — Non-root images
 

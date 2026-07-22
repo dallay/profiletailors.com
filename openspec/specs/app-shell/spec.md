@@ -12,8 +12,8 @@ composables under `@shared/composables/`. No observable behavior change.
 
 1. Popovers: hand-rolled. 2. Theme control: only `ThemeToggle.vue` in the account menu —
    header pill and "Theme" row label deleted. 3. Language control: header pill only.
- 4. Composables: under `@shared/composables/`.
- 5. Component placement: `layouts/` (shell/header/sidebar) and `@shared/composables/`.
+4. Composables: under `@shared/composables/`.
+5. Component placement: `layouts/` (shell/header/sidebar) and `@shared/composables/`.
 6. ARIA, focus restore, skip-to-content included in this change.
 7. Tests: keep `App.test.ts` style; add per-component + per-composable tests.
 8. i18n of Threads / Bluesky / Facebook labels: deferred.
@@ -22,17 +22,21 @@ composables under `@shared/composables/`. No observable behavior change.
 
 ### Requirement: Shell File Layout
 
-| File | Role | Owns |
-|---|---|---|
-| `App.vue` | thin wrapper | `isAuthRoute` gate only |
-| `layouts/AppShell.vue` | authenticated shell | providers, auth bootstrap watcher, sidebar/header/outlet composition |
-| `layouts/sidebar/*.vue` | sidebar sections | section state and upward emits; no direct shell orchestration |
-| `layouts/AppHeader.vue` | sticky header | route/settings-derived title, status pill, language pill, main outlet wrapper |
-| `@shared/composables/*` | generic shared behaviors | generic focus/popover behavior only |
-| module composables | domain behaviors | publishing/auth/media-owned route, callback, queue, upload logic |
+| File                    | Role                     | Owns                                                                          |
+|-------------------------|--------------------------|-------------------------------------------------------------------------------|
+| `App.vue`               | thin wrapper             | `isAuthRoute` gate only                                                       |
+| `layouts/AppShell.vue`  | authenticated shell      | providers, auth bootstrap watcher, sidebar/header/outlet composition          |
+| `layouts/sidebar/*.vue` | sidebar sections         | section state and upward emits; no direct shell orchestration                 |
+| `layouts/AppHeader.vue` | sticky header            | route/settings-derived title, status pill, language pill, main outlet wrapper |
+| `@shared/composables/*` | generic shared behaviors | generic focus/popover behavior only                                           |
+| module composables      | domain behaviors         | publishing/auth/media-owned route, callback, queue, upload logic              |
 
-App shell placement MUST move shell-owned layout/sidebar files from `components/layout` and `components/sidebar` into `@layouts`, while preserving route, shell, provider, and outlet behavior. Generic shell-independent behavior MAY move to `@shared`; domain-owned behavior MUST stay in the owning module.
-(Previously: shell files were specified under `components/layout`, `components/sidebar`, and root `composables`.)
+App shell placement MUST move shell-owned layout/sidebar files from `components/layout` and
+`components/sidebar` into `@layouts`, while preserving route, shell, provider, and outlet behavior.
+Generic shell-independent behavior MAY move to `@shared`; domain-owned behavior MUST stay in the
+owning module.
+(Previously: shell files were specified under `components/layout`, `components/sidebar`, and root
+`composables`.)
 
 #### Scenario: `App.vue` remains a route gate
 
@@ -59,7 +63,11 @@ App shell placement MUST move shell-owned layout/sidebar files from `components/
 
 ### Requirement: AppShell Composition Contract
 
-`@layouts/AppShell.vue` MUST compose the relocated sidebar and header in the same observable order: `SidebarHeaderSection`, `SidebarNavSection`, `SidebarChannelsSection`, `SidebarConnectSection`, `SidebarAccountSection`, `SidebarRail`, then `AppHeader` and `<main>` containing `<RouterView />` inside `SidebarInset`. The shell owns orchestration handlers; sections only emit upward and never mutate stores directly. State local to a section lives in that section.
+`@layouts/AppShell.vue` MUST compose the relocated sidebar and header in the same observable order:
+`SidebarHeaderSection`, `SidebarNavSection`, `SidebarChannelsSection`, `SidebarConnectSection`,
+`SidebarAccountSection`, `SidebarRail`, then `AppHeader` and `<main>` containing `<RouterView />`
+inside `SidebarInset`. The shell owns orchestration handlers; sections only emit upward and never
+mutate stores directly. State local to a section lives in that section.
 (Previously: the same contract applied to files under `components/layout` and `components/sidebar`.)
 
 #### Scenario: Sidebar sections are composed in order after relocation
@@ -964,9 +972,12 @@ No other file in `App.test.ts` is touched. No assertion is modified.
 
 ### Requirement: Global Unverified Email Guidance
 
-The authenticated app shell MUST surface a persistent verification warning for users whose authoritative profile status is not `VERIFIED`.
+The authenticated app shell MUST surface a persistent verification warning for users whose
+authoritative profile status is not `VERIFIED`.
 
-The warning MUST be visible across authenticated routes until verification completes, MUST explain that verification is required for restricted actions, and MUST provide visible resend and verify-account entry points.
+The warning MUST be visible across authenticated routes until verification completes, MUST explain
+that verification is required for restricted actions, and MUST provide visible resend and
+verify-account entry points.
 
 #### Scenario: Unverified user sees global banner
 

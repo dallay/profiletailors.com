@@ -2,13 +2,18 @@
 
 ## Purpose
 
-Define the scheduler URL contract so scheduler state is canonical, shareable, restorable, and documented for future SPA work.
+Define the scheduler URL contract so scheduler state is canonical, shareable, restorable, and
+documented for future SPA work.
 
 ## Requirements
 
 ### Requirement: Canonical scheduler surfaces and route family
 
-The system MUST treat `/scheduler/calendar/week`, `/scheduler/calendar/month`, and `/scheduler/list` as the only canonical scheduler surfaces. Navigating to `/scheduler` MUST redirect to `/scheduler/calendar/week` while preserving query params. `/scheduler/calendar/day` MUST NOT remain a canonical surface; if requested, the system SHALL canonicalize to `/scheduler/calendar/week` with the same scheduler query state.
+The system MUST treat `/scheduler/calendar/week`, `/scheduler/calendar/month`, and `/scheduler/list`
+as the only canonical scheduler surfaces. Navigating to `/scheduler` MUST redirect to
+`/scheduler/calendar/week` while preserving query params. `/scheduler/calendar/day` MUST NOT remain
+a canonical surface; if requested, the system SHALL canonicalize to `/scheduler/calendar/week` with
+the same scheduler query state.
 
 #### Scenario: Base scheduler route canonicalizes to week
 
@@ -26,7 +31,11 @@ The system MUST treat `/scheduler/calendar/week`, `/scheduler/calendar/month`, a
 
 ### Requirement: Scheduler query parameter contract
 
-The system MUST parse and serialize scheduler state with these query params only: `date`, `timezone`, `status`, `q`, repeated `channels[]`, and `postId`. `date` MUST use `YYYY-MM-DD`. `timezone` MUST use an IANA zone. `channels[]` MUST contain social account IDs and MAY repeat. Absent params SHALL mean unfiltered state except `date`, which SHALL resolve to the current local date.
+The system MUST parse and serialize scheduler state with these query params only: `date`,
+`timezone`, `status`, `q`, repeated `channels[]`, and `postId`. `date` MUST use `YYYY-MM-DD`.
+`timezone` MUST use an IANA zone. `channels[]` MUST contain social account IDs and MAY repeat.
+Absent params SHALL mean unfiltered state except `date`, which SHALL resolve to the current local
+date.
 
 #### Scenario: Shareable filtered URL round-trips
 
@@ -44,7 +53,11 @@ The system MUST parse and serialize scheduler state with these query params only
 
 ### Requirement: URL is the source of truth for scheduler state
 
-The scheduler MUST derive visible surface, date, timezone, filters, and selected post from the current URL rather than local-only UI state. Refresh, deep links, and browser back/forward SHALL restore the same scheduler context. Deliberate surface/date/channel changes MUST create history entries with push semantics; canonicalization and transient query cleanup MUST use replace semantics.
+The scheduler MUST derive visible surface, date, timezone, filters, and selected post from the
+current URL rather than local-only UI state. Refresh, deep links, and browser back/forward SHALL
+restore the same scheduler context. Deliberate surface/date/channel changes MUST create history
+entries with push semantics; canonicalization and transient query cleanup MUST use replace
+semantics.
 
 #### Scenario: Browser history restores route-owned scheduler state
 

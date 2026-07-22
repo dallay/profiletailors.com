@@ -4,7 +4,9 @@
 
 ### Requirement: Registration Availability Configuration
 
-The backend MUST bind registration availability from typed, non-secret configuration, MUST default it to `false`, and MUST require an explicit override to enable registration. Operator documentation MUST describe the setting without secrets.
+The backend MUST bind registration availability from typed, non-secret configuration, MUST default
+it to `false`, and MUST require an explicit override to enable registration. Operator documentation
+MUST describe the setting without secrets.
 
 #### Scenario: Missing configuration fails closed
 
@@ -20,7 +22,11 @@ The backend MUST bind registration availability from typed, non-secret configura
 
 ### Requirement: Backend-Authoritative Registration Gate
 
-When registration is disabled, `POST /api/auth/register` MUST be rejected before command dispatch or mutation with `403 application/problem+json`. The body MUST contain `type: "/problems/registration-disabled"`, `title: "Registration disabled"`, `status: 403`, non-sensitive `detail`, and `code: "registration_disabled"`. When enabled, existing registration behavior and atomicity MUST remain unchanged.
+When registration is disabled, `POST /api/auth/register` MUST be rejected before command dispatch or
+mutation with `403 application/problem+json`. The body MUST contain
+`type: "/problems/registration-disabled"`, `title: "Registration disabled"`, `status: 403`,
+non-sensitive `detail`, and `code: "registration_disabled"`. When enabled, existing registration
+behavior and atomicity MUST remain unchanged.
 
 #### Scenario: Direct registration is denied without side effects
 
@@ -38,7 +44,9 @@ When registration is disabled, `POST /api/auth/register` MUST be rejected before
 
 ### Requirement: Registration UI Fails Closed
 
-The SPA MUST show registration entry points only when the public capability reports enabled. Capability-read failure MUST close registration UI and direct access, MUST NOT be treated as security enforcement, and MUST NOT block login.
+The SPA MUST show registration entry points only when the public capability reports enabled.
+Capability-read failure MUST close registration UI and direct access, MUST NOT be treated as
+security enforcement, and MUST NOT block login.
 
 #### Scenario: Registration UI follows enabled capability
 

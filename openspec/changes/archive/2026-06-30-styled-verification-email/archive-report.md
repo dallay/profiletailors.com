@@ -2,7 +2,9 @@
 
 ## Summary
 
-The `styled-verification-email` change passed verification with no critical or warning issues. Its three modified `email-notifications` requirements were merged into the main specification, preserving all unrelated requirements.
+The `styled-verification-email` change passed verification with no critical or warning issues. Its
+three modified `email-notifications` requirements were merged into the main specification,
+preserving all unrelated requirements.
 
 ## Verification Gate
 
@@ -13,9 +15,9 @@ The `styled-verification-email` change passed verification with no critical or w
 
 ## Specs Synced
 
-| Domain | Action | Added | Modified | Removed |
-|--------|--------|-------|----------|---------|
-| `email-notifications` | Updated | 0 | 3 | 0 |
+| Domain                | Action  | Added | Modified | Removed |
+|-----------------------|---------|-------|----------|---------|
+| `email-notifications` | Updated | 0     | 3        | 0       |
 
 Updated requirements:
 

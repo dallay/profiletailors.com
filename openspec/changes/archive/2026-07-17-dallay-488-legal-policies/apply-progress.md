@@ -10,28 +10,34 @@
 ### task-01 [x] — i18n: Add `legal` key skeleton and `footer.legalLinks` to both locales
 
 - **Files modified**:
-  - `apps/web/marketing/src/i18n/en.ts` — added `legal` key (privacy: 14 keys, terms: 13 keys, cookies: 9 keys, aup: 7 keys) with empty string values; added `footer.legalLinks` array with 4 EN entries
-  - `apps/web/marketing/src/i18n/es.ts` — same structure mirrored with translated footer labels
-  - `apps/web/marketing/src/i18n/utils.test.ts` — added 3 tests verifying legal structure and footer.legalLinks
+    - `apps/web/marketing/src/i18n/en.ts` — added `legal` key (privacy: 14 keys, terms: 13 keys,
+      cookies: 9 keys, aup: 7 keys) with empty string values; added `footer.legalLinks` array with 4
+      EN entries
+    - `apps/web/marketing/src/i18n/es.ts` — same structure mirrored with translated footer labels
+    - `apps/web/marketing/src/i18n/utils.test.ts` — added 3 tests verifying legal structure and
+      footer.legalLinks
 - **Evidence**: All 9 i18n tests pass (3 new + 6 existing), TypeScript compiles, build succeeds
 
 ### task-02 [x] — Layout: Add `canonicalPath` prop and `sameAs` JSON-LD
 
 - **File modified**: `apps/web/marketing/src/layouts/Layout.astro`
 - **Changes**:
-  - Added optional `canonicalPath` prop (string, default `'/'`) — replaced hardcoded root-URL canonical computation with dynamic path-based URLs for both EN and ES locales
-  - Added optional `sameAs` prop (string[]) — appended to JSON-LD `provider.Organization` block when provided
-  - Dynamic hreflang alternates now use `canonicalPath`-derived URLs
+    - Added optional `canonicalPath` prop (string, default `'/'`) — replaced hardcoded root-URL
+      canonical computation with dynamic path-based URLs for both EN and ES locales
+    - Added optional `sameAs` prop (string[]) — appended to JSON-LD `provider.Organization` block
+      when provided
+    - Dynamic hreflang alternates now use `canonicalPath`-derived URLs
 - **Note**: `jsonLdType` prop deferred to PR 2 (not in PR 1 scope per the implementation request)
 
 ### task-03 [x] — Footer: Add `legalLinks` prop and render legal `<nav>` group
 
 - **File modified**: `apps/web/marketing/src/components/Footer.astro`
 - **Changes**:
-  - Added optional `legalLinks` prop (`Array<{ label: string; href: string }>`)
-  - Renders `<nav aria-label="Legal">` with a `border-t` separator when prop is provided
-  - Styled consistently with existing Nav link pattern (`font-mono text-xs text-text-muted hover:text-text-display`)
-  - Backward compatible — footer renders without legal links when prop is omitted
+    - Added optional `legalLinks` prop (`Array<{ label: string; href: string }>`)
+    - Renders `<nav aria-label="Legal">` with a `border-t` separator when prop is provided
+    - Styled consistently with existing Nav link pattern (
+      `font-mono text-xs text-text-muted hover:text-text-display`)
+    - Backward compatible — footer renders without legal links when prop is omitted
 
 ## Verification
 
@@ -47,7 +53,8 @@
 
 ## Deviations from Design
 
-- `jsonLdType` prop not added to Layout.astro — deferred to PR 2 where shared components (which need `jsonLdType="WebPage"`) are created. PR 1 scope only includes `sameAs` and `canonicalPath`.
+- `jsonLdType` prop not added to Layout.astro — deferred to PR 2 where shared components (which need
+  `jsonLdType="WebPage"`) are created. PR 1 scope only includes `sameAs` and `canonicalPath`.
 
 ## Remaining Tasks for PR 2+
 

@@ -4,7 +4,10 @@
 
 ### Requirement: Authenticated Create Reconciliation
 
-After an authenticated create succeeds, the client MUST replace any optimistic publication identity and fields with the returned backend publication. The store MUST use the returned `publicationId`, `status`, `scheduleMode`, `scheduledFor`, `nextSlotAfter`, and `socialAccountId` as authoritative values and MUST NOT retain a synthetic local ID.
+After an authenticated create succeeds, the client MUST replace any optimistic publication identity
+and fields with the returned backend publication. The store MUST use the returned `publicationId`,
+`status`, `scheduleMode`, `scheduledFor`, `nextSlotAfter`, and `socialAccountId` as authoritative
+values and MUST NOT retain a synthetic local ID.
 
 #### Scenario: Standard create adopts server truth
 
@@ -29,7 +32,10 @@ After an authenticated create succeeds, the client MUST replace any optimistic p
 
 ### Requirement: Reconciled Composer Edit State
 
-The edit composer MUST initialize schedule controls from authoritative reconciled fields. For `NOW` and `NEXT_SLOT`, it MUST NOT prefill stale or invalid custom date/time values. Existing assets MUST remain hydrated, previewed, and preserved when media is untouched. The explicit PATCH asset semantics established by #223 MUST remain unchanged.
+The edit composer MUST initialize schedule controls from authoritative reconciled fields. For `NOW`
+and `NEXT_SLOT`, it MUST NOT prefill stale or invalid custom date/time values. Existing assets MUST
+remain hydrated, previewed, and preserved when media is untouched. The explicit PATCH asset
+semantics established by #223 MUST remain unchanged.
 
 #### Scenario: NOW creation reopens without stale custom schedule
 

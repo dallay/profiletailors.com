@@ -16,5 +16,5 @@ progress:
       - 1-backend
       - 2-frontend
       - 3-configuration-and-verification
-    remaining_slices: []
+    remaining_slices: [ ]
 updated: 2026-07-19
