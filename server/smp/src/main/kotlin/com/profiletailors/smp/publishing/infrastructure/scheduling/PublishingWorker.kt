@@ -586,6 +586,7 @@ class PublishingWorker(
     private val log = LoggerFactory.getLogger(javaClass)
 
     suspend fun pollOnce(): PublicationJobClaim? {
+        log.debug("Polling for next due publication job")
         val claim = publicationJobRepository.claimNextDue(clock.instant(), workerId) ?: return null
         val publication = publicationRepository.findByWorkspaceAndId(claim.workspaceId, claim.publicationId)
             ?: error("Publication '${claim.publicationId}' not found for worker claim.")
