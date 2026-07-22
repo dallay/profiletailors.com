@@ -20,7 +20,7 @@ spring:
 
 logging:
   file:
-    name: ../logs/smp.log
+    name: ../../logs/smp.log
   logback:
     rollingpolicy:
       max-file-size: 50MB
