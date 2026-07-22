@@ -12,6 +12,9 @@
 # .lefthookrc.yml is intentionally tracked in the repo; use lefthook-local.yml for local overrides
 lefthook-local.yml
 
+# Application logs (local development)
+logs/
+
 # Environment variables (all directories)
 .env
 .env.production

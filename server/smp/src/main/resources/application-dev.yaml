@@ -19,16 +19,26 @@ spring:
       mail.smtp.starttls.required: false
 
 logging:
+  file:
+    name: ../../logs/smp.log
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 7
+      total-size-cap: 500MB
   level:
     com.profiletailors: DEBUG
     com.profiletailors.smp.media: DEBUG
     com.profiletailors.storage: DEBUG
+    com.profiletailors.smp.publishing.infrastructure.scheduling: DEBUG
     org.springframework.security: DEBUG
     org.springframework.web: DEBUG
     org.springframework.web.reactive: DEBUG
     org.springframework.http.codec.multipart: DEBUG
 
 publishing:
+  worker:
+    enabled: true
   linkedin:
     state-signing-secret: ${SMP_LINKEDIN_STATE_SIGNING_SECRET:profiletailors-dev-oauth-state-secret}
   credentials:
