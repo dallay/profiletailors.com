@@ -8,6 +8,7 @@ import org.springframework.modulith.ApplicationModule
         "credentials",
         "governance",
         "identity :: application",
+        "identity :: domain",
         "leadcapture",
         "media",
         "publishing",

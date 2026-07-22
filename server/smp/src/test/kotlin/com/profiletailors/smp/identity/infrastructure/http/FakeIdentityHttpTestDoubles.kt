@@ -3,8 +3,8 @@ package com.profiletailors.smp.identity.infrastructure.http
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 
 internal class FakePrincipalContextProvider : PrincipalContextProvider {
     override suspend fun current(): PrincipalContext = PrincipalContext(

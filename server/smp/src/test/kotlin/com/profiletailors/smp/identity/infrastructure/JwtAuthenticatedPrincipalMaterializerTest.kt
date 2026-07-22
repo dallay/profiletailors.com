@@ -7,9 +7,9 @@ import com.profiletailors.smp.credentials.application.ServiceAccountCredentialNo
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialStateLookup
 import com.profiletailors.smp.credentials.domain.CredentialType
 import com.profiletailors.smp.credentials.domain.ValidatedToken
-import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
