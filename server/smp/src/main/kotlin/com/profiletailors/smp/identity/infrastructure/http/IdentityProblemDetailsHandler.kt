@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
+import com.profiletailors.smp.identity.application.CloseAccountRateLimitException
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
@@ -81,4 +82,14 @@ class IdentityProblemDetailsHandler {
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
             title = "Invalid verification token"
         }
+
+    @ExceptionHandler(CloseAccountRateLimitException::class)
+    fun handle(exception: CloseAccountRateLimitException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.TOO_MANY_REQUESTS,
+        exception.message ?: "Rate limit exceeded",
+    ).apply {
+        title = "Account closure rate limit exceeded"
+        type = URI("https://api.profiletailors.com/errors/account-closure-rate-limit")
+        setProperty("code", "ACCOUNT_CLOSURE_RATE_LIMIT")
+    }
 }

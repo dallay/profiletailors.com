@@ -300,6 +300,17 @@ export async function updateWorkspaceIcon(
   )
 }
 
+export async function closeAccount(token: string): Promise<void> {
+  await request<void>(
+    '/api/v1/account/close',
+    {
+      method: 'POST',
+      body: JSON.stringify({ confirmation: 'DELETE' }),
+    },
+    token,
+  )
+}
+
 // ---------------------------------------------------------------------------
 // apiFetch — authenticated wrapper with a single silent 401 retry
 // ---------------------------------------------------------------------------
