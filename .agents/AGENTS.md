@@ -5,8 +5,7 @@
 ## Project Identity
 
 **Profile Tailors** — social media management platform (schedule, publish, analyze, engage,
-collaborate).
-The product name is **Profile Tailors**; `profiletailors.com` is the domain/org name only.
+collaborate). The product name is **Profile Tailors**; `profiletailors.com` is the domain only.
 
 ## Monorepo Structure
 
@@ -22,17 +21,17 @@ openspec/             # SDD artifacts (spec-driven development)
 
 ## Command Hub
 
-**All commands go through `just`** — run `just -l` to list everything.
+**All commands go through `just`** — run `just -l` to list everything. Never guess a command.
 
 ### Setup
 
-| Command              | Action                                                      |
-|----------------------|-------------------------------------------------------------|
-| `just setup`         | Full initial setup: .env → install → hooks → agentsync → codegraph |
-| `just install`       | Install dependencies (`pnpm install --frozen-lockfile`)      |
-| `just hooks-install` | Set up Lefthook git hooks                                  |
+| Command              | Action                                               |
+|----------------------|------------------------------------------------------|
+| `just setup`         | Full initial setup: .env → install → hooks → agentsync |
+| `just install`       | Install deps (`pnpm install --frozen-lockfile`)      |
+| `just hooks-install` | Set up Lefthook git hooks                           |
 
-### Frontend Dev (run from repo root)
+### Frontend Dev
 
 | Command                  | Action                          |
 |--------------------------|---------------------------------|
@@ -43,39 +42,28 @@ openspec/             # SDD artifacts (spec-driven development)
 | `just frontend-test`     | Vitest unit tests               |
 | `just frontend-test-e2e` | Playwright E2E tests            |
 
-### Backend Dev (run from repo root)
+### Backend Dev
 
-| Command                     | Action                             |
-|-----------------------------|------------------------------------|
-| `just backend-run`          | Start Spring Boot (dev profile)    |
-| `just backend-build`        | Compile and package                |
-| `just backend-test-fast`    | Fast tests (excludes BDD)          |
-| `just backend-check`        | Detekt + tests                     |
-| `just backend-bdd-fast`     | Fast BDD suite                     |
-| `just backend-bdd-postgres` | Postgres BDD (requires `infra-up`) |
+| Command                     | Action                                             |
+|-----------------------------|----------------------------------------------------|
+| `just backend-run`          | Start Spring Boot (dev profile)                    |
+| `just backend-build`        | Compile and package (`bootJar`)                    |
+| `just backend-test`         | Run unit tests (optional: `'postgres'` to exclude) |
+| `just backend-test-fast`    | Run unit tests (fast, same as `backend-test`)      |
+| `just backend-check`        | Detekt + tests (excludes BDD suites)               |
+| `just backend-bdd-fast`     | Run fast BDD suite (Testcontainers Postgres)       |
+| `just backend-bdd-postgres` | Run Postgres BDD suite (requires `infra-up`)       |
+| `just backend-test-postgres`| Postgres integration tests (requires `infra-up`)   |
 
-### Full Stack
+### Infrastructure & CI
 
-| Command                | Action                                            |
-|------------------------|---------------------------------------------------|
-| `just serve`           | Start backend + frontend app in parallel          |
-| `just serve --force`   | Kill existing servers, then start fresh            |
-| `just kill-servers`    | Stop all dev servers (bootRun, Vite, GradleDaemon)|
-
-### Infrastructure
-
-| Command           | Action                    |
-|-------------------|---------------------------|
-| `just infra-up`   | Start Postgres + services |
-| `just infra-down` | Stop containers           |
-
-### CI (mandatory before push/PR)
-
-| Command         | What it covers                                      |
-|-----------------|-----------------------------------------------------|
-| `just ci`       | Full CI: gitleaks, lint, tests, build, E2E          |
-| `just ci-local` | Fast subset (no E2E, no Postgres BDD)               |
-| `just ci-full`  | ci-local + Postgres BDD (requires `infra-up` first) |
+| Command           | Action                               |
+|-------------------|--------------------------------------|
+| `just infra-up`   | Start Postgres + services            |
+| `just infra-down` | Stop containers                      |
+| `just ci`         | Full CI: gitleaks, lint, tests, BDD, build, E2E |
+| `just ci-local`   | Fast CI (no E2E, no Postgres BDD)    |
+| `just ci-full`    | ci-local + Postgres BDD (infra-up first) |
 
 ## Backend Architecture (Hexagonal)
 
@@ -87,124 +75,58 @@ openspec/             # SDD artifacts (spec-driven development)
 | **Application**    | Domain                | Infrastructure, Spring stereotypes  |
 | **Infrastructure** | Domain + Application  | —                                   |
 
-> **Exception:** `ModuleMetadata` classes (or `package-info.java`) are allowed in any package (including `domain`) solely for Spring Modulith boundary and named interface definitions. These are intentionally exempted from architecture tests but must NOT contain business logic or other framework dependencies.
-
-- Package convention: `com.profiletailors.smp.{context}.{layer}`
+- Package: `com.profiletailors.smp.{context}.{layer}`
 - CQRS naming: `GetXQuery`, `{Verb}XCommand`, `XHandler`, `R2dbcXRepository`
 - Use `com.profiletailors.common.domain.Service` (not Spring `@Service`)
-- Shared libs (`shared/common`, `shared/bus`, etc.) are cross-cutting, not feature slices
+- Shared libs are cross-cutting, not feature slices
+- ModuleMetadata classes are exempted from architecture tests (no business logic allowed)
 
 ## Frontend Apps
 
-### `apps/web/marketing` (Astro 6)
+- **Marketing (Astro 6):** static-first, no SSR. i18n via locale files. Nothing-inspired dark theme.
+- **App (Vue 3 + shadcn-vue):** SPA with Vue Router + Pinia. shadcn-vue components via `npx shadcn-vue@latest add`.
+- Linter: Biome (both). E2E: Playwright.
+- Shared assets at `shared/assets/web/*` → imported via `@shared/assets/` alias, copied at build time.
 
-- Static-first, no SSR
-- i18n: English (default) + Spanish (`/es/`)
-- All user-facing strings in locale files (`src/i18n/`), never hardcoded
-- Fonts: Space Grotesk (body), Space Mono (labels), Doto (hero only)
-- Style: Nothing-inspired, monochrome, dark-first
-- Package manager: pnpm, Node >= 22.12.0
-- Linter: Biome
+## BDD (Cucumber) — MANDATORY
 
-### `apps/web/app` (Vue 3 + shadcn-vue)
+Every new backend feature, command, or endpoint MUST include BDD scenarios.
 
-- SPA dashboard with Vue Router + Pinia
-- shadcn-vue components via `npx shadcn-vue@latest add`
-- E2E tests: `playwright -c e2e/playwright.scheduler.config.ts`
-- Linter: Biome
-
-### Shared Assets
-
-- `shared/assets/web/*` is copied to `dist/` at build time via Vite plugin
-- Import with `@shared/assets/` alias
-
-## Environment Setup
-
-1. Copy `.env.example` → `.env` and fill in values
-2. Run `bin/setup-env.sh` (creates symlinks for subprojects)
-3. `just install` to install all dependencies
-4. `just hooks-install` to set up git hooks (Lefthook)
-
-Or simply: `just setup` (does steps 1, 3, 4 + agentsync + codegraph in one shot).
-
-## Backend .env Loading
-
-The `bootRun` task reads the root `.env` file and exports vars to the JVM — works for both CLI and
-IntelliJ.
-
-## Test Tags
-
-**No exclusions active.** All backend tests run by default in CI and local workflows.
-
-Test tags exist as infrastructure markers (e.g., `@Tag("postgres")` for Testcontainers-backed tests, `@Tag("bdd")` for Cucumber scenarios), but they do **not** hide failures.
-
-**Required setup for local testing:**
-- Set `SMP_DB_TEST_PASSWORD` in `.env` (see `.env.example`)
-- Run `./bin/setup-env.sh` to create subproject symlinks
-
-**Full documentation:** See [`docs/testing/test-tags-and-env.md`](../docs/testing/test-tags-and-env.md) for:
-- How to run the full test suite locally
-- Which tags exist and what they mean
-- When to add a tag and how to keep it from becoming a hidden failure
-- Historical context on resolved exclusions (e.g., `modularity` from [#275](https://github.com/dallay/profiletailors.com/issues/275))
-
-## Design Spec
-
-Read `docs/architecture/` (C4 models) before architectural decisions.
-Read design specs in docs before UI work.
+- **Feature files:** `server/smp/src/test/resources/features/{domain}-{entity}.feature`
+- **Step definitions:** `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/*BddSteps.kt`
+- **Database seeding:** Use `BddDatabaseSupport` (injected via `@Autowired`). Reset is automatic via `resetDatabase()` before each scenario.
+- **HTTP client:** Use `WebTestClient` (injected via `@Autowired`). Capture responses in a `latestResponse` field.
+- **Tags on every feature:** domain tag + `@smoke` + `@fast`. Use `@postgres` only when the scenario needs the Postgres-variant infra (otherwise just `@fast`).
+- **Bearer tokens:** Use `BddDatabaseSupport.USER_BEARER` (`"Bearer valid-token"`). JWT decoder in tests accepts tokens matching `valid-token`, `e2e-*`, `register-*`, `pending-*`, `verified-*`, `owner-*` prefixes.
+- **Headers:** Always set `Authorization`, `Accept` (`application/vnd.api.v1+json`), and `X-Workspace-Id` headers.
+- **Run locally:** `just backend-bdd-fast` (fast suite) or `just backend-bdd-postgres` (Postgres suite, needs `just infra-up` first).
+- **CI enforcement:** BDD fast suite runs on every backend change. Postgres BDD runs on every backend change too. Both must pass before merge.
 
 ## Documentation Rules
 
-All documentation MUST be:
-
-- In English
-- Files: lowercase `kebab-case.md` (except `README.md`)
-- Structure: Overview → Changes → Usage → Troubleshooting → References
+- English only. Files: lowercase `kebab-case.md` (except `README.md`).
+- Structure: Overview → Changes → Usage → Troubleshooting → References.
 
 ## Dependency Policy
 
-- Check dependency scores with `socket-mcp_depscore` before adding new deps
-- Keep marketing site lightweight — prefer Astro primitives over dependencies
-- Use existing skills from `.agents/skills/` when available
-
-## Skills
-
-Repo-local skills in `.agents/skills/` cover: backend-platform, frontend-platform,
-kotlin, typescript, vue, pinia, shadcn-vue, astro, pnpm, gradle, spring-boot,
-testing (vitest, playwright), hexagonal-architecture, docker.
+- Check dependency scores with `socket-mcp_depscore` before adding new deps.
+- Keep marketing site lightweight — prefer Astro primitives over deps.
+- Use existing skills from `.agents/skills/` when available.
 
 ## Code Comments Policy
 
-Comments in code are **strictly for exceptional cases only**. The code must be
-self-documenting through clear naming, small functions, and expressive structure.
+Comments are exceptional. The code must be self-documenting.
 
-**Allowed:**
+**Allowed:** KDoc/TSDoc on public APIs. **Prohibited:** inline `//` comments explaining WHAT; TODO/FIXME/HACK; commented-out code.
 
-- **KDoc / TSDoc** — document public APIs, classes, functions, and their parameters.
-  These are machine-readable and generate documentation. Required on all public
-  interfaces, optional on internal ones.
-
-**Prohibited:**
-
-- `//` or `/* */` inline comments explaining what the code does — the code itself
-  must be clear enough.
-- TODO/FIXME/HACK comments — use the issue tracker instead.
-- Commented-out code — delete it; version control already tracks history.
-
-**Exceptional cases where a comment is acceptable:**
-
-- Explaining **WHY** something is done a non-obvious way (not **WHAT** it does).
-- Linking to an external reference (spec, RFC, issue) that explains a constraint.
-- A brief note on a performance-sensitive or security-critical section.
-
-When in doubt: if the comment can be removed and the code remains understandable,
-remove it.
+**Exception:** a brief comment explaining WHY a non-obvious approach was taken, or linking to an external reference (spec, RFC, issue).
 
 ## Key Gotchas
 
-- **Gradle wrapper detection:** Windows (CMD/PowerShell) uses `gradlew.bat`, POSIX uses `./gradlew`
-- **Spanish copy:** Longer than English — never use fixed-width containers
-- **Portless:** Both frontend apps use named local URLs (e.g., `https://profile-tailors.localhost`)
-- **Shared assets plugin:** Copies `shared/assets/web/*` to `dist/` at build time
-- **CI is mandatory:** Never push without `just ci` passing
-- **Conventional commits:** `feat(scope):`, `fix(scope):`, `docs(scope):`, `chore(scope):`
+- **Gradle wrapper:** `gradlew.bat` on Windows, `./gradlew` on POSIX.
+- **Spanish copy:** Longer than English — never use fixed-width containers.
+- **Portless:** Both frontend apps use named URLs (`https://profile-tailors.localhost`).
+- **CI mandatory:** Never push without `just ci` passing.
+- **Conventional commits:** `feat(scope):`, `fix(scope):`, `docs(scope):`, `chore(scope):`.
+- **Env loading:** `bootRun` reads root `.env`. Tests need `SMP_DB_TEST_PASSWORD` set.
+- **Test tags:** `@Tag("postgres")` and `@Tag("bdd")` exist but do NOT hide failures — all tests run by default.
