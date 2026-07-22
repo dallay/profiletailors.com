@@ -96,7 +96,6 @@ function segmentedControlClass(isActive: boolean) {
               role="radiogroup"
               :aria-label="t('settings.themeLabel')"
             >
-              <!-- biome-ignore lint/a11y/noLabelWithoutControl: label wraps sr-only input, valid association -->
               <label
                 class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-text-display"
                 :class="segmentedControlClass(settings.currentTheme === 'dark')"
@@ -111,7 +110,6 @@ function segmentedControlClass(isActive: boolean) {
                 />
                 {{ t('settings.themeDark') }}
               </label>
-              <!-- biome-ignore lint/a11y/noLabelWithoutControl: label wraps sr-only input, valid association -->
               <label
                 class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-text-display"
                 :class="segmentedControlClass(settings.currentTheme === 'light')"

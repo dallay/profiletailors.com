@@ -47,7 +47,13 @@ class R2dbcTakedownReportRepositoryTest : PostgresDatabaseTestBase() {
 
         val approvedReports = repository.findByWorkspace("workspace-1", TakedownReportStatus.APPROVED).toList()
 
-        assertEquals(listOf(approved), approvedReports)
+        assertEquals(1, approvedReports.size)
+        with(approvedReports.first()) {
+            assertEquals(TakedownReportStatus.APPROVED, status)
+            assertEquals("reviewer-1", reviewedById)
+            assertEquals(Instant.parse("2026-07-22T10:00:00Z"), reviewedAt)
+            assertEquals("report-approved", reportId)
+        }
     }
 
     @Test

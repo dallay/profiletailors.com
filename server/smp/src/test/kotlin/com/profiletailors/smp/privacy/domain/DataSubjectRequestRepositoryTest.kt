@@ -17,12 +17,14 @@ internal class DataSubjectRequestRepositoryTest {
     private val now = Instant.parse("2026-07-15T10:00:00Z")
 
     private val sampleRequest = DataSubjectRequest.create(
-        id = DataSubjectRequestId("dsr-550e8400-e29b-41d4-a716-446655440000"),
-        requestType = RequestType.ACCESS,
-        requestedBy = "principal-1",
-        requestedByEmail = "user@example.com",
-        notes = "Test notes",
-        createdAt = now,
+        CreateDataSubjectRequest(
+            id = DataSubjectRequestId("dsr-550e8400-e29b-41d4-a716-446655440000"),
+            requestType = RequestType.ACCESS,
+            requestedBy = "principal-1",
+            requestedByEmail = "user@example.com",
+            notes = "Test notes",
+            createdAt = now,
+        ),
     )
 
     @Test
