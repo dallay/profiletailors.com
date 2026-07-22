@@ -38,7 +38,7 @@ logging:
 
 publishing:
   worker:
-    enabled: true
+    enabled: ${SMP_PUBLISHING_WORKER_ENABLED:true}
   linkedin:
     state-signing-secret: ${SMP_LINKEDIN_STATE_SIGNING_SECRET:profiletailors-dev-oauth-state-secret}
   credentials:
