@@ -87,11 +87,13 @@ class R2dbcComplianceEvidenceRepositoryTest : PostgresDatabaseTestBase() {
         val evidence = evidence(id = "ev-ordering")
         repository.save(evidence)
 
+        val older = Instant.parse("2026-01-01T00:00:00Z")
+        val newer = Instant.parse("2026-06-01T00:00:00Z")
         repository.saveEvidenceLink(
-            evidenceLink(id = "evlink-older", evidenceId = evidence.id, linkedAt = Instant.parse("2026-01-01T00:00:00Z")),
+            evidenceLink(id = "evlink-older", evidenceId = evidence.id, linkedAt = older),
         )
         repository.saveEvidenceLink(
-            evidenceLink(id = "evlink-newer", evidenceId = evidence.id, linkedAt = Instant.parse("2026-06-01T00:00:00Z")),
+            evidenceLink(id = "evlink-newer", evidenceId = evidence.id, linkedAt = newer),
         )
 
         val links = repository.findLinksByEvidenceId(evidence.id).toList()

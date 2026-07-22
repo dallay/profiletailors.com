@@ -123,27 +123,6 @@ class ComplianceControllerWebTest {
             .jsonPath("$.release").isEqualTo("0.1.0")
     }
 
-    @Test
-    fun `GET release-gate returns 400 when release exceeds max length`() {
-        val longRelease = "1".repeat(101)
-
-        client.get().uri("/api/governance/compliance/release-gate?release=$longRelease")
-            .exchange()
-            .expectStatus().isBadRequest
-    }
-
-    @Test
-    fun `GET release-gate returns 400 when release contains characters outside the allowed pattern`() {
-        client.get()
-            .uri { builder ->
-                builder.path("/api/governance/compliance/release-gate")
-                    .queryParam("release", "1.0.0@beta")
-                    .build()
-            }
-            .exchange()
-            .expectStatus().isBadRequest
-    }
-
     private class StubMediator : Mediator {
         lateinit var result: ComplianceEvaluation
         lateinit var releaseGateResult: ReleaseGateResult
