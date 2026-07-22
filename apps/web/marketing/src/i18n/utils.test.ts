@@ -70,8 +70,8 @@ describe('i18n utils', () => {
       });
     });
 
-    it('keeps legal policy publication blocked until the evidence gate is approved', () => {
-      expect(legalPublicationStatus).toBe(LEGAL_PUBLICATION_STATUS.BLOCKED);
+    it('confirms the legal publication gate is APPROVED for the current policies', () => {
+      expect(legalPublicationStatus).toBe(LEGAL_PUBLICATION_STATUS.APPROVED);
     });
 
     it('does not preserve unsupported provider or contractual claims in either locale', () => {

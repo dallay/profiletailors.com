@@ -5,6 +5,7 @@ import { useMediaStore } from '@modules/media/infrastructure/media.store'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import type { MediaStatus } from '@modules/media/services/media-api'
+import MediaAttribution from '@modules/media/presentation/components/MediaAttribution.vue'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -25,7 +26,7 @@ const isRefreshing = ref(false)
 const uploadRequiresVerification = ref(false)
 const selectedLibraryAssetIds = ref<string[]>([])
 const searchQuery = ref('')
-const statusFilter = ref<'ALL' | 'READY' | 'PROCESSING' | 'FAILED'>('ALL')
+const statusFilter = ref<'ALL' | 'READY' | 'PROCESSING' | 'FAILED' | 'SUSPENDED'>('ALL')
 const typeFilter = ref<'ALL' | 'IMAGE' | 'VIDEO' | 'PDF' | 'OTHER'>('ALL')
 const sortBy = ref<'newest' | 'oldest' | 'filename-asc' | 'filename-desc' | 'size-desc' | 'size-asc' | 'status'>('newest')
 
@@ -94,7 +95,7 @@ const failedAssets = computed(() => assets.value.filter((asset) => asset.status 
 const canUploadMedia = computed(() => authStore.isEmailVerified && !uploadRequiresVerification.value)
 const showVerificationGuidance = computed(() => !canUploadMedia.value)
 
-function statusClass(status: MediaStatus) {
+function statusClass(status: MediaStatus): string {
   if (isProcessingStatus(status)) {
     return 'border-text-display/30 bg-text-display/10 text-text-display'
   }
@@ -104,6 +105,8 @@ function statusClass(status: MediaStatus) {
       return 'border-success/30 bg-success/10 text-success'
     case 'FAILED':
       return 'border-error/30 bg-error/10 text-error'
+    case 'SUSPENDED':
+      return 'border-warning/30 bg-warning/10 text-warning'
     default:
       return 'border-border-visible bg-bg-primary text-text-secondary'
   }
@@ -211,14 +214,14 @@ async function deleteSelectedAssets() {
 async function refreshLibrary() {
   isRefreshing.value = true
   try {
-    await mediaStore.loadAssets('READY,PENDING_UPLOAD,UPLOADING,FAILED')
+    await mediaStore.loadAssets('READY,PENDING_UPLOAD,UPLOADING,FAILED,SUSPENDED')
   } finally {
     isRefreshing.value = false
   }
 }
 
 async function loadMore() {
-  await mediaStore.loadNextPage('READY,PENDING_UPLOAD,UPLOADING,FAILED')
+  await mediaStore.loadNextPage('READY,PENDING_UPLOAD,UPLOADING,FAILED,SUSPENDED')
 }
 
 function openFilePicker() {
@@ -366,6 +369,7 @@ onMounted(async () => {
         <option value="READY">READY</option>
         <option value="PROCESSING">PROCESSING</option>
         <option value="FAILED">FAILED</option>
+        <option value="SUSPENDED">SUSPENDED</option>
       </select>
 
       <select v-model="typeFilter" data-testid="filter-type" :aria-label="$t('media.typeFilter')" class="rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
@@ -556,6 +560,12 @@ onMounted(async () => {
                   {{ formatFileSize(asset.fileSizeBytes) ?? '—' }}
                 </p>
               </div>
+              <MediaAttribution
+                :author-name="asset.authorName"
+                :author-url="asset.authorUrl"
+                :source-provider="asset.sourceProvider"
+                :licence="asset.licence"
+              />
             </article>
           </div>
 

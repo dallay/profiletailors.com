@@ -3,6 +3,8 @@ package com.profiletailors.smp.media.domain
 import java.time.Instant
 import java.util.UUID
 
+private const val MAX_LICENCE_LENGTH = 64
+
 /**
  * Source type for media assets.
  */
@@ -64,6 +66,13 @@ enum class MediaAssetStatus {
      * be scheduled for GC depending on whether other active assets reference it.
      */
     DELETED,
+
+    /**
+     * Asset has been temporarily removed from public view pending review of
+     * a copyright or DMCA takedown report. The binary is retained so content
+     * can be reinstated if the report is dismissed.
+     */
+    SUSPENDED,
 }
 
 /**
@@ -164,11 +173,15 @@ data class MediaAsset(
     val authorName: String? = null,
     val authorUrl: String? = null,
     val metadata: Map<String, Any>? = null,
+    val licence: String? = null,
 ) {
     init {
         require(assetId.isNotBlank()) { "Asset ID must not be blank" }
         require(workspaceId.isNotBlank()) { "Workspace ID must not be blank" }
         require(mediaType.isNotBlank()) { "Media type must not be blank" }
+        require(licence == null || licence.length <= MAX_LICENCE_LENGTH) {
+            "Licence must not exceed 64 characters"
+        }
 
         when (sourceType) {
             MediaSourceType.UPLOADED -> {

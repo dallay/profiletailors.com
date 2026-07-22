@@ -184,7 +184,7 @@ jobs:
           test -f semgrep-backend.sarif
       - name: Upload Semgrep backend SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@1a818fd5f97ed0ee9a823421bd5b171add01227f # v4.36.2
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
         with:
           sarif_file: semgrep-backend.sarif
           category: semgrep-backend
@@ -218,7 +218,7 @@ jobs:
           test -f semgrep-frontend.sarif
       - name: Upload Semgrep frontend SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@1a818fd5f97ed0ee9a823421bd5b171add01227f # v4.36.2
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
         with:
           sarif_file: semgrep-frontend.sarif
           category: semgrep-frontend
@@ -229,7 +229,7 @@ jobs:
     if: ${{ needs.changes.outputs.backend == 'true' || needs.changes.outputs.repo_security == 'true' }}
     runs-on: ubuntu-latest
     env:
-      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+      SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
       SMP_LOCAL_JWT_DEV_FALLBACK: ${{ secrets.SMP_LOCAL_JWT_SECRET }}
     permissions:
       contents: read
@@ -308,7 +308,7 @@ jobs:
           fi
       - name: Upload Trivy SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@1a818fd5f97ed0ee9a823421bd5b171add01227f # v4.36.2
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
         with:
           sarif_file: trivy-backend.sarif
           category: trivy-backend
@@ -324,7 +324,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Set up pnpm
-        uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:

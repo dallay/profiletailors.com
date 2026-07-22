@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationNormalized } from 'vue-router'
 import HomeView from '@modules/dashboard/presentation/views/HomeView.vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import { usePublicCapabilitiesStore } from '@modules/auth/infrastructure/public-capabilities.store'
 
 function requiresAuth(route: RouteLocationNormalized) {
   return route.meta.requiresAuth === true
@@ -82,6 +83,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/governance/takedown',
+      name: 'governance-takedown',
+      component: () => import('@modules/governance/views/GovernanceTakedownView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@modules/settings/presentation/SettingsView.vue'),
@@ -112,6 +119,14 @@ router.beforeEach(async (to) => {
 
   if (isGuestOnly(to) && auth.isAuthenticated) {
     return '/'
+  }
+
+  if (to.name === 'register') {
+    const capabilities = usePublicCapabilitiesStore()
+    await capabilities.load()
+    if (!capabilities.registrationEnabled) {
+      return '/login'
+    }
   }
 
   return true

@@ -744,7 +744,7 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             .rowsUpdated()
             .awaitSingle()
         databaseClient.sql(
-            "DELETE FROM publication_jobs WHERE publication_id = :publicationId AND workspace_id = :workspaceId"
+            "DELETE FROM publication_jobs WHERE publication_id = :publicationId AND workspace_id = :workspaceId",
         )
             .bind("publicationId", job.publicationId)
             .bind("workspaceId", job.workspaceId)

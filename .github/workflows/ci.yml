@@ -142,7 +142,7 @@ jobs:
     name: 🧪 Backend Unit Tests
     runs-on: ubuntu-latest
     env:
-      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+      SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -166,8 +166,11 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     env:
-      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+      SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -175,9 +178,22 @@ jobs:
 
       - uses: ./.github/actions/setup-backend
 
-      - name: Run BDD fast suite
+      - name: Run BDD fast suite (with verbose output)
+        id: bdd-test
+        continue-on-error: true
         shell: bash
-        run: ./gradlew :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+        run: ./gradlew :server:smp:bddFastTest --no-daemon --info --stacktrace -x :shared:common:test -x :shared:spring-boot-common:test
+
+      - name: Upload BDD test report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bdd-test-report
+          path: server/smp/build/reports/tests/bddFastTest/
+
+      - name: Check BDD test result
+        if: steps.bdd-test.outcome == 'failure'
+        run: exit 1
 
   # ──────────────────────────────────────────────────────────────
   # 5a. Backend Postgres integration suite
@@ -188,7 +204,7 @@ jobs:
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     env:
-      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+      SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:

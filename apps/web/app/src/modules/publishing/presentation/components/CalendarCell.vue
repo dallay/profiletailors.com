@@ -164,7 +164,7 @@ function onKeyDown(e: KeyboardEvent): void {
       </div>
     </div>
 
-    <button
+    <button type="button"
       v-if="isCurrentMonth && !isPast"
       @click.stop="emit('click-day', date)"
       class="hidden group-hover/cell:flex items-center justify-center size-5 mt-auto ml-auto rounded border border-dashed border-text-secondary/30 text-text-secondary/50 hover:border-text-display/40 hover:text-text-display/60 hover:bg-bg-primary/30 transition-all cursor-pointer"

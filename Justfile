@@ -218,20 +218,20 @@ release-backend-image version="0.1.0" image_repository="profiletailors/smp":
     docker image inspect "$image_name" --format 'image={{"{{"}}.RepoTags{{"}}"}} id={{"{{"}}.Id{{"}}"}}'
 
 # Run backend unit tests (optionally exclude tags: just backend-test 'postgres')
-# Postgres integration tests use Testcontainers and require SMP_POSTGRES_TEST_PASSWORD,
+# Postgres integration tests use Testcontainers and require SMP_DB_TEST_PASSWORD,
 # which is sourced from .env (or the shell) — same shape as the CI workflow.
 backend-test exclude-tags="":
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:test --no-daemon {{ if exclude-tags != "" { "-PexcludeTags=" + exclude-tags } else { "" } }}
 
 # Run backend tests (fast)
 backend-test-fast:
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:test --no-daemon
 
 # Run full check: tests + Detekt (aligns with CI — excludes BDD suites)
 backend-check:
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:check --no-daemon -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
 
 # Run Detekt static analysis
@@ -261,6 +261,19 @@ serve $force="":
         echo "Usage: just serve [--force]"
         exit 2
     fi
+    # Ensure portless proxy is running so HTTPS dashboard URLs work
+    if ! pgrep -f "portless.*proxy" >/dev/null 2>&1; then
+        echo "Portless proxy not running."
+        read -r -p "Start it now? (requires sudo for port 443, or falls back to :1355) [Y/n] " reply
+        reply="${reply:-Y}"
+        if [[ "$reply" =~ ^[Yy]$ ]]; then
+            sudo portless proxy start
+        else
+            echo "Skipping portless. Dashboard will only be reachable at http://localhost:<vite-port>."
+        fi
+    else
+        echo "Portless proxy already running."
+    fi
     echo "Starting backend (Spring Boot) + frontend app (Vite)..."
     {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev' &
     cd {{app-dir}} && pnpm dev
@@ -280,22 +293,22 @@ kill-servers:
 
 # Run tests with JaCoCo coverage report
 backend-coverage:
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:test :server:smp:jacocoTestReport --no-daemon
 
 # Run fast BDD suite
 backend-bdd-fast:
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run PostgreSQL integration tests with Testcontainers
 backend-test-postgres:
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run Postgres BDD suite (requires infra-up first)
 backend-bdd-postgres:
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # ═══════════════════════════════════════════════════════════════
@@ -442,11 +455,11 @@ ci-local:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ Backend: unit tests (fast)..."
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:test --no-daemon
     @echo ""
     @echo "▸ Backend: build..."
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:assemble --no-daemon
     @echo ""
     @echo "══════════════════════════════════════════════"
@@ -458,11 +471,11 @@ ci-full: infra-up
     just ci-local
     @echo ""
     @echo "▸ Backend: Postgres integration suite..."
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ Backend: Postgres BDD suite..."
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "══════════════════════════════════════════════"
@@ -493,11 +506,11 @@ ci:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ [6/8] Backend: unit tests (fast)..."
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:test --no-daemon
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_PASSWORD= .env | cut -d= -f2) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_PASSWORD= .env | cut -d= -f2) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
     cd {{frontend-dir}} && pnpm test:e2e
