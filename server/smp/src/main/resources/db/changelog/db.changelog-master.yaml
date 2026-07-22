@@ -56,6 +56,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/governance/006-create-takedown-reports.yaml
   - include:
+      file: db/changelog/governance/007-evidence-links-and-review-at.yaml
+  - include:
       file: db/changelog/publishing/001-create-social-connections.yaml
   - include:
       file: db/changelog/publishing/002-create-social-accounts.yaml
