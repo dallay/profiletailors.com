@@ -3,7 +3,9 @@ package com.profiletailors.smp.governance.domain
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 internal class ComplianceEvidenceModelsTest {
 
@@ -90,6 +92,7 @@ internal class ComplianceEvidenceModelsTest {
         assertNull(link.description)
         assertEquals(EvidenceLinkType.CODE, link.linkType)
         assertEquals("ev-001", link.evidenceId.value)
+        assertNotNull(link.linkedAt)
     }
 
     @Test

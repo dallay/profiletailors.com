@@ -107,6 +107,29 @@ class ComplianceControllerTest {
     }
 
     @Test
+    fun `release-gate returns NOT_APPLICABLE with default release parameter`() = runTest {
+        val mediator = ReleaseGateMediator(
+            "0.1.0",
+            ReleaseGateResult(
+                release = "0.1.0",
+                gateStatus = "NOT_APPLICABLE",
+                totalControls = 0,
+                passed = 0,
+                failed = 0,
+                waived = 0,
+                evaluatedAt = "2026-07-22T12:00:00Z",
+            ),
+        )
+        val controller = ComplianceController(mediator)
+
+        val result = controller.releaseGate()
+
+        result.gateStatus shouldBe "NOT_APPLICABLE"
+        result.release shouldBe "0.1.0"
+        result.totalControls shouldBe 0
+    }
+
+    @Test
     fun `release-gate returns FAIL when any control fails`() = runTest {
         val mediator = ReleaseGateMediator(
             "0.1.0",
