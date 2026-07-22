@@ -37,6 +37,8 @@ as a historical record and a guide for current and future development.
 | 0010 | [Shared Kernel Governance](./0010-shared-kernel-governance.md)                           | Accepted | 2026-06-21 |
 | 0011 | [Reusable Lead Capture Waitlist Capability](./0011-reusable-lead-capture-waitlist.md)    | Accepted | 2026-06-25 |
 | 0012 | [AGPL-3.0 Commercial Strategy](./0012-agpl-commercial-strategy.md)                       | Accepted | 2026-07-17 |
+| 0013 | [RateLimitTier vs SubscriptionPlan](./0013-ratelimit-tier-vs-subscription-plan.md)       | Accepted | 2026-07-22 |
+| 0014 | [Future Billing Architecture](./0014-future-billing-architecture.md)                     | Accepted | 2026-07-22 |
 
 ## Relationship with other docs
 

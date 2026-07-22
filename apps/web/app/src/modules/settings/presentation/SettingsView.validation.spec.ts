@@ -8,10 +8,12 @@ const routeQuery = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 const renameWorkspaceMock = vi.hoisted(() => vi.fn())
 const authStoreState = vi.hoisted(() => ({
   accessToken: 'access-token-1',
+  logout: vi.fn(),
 }))
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: routeQuery.value }),
+  useRouter: () => ({ replace: vi.fn() }),
 }))
 
 vi.mock('vue-i18n', () => ({
@@ -38,6 +40,7 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   proxyImageUrl: (url: string) => url,
   renameWorkspace: (...args: unknown[]) => renameWorkspaceMock(...args),
   updateWorkspaceIcon: vi.fn(),
+  closeAccount: vi.fn(),
 }))
 
 vi.mock('@modules/auth/infrastructure/auth.store', () => ({
@@ -51,6 +54,7 @@ function mountSettings() {
         $t: (key: string) => key,
       },
       stubs: {
+        AccountClosureSection: { template: '<div />' },
         WorkspaceAvatar: { template: '<div />' },
         WorkspaceIconModal: { template: '<div />' },
         Pencil: { template: '<svg />' },

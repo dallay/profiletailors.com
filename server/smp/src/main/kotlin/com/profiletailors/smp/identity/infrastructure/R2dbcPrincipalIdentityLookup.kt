@@ -1,9 +1,9 @@
 package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import io.r2dbc.spi.Readable
 import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.reactor.awaitSingleOrNull

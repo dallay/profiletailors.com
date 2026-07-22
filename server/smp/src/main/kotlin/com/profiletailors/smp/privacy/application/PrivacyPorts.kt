@@ -1,6 +1,6 @@
 package com.profiletailors.smp.privacy.application
 
-import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
+import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import java.time.Instant
 
 /**

@@ -14,6 +14,19 @@ export default {
   languageEnglish: 'English',
   languageSpanish: 'Spanish',
   quickPreferences: 'Quick preferences',
+  accountClosure: {
+    title: 'Close Account',
+    description:
+      'Permanently close your account and delete all associated data. This action cannot be undone.',
+    confirmationLabel: 'Type DELETE to confirm',
+    confirmationPlaceholder: 'Type DELETE here',
+    closeButton: 'Close Account',
+    closingButton: 'Closing...',
+    success: 'Your account has been closed. Redirecting...',
+    error: 'Failed to close account. Please try again.',
+    rateLimited: 'Too many attempts. Please try again later.',
+    invalidConfirmation: 'Please type DELETE to confirm.',
+  },
   privacy: {
     title: 'Privacy & Data',
     description:
