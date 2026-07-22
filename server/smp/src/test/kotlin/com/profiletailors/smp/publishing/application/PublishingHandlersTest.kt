@@ -9,11 +9,11 @@ import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
-import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
 import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.MediaAssetResolver

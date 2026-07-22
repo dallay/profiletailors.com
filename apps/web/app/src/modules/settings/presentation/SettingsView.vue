@@ -13,6 +13,7 @@ import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { useSettingsStore } from '@modules/settings/infrastructure/settings.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
+import AccountClosureSection from '@modules/settings/presentation/AccountClosureSection.vue'
 import PrivacySection from '@modules/settings/presentation/PrivacySection.vue'
 
 const { t } = useI18n()
@@ -415,6 +416,8 @@ function segmentedControlClass(active: boolean) {
     </div>
 
     <PrivacySection />
+
+    <AccountClosureSection />
 
     <WorkspaceIconModal
       v-model:open="iconModalOpen"
