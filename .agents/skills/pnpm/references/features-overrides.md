@@ -5,7 +5,8 @@ description: Force specific versions of dependencies including transitive depend
 
 # pnpm Overrides
 
-Overrides let you force specific versions of packages, including transitive dependencies. Useful for fixing security vulnerabilities or compatibility issues.
+Overrides let you force specific versions of packages, including transitive dependencies. Useful for
+fixing security vulnerabilities or compatibility issues.
 
 ## Basic Syntax
 
@@ -30,33 +31,41 @@ overrides:
   "underscore": "npm:lodash@^4.17.21"
 ```
 
-> **Note:** pnpm v11+ requires project-level configuration in `pnpm-workspace.yaml`. The `package.json` `pnpm.overrides` field is deprecated.
+> **Note:** pnpm v11+ requires project-level configuration in `pnpm-workspace.yaml`. The
+`package.json` `pnpm.overrides` field is deprecated.
 
 ## Override Patterns
 
 ### Override all instances
+
 ```yaml
 overrides:
   lodash: ^4.17.21
 ```
+
 Forces all lodash installations to use ^4.17.21.
 
 ### Override specific parent version
+
 ```yaml
 overrides:
   "foo@^1.0.0": ^1.2.3
 ```
+
 Only override foo when the requested version matches ^1.0.0.
 
 ### Override nested dependency
+
 ```yaml
 overrides:
   "express>cookie": ^0.6.0
   "foo@1.x>bar@^2.0.0>qux": ^1.0.0
 ```
+
 Override cookie only when it's a dependency of express.
 
 ### Replace with different package
+
 ```yaml
 overrides:
   # Replace underscore with lodash
@@ -70,10 +79,12 @@ overrides:
 ```
 
 ### Remove a dependency
+
 ```yaml
 overrides:
   "unwanted-pkg": "-"
 ```
+
 The `-` removes the package entirely.
 
 ## Common Use Cases
@@ -145,12 +156,12 @@ module.exports = {
 
 ## Overrides vs Catalogs
 
-| Feature | Overrides | Catalogs |
-|---------|-----------|----------|
-| Affects | All dependencies (including transitive) | Direct dependencies only |
-| Usage | Automatic | Explicit `catalog:` reference |
-| Purpose | Force versions, fix issues | Version management |
-| Granularity | Can target specific parents | Package-wide only |
+| Feature     | Overrides                               | Catalogs                      |
+|-------------|-----------------------------------------|-------------------------------|
+| Affects     | All dependencies (including transitive) | Direct dependencies only      |
+| Usage       | Automatic                               | Explicit `catalog:` reference |
+| Purpose     | Force versions, fix issues              | Version management            |
+| Granularity | Can target specific parents             | Package-wide only             |
 
 ## Debugging
 

@@ -36,9 +36,14 @@ Read both files completely before performing repository work.
 
 ## Operating Mode
 
-This is an autonomous zero-interaction execution. Operate from start to finish without requesting user input.
+This is an autonomous zero-interaction execution. Operate from start to finish without requesting
+user input.
 
 - Do not ask for confirmation, approval, feedback, or implementation decisions.
 - Do not stop after analysis or planning.
-- Execute the complete task lifecycle: inspection, evidence gathering, safe corrections, validation, self-correction or revert when necessary, state update, report update, commit, push, and Draft Pull Request creation.
-- The execution is not complete until the task reaches one of the framework completion outcomes and the required Draft Pull Request has been created, or a genuine platform-level blocker has been recorded according to the framework.
+- Execute the complete task lifecycle: inspection, evidence gathering, safe corrections, validation,
+  self-correction or revert when necessary, state update, report update, commit, push, and Draft
+  Pull Request creation.
+- The execution is not complete until the task reaches one of the framework completion outcomes and
+  the required Draft Pull Request has been created, or a genuine platform-level blocker has been
+  recorded according to the framework.

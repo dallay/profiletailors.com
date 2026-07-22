@@ -9,7 +9,8 @@
 5. [Related](#related)
 
 > **When to use**: Testing React apps built with Vite, Create React App, or custom bundlers. Covers
-> E2E testing, component testing, React Router navigation, form libraries, portals, error boundaries,
+> E2E testing, component testing, React Router navigation, form libraries, portals, error
+> boundaries,
 > and context/state verification.
 > **Prerequisites
 **: [configuration.md](../core/configuration.md), [locators.md](../core/locators.md)

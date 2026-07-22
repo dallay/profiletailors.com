@@ -36,11 +36,16 @@ Read both files completely before performing repository work.
 
 ## Operating Mode
 
-This is an autonomous zero-interaction execution. Operate from start to finish without requesting user input.
+This is an autonomous zero-interaction execution. Operate from start to finish without requesting
+user input.
 
-- Do not ask for confirmation, approval, feedback, schema decisions, or persistence design decisions.
+- Do not ask for confirmation, approval, feedback, schema decisions, or persistence design
+  decisions.
 - Do not stop after analysis or planning.
-- Treat production database migration changes as HIGH RISK unless the task definition explicitly authorizes a deterministic change.
-- Prefer auditing, evidence collection, test-only consistency corrections, and factual documentation corrections.
+- Treat production database migration changes as HIGH RISK unless the task definition explicitly
+  authorizes a deterministic change.
+- Prefer auditing, evidence collection, test-only consistency corrections, and factual documentation
+  corrections.
 - Never invent a production schema migration.
-- Complete all safe work, validation, state update, report update, commit, push, and Draft Pull Request creation.
+- Complete all safe work, validation, state update, report update, commit, push, and Draft Pull
+  Request creation.

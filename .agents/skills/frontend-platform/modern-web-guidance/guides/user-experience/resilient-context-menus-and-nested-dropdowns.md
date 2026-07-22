@@ -12,7 +12,8 @@ natively.
 > This guide demonstrates anchor-positioning and popover mechanics — it does not prescribe a
 > specific accessible UI pattern. The trigger and panel below are shown as a plain *
 *button-revealing-a-button-group**. If you need a true ARIA menu (`role="menu"` with arrow-key
-> navigation), a combobox, a disclosure widget, or any other named pattern, layer that pattern's full
+> navigation), a combobox, a disclosure widget, or any other named pattern, layer that pattern's
+> full
 > semantics and keyboard contract on top of the positioning techniques shown here.
 
 ### 1. Define the Button and Panel Relationship

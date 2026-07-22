@@ -36,11 +36,13 @@ Read both files completely before performing repository work.
 
 ## Operating Mode
 
-This is an autonomous zero-interaction execution. Operate from start to finish without requesting user input.
+This is an autonomous zero-interaction execution. Operate from start to finish without requesting
+user input.
 
 - Do not ask for confirmation, approval, feedback, or observability architecture decisions.
 - Do not stop after analysis or planning.
 - Audit logging hygiene according to the task definition.
-- Never reproduce discovered secrets, credentials, tokens, passwords, cookies, or sensitive values in state files, reports, commits, or Pull Request descriptions.
+- Never reproduce discovered secrets, credentials, tokens, passwords, cookies, or sensitive values
+  in state files, reports, commits, or Pull Request descriptions.
 - Apply only deterministic safe corrections.
 - Complete validation, state update, report update, commit, push, and Draft Pull Request creation.

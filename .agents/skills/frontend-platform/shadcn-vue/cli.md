@@ -7,7 +7,8 @@ Configuration is read from `components.json`.
 > context to choose the right one. Examples below use `npx shadcn-vue@latest` but substitute the
 > correct runner for the project.
 > **IMPORTANT:** Only use the flags documented below. Do not invent or guess flags — if a flag isn't
-> listed here, it doesn't exist. The CLI auto-detects the package manager from the project's lockfile;
+> listed here, it doesn't exist. The CLI auto-detects the package manager from the project's
+> lockfile;
 > there is no `--package-manager` flag.
 
 ## Contents

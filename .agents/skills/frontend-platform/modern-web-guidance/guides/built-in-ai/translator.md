@@ -174,5 +174,6 @@ Recommended options:
    remote services.
 
 > **Privacy and Cost Implications:** These polyfills proxy requests to remote servers (such as
-> Gemini API over the cloud). This completely nullifies the on-device privacy guarantees of the native
+> Gemini API over the cloud). This completely nullifies the on-device privacy guarantees of the
+> native
 > Built-in AI APIs and will incur server-side API usage costs.

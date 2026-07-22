@@ -50,12 +50,14 @@ pnpm import
 pnpm is strict about dependencies. If code imports a package not in `package.json`, it will fail.
 
 **Problem:**
+
 ```js
 // Works with npm (hoisted), fails with pnpm
 import lodash from 'lodash' // Not in dependencies, installed by another package
 ```
 
 **Solution:** Add missing dependencies explicitly:
+
 ```bash
 pnpm add lodash
 ```
@@ -65,17 +67,20 @@ pnpm add lodash
 pnpm reports peer dependency issues by default.
 
 **Option 1:** Let pnpm auto-install:
+
 ```yaml
 # pnpm-workspace.yaml (default in pnpm v8+)
 autoInstallPeers: true
 ```
 
 **Option 2:** Install manually:
+
 ```bash
 pnpm add react react-dom
 ```
 
 **Option 3:** Suppress warnings if acceptable:
+
 ```yaml
 # pnpm-workspace.yaml
 peerDependencyRules:
@@ -247,6 +252,7 @@ Update CI configuration:
 ```
 
 Add to `package.json` for Corepack:
+
 ```json
 {
   "packageManager": "pnpm@9.0.0"

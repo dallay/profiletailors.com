@@ -22,7 +22,8 @@ Production redesign, speculative refactors, unrelated domains, and another task 
 
 ## Evidence Sources
 
-Spring Security, frontend guards, authorization metadata, CORS, CSRF, cookies, routes, exclusions, properties, tests, docs
+Spring Security, frontend guards, authorization metadata, CORS, CSRF, cookies, routes, exclusions,
+properties, tests, docs
 
 ## Previous State
 
@@ -46,36 +47,45 @@ Apply LOW, MEDIUM, or HIGH risk and persist concise unresolved, blocked, ignored
 
 ## Decision Rules
 
-Never weaken security; report unless a correction narrows exposure and is tested. If uncertainty persists, record it and continue safe unrelated work.
+Never weaken security; report unless a correction narrows exposure and is tested. If uncertainty
+persists, record it and continue safe unrelated work.
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/security-configuration-drift.yaml and ../reports/security-configuration-drift.md.
+Minimal evidence-backed corrections only. Update only ../state/security-configuration-drift.yaml and
+../reports/security-configuration-drift.md.
 
 ## Prohibited Changes
 
-Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or modify another task state.
+Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or
+modify another task state.
 
 ## Risk Rules
 
-Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported by default.
+Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported
+by default.
 
 ## Validation
 
-Validate changed files, affected module/command, relevant tests, then justified repository checks. Prefer just. Record Passed, Failed, or Not run only.
+Validate changed files, affected module/command, relevant tests, then justified repository checks.
+Prefer just. Record Passed, Failed, or Not run only.
 
 ## State
 
-Owns ../state/security-configuration-drift.yaml; use the framework schema and never set execution data without an actual run.
+Owns ../state/security-configuration-drift.yaml; use the framework schema and never set execution
+data without an actual run.
 
 ## Report
 
-Owns ../reports/security-configuration-drift.md; report facts, evidence, result, validation, unresolved findings, and risks without chain-of-thought or secrets.
+Owns ../reports/security-configuration-drift.md; report facts, evidence, result, validation,
+unresolved findings, and risks without chain-of-thought or secrets.
 
 ## Pull Request
 
-Create exactly one Draft Pull Request with framework sections. Suggested title: docs(security): record configuration drift evidence.
+Create exactly one Draft Pull Request with framework sections. Suggested title: docs(security):
+record configuration drift evidence.
 
 ## Completion Criteria
 
-Inspection, evidence classification, permitted correction or documented no-op, validation, state/report update, changed-file review, secret check, commit, push, and Draft PR creation.
+Inspection, evidence classification, permitted correction or documented no-op, validation,
+state/report update, changed-file review, secret check, commit, push, and Draft PR creation.

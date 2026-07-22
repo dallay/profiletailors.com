@@ -36,11 +36,13 @@ Read both files completely before performing repository work.
 
 ## Operating Mode
 
-This is an autonomous zero-interaction execution. Operate from start to finish without requesting user input.
+This is an autonomous zero-interaction execution. Operate from start to finish without requesting
+user input.
 
 - Do not ask for confirmation, approval, feedback, UX decisions, or design decisions.
 - Do not stop after analysis or planning.
 - Correct deterministic accessibility regressions only within the task's allowed scope.
 - Prefer native semantic HTML over unnecessary ARIA.
 - Do not redesign the UI and do not claim comprehensive WCAG compliance.
-- Complete focused validation, broader frontend validation where required, state update, report update, commit, push, and Draft Pull Request creation.
+- Complete focused validation, broader frontend validation where required, state update, report
+  update, commit, push, and Draft Pull Request creation.

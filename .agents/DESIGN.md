@@ -280,7 +280,8 @@ Use motion only when it clarifies a change, never for decoration. Snappiness is 
 - **Fast (150ms):** For micro-interactions and state changes.
 - **Standard (200ms):** For popovers, tooltips, and small element entries.
 - **Overlay (300ms):** For modals, dialogs, and large transitions.
-- **Easing:** `cubic-bezier(0.175, 0.885, 0.32, 1.1)` for physical entry, or `cubic-bezier(0.25, 0.1, 0.25, 1)` for subtle ease-out.
+- **Easing:** `cubic-bezier(0.175, 0.885, 0.32, 1.1)` for physical entry, or
+  `cubic-bezier(0.25, 0.1, 0.25, 1)` for subtle ease-out.
 - **Preferred:** Opacity over position (fade, don't slide).
 - **Reduced motion:** Respect `prefers-reduced-motion`. Disable all animations when set.
 
@@ -304,10 +305,12 @@ Use motion only when it clarifies a change, never for decoration. Snappiness is 
 | Ghost     | transparent      | none                         | `--text-secondary`     | `none` |
 
 **States:**
+
 - **Hover:** Background/border steps up the scale (e.g., `100` -> `200`, `400` -> `500`).
 - **Active:** Background/border steps up again (e.g., `200` -> `300`, `500` -> `600`).
 - **Disabled:** `gray-100` fill (light) or `gray-200` (dark), `gray-700` text, `not-allowed` cursor.
-- **Focus:** Two-layer ring: 2px gap in surface color, then 2px `accent` ring (`box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--accent-color)`).
+- **Focus:** Two-layer ring: 2px gap in surface color, then 2px `accent` ring (
+  `box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--accent-color)`).
 
 All buttons: Space Mono, ALL CAPS, letter-spacing 0.06em, padding 12px 24px, min-height 44px.
 
@@ -350,24 +353,32 @@ All buttons: Space Mono, ALL CAPS, letter-spacing 0.06em, padding 12px 24px, min
 
 Keep copy precise and free of filler. Copy IS design.
 
-- **Capitalization:** Title Case for labels, buttons, titles, and tabs. Sentence case for body, helper text, and toasts.
-- **Action Naming:** Use [Verb] + [Noun] (e.g., `Deploy Project`, `Delete Member`). Never just `Confirm` or `OK`.
-- **Error Messages:** State what happened + what to do next. `Build failed. Bundle exceeds 50 MB. Reduce it or raise the limit.`
-- **Toasts:** Name the specific change, drop trailing period, avoid "successfully". `Project deleted`, not `Successfully deleted project.`
+- **Capitalization:** Title Case for labels, buttons, titles, and tabs. Sentence case for body,
+  helper text, and toasts.
+- **Action Naming:** Use [Verb] + [Noun] (e.g., `Deploy Project`, `Delete Member`). Never just
+  `Confirm` or `OK`.
+- **Error Messages:** State what happened + what to do next.
+  `Build failed. Bundle exceeds 50 MB. Reduce it or raise the limit.`
+- **Toasts:** Name the specific change, drop trailing period, avoid "successfully".
+  `Project deleted`, not `Successfully deleted project.`
 - **In-progress:** Use present participle with ellipsis. `Deploying...`, `Saving...`.
 - **Numbers:** Use numerals (`3 projects`).
-- **Style:** Use curly quotes and the ellipsis character (\u2026); skip "please" and marketing superlatives.
+- **Style:** Use curly quotes and the ellipsis character (\u2026); skip "please" and marketing
+  superlatives.
 
 ## Do's and Don'ts
 
 ### Do
-- Use the semantic scale to rank information: `1000` for display text, `900` for primary/body text, `800` for secondary text, `700` for muted/disabled text.
+
+- Use the semantic scale to rank information: `1000` for display text, `900` for primary/body text,
+  `800` for secondary text, `700` for muted/disabled text.
 - Maintain WCAG AA contrast (4.5:1).
 - Show the focus ring on every interactive element at `:focus-visible`.
 - Apply typography tokens strictly; don't set manual font sizes or weights.
 - Pair color status with an icon or text label; don't rely on color alone.
 
 ### Don't
+
 - Use gradients, shadows, or blurs.
 - Mix rounded and sharp corners in the same view.
 - Use more than two font weights in one view.

@@ -5,7 +5,8 @@ description: Defining stores, state, getters, and actions in Pinia
 
 # Pinia Stores
 
-Stores are defined using `defineStore()` with a unique name. Each store has three core concepts: **state**, **getters**, and **actions**.
+Stores are defined using `defineStore()` with a unique name. Each store has three core concepts: *
+*state**, **getters**, and **actions**.
 
 ## Defining Stores
 

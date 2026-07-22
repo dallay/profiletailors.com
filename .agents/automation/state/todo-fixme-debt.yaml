@@ -1,5 +1,5 @@
 schemaVersion: 1
 task: todo-fixme-debt-reconciler
 lastExecution: null
-findings: []
-checks: []
+findings: [ ]
+checks: [ ]

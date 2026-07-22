@@ -23,10 +23,12 @@ export const useAuthStore = defineStore('auth', {
 ```
 
 **Works:** Composables returning `ref()`:
+
 - `useLocalStorage`
 - `useAsyncState`
 
 **Doesn't work in Option Stores:**
+
 - Composables exposing functions
 - Composables exposing readonly data
 
@@ -61,7 +63,8 @@ export const useVideoPlayer = defineStore('video', () => {
 })
 ```
 
-**Note:** Don't return non-serializable DOM refs like `videoElement` - they're internal implementation details.
+**Note:** Don't return non-serializable DOM refs like `videoElement` - they're internal
+implementation details.
 
 ## SSR Considerations
 

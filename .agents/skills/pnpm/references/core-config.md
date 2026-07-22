@@ -5,7 +5,8 @@ description: Configuration options via pnpm-workspace.yaml and .npmrc settings
 
 # pnpm Configuration
 
-pnpm uses two main configuration files: `pnpm-workspace.yaml` for workspace and pnpm-specific settings, and `.npmrc` for npm-compatible and pnpm-specific settings.
+pnpm uses two main configuration files: `pnpm-workspace.yaml` for workspace and pnpm-specific
+settings, and `.npmrc` for npm-compatible and pnpm-specific settings.
 
 ## pnpm-workspace.yaml
 
@@ -130,7 +131,7 @@ package-extensions[foo@1].peerDependencies.bar=*
 Settings are read in order (later overrides earlier):
 
 1. `/etc/npmrc` - Global config
-2. `~/.npmrc` - User config  
+2. `~/.npmrc` - User config
 3. `<project>/.npmrc` - Project config
 4. Environment variables: `npm_config_<key>=<value>`
 5. `pnpm-workspace.yaml` settings field

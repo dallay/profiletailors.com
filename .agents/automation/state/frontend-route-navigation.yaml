@@ -1,5 +1,5 @@
 schemaVersion: 1
 task: frontend-route-navigation-auditor
 lastExecution: null
-findings: []
-checks: []
+findings: [ ]
+checks: [ ]

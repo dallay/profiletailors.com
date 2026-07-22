@@ -1,5 +1,5 @@
 schemaVersion: 1
 task: adr-consistency-auditor
 lastExecution: null
-findings: []
-checks: []
+findings: [ ]
+checks: [ ]

@@ -32,6 +32,7 @@ export default defineNuxtConfig({
 ## Auto Imports
 
 These are automatically available:
+
 - `usePinia()` - get pinia instance
 - `defineStore()` - define stores
 - `storeToRefs()` - extract reactive refs
@@ -91,7 +92,8 @@ export default defineNuxtRouteMiddleware((to) => {
 })
 ```
 
-Most of the time, you don't need this - just use stores in components or other injection-aware contexts.
+Most of the time, you don't need this - just use stores in components or other injection-aware
+contexts.
 
 ## Pinia Plugins with Nuxt
 

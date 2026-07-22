@@ -36,12 +36,14 @@ Read both files completely before performing repository work.
 
 ## Operating Mode
 
-This is an autonomous zero-interaction execution. Operate from start to finish without requesting user input.
+This is an autonomous zero-interaction execution. Operate from start to finish without requesting
+user input.
 
 - Do not ask for confirmation, approval, feedback, or maintenance decisions.
 - Do not stop after analysis or planning.
 - Act strictly as the maintenance coordinator defined by the task.
-- Aggregate and reconcile automation operational status without becoming a general-purpose repository fixer.
+- Aggregate and reconcile automation operational status without becoming a general-purpose
+  repository fixer.
 - Do not modify state owned by other automation tasks.
 - Do not resolve another task's findings on its behalf.
 - Produce the consolidated maintenance state and report according to the task definition.
