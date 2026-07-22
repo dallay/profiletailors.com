@@ -339,3 +339,56 @@ contract was not repeated for both text and HTML bodies.)
 - WHEN verification email content is rendered
 - THEN the text body and HTML body MUST contain the same verification URL
 - AND the URL MUST target the existing frontend verification route
+
+---
+
+## Takedown Notification Additions
+
+The following requirements were added as part of the media copyright takedown change
+(archived `2026-07-22`).
+
+### Requirement: Takedown Notification Templates
+
+The system MUST produce three template types for the takedown lifecycle delivered via
+domain-event consumers:
+
+| Template                    | Trigger              | Consumer                                |
+|-----------------------------|----------------------|-----------------------------------------|
+| Takedown Confirmation       | Report submitted     | `SendTakedownReportedEmailConsumer`     |
+| Takedown Approved           | Staff approves       | `SendTakedownApprovedEmailConsumer`     |
+| Takedown Rejected           | Staff rejects        | `SendTakedownRejectedEmailConsumer`     |
+
+All templates SHALL follow the existing template pattern: plain-text body and inline-styled
+HTML body, both rendered from template variables with idempotency keys. Templates SHALL be
+dispatched asynchronously via domain-event consumers through the `EmailDispatcher`.
+
+Implementation lives in `TakedownEmailTemplates.kt` under `governance/infrastructure/email/`.
+Consumers in `TakedownEmailConsumers.kt` resolve recipients via `WorkspaceOwnershipRepository`
++ `PrincipalIdentityLookup`.
+
+(Previously: only verification email templates existed.)
+
+#### Scenario: Confirmation email on report submission
+
+- GIVEN a takedown report is submitted successfully via
+  `POST /api/governance/media/takedown-reports`
+- WHEN the system processes the submission
+- THEN the system SHALL send a "Takedown Confirmation" email to workspace admins
+- AND the email SHALL include the report ID
+- AND the email SHALL be dispatched asynchronously via `SendTakedownReportedEmailConsumer`
+
+#### Scenario: Resolution email on staff approve
+
+- GIVEN a staff member approves a takedown report via `POST .../approve`
+- WHEN the action is processed
+- THEN the system SHALL send a "Takedown Approved" email to workspace admins
+- AND the email SHALL state the outcome as approved
+- AND the email SHALL include the asset ID
+
+#### Scenario: Resolution email on staff reject
+
+- GIVEN a staff member rejects a takedown report via `POST .../reject`
+- WHEN the action is processed
+- THEN the system SHALL send a "Takedown Rejected" email to workspace admins
+- AND the email SHALL state the outcome as rejected
+- AND the email SHALL include the asset ID

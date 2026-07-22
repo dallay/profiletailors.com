@@ -4,6 +4,21 @@ import java.time.Duration
 import java.time.Instant
 
 /**
+ * Parameter object for [DataSubjectRequest.create].
+ * Groups the variable factory inputs while keeping required vs. optional clear.
+ */
+data class CreateDataSubjectRequest(
+    val id: DataSubjectRequestId,
+    val requestType: RequestType,
+    val requestedBy: String,
+    val requestedByEmail: String,
+    val workspaceId: String? = null,
+    val notes: String? = null,
+    val correctionData: String? = null,
+    val createdAt: Instant = Instant.now(),
+)
+
+/**
  * Aggregate root for a Data Subject Access Request (DSAR).
  *
  * Encapsulates the lifecycle of a DSAR including state transitions,
@@ -95,42 +110,33 @@ data class DataSubjectRequest(
         /**
          * Factory method to create a new [DataSubjectRequest] in [DataSubjectRequestStatus.PENDING].
          *
-         * @param id Unique identifier
-         * @param requestType Type of DSAR
-         * @param requestedBy Principal ID of the requester
-         * @param requestedByEmail Email snapshot
-         * @param workspaceId Optional workspace scope
-         * @param notes Optional notes
-         * @param correctionData JSON payload for CORRECTION
-         * @param createdAt Creation timestamp (defaults to now)
+         * @param params Aggregated creation inputs via [CreateDataSubjectRequest]:
+         *   - [CreateDataSubjectRequest.id] Unique identifier
+         *   - [CreateDataSubjectRequest.requestType] Type of DSAR
+         *   - [CreateDataSubjectRequest.requestedBy] Principal ID of the requester
+         *   - [CreateDataSubjectRequest.requestedByEmail] Email snapshot
+         *   - [CreateDataSubjectRequest.workspaceId] Optional workspace scope
+         *   - [CreateDataSubjectRequest.notes] Optional notes
+         *   - [CreateDataSubjectRequest.correctionData] JSON payload for CORRECTION
+         *   - [CreateDataSubjectRequest.createdAt] Creation timestamp (defaults to now)
          * @return A new [DataSubjectRequest] with [DataSubjectRequestStatus.PENDING] and
          *         [expiresAt] set to [createdAt] + 30 days
          */
-        @Suppress("S107")
-        fun create(
-            id: DataSubjectRequestId,
-            requestType: RequestType,
-            requestedBy: String,
-            requestedByEmail: String,
-            workspaceId: String? = null,
-            notes: String? = null,
-            correctionData: String? = null,
-            createdAt: Instant = Instant.now(),
-        ): DataSubjectRequest = DataSubjectRequest(
-            id = id,
-            requestType = requestType,
+        fun create(params: CreateDataSubjectRequest): DataSubjectRequest = DataSubjectRequest(
+            id = params.id,
+            requestType = params.requestType,
             status = DataSubjectRequestStatus.PENDING,
-            requestedBy = requestedBy,
-            requestedByEmail = requestedByEmail,
-            workspaceId = workspaceId,
-            notes = notes,
-            correctionData = correctionData,
+            requestedBy = params.requestedBy,
+            requestedByEmail = params.requestedByEmail,
+            workspaceId = params.workspaceId,
+            notes = params.notes,
+            correctionData = params.correctionData,
             resultRef = null,
             rejectionReason = null,
-            createdAt = createdAt,
-            updatedAt = createdAt,
+            createdAt = params.createdAt,
+            updatedAt = params.createdAt,
             completedAt = null,
-            expiresAt = createdAt.plus(Duration.ofDays(RETENTION_DAYS)),
+            expiresAt = params.createdAt.plus(Duration.ofDays(RETENTION_DAYS)),
         )
     }
 }

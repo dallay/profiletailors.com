@@ -1,5 +1,6 @@
 package com.profiletailors.smp.privacy.application
 
+import com.profiletailors.smp.privacy.domain.CreateDataSubjectRequest
 import com.profiletailors.smp.privacy.domain.DataSubjectRequest
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestId
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestRepository
@@ -29,11 +30,13 @@ internal class FindExpiredRequestsJobTest {
     @Test
     fun `run finds expired requests and logs count`() = runTest {
         val expiredRequest = DataSubjectRequest.create(
-            id = DataSubjectRequestId("dsr-550e8400-e29b-41d4-a716-446655440000"),
-            requestType = RequestType.ACCESS,
-            requestedBy = "principal-1",
-            requestedByEmail = "user@example.com",
-            createdAt = now.minusSeconds(31 * 24 * 60 * 60), // 31 days ago — expired
+            CreateDataSubjectRequest(
+                id = DataSubjectRequestId("dsr-550e8400-e29b-41d4-a716-446655440000"),
+                requestType = RequestType.ACCESS,
+                requestedBy = "principal-1",
+                requestedByEmail = "user@example.com",
+                createdAt = now.minusSeconds(31 * 24 * 60 * 60), // 31 days ago — expired
+            ),
         )
         coEvery { repository.findExpired(any()) } returns listOf(expiredRequest)
 
@@ -57,18 +60,22 @@ internal class FindExpiredRequestsJobTest {
     @Test
     fun `run handles multiple expired requests`() = runTest {
         val req1 = DataSubjectRequest.create(
-            id = DataSubjectRequestId.random(),
-            requestType = RequestType.ACCESS,
-            requestedBy = "principal-1",
-            requestedByEmail = "a@example.com",
-            createdAt = now.minusSeconds(31 * 24 * 60 * 60),
+            CreateDataSubjectRequest(
+                id = DataSubjectRequestId.random(),
+                requestType = RequestType.ACCESS,
+                requestedBy = "principal-1",
+                requestedByEmail = "a@example.com",
+                createdAt = now.minusSeconds(31 * 24 * 60 * 60),
+            ),
         )
         val req2 = DataSubjectRequest.create(
-            id = DataSubjectRequestId.random(),
-            requestType = RequestType.DELETION,
-            requestedBy = "principal-2",
-            requestedByEmail = "b@example.com",
-            createdAt = now.minusSeconds(35 * 24 * 60 * 60),
+            CreateDataSubjectRequest(
+                id = DataSubjectRequestId.random(),
+                requestType = RequestType.DELETION,
+                requestedBy = "principal-2",
+                requestedByEmail = "b@example.com",
+                createdAt = now.minusSeconds(35 * 24 * 60 * 60),
+            ),
         )
         coEvery { repository.findExpired(any()) } returns listOf(req1, req2)
 

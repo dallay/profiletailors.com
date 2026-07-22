@@ -196,6 +196,16 @@ class RealLinkedInAssetUploader(
      *
      * @throws ProviderUploadException if the confirmation fails.
      */
+    /**
+     * Finalizes a LinkedIn upload. Only videos require an explicit finalize step — the
+     * LinkedIn Images and Documents APIs make the asset AVAILABLE immediately after the binary
+     * PUT, so no extra call is needed for those media types.
+     *
+     * See the official LinkedIn docs:
+     * - Images API: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/images-api
+     * - Documents API: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/documents-api
+     * - Videos API: POST `/rest/videos?action=finalizeUpload`
+     */
     private suspend fun confirmAsset(
         assetUrn: String,
         uploadToken: String?,
@@ -203,26 +213,20 @@ class RealLinkedInAssetUploader(
         context: AssetUploadContext,
     ) {
         val endpoint = assetEndpoint(asset)
-        val confirmUrl = if (endpoint == "videos") {
-            "${context.apiBaseUrl}/rest/videos?action=finalizeUpload"
-        } else {
-            "${context.apiBaseUrl}/rest/$endpoint/${encodeUrn(assetUrn)}?action=checkStatus"
-        }
-        val confirmBody = if (endpoint == "videos") {
-            val requiredUploadToken = uploadToken
-                ?: throw ProviderUploadException(
-                    "LinkedIn video upload missing uploadToken for finalizeUpload (asset: ${asset.id})",
-                )
-            mapOf(
-                "finalizeUploadRequest" to mapOf(
-                    "video" to assetUrn,
-                    "uploadToken" to requiredUploadToken,
-                    "uploadedPartIds" to emptyList<String>(),
-                ),
+        if (endpoint != "videos") return
+
+        val requiredUploadToken = uploadToken
+            ?: throw ProviderUploadException(
+                "LinkedIn video upload missing uploadToken for finalizeUpload (asset: ${asset.id})",
             )
-        } else {
-            emptyMap<String, Any>()
-        }
+        val confirmUrl = "${context.apiBaseUrl}/rest/videos?action=finalizeUpload"
+        val confirmBody = mapOf(
+            "finalizeUploadRequest" to mapOf(
+                "video" to assetUrn,
+                "uploadToken" to requiredUploadToken,
+                "uploadedPartIds" to emptyList<String>(),
+            ),
+        )
         val response = httpTransport.send(
             HttpRequest.newBuilder(URI.create(confirmUrl))
                 .header("Authorization", "Bearer ${context.accessToken}")
@@ -235,7 +239,7 @@ class RealLinkedInAssetUploader(
 
         if (response.statusCode !in HTTP_SUCCESS_RANGE) {
             throw ProviderUploadException(
-                "LinkedIn asset confirmation failed: ${response.statusCode} ${response.body}",
+                "LinkedIn video finalize failed: ${response.statusCode} ${response.body}",
             )
         }
     }

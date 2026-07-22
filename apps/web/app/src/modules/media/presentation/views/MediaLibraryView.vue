@@ -350,7 +350,6 @@ onMounted(async () => {
           class="size-4"
           @change="toggleSelectAllVisible"
         />
-        <!-- biome-ignore lint/a11y/noLabelWithoutControl: $t() provides accessible text, Biome can't resolve i18n keys statically -->
         <label for="select-all-visible" class="sr-only">{{ $t('media.selectAllVisible') }}</label>
       </div>
 
