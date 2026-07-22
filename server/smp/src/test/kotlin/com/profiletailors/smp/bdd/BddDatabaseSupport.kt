@@ -890,7 +890,19 @@ class BddDatabaseSupport(
     }
 
     private fun cleanupStatements(): List<String> = listOf(
+        // Governance / Compliance (seeded in baseline, must clear for NOT_APPLICABLE gate tests)
+        "DELETE FROM compliance_risk_acceptances",
+        "DELETE FROM compliance_control_evidences",
+        // evidence_links FK references compliance_evidences, must be deleted first
+        "DELETE FROM evidence_links",
+        "DELETE FROM compliance_evidences",
+        "DELETE FROM compliance_control_evidence_requirements",
+        "DELETE FROM compliance_control_applicability_dimensions",
+        "DELETE FROM compliance_control_applicability_rules",
+        "DELETE FROM compliance_controls",
+        // Audit
         "DELETE FROM audit_events",
+        // Authorization
         "DELETE FROM workspace_target_scopes",
         "DELETE FROM workspace_direct_grants",
         "DELETE FROM workspace_entitlements",
@@ -898,24 +910,30 @@ class BddDatabaseSupport(
         "DELETE FROM role_permissions",
         "DELETE FROM roles",
         "DELETE FROM permissions",
+        // Auth / Session
         "DELETE FROM refresh_sessions",
         "DELETE FROM local_password_credentials",
         "DELETE FROM api_key_credentials",
         "DELETE FROM service_account_credentials",
+        // Publishing
         "DELETE FROM publication_asset_links",
         "DELETE FROM delivery_attempts",
         "DELETE FROM publication_jobs",
         "DELETE FROM publication_assets",
         "DELETE FROM publications",
+        // Social
         "DELETE FROM social_accounts",
         "DELETE FROM social_connections",
+        // Media
         "DELETE FROM media_assets",
         "DELETE FROM workspace_file_blobs",
         "DELETE FROM workspace_upload_slots",
         "DELETE FROM media_rate_limits",
+        // Workspace
         "DELETE FROM workspace_memberships",
         "DELETE FROM workspace_ownerships",
         "DELETE FROM workspaces",
+        // Identity
         "DELETE FROM user_identities",
         "DELETE FROM principals",
     )

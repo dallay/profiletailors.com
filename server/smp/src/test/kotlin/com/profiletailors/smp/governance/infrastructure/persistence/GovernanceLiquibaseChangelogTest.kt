@@ -1,5 +1,6 @@
 package com.profiletailors.smp.governance.infrastructure.persistence
 
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import kotlin.io.path.readText
 import kotlin.test.Test
@@ -42,6 +43,27 @@ class GovernanceLiquibaseChangelogTest {
     }
 
     @Test
+    fun `master changelog includes evidence links and review at changelog`() {
+        val master = changelog("db.changelog-master.yaml")
+
+        master shouldContain "db/changelog/governance/007-evidence-links-and-review-at.yaml"
+    }
+
+    @Test
+    fun `evidence links changelog adds review_at column and creates the evidence_links table`() {
+        val changelog007 = changelog("governance/007-evidence-links-and-review-at.yaml")
+
+        changelog007 shouldContain "tableName: compliance_evidences"
+        changelog007 shouldContain "name: review_at"
+        changelog007 shouldContain "tableName: evidence_links"
+        changelog007 shouldContain "foreignKeyName: fk_evidence_link_evidence"
+        changelog007 shouldContain "references: compliance_evidences(id)"
+        changelog007 shouldContain "indexName: idx_evidence_links_evidence_id"
+        indexColumns(changelog007, "idx_evidence_links_evidence_id") shouldBe
+            setOf("evidence_id", "linked_at")
+    }
+
+    @Test
     fun `consent ledger and permission changelogs are registered`() {
         val master = changelog("db.changelog-master.yaml")
         val ledger = changelog("governance/005-create-consent-record-events.yaml")
@@ -61,5 +83,23 @@ class GovernanceLiquibaseChangelogTest {
             "Missing changelog: db/changelog/$relativePath"
         }
         return java.nio.file.Path.of(resource.toURI()).readText()
+    }
+
+    /**
+     * Extracts the column names belonging to the named `createIndex` block in a Liquibase YAML changelog.
+     * Scoping the match to the index block prevents matching columns that share names with other
+     * columns/indices elsewhere in the changelog.
+     */
+    private fun indexColumns(changelog: String, indexName: String): Set<String> {
+        val pattern = Regex(
+            """- createIndex:\s*\n\s*tableName:[^\n]*\n\s*indexName:\s*""" +
+                Regex.escape(indexName) + """\s*\n\s*columns:\s*\n((?:\s*-\s*column:\s*\n\s*name:\s*\S+\s*\n?)+)""",
+        )
+        val match = requireNotNull(pattern.find(changelog)) {
+            "Could not locate createIndex block for $indexName"
+        }
+        return Regex("""name:\s*(\S+)""").findAll(match.groupValues[1])
+            .map { it.groupValues[1] }
+            .toSet()
     }
 }

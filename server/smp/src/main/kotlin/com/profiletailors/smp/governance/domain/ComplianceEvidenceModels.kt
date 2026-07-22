@@ -21,6 +21,7 @@ data class ComplianceEvidence(
     val collectedAt: Instant = Instant.now(),
     val validFrom: Instant = Instant.now(),
     val expiresAt: Instant? = null,
+    val reviewAt: Instant? = null,
     val verifiedAt: Instant? = null,
     val version: Long = 1,
     val createdAt: Instant = Instant.now(),
@@ -40,3 +41,38 @@ data class ComplianceControlEvidence(
     val linkedAt: Instant = Instant.now(),
     val version: Long = 1,
 )
+
+/**
+ * Generic evidence link to external artifacts (code, tests, documents, operational records).
+ * Provides traceability from compliance evidence to concrete implementation.
+ */
+data class EvidenceLink(
+    val id: String,
+    val evidenceId: ComplianceEvidenceId,
+    val linkType: EvidenceLinkType,
+    val targetReference: String,
+    val description: String? = null,
+    val linkedBy: String,
+    val linkedAt: Instant = Instant.now(),
+    val version: Long = 1,
+)
+
+/**
+ * Type of artifact linked to compliance evidence.
+ */
+enum class EvidenceLinkType {
+    /** Link to source code file or module (e.g., repo path, GitHub URL) */
+    CODE,
+
+    /** Link to test file or test suite (e.g., test class, BDD feature) */
+    TEST,
+
+    /** Link to documentation (e.g., markdown file, ADR, runbook) */
+    DOCUMENT,
+
+    /** Link to operational record (e.g., CI run, deployment log, audit trail) */
+    OPERATIONAL_RECORD,
+
+    /** Link to external artifact (e.g., third-party audit report, certificate) */
+    EXTERNAL,
+}

@@ -5,6 +5,8 @@ import com.profiletailors.smp.governance.domain.ComplianceControlId
 import com.profiletailors.smp.governance.domain.ComplianceEvidence
 import com.profiletailors.smp.governance.domain.ComplianceEvidenceId
 import com.profiletailors.smp.governance.domain.ComplianceEvidenceRepository
+import com.profiletailors.smp.governance.domain.EvidenceLink
+import com.profiletailors.smp.governance.domain.EvidenceLinkType
 import com.profiletailors.smp.governance.domain.EvidenceReviewStatus
 import io.r2dbc.spi.Row
 import kotlinx.coroutines.flow.Flow
@@ -17,6 +19,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 
 @Repository
+@Suppress("StringLiteralDuplication")
 class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClient) : ComplianceEvidenceRepository {
 
     /**
@@ -68,6 +71,7 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
         spec = bindNullable(spec, "metadataJson", evidence.metadataJson)
         spec = bindNullable(spec, "reviewedBy", evidence.reviewedBy)
         spec = bindNullableInstant(spec, "expiresAt", evidence.expiresAt)
+        spec = bindNullableInstant(spec, "reviewAt", evidence.reviewAt)
         spec = bindNullableInstant(spec, "verifiedAt", evidence.verifiedAt)
 
         spec.fetch()
@@ -107,6 +111,41 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
     }
 
     /**
+     * Saves an evidence link to an external artifact.
+     *
+     * @param link The evidence link to persist.
+     * @return The persisted evidence link.
+     */
+    override suspend fun saveEvidenceLink(link: EvidenceLink): EvidenceLink {
+        databaseClient.sql(INSERT_EVIDENCE_LINK)
+            .bind("id", link.id)
+            .bind("evidenceId", link.evidenceId.value)
+            .bind("linkType", link.linkType.name)
+            .bind("targetReference", link.targetReference)
+            .bind("linkedBy", link.linkedBy)
+            .bind("linkedAt", link.linkedAt)
+            .bind("version", link.version)
+            .let { bindNullable(it, "description", link.description) }
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        return link
+    }
+
+    /**
+     * Finds all evidence links for a given evidence.
+     *
+     * @param evidenceId The evidence identifier.
+     * @return A flow of evidence links associated with the evidence.
+     */
+    override fun findLinksByEvidenceId(evidenceId: ComplianceEvidenceId): Flow<EvidenceLink> =
+        databaseClient.sql(SELECT_LINKS_BY_EVIDENCE)
+            .bind("evidenceId", evidenceId.value)
+            .map { row, _ -> mapEvidenceLink(row) }
+            .all()
+            .asFlow()
+
+    /**
      * Maps a database row to a compliance evidence domain object.
      *
      * @param row The database row containing compliance evidence data.
@@ -131,10 +170,30 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
         collectedAt = requireNotNull(row.get("collected_at", OffsetDateTime::class.java)).toInstant(),
         validFrom = requireNotNull(row.get("valid_from", OffsetDateTime::class.java)).toInstant(),
         expiresAt = row.get("expires_at", OffsetDateTime::class.java)?.toInstant(),
+        reviewAt = row.get("review_at", OffsetDateTime::class.java)?.toInstant(),
         verifiedAt = row.get("verified_at", OffsetDateTime::class.java)?.toInstant(),
         version = requireNotNull(row.get("version", Long::class.java)),
         createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
         updatedAt = requireNotNull(row.get("updated_at", OffsetDateTime::class.java)).toInstant(),
+    )
+
+    /**
+     * Maps a database row to an evidence link domain object.
+     *
+     * @param row The database row containing evidence link data.
+     * @return The mapped evidence link.
+     * @throws NullPointerException If a required column is missing or null.
+     * @throws IllegalArgumentException If the link type is not a valid evidence link type.
+     */
+    private fun mapEvidenceLink(row: Row): EvidenceLink = EvidenceLink(
+        id = requireNotNull(row.get("id", String::class.java)),
+        evidenceId = ComplianceEvidenceId(requireNotNull(row.get("evidence_id", String::class.java))),
+        linkType = EvidenceLinkType.valueOf(requireNotNull(row.get("link_type", String::class.java))),
+        targetReference = requireNotNull(row.get("target_reference", String::class.java)),
+        description = row.get("description", String::class.java),
+        linkedBy = requireNotNull(row.get("linked_by", String::class.java)),
+        linkedAt = requireNotNull(row.get("linked_at", OffsetDateTime::class.java)).toInstant(),
+        version = requireNotNull(row.get("version", Long::class.java)),
     )
 
     /**
@@ -178,16 +237,25 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
             INSERT INTO compliance_evidences
                 (id, evidence_type, title, description, reference_url, immutable_reference,
                  checksum, metadata_json, submitted_by, reviewed_by, review_status,
-                 collected_at, valid_from, expires_at, verified_at, version, created_at, updated_at)
+                 collected_at, valid_from, expires_at, review_at, verified_at, version, created_at, updated_at)
             VALUES
                 (:id, :evidenceType, :title, :description, :referenceUrl, :immutableReference,
                  :checksum, :metadataJson, :submittedBy, :reviewedBy, :reviewStatus,
-                 :collectedAt, :validFrom, :expiresAt, :verifiedAt, :version,
+                 :collectedAt, :validFrom, :expiresAt, :reviewAt, :verifiedAt, :version,
                  CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         """
         private const val LINK_EVIDENCE = """
             INSERT INTO compliance_control_evidences (id, control_id, evidence_id, linked_by)
             VALUES (:id, :controlId, :evidenceId, :linkedBy)
+        """
+        private const val INSERT_EVIDENCE_LINK = """
+            INSERT INTO evidence_links
+                (id, evidence_id, link_type, target_reference, description, linked_by, linked_at, version)
+            VALUES
+                (:id, :evidenceId, :linkType, :targetReference, :description, :linkedBy, :linkedAt, :version)
+        """
+        private const val SELECT_LINKS_BY_EVIDENCE = """
+            SELECT * FROM evidence_links WHERE evidence_id = :evidenceId ORDER BY linked_at DESC
         """
     }
 }

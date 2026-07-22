@@ -40,4 +40,20 @@ interface ComplianceEvidenceRepository {
         evidenceId: ComplianceEvidenceId,
         linkedBy: String,
     ): ComplianceControlEvidence
+
+    /**
+     * Links compliance evidence to an external artifact (code, test, document, operational record).
+     *
+     * @param link The evidence link to persist.
+     * @return The persisted evidence link.
+     */
+    suspend fun saveEvidenceLink(link: EvidenceLink): EvidenceLink
+
+    /**
+     * Retrieves evidence links for a given evidence.
+     *
+     * @param evidenceId The identifier of the compliance evidence.
+     * @return A stream of evidence links associated with the evidence.
+     */
+    fun findLinksByEvidenceId(evidenceId: ComplianceEvidenceId): Flow<EvidenceLink>
 }
