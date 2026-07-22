@@ -82,7 +82,7 @@ defineExpose({ submitting })
       <label for="dsar-request-type" class="text-sm font-medium text-text-display">
         {{ t('settings.privacy.form.type.label') }}
       </label>
-      <Select v-model="requestType">
+      <Select v-model="requestType" :aria-label="t('settings.privacy.form.type.label')">
         <SelectTrigger id="dsar-request-type" data-testid="dsar-type-select">
           <SelectValue :placeholder="t('settings.privacy.form.type.placeholder')" />
         </SelectTrigger>
