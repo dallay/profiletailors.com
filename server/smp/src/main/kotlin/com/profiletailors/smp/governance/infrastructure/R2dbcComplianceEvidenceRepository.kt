@@ -180,6 +180,8 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
      *
      * @param row The database row containing evidence link data.
      * @return The mapped evidence link.
+     * @throws NullPointerException If a required column is missing or null.
+     * @throws IllegalArgumentException If the link type is not a valid evidence link type.
      */
     private fun mapEvidenceLink(row: Row): EvidenceLink = EvidenceLink(
         id = requireNotNull(row.get("id", String::class.java)),

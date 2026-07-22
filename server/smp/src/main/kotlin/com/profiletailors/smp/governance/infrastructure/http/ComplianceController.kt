@@ -77,11 +77,10 @@ class ComplianceController(private val mediator: Mediator) {
     }
 
     /**
-     * Simple release gate evaluation for 0.1.0.
-     * Returns PASS if all required controls pass, FAIL if any fail, NOT_APPLICABLE if no controls apply.
+     * Evaluates compliance for a release and summarizes its release-gate status.
      *
-     * @param release Release identifier (e.g., "0.1.0")
-     * @return Simple gate status: PASS, FAIL, or NOT_APPLICABLE
+     * @param release The release identifier to evaluate.
+     * @return A map containing the release, gate status, summary counts, and evaluation timestamp.
      */
     @GetMapping("/release-gate")
     @ResponseStatus(HttpStatus.OK)
