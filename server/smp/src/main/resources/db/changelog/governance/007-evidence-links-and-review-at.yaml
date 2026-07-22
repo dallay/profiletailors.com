@@ -63,3 +63,5 @@ databaseChangeLog:
             columns:
               - column:
                   name: evidence_id
+              - column:
+                  name: linked_at

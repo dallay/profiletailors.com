@@ -2,15 +2,20 @@ package com.profiletailors.smp.governance.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.governance.application.EvaluateComplianceQuery
+import com.profiletailors.smp.governance.application.ReleaseGateQuery
+import com.profiletailors.smp.governance.application.ReleaseGateResult
 import com.profiletailors.smp.governance.domain.ComplianceEvaluation
 import com.profiletailors.smp.governance.domain.ComplianceEvaluationContext
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 import org.springframework.http.HttpStatus
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController
  */
 @RestController
 @RequestMapping("/api/governance/compliance")
+@Validated
 class ComplianceController(private val mediator: Mediator) {
 
     data class EvaluationContextRequest(
@@ -84,30 +90,14 @@ class ComplianceController(private val mediator: Mediator) {
      */
     @GetMapping("/release-gate")
     @ResponseStatus(HttpStatus.OK)
-    suspend fun releaseGate(release: String = "0.1.0"): Map<String, Any> {
-        val query = EvaluateComplianceQuery(
-            context = ComplianceEvaluationContext(release = release),
-        )
-        val evaluation: ComplianceEvaluation = mediator.send(query)
-
-        val gateStatus = when {
-            evaluation.summary.totalControls == 0 -> "NOT_APPLICABLE"
-            evaluation.summary.failed > 0 -> "FAIL"
-            evaluation.summary.passed > 0 || evaluation.summary.waived > 0 -> "PASS"
-            else -> "NOT_APPLICABLE"
-        }
-
-        return mapOf(
-            "release" to release,
-            "gateStatus" to gateStatus,
-            "summary" to mapOf(
-                "totalControls" to evaluation.summary.totalControls,
-                "passed" to evaluation.summary.passed,
-                "failed" to evaluation.summary.failed,
-                "waived" to evaluation.summary.waived,
-            ),
-            "evaluatedAt" to evaluation.evaluatedAt.toString(),
-        )
+    suspend fun releaseGate(
+        @RequestParam
+        @Size(max = 100)
+        @Pattern(regexp = "^[a-zA-Z0-9._-]+$")
+        release: String = "0.1.0",
+    ): ReleaseGateResult {
+        val query = ReleaseGateQuery(release = release)
+        return mediator.send(query)
     }
 
     /**

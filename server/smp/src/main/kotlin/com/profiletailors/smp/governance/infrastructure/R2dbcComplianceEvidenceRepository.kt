@@ -117,14 +117,16 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
      * @return The persisted evidence link.
      */
     override suspend fun saveEvidenceLink(link: EvidenceLink): EvidenceLink {
-        var spec = databaseClient.sql(INSERT_EVIDENCE_LINK)
+        databaseClient.sql(INSERT_EVIDENCE_LINK)
             .bind("id", link.id)
             .bind("evidenceId", link.evidenceId.value)
             .bind("linkType", link.linkType.name)
             .bind("targetReference", link.targetReference)
             .bind("linkedBy", link.linkedBy)
-        spec = bindNullable(spec, "description", link.description)
-        spec.fetch()
+            .bind("linkedAt", link.linkedAt)
+            .bind("version", link.version)
+            .let { bindNullable(it, "description", link.description) }
+            .fetch()
             .rowsUpdated()
             .awaitSingle()
         return link
@@ -250,7 +252,7 @@ class R2dbcComplianceEvidenceRepository(private val databaseClient: DatabaseClie
             INSERT INTO evidence_links
                 (id, evidence_id, link_type, target_reference, description, linked_by, linked_at, version)
             VALUES
-                (:id, :evidenceId, :linkType, :targetReference, :description, :linkedBy, CURRENT_TIMESTAMP, 1)
+                (:id, :evidenceId, :linkType, :targetReference, :description, :linkedBy, :linkedAt, :version)
         """
         private const val SELECT_LINKS_BY_EVIDENCE = """
             SELECT * FROM evidence_links WHERE evidence_id = :evidenceId ORDER BY linked_at DESC
