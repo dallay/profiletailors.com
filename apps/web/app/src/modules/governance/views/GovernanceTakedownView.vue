@@ -12,7 +12,7 @@ import { approveTakedown, listTakedownReports, rejectTakedown, type TakedownRepo
 const { t } = useI18n()
 
 const reports = ref<TakedownReportResponse[]>([])
-const isLoading = ref(false)
+const isLoading = ref(true)
 const mutatingIds = reactive(new Set<string>())
 const error = ref<string | null>(null)
 const statusFilter = ref<TakedownReportStatus | 'ALL'>('ALL')

@@ -142,7 +142,6 @@ function onOpenChange(isOpen: boolean): void {
           class="mb-5 flex items-center gap-3"
           @submit.prevent="submitProviderSearch"
         >
-          <!-- biome-ignore lint/a11y/noLabelWithoutControl: for attribute targets the nested input below -->
           <label class="sr-only" for="picker-provider-query">
             {{ t('composer.picker.providerSearchLabel') }}
           </label>

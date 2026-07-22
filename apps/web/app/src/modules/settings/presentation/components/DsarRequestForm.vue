@@ -101,7 +101,6 @@ defineExpose({ submitting })
 
     <div v-if="isCorrection" class="space-y-4">
       <div class="space-y-2">
-        <!-- biome-ignore lint: a11y/noLabelWithoutControl -- label has 'for' attribute matching input id -->
         <label for="dsar-new-email" class="text-sm font-medium text-text-display">
           {{ t('settings.privacy.form.correctionEmail') }}
         </label>
@@ -115,7 +114,6 @@ defineExpose({ submitting })
         />
       </div>
       <div class="space-y-2">
-        <!-- biome-ignore lint: a11y/noLabelWithoutControl -- label has 'for' attribute matching input id -->
         <label for="dsar-new-username" class="text-sm font-medium text-text-display">
           {{ t('settings.privacy.form.correctionUsername') }}
         </label>
@@ -131,7 +129,6 @@ defineExpose({ submitting })
     </div>
 
     <div class="space-y-2">
-      <!-- biome-ignore lint: a11y/noLabelWithoutControl -- label has 'for' attribute matching textarea id -->
       <label for="dsar-notes" class="text-sm font-medium text-text-display">
         {{ t('settings.privacy.form.notes') }}
       </label>
