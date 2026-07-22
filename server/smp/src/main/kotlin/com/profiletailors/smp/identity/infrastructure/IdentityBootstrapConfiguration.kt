@@ -15,20 +15,28 @@ import com.profiletailors.smp.identity.application.LocalJwtIssuer
 import com.profiletailors.smp.identity.application.PasswordHasher
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
+import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.infrastructure.security.LocalJwtProperties
 import com.profiletailors.smp.identity.infrastructure.security.NimbusLocalJwtIssuer
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.security.oauth2.jwt.JwtEncoder
 import java.time.Clock
 
 @Configuration
 @EnableConfigurationProperties(RegistrationConfigurationProperties::class)
+@Suppress("TooManyFunctions")
 class IdentityBootstrapConfiguration {
 
     @Bean
+    @Profile("!dev")
     fun emailVerificationPolicy(): EmailVerificationPolicy = emailVerificationPolicyOf()
+
+    @Bean
+    @Profile("dev")
+    fun devEmailVerificationPolicy(): EmailVerificationPolicy = permissiveEmailVerificationPolicy
 
     @Bean
     fun jwtAuthenticatedPrincipalMaterializer(
