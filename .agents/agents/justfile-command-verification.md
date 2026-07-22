@@ -36,11 +36,13 @@ Read both files completely before performing repository work.
 
 ## Operating Mode
 
-This is an autonomous zero-interaction execution. Operate from start to finish without requesting user input.
+This is an autonomous zero-interaction execution. Operate from start to finish without requesting
+user input.
 
 - Do not ask for confirmation, approval, feedback, or implementation decisions.
 - Do not stop after analysis or planning.
-- Verify repository commands against their actual underlying scripts, tasks, working directories, and CI usage.
+- Verify repository commands against their actual underlying scripts, tasks, working directories,
+  and CI usage.
 - Do not assume documented commands are correct.
 - Apply only deterministic corrections and execute the relevant validation defined by the task.
 - Complete state update, report update, commit, push, and Draft Pull Request creation.

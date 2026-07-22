@@ -38,7 +38,8 @@ element. This tells the browser to interpret all coordinates inside the mask as 
 to `1` (like `0.5` for 50%) instead of absolute pixels.
 
 > **Luminance vs. Alpha Masking**: By default, SVG masks use **luminance** (brightness) to determine
-> opacity, where white reveals, black hides, and gray creates semi-transparency. If you want the mask
+> opacity, where white reveals, black hides, and gray creates semi-transparency. If you want the
+> mask
 > to use the **alpha channel** (transparency) of your SVG shapes instead, you can specify
 `mask-type: alpha;` in your CSS or `mask-type="alpha"` directly on the SVG `<mask>` element.
 

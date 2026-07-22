@@ -36,11 +36,13 @@ Read both files completely before performing repository work.
 
 ## Operating Mode
 
-This is an autonomous zero-interaction execution. Operate from start to finish without requesting user input.
+This is an autonomous zero-interaction execution. Operate from start to finish without requesting
+user input.
 
 - Do not ask for confirmation, approval, feedback, or configuration design decisions.
 - Do not stop after analysis or planning.
-- Audit Spring configuration bindings, application configuration, environment placeholders, examples, validation, and tests according to the task definition.
+- Audit Spring configuration bindings, application configuration, environment placeholders,
+  examples, validation, and tests according to the task definition.
 - Treat security-sensitive configuration changes as HIGH RISK.
 - Apply only evidence-backed changes within the allowed risk boundaries.
 - Complete validation, state update, report update, commit, push, and Draft Pull Request creation.

@@ -23,7 +23,8 @@ reveal) and black (hide) fills.
 
 > **Luminance vs. Alpha Masking**: SVG masks default to **luminance** (brightness) mode, which is
 > why we use `fill="white"` to reveal areas and `fill="black"` to cut them out. If you prefer to use
-> the SVG's transparency (alpha channel) instead of colors, you can set `mask-type: alpha;` in CSS or
+> the SVG's transparency (alpha channel) instead of colors, you can set `mask-type: alpha;` in CSS
+> or
 `mask-type="alpha"` on the SVG `<mask>` element.
 
 #### Direct Element SVG Masking

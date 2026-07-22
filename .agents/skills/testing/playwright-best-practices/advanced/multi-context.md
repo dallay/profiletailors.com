@@ -200,7 +200,8 @@ test("mock OAuth flow", async ({page, context}) => {
 ### OAuth Fixture
 
 > **For comprehensive OAuth mocking patterns** (fixtures, multiple providers, SAML SSO),
-> see [third-party.md](third-party.md#oauthsso-mocking). This section focuses on popup window handling
+> see [third-party.md](third-party.md#oauthsso-mocking). This section focuses on popup window
+> handling
 > mechanics for OAuth flows.
 
 ## Multiple Windows

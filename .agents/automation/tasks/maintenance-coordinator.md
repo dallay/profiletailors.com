@@ -38,7 +38,8 @@ Read ../state/maintenance-coordinator.yaml as context and revalidate every findi
 
 ## Detection Rules
 
-Classify HEALTHY, NO_RECENT_EXECUTION, HAS_UNRESOLVED_FINDINGS, PARTIALLY_COMPLETED, BLOCKED, STATE_REPORT_MISMATCH, MISSING_STATE, MISSING_REPORT, or UNKNOWN.
+Classify HEALTHY, NO_RECENT_EXECUTION, HAS_UNRESOLVED_FINDINGS, PARTIALLY_COMPLETED, BLOCKED,
+STATE_REPORT_MISMATCH, MISSING_STATE, MISSING_REPORT, or UNKNOWN.
 
 ## Classification
 
@@ -46,36 +47,45 @@ Apply LOW, MEDIUM, or HIGH risk and persist concise unresolved, blocked, ignored
 
 ## Decision Rules
 
-Own only coordinator state/report, never other state, use AUTO- identifiers. If uncertainty persists, record it and continue safe unrelated work.
+Own only coordinator state/report, never other state, use AUTO- identifiers. If uncertainty
+persists, record it and continue safe unrelated work.
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections only. Update only ../state/maintenance-coordinator.yaml and ../reports/maintenance-status.md.
+Minimal evidence-backed corrections only. Update only ../state/maintenance-coordinator.yaml and
+../reports/maintenance-status.md.
 
 ## Prohibited Changes
 
-Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or modify another task state.
+Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or
+modify another task state.
 
 ## Risk Rules
 
-Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported by default.
+Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported
+by default.
 
 ## Validation
 
-Validate changed files, affected module/command, relevant tests, then justified repository checks. Prefer just. Record Passed, Failed, or Not run only.
+Validate changed files, affected module/command, relevant tests, then justified repository checks.
+Prefer just. Record Passed, Failed, or Not run only.
 
 ## State
 
-Owns ../state/maintenance-coordinator.yaml; use the framework schema and never set execution data without an actual run.
+Owns ../state/maintenance-coordinator.yaml; use the framework schema and never set execution data
+without an actual run.
 
 ## Report
 
-Owns ../reports/maintenance-status.md; report facts, evidence, result, validation, unresolved findings, and risks without chain-of-thought or secrets.
+Owns ../reports/maintenance-status.md; report facts, evidence, result, validation, unresolved
+findings, and risks without chain-of-thought or secrets.
 
 ## Pull Request
 
-Create exactly one Draft Pull Request with framework sections. Suggested title: chore(automation): update autonomous maintenance status.
+Create exactly one Draft Pull Request with framework sections. Suggested title: chore(automation):
+update autonomous maintenance status.
 
 ## Completion Criteria
 
-Inspection, evidence classification, permitted correction or documented no-op, validation, state/report update, changed-file review, secret check, commit, push, and Draft PR creation.
+Inspection, evidence classification, permitted correction or documented no-op, validation,
+state/report update, changed-file review, secret check, commit, push, and Draft PR creation.

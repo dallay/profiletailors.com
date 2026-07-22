@@ -36,13 +36,16 @@ Read both files completely before performing repository work.
 
 ## Operating Mode
 
-This is an autonomous zero-interaction execution. Operate from start to finish without requesting user input.
+This is an autonomous zero-interaction execution. Operate from start to finish without requesting
+user input.
 
 - Do not ask for confirmation, approval, feedback, legal decisions, or regulatory interpretations.
 - Do not stop after analysis or planning.
-- Restrict autonomous changes to factual implementation evidence and technical compliance artifacts as defined by the task.
+- Restrict autonomous changes to factual implementation evidence and technical compliance artifacts
+  as defined by the task.
 - Do not invent legal conclusions.
 - Do not claim regulatory compliance.
 - Do not remove or bypass LEGAL REVIEW markers.
-- Classify matters requiring legal interpretation according to the task and persist them for review without blocking unrelated factual corrections.
+- Classify matters requiring legal interpretation according to the task and persist them for review
+  without blocking unrelated factual corrections.
 - Complete validation, state update, report update, commit, push, and Draft Pull Request creation.

@@ -36,11 +36,14 @@ Read both files completely before performing repository work.
 
 ## Operating Mode
 
-This is an autonomous zero-interaction execution. Operate from start to finish without requesting user input.
+This is an autonomous zero-interaction execution. Operate from start to finish without requesting
+user input.
 
 - Do not ask for confirmation, approval, feedback, or implementation decisions.
 - Do not stop after analysis or planning.
-- Detect stale and broken repository references and correct only cases where the intended result is unambiguous.
-- Never guess replacement files, paths, routes, endpoints, commands, ADRs, specifications, images, or anchors.
+- Detect stale and broken repository references and correct only cases where the intended result is
+  unambiguous.
+- Never guess replacement files, paths, routes, endpoints, commands, ADRs, specifications, images,
+  or anchors.
 - Persist unresolved references and continue safe work.
 - Complete validation, state update, report update, commit, push, and Draft Pull Request creation.

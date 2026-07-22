@@ -47,7 +47,8 @@ if (import.meta.hot) {
 
 ## Nuxt
 
-With `@pinia/nuxt`, `acceptHMRUpdate` is auto-imported but you still need to add the HMR snippet manually.
+With `@pinia/nuxt`, `acceptHMRUpdate` is auto-imported but you still need to add the HMR snippet
+manually.
 
 ## Benefits
 

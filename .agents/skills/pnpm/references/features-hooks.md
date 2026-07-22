@@ -5,7 +5,8 @@ description: Customize package resolution and dependency behavior with pnpmfile 
 
 # pnpm Hooks
 
-pnpm provides hooks via `.pnpmfile.cjs` to customize how packages are resolved and their metadata is processed.
+pnpm provides hooks via `.pnpmfile.cjs` to customize how packages are resolved and their metadata is
+processed.
 
 ## Setup
 
@@ -33,7 +34,8 @@ module.exports = {
 
 ## readPackage Hook
 
-Called for every package before resolution. Use to modify dependencies, add missing peer deps, or fix broken packages.
+Called for every package before resolution. Use to modify dependencies, add missing peer deps, or
+fix broken packages.
 
 ### Add Missing Peer Dependency
 
@@ -201,13 +203,14 @@ function readPackage(pkg, context) {
 
 ## Hooks vs Overrides
 
-| Feature | Hooks (.pnpmfile.cjs) | Overrides |
-|---------|----------------------|-----------|
-| Complexity | Can use JavaScript logic | Declarative only |
-| Scope | Any package metadata | Version only |
-| Use case | Complex fixes, conditional logic | Simple version pins |
+| Feature    | Hooks (.pnpmfile.cjs)            | Overrides           |
+|------------|----------------------------------|---------------------|
+| Complexity | Can use JavaScript logic         | Declarative only    |
+| Scope      | Any package metadata             | Version only        |
+| Use case   | Complex fixes, conditional logic | Simple version pins |
 
 **Prefer overrides** for simple version fixes. **Use hooks** when you need:
+
 - Conditional logic
 - Non-version modifications (exports, peer deps)
 - Logging/debugging

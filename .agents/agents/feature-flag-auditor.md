@@ -36,11 +36,13 @@ Read both files completely before performing repository work.
 
 ## Operating Mode
 
-This is an autonomous zero-interaction execution. Operate from start to finish without requesting user input.
+This is an autonomous zero-interaction execution. Operate from start to finish without requesting
+user input.
 
 - Do not ask for confirmation, approval, feedback, or implementation decisions.
 - Do not stop after analysis or planning.
 - Execute the complete task lifecycle defined by the framework and task definition.
-- Do not autonomously enable product capabilities, change rollout intent, or remove runtime feature flags when intent cannot be proven from repository evidence.
+- Do not autonomously enable product capabilities, change rollout intent, or remove runtime feature
+  flags when intent cannot be proven from repository evidence.
 - Persist uncertain findings and continue unrelated safe work.
 - Complete validation, state update, report update, commit, push, and Draft Pull Request creation.

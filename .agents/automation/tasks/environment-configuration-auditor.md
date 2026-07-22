@@ -22,7 +22,8 @@ Production redesign, speculative refactors, unrelated domains, and another task 
 
 ## Evidence Sources
 
-.env.example, Spring bindings, direct environment access, frontend variables, Docker, CI, deployment configuration, documentation
+.env.example, Spring bindings, direct environment access, frontend variables, Docker, CI, deployment
+configuration, documentation
 
 ## Previous State
 
@@ -46,36 +47,45 @@ Apply LOW, MEDIUM, or HIGH risk and persist concise unresolved, blocked, ignored
 
 ## Decision Rules
 
-Never expose secrets or invent values. If uncertainty persists, record it and continue safe unrelated work.
+Never expose secrets or invent values. If uncertainty persists, record it and continue safe
+unrelated work.
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and
+report updates are unrestricted.
 
 ## Prohibited Changes
 
-Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or modify another task state.
+Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or
+modify another task state.
 
 ## Risk Rules
 
-Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported by default.
+Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported
+by default.
 
 ## Validation
 
-Validate changed files, affected module/command, relevant tests, then justified repository checks. Prefer just. Record Passed, Failed, or Not run only.
+Validate changed files, affected module/command, relevant tests, then justified repository checks.
+Prefer just. Record Passed, Failed, or Not run only.
 
 ## State
 
-Owns ../state/environment-configuration.yaml; use the framework schema and never set execution data without an actual run.
+Owns ../state/environment-configuration.yaml; use the framework schema and never set execution data
+without an actual run.
 
 ## Report
 
-Owns ../reports/environment-configuration.md; report facts, evidence, result, validation, unresolved findings, and risks without chain-of-thought or secrets.
+Owns ../reports/environment-configuration.md; report facts, evidence, result, validation, unresolved
+findings, and risks without chain-of-thought or secrets.
 
 ## Pull Request
 
-Create exactly one Draft Pull Request with framework sections. Suggested title: docs(config): reconcile environment configuration.
+Create exactly one Draft Pull Request with framework sections. Suggested title: docs(config):
+reconcile environment configuration.
 
 ## Completion Criteria
 
-Inspection, evidence classification, permitted correction or documented no-op, validation, state/report update, changed-file review, secret check, commit, push, and Draft PR creation.
+Inspection, evidence classification, permitted correction or documented no-op, validation,
+state/report update, changed-file review, secret check, commit, push, and Draft PR creation.

@@ -46,36 +46,45 @@ Apply LOW, MEDIUM, or HIGH risk and persist concise unresolved, blocked, ignored
 
 ## Decision Rules
 
-Remove only after validation; never disable global rules or add broad suppressions. If uncertainty persists, record it and continue safe unrelated work.
+Remove only after validation; never disable global rules or add broad suppressions. If uncertainty
+persists, record it and continue safe unrelated work.
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and
+report updates are unrestricted.
 
 ## Prohibited Changes
 
-Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or modify another task state.
+Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or
+modify another task state.
 
 ## Risk Rules
 
-Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported by default.
+Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported
+by default.
 
 ## Validation
 
-Validate changed files, affected module/command, relevant tests, then justified repository checks. Prefer just. Record Passed, Failed, or Not run only.
+Validate changed files, affected module/command, relevant tests, then justified repository checks.
+Prefer just. Record Passed, Failed, or Not run only.
 
 ## State
 
-Owns ../state/suppression-audit.yaml; use the framework schema and never set execution data without an actual run.
+Owns ../state/suppression-audit.yaml; use the framework schema and never set execution data without
+an actual run.
 
 ## Report
 
-Owns ../reports/suppression-audit.md; report facts, evidence, result, validation, unresolved findings, and risks without chain-of-thought or secrets.
+Owns ../reports/suppression-audit.md; report facts, evidence, result, validation, unresolved
+findings, and risks without chain-of-thought or secrets.
 
 ## Pull Request
 
-Create exactly one Draft Pull Request with framework sections. Suggested title: chore(lint): remove proven obsolete suppressions.
+Create exactly one Draft Pull Request with framework sections. Suggested title: chore(lint): remove
+proven obsolete suppressions.
 
 ## Completion Criteria
 
-Inspection, evidence classification, permitted correction or documented no-op, validation, state/report update, changed-file review, secret check, commit, push, and Draft PR creation.
+Inspection, evidence classification, permitted correction or documented no-op, validation,
+state/report update, changed-file review, secret check, commit, push, and Draft PR creation.

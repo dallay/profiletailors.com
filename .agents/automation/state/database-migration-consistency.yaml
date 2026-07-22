@@ -1,5 +1,5 @@
 schemaVersion: 1
 task: database-migration-consistency-auditor
 lastExecution: null
-findings: []
-checks: []
+findings: [ ]
+checks: [ ]

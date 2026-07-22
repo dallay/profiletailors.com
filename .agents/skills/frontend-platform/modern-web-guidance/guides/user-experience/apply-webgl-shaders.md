@@ -143,7 +143,9 @@ transform. To facilitate this, do the following:
       screenSpaceTransform,
   );
   targetHTMLElement.style.transform = computedTransform.toString();
+
 }
+
   ```
 
 7. [Troubleshooting] If the developer is experiencing a mismatch in the DOM logical layout in 3D

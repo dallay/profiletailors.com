@@ -38,7 +38,8 @@ Read ../state/test-suite-hygiene.yaml as context and revalidate every finding.
 
 ## Detection Rules
 
-Detect disabled, skipped, todo, xit, xdescribe, @Disabled, commented tests, empty assertions, sleeps, obsolete suppressions.
+Detect disabled, skipped, todo, xit, xdescribe, @Disabled, commented tests, empty assertions,
+sleeps, obsolete suppressions.
 
 ## Classification
 
@@ -46,36 +47,45 @@ Apply LOW, MEDIUM, or HIGH risk and persist concise unresolved, blocked, ignored
 
 ## Decision Rules
 
-Never weaken assertions, delete tests, or hide failures. If uncertainty persists, record it and continue safe unrelated work.
+Never weaken assertions, delete tests, or hide failures. If uncertainty persists, record it and
+continue safe unrelated work.
 
 ## Allowed Changes
 
-Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and report updates are unrestricted.
+Minimal evidence-backed corrections to files directly implicated by verified drift. Only state and
+report updates are unrestricted.
 
 ## Prohibited Changes
 
-Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or modify another task state.
+Do not guess intent, fabricate results, add fake findings, weaken validation, bypass checks, or
+modify another task state.
 
 ## Risk Rules
 
-Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported by default.
+Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported
+by default.
 
 ## Validation
 
-Validate changed files, affected module/command, relevant tests, then justified repository checks. Prefer just. Record Passed, Failed, or Not run only.
+Validate changed files, affected module/command, relevant tests, then justified repository checks.
+Prefer just. Record Passed, Failed, or Not run only.
 
 ## State
 
-Owns ../state/test-suite-hygiene.yaml; use the framework schema and never set execution data without an actual run.
+Owns ../state/test-suite-hygiene.yaml; use the framework schema and never set execution data without
+an actual run.
 
 ## Report
 
-Owns ../reports/test-suite-hygiene.md; report facts, evidence, result, validation, unresolved findings, and risks without chain-of-thought or secrets.
+Owns ../reports/test-suite-hygiene.md; report facts, evidence, result, validation, unresolved
+findings, and risks without chain-of-thought or secrets.
 
 ## Pull Request
 
-Create exactly one Draft Pull Request with framework sections. Suggested title: test: reconcile deterministic test hygiene.
+Create exactly one Draft Pull Request with framework sections. Suggested title: test: reconcile
+deterministic test hygiene.
 
 ## Completion Criteria
 
-Inspection, evidence classification, permitted correction or documented no-op, validation, state/report update, changed-file review, secret check, commit, push, and Draft PR creation.
+Inspection, evidence classification, permitted correction or documented no-op, validation,
+state/report update, changed-file review, secret check, commit, push, and Draft PR creation.

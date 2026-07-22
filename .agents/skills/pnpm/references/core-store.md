@@ -5,7 +5,8 @@ description: Content-addressable storage system that makes pnpm fast and disk-ef
 
 # pnpm Store
 
-pnpm uses a content-addressable store to save disk space and speed up installations. All packages are stored once globally and hard-linked to project `node_modules`.
+pnpm uses a content-addressable store to save disk space and speed up installations. All packages
+are stored once globally and hard-linked to project `node_modules`.
 
 ## How It Works
 
@@ -153,6 +154,7 @@ For CI/CD, you can share the store:
 ## Troubleshooting
 
 ### Store corruption
+
 ```bash
 # Verify and fix store
 pnpm store status
@@ -160,12 +162,14 @@ pnpm store prune
 ```
 
 ### Hard link issues (network drives, Docker)
+
 ```ini
 # Use copying instead of hard links
 package-import-method=copy
 ```
 
 ### Permission issues
+
 ```bash
 # Fix store permissions
 chmod -R u+w ~/.pnpm-store

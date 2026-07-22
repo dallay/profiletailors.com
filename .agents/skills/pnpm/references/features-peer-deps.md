@@ -5,11 +5,13 @@ description: Handling peer dependencies with auto-install and resolution rules
 
 # pnpm Peer Dependencies
 
-pnpm has strict peer dependency handling by default. It provides configuration options to control how peer dependencies are resolved and reported.
+pnpm has strict peer dependency handling by default. It provides configuration options to control
+how peer dependencies are resolved and reported.
 
 ## Auto-Install Peer Dependencies
 
-By default, pnpm automatically installs peer dependencies. In pnpm v11+, configure in `pnpm-workspace.yaml`:
+By default, pnpm automatically installs peer dependencies. In pnpm v11+, configure in
+`pnpm-workspace.yaml`:
 
 ```yaml
 # pnpm-workspace.yaml
@@ -28,6 +30,7 @@ strictPeerDependencies: true
 ```
 
 When strict, pnpm will fail if:
+
 - Peer dependency is missing
 - Installed version doesn't match required range
 
@@ -61,6 +64,7 @@ peerDependencyRules:
 ```
 
 Use patterns:
+
 - `"react"` - exact package name
 - `"@babel/*"` - all packages in scope
 - `"*"` - all packages (not recommended)

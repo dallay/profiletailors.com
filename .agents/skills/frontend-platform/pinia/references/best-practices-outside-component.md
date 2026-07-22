@@ -5,7 +5,8 @@ description: Correctly using stores in navigation guards, plugins, and other non
 
 # Using Stores Outside Components
 
-Stores need the `pinia` instance, which is automatically injected in components. Outside components, you may need to provide it manually.
+Stores need the `pinia` instance, which is automatically injected in components. Outside components,
+you may need to provide it manually.
 
 ## Single Page Applications
 
@@ -107,7 +108,8 @@ onServerPrefetch(async () => {
 
 ## Key Takeaway
 
-Defer `useStore()` calls to functions that run after pinia is installed, rather than calling at module scope.
+Defer `useStore()` calls to functions that run after pinia is installed, rather than calling at
+module scope.
 
 <!--
 Source references:
