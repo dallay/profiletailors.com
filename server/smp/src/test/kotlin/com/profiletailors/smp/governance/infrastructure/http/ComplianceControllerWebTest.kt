@@ -6,6 +6,8 @@ import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
+import com.profiletailors.smp.governance.application.ReleaseGateQuery
+import com.profiletailors.smp.governance.application.ReleaseGateResult
 import com.profiletailors.smp.governance.domain.ComplianceEvaluation
 import com.profiletailors.smp.governance.domain.ComplianceEvaluationContext
 import com.profiletailors.smp.governance.domain.EvaluationStatus
@@ -80,11 +82,77 @@ class ComplianceControllerWebTest {
             .jsonPath("$.status").isEqualTo("ok")
     }
 
+    @Test
+    fun `GET release-gate returns 200 with the gate status for the requested release`() {
+        mediator.releaseGateResult = ReleaseGateResult(
+            release = "1.2.0",
+            gateStatus = "PASS",
+            totalControls = 2,
+            passed = 2,
+            failed = 0,
+            waived = 0,
+            evaluatedAt = "2026-07-22T12:00:00Z",
+        )
+
+        client.get().uri("/api/governance/compliance/release-gate?release=1.2.0")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.gateStatus").isEqualTo("PASS")
+            .jsonPath("$.release").isEqualTo("1.2.0")
+            .jsonPath("$.totalControls").isEqualTo(2)
+    }
+
+    @Test
+    fun `GET release-gate defaults to release 0-1-0 when no query param is supplied`() {
+        mediator.releaseGateResult = ReleaseGateResult(
+            release = "0.1.0",
+            gateStatus = "NOT_APPLICABLE",
+            totalControls = 0,
+            passed = 0,
+            failed = 0,
+            waived = 0,
+            evaluatedAt = "2026-07-22T12:00:00Z",
+        )
+
+        client.get().uri("/api/governance/compliance/release-gate")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.gateStatus").isEqualTo("NOT_APPLICABLE")
+            .jsonPath("$.release").isEqualTo("0.1.0")
+    }
+
+    @Test
+    fun `GET release-gate returns 400 when release exceeds max length`() {
+        val longRelease = "1".repeat(101)
+
+        client.get().uri("/api/governance/compliance/release-gate?release=$longRelease")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `GET release-gate returns 400 when release contains characters outside the allowed pattern`() {
+        client.get()
+            .uri { builder ->
+                builder.path("/api/governance/compliance/release-gate")
+                    .queryParam("release", "1.0.0@beta")
+                    .build()
+            }
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
     private class StubMediator : Mediator {
         lateinit var result: ComplianceEvaluation
+        lateinit var releaseGateResult: ReleaseGateResult
 
         @Suppress("UNCHECKED_CAST")
-        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = result as TResponse
+        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = when (query) {
+            is ReleaseGateQuery -> releaseGateResult as TResponse
+            else -> result as TResponse
+        }
 
         override suspend fun <TCommand : Command> send(command: TCommand) {
             error("Not used")

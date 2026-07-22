@@ -129,6 +129,49 @@ class ComplianceControllerTest {
         result.passed shouldBe 1
     }
 
+    @Test
+    fun `release-gate returns NOT_APPLICABLE when there are no applicable controls`() = runTest {
+        val mediator = ReleaseGateMediator(
+            "0.1.0",
+            ReleaseGateResult(
+                release = "0.1.0",
+                gateStatus = "NOT_APPLICABLE",
+                totalControls = 0,
+                passed = 0,
+                failed = 0,
+                waived = 0,
+                evaluatedAt = "2026-07-22T12:00:00Z",
+            ),
+        )
+        val controller = ComplianceController(mediator)
+
+        val result = controller.releaseGate(release = "0.1.0")
+
+        result.gateStatus shouldBe "NOT_APPLICABLE"
+        result.totalControls shouldBe 0
+    }
+
+    @Test
+    fun `release-gate uses release 0-1-0 as the default when no argument is supplied`() = runTest {
+        val mediator = ReleaseGateMediator(
+            "0.1.0",
+            ReleaseGateResult(
+                release = "0.1.0",
+                gateStatus = "NOT_APPLICABLE",
+                totalControls = 0,
+                passed = 0,
+                failed = 0,
+                waived = 0,
+                evaluatedAt = "2026-07-22T12:00:00Z",
+            ),
+        )
+        val controller = ComplianceController(mediator)
+
+        val result = controller.releaseGate()
+
+        result.release shouldBe "0.1.0"
+    }
+
     private class CapturingMediator(private val result: ComplianceEvaluation) : Mediator {
         @Suppress("UNCHECKED_CAST")
         override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = result as TResponse

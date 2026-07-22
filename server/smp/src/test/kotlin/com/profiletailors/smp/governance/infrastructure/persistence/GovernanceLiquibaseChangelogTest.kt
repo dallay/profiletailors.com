@@ -42,6 +42,25 @@ class GovernanceLiquibaseChangelogTest {
     }
 
     @Test
+    fun `master changelog includes evidence links and review at changelog`() {
+        val master = changelog("db.changelog-master.yaml")
+
+        master shouldContain "db/changelog/governance/007-evidence-links-and-review-at.yaml"
+    }
+
+    @Test
+    fun `evidence links changelog adds review_at column and creates the evidence_links table`() {
+        val changelog007 = changelog("governance/007-evidence-links-and-review-at.yaml")
+
+        changelog007 shouldContain "tableName: compliance_evidences"
+        changelog007 shouldContain "name: review_at"
+        changelog007 shouldContain "tableName: evidence_links"
+        changelog007 shouldContain "foreignKeyName: fk_evidence_link_evidence"
+        changelog007 shouldContain "references: compliance_evidences(id)"
+        changelog007 shouldContain "indexName: idx_evidence_links_evidence_id"
+    }
+
+    @Test
     fun `consent ledger and permission changelogs are registered`() {
         val master = changelog("db.changelog-master.yaml")
         val ledger = changelog("governance/005-create-consent-record-events.yaml")

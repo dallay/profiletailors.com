@@ -49,4 +49,69 @@ internal class ComplianceEvidenceModelsTest {
         assertEquals(EvidenceReviewStatus.APPROVED, evidence.reviewStatus)
         assertEquals("compliance-lead", evidence.reviewedBy)
     }
+
+    @Test
+    fun `evidence has no scheduled review date by default`() {
+        val evidence = ComplianceEvidence(
+            id = ComplianceEvidenceId("ev-003"),
+            evidenceType = "AUDIT_REPORT",
+            title = "Annual Audit",
+            submittedBy = "auditor",
+        )
+
+        assertNull(evidence.reviewAt)
+    }
+
+    @Test
+    fun `evidence retains an explicit scheduled review date`() {
+        val reviewAt = Instant.parse("2027-01-01T00:00:00Z")
+        val evidence = ComplianceEvidence(
+            id = ComplianceEvidenceId("ev-004"),
+            evidenceType = "AUDIT_REPORT",
+            title = "Annual Audit",
+            submittedBy = "auditor",
+            reviewAt = reviewAt,
+        )
+
+        assertEquals(reviewAt, evidence.reviewAt)
+    }
+
+    @Test
+    fun `creates evidence link with default version and no description`() {
+        val link = EvidenceLink(
+            id = "evlink-001",
+            evidenceId = ComplianceEvidenceId("ev-001"),
+            linkType = EvidenceLinkType.CODE,
+            targetReference = "server/smp/src/main/kotlin/com/profiletailors/smp/example/Example.kt",
+            linkedBy = "engineer@example.com",
+        )
+
+        assertEquals(1L, link.version)
+        assertNull(link.description)
+        assertEquals(EvidenceLinkType.CODE, link.linkType)
+        assertEquals("ev-001", link.evidenceId.value)
+    }
+
+    @Test
+    fun `creates evidence link with an explicit description`() {
+        val link = EvidenceLink(
+            id = "evlink-002",
+            evidenceId = ComplianceEvidenceId("ev-001"),
+            linkType = EvidenceLinkType.TEST,
+            targetReference = "governance-compliance.feature",
+            description = "BDD coverage for the release gate",
+            linkedBy = "engineer@example.com",
+        )
+
+        assertEquals("BDD coverage for the release gate", link.description)
+        assertEquals(EvidenceLinkType.TEST, link.linkType)
+    }
+
+    @Test
+    fun `evidence link type has exactly the five supported artifact kinds`() {
+        assertEquals(
+            setOf("CODE", "TEST", "DOCUMENT", "OPERATIONAL_RECORD", "EXTERNAL"),
+            EvidenceLinkType.entries.map { it.name }.toSet(),
+        )
+    }
 }
