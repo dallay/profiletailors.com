@@ -1,6 +1,5 @@
 package com.profiletailors.smp.privacy.application
 
-import com.profiletailors.common.domain.Service
 import com.profiletailors.smp.identity.application.CloseAccountOrchestrationPort
 import org.slf4j.LoggerFactory
 
@@ -12,8 +11,14 @@ import org.slf4j.LoggerFactory
  * direct access to the privacy-layer ports that perform credential
  * revocation, identity anonymization, media/publishing cleanup, and
  * tenancy data removal.
+ *
+ * NOTE: [@Service] annotation intentionally omitted because the 5 sub-ports
+ * ([IdentityAnonymizationPort], [CredentialsRevocationPort], [PublishingDeletionPort],
+ * [MediaDeletionPort], [TenancyDataPort]) do not yet have infrastructure-layer
+ * implementations. This class will be registered as a Spring bean once those
+ * ports are wired. Until then, [CloseAccountHandler] receives a stub
+ * [CloseAccountOrchestrationPort] from [com.profiletailors.smp.identity.infrastructure.RateLimitConfiguration].
  */
-@Service
 class CloseAccountOrchestrator(
     private val identityAnonymizationPort: IdentityAnonymizationPort,
     private val credentialsRevocationPort: CredentialsRevocationPort,

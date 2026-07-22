@@ -14,7 +14,7 @@ class CloseAccountHandlerTest {
 
     private val fixedClock = Clock.fixed(Instant.parse("2026-07-22T10:00:00Z"), ZoneOffset.UTC)
 
-    private val orchestrationPort: CloseAccountOrchestrationPort = mockk()
+    private val orchestrationPort: CloseAccountOrchestrationPort = mockk(relaxUnitFun = true)
     private val rateLimitPort: RateLimitPort = mockk {
         every { tryAcquire(any(), any(), any()) } returns true
     }
