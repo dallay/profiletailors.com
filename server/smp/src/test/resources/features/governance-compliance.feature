@@ -1,4 +1,4 @@
-@governance @fast
+@governance @smoke @fast
 Feature: Compliance release gate
   Governance consumers should be able to query the release gate status
   for a given release.

@@ -893,6 +893,8 @@ class BddDatabaseSupport(
         // Governance / Compliance (seeded in baseline, must clear for NOT_APPLICABLE gate tests)
         "DELETE FROM compliance_risk_acceptances",
         "DELETE FROM compliance_control_evidences",
+        // evidence_links FK references compliance_evidences, must be deleted first
+        "DELETE FROM evidence_links",
         "DELETE FROM compliance_evidences",
         "DELETE FROM compliance_control_evidence_requirements",
         "DELETE FROM compliance_control_applicability_dimensions",

@@ -12,8 +12,8 @@ import com.profiletailors.smp.governance.domain.ComplianceEvaluation
 import com.profiletailors.smp.governance.domain.ComplianceEvaluationContext
 import com.profiletailors.smp.governance.domain.EvaluationStatus
 import com.profiletailors.smp.governance.domain.EvaluationSummary
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Instant
 
@@ -50,9 +50,9 @@ class ComplianceControllerTest {
             ),
         )
 
-        assertEquals(EvaluationStatus.COMPLIANT.name, response.overallStatus)
-        assertEquals("mvp", response.context.release)
-        assertEquals("EEA", response.context.market)
+        response.overallStatus shouldBe EvaluationStatus.COMPLIANT.name
+        response.context.release shouldBe "mvp"
+        response.context.market shouldBe "EEA"
     }
 
     @Test
@@ -79,7 +79,7 @@ class ComplianceControllerTest {
 
         val result = controller.ping()
 
-        assertEquals(mapOf("status" to "ok"), result)
+        result shouldBe mapOf("status" to "ok")
     }
 
     @Test
@@ -100,10 +100,10 @@ class ComplianceControllerTest {
 
         val result = controller.releaseGate(release = "0.1.0")
 
-        assertEquals("PASS", result.gateStatus)
-        assertEquals("0.1.0", result.release)
-        assertEquals(2, result.totalControls)
-        assertEquals(2, result.passed)
+        result.gateStatus shouldBe "PASS"
+        result.release shouldBe "0.1.0"
+        result.totalControls shouldBe 2
+        result.passed shouldBe 2
     }
 
     @Test
@@ -124,9 +124,9 @@ class ComplianceControllerTest {
 
         val result = controller.releaseGate(release = "0.1.0")
 
-        assertEquals("FAIL", result.gateStatus)
-        assertEquals(1, result.failed)
-        assertEquals(1, result.passed)
+        result.gateStatus shouldBe "FAIL"
+        result.failed shouldBe 1
+        result.passed shouldBe 1
     }
 
     private class CapturingMediator(private val result: ComplianceEvaluation) : Mediator {
@@ -155,7 +155,7 @@ class ComplianceControllerTest {
         @Suppress("UNCHECKED_CAST")
         override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse {
             if (query is ReleaseGateQuery) {
-                assertEquals(expectedRelease, query.release)
+                query.release shouldBe expectedRelease
                 return result as TResponse
             }
             error("Unexpected query type: ${query::class.simpleName}")

@@ -83,10 +83,10 @@ class ComplianceController(private val mediator: Mediator) {
     }
 
     /**
-     * Evaluates compliance for a release and summarizes its release-gate status.
+     * Evaluates the release gate for a given release.
      *
      * @param release The release identifier to evaluate.
-     * @return A map containing the release, gate status, summary counts, and evaluation timestamp.
+     * @return A [ReleaseGateResult] with the gate status and evaluation summary.
      */
     @GetMapping("/release-gate")
     @ResponseStatus(HttpStatus.OK)
