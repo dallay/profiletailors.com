@@ -1,5 +1,26 @@
 schemaVersion: 1
 task: dependency-maintenance
-lastExecution: null
-findings: [ ]
-checks: [ ]
+lastExecution: 2026-03-05T18:00:00Z
+outcome: CHANGES_APPLIED
+findings:
+  - id: detekt-kotlin-mismatch
+    dependency: dev.detekt
+    type: version-drift
+    currentVersion: 2.0.0-alpha.5
+    resolvedVersion: 2.0.0-alpha.3
+    status: resolved
+    evidence: "Detekt 2.0.0-alpha.5 compiled with Kotlin 2.4.0, but project Kotlin is 2.3.21. Downgrading to 2.0.0-alpha.3 resolved compilation mismatch."
+  - id: biome-patch-drift
+    dependency: "@biomejs/biome"
+    type: patch-drift
+    currentVersion: 2.5.4
+    resolvedVersion: 2.5.5
+    status: resolved
+    evidence: "Biome upgraded from 2.5.4 to 2.5.5 as a conservative dependency maintenance patch."
+checks:
+  - name: backend-build-check
+    status: Passed
+  - name: backend-detekt-check
+    status: Passed
+  - name: frontend-biome-check
+    status: Passed
