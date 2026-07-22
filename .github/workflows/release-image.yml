@@ -40,7 +40,7 @@ jobs:
             "ghcr.io/dallay/profiletailors-smp:latest"
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -63,7 +63,7 @@ jobs:
       - uses: ./.github/actions/setup-frontend
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -83,11 +83,49 @@ jobs:
           docker push "ghcr.io/dallay/profiletailors-dashboard:$release_version"
           docker push "ghcr.io/dallay/profiletailors-dashboard:latest"
 
+  publish-dockerhub:
+    name: Publish to Docker Hub
+    needs:
+      - build-backend
+      - build-dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Mirror backend image to Docker Hub
+        run: |
+          release_version="${GITHUB_REF_NAME#smp@}"
+          docker pull "ghcr.io/dallay/profiletailors-smp:${release_version}"
+          docker pull "ghcr.io/dallay/profiletailors-smp:latest"
+          docker tag "ghcr.io/dallay/profiletailors-smp:${release_version}" "dallay/profiletailors-smp:${release_version}"
+          docker tag "ghcr.io/dallay/profiletailors-smp:latest" "dallay/profiletailors-smp:latest"
+          docker push "dallay/profiletailors-smp:${release_version}"
+          docker push "dallay/profiletailors-smp:latest"
+
+      - name: Mirror dashboard image to Docker Hub
+        run: |
+          release_version="${GITHUB_REF_NAME#smp@}"
+          docker pull "ghcr.io/dallay/profiletailors-dashboard:${release_version}"
+          docker pull "ghcr.io/dallay/profiletailors-dashboard:latest"
+          docker tag "ghcr.io/dallay/profiletailors-dashboard:${release_version}" "dallay/profiletailors-dashboard:${release_version}"
+          docker tag "ghcr.io/dallay/profiletailors-dashboard:latest" "dallay/profiletailors-dashboard:latest"
+          docker push "dallay/profiletailors-dashboard:${release_version}"
+          docker push "dallay/profiletailors-dashboard:latest"
+
   smoke-test:
     name: Smoke Test
     needs:
       - build-backend
       - build-dashboard
+      - publish-dockerhub
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -96,7 +134,7 @@ jobs:
           persist-credentials: false
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
