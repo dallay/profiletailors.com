@@ -15,6 +15,7 @@ import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
+import com.profiletailors.smp.publishing.domain.ProviderUploadException
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
@@ -48,6 +49,7 @@ class PublishingJobExecutor(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
+    @Suppress("LongMethod")
     suspend fun executeClaim(claim: PublicationJobClaim) {
         val attemptStartedAt = clock.instant()
         val now = attemptStartedAt
@@ -100,6 +102,13 @@ class PublishingJobExecutor(
                 claim,
                 publication,
                 PublishingFailure.providerUnavailable(exception::class.simpleName),
+                now,
+            )
+        } catch (exception: ProviderUploadException) {
+            handlePublishFailure(
+                claim,
+                publication,
+                PublishingFailure.publishingFailed(exception.message),
                 now,
             )
         } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
@@ -435,8 +444,22 @@ class PublishingJobExecutor(
 
     private fun sanitizeDiagnostic(diagnostic: String?): String? {
         if (diagnostic.isNullOrBlank()) return null
-        val allowed = Regex("^(status=\\d{3}|[A-Za-z][A-Za-z0-9_.]*(Exception|Error))$")
-        return diagnostic.trim().takeIf { allowed.matches(it) }
+        val trimmed = diagnostic.trim()
+        return when {
+            Regex("""^(status=\d{3}|[A-Za-z][A-Za-z0-9_.]*(Exception|Error))$""").matches(trimmed) -> trimmed
+            Regex(
+                """(?:access_token|authorization|bearer\s+[A-Za-z0-9._\-]+|secret[-_]?token|client_secret)|""" +
+                    """https?://\S+|""" +
+                    """\bat [A-Za-z_][\w$.]*\([^)]*\)\b|""" +
+                    """\bworkspace-[0-9a-f-]+\b|""" +
+                    """\bbucket/[A-Za-z0-9._/\-]+""",
+                RegexOption.IGNORE_CASE,
+            ).containsMatchIn(trimmed) -> null
+            Regex(
+                """^(?:LinkedIn\s+[A-Za-z][\w\s]*):\s*\d{3}\b""",
+            ).containsMatchIn(trimmed) -> trimmed.take(MAX_DIAGNOSTIC_LENGTH)
+            else -> null
+        }
     }
 
     @Suppress("LongMethod")
@@ -510,6 +533,10 @@ class PublishingJobExecutor(
                 durationMs = attemptDurationMs(now),
             )
         }
+    }
+
+    private companion object {
+        private const val MAX_DIAGNOSTIC_LENGTH = 512
     }
 }
 

@@ -1274,6 +1274,119 @@ class LinkedInPublishingAdaptersTest {
         assertTrue(error.message!!.contains("asset registration failed"))
     }
 
+    @Test
+    fun `real linkedin asset uploader skips checkStatus for images`() = runTest {
+        val transport = RecordingTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"image":"urn:li:image:abc123","uploadUrl":"https://upload.linkedin.com/upload"}""",
+                ),
+                LinkedInHttpResponse(200, emptyHeaders(), """{}"""),
+            ),
+        )
+        val uploader = RealLinkedInAssetUploader(
+            properties,
+            LinkedInAssetUploadProperties("test-bucket"),
+            objectMapper,
+            transport,
+            FakeStorage(),
+            FakePublicationAssetRepository(),
+        )
+        val context = testAssetUploadContext()
+
+        uploader.uploadAsset(testAsset("image/jpeg"), flowOf(ByteArray(1024)), context)
+
+        val requests = transport.capturedRequests
+        assertEquals(2, requests.size, "Expected only 2 calls (initializeUpload + binary upload), got ${requests.size}")
+        assertTrue(requests[0].uri().toString().contains("/rest/images"))
+        assertTrue(requests[0].uri().query?.contains("action=initializeUpload") == true)
+        assertEquals("POST", requests[0].method())
+        assertEquals("PUT", requests[1].method())
+        assertTrue(
+            requests.none { it.uri().query?.contains("checkStatus") == true },
+            "Should not call checkStatus for images",
+        )
+    }
+
+    @Test
+    fun `real linkedin asset uploader skips checkStatus for documents`() = runTest {
+        val transport = RecordingTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"document":"urn:li:document:doc123","uploadUrl":"https://upload.linkedin.com/upload"}""",
+                ),
+                LinkedInHttpResponse(200, emptyHeaders(), """{}"""),
+            ),
+        )
+        val uploader = RealLinkedInAssetUploader(
+            properties,
+            LinkedInAssetUploadProperties("test-bucket"),
+            objectMapper,
+            transport,
+            FakeStorage(),
+            FakePublicationAssetRepository(),
+        )
+        val context = testAssetUploadContext()
+
+        uploader.uploadAsset(testAsset("application/pdf"), flowOf(ByteArray(1024)), context)
+
+        val requests = transport.capturedRequests
+        assertEquals(2, requests.size, "Expected only 2 calls (initializeUpload + binary upload), got ${requests.size}")
+        assertTrue(requests[0].uri().toString().contains("/rest/documents"))
+        assertTrue(requests[0].uri().query?.contains("action=initializeUpload") == true)
+        assertEquals("POST", requests[0].method())
+        assertEquals("PUT", requests[1].method())
+        assertTrue(
+            requests.none { it.uri().query?.contains("checkStatus") == true },
+            "Should not call checkStatus for documents",
+        )
+    }
+
+    @Test
+    fun `real linkedin asset uploader calls finalizeUpload for videos`() = runTest {
+        val transport = RecordingTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """
+                        |{"video":"urn:li:video:v123","uploadUrl":"https://upload.linkedin.com/upload","uploadToken":"tok"}
+                    """.trimMargin(),
+                ),
+                LinkedInHttpResponse(200, emptyHeaders(), """{}"""),
+                LinkedInHttpResponse(200, emptyHeaders(), """{"status":"AVAILABLE"}"""),
+            ),
+        )
+        val uploader = RealLinkedInAssetUploader(
+            properties,
+            LinkedInAssetUploadProperties("test-bucket"),
+            objectMapper,
+            transport,
+            FakeStorage(),
+            FakePublicationAssetRepository(),
+        )
+        val context = testAssetUploadContext()
+
+        uploader.uploadAsset(testAsset("video/mp4"), flowOf(ByteArray(1024)), context)
+
+        val requests = transport.capturedRequests
+        assertEquals(
+            3,
+            requests.size,
+            "Expected 3 calls (initializeUpload + binary + finalizeUpload), got ${requests.size}",
+        )
+        assertTrue(requests[0].uri().toString().contains("/rest/videos"))
+        assertTrue(requests[0].uri().query?.contains("action=initializeUpload") == true)
+        assertEquals("PUT", requests[1].method())
+        assertTrue(requests[2].uri().toString().contains("/rest/videos"))
+        assertTrue(requests[2].uri().query?.contains("action=finalizeUpload") == true)
+        assertEquals("POST", requests[2].method())
+    }
+
     // ===== FakeLinkedInAssetUploader Tests =====
 
     @Test
@@ -1416,6 +1529,21 @@ class LinkedInPublishingAdaptersTest {
             responses.getOrElse(index++) {
                 throw IllegalStateException("No stub response configured")
             }
+    }
+
+    /**
+     * Transport that records every incoming request so tests can assert on URL, method, and
+     * call count. Returns the next response from [responses], throwing if the list is exhausted.
+     */
+    private class RecordingTransport(private val responses: List<LinkedInHttpResponse>) : LinkedInHttpTransport {
+        val capturedRequests: MutableList<java.net.http.HttpRequest> = mutableListOf()
+        private var index = 0
+        override suspend fun send(request: java.net.http.HttpRequest): LinkedInHttpResponse {
+            capturedRequests += request
+            return responses.getOrElse(index++) {
+                throw IllegalStateException("No stub response configured for call ${capturedRequests.size}")
+            }
+        }
     }
 
     private class FakeCredentialGateway : LinkedInCredentialGateway {

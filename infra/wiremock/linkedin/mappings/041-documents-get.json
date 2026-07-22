@@ -1,0 +1,17 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/rest/documents/.*"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "id": "urn:li:document:local-wiremock-{{randomValue length=10 type='ALPHANUMERIC'}}",
+      "owner": "urn:li:person:local-wiremock-owner",
+      "status": "AVAILABLE"
+    },
+    "transformers": ["response-template"]
+  }
+}
