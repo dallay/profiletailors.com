@@ -102,17 +102,17 @@ describe('CalendarHeader', () => {
     { buttonIndex: 0, expectedView: 'calendar-month', scenario: 'month' },
     { buttonIndex: 1, expectedView: 'calendar-week', scenario: 'week' },
     { buttonIndex: 3, expectedView: 'list', scenario: 'list toggle' },
-  ])('emits change:view with $expectedView when $scenario is clicked', async ({
-    buttonIndex,
-    expectedView,
-  }) => {
-    const wrapper = mountHeader()
-    const buttons = wrapper.findAll('button')
+  ])(
+    'emits change:view with $expectedView when $scenario is clicked',
+    async ({ buttonIndex, expectedView }) => {
+      const wrapper = mountHeader()
+      const buttons = wrapper.findAll('button')
 
-    await buttons[buttonIndex]?.trigger('click')
+      await buttons[buttonIndex]?.trigger('click')
 
-    expect(wrapper.emitted('change:view')).toEqual([[expectedView]])
-  })
+      expect(wrapper.emitted('change:view')).toEqual([[expectedView]])
+    },
+  )
 
   it('emits change:view=calendar-month when calendar toggle is clicked from list mode', async () => {
     // When surface='list', only the calendar toggle button renders (no month/week split)
