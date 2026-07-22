@@ -1,16 +1,9 @@
 package com.profiletailors.smp.identity.application
 
-import com.profiletailors.smp.privacy.application.CredentialsRevocationPort
-import com.profiletailors.smp.privacy.application.IdentityAnonymizationPort
-import com.profiletailors.smp.privacy.application.MediaDeletionPort
-import com.profiletailors.smp.privacy.application.PublishingDeletionPort
 import com.profiletailors.common.domain.Service
-import com.profiletailors.smp.privacy.application.TenancyDataPort
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Duration
-import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Service that orchestrates the permanent closure of a user account.
@@ -31,15 +24,11 @@ import java.util.concurrent.ConcurrentHashMap
  */
 @Service
 class CloseAccountHandler(
-    private val identityAnonymizationPort: IdentityAnonymizationPort,
-    private val credentialsRevocationPort: CredentialsRevocationPort,
-    private val publishingDeletionPort: PublishingDeletionPort,
-    private val mediaDeletionPort: MediaDeletionPort,
-    private val tenancyDataPort: TenancyDataPort,
+    private val orchestrationPort: CloseAccountOrchestrationPort,
+    private val rateLimitPort: RateLimitPort,
     private val clock: Clock = Clock.systemUTC(),
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
-    private val lastClosureAttempt: MutableMap<String, Instant> = ConcurrentHashMap()
 
     /**
      * Executes the full account closure flow.
@@ -53,60 +42,26 @@ class CloseAccountHandler(
         enforceRateLimit(command.principalId)
 
         logger.info("Initiating account closure for principal {}", command.principalId)
-
-        // Step 1: Revoke credentials (sessions + API keys)
-        credentialsRevocationPort.revokeAllSessions(command.principalId)
-        credentialsRevocationPort.deleteAllApiKeys(command.principalId)
-        logger.debug("Revoked credentials for principal {}", command.principalId)
-
-        // Step 2: Clean up publishing context
-        publishingDeletionPort.cancelPendingPublications(command.principalId)
-        publishingDeletionPort.deleteSocialConnections(command.principalId)
-        publishingDeletionPort.deleteSecureCredentials(command.principalId)
-        logger.debug("Cleaned up publishing data for principal {}", command.principalId)
-
-        // Step 3: Capture workspace IDs before removing memberships
-        val workspaceIds = tenancyDataPort.getMembershipWorkspaceIds(command.principalId)
-
-        // Step 4: Mark media for deletion
-        if (workspaceIds.isNotEmpty()) {
-            mediaDeletionPort.markAssetsDeleted(command.principalId, workspaceIds)
-            mediaDeletionPort.markBlobsReadyForGc(command.principalId, workspaceIds)
-            logger.debug("Marked media assets for GC for principal {}", command.principalId)
-        }
-
-        // Step 5: Remove workspace memberships
-        tenancyDataPort.removeAllMemberships(command.principalId)
-        logger.debug("Removed workspace memberships for principal {}", command.principalId)
-
-        // Step 6: Anonymize identity
-        val now = clock.instant()
-        identityAnonymizationPort.anonymizeUserIdentity(command.principalId, now)
-        identityAnonymizationPort.anonymizePrincipalDisplayIdentity(command.principalId)
-        logger.debug("Anonymized identity for principal {}", command.principalId)
-
+        orchestrationPort.execute(command.principalId)
         logger.info("Account closure completed for principal {}", command.principalId)
-        // Note: Audit event emission is deferred until a shared audit facility is available.
-        // Currently covered by structured logging.
     }
 
     private fun validateConfirmation(command: CloseAccountCommand) {
-        require(command.confirmation == CONFIRMATION_REQUIRED) {
-            "Account closure requires confirmation text \"$CONFIRMATION_REQUIRED\""
+        if (command.confirmation != CONFIRMATION_REQUIRED) {
+            throw CloseAccountConfirmationException(
+                "Account closure requires confirmation text \"$CONFIRMATION_REQUIRED\"",
+            )
         }
     }
 
     private fun enforceRateLimit(principalId: String) {
-        val now = clock.instant()
-        val lastAttempt = lastClosureAttempt[principalId]
-        if (lastAttempt != null && Duration.between(lastAttempt, now) < RATE_LIMIT_DURATION) {
+        if (!rateLimitPort.tryAcquire(principalId, RATE_LIMIT_DURATION, clock.instant())) {
             val minutes = RATE_LIMIT_DURATION.toMinutes()
             throw CloseAccountRateLimitException(
                 "Account closure rate limit exceeded. " +
                     "Please wait $minutes minutes before trying again.",
             )
         }
-        lastClosureAttempt[principalId] = now
     }
 
     companion object {

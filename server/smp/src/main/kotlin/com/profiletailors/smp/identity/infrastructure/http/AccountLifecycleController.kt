@@ -19,9 +19,9 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.server.ResponseStatusException
 
 /**
+
  * Controller for account lifecycle operations (closure, deactivation, etc.).
  *
  * ## Security
@@ -49,9 +49,9 @@ class AccountLifecycleController(
      * will be anonymized or deleted.
      *
      * @param request The close account request containing confirmation text
-     * @return 200 OK on success
-     * @throws ResponseStatusException 400 if confirmation is invalid
-     * @throws ResponseStatusException 429 if rate-limited
+     * @return 204 No Content on success
+     * @throws CloseAccountConfirmationException 400 if confirmation is invalid
+     * @throws CloseAccountRateLimitException 429 if rate-limited
      */
     @Operation(
         summary = "Close account",
@@ -62,8 +62,8 @@ class AccountLifecycleController(
     @ApiResponses(
         value = [
             ApiResponse(
-                responseCode = "200",
-                description = "Account closed successfully",
+                responseCode = "204",
+                description = "Account closed successfully — no content returned",
             ),
             ApiResponse(
                 responseCode = "400",
@@ -86,13 +86,9 @@ class AccountLifecycleController(
             confirmation = request.confirmation,
         )
 
-        try {
-            closeAccountHandler.handle(command)
-        } catch (e: IllegalArgumentException) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message, e)
-        }
+        closeAccountHandler.handle(command)
 
-        return ResponseEntity.ok().build()
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build()
     }
 }
 

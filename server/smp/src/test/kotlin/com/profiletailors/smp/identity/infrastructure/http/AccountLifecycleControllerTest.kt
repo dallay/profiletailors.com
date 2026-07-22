@@ -1,6 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
 import com.profiletailors.smp.identity.application.CloseAccountCommand
+import com.profiletailors.smp.identity.application.CloseAccountConfirmationException
 import com.profiletailors.smp.identity.application.CloseAccountHandler
 import com.profiletailors.smp.identity.application.CloseAccountRateLimitException
 import io.mockk.coEvery
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
-import org.springframework.web.server.ResponseStatusException
 
 class AccountLifecycleControllerTest {
 
@@ -25,19 +25,19 @@ class AccountLifecycleControllerTest {
     inner class CloseAccount {
 
         @Test
-        fun `returns 200 when closure succeeds`() = runTest {
+        fun `returns 204 when closure succeeds`() = runTest {
             coEvery { closeAccountHandler.handle(any()) } returns Unit
 
             val response = controller.closeAccount(CloseAccountRequestDto(confirmation = "DELETE"))
 
-            assertEquals(HttpStatus.OK, response.statusCode)
+            assertEquals(HttpStatus.NO_CONTENT, response.statusCode)
             coVerify(exactly = 1) { closeAccountHandler.handle(any<CloseAccountCommand>()) }
         }
 
         @Test
-        fun `throws 400 when handler throws IllegalArgumentException`() = runTest {
+        fun `propagates confirmation exception to problem details handler`() = runTest {
             coEvery { closeAccountHandler.handle(any()) } throws
-                IllegalArgumentException("Confirmation text must equal DELETE")
+                CloseAccountConfirmationException("Confirmation text must equal DELETE")
 
             val result = kotlin.runCatching {
                 controller.closeAccount(CloseAccountRequestDto(confirmation = "WRONG"))
@@ -45,12 +45,12 @@ class AccountLifecycleControllerTest {
 
             assert(result.isFailure)
             val exception = result.exceptionOrNull()
-            assert(exception is ResponseStatusException)
-            assertEquals(HttpStatus.BAD_REQUEST, (exception as ResponseStatusException).statusCode)
+            assert(exception is CloseAccountConfirmationException)
+            assertEquals("Confirmation text must equal DELETE", exception!!.message)
         }
 
         @Test
-        fun `propagates rate limit exception`() = runTest {
+        fun `propagates rate limit exception to problem details handler`() = runTest {
             coEvery { closeAccountHandler.handle(any()) } throws CloseAccountRateLimitException("Rate limit exceeded")
 
             val result = kotlin.runCatching {

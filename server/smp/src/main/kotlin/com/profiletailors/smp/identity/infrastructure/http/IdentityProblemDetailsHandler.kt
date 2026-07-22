@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
+import com.profiletailors.smp.identity.application.CloseAccountConfirmationException
 import com.profiletailors.smp.identity.application.CloseAccountRateLimitException
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
@@ -81,6 +82,12 @@ class IdentityProblemDetailsHandler {
     fun handle(exception: InvalidVerificationTokenException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
             title = "Invalid verification token"
+        }
+
+    @ExceptionHandler(CloseAccountConfirmationException::class)
+    fun handle(exception: CloseAccountConfirmationException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
+            title = "Invalid account closure confirmation"
         }
 
     @ExceptionHandler(CloseAccountRateLimitException::class)
