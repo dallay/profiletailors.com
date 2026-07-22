@@ -4,20 +4,25 @@
 
 ## Overview
 
-Provide a fact-controlled working record for notification to a privacy, cyber-security, consumer-protection, sector, or other competent authority. This is not a GDPR-only form and does not establish which authority, threshold, content, or deadline applies.
+Provide a fact-controlled working record for notification to a privacy, cyber-security,
+consumer-protection, sector, or other competent authority. This is not a GDPR-only form and does not
+establish which authority, threshold, content, or deadline applies.
 
-Use the [incident SLA matrix](incident-sla-table.yaml), the affected authority's current form, and qualified counsel. Where an authority requires its own portal or form, that official mechanism controls.
+Use the [incident SLA matrix](incident-sla-table.yaml), the affected authority's current form, and
+qualified counsel. Where an authority requires its own portal or form, that official mechanism
+controls.
 
 ## Changes
 
-| Version | Date | Description |
-|---|---|---|
-| 2.0 | 2026-07-17 | Replaced the GDPR-only, assumed-entity template with a jurisdiction-neutral evidence record |
-| 1.0 | 2026-07-17 | Initial GDPR Art. 33 draft |
+| Version | Date       | Description                                                                                 |
+|---------|------------|---------------------------------------------------------------------------------------------|
+| 2.0     | 2026-07-17 | Replaced the GDPR-only, assumed-entity template with a jurisdiction-neutral evidence record |
+| 1.0     | 2026-07-17 | Initial GDPR Art. 33 draft                                                                  |
 
 ## Usage
 
-Delete instructions and inapplicable fields from the submitted version. Do not guess; label incomplete facts and use phased reporting only where permitted.
+Delete instructions and inapplicable fields from the submitted version. Do not guess; label
+incomplete facts and use phased reporting only where permitted.
 
 ### Filing Control
 
@@ -39,7 +44,8 @@ Delete instructions and inapplicable fields from the submitted version. Do not g
 - **Representative, DPO, privacy contact, or local agent:** [AS APPLICABLE]
 - **Primary incident contact:** [NAME / ROLE / EMAIL / PHONE / AVAILABILITY]
 
-Do not submit “Dallay / Profile Tailors” as the legal entity unless the operating legal person has been formally established and approved.
+Do not submit “Dallay / Profile Tailors” as the legal entity unless the operating legal person has
+been formally established and approved.
 
 ### Incident Timeline
 
@@ -94,16 +100,24 @@ Do not submit “Dallay / Profile Tailors” as the legal entity unless the oper
 
 ## Troubleshooting
 
-- **The authority or deadline is unclear:** Preserve the earliest plausible clock and obtain urgent local advice; do not default to GDPR.
-- **Information is incomplete:** Mark unknowns and confirm whether preliminary or phased reporting is legally permitted.
-- **Multiple markets are affected:** Create a filing-control record for each authority and reconcile terminology and facts across submissions.
-- **The organisation is a processor:** Follow the contract and applicable law immediately; do not submit as controller without confirming the role.
-- **An official form differs:** Use the authority's current form and retain this document as the internal evidence record.
+- **The authority or deadline is unclear:** Preserve the earliest plausible clock and obtain urgent
+  local advice; do not default to GDPR.
+- **Information is incomplete:** Mark unknowns and confirm whether preliminary or phased reporting
+  is legally permitted.
+- **Multiple markets are affected:** Create a filing-control record for each authority and reconcile
+  terminology and facts across submissions.
+- **The organisation is a processor:** Follow the contract and applicable law immediately; do not
+  submit as controller without confirming the role.
+- **An official form differs:** Use the authority's current form and retain this document as the
+  internal evidence record.
 
 ## References
 
-- [`incident-sla-table.yaml`](incident-sla-table.yaml): Jurisdiction deadlines, thresholds, and primary authority links
-- [`incident-response-runbook.md`](incident-response-runbook.md): Global response and decision workflow
-- [`breach-notification-subject-template.md`](breach-notification-subject-template.md): Affected-person communication template
+- [`incident-sla-table.yaml`](incident-sla-table.yaml): Jurisdiction deadlines, thresholds, and
+  primary authority links
+- [`incident-response-runbook.md`](incident-response-runbook.md): Global response and decision
+  workflow
+- [`breach-notification-subject-template.md`](breach-notification-subject-template.md):
+  Affected-person communication template
 - [`data-inventory.yaml`](data-inventory.yaml): Processing activities and evidence
 - [`controller-processor-matrix.md`](controller-processor-matrix.md): Role and provider status

@@ -92,7 +92,7 @@ None required; the codebase currently adheres well to this ADR.
 ## Follow-up actions
 
 - [x] Add custom ArchUnit rules to detect Spring stereotypes in the application layer.
-      See `ComponentScanArchTest.kt` (implemented 2026-06-30).
+  See `ComponentScanArchTest.kt` (implemented 2026-06-30).
 
 ## Revisit conditions
 

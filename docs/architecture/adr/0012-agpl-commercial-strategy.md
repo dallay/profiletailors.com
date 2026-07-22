@@ -17,6 +17,7 @@ The AGPL-3.0 network-interaction clause (Section 13) extends copyleft obligation
 interact with the software over a network, which applies to SaaS deployments.
 
 The repository also contains:
+
 - **`CONTRIBUTING.md`** — Contributor guidelines and process.
 - **`CLA.md`** — Contributor License Agreement requiring contributors to grant a perpetual,
   worldwide, non-exclusive licence.
@@ -36,19 +37,20 @@ between open-source and proprietary capabilities, and the decision on dual-licen
 
 1. **AGPL-3.0 Section 13 compliance.** Profile Tailors MUST offer source code access to all users
    who interact with the software over a network.
-   - **Implementation status: PENDING — requires legal/compliance review.**
-   - **Current state:** The canonical source at `github.com/dallay/profiletailors.com` is publicly
-     accessible, which partially satisfies Section 13, but the following are not yet established:
-     - A prominent user-facing notice or link in the application UI identifying where source can be
-       obtained.
-     - A mechanism to identify the deployed commit or release SHA corresponding to each
-       deployment environment (production, staging, preview).
-     - A process for serving the exact source artifact (tagged release or commit snapshot) that
-       corresponds to the running deployment.
-   - **Recommended approach:** Add a `Source` link to the application footer (marketing site and
-     dashboard) pointing to the GitHub repository with the current deployed tag. Automate
-     deployment tagging in CI so each deploy produces a reachable git tag. This MUST be reviewed
-     by legal counsel before going live.
+    - **Implementation status: PENDING — requires legal/compliance review.**
+    - **Current state:** The canonical source at `github.com/dallay/profiletailors.com` is publicly
+      accessible, which partially satisfies Section 13, but the following are not yet established:
+        - A prominent user-facing notice or link in the application UI identifying where source can
+          be
+          obtained.
+        - A mechanism to identify the deployed commit or release SHA corresponding to each
+          deployment environment (production, staging, preview).
+        - A process for serving the exact source artifact (tagged release or commit snapshot) that
+          corresponds to the running deployment.
+    - **Recommended approach:** Add a `Source` link to the application footer (marketing site and
+      dashboard) pointing to the GitHub repository with the current deployed tag. Automate
+      deployment tagging in CI so each deploy produces a reachable git tag. This MUST be reviewed
+      by legal counsel before going live.
 
 2. **No proprietary fork exists.** All development occurs in the public monorepo. There is no
    separate enterprise edition or closed-source fork at this time.
@@ -56,8 +58,8 @@ between open-source and proprietary capabilities, and the decision on dual-licen
 3. **Dual-licensing is deferred.** The operational complexity and legal cost of maintaining a
    dual-licensing programme (CLA administration, commercial licence drafting, compliance
    enforcement) is not justified at the current stage. This decision MUST be revisited if:
-   - A customer explicitly requests a non-AGPL commercial licence, OR
-   - Profile Tailors seeks institutional/enterprise sales where AGPL-3.0 is a blocker.
+    - A customer explicitly requests a non-AGPL commercial licence, OR
+    - Profile Tailors seeks institutional/enterprise sales where AGPL-3.0 is a blocker.
 
 4. All new source files SHOULD include a SPDX licence header:
    `SPDX-License-Identifier: AGPL-3.0-only`
@@ -74,9 +76,9 @@ between open-source and proprietary capabilities, and the decision on dual-licen
 
 ## Changes
 
-| Version | Date | Description |
-|---------|------|-------------|
-| 1.0 | 2026-07-17 | Initial ADR — AGPL-3.0 strategy, no dual-licensing, compliance posture |
+| Version | Date       | Description                                                            |
+|---------|------------|------------------------------------------------------------------------|
+| 1.0     | 2026-07-17 | Initial ADR — AGPL-3.0 strategy, no dual-licensing, compliance posture |
 
 ## Usage
 
@@ -89,6 +91,7 @@ This ADR governs licensing decisions for the repository. Use it as:
 ### When to revisit this decision
 
 The dual-licensing deferral MUST be revisited if:
+
 - A customer explicitly requests a non-AGPL commercial licence, OR
 - Profile Tailors seeks institutional/enterprise sales where AGPL-3.0 is a blocker.
 

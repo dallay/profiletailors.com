@@ -6,26 +6,33 @@
 
 ## Overview
 
-Screen every processing activity, feature, provider, market, and material change for elevated risk and for a legally required privacy or data-protection impact assessment. When uncertain, perform the fuller assessment rather than using a checklist score to avoid review.
+Screen every processing activity, feature, provider, market, and material change for elevated risk
+and for a legally required privacy or data-protection impact assessment. When uncertain, perform the
+fuller assessment rather than using a checklist score to avoid review.
 
-Different jurisdictions use different terminology, thresholds, lists, regulator consultation duties, filing requirements, and record periods. This framework supplies a common evidence core; qualified counsel must add the applicable country and sector overlays.
+Different jurisdictions use different terminology, thresholds, lists, regulator consultation duties,
+filing requirements, and record periods. This framework supplies a common evidence core; qualified
+counsel must add the applicable country and sector overlays.
 
 ### Screening Principles
 
 - Screen before implementation or production activation, not after launch.
 - Evaluate actual combined processing, not isolated database tables.
 - Include affected people and customer-controlled content subjects, not only account holders.
-- Consider product, privacy, security, safety, discrimination, speech, consumer, child, worker, and societal impacts where relevant.
+- Consider product, privacy, security, safety, discrimination, speech, consumer, child, worker, and
+  societal impacts where relevant.
 - Distinguish inherent risk, implemented measures, residual risk, and accepted risk.
-- Do not treat a vendor assessment, security review, or legitimate-interests assessment as a substitute for the DPIA.
+- Do not treat a vendor assessment, security review, or legitimate-interests assessment as a
+  substitute for the DPIA.
 - Consult affected stakeholders and specialists where appropriate and safe.
-- Keep processing disabled when high residual risk requires regulator consultation or cannot be justified.
+- Keep processing disabled when high residual risk requires regulator consultation or cannot be
+  justified.
 
 ## Changes
 
-| Version | Date | Description |
-|---|---|---|
-| 1.0 | 2026-07-17 | Added global screening, full assessment, consultation, approval, and change controls |
+| Version | Date       | Description                                                                          |
+|---------|------------|--------------------------------------------------------------------------------------|
+| 1.0     | 2026-07-17 | Added global screening, full assessment, consultation, approval, and change controls |
 
 ## Usage
 
@@ -40,26 +47,38 @@ Different jurisdictions use different terminology, thresholds, lists, regulator 
 - Decisions, recommendations, content actions, publication, and human review
 - Providers, subprocessors, platforms, transfers, and contracts
 - Alternative designs considered
-- Existing data inventory, architecture, threat model, transfer assessment, and legal-basis references
+- Existing data inventory, architecture, threat model, transfer assessment, and legal-basis
+  references
 
 ### 2. Mandatory Escalation Screening
 
 Escalate for full assessment and country review if any item applies or may apply:
 
-- Sensitive, special-category, biometric, genetic, health, financial, authentication, precise-location, communications, criminal, or similarly protected data
-- Children, teenagers, vulnerable people, workers, creators under power imbalance, or people not using the service whose content is processed
-- Large-scale, systematic, persistent, cross-context, publicly sourced, scraped, or unexpected processing
-- Tracking, behavioural advertising, profiling, scoring, ranking, recommendation, moderation, surveillance, or systematic monitoring
-- Automated decisions or material effects on access, price, visibility, opportunity, safety, rights, or reputation
-- AI models, generative output, training, fine-tuning, embeddings, inference, agents, biometric processing, or high-impact use
-- Social content containing third-party personal data, images, opinions, political or union material, health, sexuality, or other sensitive context
-- Credential, OAuth, API key, session, security, fraud, abuse, incident, or law-enforcement processing
+- Sensitive, special-category, biometric, genetic, health, financial, authentication,
+  precise-location, communications, criminal, or similarly protected data
+- Children, teenagers, vulnerable people, workers, creators under power imbalance, or people not
+  using the service whose content is processed
+- Large-scale, systematic, persistent, cross-context, publicly sourced, scraped, or unexpected
+  processing
+- Tracking, behavioural advertising, profiling, scoring, ranking, recommendation, moderation,
+  surveillance, or systematic monitoring
+- Automated decisions or material effects on access, price, visibility, opportunity, safety, rights,
+  or reputation
+- AI models, generative output, training, fine-tuning, embeddings, inference, agents, biometric
+  processing, or high-impact use
+- Social content containing third-party personal data, images, opinions, political or union
+  material, health, sexuality, or other sensitive context
+- Credential, OAuth, API key, session, security, fraud, abuse, incident, or law-enforcement
+  processing
 - Combining datasets, importing from third parties, inferring new attributes, or changing purpose
 - Cross-border transfer, localisation conflict, remote access, or provider government-access risk
-- New technology, untested architecture, novel business model, or processing people may not reasonably expect
+- New technology, untested architecture, novel business model, or processing people may not
+  reasonably expect
 - Difficult withdrawal, deletion, correction, objection, explanation, or human intervention
-- Breach or misuse with potential physical, financial, identity, employment, legal, speech, discrimination, or reputational harm
-- Country authority list, sector rule, customer contract, regulator direction, or prior incident requiring assessment
+- Breach or misuse with potential physical, financial, identity, employment, legal, speech,
+  discrimination, or reputational harm
+- Country authority list, sector rule, customer contract, regulator direction, or prior incident
+  requiring assessment
 
 Absence of a checked item does not prove low risk.
 
@@ -85,7 +104,8 @@ Document with data-flow diagrams:
 For each purpose:
 
 - Is the purpose specific, lawful, understandable, and within the approved product?
-- Can the outcome be achieved without personal data or with less data, precision, duration, centralisation, access, or transfer?
+- Can the outcome be achieved without personal data or with less data, precision, duration,
+  centralisation, access, or transfer?
 - Is collection limited to what the person or customer expects and was told?
 - Is the legal basis appropriate and evidenced for each market?
 - Are consent and withdrawal valid where used?
@@ -102,19 +122,24 @@ Record rejected alternatives and why they were insufficient.
 
 Assess harms to people, customers, and others, including:
 
-- Unauthorised disclosure, identity theft, credential compromise, fraud, stalking, or physical safety
+- Unauthorised disclosure, identity theft, credential compromise, fraud, stalking, or physical
+  safety
 - Loss, corruption, unavailability, publication error, duplicate posting, or inability to delete
 - Chilling effects, surveillance, manipulation, discrimination, exclusion, or unfair treatment
 - Incorrect inference, hallucination, bias, automation error, or lack of human review
-- Exposure of private, confidential, child, intimate, political, health, employment, or location content
-- Account takeover, cross-tenant access, malicious insider, supply-chain compromise, or unsafe support access
+- Exposure of private, confidential, child, intimate, political, health, employment, or location
+  content
+- Account takeover, cross-tenant access, malicious insider, supply-chain compromise, or unsafe
+  support access
 - Unlawful marketing, tracking, platform use, transfer, government access, or secondary purpose
 - Inability to access, correct, export, object, withdraw, appeal, complain, or obtain remedy
 - Deceptive UI, bundled consent, dark patterns, inaccessible controls, or language mismatch
 - Retention beyond need, incomplete deletion, backup reappearance, or provider lock-in
 - Customer misuse of the product and foreseeable abuse of publishing or API features
 
-For each scenario record affected people, cause, existing controls, likelihood, severity, detectability, scale, duration, reversibility, uncertainty, and inherent and residual rating. Narrative evidence controls the decision; a numeric score alone does not.
+For each scenario record affected people, cause, existing controls, likelihood, severity,
+detectability, scale, duration, reversibility, uncertainty, and inherent and residual rating.
+Narrative evidence controls the decision; a numeric score alone does not.
 
 ### 6. Measures and Ownership
 
@@ -134,19 +159,23 @@ Measures may include:
 - Accessible notice, consent, opt-out, rights, support, and complaint routes
 - Customer configuration, training, warnings, approval, and audit controls
 
-Each measure needs an owner, implementation reference, acceptance test, due date, monitoring, and residual-risk effect.
+Each measure needs an owner, implementation reference, acceptance test, due date, monitoring, and
+residual-risk effect.
 
 ### 7. Stakeholder and Specialist Consultation
 
 Record whether and how the assessment involved:
 
-- Product, engineering, security, privacy, legal, operations, support, accessibility, and business owners
+- Product, engineering, security, privacy, legal, operations, support, accessibility, and business
+  owners
 - Customer controllers and administrators
 - Representative users and affected non-users where feasible
-- Child safety, human rights, content safety, discrimination, employment, consumer, sector, or local-country specialists
+- Child safety, human rights, content safety, discrimination, employment, consumer, sector, or
+  local-country specialists
 - DPO, representative, security officer, works council, regulator, or other required body
 
-Document reasons when consultation is unsafe, disproportionate, legally restricted, or would compromise security. Consultation does not transfer decision accountability.
+Document reasons when consultation is unsafe, disproportionate, legally restricted, or would
+compromise security. Consultation does not transfer decision accountability.
 
 ### 8. Country and Sector Overlay
 
@@ -155,43 +184,60 @@ Qualified counsel records:
 - Whether an assessment is mandatory, recommended, filed, registered, published, or retained
 - Authority lists or blacklists and exemption criteria
 - Required contents, language, signature, DPO advice, and data-subject consultation
-- Thresholds for children, biometrics, sensitive data, automated decisions, monitoring, scale, or transfers
+- Thresholds for children, biometrics, sensitive data, automated decisions, monitoring, scale, or
+  transfers
 - Prior consultation or authorisation trigger when residual high risk remains
-- AI, platform, cyber-security, consumer, employment, health, financial, telecom, or public-sector parallel assessments
+- AI, platform, cyber-security, consumer, employment, health, financial, telecom, or public-sector
+  parallel assessments
 - Review and record period, regulator access, confidentiality, and publication rules
 
 ### 9. Decision and Approval
 
 Permitted outcomes:
 
-- **Approved:** Necessity, legal conditions, measures, and residual risk are accepted for exact markets and configuration.
+- **Approved:** Necessity, legal conditions, measures, and residual risk are accepted for exact
+  markets and configuration.
 - **Approved with preconditions:** Activation is blocked until every named measure has evidence.
-- **Prior consultation required:** Processing remains disabled pending authority process and final decision.
+- **Prior consultation required:** Processing remains disabled pending authority process and final
+  decision.
 - **Redesign required:** Current design is not necessary, proportionate, or safe enough.
 - **Rejected:** Processing must not proceed.
 
-Record product, security, privacy, business, DPO where applicable, and qualified legal decisions; dissent; conditions; activation control; review date; and rollback owner.
+Record product, security, privacy, business, DPO where applicable, and qualified legal decisions;
+dissent; conditions; activation control; review date; and rollback owner.
 
 ### 10. Review Triggers
 
-Reopen on changes to purpose, data, audience, scale, model, decision effect, provider, country, transfer, role, retention, access, customer use, security, law, authority guidance, complaint, incident, abuse pattern, or evidence that a prior assumption is wrong.
+Reopen on changes to purpose, data, audience, scale, model, decision effect, provider, country,
+transfer, role, retention, access, customer use, security, law, authority guidance, complaint,
+incident, abuse pattern, or evidence that a prior assumption is wrong.
 
 ## Troubleshooting
 
-- **The feature is only a pilot:** Pilot processing can still cause harm; limit data and users, obtain approvals, and assess before real personal data.
-- **The customer is controller:** Profile Tailors still assesses its processor design, security, providers, transfers, and foreseeable misuse and supplies accurate customer-assessment information.
-- **Data is public:** Public availability does not remove purpose, fairness, sensitivity, context, accuracy, rights, or transfer risks.
-- **A vendor provides its own DPIA:** Use it as evidence only; assess the actual Profile Tailors configuration, roles, data flows, and markets independently.
-- **The risk score is below a threshold:** Review qualitative severe, irreversible, vulnerable-person, legal, and uncertainty factors before deciding.
-- **Residual high risk remains:** Keep processing disabled and follow the approved regulator-consultation or rejection path.
-- **The system changes frequently:** Define configuration boundaries, automated evidence, monitoring, and change triggers; do not approve an undefined future system.
+- **The feature is only a pilot:** Pilot processing can still cause harm; limit data and users,
+  obtain approvals, and assess before real personal data.
+- **The customer is controller:** Profile Tailors still assesses its processor design, security,
+  providers, transfers, and foreseeable misuse and supplies accurate customer-assessment
+  information.
+- **Data is public:** Public availability does not remove purpose, fairness, sensitivity, context,
+  accuracy, rights, or transfer risks.
+- **A vendor provides its own DPIA:** Use it as evidence only; assess the actual Profile Tailors
+  configuration, roles, data flows, and markets independently.
+- **The risk score is below a threshold:** Review qualitative severe, irreversible,
+  vulnerable-person, legal, and uncertainty factors before deciding.
+- **Residual high risk remains:** Keep processing disabled and follow the approved
+  regulator-consultation or rejection path.
+- **The system changes frequently:** Define configuration boundaries, automated evidence,
+  monitoring, and change triggers; do not approve an undefined future system.
 
 ## References
 
 - [`data-inventory.yaml`](data-inventory.yaml): Processing activity source
 - [`global-legal-readiness.md`](global-legal-readiness.md): Country and AI overlays
-- [`international-transfer-assessment-template.md`](international-transfer-assessment-template.md): Cross-border assessment
+- [`international-transfer-assessment-template.md`](international-transfer-assessment-template.md):
+  Cross-border assessment
 - [`vendor-due-diligence-checklist.md`](vendor-due-diligence-checklist.md): Provider evidence
-- [`consent-and-preference-register.md`](consent-and-preference-register.md): Choice and withdrawal controls
+- [`consent-and-preference-register.md`](consent-and-preference-register.md): Choice and withdrawal
+  controls
 - [`rights-request-runbook.md`](rights-request-runbook.md): Rights and redress controls
 - [GDPR Article 35](https://eur-lex.europa.eu/eli/reg/2016/679/oj)

@@ -7,7 +7,9 @@ status: ✅ Completed
 
 ## Overview
 
-This document specifies the implementation of the API versioning system using **Media Type Versioning** via the custom `Accept` header with the format `application/vnd.api.v{version}+json`. This leverages the native Spring Boot 4 / WebFlux API versioning support.
+This document specifies the implementation of the API versioning system using **Media Type
+Versioning** via the custom `Accept` header with the format `application/vnd.api.v{version}+json`.
+This leverages the native Spring Boot 4 / WebFlux API versioning support.
 
 ## Motivation
 
@@ -45,7 +47,8 @@ class LocalAuthController {
 
 API Versioning is configured programmatically rather than via YAML.
 
-**File:** `server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/http/WebFluxConfiguration.kt`
+**File:**
+`server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/http/WebFluxConfiguration.kt`
 
 ```kotlin
 @Configuration
@@ -135,7 +138,8 @@ class LocalAuthController {
 
 - Ensure the header format is exactly `application/vnd.api.v{version}+json`.
 - Verify the `version` attribute in the controller method matches the requested version.
-- Check if the default version (which defaults to `"1"`) is being used when no `Accept` header is provided.
+- Check if the default version (which defaults to `"1"`) is being used when no `Accept` header is
+  provided.
 
 ## References
 

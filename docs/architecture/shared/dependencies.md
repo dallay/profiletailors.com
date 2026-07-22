@@ -8,10 +8,10 @@
 The lead-capture capability is split across two framework-free shared modules per
 [ADR-0011](../adr/0011-reusable-lead-capture-waitlist.md):
 
-| Module                          | Path                                 | Type             | Depends On | Consumed By |
-|---------------------------------|--------------------------------------|------------------|------------|-------------|
-| `:shared:lead-capture:common`   | `shared/lead-capture/common/`        | Foundation       | —          | waitlist    |
-| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/`      | Domain + Ports   | lead-capture:common | server:smp |
+| Module                          | Path                            | Type           | Depends On          | Consumed By |
+|---------------------------------|---------------------------------|----------------|---------------------|-------------|
+| `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation     | —                   | waitlist    |
+| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports | lead-capture:common | server:smp  |
 
 Both modules follow the framework-free rules defined by
 [ADR-0010](../adr/0010-shared-kernel-governance.md): no Spring, no R2DBC, no
@@ -78,18 +78,18 @@ graph TB
 
 ## Module Reference
 
-| Module                       | Path                         | Type                    | Depends On                                                                  | Consumed By                  |
-|------------------------------|------------------------------|-------------------------|-----------------------------------------------------------------------------|------------------------------|
-| `:shared:common`             | `shared/common/`             | Foundation (no deps)    | —                                                                           | All modules                  |
-| `:shared:bus`                | `shared/bus/`                | Shared                  | `:shared:common`                                                            | SBC, storage, ratelimit, smp |
-| `:shared:presentation`       | `shared/presentation/`       | Shared                  | `:shared:common`                                                            | SBC, smp                     |
-| `:shared:security`           | `shared/security/`           | Shared                  | `:shared:common`                                                            | SBC, smp                     |
-| `:shared:spring-boot-common` | `shared/spring-boot-common/` | Spring Boot integration | `:shared:common`, `:shared:bus`, `:shared:security`, `:shared:presentation` | ratelimit, smp               |
-| `:shared:storage`            | `shared/storage/`            | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:shield:ratelimit`                 | smp                          |
-| `:shared:shield:ratelimit`   | `shared/shield/ratelimit/`   | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:spring-boot-common`               | storage                      |
-| `:shared:lead-capture:common`| `shared/lead-capture/common/`| Foundation (no deps)    | —                                                                           | waitlist, smp                |
-| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports     | `:shared:lead-capture:common`                                               | smp                          |
-| `:server:smp`                | `server/smp/`                | Application             | All `shared:*` modules                                                      | —                            |
+| Module                          | Path                            | Type                    | Depends On                                                                  | Consumed By                  |
+|---------------------------------|---------------------------------|-------------------------|-----------------------------------------------------------------------------|------------------------------|
+| `:shared:common`                | `shared/common/`                | Foundation (no deps)    | —                                                                           | All modules                  |
+| `:shared:bus`                   | `shared/bus/`                   | Shared                  | `:shared:common`                                                            | SBC, storage, ratelimit, smp |
+| `:shared:presentation`          | `shared/presentation/`          | Shared                  | `:shared:common`                                                            | SBC, smp                     |
+| `:shared:security`              | `shared/security/`              | Shared                  | `:shared:common`                                                            | SBC, smp                     |
+| `:shared:spring-boot-common`    | `shared/spring-boot-common/`    | Spring Boot integration | `:shared:common`, `:shared:bus`, `:shared:security`, `:shared:presentation` | ratelimit, smp               |
+| `:shared:storage`               | `shared/storage/`               | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:shield:ratelimit`                 | smp                          |
+| `:shared:shield:ratelimit`      | `shared/shield/ratelimit/`      | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:spring-boot-common`               | storage                      |
+| `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (no deps)    | —                                                                           | waitlist, smp                |
+| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | `:shared:lead-capture:common`                                               | smp                          |
+| `:server:smp`                   | `server/smp/`                   | Application             | All `shared:*` modules                                                      | —                            |
 
 ## Layer Rules
 

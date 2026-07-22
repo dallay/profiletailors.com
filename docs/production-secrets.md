@@ -26,19 +26,20 @@ production environments.
 3. **Rotate secrets periodically** — especially after team changes or suspected exposure.
 4. **Limit access by role** — only infrastructure admins and deployment automation should have
    production secret access.
-5. **Encrypt secrets at rest** — use your platform's native secret management (encrypted by default).
+5. **Encrypt secrets at rest** — use your platform's native secret management (encrypted by
+   default).
 
 ## Secret categories
 
 Secrets are grouped by risk level and rotation frequency:
 
-| Category | Risk | Rotation frequency |
-|----------|------|-------------------|
-| Database credentials | **CRITICAL** | Per security incident, team change, or annually |
-| OAuth client secrets | **HIGH** | Per security incident or when OAuth app is regenerated |
-| Encryption keys | **CRITICAL** | Per security incident, or when cipher is upgraded |
-| JWT signing secrets | **HIGH** | Per security incident or quarterly |
-| Third-party API keys | **MEDIUM** | Per security incident or when key is compromised |
+| Category             | Risk         | Rotation frequency                                     |
+|----------------------|--------------|--------------------------------------------------------|
+| Database credentials | **CRITICAL** | Per security incident, team change, or annually        |
+| OAuth client secrets | **HIGH**     | Per security incident or when OAuth app is regenerated |
+| Encryption keys      | **CRITICAL** | Per security incident, or when cipher is upgraded      |
+| JWT signing secrets  | **HIGH**     | Per security incident or quarterly                     |
+| Third-party API keys | **MEDIUM**   | Per security incident or when key is compromised       |
 
 ## Required secrets
 
@@ -161,15 +162,16 @@ Secrets are grouped by risk level and rotation frequency:
   ```
 
 - **Rotation:**
-  1. **High-impact operation** — requires re-encryption of all stored credentials.
-  2. Generate new key.
-  3. Deploy migration that decrypts with old key, re-encrypts with new key.
-  4. Update secret.
-  5. Restart app.
-  6. Verify all users can publish (tokens are decryptable).
-  7. **Fallback:** If rotation fails, users must reconnect LinkedIn accounts.
+    1. **High-impact operation** — requires re-encryption of all stored credentials.
+    2. Generate new key.
+    3. Deploy migration that decrypts with old key, re-encrypts with new key.
+    4. Update secret.
+    5. Restart app.
+    6. Verify all users can publish (tokens are decryptable).
+    7. **Fallback:** If rotation fails, users must reconnect LinkedIn accounts.
 - **Access:** Infrastructure admins only. Not readable by developers or support.
-- **Related issue:** [#176 - PUBLISHING_CREDENTIALS_KEY has no validation](https://github.com/dallay/profiletailors.com/issues/176)
+- **Related issue:
+  ** [#176 - PUBLISHING_CREDENTIALS_KEY has no validation](https://github.com/dallay/profiletailors.com/issues/176)
 
 ### Media Preview Signing
 
@@ -190,7 +192,8 @@ Secrets are grouped by risk level and rotation frequency:
 - **Description:** Signs and verifies the state carried through the LinkedIn OAuth redirect.
 - **Risk:** CRITICAL.
 - **Generation:** `openssl rand -base64 32`.
-- **Rotation:** Replace only when no LinkedIn OAuth authorization is in progress, then restart the backend.
+- **Rotation:** Replace only when no LinkedIn OAuth authorization is in progress, then restart the
+  backend.
 - **Access:** Infrastructure admins and deployment automation.
 
 ### Object Storage
@@ -200,7 +203,8 @@ Secrets are grouped by risk level and rotation frequency:
 - **Type:** String.
 - **Description:** Access-key identifier for the configured R2-compatible object store.
 - **Risk:** HIGH.
-- **Rotation:** Create a replacement credential, deploy it, verify media access, then revoke the old credential.
+- **Rotation:** Create a replacement credential, deploy it, verify media access, then revoke the old
+  credential.
 - **Access:** Infrastructure admins and deployment automation.
 
 #### `SMP_STORAGE_R2_SECRET_ACCESS_KEY`
@@ -273,7 +277,8 @@ Before deploying to production, verify:
 
 - [ ] All `CHANGE_ME_gK2fcFZg5cgVu9U` placeholders replaced with real values.
 - [ ] No default/example credentials in use.
-- [ ] `SMP_LOCAL_JWT_DEV_FALLBACK` is **empty** (production must use explicit `SMP_LOCAL_JWT_SECRET`).
+- [ ] `SMP_LOCAL_JWT_DEV_FALLBACK` is **empty** (production must use explicit
+  `SMP_LOCAL_JWT_SECRET`).
 - [ ] `PUBLISHING_CREDENTIALS_KEY` is exactly 32 bytes (Base64-encoded, 44 chars).
 - [ ] `SMP_MEDIA_PREVIEW_SIGNING_SECRET` is a unique 32-byte secret.
 - [ ] `SMP_LINKEDIN_STATE_SIGNING_SECRET` is unique and not a development fallback.
@@ -285,17 +290,17 @@ Before deploying to production, verify:
 
 ## Access control guidelines
 
-| Secret | Who should access | When |
-|--------|------------------|------|
-| `SMP_DB_PASSWORD` | Infrastructure admins | Deployment, incident response |
-| `PUBLISHING_CREDENTIALS_KEY` | Infrastructure admins only | Deployment, key rotation |
-| `SMP_LINKEDIN_CLIENT_SECRET` | Infrastructure admins | Deployment, OAuth app changes |
-| `SMP_LOCAL_JWT_SECRET` | Infrastructure admins | Deployment, security incident |
-| `SMP_MEDIA_PREVIEW_SIGNING_SECRET` | Infrastructure admins | Deployment, URL-signing rotation |
-| `SMP_LINKEDIN_STATE_SIGNING_SECRET` | Infrastructure admins | Deployment, OAuth-state rotation |
-| `SMP_STORAGE_R2_SECRET_ACCESS_KEY` | Infrastructure admins | Deployment, storage credential rotation |
-| `GRAFANA_ADMIN_PASSWORD` | Developers (dev/staging) | Local monitoring setup |
-| `AHREFS_ANALYTICS_KEY` | Frontend developers | Marketing site deployment |
+| Secret                              | Who should access          | When                                    |
+|-------------------------------------|----------------------------|-----------------------------------------|
+| `SMP_DB_PASSWORD`                   | Infrastructure admins      | Deployment, incident response           |
+| `PUBLISHING_CREDENTIALS_KEY`        | Infrastructure admins only | Deployment, key rotation                |
+| `SMP_LINKEDIN_CLIENT_SECRET`        | Infrastructure admins      | Deployment, OAuth app changes           |
+| `SMP_LOCAL_JWT_SECRET`              | Infrastructure admins      | Deployment, security incident           |
+| `SMP_MEDIA_PREVIEW_SIGNING_SECRET`  | Infrastructure admins      | Deployment, URL-signing rotation        |
+| `SMP_LINKEDIN_STATE_SIGNING_SECRET` | Infrastructure admins      | Deployment, OAuth-state rotation        |
+| `SMP_STORAGE_R2_SECRET_ACCESS_KEY`  | Infrastructure admins      | Deployment, storage credential rotation |
+| `GRAFANA_ADMIN_PASSWORD`            | Developers (dev/staging)   | Local monitoring setup                  |
+| `AHREFS_ANALYTICS_KEY`              | Frontend developers        | Marketing site deployment               |
 
 **Principle of least privilege:** Developers should access secrets through platform-provided CLI
 tools (e.g., `vercel env pull`, `wrangler secret list`) scoped to their environment (dev/staging).
@@ -320,7 +325,8 @@ If a secret is compromised or suspected to be compromised:
 1. **Immediately rotate the compromised secret** (see rotation procedures above).
 2. **Audit access logs** (platform-specific: GitHub audit log, Cloudflare audit log, etc.).
 3. **Notify affected users** if user data or OAuth tokens are at risk.
-4. **Document the incident** in a postmortem (template: `docs/postmortems/YYYY-MM-DD-secret-leak.md`).
+4. **Document the incident** in a postmortem (template:
+   `docs/postmortems/YYYY-MM-DD-secret-leak.md`).
 5. **Review access control policies** to prevent future exposure.
 
 ## References

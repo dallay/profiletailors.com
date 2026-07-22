@@ -1,12 +1,14 @@
 # Profile Tailors — Architecture Documentation
 
-This directory contains the architecture documentation for Profile Tailors, a social media management platform.
+This directory contains the architecture documentation for Profile Tailors, a social media
+management platform.
 
 ---
 
 ## 📐 C4 Architecture Models
 
-The C4 model provides a hierarchical set of architecture diagrams for visualizing software architecture at different levels of abstraction.
+The C4 model provides a hierarchical set of architecture diagrams for visualizing software
+architecture at different levels of abstraction.
 
 ### Quick Navigation
 
@@ -68,9 +70,13 @@ The C4 model provides a hierarchical set of architecture diagrams for visualizin
 
 ### 2. Domain-Driven Design (DDD)
 
-- **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform, Lead Capture
-- **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md) for all `api` and `implementation` relationships
-- **Foundation**: [`shared:common`](../../shared/common/) and [`shared:lead-capture:common`](../../shared/lead-capture/common/) — framework-agnostic domain primitives and lead-capture value objects, zero Spring dependencies
+- **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform, Lead
+  Capture
+- **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md)
+  for all `api` and `implementation` relationships
+- **Foundation**: [`shared:common`](../../shared/common/) and [
+  `shared:lead-capture:common`](../../shared/lead-capture/common/) — framework-agnostic domain
+  primitives and lead-capture value objects, zero Spring dependencies
 - **Aggregates**: Clear boundaries and consistency rules
 - **Domain Events**: For cross-context communication
 
@@ -158,7 +164,8 @@ The C4 model provides a hierarchical set of architecture diagrams for visualizin
 ### Specifications
 
 - **[openspec/](../../openspec/)** — SDD artifacts (specs, designs, tasks)
-- **[Media Library CAS Dedup](./media-library-cas-dedup.md)** — Content-Addressed Storage deduplication for workspace-scoped media assets
+- **[Media Library CAS Dedup](./media-library-cas-dedup.md)** — Content-Addressed Storage
+  deduplication for workspace-scoped media assets
 
 ### Security
 

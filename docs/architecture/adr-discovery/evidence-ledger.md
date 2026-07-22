@@ -204,8 +204,10 @@ Most entities use `varchar(64)` primary keys with human-readable prefixes (e.g.,
 ### Evidence
 
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/tenancy/infrastructure/R2dbcWorkspaceProvisioningService.kt`:
 `val workspaceId = "ws-${UUID.randomUUID()}"`.
+
 - `server/smp/src/main/resources/db/changelog/publishing/008-create-secure-credentials.yaml`:
   `type: uuid`.
 

@@ -17,9 +17,9 @@ procedure covers the residual risk of underage users who bypass or falsify the r
 
 ## Changes
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| v1.0.0 | 2026-07-18 | Compliance Team | Initial procedure |
+| Version | Date       | Author          | Changes           |
+|---------|------------|-----------------|-------------------|
+| v1.0.0  | 2026-07-18 | Compliance Team | Initial procedure |
 
 ---
 
@@ -42,14 +42,14 @@ Reports of suspected underage accounts may be received through:
 
 To initiate an investigation, the intake record MUST capture:
 
-| Field | Required | Notes |
-|---|---|---|
-| Reporter name and contact | Yes | May be anonymised for good-faith reports |
-| Relationship to the subject | Yes | Parent, guardian, self-report, third-party |
-| Subject's account identifier | Yes | Email, username, or workspace ID |
-| Basis for belief | Yes | Observed behaviour, documentation, or other evidence |
-| Relationship to Profile Tailors | Yes | User, non-user, regulatory body |
-| Supporting evidence | No | Attachments accepted (screenshots, documents) |
+| Field                           | Required | Notes                                                |
+|---------------------------------|----------|------------------------------------------------------|
+| Reporter name and contact       | Yes      | May be anonymised for good-faith reports             |
+| Relationship to the subject     | Yes      | Parent, guardian, self-report, third-party           |
+| Subject's account identifier    | Yes      | Email, username, or workspace ID                     |
+| Basis for belief                | Yes      | Observed behaviour, documentation, or other evidence |
+| Relationship to Profile Tailors | Yes      | User, non-user, regulatory body                      |
+| Supporting evidence             | No       | Attachments accepted (screenshots, documents)        |
 
 If reporting via email, a template is available at
 `docs/compliance/report-templates/underage-intake-template.md`.
@@ -69,14 +69,14 @@ Upon receiving a valid report, the compliance team SHALL:
 
 1. Confirm the account exists and is active on the platform.
 2. Review account metadata:
-   - Registration timestamp and IP address.
-   - Email verification status.
-   - Workspace provisioning record.
-   - Consent records (`CONTRACT_ACCEPTANCE` with purpose `registration_terms_and_eligibility`).
+    - Registration timestamp and IP address.
+    - Email verification status.
+    - Workspace provisioning record.
+    - Consent records (`CONTRACT_ACCEPTANCE` with purpose `registration_terms_and_eligibility`).
 3. Review account activity:
-   - Published content (channels, posts, schedules).
-   - Account settings and profile information.
-   - Billing or subscription data (if applicable).
+    - Published content (channels, posts, schedules).
+    - Account settings and profile information.
+    - Billing or subscription data (if applicable).
 4. Cross-reference with any existing support tickets or prior reports.
 
 #### 2.2 Identity Evidence
@@ -107,20 +107,20 @@ Evidence handling:
 If the investigation produces credible evidence that the account holder IS under 18:
 
 1. **Immediate account freeze:**
-   - All active sessions are invalidated.
-   - Access to the dashboard is revoked.
-   - Scheduled publications are paused (not deleted).
-   - Active publication flows are cancelled.
+    - All active sessions are invalidated.
+    - Access to the dashboard is revoked.
+    - Scheduled publications are paused (not deleted).
+    - Active publication flows are cancelled.
 
 2. **Notification sent to account email:**
-   - Account has been temporarily suspended.
-   - Reason for suspension (suspected underage registration).
-   - Instructions for appeal (see Section 5).
-   - Reference to this procedure (COMP-007).
+    - Account has been temporarily suspended.
+    - Reason for suspension (suspected underage registration).
+    - Instructions for appeal (see Section 5).
+    - Reference to this procedure (COMP-007).
 
 3. **Internal notification:**
-   - Compliance case is updated with verdict and freeze timestamp.
-   - Engineering team is notified if data deletion is required (see Section 4).
+    - Compliance case is updated with verdict and freeze timestamp.
+    - Engineering team is notified if data deletion is required (see Section 4).
 
 #### 3.2 Suspension SLA
 
@@ -135,14 +135,14 @@ If the investigation produces credible evidence that the account holder IS under
 
 After suspension, the compliance team determines the data disposition based on the following:
 
-| Scenario | Action |
-|---|---|
-| Account holder confirms underage status | Full deletion of personal data within 30 days |
-| Account holder contests underage status | Retain data during appeal process (Section 5) |
-| Appeal successful (age verified) | Full account reinstatement, no deletion |
-| Appeal unsuccessful | Full deletion within 30 days of final decision |
-| Legal hold in effect | Retain only data specified in legal hold notice |
-| Regulatory investigation active | Retain until regulatory body confirms no further action |
+| Scenario                                | Action                                                  |
+|-----------------------------------------|---------------------------------------------------------|
+| Account holder confirms underage status | Full deletion of personal data within 30 days           |
+| Account holder contests underage status | Retain data during appeal process (Section 5)           |
+| Appeal successful (age verified)        | Full account reinstatement, no deletion                 |
+| Appeal unsuccessful                     | Full deletion within 30 days of final decision          |
+| Legal hold in effect                    | Retain only data specified in legal hold notice         |
+| Regulatory investigation active         | Retain until regulatory body confirms no further action |
 
 #### 4.2 Deletion Scope
 
@@ -165,13 +165,13 @@ The following data MAY be retained under legal hold or regulatory obligation:
 
 #### 4.3 Retention Periods
 
-| Data Category | Retention | Authority |
-|---|---|---|
-| Personal data | 30 days post-suspension | This procedure |
-| Transaction records | 7 years (or as required by law) | Tax / accounting regulation |
-| Legal hold data | Duration of hold | Legal order |
-| Anonymised system logs | 90 days | Standard retention policy |
-| Identity evidence | 30 days post-resolution | This procedure |
+| Data Category          | Retention                       | Authority                   |
+|------------------------|---------------------------------|-----------------------------|
+| Personal data          | 30 days post-suspension         | This procedure              |
+| Transaction records    | 7 years (or as required by law) | Tax / accounting regulation |
+| Legal hold data        | Duration of hold                | Legal order                 |
+| Anonymised system logs | 90 days                         | Standard retention policy   |
+| Identity evidence      | 30 days post-resolution         | This procedure              |
 
 #### 4.4 Deletion Verification
 
@@ -181,9 +181,9 @@ After deletion, the compliance team SHALL:
 2. Confirm consent records are deleted.
 3. Log the deletion action with timestamp and operator identity.
 4. Provide a deletion confirmation to the account holder.
-   - For anonymous or untrusted reporters: provide only a neutral acknowledgement without
-     confirming account existence or investigation status.
-   - For the account holder and other authorized parties: provide full confirmation.
+    - For anonymous or untrusted reporters: provide only a neutral acknowledgement without
+      confirming account existence or investigation status.
+    - For the account holder and other authorized parties: provide full confirmation.
 
 ---
 
@@ -207,12 +207,12 @@ registration time, or a court order or regulatory determination regarding the ac
 1. Appeal is logged and assigned a case ID.
 2. Compliance team reviews the evidence within 5 business days.
 3. If evidence is sufficient:
-   - Account is reinstated.
-   - Notification sent to account holder.
+    - Account is reinstated.
+    - Notification sent to account holder.
 4. If evidence is insufficient:
-   - Account holder is notified with a request for additional evidence.
-   - Additional evidence must be submitted within 10 business days.
-   - After 10 business days with no response, the suspension stands and deletion proceeds.
+    - Account holder is notified with a request for additional evidence.
+    - Additional evidence must be submitted within 10 business days.
+    - After 10 business days with no response, the suspension stands and deletion proceeds.
 
 #### 5.4 Reinstatement Criteria
 
@@ -224,11 +224,11 @@ An account SHALL be reinstated if ANY of the following conditions are met:
 
 #### 5.5 Appeal SLA
 
-| Step | Timeframe |
-|---|---|
-| Appeal acknowledgment | 2 business days |
-| Evidence review | 5 business days |
-| Additional evidence window | 10 business days |
+| Step                        | Timeframe                    |
+|-----------------------------|------------------------------|
+| Appeal acknowledgment       | 2 business days              |
+| Evidence review             | 5 business days              |
+| Additional evidence window  | 10 business days             |
 | Final decision notification | 2 business days after review |
 
 ---
@@ -256,9 +256,12 @@ For cases involving:
 ## References
 
 - **COMP-001:** Data Inventory — `docs/compliance/data-inventory.md`
-- **COMP-002:** Retention and Erasure Control Plan — `docs/compliance/retention-and-erasure-control-plan.md`
+- **COMP-002:** Retention and Erasure Control Plan —
+  `docs/compliance/retention-and-erasure-control-plan.md`
 - **COMP-003:** Rights Request Runbook — `docs/compliance/rights-request-runbook.md`
 - **COMP-004:** Incident Response Runbook — `docs/compliance/incident-response-runbook.md`
-- **COMP-005:** Consent and Preference Register — `docs/compliance/consent-and-preference-register.md`
+- **COMP-005:** Consent and Preference Register —
+  `docs/compliance/consent-and-preference-register.md`
 - **COMP-006:** Legal Publication Gate — `docs/compliance/legal-publication-gate.md`
-- **RQ-006:** Age Eligibility Enforcement Specification — `openspec/changes/archive/2026-07-18-age-eligibility-enforcement/spec.md`
+- **RQ-006:** Age Eligibility Enforcement Specification —
+  `openspec/changes/archive/2026-07-18-age-eligibility-enforcement/spec.md`
