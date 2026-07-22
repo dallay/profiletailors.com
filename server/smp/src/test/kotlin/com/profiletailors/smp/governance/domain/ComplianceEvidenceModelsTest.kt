@@ -1,10 +1,10 @@
 package com.profiletailors.smp.governance.domain
 
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import java.time.Instant
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 internal class ComplianceEvidenceModelsTest {
 
@@ -17,8 +17,8 @@ internal class ComplianceEvidenceModelsTest {
             submittedBy = "system",
         )
 
-        assertEquals(EvidenceReviewStatus.PENDING, evidence.reviewStatus)
-        assertNull(evidence.expiresAt)
+        evidence.reviewStatus shouldBe EvidenceReviewStatus.PENDING
+        evidence.expiresAt.shouldBeNull()
     }
 
     @Test
@@ -30,9 +30,9 @@ internal class ComplianceEvidenceModelsTest {
             linkedBy = "admin",
         )
 
-        assertEquals("ctrl-001", link.controlId.value)
-        assertEquals("ev-001", link.evidenceId.value)
-        assertEquals("admin", link.linkedBy)
+        link.controlId.value shouldBe "ctrl-001"
+        link.evidenceId.value shouldBe "ev-001"
+        link.linkedBy shouldBe "admin"
     }
 
     @Test
@@ -47,8 +47,8 @@ internal class ComplianceEvidenceModelsTest {
             verifiedAt = Instant.parse("2026-07-17T12:00:00Z"),
         )
 
-        assertEquals(EvidenceReviewStatus.APPROVED, evidence.reviewStatus)
-        assertEquals("compliance-lead", evidence.reviewedBy)
+        evidence.reviewStatus shouldBe EvidenceReviewStatus.APPROVED
+        evidence.reviewedBy shouldBe "compliance-lead"
     }
 
     @Test
@@ -60,7 +60,7 @@ internal class ComplianceEvidenceModelsTest {
             submittedBy = "auditor",
         )
 
-        assertNull(evidence.reviewAt)
+        evidence.reviewAt.shouldBeNull()
     }
 
     @Test
@@ -74,7 +74,7 @@ internal class ComplianceEvidenceModelsTest {
             reviewAt = reviewAt,
         )
 
-        assertEquals(reviewAt, evidence.reviewAt)
+        evidence.reviewAt shouldBe reviewAt
     }
 
     @Test
@@ -87,11 +87,11 @@ internal class ComplianceEvidenceModelsTest {
             linkedBy = "engineer@example.com",
         )
 
-        assertEquals(1L, link.version)
-        assertNull(link.description)
-        assertEquals(EvidenceLinkType.CODE, link.linkType)
-        assertEquals("ev-001", link.evidenceId.value)
-        assertNotNull(link.linkedAt)
+        link.version shouldBe 1L
+        link.description.shouldBeNull()
+        link.linkType shouldBe EvidenceLinkType.CODE
+        link.evidenceId.value shouldBe "ev-001"
+        link.linkedAt.shouldNotBeNull()
     }
 
     @Test
@@ -105,15 +105,13 @@ internal class ComplianceEvidenceModelsTest {
             linkedBy = "engineer@example.com",
         )
 
-        assertEquals("BDD coverage for the release gate", link.description)
-        assertEquals(EvidenceLinkType.TEST, link.linkType)
+        link.description shouldBe "BDD coverage for the release gate"
+        link.linkType shouldBe EvidenceLinkType.TEST
     }
 
     @Test
     fun `evidence link type has exactly the five supported artifact kinds`() {
-        assertEquals(
-            setOf("CODE", "TEST", "DOCUMENT", "OPERATIONAL_RECORD", "EXTERNAL"),
-            EvidenceLinkType.entries.map { it.name }.toSet(),
-        )
+        EvidenceLinkType.entries.map { it.name }.toSet() shouldBe
+            setOf("CODE", "TEST", "DOCUMENT", "OPERATIONAL_RECORD", "EXTERNAL")
     }
 }
