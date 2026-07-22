@@ -21,7 +21,7 @@ caffeine = "3.1.8"
 
 # Transitive deps requiring explicit versions
 okio = "3.17.0"
-bouncycastle = "1.84"
+bouncycastle = "1.85"
 
 # Testing
 reactor = "3.7.5"
