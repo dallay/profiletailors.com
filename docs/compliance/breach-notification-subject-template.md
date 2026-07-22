@@ -4,20 +4,24 @@
 
 ## Overview
 
-Provide clear, practical notice to an affected person when applicable law or an approved risk decision requires it. This template is jurisdiction-neutral: notification thresholds, timing, mandatory content, delivery, language, and permitted delay differ across markets.
+Provide clear, practical notice to an affected person when applicable law or an approved risk
+decision requires it. This template is jurisdiction-neutral: notification thresholds, timing,
+mandatory content, delivery, language, and permitted delay differ across markets.
 
-The message must describe verified facts, explain realistic harm-reduction actions, and identify the responsible legal entity. It must not overstate certainty, security controls, or legal conclusions.
+The message must describe verified facts, explain realistic harm-reduction actions, and identify the
+responsible legal entity. It must not overstate certainty, security controls, or legal conclusions.
 
 ## Changes
 
-| Version | Date | Description |
-|---|---|---|
-| 2.0 | 2026-07-17 | Replaced the GDPR-only text and unresolved Profile Tailors signature with a global controlled template |
-| 1.0 | 2026-07-17 | Initial GDPR Art. 34 draft |
+| Version | Date       | Description                                                                                            |
+|---------|------------|--------------------------------------------------------------------------------------------------------|
+| 2.0     | 2026-07-17 | Replaced the GDPR-only text and unresolved Profile Tailors signature with a global controlled template |
+| 1.0     | 2026-07-17 | Initial GDPR Art. 34 draft                                                                             |
 
 ## Usage
 
-Create one approved source version, then produce accessible, legally reviewed translations for affected audiences. Delete bracketed instructions before delivery.
+Create one approved source version, then produce accessible, legally reviewed translations for
+affected audiences. Delete bracketed instructions before delivery.
 
 ### Message Control
 
@@ -36,7 +40,8 @@ Create one approved source version, then produce accessible, legally reviewed tr
 
 Hello [NAME OR NEUTRAL SALUTATION],
 
-[FULL APPROVED LEGAL ENTITY NAME] is writing to tell you about a security incident involving your personal information. [STATE WHETHER THIS PERSON IS CONFIRMED AFFECTED OR MAY BE AFFECTED.]
+[FULL APPROVED LEGAL ENTITY NAME] is writing to tell you about a security incident involving your
+personal information. [STATE WHETHER THIS PERSON IS CONFIRMED AFFECTED OR MAY BE AFFECTED.]
 
 ### What Happened
 
@@ -63,7 +68,8 @@ Possible actions when factually relevant include:
 - Reset a credential through the official service and avoid reusing it elsewhere.
 - Revoke active sessions or connected applications.
 - Watch for targeted phishing that refers to the exposed information.
-- Contact an appropriate financial, identity-protection, or public authority using independently verified details.
+- Contact an appropriate financial, identity-protection, or public authority using independently
+  verified details.
 
 ### Contact and Assistance
 
@@ -88,16 +94,25 @@ We are sorry for the concern and inconvenience this incident may cause.
 
 ## Troubleshooting
 
-- **It is unclear whether notice is required:** Apply the jurisdiction matrix and documented risk threshold with counsel; automatic over-notification can itself create privacy and security harm.
-- **The facts may change:** State what is known now, provide a safe update channel, and issue a corrected or supplemental notice when material facts change.
-- **The person is in multiple relevant jurisdictions:** Apply the most protective compatible requirements and document any required local variants.
-- **Direct delivery could expose more data:** Select a safer approved channel and minimise information in subject lines, envelopes, push notifications, and shared devices.
-- **Translation is required:** Use professional legal translation and review; key parity alone does not establish legal equivalence.
+- **It is unclear whether notice is required:** Apply the jurisdiction matrix and documented risk
+  threshold with counsel; automatic over-notification can itself create privacy and security harm.
+- **The facts may change:** State what is known now, provide a safe update channel, and issue a
+  corrected or supplemental notice when material facts change.
+- **The person is in multiple relevant jurisdictions:** Apply the most protective compatible
+  requirements and document any required local variants.
+- **Direct delivery could expose more data:** Select a safer approved channel and minimise
+  information in subject lines, envelopes, push notifications, and shared devices.
+- **Translation is required:** Use professional legal translation and review; key parity alone does
+  not establish legal equivalence.
 
 ## References
 
-- [`incident-sla-table.yaml`](incident-sla-table.yaml): Jurisdiction deadlines, triggers, and authority links
-- [`incident-response-runbook.md`](incident-response-runbook.md): Global assessment and communication process
-- [`breach-notification-authority-template.md`](breach-notification-authority-template.md): Authority filing record
+- [`incident-sla-table.yaml`](incident-sla-table.yaml): Jurisdiction deadlines, triggers, and
+  authority links
+- [`incident-response-runbook.md`](incident-response-runbook.md): Global assessment and
+  communication process
+- [`breach-notification-authority-template.md`](breach-notification-authority-template.md):
+  Authority filing record
 - [`data-inventory.yaml`](data-inventory.yaml): Processing activities and affected data categories
-- [`legal-publication-gate.md`](legal-publication-gate.md): Entity, translation, and approval controls
+- [`legal-publication-gate.md`](legal-publication-gate.md): Entity, translation, and approval
+  controls

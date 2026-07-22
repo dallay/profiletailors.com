@@ -24,15 +24,15 @@ canonical week route on first render.
 
 The scheduler URL contract now owns these state fields:
 
-| Concern | Canonical form | Notes |
-|---|---|---|
-| Surface | path (`/calendar/week`, `/calendar/month`, `/list`) | Day is not a durable surface. |
-| Focused date | `date=YYYY-MM-DD` | Omit only when canonical logic determines the default visible date. |
-| Timezone | `timezone=Area/City` | Replace history on change. |
-| Status filter | `status=all\|queued\|published\|cancelled` | Omit `all` from the canonical query. |
-| Search | `q=trimmed text` | Trim whitespace before writing. |
-| Channels | repeated `channels[]` | Read legacy `channels`, always emit `channels[]`. |
-| Post detail | `postId=<publication-id>` | Present only while the selected publication is valid in the current scheduler context. |
+| Concern       | Canonical form                                      | Notes                                                                                  |
+|---------------|-----------------------------------------------------|----------------------------------------------------------------------------------------|
+| Surface       | path (`/calendar/week`, `/calendar/month`, `/list`) | Day is not a durable surface.                                                          |
+| Focused date  | `date=YYYY-MM-DD`                                   | Omit only when canonical logic determines the default visible date.                    |
+| Timezone      | `timezone=Area/City`                                | Replace history on change.                                                             |
+| Status filter | `status=all\|queued\|published\|cancelled`          | Omit `all` from the canonical query.                                                   |
+| Search        | `q=trimmed text`                                    | Trim whitespace before writing.                                                        |
+| Channels      | repeated `channels[]`                               | Read legacy `channels`, always emit `channels[]`.                                      |
+| Post detail   | `postId=<publication-id>`                           | Present only while the selected publication is valid in the current scheduler context. |
 
 History semantics are intentionally split:
 
@@ -90,7 +90,8 @@ router guard will redirect to `/login` before scheduler UI can hydrate.
 
 ### Shared URLs emit `channels` instead of `channels[]`
 
-Reading legacy `channels` is supported only for compatibility. Any new navigation or canonicalization
+Reading legacy `channels` is supported only for compatibility. Any new navigation or
+canonicalization
 should rewrite the query to repeated `channels[]` keys.
 
 ### Back/forward does not restore a just-closed modal

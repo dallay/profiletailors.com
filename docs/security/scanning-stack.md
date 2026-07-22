@@ -2,26 +2,32 @@
 
 ## Purpose
 
-This repository uses a layered DevSecOps scanning model to keep pull request feedback fast while still running broader scheduled analysis for deeper security visibility.
+This repository uses a layered DevSecOps scanning model to keep pull request feedback fast while
+still running broader scheduled analysis for deeper security visibility.
 
 The stack is intentionally split into two lanes:
 
 - **PR lane**: fast, path-aware, merge-relevant feedback.
-- **Scheduled deep lane**: reporting-oriented scans that preserve evidence and broaden coverage without slowing normal pull request flow.
+- **Scheduled deep lane**: reporting-oriented scans that preserve evidence and broaden coverage
+  without slowing normal pull request flow.
 
-The implementation is additive. It does **not** replace the existing CLA, Detekt, or release automation workflows.
+The implementation is additive. It does **not** replace the existing CLA, Detekt, or release
+automation workflows.
 
 ## Verification Notes
 
 - Local frontend verification is executed with Biome.
 - Current baseline result: **pass with no errors**.
-- No dependency or configuration changes were required to establish the documented local lint contract.
+- No dependency or configuration changes were required to establish the documented local lint
+  contract.
 - Existing workflows checked for non-disruption during this change:
     - `.github/workflows/cla.yml`
     - `.github/workflows/detekt.yml`
     - `.github/workflows/release-please.yml`
 - Workflow contract verification was executed with a local Ruby YAML validation script.
-- Verified contract points: deep workflow triggers, non-cancelling scheduled concurrency, required deep jobs, SARIF-capable permission wiring, Sonar skip contract, PR path-classifier buckets, and preservation of CLA/Detekt/Release Please workflow identities.
+- Verified contract points: deep workflow triggers, non-cancelling scheduled concurrency, required
+  deep jobs, SARIF-capable permission wiring, Sonar skip contract, PR path-classifier buckets, and
+  preservation of CLA/Detekt/Release Please workflow identities.
 
 ## Architecture Overview
 
@@ -49,7 +55,8 @@ The implementation is additive. It does **not** replace the existing CLA, Detekt
 
 ### PR lane: `.github/workflows/security-pr.yml`
 
-The PR lane exists to answer one question quickly: **does this change introduce a high-signal security problem that should block merge right now?**
+The PR lane exists to answer one question quickly: **does this change introduce a high-signal
+security problem that should block merge right now?**
 
 #### Trigger
 
@@ -68,7 +75,8 @@ concurrency:
   cancel-in-progress: true
 ```
 
-That means new commits on the same PR cancel older in-progress security runs. Contributors get only the latest feedback.
+That means new commits on the same PR cancel older in-progress security runs. Contributors get only
+the latest feedback.
 
 #### Path-aware classifier buckets
 
@@ -88,24 +96,27 @@ Representative meaning:
 | `repo_security` | workflow files, scanner configs, dependency manifests, broad-impact CI/security files              |
 | `docs_only`     | `docs/**`, `openspec/**`, and markdown-only changes that do not also touch security-relevant files |
 
-**Conservative rule**: if a change touches docs and a security-relevant surface, the security-relevant surface bucket wins.
+**Conservative rule**: if a change touches docs and a security-relevant surface, the
+security-relevant surface bucket wins.
 
 #### PR jobs
 
-| Job                        | Runs when                               | Notes                                       |
-|----------------------------|-----------------------------------------|---------------------------------------------|
-| `gitleaks-pr`              | Any non-doc-only PR                     | Secrets can appear anywhere                 |
-| `semgrep-backend`          | `backend` or `repo_security`            | Backend and broad-impact SAST               |
-| `semgrep-frontend`         | `frontend` or `repo_security`           | Frontend and broad-impact SAST              |
-| `codeql-backend`           | `backend` or `repo_security`            | Backend/shared code-graph analysis          |
-| `trivy-backend`            | `backend` or `repo_security`            | High-signal vulnerability/misconfig scan    |
-| `frontend-biome-security`  | `frontend` or `repo_security`           | Frontend lint and security contract         |
-| `sonar-pr`                 | Scope changed and Sonar config is valid | Optional, explicit, reporting-oriented      |
-| `summary`                  | Always                                  | Explains what ran and where findings appear |
+| Job                       | Runs when                               | Notes                                       |
+|---------------------------|-----------------------------------------|---------------------------------------------|
+| `gitleaks-pr`             | Any non-doc-only PR                     | Secrets can appear anywhere                 |
+| `semgrep-backend`         | `backend` or `repo_security`            | Backend and broad-impact SAST               |
+| `semgrep-frontend`        | `frontend` or `repo_security`           | Frontend and broad-impact SAST              |
+| `codeql-backend`          | `backend` or `repo_security`            | Backend/shared code-graph analysis          |
+| `trivy-backend`           | `backend` or `repo_security`            | High-signal vulnerability/misconfig scan    |
+| `frontend-biome-security` | `frontend` or `repo_security`           | Frontend lint and security contract         |
+| `sonar-pr`                | Scope changed and Sonar config is valid | Optional, explicit, reporting-oriented      |
+| `summary`                 | Always                                  | Explains what ran and where findings appear |
 
 ### Scheduled deep lane: `.github/workflows/security-deep.yml`
 
-The deep lane exists to answer a different question: **what broader security drift or latent issues exist across the repository that we do not want to hide, but also do not want to force into every PR?**
+The deep lane exists to answer a different question: **what broader security drift or latent issues
+exist across the repository that we do not want to hide, but also do not want to force into every
+PR?**
 
 #### Triggers
 
@@ -130,7 +141,8 @@ concurrency:
   cancel-in-progress: false
 ```
 
-This is intentional. Scheduled evidence should be preserved instead of cancelled by a later manual rerun.
+This is intentional. Scheduled evidence should be preserved instead of cancelled by a later manual
+rerun.
 
 #### Deep jobs
 
@@ -170,7 +182,8 @@ This split is deliberate:
 
 - PR gates must stay predictable and actionable.
 - Deep scans are broader and noisier by nature.
-- Sonar overlaps with other scanners and is more useful initially as a centralized reporting layer than as another blocker.
+- Sonar overlaps with other scanners and is more useful initially as a centralized reporting layer
+  than as another blocker.
 
 ## Findings Channels
 
@@ -343,29 +356,35 @@ For deep local inspection you may widen severity to match the scheduled lane.
 
 ### CodeQL
 
-CodeQL is primarily validated through GitHub Actions in this repository because it depends on the extraction/build setup and GitHub-native reporting path.
+CodeQL is primarily validated through GitHub Actions in this repository because it depends on the
+extraction/build setup and GitHub-native reporting path.
 
 ### Sonar
 
-Sonar is only meaningful locally if you have a valid project binding and token. Without those, use the other local scanners and rely on CI summaries.
+Sonar is only meaningful locally if you have a valid project binding and token. Without those, use
+the other local scanners and rely on CI summaries.
 
 ## CI Optimization Rules
 
 ### Why PR scans are path-aware
 
-Path classification keeps the fast lane reviewable and avoids making frontend-only work wait on backend graph analysis or vice versa.
+Path classification keeps the fast lane reviewable and avoids making frontend-only work wait on
+backend graph analysis or vice versa.
 
 ### Why repo-security changes widen scope
 
-Changes to workflows, scanner configs, lockfiles, or build manifests can affect repository-wide outcomes. Those changes intentionally trigger broader checks.
+Changes to workflows, scanner configs, lockfiles, or build manifests can affect repository-wide
+outcomes. Those changes intentionally trigger broader checks.
 
 ### Why scheduled scans do not cancel
 
-The deep lane is evidence-oriented. If one nightly run starts and another run is launched manually later, both should remain reviewable.
+The deep lane is evidence-oriented. If one nightly run starts and another run is launched manually
+later, both should remain reviewable.
 
 ### Why Sonar is not a required check yet
 
-Sonar overlaps with multiple scanners and introduces an external-service dependency. The repository uses it first for centralized visibility, not surprise gating.
+Sonar overlaps with multiple scanners and introduces an external-service dependency. The repository
+uses it first for centralized visibility, not surprise gating.
 
 ## Suppression and False-Positive Governance
 
@@ -395,13 +414,13 @@ Suppressions must stay:
 
 ## Representative Trigger Scenarios
 
-| Scenario                                              | Expected PR behavior                                                                                                    |
-|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| Frontend-only change in `apps/web/marketing/**`       | `gitleaks-pr`, `semgrep-frontend`, `frontend-biome-security`, `summary`; backend CodeQL/Trivy jobs stay non-applicable  |
-| Backend-only change in `server/smp/**` or `shared/**` | `gitleaks-pr`, `semgrep-backend`, `codeql-backend`, `trivy-backend`, `summary`; frontend biome stays non-applicable     |
-| Workflow or scanner-config change                     | Broad checks run because `repo_security` is true                                                                        |
-| Docs-only change under `docs/**` or `openspec/**`     | Heavy path-specific security jobs skip cleanly; summaries should make that obvious                                      |
-| Nightly or manual deep run                            | Full reporting-oriented lane executes with retained artifacts and non-cancelling concurrency                            |
+| Scenario                                              | Expected PR behavior                                                                                                   |
+|-------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| Frontend-only change in `apps/web/marketing/**`       | `gitleaks-pr`, `semgrep-frontend`, `frontend-biome-security`, `summary`; backend CodeQL/Trivy jobs stay non-applicable |
+| Backend-only change in `server/smp/**` or `shared/**` | `gitleaks-pr`, `semgrep-backend`, `codeql-backend`, `trivy-backend`, `summary`; frontend biome stays non-applicable    |
+| Workflow or scanner-config change                     | Broad checks run because `repo_security` is true                                                                       |
+| Docs-only change under `docs/**` or `openspec/**`     | Heavy path-specific security jobs skip cleanly; summaries should make that obvious                                     |
+| Nightly or manual deep run                            | Full reporting-oriented lane executes with retained artifacts and non-cancelling concurrency                           |
 
 ## Troubleshooting
 
@@ -436,11 +455,13 @@ Check all of these:
 
 ### Trivy is noisy
 
-That is expected in deeper scans. The PR lane stays narrower by severity, while the deep lane keeps broad visibility for triage.
+That is expected in deeper scans. The PR lane stays narrower by severity, while the deep lane keeps
+broad visibility for triage.
 
 ### Gitleaks findings in docs or old commits
 
-That is also expected. Secret detection remains repo-wide by design. If a result is a legitimate false positive, suppress it narrowly in `.gitleaks.toml` with an English reason.
+That is also expected. Secret detection remains repo-wide by design. If a result is a legitimate
+false positive, suppress it narrowly in `.gitleaks.toml` with an English reason.
 
 ## Maintainer Checklist
 

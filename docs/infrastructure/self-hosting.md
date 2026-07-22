@@ -4,10 +4,10 @@
 
 Profile Tailors supports two production deployment targets:
 
-| Target | Use it when | Operational model |
-| --- | --- | --- |
-| Docker Compose | One server is sufficient | Dashboard, backend, PostgreSQL, and media run on one Docker Engine |
-| Docker Swarm | Several Docker nodes or rolling dashboard updates are required | Dashboard is replicated; backend, PostgreSQL, and local media remain on one labeled storage node |
+| Target         | Use it when                                                    | Operational model                                                                                |
+|----------------|----------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| Docker Compose | One server is sufficient                                       | Dashboard, backend, PostgreSQL, and media run on one Docker Engine                               |
+| Docker Swarm   | Several Docker nodes or rolling dashboard updates are required | Dashboard is replicated; backend, PostgreSQL, and local media remain on one labeled storage node |
 
 Docker Compose is the recommended starting point. Choose Swarm only when its scheduling and rolling
 deployment features solve a current operational need. Kubernetes is not a supported target yet.

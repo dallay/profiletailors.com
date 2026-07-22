@@ -6,7 +6,9 @@
 
 ## Overview
 
-The SMP backend uses R2DBC with a reactive stack (WebFlux, Coroutines). After a full codebase audit during the reactive transaction remediation epic (#197), three different transaction approaches were found in use:
+The SMP backend uses R2DBC with a reactive stack (WebFlux, Coroutines). After a full codebase audit
+during the reactive transaction remediation epic (#197), three different transaction approaches were
+found in use:
 
 1. **`TransactionalOperator.transactional(mono { ... })`** — Programmatic reactive pattern
 2. **`@Transactional` annotation** — Declarative AOP (CGLIB proxy)
@@ -16,7 +18,8 @@ This inconsistency created maintenance burden and subtle bugs.
 
 ## Changes
 
-All multi-statement database operations **MUST** use `TransactionalOperator.transactional(mono { ... }).awaitSingle()`.
+All multi-statement database operations **MUST** use
+`TransactionalOperator.transactional(mono { ... }).awaitSingle()`.
 
 ### Why `TransactionalOperator`?
 
@@ -44,10 +47,10 @@ All multi-statement database operations **MUST** use `TransactionalOperator.tran
 
 The following locations were migrated as part of issue #195:
 
-| File | Before | After |
-|------|--------|-------|
-| `R2dbcPublishingRepositories.kt` | `@Transactional deleteUnpublished()` | `TransactionalOperator` wrapper |
-| `R2dbcApiKeyCredentialReplacementGateway.kt` | Raw `Connection` API | `DatabaseClient` + `TransactionalOperator` |
+| File                                         | Before                               | After                                      |
+|----------------------------------------------|--------------------------------------|--------------------------------------------|
+| `R2dbcPublishingRepositories.kt`             | `@Transactional deleteUnpublished()` | `TransactionalOperator` wrapper            |
+| `R2dbcApiKeyCredentialReplacementGateway.kt` | Raw `Connection` API                 | `DatabaseClient` + `TransactionalOperator` |
 
 ## Usage
 
@@ -69,6 +72,7 @@ class MyRepository(
 ```
 
 Key points:
+
 - Wrap all operations that must be atomic inside `transactionalOperator.transactional(mono { ... })`
 - The `mono { }` lambda contains the suspend functions that perform the actual DB work
 - Call `.awaitSingle()` to convert the reactive `Mono` back to a coroutine result
@@ -89,7 +93,8 @@ Key points:
 
 ### Common mistakes
 
-- **Forgetting the transaction wrapper:** Operations that must be atomic will run without a transaction boundary
+- **Forgetting the transaction wrapper:** Operations that must be atomic will run without a
+  transaction boundary
 - **Using `@Transactional` on final Kotlin classes:** The annotation silently does nothing
 - **Using raw `Connection` API:** Connection leaks possible if finally block fails
 
@@ -97,4 +102,5 @@ Key points:
 
 - `PersistenceConfig.kt` — Transaction infrastructure configuration
 - `R2dbcAtomicTransactionRunner.kt` — Reusable transaction runner for handlers
-- [Epic #197](https://github.com/dallay/profiletailors.com/issues/197) — Reactive Transaction Remediation
+- [Epic #197](https://github.com/dallay/profiletailors.com/issues/197) — Reactive Transaction
+  Remediation

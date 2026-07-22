@@ -33,16 +33,16 @@ names such as `StorageObjectNotFoundException` and generic transport errors like
 All new backend `FAILED` and `BLOCKED` outcomes MUST persist one of these
 categories. Unknown exceptions map to `PUBLISHING_FAILED`.
 
-| Category | Auto-Retryable | State | Root Cause |
-|----------|----------------|-------|------------|
-| `MEDIA_NOT_FOUND` | No | `FAILED` | Asset metadata or binary no longer exists |
-| `MEDIA_UNAVAILABLE` | Yes | `FAILED` | Temporary media/storage access failure |
-| `PROVIDER_VALIDATION_FAILED` | No | `FAILED` | Provider or capability rejected the content |
-| `PROVIDER_RATE_LIMITED` | Yes | `FAILED` | Provider returned HTTP 429 |
-| `PROVIDER_UNAVAILABLE` | Yes | `FAILED` | Provider network or HTTP 5xx failure |
-| `ACCOUNT_RECONNECT_REQUIRED` | N/A | `BLOCKED` | Expired, revoked credentials or insufficient scopes |
-| `ACCOUNT_UNAVAILABLE` | No | `FAILED` | Disabled or deleted terminal account |
-| `PUBLISHING_FAILED` | No | `FAILED` | Unexpected exception (catch-all) |
+| Category                     | Auto-Retryable | State     | Root Cause                                          |
+|------------------------------|----------------|-----------|-----------------------------------------------------|
+| `MEDIA_NOT_FOUND`            | No             | `FAILED`  | Asset metadata or binary no longer exists           |
+| `MEDIA_UNAVAILABLE`          | Yes            | `FAILED`  | Temporary media/storage access failure              |
+| `PROVIDER_VALIDATION_FAILED` | No             | `FAILED`  | Provider or capability rejected the content         |
+| `PROVIDER_RATE_LIMITED`      | Yes            | `FAILED`  | Provider returned HTTP 429                          |
+| `PROVIDER_UNAVAILABLE`       | Yes            | `FAILED`  | Provider network or HTTP 5xx failure                |
+| `ACCOUNT_RECONNECT_REQUIRED` | N/A            | `BLOCKED` | Expired, revoked credentials or insufficient scopes |
+| `ACCOUNT_UNAVAILABLE`        | No             | `FAILED`  | Disabled or deleted terminal account                |
+| `PUBLISHING_FAILED`          | No             | `FAILED`  | Unexpected exception (catch-all)                    |
 
 The **Auto-Retryable** column governs whether the publishing worker
 automatically reschedules another delivery attempt. It does NOT govern
@@ -65,16 +65,16 @@ type assigns the canonical category. Unknown exceptions always map to
 
 ### Default Provider Mappings
 
-| Condition | Category | Auto-Retryable |
-|-----------|----------|----------------|
-| Missing asset metadata or binary | `MEDIA_NOT_FOUND` | No |
-| Temporary media/storage access failure | `MEDIA_UNAVAILABLE` | Yes |
-| Provider/capability content rejection | `PROVIDER_VALIDATION_FAILED` | No |
-| Provider HTTP 429 | `PROVIDER_RATE_LIMITED` | Yes |
-| Provider network or HTTP 5xx | `PROVIDER_UNAVAILABLE` | Yes |
-| Expired/revoked credentials or insufficient scopes | `ACCOUNT_RECONNECT_REQUIRED` | Blocked |
-| Disabled/deleted terminal account | `ACCOUNT_UNAVAILABLE` | No |
-| Unexpected exception | `PUBLISHING_FAILED` | No |
+| Condition                                          | Category                     | Auto-Retryable |
+|----------------------------------------------------|------------------------------|----------------|
+| Missing asset metadata or binary                   | `MEDIA_NOT_FOUND`            | No             |
+| Temporary media/storage access failure             | `MEDIA_UNAVAILABLE`          | Yes            |
+| Provider/capability content rejection              | `PROVIDER_VALIDATION_FAILED` | No             |
+| Provider HTTP 429                                  | `PROVIDER_RATE_LIMITED`      | Yes            |
+| Provider network or HTTP 5xx                       | `PROVIDER_UNAVAILABLE`       | Yes            |
+| Expired/revoked credentials or insufficient scopes | `ACCOUNT_RECONNECT_REQUIRED` | Blocked        |
+| Disabled/deleted terminal account                  | `ACCOUNT_UNAVAILABLE`        | No             |
+| Unexpected exception                               | `PUBLISHING_FAILED`          | No             |
 
 ## Frontend Failure Mapping
 
@@ -91,12 +91,12 @@ for historical records.
 When retry, delete, or reschedule actions fail from the post detail modal, the
 UI maps HTTP status to a safe category:
 
-| HTTP Status | Safe Category |
-|-------------|---------------|
-| 401, 403 | Unauthorized |
-| 404 | Not found |
-| 409 | State conflict |
-| 400, 422 | Validation |
+| HTTP Status       | Safe Category           |
+|-------------------|-------------------------|
+| 401, 403          | Unauthorized            |
+| 404               | Not found               |
+| 409               | State conflict          |
+| 400, 422          | Validation              |
 | 429, network, 5xx | Temporarily unavailable |
 
 An explicitly allowlisted backend error code MAY refine the safe category
@@ -210,7 +210,9 @@ Use `jobId` plus `attemptNumber` to identify one execution attempt. Use
 rescheduling, and replacement jobs. Events contain only allowlisted identifiers,
 canonical categories, outcome, retryability, provider, and duration fields.
 
-The structured lifecycle events are documented here because the temporary design plan was removed after implementation. Treat this section as the durable source for event names, correlation fields, and data-safety rules.
+The structured lifecycle events are documented here because the temporary design plan was removed
+after implementation. Treat this section as the durable source for event names, correlation fields,
+and data-safety rules.
 
 ## Troubleshooting
 

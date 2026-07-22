@@ -376,7 +376,8 @@ graph TB
 
 - Per-user rate limits enforced by API gateway
 - Per-workspace rate limits for fair usage
-- Public waitlist joins use the shared WAITLIST limiter, default-off in SMP until distributed buckets and trusted-proxy address resolution are implemented
+- Public waitlist joins use the shared WAITLIST limiter, default-off in SMP until distributed
+  buckets and trusted-proxy address resolution are implemented
 - Social media API rate limit tracking and backoff
 
 ---

@@ -25,14 +25,14 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 
 ### Technology Stack
 
-| Layer        | Technology                                       |
-|--------------|--------------------------------------------------|
-| **Frontend** | Astro 6 (marketing), Vue 3 (dashboard app)     |
-| **Backend**  | Spring Boot 4, Kotlin, WebFlux (reactive)        |
-| **Database** | PostgreSQL 16 with R2DBC (reactive driver)       |
-| **Cache**    | Redis                                            |
-| **Queue**    | RabbitMQ / Kafka                                 |
-| **Storage**  | S3-compatible (Cloudflare R2, AWS S3)            |
+| Layer        | Technology                                 |
+|--------------|--------------------------------------------|
+| **Frontend** | Astro 6 (marketing), Vue 3 (dashboard app) |
+| **Backend**  | Spring Boot 4, Kotlin, WebFlux (reactive)  |
+| **Database** | PostgreSQL 16 with R2DBC (reactive driver) |
+| **Cache**    | Redis                                      |
+| **Queue**    | RabbitMQ / Kafka                           |
+| **Storage**  | S3-compatible (Cloudflare R2, AWS S3)      |
 
 ### Architecture Style
 

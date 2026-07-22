@@ -19,6 +19,7 @@ future compliance baseline, unmodified.
 ### Task 1: Privacy Policy — rewrite EN content
 
 **Files:**
+
 - Modify: `apps/web/marketing/src/i18n/en.ts` — `legal.privacy.*` keys only
 
 - [ ] **Step 1: Rewrite `en.ts` `legal.privacy` section**
@@ -75,6 +76,7 @@ Expected: No type errors in the modified file.
 ### Task 2: Privacy Policy — rewrite ES content
 
 **Files:**
+
 - Modify: `apps/web/marketing/src/i18n/es.ts` — `legal.privacy.*` keys only
 
 - [ ] **Step 1: Rewrite Spanish translation matching EN structure**
@@ -105,6 +107,7 @@ Expected: All keys present and identical structure between EN and ES privacy obj
 ### Task 3: Terms of Service — rewrite EN content
 
 **Files:**
+
 - Modify: `apps/web/marketing/src/i18n/en.ts` — `legal.terms.*` keys only
 
 - [ ] **Step 1: Rewrite `en.ts` `legal.terms` section**
@@ -157,6 +160,7 @@ terms: {
 ### Task 4: Terms of Service — rewrite ES content
 
 **Files:**
+
 - Modify: `apps/web/marketing/src/i18n/es.ts` — `legal.terms.*` keys only
 
 - [ ] **Step 1: Rewrite Spanish translation matching EN structure**
@@ -171,6 +175,7 @@ Same structure as EN, translated to Spanish. Key terms: "software", "instancia a
 ### Task 5: Acceptable Use Policy — review and adjust EN/ES
 
 **Files:**
+
 - Modify: `apps/web/marketing/src/i18n/en.ts` — `legal.aup.*` keys
 - Modify: `apps/web/marketing/src/i18n/es.ts` — `legal.aup.*` keys
 
@@ -192,6 +197,7 @@ Same review as EN. Verify parity.
 ### Task 6: Cookie Policy — review against real implementation EN/ES
 
 **Files:**
+
 - Modify: `apps/web/marketing/src/i18n/en.ts` — `legal.cookies.*` keys
 - Modify: `apps/web/marketing/src/i18n/es.ts` — `legal.cookies.*` keys
 
@@ -200,6 +206,7 @@ Same review as EN. Verify parity.
 Current EN content is already well-researched and evidence-based (it references actual cookies,
 local storage items, and Ahrefs conditional behaviour). Verify it does not invent categories or
 technologies not actually used. Likely minor adjustments only:
+
 - Remove any "Draft" or "Not in effect" language.
 - Ensure `lastUpdated` reflects real date.
 - Add reference to the Privacy Policy for more detail.
@@ -216,6 +223,7 @@ Same review as EN. Verify parity.
 ### Task 7: Legal publication gate — change to APPROVED
 
 **Files:**
+
 - Modify: `apps/web/marketing/src/legal/legal-publication.ts`
 
 - [ ] **Step 1: Change `legalPublicationStatus` to `APPROVED`**
@@ -238,6 +246,7 @@ Expected: PASS
 ### Task 8: Update `docs/compliance/` boundary marker
 
 **Files:**
+
 - Modify: `docs/compliance/global-legal-readiness.md` or `docs/compliance/_index.md`
 - Or possibly create: `docs/compliance/README.md`
 
@@ -261,11 +270,13 @@ Or create `docs/compliance/README.md` with a similar note.
 ### Task 9: Verification — end-to-end checklist
 
 **Files:**
+
 - Check: all modified files
 
 - [ ] **Step 1: Verify publication gate renders all pages**
 
 Run the marketing dev server (or build) and confirm:
+
 - `/privacy/` shows content (not "not available")
 - `/terms/` shows content
 - `/cookies/` shows content
@@ -292,6 +303,7 @@ Expected: PASS
 ## Verification Summary
 
 After all tasks complete, run these commands:
+
 ```bash
 just frontend-lint
 just frontend-test
@@ -302,4 +314,5 @@ All must pass.
 ## Post-Implementation
 
 - Update Linear issue DALLAY-500 status to Done.
-- Commit all changes with message: `feat(legal): align legal docs with open-source + hosted-instance model`
+- Commit all changes with message:
+  `feat(legal): align legal docs with open-source + hosted-instance model`
