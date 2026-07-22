@@ -15,6 +15,19 @@ export default {
   languageEnglish: 'Inglés',
   languageSpanish: 'Español',
   quickPreferences: 'Preferencias rápidas',
+  accountClosure: {
+    title: 'Cerrar cuenta',
+    description:
+      'Cierra tu cuenta permanentemente y elimina todos los datos asociados. Esta acción no se puede deshacer.',
+    confirmationLabel: 'Escribe DELETE para confirmar',
+    confirmationPlaceholder: 'Escribe DELETE aquí',
+    closeButton: 'Cerrar cuenta',
+    closingButton: 'Cerrando...',
+    success: 'Tu cuenta ha sido cerrada. Redirigiendo...',
+    error: 'Error al cerrar la cuenta. Inténtalo de nuevo.',
+    rateLimited: 'Demasiados intentos. Inténtalo más tarde.',
+    invalidConfirmation: 'Por favor escribe DELETE para confirmar.',
+  },
   privacy: {
     title: 'Privacidad & Datos',
     description:
