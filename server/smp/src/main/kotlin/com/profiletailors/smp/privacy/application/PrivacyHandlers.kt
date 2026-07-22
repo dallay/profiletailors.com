@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.privacy.domain.CreateDataSubjectRequest
 import com.profiletailors.smp.privacy.domain.DataSubjectRequest
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestId
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestRepository
@@ -34,13 +35,15 @@ internal class SubmitAccessRequestHandler(
     override suspend fun handle(command: SubmitAccessRequestCommand): DataSubjectRequestResponse {
         val now = clock.instant()
         val request = DataSubjectRequest.create(
-            id = DataSubjectRequestId.random(),
-            requestType = RequestType.ACCESS,
-            requestedBy = command.requestedByPrincipalId,
-            requestedByEmail = command.requestedByEmail,
-            workspaceId = command.workspaceId,
-            notes = command.notes,
-            createdAt = now,
+            CreateDataSubjectRequest(
+                id = DataSubjectRequestId.random(),
+                requestType = RequestType.ACCESS,
+                requestedBy = command.requestedByPrincipalId,
+                requestedByEmail = command.requestedByEmail,
+                workspaceId = command.workspaceId,
+                notes = command.notes,
+                createdAt = now,
+            ),
         )
 
         auditor.recordSuccess(
@@ -93,13 +96,15 @@ internal class SubmitExportRequestHandler(
     override suspend fun handle(command: SubmitExportRequestCommand): DataSubjectRequestResponse {
         val now = clock.instant()
         val request = DataSubjectRequest.create(
-            id = DataSubjectRequestId.random(),
-            requestType = RequestType.EXPORT,
-            requestedBy = command.requestedByPrincipalId,
-            requestedByEmail = command.requestedByEmail,
-            workspaceId = command.workspaceId,
-            notes = command.notes,
-            createdAt = now,
+            CreateDataSubjectRequest(
+                id = DataSubjectRequestId.random(),
+                requestType = RequestType.EXPORT,
+                requestedBy = command.requestedByPrincipalId,
+                requestedByEmail = command.requestedByEmail,
+                workspaceId = command.workspaceId,
+                notes = command.notes,
+                createdAt = now,
+            ),
         )
 
         auditor.recordSuccess(
@@ -177,14 +182,16 @@ internal class SubmitCorrectionRequestHandler(
         )
 
         val request = DataSubjectRequest.create(
-            id = DataSubjectRequestId.random(),
-            requestType = RequestType.CORRECTION,
-            requestedBy = command.requestedByPrincipalId,
-            requestedByEmail = command.requestedByEmail,
-            workspaceId = command.workspaceId,
-            notes = command.notes,
-            correctionData = correctionData,
-            createdAt = now,
+            CreateDataSubjectRequest(
+                id = DataSubjectRequestId.random(),
+                requestType = RequestType.CORRECTION,
+                requestedBy = command.requestedByPrincipalId,
+                requestedByEmail = command.requestedByEmail,
+                workspaceId = command.workspaceId,
+                notes = command.notes,
+                correctionData = correctionData,
+                createdAt = now,
+            ),
         )
 
         auditor.recordSuccess(
@@ -265,13 +272,15 @@ internal class SubmitDeletionRequestHandler(
         // Record the deletion request
         val now = clock.instant()
         val request = DataSubjectRequest.create(
-            id = DataSubjectRequestId.random(),
-            requestType = RequestType.DELETION,
-            requestedBy = command.requestedByPrincipalId,
-            requestedByEmail = command.requestedByEmail,
-            workspaceId = command.workspaceId,
-            notes = command.notes,
-            createdAt = now,
+            CreateDataSubjectRequest(
+                id = DataSubjectRequestId.random(),
+                requestType = RequestType.DELETION,
+                requestedBy = command.requestedByPrincipalId,
+                requestedByEmail = command.requestedByEmail,
+                workspaceId = command.workspaceId,
+                notes = command.notes,
+                createdAt = now,
+            ),
         )
 
         auditor.recordSuccess(

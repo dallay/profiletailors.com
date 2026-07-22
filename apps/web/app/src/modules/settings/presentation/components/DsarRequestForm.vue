@@ -79,7 +79,6 @@ defineExpose({ submitting })
 <template>
   <div class="space-y-5">
     <div class="space-y-2">
-      <!-- biome-ignore lint/a11y/noLabelWithoutControl: $t() provides accessible text, Biome can't resolve i18n keys statically -->
       <label for="dsar-request-type" class="text-sm font-medium text-text-display">
         {{ t('settings.privacy.form.type.label') }}
       </label>

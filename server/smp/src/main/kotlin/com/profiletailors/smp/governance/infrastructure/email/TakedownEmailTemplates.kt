@@ -9,6 +9,9 @@ import com.profiletailors.notifications.domain.TemplateId
  * Identifier for the "takedown reported" email template.
  * Sent to workspace admins when a new takedown report is created.
  */
+private const val ERR_RECIPIENT_BLANK = "Recipient cannot be blank"
+private const val ERR_ASSET_ID_BLANK = "Asset id cannot be blank"
+
 object TakedownReportedEmailTemplateId {
     const val VALUE: String = "governance.takedown.reported"
     val INSTANCE: TemplateId = TemplateId(VALUE)
@@ -45,8 +48,8 @@ data class TakedownReportedEmail(
     val mediaReferenceUrl: String?,
 ) {
     init {
-        require(recipient.isNotBlank()) { "Recipient cannot be blank" }
-        require(assetId.isNotBlank()) { "Asset id cannot be blank" }
+        require(recipient.isNotBlank()) { ERR_RECIPIENT_BLANK }
+        require(assetId.isNotBlank()) { ERR_ASSET_ID_BLANK }
     }
 
     fun toPayload(): NotificationPayload = NotificationPayload(
@@ -139,8 +142,8 @@ data class TakedownReportedEmail(
  */
 data class TakedownApprovedEmail(val reportId: String, val recipient: String, val assetId: String) {
     init {
-        require(recipient.isNotBlank()) { "Recipient cannot be blank" }
-        require(assetId.isNotBlank()) { "Asset id cannot be blank" }
+        require(recipient.isNotBlank()) { ERR_RECIPIENT_BLANK }
+        require(assetId.isNotBlank()) { ERR_ASSET_ID_BLANK }
     }
 
     fun toPayload(): NotificationPayload = NotificationPayload(
@@ -211,8 +214,8 @@ data class TakedownRejectedEmail(
     val rejectionReason: String?,
 ) {
     init {
-        require(recipient.isNotBlank()) { "Recipient cannot be blank" }
-        require(assetId.isNotBlank()) { "Asset id cannot be blank" }
+        require(recipient.isNotBlank()) { ERR_RECIPIENT_BLANK }
+        require(assetId.isNotBlank()) { ERR_ASSET_ID_BLANK }
     }
 
     fun toPayload(): NotificationPayload = NotificationPayload(
