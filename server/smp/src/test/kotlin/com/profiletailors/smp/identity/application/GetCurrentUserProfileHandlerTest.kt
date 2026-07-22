@@ -9,11 +9,11 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class GetCurrentUserProfileServiceTest {
+class GetCurrentUserProfileHandlerTest {
 
     @Test
     fun `returns current user profile from principal context and persisted identity`() = runTest {
-        val service = GetCurrentUserProfileService(
+        val handler = GetCurrentUserProfileHandler(
             principalContextProvider = PrincipalContextProviderStub(
                 PrincipalContext(
                     principalId = "user-1",
@@ -41,7 +41,7 @@ class GetCurrentUserProfileServiceTest {
             ),
         )
 
-        val profile = service.execute()
+        val profile = handler.handle()
 
         assertEquals("user-1", profile.principalId)
         assertEquals("yuniel@example.com", profile.email)
@@ -52,7 +52,7 @@ class GetCurrentUserProfileServiceTest {
 
     @Test
     fun `returns verified status from persisted identity`() = runTest {
-        val service = GetCurrentUserProfileService(
+        val handler = GetCurrentUserProfileHandler(
             principalContextProvider = PrincipalContextProviderStub(
                 PrincipalContext(
                     principalId = "user-1",
@@ -74,7 +74,7 @@ class GetCurrentUserProfileServiceTest {
             ),
         )
 
-        assertEquals(EmailStatus.VERIFIED, service.execute().emailStatus)
+        assertEquals(EmailStatus.VERIFIED, handler.handle().emailStatus)
     }
 
     private class PrincipalContextProviderStub(private val principalContext: PrincipalContext) :

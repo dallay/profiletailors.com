@@ -23,7 +23,11 @@ test.describe('media copyright takedown', () => {
 
     await page.route('**/api/governance/takedown/reports', async (route) => {
       if (route.request().method() === 'GET') {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([report]) })
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([report]),
+        })
         return
       }
       await route.fallback()
@@ -40,6 +44,8 @@ test.describe('media copyright takedown', () => {
 
     await expect(page.getByText('Copyright infringement')).toBeVisible()
     await page.getByRole('button', { name: /approve/i }).click()
-    await expect(page.locator('[data-slot="badge"]').getByText('APPROVED', { exact: true })).toBeVisible()
+    await expect(
+      page.locator('[data-slot="badge"]').getByText('APPROVED', { exact: true }),
+    ).toBeVisible()
   })
 })

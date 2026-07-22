@@ -1194,7 +1194,6 @@ async function handleCreateSubmit(
           </ComposerMediaPickerShell>
 
           <div class="space-y-2">
-            <!-- biome-ignore lint/a11y/noLabelWithoutControl: $t() provides accessible text, Biome can't resolve i18n keys statically -->
             <label for="create-post-first-comment" class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
               {{ $t('composer.firstComment') }}
             </label>

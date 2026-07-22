@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
 import com.profiletailors.smp.identity.application.CurrentUserProfile
-import com.profiletailors.smp.identity.application.GetCurrentUserProfileService
+import com.profiletailors.smp.identity.application.GetCurrentUserProfileHandler
 import com.profiletailors.smp.identity.domain.EmailStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -18,7 +18,7 @@ class CurrentUserProfileControllerTest {
             displayIdentity = "yuniel",
             emailStatus = EmailStatus.PENDING,
         )
-        val controller = CurrentUserProfileController(FakeGetCurrentUserProfileService(expected))
+        val controller = CurrentUserProfileController(FakeGetCurrentUserProfileHandler(expected))
 
         val response = controller.currentUser()
 
@@ -26,11 +26,11 @@ class CurrentUserProfileControllerTest {
         assertEquals(EmailStatus.PENDING, response.body?.emailStatus)
     }
 
-    private class FakeGetCurrentUserProfileService(private val result: CurrentUserProfile) :
-        GetCurrentUserProfileService(
+    private class FakeGetCurrentUserProfileHandler(private val result: CurrentUserProfile) :
+        GetCurrentUserProfileHandler(
             principalContextProvider = FakePrincipalContextProvider(),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
         ) {
-        override suspend fun execute(): CurrentUserProfile = result
+        override suspend fun handle(): CurrentUserProfile = result
     }
 }

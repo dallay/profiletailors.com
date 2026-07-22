@@ -384,7 +384,6 @@ function segmentedControlClass(active: boolean) {
           </div>
 
           <div v-else class="space-y-3">
-            <!-- biome-ignore lint/a11y/noLabelWithoutControl: $t() provides accessible text, Biome can't resolve i18n keys statically -->
             <label for="workspace-name-input" class="sr-only">{{ $t('workspace.rename') }}</label>
             <input
               id="workspace-name-input"

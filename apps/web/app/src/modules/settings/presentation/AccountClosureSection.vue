@@ -62,7 +62,6 @@ async function handleCloseAccount() {
     </CardHeader>
 
     <CardContent class="mt-6 space-y-4 p-0">
-      <!-- biome-ignore lint/a11y/noLabelWithoutControl: $t() provides accessible text, Biome can't resolve i18n keys statically -->
       <label for="closure-confirmation-input" class="sr-only">
         {{ t('settings.accountClosure.confirmationLabel') }}
       </label>

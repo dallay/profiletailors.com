@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
 import com.profiletailors.smp.identity.application.CurrentUserProfile
-import com.profiletailors.smp.identity.application.GetCurrentUserProfileService
+import com.profiletailors.smp.identity.application.GetCurrentUserProfileHandler
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController
  * - Requires authentication (Bearer JWT token)
  * - Returns profile data for the authenticated user only
  *
- * @property service The service for retrieving current user profile.
+ * @property handler The handler for retrieving the current user profile.
  * @created 2026-05-24
  */
 @Validated
@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController
     name = "User Profile",
     description = "Current user profile endpoints",
 )
-class CurrentUserProfileController(private val service: GetCurrentUserProfileService) {
+class CurrentUserProfileController(private val handler: GetCurrentUserProfileHandler) {
 
     /**
      * Get current authenticated user's profile.
@@ -74,5 +74,5 @@ class CurrentUserProfileController(private val service: GetCurrentUserProfileSer
         ],
     )
     @GetMapping("/me", version = "1")
-    suspend fun currentUser(): ResponseEntity<CurrentUserProfile> = ResponseEntity.ok(service.execute())
+    suspend fun currentUser(): ResponseEntity<CurrentUserProfile> = ResponseEntity.ok(handler.handle())
 }

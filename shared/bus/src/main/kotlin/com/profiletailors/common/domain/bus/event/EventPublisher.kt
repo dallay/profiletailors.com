@@ -16,8 +16,9 @@ interface EventPublisher<E : DomainEvent> {
     suspend fun publish(events: List<E>) = events.forEach { publish(it) }
 
     companion object {
+        /** Returns a no-op publisher that silently discards all events. */
         fun <E : DomainEvent> noop(): EventPublisher<E> = object : EventPublisher<E> {
-            override suspend fun publish(event: E) {}
+            override suspend fun publish(event: E) = Unit
         }
     }
 }

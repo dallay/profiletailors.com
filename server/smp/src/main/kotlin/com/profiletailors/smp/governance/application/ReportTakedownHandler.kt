@@ -51,8 +51,7 @@ internal class ReportTakedownHandler(
 
         // Derive reporter email from identity service; fallback to subject or placeholder
         val reporterEmail = principalIdentityPort.findEmailByPrincipalId(actor.principalId)
-            ?: actor.subject.takeIf { it.contains('@') }
-            ?: "${actor.principalId}@placeholder"
+            ?: if (actor.subject.contains('@')) actor.subject else "${actor.principalId}@placeholder"
 
         val report = TakedownReport(
             reportId = UUID.randomUUID().toString(),

@@ -358,7 +358,6 @@ function cancelReschedule() {
             <p v-if="retryError" role="alert" class="text-[10px] font-mono text-error">{{ retryError }}</p>
           </div>
           <div v-if="showReschedule" class="px-6 pt-3 pb-2 space-y-2">
-            <!-- biome-ignore lint/a11y/noLabelWithoutControl: t() provides accessible text, Biome can't resolve i18n keys statically -->
             <label for="reschedule-datetime" class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
               {{ t('postDetail.scheduledFor') }}
             </label>

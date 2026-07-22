@@ -88,6 +88,7 @@ class AuthRateLimitWebFilter internal constructor(
         }
     }
 
+    @Suppress("S6508") // Mono<Void> is correct Reactor idiom for completion-without-value
     private fun reject(exchange: ServerWebExchange, window: Window, now: Long): Mono<Void> {
         val response = exchange.response
         response.statusCode = HttpStatus.TOO_MANY_REQUESTS
