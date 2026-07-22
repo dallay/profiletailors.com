@@ -256,13 +256,6 @@ class RealLinkedInAssetUploader(
     }
 
     /**
-     * Encodes a URN by percent-encoding characters that are reserved in URI paths.
-     *
-     * @return The URN with `:` encoded as `%3A` and `/` encoded as `%2F`.
-     */
-    private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/", "%2F")
-
-    /**
      * Concatenates all byte arrays emitted by the flow.
      *
      * @return The concatenated bytes, or an empty byte array if no chunks were emitted.
