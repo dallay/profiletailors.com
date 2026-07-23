@@ -1,16 +1,16 @@
 schemaVersion: 1
 task: security-configuration-drift-auditor
-lastExecution: 2026-07-23T12:00:00Z
+lastExecution: 2026-07-23T18:45:32Z
 outcome: PARTIALLY_COMPLETED
 findings:
   - id: actuator-prometheus-exposure-drift
     type: security-configuration-drift
     status: unresolved
-    evidence: "The endpoint `/actuator/prometheus` is permitted without authentication in `IdentitySecurityConfiguration.kt` (lines 148-158), whereas `docs/monitoring/actuator-security.md` specifies that only `/actuator/health` is public and other endpoints require authentication. Removing `permitAll` from `/actuator/prometheus` represents a HIGH RISK change that could break internal Prometheus scraper setups if they rely on anonymous access on management port `9091` over VPC. Thus, the finding is persisted as unresolved."
+    evidence: "The endpoint `/actuator/prometheus` is permitted without authentication in `IdentitySecurityConfiguration.kt` (lines 133-142), whereas `docs/monitoring/actuator-security.md` specifies that only `/actuator/health` is public and other endpoints require authentication. The endpoint is bound only to the dedicated management port 9091 (not the main application port 7638) per `application.yaml` management.server.port configuration. Removing `permitAll` from `/actuator/prometheus` represents a HIGH RISK change that could break internal Prometheus scraper setups if they rely on anonymous access on management port `9091` over VPC. Thus, the finding is persisted as unresolved."
 checks:
   - name: backend-build-check
-    status: Passed
+    status: Not run
   - name: backend-test-check
-    status: Passed
+    status: Not run
   - name: frontend-biome-check
-    status: Passed
+    status: Not run
