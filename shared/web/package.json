@@ -1,0 +1,27 @@
+{
+  "name": "@profiletailors/shared-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./types/*": "./types/*",
+    "./utils/*": "./utils/*",
+    "./validation/*": "./validation/*"
+  },
+  "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.6",
+    "@vitest/ui": "^4.1.9",
+    "jsdom": "^25.0.1"
+  }
+}

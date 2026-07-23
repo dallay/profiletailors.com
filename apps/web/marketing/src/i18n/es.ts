@@ -192,4 +192,32 @@ export const es = {
     errorGeneric: 'No se pudo registrar. Inténtalo de nuevo.',
     success: '¡Estás en la lista!',
   },
+  consent: {
+    banner: {
+      heading: 'Usamos cookies',
+      description:
+        'Usamos cookies para mejorar tu experiencia. Puedes leer nuestra <a href="/privacy/">política de privacidad</a> para más detalles.',
+    },
+    category: {
+      necessary: {
+        label: 'Cookies necesarias',
+        description: 'Requeridas para autenticación, seguridad y funcionalidad básica del sitio.',
+      },
+      analytics: {
+        label: 'Cookies de análisis',
+        description: 'Nos ayudan a entender cómo usas el sitio para mejorar tu experiencia.',
+      },
+    },
+    action: {
+      acceptAll: 'Aceptar todas',
+      rejectAll: 'Rechazar todas',
+      savePreferences: 'Guardar preferencias',
+    },
+    footer: {
+      cookieSettings: 'Configuración de cookies',
+    },
+    privacy: {
+      link: 'política de privacidad',
+    },
+  },
 } as const
