@@ -4,7 +4,8 @@ import com.profiletailors.common.domain.context.MissingPrincipalContextException
 import com.profiletailors.common.domain.context.MissingResourceContextException
 import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
-import org.junit.jupiter.api.Assertions.assertEquals
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 
@@ -16,18 +17,18 @@ class PlatformProblemDetailsHandlerTest {
     fun `maps missing principal context to unauthorized problem detail`() {
         val problem = handler.handle(MissingPrincipalContextException())
 
-        assertEquals(HttpStatus.UNAUTHORIZED.value(), problem.status)
-        assertEquals("Principal context missing", problem.title)
-        assertEquals("Authentication is required.", problem.detail)
+        problem.status shouldBe HttpStatus.UNAUTHORIZED.value()
+        problem.title shouldBe "Principal context missing"
+        problem.detail shouldBe "Authentication is required."
     }
 
     @Test
     fun `maps missing resource context to bad request problem detail`() {
         val problem = handler.handle(MissingResourceContextException())
 
-        assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
-        assertEquals("Resource context missing", problem.title)
-        assertEquals("The request is missing required context.", problem.detail)
+        problem.status shouldBe HttpStatus.BAD_REQUEST.value()
+        problem.title shouldBe "Resource context missing"
+        problem.detail shouldBe "The request is missing required context."
     }
 
     @Test
@@ -39,8 +40,9 @@ class PlatformProblemDetailsHandlerTest {
             ),
         )
 
-        assertEquals(HttpStatus.UNAUTHORIZED.value(), problem.status)
-        assertEquals("Refresh session invalid", problem.title)
-        assertEquals("Session is not active.", problem.detail)
+        problem.status shouldBe HttpStatus.UNAUTHORIZED.value()
+        problem.title shouldBe "Refresh session invalid"
+        problem.detail shouldBe "Session is not active."
+        problem.properties?.get("lookupKey").shouldBeNull()
     }
 }

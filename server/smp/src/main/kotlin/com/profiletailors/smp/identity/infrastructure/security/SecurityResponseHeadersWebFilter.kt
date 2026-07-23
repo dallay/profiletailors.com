@@ -36,8 +36,8 @@ class SecurityResponseHeadersWebFilter : WebFilter {
     }
 
     private fun HttpHeaders.putIfAbsent(name: String, value: List<String>) {
-        if (!containsKey(name)) {
-            this[name] = value
+        if (get(name) == null) {
+            value.forEach { add(name, it) }
         }
     }
 

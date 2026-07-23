@@ -16,6 +16,7 @@ private val logger = LoggerFactory.getLogger(UnsplashProblemDetailsHandler::clas
 class UnsplashProblemDetailsHandler {
 
     companion object {
+        const val ERROR_CODE_PROPERTY = "errorCode"
         private const val UNSPLASH_NOT_CONFIGURED_DETAIL = "Unsplash is not configured for this environment."
         private const val UNSPLASH_PHOTO_NOT_FOUND_DETAIL = "Unsplash photo not found."
         private const val UNSPLASH_PROVIDER_ERROR_DETAIL = "Unsplash is temporarily unavailable."
@@ -88,7 +89,4 @@ class UnsplashProblemDetailsHandler {
         }
     }
 
-    private companion object {
-        const val ERROR_CODE_PROPERTY = "errorCode"
-    }
 }

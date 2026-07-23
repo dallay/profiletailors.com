@@ -1,8 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -39,7 +38,7 @@ class RefreshSessionOriginValidationWebFilterTest {
             Mono.empty()
         }).block()
 
-        assertTrue(chainCalled)
+        chainCalled shouldBe true
     }
 
     @Test
@@ -52,7 +51,7 @@ class RefreshSessionOriginValidationWebFilterTest {
 
         filter.filter(exchange, WebFilterChain { Mono.empty() }).block()
 
-        assertEquals(HttpStatus.FORBIDDEN, exchange.response.statusCode)
+        exchange.response.statusCode shouldBe HttpStatus.FORBIDDEN
     }
 
     @Test
@@ -68,7 +67,7 @@ class RefreshSessionOriginValidationWebFilterTest {
             Mono.empty()
         }).block()
 
-        assertTrue(chainCalled)
+        chainCalled shouldBe true
     }
 
     @Test
@@ -88,6 +87,6 @@ class RefreshSessionOriginValidationWebFilterTest {
             Mono.empty()
         }).block()
 
-        assertTrue(chainCalled)
+        chainCalled shouldBe true
     }
 }

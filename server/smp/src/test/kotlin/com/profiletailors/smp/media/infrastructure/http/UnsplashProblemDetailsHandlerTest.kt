@@ -23,7 +23,7 @@ class UnsplashProblemDetailsHandlerTest {
     }
 
     @Test
-    fun `photo not found exception maps to 404 with external id`() {
+    fun `photo not found exception maps to 404 with id omitted`() {
         val result = handler.handle(UnsplashPhotoNotFoundException("photo-404"))
 
         result.status shouldBe HttpStatus.NOT_FOUND.value()

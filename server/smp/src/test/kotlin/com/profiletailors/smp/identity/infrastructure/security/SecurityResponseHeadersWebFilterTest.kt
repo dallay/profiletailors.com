@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import org.springframework.mock.web.server.MockServerWebExchange
@@ -20,15 +20,13 @@ class SecurityResponseHeadersWebFilterTest {
             exchange.response.setComplete()
         }).block()
 
-        assertEquals(
-            "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'",
-            exchange.response.headers.getFirst("Content-Security-Policy"),
-        )
-        assertEquals("DENY", exchange.response.headers.getFirst("X-Frame-Options"))
-        assertEquals("nosniff", exchange.response.headers.getFirst("X-Content-Type-Options"))
-        assertEquals("strict-origin-when-cross-origin", exchange.response.headers.getFirst("Referrer-Policy"))
-        assertEquals("camera=(), microphone=(), geolocation=()", exchange.response.headers.getFirst("Permissions-Policy"))
-        assertNull(exchange.response.headers.getFirst("Strict-Transport-Security"))
+        exchange.response.headers.getFirst("Content-Security-Policy") shouldBe
+            "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'"
+        exchange.response.headers.getFirst("X-Frame-Options") shouldBe "DENY"
+        exchange.response.headers.getFirst("X-Content-Type-Options") shouldBe "nosniff"
+        exchange.response.headers.getFirst("Referrer-Policy") shouldBe "strict-origin-when-cross-origin"
+        exchange.response.headers.getFirst("Permissions-Policy") shouldBe "camera=(), microphone=(), geolocation=()"
+        exchange.response.headers.getFirst("Strict-Transport-Security").shouldBeNull()
     }
 
     @Test
@@ -43,9 +41,7 @@ class SecurityResponseHeadersWebFilterTest {
             exchange.response.setComplete()
         }).block()
 
-        assertEquals(
-            "max-age=31536000; includeSubDomains; preload",
-            exchange.response.headers.getFirst("Strict-Transport-Security"),
-        )
+        exchange.response.headers.getFirst("Strict-Transport-Security") shouldBe
+            "max-age=31536000; includeSubDomains; preload"
     }
 }

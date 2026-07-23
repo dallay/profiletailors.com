@@ -74,6 +74,8 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
     private fun allowedOrigin(): String = "http://localhost"
 
+    private fun sameOrigin(): String = "http://localhost:$serverPort"
+
     override suspend fun seedScenario() {
         failWorkspaceProvisioning = false
         failConsentRecording = false
@@ -568,9 +570,23 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/refresh")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
+            .header(HttpHeaders.ORIGIN, sameOrigin())
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `refresh accepts same-origin request matching server port`() {
+        val registerResult = registerAndExtract()
+
+        webTestClient.post()
+            .uri("/api/auth/refresh")
+            .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
+            .header(HttpHeaders.ORIGIN, sameOrigin())
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .exchange()
+            .expectStatus().isOk
     }
 
     @Test
