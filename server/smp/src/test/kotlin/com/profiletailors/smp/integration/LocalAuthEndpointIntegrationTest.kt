@@ -565,6 +565,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/refresh")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
+            .header(HttpHeaders.ORIGIN, allowedOrigin)
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
