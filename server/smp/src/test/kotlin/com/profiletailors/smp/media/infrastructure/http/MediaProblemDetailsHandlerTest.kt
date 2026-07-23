@@ -26,10 +26,10 @@ class MediaProblemDetailsHandlerTest {
         val result = handler.handle(exception)
 
         assertEquals(HttpStatus.NOT_FOUND.value(), result.status)
-        assertEquals("Asset asset-42 not found.", result.detail)
+        assertEquals("Requested asset was not found.", result.detail)
         assertEquals("Asset not found", result.title)
         assertEquals("ASSET_NOT_FOUND", result.properties?.get("errorCode"))
-        assertEquals("asset-42", result.properties?.get("assetId"))
+        assertNull(result.properties?.get("assetId"))
     }
 
     @Test
@@ -38,10 +38,10 @@ class MediaProblemDetailsHandlerTest {
         val result = handler.handle(exception)
 
         assertEquals(HttpStatus.CONFLICT.value(), result.status)
-        assertEquals("Asset asset-1 has already completed upload and cannot be re-uploaded.", result.detail)
+        assertEquals("The asset cannot be uploaded in its current state.", result.detail)
         assertEquals("Upload conflict", result.title)
         assertEquals("ASSET_UPLOAD_CONFLICT", result.properties?.get("errorCode"))
-        assertEquals("READY", result.properties?.get("currentStatus"))
+        assertNull(result.properties?.get("currentStatus"))
     }
 
     @Test
@@ -50,10 +50,10 @@ class MediaProblemDetailsHandlerTest {
         val result = handler.handle(exception)
 
         assertEquals(HttpStatus.CONFLICT.value(), result.status)
-        assertEquals("Asset asset-2 already has an upload in progress.", result.detail)
+        assertEquals("An upload is already in progress for this asset.", result.detail)
         assertEquals("Upload in progress", result.title)
         assertEquals("ASSET_UPLOAD_IN_PROGRESS", result.properties?.get("errorCode"))
-        assertEquals("PROCESSING", result.properties?.get("currentStatus"))
+        assertNull(result.properties?.get("currentStatus"))
     }
 
     @Test
@@ -62,10 +62,10 @@ class MediaProblemDetailsHandlerTest {
         val result = handler.handle(exception)
 
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), result.status)
-        assertEquals("Asset asset-3 is not ready: storage unavailable", result.detail)
+        assertEquals("The asset is not ready for this operation.", result.detail)
         assertEquals("Asset not ready", result.title)
         assertEquals("ASSET_NOT_READY", result.properties?.get("errorCode"))
-        assertEquals("storage unavailable", result.properties?.get("reason"))
+        assertNull(result.properties?.get("reason"))
     }
 
     @Test
@@ -127,13 +127,13 @@ class MediaProblemDetailsHandlerTest {
         assertEquals("3600", entity.headers[HttpHeaders.RETRY_AFTER]?.first())
 
         val body = entity.body!!
-        assertEquals("Rate limit exceeded for hourly_creations.", body.detail)
+        assertEquals("Rate limit exceeded. Please try again later.", body.detail)
         assertEquals("Rate limit exceeded", body.title)
         assertEquals("RATE_LIMIT_EXCEEDED", body.properties?.get("errorCode"))
-        assertEquals("ws-1", body.properties?.get("workspaceId"))
-        assertEquals("hourly_creations", body.properties?.get("limitType"))
-        assertEquals(201, body.properties?.get("currentValue"))
-        assertEquals(200, body.properties?.get("limitValue"))
+        assertNull(body.properties?.get("workspaceId"))
+        assertNull(body.properties?.get("limitType"))
+        assertNull(body.properties?.get("currentValue"))
+        assertNull(body.properties?.get("limitValue"))
         assertEquals(3600, body.properties?.get("retryAfterSeconds"))
     }
 
@@ -143,7 +143,7 @@ class MediaProblemDetailsHandlerTest {
         val result = handler.handle(exception)
 
         assertEquals(HttpStatus.BAD_REQUEST.value(), result.status)
-        assertEquals("Cursor is malformed: invalid base64", result.detail)
+        assertEquals("Invalid pagination cursor.", result.detail)
         assertEquals("Invalid cursor", result.title)
         assertEquals("INVALID_CURSOR", result.properties?.get("errorCode"))
     }
@@ -154,7 +154,7 @@ class MediaProblemDetailsHandlerTest {
         val result = handler.handle(exception)
 
         assertEquals(HttpStatus.BAD_REQUEST.value(), result.status)
-        assertEquals("", result.detail)
+        assertEquals("Invalid pagination cursor.", result.detail)
     }
 
     @Test
@@ -163,7 +163,7 @@ class MediaProblemDetailsHandlerTest {
         val result = handler.handle(exception)
 
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), result.status)
-        assertEquals("Storage gateway unreachable", result.detail)
+        assertEquals("Media service is temporarily unavailable.", result.detail)
         assertEquals("Media service unavailable", result.title)
         assertEquals("MEDIA_SERVICE_UNAVAILABLE", result.properties?.get("errorCode"))
     }
@@ -174,7 +174,7 @@ class MediaProblemDetailsHandlerTest {
         val result = handler.handle(exception)
 
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), result.status)
-        assertEquals("", result.detail)
+        assertEquals("Media service is temporarily unavailable.", result.detail)
     }
 
     @Test

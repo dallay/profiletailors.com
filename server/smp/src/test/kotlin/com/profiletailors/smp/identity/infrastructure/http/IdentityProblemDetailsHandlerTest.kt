@@ -2,8 +2,13 @@ package com.profiletailors.smp.identity.infrastructure.http
 
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
+import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
+import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
+import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
 import com.profiletailors.smp.identity.application.RegistrationDisabledException
+import com.profiletailors.smp.identity.application.RegistrationValidationException
 import com.profiletailors.smp.identity.application.UnverifiedEmailException
+import com.profiletailors.smp.identity.application.UserAlreadyExistsException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -32,6 +37,52 @@ class IdentityProblemDetailsHandlerTest {
         assertEquals(URI("/problems/registration-disabled"), result.type)
         assertEquals("Registration is not available.", result.detail)
         assertEquals("registration_disabled", result.properties?.get("code"))
+    }
+
+    @Test
+    fun `invalid credentials map to generic problem detail`() {
+        val result = handler.handle(InvalidEmailPasswordException())
+
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), result.status)
+        assertEquals("Invalid credentials", result.title)
+        assertEquals("Invalid email or password.", result.detail)
+    }
+
+    @Test
+    fun `user already exists omits email from problem detail`() {
+        val result = handler.handle(UserAlreadyExistsException("test@example.com"))
+
+        assertEquals(HttpStatus.CONFLICT.value(), result.status)
+        assertEquals("User already exists", result.title)
+        assertEquals("Unable to complete registration with the provided credentials.", result.detail)
+        assertEquals("USER_ALREADY_EXISTS", result.properties?.get("code"))
+    }
+
+    @Test
+    fun `invalid registration input maps to generic problem detail`() {
+        val result = handler.handle(InvalidRegistrationInputException("email format leaked"))
+
+        assertEquals(HttpStatus.BAD_REQUEST.value(), result.status)
+        assertEquals("Invalid registration input", result.title)
+        assertEquals("Registration request is invalid.", result.detail)
+    }
+
+    @Test
+    fun `registration validation maps to generic problem detail`() {
+        val result = handler.handle(RegistrationValidationException("password policy leaked"))
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), result.status)
+        assertEquals("Registration validation failed", result.title)
+        assertEquals("Registration validation failed.", result.detail)
+    }
+
+    @Test
+    fun `invalid verification token maps to generic problem detail`() {
+        val result = handler.handle(InvalidVerificationTokenException("expired token details leaked"))
+
+        assertEquals(HttpStatus.BAD_REQUEST.value(), result.status)
+        assertEquals("Invalid verification token", result.title)
+        assertEquals("Invalid verification token.", result.detail)
     }
 
     @ParameterizedTest

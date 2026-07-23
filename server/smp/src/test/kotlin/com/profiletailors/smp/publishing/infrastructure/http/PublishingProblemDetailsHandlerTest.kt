@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
+import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
@@ -13,7 +14,7 @@ import com.profiletailors.smp.publishing.domain.PublicationStateTransitionExcept
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 
@@ -27,7 +28,7 @@ class PublishingProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), problem.status)
         assertEquals("Provider not configured", problem.title)
-        assertEquals("Provider 'LINKEDIN' is not configured.", problem.detail)
+        assertEquals("The requested provider is not available.", problem.detail)
     }
 
     @Test
@@ -47,7 +48,7 @@ class PublishingProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
         assertEquals("OAuth state invalid", problem.title)
-        assertEquals("Custom message", problem.detail)
+        assertEquals("OAuth state is invalid.", problem.detail)
     }
 
     @Test
@@ -57,7 +58,7 @@ class PublishingProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.NOT_FOUND.value(), problem.status)
         assertEquals("Publication not found", problem.title)
-        assertEquals("Publication 'pub-missing' was not found in the active workspace.", problem.detail)
+        assertEquals("Publication not found.", problem.detail)
     }
 
     // -------------------------------------------------------------------------
@@ -71,7 +72,7 @@ class PublishingProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.CONFLICT.value(), problem.status)
         assertEquals("Publication state conflict", problem.title)
-        assertTrue(problem.detail!!.contains("pub-123"))
+        assertEquals("The publication cannot transition from its current state.", problem.detail)
     }
 
     @Test
@@ -81,7 +82,7 @@ class PublishingProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.CONFLICT.value(), problem.status)
         assertEquals("Publication state conflict", problem.title)
-        assertTrue(problem.detail!!.contains("pub-456"))
+        assertEquals("The publication cannot transition from its current state.", problem.detail)
     }
 
     @Test
@@ -91,7 +92,7 @@ class PublishingProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.CONFLICT.value(), problem.status)
         assertEquals("Publication state conflict", problem.title)
-        assertTrue(problem.detail!!.contains("pub-789"))
+        assertEquals("The publication cannot transition from its current state.", problem.detail)
     }
 
     @Test
@@ -101,7 +102,7 @@ class PublishingProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.CONFLICT.value(), problem.status)
         assertEquals("Publication state conflict", problem.title)
-        assertTrue(problem.detail!!.contains("pub-retry"))
+        assertEquals("The publication cannot transition from its current state.", problem.detail)
     }
 
     @Test
@@ -111,8 +112,7 @@ class PublishingProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.CONFLICT.value(), problem.status)
         assertEquals("Publication state conflict", problem.title)
-        assertTrue(problem.detail!!.contains("pub-terminal"))
-        assertTrue(problem.detail!!.contains("PUBLISHED"))
+        assertEquals("The publication cannot transition from its current state.", problem.detail)
     }
 
     @Test
@@ -122,6 +122,18 @@ class PublishingProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.CONFLICT.value(), problem.status)
         assertEquals("Publication state conflict", problem.title)
-        assertEquals("Generic state transition error for pub-base", problem.detail)
+        assertEquals("The publication cannot transition from its current state.", problem.detail)
+    }
+
+    @Test
+    fun `maps asset not ready without leaking asset id`() {
+        val exception = AssetNotReadyException("asset-123", "storage unavailable")
+        val problem = handler.handle(exception)
+
+        assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
+        assertEquals("Asset not ready", problem.title)
+        assertEquals("One or more assets are not ready for publishing.", problem.detail)
+        assertEquals("ASSET_NOT_READY", problem.properties?.get("errorCode"))
+        assertNull(problem.properties?.get("assetId"))
     }
 }
