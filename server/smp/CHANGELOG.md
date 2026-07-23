@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/dallay/profiletailors.com/compare/smp@v0.3.1...smp@v0.3.2) (2026-07-23)
+
+
+### Refactoring
+
+* **smp:** move backend.Dockerfile to server/smp for Release Please detection ([e0839fb](https://github.com/dallay/profiletailors.com/commit/e0839fb4d16a01cdee05c8341964e907c8443d76))
+
 ## [0.3.1](https://github.com/dallay/profiletailors.com/compare/smp@v0.3.0...smp@v0.3.1) (2026-07-22)
 
 
