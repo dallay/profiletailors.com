@@ -12,12 +12,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 @RestControllerAdvice
 class PlatformProblemDetailsHandler {
 
-    companion object {
-        private const val UNAUTHORIZED_DETAIL = "Authentication is required."
-        private const val BAD_REQUEST_DETAIL = "The request is missing required context."
-        private const val INVALID_REFRESH_SESSION_DETAIL = "Session is not active."
-    }
-
     @ExceptionHandler(MissingPrincipalContextException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: MissingPrincipalContextException): ProblemDetail =
@@ -45,4 +39,10 @@ class PlatformProblemDetailsHandler {
         ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, INVALID_REFRESH_SESSION_DETAIL).apply {
             title = "Refresh session invalid"
         }
+
+    companion object {
+        private const val UNAUTHORIZED_DETAIL = "Authentication is required."
+        private const val BAD_REQUEST_DETAIL = "The request is missing required context."
+        private const val INVALID_REFRESH_SESSION_DETAIL = "Session is not active."
+    }
 }

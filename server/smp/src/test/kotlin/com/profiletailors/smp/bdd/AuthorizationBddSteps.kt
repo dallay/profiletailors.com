@@ -37,10 +37,6 @@ import java.nio.charset.StandardCharsets
 
 @Suppress("LargeClass")
 class AuthorizationBddSteps {
-    companion object {
-        private const val TRUSTED_BROWSER_ORIGIN = "http://localhost"
-        private const val UNTRUSTED_ORIGIN = "https://evil.example"
-    }
 
     @Autowired
     private lateinit var webTestClient: WebTestClient
@@ -955,4 +951,9 @@ class AuthorizationBddSteps {
 
     private fun requireLatestAuthorizationFact() =
         auditHook.facts.lastOrNull().also { assertNotNull(it, "Expected at least one authorization audit fact") }!!
+
+    companion object {
+        private const val TRUSTED_BROWSER_ORIGIN = "http://localhost"
+        private const val UNTRUSTED_ORIGIN = "https://evil.example"
+    }
 }

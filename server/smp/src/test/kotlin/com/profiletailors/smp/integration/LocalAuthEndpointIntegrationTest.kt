@@ -61,6 +61,7 @@ import javax.crypto.spec.SecretKeySpec
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Suppress("LargeClass")
 class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
     @Autowired
@@ -68,7 +69,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
     override val postgresContainer: PostgreSQLContainer<*> = postgres
 
-    private fun allowedOrigin(): String = "http://localhost"
+    private val allowedOrigin: String = "http://localhost"
 
     override suspend fun seedScenario() {
         failWorkspaceProvisioning = false
@@ -510,7 +511,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         val refreshResult = webTestClient.post()
             .uri("/api/auth/refresh")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ORIGIN, allowedOrigin())
+            .header(HttpHeaders.ORIGIN, allowedOrigin)
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
@@ -538,7 +539,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/refresh")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ORIGIN, allowedOrigin())
+            .header(HttpHeaders.ORIGIN, allowedOrigin)
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
@@ -556,7 +557,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/logout")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ORIGIN, allowedOrigin())
+            .header(HttpHeaders.ORIGIN, allowedOrigin)
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isNoContent

@@ -16,18 +16,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import java.net.URI
 
-private const val BAD_REQUEST_DETAIL = "Bad request"
-
 @RestControllerAdvice
 class IdentityProblemDetailsHandler {
-
-    companion object {
-        private const val INVALID_CREDENTIALS_DETAIL = "Invalid email or password."
-        private const val USER_ALREADY_EXISTS_DETAIL = "Unable to complete registration with the provided credentials."
-        private const val INVALID_REGISTRATION_INPUT_DETAIL = "Registration request is invalid."
-        private const val REGISTRATION_VALIDATION_DETAIL = "Registration validation failed."
-        private const val INVALID_VERIFICATION_TOKEN_DETAIL = "Invalid verification token."
-    }
 
     @ExceptionHandler(InvalidEmailPasswordException::class)
     @Suppress("UNUSED_PARAMETER")
@@ -98,18 +88,30 @@ class IdentityProblemDetailsHandler {
         }
 
     @ExceptionHandler(CloseAccountConfirmationException::class)
+    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: CloseAccountConfirmationException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: BAD_REQUEST_DETAIL).apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, CLOSE_ACCOUNT_CONFIRMATION_DETAIL).apply {
             title = "Invalid account closure confirmation"
         }
 
     @ExceptionHandler(CloseAccountRateLimitException::class)
+    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: CloseAccountRateLimitException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.TOO_MANY_REQUESTS,
-        exception.message ?: "Rate limit exceeded",
+        CLOSE_ACCOUNT_RATE_LIMIT_DETAIL,
     ).apply {
         title = "Account closure rate limit exceeded"
         type = URI("https://api.profiletailors.com/errors/account-closure-rate-limit")
         setProperty("code", "ACCOUNT_CLOSURE_RATE_LIMIT")
+    }
+
+    companion object {
+        private const val INVALID_CREDENTIALS_DETAIL = "Invalid email or password."
+        private const val USER_ALREADY_EXISTS_DETAIL = "Unable to complete registration with the provided credentials."
+        private const val INVALID_REGISTRATION_INPUT_DETAIL = "Registration request is invalid."
+        private const val REGISTRATION_VALIDATION_DETAIL = "Registration validation failed."
+        private const val INVALID_VERIFICATION_TOKEN_DETAIL = "Invalid verification token."
+        private const val CLOSE_ACCOUNT_CONFIRMATION_DETAIL = "Account closure confirmation is invalid."
+        private const val CLOSE_ACCOUNT_RATE_LIMIT_DETAIL = "Account closure rate limit exceeded."
     }
 }

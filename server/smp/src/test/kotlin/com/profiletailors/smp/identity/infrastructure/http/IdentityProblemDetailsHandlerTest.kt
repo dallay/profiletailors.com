@@ -1,6 +1,8 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
 import com.profiletailors.smp.identity.application.AuthFeature
+import com.profiletailors.smp.identity.application.CloseAccountConfirmationException
+import com.profiletailors.smp.identity.application.CloseAccountRateLimitException
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
@@ -99,6 +101,28 @@ class IdentityProblemDetailsHandlerTest {
         exception: FeatureEmailVerificationRequired,
     ) {
         assertProblemDetail(handler.handle(exception))
+    }
+
+    @Test
+    fun `close account confirmation maps to redacted generic problem detail`() {
+        val result = handler.handle(CloseAccountConfirmationException("sensitive payload leaked from caller"))
+
+        result.status shouldBe HttpStatus.BAD_REQUEST.value()
+        result.title shouldBe "Invalid account closure confirmation"
+        result.detail shouldBe "Account closure confirmation is invalid."
+        result.detail?.contains("sensitive payload", ignoreCase = false) shouldBe false
+    }
+
+    @Test
+    fun `close account rate limit maps to redacted generic problem detail`() {
+        val result = handler.handle(CloseAccountRateLimitException("internal counter leaked from caller"))
+
+        result.status shouldBe HttpStatus.TOO_MANY_REQUESTS.value()
+        result.title shouldBe "Account closure rate limit exceeded"
+        result.type shouldBe URI("https://api.profiletailors.com/errors/account-closure-rate-limit")
+        result.detail shouldBe "Account closure rate limit exceeded."
+        result.properties?.get("code") shouldBe "ACCOUNT_CLOSURE_RATE_LIMIT"
+        result.detail?.contains("internal counter", ignoreCase = false) shouldBe false
     }
 
     private fun assertProblemDetail(result: org.springframework.http.ProblemDetail) {

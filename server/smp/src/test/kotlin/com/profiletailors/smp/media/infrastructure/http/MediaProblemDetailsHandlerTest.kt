@@ -10,6 +10,7 @@ import com.profiletailors.smp.media.application.UnsupportedMediaTypeException
 import com.profiletailors.smp.media.application.UploadConflictException
 import com.profiletailors.smp.media.application.UploadInProgressException
 import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
@@ -126,7 +127,7 @@ class MediaProblemDetailsHandlerTest {
         entity.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
         entity.headers[HttpHeaders.RETRY_AFTER]?.first() shouldBe "3600"
 
-        val body = entity.body!!
+        val body = entity.body.shouldNotBeNull()
         body.detail shouldBe "Rate limit exceeded. Please try again later."
         body.title shouldBe "Rate limit exceeded"
         body.properties?.get("errorCode") shouldBe "RATE_LIMIT_EXCEEDED"

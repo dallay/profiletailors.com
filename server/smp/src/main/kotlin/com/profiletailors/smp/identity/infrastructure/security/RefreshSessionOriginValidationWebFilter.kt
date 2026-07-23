@@ -20,6 +20,11 @@ class RefreshSessionOriginValidationWebFilter(
     private val refreshSessionProperties: RefreshSessionProperties,
 ) : WebFilter {
 
+    private val allowedOrigins: Set<String>
+        get() = corsProperties.allowedOrigins.asSequence()
+            .mapNotNull(::normalizeOrigin)
+            .toSet()
+
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val request = exchange.request
         if (!requiresOriginValidation(request.method, request.path.pathWithinApplication().value(), request.headers)) {
@@ -48,12 +53,14 @@ class RefreshSessionOriginValidationWebFilter(
             ?.let(::normalizeOrigin)
             ?.let { return it }
 
-        val referer = headers.getFirst(HttpHeaders.REFERER)?.takeIf(String::isNotBlank) ?: return null
-        val refererUri = runCatching { URI.create(referer) }.getOrNull() ?: return null
-        val scheme = refererUri.scheme ?: return null
-        val host = refererUri.host ?: return null
-        val port = refererUri.port
-        return if (port >= 0) "$scheme://$host:$port" else "$scheme://$host"
+        return parseRefererOrigin(headers.getFirst(HttpHeaders.REFERER)?.takeIf(String::isNotBlank))
+    }
+
+    private fun parseRefererOrigin(referer: String?): String? {
+        val uri = referer?.let { runCatching { URI.create(it) }.getOrNull() } ?: return null
+        val scheme = uri.scheme ?: return null
+        val host = uri.host ?: return null
+        return originString(scheme, host, uri.port)
     }
 
     private fun isTrustedOrigin(origin: String, exchange: ServerWebExchange): Boolean {
@@ -80,14 +87,11 @@ class RefreshSessionOriginValidationWebFilter(
         val uri = runCatching { URI.create(value) }.getOrNull() ?: return null
         val scheme = uri.scheme?.lowercase() ?: return null
         val host = uri.host?.lowercase() ?: return null
-        val port = uri.port
-        return if (port >= 0) "$scheme://$host:$port" else "$scheme://$host"
+        return originString(scheme, host, uri.port)
     }
 
-    private val allowedOrigins: Set<String>
-        get() = corsProperties.allowedOrigins.asSequence()
-            .mapNotNull(::normalizeOrigin)
-            .toSet()
+    private fun originString(scheme: String, host: String, port: Int): String =
+        if (port >= 0) "$scheme://$host:$port" else "$scheme://$host"
 
     private companion object {
         val protectedPaths = setOf(

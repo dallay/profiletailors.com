@@ -15,13 +15,6 @@ private val logger = LoggerFactory.getLogger(UnsplashProblemDetailsHandler::clas
 @RestControllerAdvice
 class UnsplashProblemDetailsHandler {
 
-    companion object {
-        const val ERROR_CODE_PROPERTY = "errorCode"
-        private const val UNSPLASH_NOT_CONFIGURED_DETAIL = "Unsplash is not configured for this environment."
-        private const val UNSPLASH_PHOTO_NOT_FOUND_DETAIL = "Unsplash photo not found."
-        private const val UNSPLASH_PROVIDER_ERROR_DETAIL = "Unsplash is temporarily unavailable."
-    }
-
     /**
      * Creates a problem detail response for an unconfigured Unsplash provider.
      *
@@ -42,7 +35,8 @@ class UnsplashProblemDetailsHandler {
      * Creates a not-found problem response for an unavailable Unsplash photo.
      *
      * @param exception The exception containing the photo's external identifier and optional detail message.
-     * @return A problem detail with HTTP status 404 and the photo's external identifier.
+     * @return A problem detail with HTTP status 404. The photo's external identifier is omitted
+     * from the response to avoid leaking provider-side identifiers to the caller.
      */
     @ExceptionHandler(UnsplashPhotoNotFoundException::class)
     @Suppress("UNUSED_PARAMETER")
@@ -87,5 +81,12 @@ class UnsplashProblemDetailsHandler {
             title = "Unsplash provider error"
             setProperty(ERROR_CODE_PROPERTY, "UNSPLASH_PROVIDER_ERROR")
         }
+    }
+
+    companion object {
+        const val ERROR_CODE_PROPERTY = "errorCode"
+        private const val UNSPLASH_NOT_CONFIGURED_DETAIL = "Unsplash is not configured for this environment."
+        private const val UNSPLASH_PHOTO_NOT_FOUND_DETAIL = "Unsplash photo not found."
+        private const val UNSPLASH_PROVIDER_ERROR_DETAIL = "Unsplash is temporarily unavailable."
     }
 }

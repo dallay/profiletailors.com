@@ -86,6 +86,7 @@ class IdentitySecurityConfiguration {
     )
 
     @Bean
+    @Suppress("FunctionNameMaxLength")
     fun securityResponseHeadersWebFilter(): WebFilter = SecurityResponseHeadersWebFilter()
 
     @Bean

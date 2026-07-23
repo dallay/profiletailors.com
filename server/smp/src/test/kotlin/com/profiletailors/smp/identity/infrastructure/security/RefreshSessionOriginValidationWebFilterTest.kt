@@ -19,7 +19,7 @@ class RefreshSessionOriginValidationWebFilterTest {
             cookiePath = "/api/auth",
             sameSite = "Lax",
             secure = true,
-            ttlSeconds = 604800,
+            ttlSeconds = 604_800,
         ),
     )
 
@@ -97,5 +97,40 @@ class RefreshSessionOriginValidationWebFilterTest {
         ).block()
 
         chainCalled shouldBe true
+    }
+
+    @Test
+    fun `allows refresh request when referer URL is a trusted origin`() {
+        val exchange = MockServerWebExchange.from(
+            MockServerHttpRequest.post("/api/auth/refresh")
+                .header(HttpHeaders.COOKIE, "pt_refresh=lookup.secret")
+                .header(HttpHeaders.REFERER, "http://localhost/some/deep/path")
+                .build(),
+        )
+        var chainCalled = false
+
+        filter.filter(
+            exchange,
+            WebFilterChain {
+                chainCalled = true
+                Mono.empty()
+            },
+        ).block()
+
+        chainCalled shouldBe true
+    }
+
+    @Test
+    fun `rejects logout request when referer URL is not a trusted origin`() {
+        val exchange = MockServerWebExchange.from(
+            MockServerHttpRequest.post("/api/auth/logout")
+                .header(HttpHeaders.COOKIE, "pt_refresh=lookup.secret")
+                .header(HttpHeaders.REFERER, "https://evil.example/landing")
+                .build(),
+        )
+
+        filter.filter(exchange, WebFilterChain { Mono.empty() }).block()
+
+        exchange.response.statusCode shouldBe HttpStatus.FORBIDDEN
     }
 }

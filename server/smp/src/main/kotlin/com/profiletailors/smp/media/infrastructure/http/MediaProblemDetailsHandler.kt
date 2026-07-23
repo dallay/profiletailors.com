@@ -22,16 +22,6 @@ private val logger = LoggerFactory.getLogger(MediaProblemDetailsHandler::class.j
 @RestControllerAdvice
 class MediaProblemDetailsHandler {
 
-    companion object {
-        private const val ASSET_NOT_FOUND_DETAIL = "Requested asset was not found."
-        private const val UPLOAD_CONFLICT_DETAIL = "The asset cannot be uploaded in its current state."
-        private const val UPLOAD_IN_PROGRESS_DETAIL = "An upload is already in progress for this asset."
-        private const val ASSET_NOT_READY_DETAIL = "The asset is not ready for this operation."
-        private const val RATE_LIMIT_EXCEEDED_DETAIL = "Rate limit exceeded. Please try again later."
-        private const val INVALID_CURSOR_DETAIL = "Invalid pagination cursor."
-        private const val MEDIA_SERVICE_UNAVAILABLE_DETAIL = "Media service is temporarily unavailable."
-    }
-
     @ExceptionHandler(AssetNotFoundException::class)
     fun handle(exception: AssetNotFoundException): ProblemDetail {
         logger.debug("Asset not found: assetId={}", exception.assetId)
@@ -173,5 +163,15 @@ class MediaProblemDetailsHandler {
         ).apply {
             title = exception.statusCode.value().toString()
         }
+    }
+
+    companion object {
+        private const val ASSET_NOT_FOUND_DETAIL = "Requested asset was not found."
+        private const val UPLOAD_CONFLICT_DETAIL = "The asset cannot be uploaded in its current state."
+        private const val UPLOAD_IN_PROGRESS_DETAIL = "An upload is already in progress for this asset."
+        private const val ASSET_NOT_READY_DETAIL = "The asset is not ready for this operation."
+        private const val RATE_LIMIT_EXCEEDED_DETAIL = "Rate limit exceeded. Please try again later."
+        private const val INVALID_CURSOR_DETAIL = "Invalid pagination cursor."
+        private const val MEDIA_SERVICE_UNAVAILABLE_DETAIL = "Media service is temporarily unavailable."
     }
 }

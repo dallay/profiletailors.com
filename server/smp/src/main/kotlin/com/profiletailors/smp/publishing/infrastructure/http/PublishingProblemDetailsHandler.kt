@@ -20,17 +20,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 @RestControllerAdvice
 class PublishingProblemDetailsHandler {
 
-    companion object {
-        private const val PROVIDER_NOT_CONFIGURED_DETAIL = "The requested provider is not available."
-        private const val PUBLICATION_STATE_CONFLICT_DETAIL =
-            "The publication cannot transition from its current state."
-        private const val PUBLICATION_NOT_FOUND_DETAIL = "Publication not found."
-        private const val OAUTH_STATE_EXPIRED_DETAIL = "OAuth state has expired."
-        private const val OAUTH_STATE_INVALID_DETAIL = "OAuth state is invalid."
-        private const val MEDIA_SERVICE_UNAVAILABLE_DETAIL = "Media service is unavailable."
-        private const val ASSET_NOT_READY_DETAIL = "One or more assets are not ready for publishing."
-    }
-
     @ExceptionHandler(ProviderNotConfiguredException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: ProviderNotConfiguredException): ProblemDetail = ProblemDetail.forStatusAndDetail(
@@ -109,11 +98,23 @@ class PublishingProblemDetailsHandler {
      * - Asset is not in READY status (still PROCESSING or FAILED)
      */
     @ExceptionHandler(AssetNotReadyException::class)
+    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: AssetNotReadyException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.BAD_REQUEST,
         ASSET_NOT_READY_DETAIL,
     ).apply {
         title = "Asset not ready"
         setProperty("errorCode", "ASSET_NOT_READY")
+    }
+
+    companion object {
+        private const val PROVIDER_NOT_CONFIGURED_DETAIL = "The requested provider is not available."
+        private const val PUBLICATION_STATE_CONFLICT_DETAIL =
+            "The publication cannot transition from its current state."
+        private const val PUBLICATION_NOT_FOUND_DETAIL = "Publication not found."
+        private const val OAUTH_STATE_EXPIRED_DETAIL = "OAuth state has expired."
+        private const val OAUTH_STATE_INVALID_DETAIL = "OAuth state is invalid."
+        private const val MEDIA_SERVICE_UNAVAILABLE_DETAIL = "Media service is unavailable."
+        private const val ASSET_NOT_READY_DETAIL = "One or more assets are not ready for publishing."
     }
 }
