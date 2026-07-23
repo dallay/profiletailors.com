@@ -126,6 +126,9 @@ publishing:
     authorization-base-url: ${SMP_LINKEDIN_AUTHORIZATION_BASE_URL:https://www.linkedin.com/oauth/v2/authorization}
     token-base-url: ${SMP_LINKEDIN_TOKEN_BASE_URL:https://www.linkedin.com/oauth/v2/accessToken}
     api-version: ${SMP_LINKEDIN_API_VERSION:202606}
+  credentials:
+    encryption:
+      key: ${PUBLISHING_CREDENTIALS_ENCRYPTION_KEY:}  # Sin default — debe configurarse via env var
 
 # Media provider adapters (Hexagonal: ports under media-library.application.port;
 # adapters live under mediaprovider.*).
@@ -140,9 +143,6 @@ mediaprovider:
     timeout: ${SMP_MEDIAPROVIDER_UNSPLASH_TIMEOUT:PT5S}
     page-size: ${SMP_MEDIAPROVIDER_UNSPLASH_PAGE_SIZE:20}
     max-import-bytes: ${SMP_MEDIAPROVIDER_UNSPLASH_MAX_IMPORT_BYTES:26214400}
-  credentials:
-    encryption:
-      key: ${PUBLISHING_CREDENTIALS_KEY:}  # Sin default — debe configurarse via env var
 
 management:
   endpoints:
@@ -194,7 +194,7 @@ publishing:
     state-signing-secret: ${SMP_LINKEDIN_STATE_SIGNING_SECRET:test-linkedin-oauth-state-secret}
   credentials:
     encryption:
-      key: ${PUBLISHING_CREDENTIALS_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key (32 bytes)
+      key: ${PUBLISHING_CREDENTIALS_ENCRYPTION_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key (32 bytes)
 
 management:
   server:

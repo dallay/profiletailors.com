@@ -43,7 +43,7 @@ publishing:
     state-signing-secret: ${SMP_LINKEDIN_STATE_SIGNING_SECRET:profiletailors-dev-oauth-state-secret}
   credentials:
     encryption:
-      key: ${PUBLISHING_CREDENTIALS_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key for dev
+      key: ${PUBLISHING_CREDENTIALS_ENCRYPTION_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key for dev
 
 management:
   server:
