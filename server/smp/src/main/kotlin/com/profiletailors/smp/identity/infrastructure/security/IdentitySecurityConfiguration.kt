@@ -7,6 +7,7 @@ import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialFailureReason
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
 import com.profiletailors.smp.credentials.application.FederatedTokenValidator
+import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialFailureReason
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialNotActiveException
 import com.profiletailors.smp.identity.infrastructure.ApiKeyAuthenticatedPrincipalMaterializer
@@ -63,19 +64,29 @@ class IdentitySecurityConfiguration {
     data class IdentityWebFilters(
         val apiKeyAuthentication: WebFilter,
         val authenticatedPrincipalContext: WebFilter,
+        val refreshSessionOriginValidation: WebFilter,
         val revokedCredentialAudit: WebFilter,
     )
 
     @Bean
     fun identityWebFilters(
         apiKeyAuthenticationWebFilter: WebFilter,
+        refreshSessionProperties: RefreshSessionProperties,
         revokedCredentialAuditWebFilter: WebFilter,
         requestContextStore: RequestContextStore,
+        corsProperties: CorsConfigurationProperties,
     ): IdentityWebFilters = IdentityWebFilters(
         apiKeyAuthentication = apiKeyAuthenticationWebFilter,
         authenticatedPrincipalContext = AuthenticatedPrincipalContextWebFilter(requestContextStore),
+        refreshSessionOriginValidation = RefreshSessionOriginValidationWebFilter(
+            corsProperties = corsProperties,
+            refreshSessionProperties = refreshSessionProperties,
+        ),
         revokedCredentialAudit = revokedCredentialAuditWebFilter,
     )
+
+    @Bean
+    fun securityResponseHeadersWebFilter(): WebFilter = SecurityResponseHeadersWebFilter()
 
     @Bean
     fun corsConfigurationSource(corsProperties: CorsConfigurationProperties): CorsConfigurationSource {
@@ -123,10 +134,9 @@ class IdentitySecurityConfiguration {
         filters: IdentityWebFilters,
         authenticationEntryPoint: ServerAuthenticationEntryPoint,
     ): SecurityWebFilterChain = http
-        // Stateless REST API: CSRF disabled by design.
-        // Authentication uses JWT Bearer tokens (Authorization header) and API keys,
-        // NOT cookies. Browsers do not automatically attach these headers to cross-origin
-        // requests, so CSRF attacks are not applicable. CORS is configured separately.
+        // The API remains stateless. JWT bearer tokens and API keys do not need CSRF protection,
+        // while refresh/logout are protected explicitly by RefreshSessionOriginValidationWebFilter
+        // because they rely on the HttpOnly refresh-session cookie.
         .csrf { it.disable() }
         .cors { }
         .authorizeExchange {
@@ -167,6 +177,7 @@ class IdentitySecurityConfiguration {
                 jwt.jwtAuthenticationConverter(jwtPrincipalAuthenticationConverter)
             }
         }
+        .addFilterBefore(filters.refreshSessionOriginValidation, SecurityWebFiltersOrder.AUTHENTICATION)
         .addFilterAt(filters.apiKeyAuthentication, SecurityWebFiltersOrder.AUTHENTICATION)
         .addFilterBefore(filters.revokedCredentialAudit, SecurityWebFiltersOrder.AUTHENTICATION)
         .addFilterAfter(filters.authenticatedPrincipalContext, SecurityWebFiltersOrder.AUTHENTICATION)

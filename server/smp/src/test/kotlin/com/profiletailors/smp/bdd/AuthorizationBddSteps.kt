@@ -37,6 +37,10 @@ import java.nio.charset.StandardCharsets
 
 @Suppress("LargeClass")
 class AuthorizationBddSteps {
+    companion object {
+        private const val TRUSTED_BROWSER_ORIGIN = "http://localhost"
+    }
+
     @Autowired
     private lateinit var webTestClient: WebTestClient
 
@@ -367,6 +371,7 @@ class AuthorizationBddSteps {
             .uri(bddDatabaseSupport.localAuthRefreshPath())
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(HttpHeaders.COOKIE, session.refreshCookie)
+            .header(HttpHeaders.ORIGIN, TRUSTED_BROWSER_ORIGIN)
             .exchange()
             .expectBody()
             .returnResult()
@@ -393,6 +398,7 @@ class AuthorizationBddSteps {
             .uri(bddDatabaseSupport.localAuthLogoutPath())
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(HttpHeaders.COOKIE, session.refreshCookie)
+            .header(HttpHeaders.ORIGIN, TRUSTED_BROWSER_ORIGIN)
             .exchange()
             .expectBody()
             .returnResult()

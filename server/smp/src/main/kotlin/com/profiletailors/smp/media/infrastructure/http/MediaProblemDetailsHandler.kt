@@ -22,16 +22,25 @@ private val logger = LoggerFactory.getLogger(MediaProblemDetailsHandler::class.j
 @RestControllerAdvice
 class MediaProblemDetailsHandler {
 
+    companion object {
+        private const val ASSET_NOT_FOUND_DETAIL = "Requested asset was not found."
+        private const val UPLOAD_CONFLICT_DETAIL = "The asset cannot be uploaded in its current state."
+        private const val UPLOAD_IN_PROGRESS_DETAIL = "An upload is already in progress for this asset."
+        private const val ASSET_NOT_READY_DETAIL = "The asset is not ready for this operation."
+        private const val RATE_LIMIT_EXCEEDED_DETAIL = "Rate limit exceeded. Please try again later."
+        private const val INVALID_CURSOR_DETAIL = "Invalid pagination cursor."
+        private const val MEDIA_SERVICE_UNAVAILABLE_DETAIL = "Media service is temporarily unavailable."
+    }
+
     @ExceptionHandler(AssetNotFoundException::class)
     fun handle(exception: AssetNotFoundException): ProblemDetail {
         logger.debug("Asset not found: assetId={}", exception.assetId)
         return ProblemDetail.forStatusAndDetail(
             HttpStatus.NOT_FOUND,
-            "Asset ${exception.assetId} not found.",
+            ASSET_NOT_FOUND_DETAIL,
         ).apply {
             title = "Asset not found"
             setProperty("errorCode", "ASSET_NOT_FOUND")
-            setProperty("assetId", exception.assetId)
         }
     }
 
@@ -40,12 +49,10 @@ class MediaProblemDetailsHandler {
         logger.debug("Upload conflict: assetId={} currentStatus={}", exception.assetId, exception.currentStatus)
         return ProblemDetail.forStatusAndDetail(
             HttpStatus.CONFLICT,
-            "Asset ${exception.assetId} has already completed upload and cannot be re-uploaded.",
+            UPLOAD_CONFLICT_DETAIL,
         ).apply {
             title = "Upload conflict"
             setProperty("errorCode", "ASSET_UPLOAD_CONFLICT")
-            setProperty("assetId", exception.assetId)
-            setProperty("currentStatus", exception.currentStatus)
         }
     }
 
@@ -54,12 +61,10 @@ class MediaProblemDetailsHandler {
         logger.debug("Upload in progress: assetId={}", exception.assetId)
         return ProblemDetail.forStatusAndDetail(
             HttpStatus.CONFLICT,
-            "Asset ${exception.assetId} already has an upload in progress.",
+            UPLOAD_IN_PROGRESS_DETAIL,
         ).apply {
             title = "Upload in progress"
             setProperty("errorCode", "ASSET_UPLOAD_IN_PROGRESS")
-            setProperty("assetId", exception.assetId)
-            setProperty("currentStatus", exception.currentStatus)
         }
     }
 
@@ -68,12 +73,10 @@ class MediaProblemDetailsHandler {
         logger.debug("Asset not ready: assetId={} reason={}", exception.assetId, exception.reason)
         return ProblemDetail.forStatusAndDetail(
             HttpStatus.UNPROCESSABLE_ENTITY,
-            "Asset ${exception.assetId} is not ready: ${exception.reason}",
+            ASSET_NOT_READY_DETAIL,
         ).apply {
             title = "Asset not ready"
             setProperty("errorCode", "ASSET_NOT_READY")
-            setProperty("assetId", exception.assetId)
-            setProperty("reason", exception.reason)
         }
     }
 
@@ -116,14 +119,10 @@ class MediaProblemDetailsHandler {
         )
         val problemDetail = ProblemDetail.forStatusAndDetail(
             HttpStatus.TOO_MANY_REQUESTS,
-            "Rate limit exceeded for ${exception.limitType}.",
+            RATE_LIMIT_EXCEEDED_DETAIL,
         ).apply {
             title = "Rate limit exceeded"
             setProperty("errorCode", "RATE_LIMIT_EXCEEDED")
-            setProperty("workspaceId", exception.workspaceId)
-            setProperty("limitType", exception.limitType)
-            setProperty("currentValue", exception.currentValue)
-            setProperty("limitValue", exception.limitValue)
             setProperty("retryAfterSeconds", exception.retryAfterSeconds)
         }
 
@@ -138,7 +137,7 @@ class MediaProblemDetailsHandler {
         logger.debug("Invalid cursor: {}", exception.message)
         return ProblemDetail.forStatusAndDetail(
             HttpStatus.BAD_REQUEST,
-            exception.message ?: "Invalid pagination cursor.",
+            INVALID_CURSOR_DETAIL,
         ).apply {
             title = "Invalid cursor"
             setProperty("errorCode", "INVALID_CURSOR")
@@ -150,7 +149,7 @@ class MediaProblemDetailsHandler {
         logger.error("Media service unavailable: {}", exception.message, exception)
         return ProblemDetail.forStatusAndDetail(
             HttpStatus.SERVICE_UNAVAILABLE,
-            exception.message ?: "Media service is temporarily unavailable.",
+            MEDIA_SERVICE_UNAVAILABLE_DETAIL,
         ).apply {
             title = "Media service unavailable"
             setProperty("errorCode", "MEDIA_SERVICE_UNAVAILABLE")

@@ -2,6 +2,8 @@ package com.profiletailors.smp.platform.infrastructure.http
 
 import com.profiletailors.common.domain.context.MissingPrincipalContextException
 import com.profiletailors.common.domain.context.MissingResourceContextException
+import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
+import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
@@ -16,7 +18,7 @@ class PlatformProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED.value(), problem.status)
         assertEquals("Principal context missing", problem.title)
-        assertEquals("Authenticated principal context is required.", problem.detail)
+        assertEquals("Authentication is required.", problem.detail)
     }
 
     @Test
@@ -25,6 +27,20 @@ class PlatformProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
         assertEquals("Resource context missing", problem.title)
-        assertEquals("Resolved resource context is required.", problem.detail)
+        assertEquals("The request is missing required context.", problem.detail)
+    }
+
+    @Test
+    fun `maps invalid refresh session to generic unauthorized problem detail`() {
+        val problem = handler.handle(
+            RefreshSessionNotActiveException(
+                lookupKey = "lookup-1",
+                reason = RefreshSessionFailureReason.INVALID,
+            ),
+        )
+
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), problem.status)
+        assertEquals("Refresh session invalid", problem.title)
+        assertEquals("Session is not active.", problem.detail)
     }
 }
