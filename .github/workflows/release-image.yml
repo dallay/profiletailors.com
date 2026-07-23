@@ -40,7 +40,7 @@ jobs:
           release_version="${GITHUB_REF_NAME#smp@}"
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
-            -f infra/apps/smp/production/backend.Dockerfile \
+            -f server/smp/backend.Dockerfile \
             --build-arg SMP_VERSION="$release_version" \
             -t "ghcr.io/dallay/profiletailors-smp:$release_version" \
             -t "ghcr.io/dallay/profiletailors-smp:latest" \
