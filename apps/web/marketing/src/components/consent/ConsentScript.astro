@@ -1,0 +1,100 @@
+---
+// ConsentScript.astro — Runs synchronously BEFORE any other JS
+// Placed in <head>, no async/defer attributes
+---
+
+<script is:inline>
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILE TAILORS — CONSENT CHECK (Inline, Synchronous)
+// Must run before Analytics.astro or any third-party scripts
+// ─────────────────────────────────────────────────────────────────────────────
+
+(function () {
+  'use strict'
+
+  // ── Constants ─────────────────────────────────────────────────────────────
+  var CONSENT_KEY = 'pt-consent'
+  var CONSENT_VERSION = 1
+  var ANALYTICS_FLAG = '__PT_CONSENT_ANALYTICS'
+
+  // ── DNT/GPC Detection ──────────────────────────────────────────────────────
+  function isDNTEnabled() {
+    return (
+      navigator.doNotTrack === '1' ||
+      navigator.doNotTrack === 'yes' ||
+      window.doNotTrack === '1'
+    )
+  }
+
+  function isGPCEnabled() {
+    return navigator.globalPrivacyControl === true
+  }
+
+  function hasPrivacySignal() {
+    return isDNTEnabled() || isGPCEnabled()
+  }
+
+  // ── Schema Validation ──────────────────────────────────────────────────────
+  function isValidReceipt(receipt) {
+    if (!receipt || typeof receipt !== 'object') return false
+    if (typeof receipt.consentVersion !== 'number') return false
+    if (receipt.consentVersion !== CONSENT_VERSION) return false
+    if (typeof receipt.policyVersion !== 'string') return false
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(receipt.policyVersion)) return false
+    if (typeof receipt.timestamp !== 'string') return false
+    if (typeof receipt.region !== 'string') return false
+    if (receipt.region.length !== 2) return false
+    if (typeof receipt.categories !== 'object') return false
+    if (receipt.categories.necessary !== true) return false
+    if (typeof receipt.categories.analytics !== 'boolean') return false
+    if (typeof receipt.dnt !== 'boolean') return false
+    if (!['banner', 'settings'].includes(receipt.source)) return false
+    return true
+  }
+
+  // ── Main Consent Check ─────────────────────────────────────────────────────
+  function checkConsent() {
+    var analyticsAllowed = false
+    var dntSignal = hasPrivacySignal()
+    var stored = null
+    var receipt = null
+
+    try {
+      stored = localStorage.getItem(CONSENT_KEY)
+
+      if (stored) {
+        receipt = JSON.parse(stored)
+
+        if (isValidReceipt(receipt)) {
+          // Valid receipt exists — check if analytics consented
+          analyticsAllowed = receipt.categories.analytics === true
+        }
+        // Invalid receipt falls through to default: analyticsAllowed = false
+      }
+      // No receipt: analyticsAllowed = false (restrictive default)
+    } catch (e) {
+      // JSON parse error or localStorage unavailable — block by default
+      console.warn('[Consent] Error reading consent receipt:', e)
+    }
+
+    // Set global flag for Analytics.astro to read
+    window[ANALYTICS_FLAG] = analyticsAllowed
+
+    // Also expose privacy signal state for UI
+    window.__PT_DNT = dntSignal
+
+    // Dispatch custom event for reactive UI
+    window.dispatchEvent(
+      new CustomEvent('consentReady', {
+        detail: {
+          analytics: analyticsAllowed,
+          dnt: dntSignal,
+        },
+      })
+    )
+  }
+
+  // ── Execute ────────────────────────────────────────────────────────────────
+  checkConsent()
+})()
+</script>

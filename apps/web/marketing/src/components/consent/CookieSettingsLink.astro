@@ -1,0 +1,45 @@
+---
+import { getTranslations } from '../../i18n/utils'
+
+const t = await getTranslations(Astro.currentLocale || 'en')
+---
+
+<button type="button" id="cookie-settings-link" class="cookie-settings-link">
+  {t('consent.footer.cookieSettings')}
+</button>
+
+<style>
+  .cookie-settings-link {
+    background: none;
+    border: none;
+    color: var(--color-text-muted, #aaa);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.875rem;
+    padding: 0;
+  }
+
+  .cookie-settings-link:hover {
+    color: var(--color-accent, #0ea5e9);
+  }
+</style>
+
+<script>
+  function initCookieSettingsLink() {
+    const link = document.getElementById('cookie-settings-link')
+    if (!link) return
+
+    link.addEventListener('click', () => {
+      const banner = document.getElementById('consent-banner')
+      if (banner) {
+        banner.removeAttribute('hidden')
+      }
+    })
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCookieSettingsLink)
+  } else {
+    initCookieSettingsLink()
+  }
+</script>
