@@ -22,7 +22,8 @@ class PublishingProblemDetailsHandler {
 
     companion object {
         private const val PROVIDER_NOT_CONFIGURED_DETAIL = "The requested provider is not available."
-        private const val PUBLICATION_STATE_CONFLICT_DETAIL = "The publication cannot transition from its current state."
+        private const val PUBLICATION_STATE_CONFLICT_DETAIL =
+            "The publication cannot transition from its current state."
         private const val PUBLICATION_NOT_FOUND_DETAIL = "Publication not found."
         private const val OAUTH_STATE_EXPIRED_DETAIL = "OAuth state has expired."
         private const val OAUTH_STATE_INVALID_DETAIL = "OAuth state is invalid."

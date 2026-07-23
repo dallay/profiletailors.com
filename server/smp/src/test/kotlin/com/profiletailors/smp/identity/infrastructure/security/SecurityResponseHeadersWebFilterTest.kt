@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import org.springframework.mock.web.server.MockServerWebExchange
 import org.springframework.web.server.WebFilterChain
-import reactor.core.publisher.Mono
 
 class SecurityResponseHeadersWebFilterTest {
 
@@ -16,9 +15,12 @@ class SecurityResponseHeadersWebFilterTest {
     fun `adds baseline browser hardening headers`() {
         val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("http://localhost/api/test").build())
 
-        filter.filter(exchange, WebFilterChain {
-            exchange.response.setComplete()
-        }).block()
+        filter.filter(
+            exchange,
+            WebFilterChain {
+                exchange.response.setComplete()
+            },
+        ).block()
 
         exchange.response.headers.getFirst("Content-Security-Policy") shouldBe
             "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'"
@@ -37,9 +39,12 @@ class SecurityResponseHeadersWebFilterTest {
                 .build(),
         )
 
-        filter.filter(exchange, WebFilterChain {
-            exchange.response.setComplete()
-        }).block()
+        filter.filter(
+            exchange,
+            WebFilterChain {
+                exchange.response.setComplete()
+            },
+        ).block()
 
         exchange.response.headers.getFirst("Strict-Transport-Security") shouldBe
             "max-age=31536000; includeSubDomains; preload"

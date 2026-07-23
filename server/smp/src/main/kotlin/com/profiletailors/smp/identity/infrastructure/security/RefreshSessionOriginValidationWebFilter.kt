@@ -37,7 +37,9 @@ class RefreshSessionOriginValidationWebFilter(
 
     private fun requiresOriginValidation(method: HttpMethod?, path: String, headers: HttpHeaders): Boolean {
         if (method != HttpMethod.POST || path !in protectedPaths) return false
-        return headers.getOrEmpty(HttpHeaders.COOKIE).any { it.contains("${refreshSessionProperties.cookieName}=", ignoreCase = false) }
+        return headers.getOrEmpty(HttpHeaders.COOKIE).any {
+            it.contains("${refreshSessionProperties.cookieName}=", ignoreCase = false)
+        }
     }
 
     private fun extractSourceOrigin(headers: HttpHeaders): String? {

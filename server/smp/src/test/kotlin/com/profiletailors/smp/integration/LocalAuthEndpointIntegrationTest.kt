@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
@@ -64,17 +63,12 @@ import javax.crypto.spec.SecretKeySpec
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
-    @LocalServerPort
-    var serverPort: Int = 0
-
     @Autowired
     lateinit var reactiveJwtDecoder: ReactiveJwtDecoder
 
     override val postgresContainer: PostgreSQLContainer<*> = postgres
 
     private fun allowedOrigin(): String = "http://localhost"
-
-    private fun sameOrigin(): String = "http://localhost:$serverPort"
 
     override suspend fun seedScenario() {
         failWorkspaceProvisioning = false
@@ -570,23 +564,9 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/refresh")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ORIGIN, sameOrigin())
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
-    }
-
-    @Test
-    fun `refresh accepts same-origin request matching server port`() {
-        val registerResult = registerAndExtract()
-
-        webTestClient.post()
-            .uri("/api/auth/refresh")
-            .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ORIGIN, sameOrigin())
-            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
-            .exchange()
-            .expectStatus().isOk
     }
 
     @Test

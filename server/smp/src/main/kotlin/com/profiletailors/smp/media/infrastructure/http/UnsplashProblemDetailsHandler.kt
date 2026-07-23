@@ -88,5 +88,4 @@ class UnsplashProblemDetailsHandler {
             setProperty(ERROR_CODE_PROPERTY, "UNSPLASH_PROVIDER_ERROR")
         }
     }
-
 }

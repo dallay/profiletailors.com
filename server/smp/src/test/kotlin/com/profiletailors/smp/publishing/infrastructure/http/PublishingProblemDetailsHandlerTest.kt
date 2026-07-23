@@ -126,7 +126,10 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps asset not ready without leaking asset id`() {
-        val exception = com.profiletailors.smp.media.application.AssetNotReadyException("asset-123", "storage unavailable")
+        val exception = com.profiletailors.smp.media.application.AssetNotReadyException(
+            "asset-123",
+            "storage unavailable",
+        )
         val problem = handler.handle(exception)
 
         problem.status shouldBe HttpStatus.BAD_REQUEST.value()

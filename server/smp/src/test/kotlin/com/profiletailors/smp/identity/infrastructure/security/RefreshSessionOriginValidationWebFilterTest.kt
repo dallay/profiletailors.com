@@ -33,10 +33,13 @@ class RefreshSessionOriginValidationWebFilterTest {
         )
         var chainCalled = false
 
-        filter.filter(exchange, WebFilterChain {
-            chainCalled = true
-            Mono.empty()
-        }).block()
+        filter.filter(
+            exchange,
+            WebFilterChain {
+                chainCalled = true
+                Mono.empty()
+            },
+        ).block()
 
         chainCalled shouldBe true
     }
@@ -62,10 +65,13 @@ class RefreshSessionOriginValidationWebFilterTest {
         )
         var chainCalled = false
 
-        filter.filter(exchange, WebFilterChain {
-            chainCalled = true
-            Mono.empty()
-        }).block()
+        filter.filter(
+            exchange,
+            WebFilterChain {
+                chainCalled = true
+                Mono.empty()
+            },
+        ).block()
 
         chainCalled shouldBe true
     }
@@ -82,10 +88,13 @@ class RefreshSessionOriginValidationWebFilterTest {
         )
         var chainCalled = false
 
-        filter.filter(exchange, WebFilterChain {
-            chainCalled = true
-            Mono.empty()
-        }).block()
+        filter.filter(
+            exchange,
+            WebFilterChain {
+                chainCalled = true
+                Mono.empty()
+            },
+        ).block()
 
         chainCalled shouldBe true
     }
