@@ -1,23 +1,23 @@
 ---
-import { getTranslations } from '../../i18n/utils'
+import { useTranslations } from '../../i18n/utils'
 
-const t = await getTranslations(Astro.currentLocale || 'en')
+const t = useTranslations(Astro.currentLocale || 'en')
 ---
 
 <div id="consent-banner" role="dialog" aria-labelledby="consent-heading" aria-modal="true" hidden>
   <div class="consent-backdrop"></div>
   <div class="consent-container">
-    <h2 id="consent-heading">{t('consent.banner.heading')}</h2>
-    <p class="consent-description" set:html={t('consent.banner.description')} />
+    <h2 id="consent-heading">{t.consent.banner.heading}</h2>
+    <p class="consent-description" set:html={t.consent.banner.description} />
 
     <!-- Necessary (always-on, disabled) -->
     <div class="consent-category consent-category--disabled">
       <div class="consent-category-info">
         <span class="consent-category-label">
-          {t('consent.category.necessary.label')}
+          {t.consent.category.necessary.label}
         </span>
         <span class="consent-category-desc">
-          {t('consent.category.necessary.description')}
+          {t.consent.category.necessary.description}
         </span>
       </div>
       <input
@@ -33,10 +33,10 @@ const t = await getTranslations(Astro.currentLocale || 'en')
     <div class="consent-category">
       <div class="consent-category-info">
         <span class="consent-category-label">
-          {t('consent.category.analytics.label')}
+          {t.consent.category.analytics.label}
         </span>
         <span class="consent-category-desc">
-          {t('consent.category.analytics.description')}
+          {t.consent.category.analytics.description}
         </span>
       </div>
       <button
@@ -52,14 +52,14 @@ const t = await getTranslations(Astro.currentLocale || 'en')
 
     <!-- Actions: Equal prominence -->
     <div class="consent-actions">
-      <button type="button" data-consent-accept class="consent-btn consent-btn--primary">
-        {t('consent.action.acceptAll')}
+      <button type="button" data-consent-accept-all class="consent-button consent-button--primary">
+        {t.consent.action.acceptAll}
       </button>
-      <button type="button" data-consent-reject class="consent-btn consent-btn--primary">
-        {t('consent.action.rejectAll')}
+      <button type="button" data-consent-reject-all class="consent-button consent-button--secondary">
+        {t.consent.action.rejectAll}
       </button>
-      <button type="button" data-consent-save class="consent-btn consent-btn--secondary">
-        {t('consent.action.savePreferences')}
+      <button type="button" data-consent-save class="consent-button consent-button--secondary">
+        {t.consent.action.savePreferences}
       </button>
     </div>
   </div>
