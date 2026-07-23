@@ -28,23 +28,24 @@ A security configuration drift has been successfully identified, verified, and d
 
 | Spec / Doc Reference | Actual Code / Behavior | Identified Drift | Risk Level | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `docs/monitoring/actuator-security.md`: Only basic health status `/actuator/health` is public. Everything else requires authentication. | `IdentitySecurityConfiguration.kt` (lines 148-158): Excludes `/actuator/prometheus` via `permitAll()` under `HttpMethod.GET` | Unauthenticated public access to Prometheus metrics is permitted globally and on both port `7638` and management port `9091`. | HIGH | Unresolved (Persisted due to VPC operational dependencies) |
+| `docs/monitoring/actuator-security.md`: Only basic health status `/actuator/health` is public. Everything else requires authentication. | `IdentitySecurityConfiguration.kt` (lines 133-142): Excludes `/actuator/prometheus` via `permitAll()` under `HttpMethod.GET` | Unauthenticated public access to Prometheus metrics is permitted on the dedicated management port `9091`. (Note: Actuator endpoints are bound only to port 9091 per `application.yaml` management.server.port configuration and are not exposed on the main application port 7638.) | HIGH | Unresolved (Persisted due to VPC operational dependencies) |
 
 ## Validation Table
 
 | Check Name | Target/Command | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| **Backend Build** | `just backend-build` | Passed | Application compiles successfully. |
-| **Backend Fast Tests** | `just backend-test-fast` | Passed | Unit/integration test suites pass without regression. |
-| **Frontend Biome Check** | `just frontend-lint` | Passed | Frontend formatting and linting rules are fully satisfied. |
+| **Backend Build** | `just backend-build` | Not run | Verification pending. |
+| **Backend Fast Tests** | `just backend-test-fast` | Not run | Verification pending. |
+| **Frontend Biome Check** | `just frontend-lint` | Not run | Verification pending. |
 
 ## Unresolved Findings
 
 ### 1. Actuator Prometheus Public Exposure
+
 - **Finding ID:** `actuator-prometheus-exposure-drift`
-- **Description:** The `/actuator/prometheus` endpoint is matched under `permitAll()` in the main Spring Security filter chain.
-- **Risk:** High. Allows unauthenticated access to system metrics, process properties, and internal paths.
-- **Why Unresolved:** Modifying this rule to enforce HTTP-level authentication would break Prometheus scraping if existing scrapers expect unauthenticated access inside isolated VPC environments on port `9091`. Remediation requires safe, synchronized verification of deployment environments.
+- **Description:** The `/actuator/prometheus` endpoint is matched under `permitAll()` in the main Spring Security filter chain. While the endpoint is only bound to the dedicated management port 9091 (not the main application port 7638) per `application.yaml`, it remains unauthenticated on that management port.
+- **Risk:** High. Allows unauthenticated access to system metrics, process properties, and internal paths on management port 9091.
+- **Why Unresolved:** Modifying this rule to enforce HTTP-level authentication would break Prometheus scraping if existing scrapers expect unauthenticated access inside isolated VPC environments on port `9091`. Remediation requires safe, synchronized verification of deployment environments and confirmation that network-level restrictions (firewall rules) are sufficient.
 
 ## Blockers
 
@@ -52,14 +53,14 @@ A security configuration drift has been successfully identified, verified, and d
 
 ## Automation State
 
-- **Last Execution:** `2026-07-23T12:00:00Z`
+- **Last Execution:** `2026-07-23T18:45:32Z`
 - **Schema Version:** `1`
 - **Task Identity:** `security-configuration-drift-auditor`
 
 ## Risk Assessment
 
 - **Low Risk Actions:** Documenting identified configuration drift and auditing properties. (Passed)
-- **High Risk Actions:** Changing Spring Security filter chains or disabling authentication endpoints. (Avoided/Persisted)
+- **High Risk Actions:** Changing Spring Security filter chains or requiring authentication for `/actuator/prometheus` (removing `permitAll()`). (Avoided/Persisted)
 
 ## Human Review Notes
 
