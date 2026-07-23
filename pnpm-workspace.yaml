@@ -3,6 +3,8 @@ packages:
   - apps/web/app
   - tools/compliance
 
+minimumReleaseAge: 4320
+
 allowBuilds:
   vue-demi: true
   esbuild: true
