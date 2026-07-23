@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -12,7 +12,7 @@ import { approveTakedown, listTakedownReports, rejectTakedown, type TakedownRepo
 const { t } = useI18n()
 
 const reports = ref<TakedownReportResponse[]>([])
-const isLoading = ref(false)
+const isLoading = ref(true)
 const mutatingIds = reactive(new Set<string>())
 const error = ref<string | null>(null)
 const statusFilter = ref<TakedownReportStatus | 'ALL'>('ALL')
@@ -108,7 +108,9 @@ function formatDate(dateStr: string) {
 }
 
 // Load on mount
-loadReports()
+onMounted(() => {
+  loadReports()
+})
 </script>
 
 <template>

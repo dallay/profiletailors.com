@@ -59,7 +59,7 @@ class JwtAuthenticatedPrincipalMaterializer(
 
     private fun emailStatusFromClaim(
         token: ValidatedToken,
-        principalFacts: com.profiletailors.smp.identity.application.PrincipalIdentityFacts?,
+        principalFacts: com.profiletailors.smp.identity.domain.PrincipalIdentityFacts?,
     ): EmailStatus? {
         val raw = token.claims["emailStatus"]
         return if (raw is String) {

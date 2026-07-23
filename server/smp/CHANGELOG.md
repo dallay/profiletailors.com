@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.1](https://github.com/dallay/profiletailors.com/compare/smp@v0.3.0...smp@v0.3.1) (2026-07-22)
+
+
+### Features
+
+* **compliance:** add release gate evaluation and evidence link management ([#438](https://github.com/dallay/profiletailors.com/issues/438)) ([04a8cfd](https://github.com/dallay/profiletailors.com/commit/04a8cfdbe51800ce917bd8cc6d99b1a3368851d1))
+* **identity:** implement account closure feature (DALLAY-497) ([#430](https://github.com/dallay/profiletailors.com/issues/430)) ([f5e98be](https://github.com/dallay/profiletailors.com/commit/f5e98beda90a524e200e1a31cf19a510d66998fd))
+* **media-copyright-takedown:** complete SDD cycle — implement, verify, and archive ([4a53332](https://github.com/dallay/profiletailors.com/commit/4a5333212ba8f309f55aabdda1e57dbabea117f2))
+
+
+### Bug Fixes
+
+* **config:** update log file path in development configuration ([081f341](https://github.com/dallay/profiletailors.com/commit/081f341d0bd63d79f2f596ebc2d63a28919ee611))
+* **identity:** add permissive email verification policy for dev profile ([7daa41f](https://github.com/dallay/profiletailors.com/commit/7daa41f7cfd3522b292e89cf0cc251d9da589c11))
+* **quality:** resolve 14 SonarCloud issues blocking quality gate ([#436](https://github.com/dallay/profiletailors.com/issues/436)) ([1593ce7](https://github.com/dallay/profiletailors.com/commit/1593ce795490429a4703991422a559debb50923b))
+* **quality:** resolve 3 SonarCloud issues blocking quality gate ([#437](https://github.com/dallay/profiletailors.com/issues/437)) ([f3de1a8](https://github.com/dallay/profiletailors.com/commit/f3de1a8f5721ea6447826ea0709b30649011c818))
+
+
+### Refactoring
+
+* **publishing:** rename wiremock check-status mappings to get + update asset uploader ([87186c5](https://github.com/dallay/profiletailors.com/commit/87186c5cdc70978ec83cec31b80e2816f9d126b8))
+
 ## [0.3.0](https://github.com/dallay/profiletailors.com/compare/smp@v0.2.0...smp@v0.3.0) (2026-07-21)
 
 

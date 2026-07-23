@@ -7,10 +7,10 @@ import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
-import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
 import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.BlobUpsertResult
 import com.profiletailors.smp.media.domain.MediaAsset

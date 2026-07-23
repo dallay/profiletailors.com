@@ -1,5 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
+import com.profiletailors.smp.identity.application.CloseAccountConfirmationException
+import com.profiletailors.smp.identity.application.CloseAccountRateLimitException
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
@@ -62,9 +64,10 @@ class IdentityProblemDetailsHandler {
     }
 
     @ExceptionHandler(RegistrationDisabledException::class)
+    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: RegistrationDisabledException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.FORBIDDEN,
-        exception.message ?: "Registration is not available.",
+        "Registration is not available.",
     ).apply {
         title = "Registration disabled"
         type = URI("/problems/registration-disabled")
@@ -85,7 +88,26 @@ class IdentityProblemDetailsHandler {
             title = "Invalid verification token"
         }
 
+    @ExceptionHandler(CloseAccountConfirmationException::class)
+    @Suppress("UNUSED_PARAMETER")
+    fun handle(exception: CloseAccountConfirmationException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, BAD_REQUEST_DETAIL).apply {
+            title = "Invalid account closure confirmation"
+        }
+
+    @ExceptionHandler(CloseAccountRateLimitException::class)
+    @Suppress("UNUSED_PARAMETER")
+    fun handle(exception: CloseAccountRateLimitException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.TOO_MANY_REQUESTS,
+        "Rate limit exceeded",
+    ).apply {
+        title = "Account closure rate limit exceeded"
+        type = URI("https://api.profiletailors.com/errors/account-closure-rate-limit")
+        setProperty("code", "ACCOUNT_CLOSURE_RATE_LIMIT")
+    }
+
     companion object {
+        private const val BAD_REQUEST_DETAIL = "Bad request"
         private const val INVALID_CREDENTIALS_DETAIL = "Invalid email or password."
         private const val USER_ALREADY_EXISTS_DETAIL = "Unable to complete registration with the provided credentials."
         private const val INVALID_REGISTRATION_INPUT_DETAIL = "Registration request is invalid."

@@ -4,9 +4,9 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.credentials.application.ActiveServiceAccountCredential
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialStateLookup
 import com.profiletailors.smp.credentials.infrastructure.security.SpringJwtValidatedTokenMapper
-import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
+import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.infrastructure.JwtAuthenticatedPrincipalMaterializer
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest

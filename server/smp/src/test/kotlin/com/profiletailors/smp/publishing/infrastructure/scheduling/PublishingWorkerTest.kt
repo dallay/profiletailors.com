@@ -19,6 +19,7 @@ import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInpu
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
+import com.profiletailors.smp.publishing.domain.ProviderUploadException
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
@@ -633,6 +634,45 @@ class PublishingWorkerTest {
     }
 
     @Test
+    fun `worker preserves linkedin upload error message when ProviderUploadException is thrown`() = runTest {
+        val linkedInError =
+            """LinkedIn binary upload failed: 403 {"status":403,"message":"Access denied due to insufficient permissions"}"""
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val attemptRepository = InMemoryAttemptRepository()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = ProviderUploadFailingPublisher(linkedInError),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.FAILED
+        attemptRepository.lastAttempt?.providerErrorCode shouldBe "PUBLISHING_FAILED"
+        attemptRepository.lastAttempt?.providerMessage shouldBe linkedInError
+        publicationRepository.failedReasonCode shouldBe "PUBLISHING_FAILED"
+        jobRepository.failedJobId shouldBe "job-1"
+    }
+
+    @Test
     fun `worker redacts unsafe diagnostics from publication attempts and notifications`() = runTest {
         val unsafeDiagnostic = """
             {"message":"provider body","access_token":"secret-token","authorization":"Bearer secret"}
@@ -968,6 +1008,11 @@ class PublishingWorkerTest {
                 "Reconnect failed for token=secret https://provider.example/auth",
                 ReconnectReason.INVALID_GRANT,
             )
+    }
+
+    private class ProviderUploadFailingPublisher(private val message: String) : SocialPublisher {
+        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
+            throw ProviderUploadException(message)
     }
 
     private class FailingMediaAssetResolver(private val exception: RuntimeException) : MediaAssetResolver {
