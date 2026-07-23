@@ -125,13 +125,15 @@ internal class DataSubjectRequestTest {
         notes: String? = "Test notes",
         correctionData: String? = null,
     ): DataSubjectRequest = DataSubjectRequest.create(
-        id = id,
-        requestType = requestType,
-        requestedBy = requestedBy,
-        requestedByEmail = requestedByEmail,
-        workspaceId = workspaceId,
-        notes = notes,
-        correctionData = correctionData,
-        createdAt = now,
+        CreateDataSubjectRequest(
+            id = id,
+            requestType = requestType,
+            requestedBy = requestedBy,
+            requestedByEmail = requestedByEmail,
+            workspaceId = workspaceId,
+            notes = notes,
+            correctionData = correctionData,
+            createdAt = now,
+        ),
     )
 }

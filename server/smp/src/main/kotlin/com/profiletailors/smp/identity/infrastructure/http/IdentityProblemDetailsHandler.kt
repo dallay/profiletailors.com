@@ -1,5 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
+import com.profiletailors.smp.identity.application.CloseAccountConfirmationException
+import com.profiletailors.smp.identity.application.CloseAccountRateLimitException
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
@@ -13,6 +15,8 @@ import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import java.net.URI
+
+private const val BAD_REQUEST_DETAIL = "Bad request"
 
 @RestControllerAdvice
 class IdentityProblemDetailsHandler {
@@ -93,4 +97,20 @@ class IdentityProblemDetailsHandler {
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_VERIFICATION_TOKEN_DETAIL).apply {
             title = "Invalid verification token"
         }
+
+    @ExceptionHandler(CloseAccountConfirmationException::class)
+    fun handle(exception: CloseAccountConfirmationException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: BAD_REQUEST_DETAIL).apply {
+            title = "Invalid account closure confirmation"
+        }
+
+    @ExceptionHandler(CloseAccountRateLimitException::class)
+    fun handle(exception: CloseAccountRateLimitException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.TOO_MANY_REQUESTS,
+        exception.message ?: "Rate limit exceeded",
+    ).apply {
+        title = "Account closure rate limit exceeded"
+        type = URI("https://api.profiletailors.com/errors/account-closure-rate-limit")
+        setProperty("code", "ACCOUNT_CLOSURE_RATE_LIMIT")
+    }
 }

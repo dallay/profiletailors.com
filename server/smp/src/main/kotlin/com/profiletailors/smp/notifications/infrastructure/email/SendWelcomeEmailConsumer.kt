@@ -10,7 +10,6 @@ import com.profiletailors.notifications.domain.IdempotencyKey
 import com.profiletailors.notifications.domain.Notification
 import com.profiletailors.notifications.domain.NotificationChannel
 import com.profiletailors.notifications.domain.NotificationId
-import com.profiletailors.notifications.domain.NotificationPayload
 import com.profiletailors.notifications.domain.NotificationRepository
 import com.profiletailors.notifications.domain.NotificationStatus
 import com.profiletailors.notifications.domain.Recipient
@@ -103,7 +102,4 @@ internal class SendWelcomeEmailConsumer(
             )
         }
     }
-
-    @Suppress("unused")
-    private fun emptyPayload(): NotificationPayload = NotificationPayload.EMPTY
 }

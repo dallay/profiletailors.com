@@ -2,15 +2,20 @@ package com.profiletailors.smp.governance.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.governance.application.EvaluateComplianceQuery
+import com.profiletailors.smp.governance.application.ReleaseGateQuery
+import com.profiletailors.smp.governance.application.ReleaseGateResult
 import com.profiletailors.smp.governance.domain.ComplianceEvaluation
 import com.profiletailors.smp.governance.domain.ComplianceEvaluationContext
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 import org.springframework.http.HttpStatus
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController
  */
 @RestController
 @RequestMapping("/api/governance/compliance")
+@Validated
 class ComplianceController(private val mediator: Mediator) {
 
     data class EvaluationContextRequest(
@@ -74,6 +80,24 @@ class ComplianceController(private val mediator: Mediator) {
         )
         val evaluation: ComplianceEvaluation = mediator.send(query)
         return toResponse(evaluation, request.context)
+    }
+
+    /**
+     * Evaluates the release gate for a given release.
+     *
+     * @param release The release identifier to evaluate.
+     * @return A [ReleaseGateResult] with the gate status and evaluation summary.
+     */
+    @GetMapping("/release-gate")
+    @ResponseStatus(HttpStatus.OK)
+    suspend fun releaseGate(
+        @RequestParam
+        @Size(max = 100)
+        @Pattern(regexp = "^[a-zA-Z0-9._-]+$")
+        release: String = "0.1.0",
+    ): ReleaseGateResult {
+        val query = ReleaseGateQuery(release = release)
+        return mediator.send(query)
     }
 
     /**

@@ -2,6 +2,7 @@ package com.profiletailors.smp.privacy.infrastructure.persistence
 
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import com.profiletailors.smp.privacy.domain.CreateDataSubjectRequest
 import com.profiletailors.smp.privacy.domain.DataSubjectRequest
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestId
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestStatus
@@ -162,12 +163,14 @@ class R2dbcDataSubjectRequestRepositoryTest : PostgresDatabaseTestBase() {
         requestedBy: String = "principal-1",
         createdAt: Instant = Instant.parse("2026-07-15T10:00:00Z"),
     ): DataSubjectRequest = DataSubjectRequest.create(
-        id = DataSubjectRequestId(id),
-        requestType = RequestType.ACCESS,
-        requestedBy = requestedBy,
-        requestedByEmail = "user@example.com",
-        notes = "Test notes",
-        createdAt = createdAt,
+        CreateDataSubjectRequest(
+            id = DataSubjectRequestId(id),
+            requestType = RequestType.ACCESS,
+            requestedBy = requestedBy,
+            requestedByEmail = "user@example.com",
+            notes = "Test notes",
+            createdAt = createdAt,
+        ),
     )
 
     companion object {

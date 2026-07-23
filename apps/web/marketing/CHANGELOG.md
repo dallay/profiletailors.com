@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.1](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.0...landing@v0.2.1) (2026-07-22)
+
+
+### Features
+
+* **identity:** implement account closure feature (DALLAY-497) ([#430](https://github.com/dallay/profiletailors.com/issues/430)) ([f5e98be](https://github.com/dallay/profiletailors.com/commit/f5e98beda90a524e200e1a31cf19a510d66998fd))
+* **legal:** rewrite policies for open-source + operator-hosted instance model ([#427](https://github.com/dallay/profiletailors.com/issues/427)) ([88b6253](https://github.com/dallay/profiletailors.com/commit/88b625373dd77a6f56ce594e2cda04607aa99846))
+
+
+### Bug Fixes
+
+* **quality:** resolve 14 SonarCloud issues blocking quality gate ([#436](https://github.com/dallay/profiletailors.com/issues/436)) ([1593ce7](https://github.com/dallay/profiletailors.com/commit/1593ce795490429a4703991422a559debb50923b))
+
 ## [0.2.0](https://github.com/dallay/profiletailors.com/compare/landing@v0.1.0...landing@v0.2.0) (2026-07-21)
 
 
