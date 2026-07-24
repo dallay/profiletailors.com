@@ -1,0 +1,343 @@
+---
+import { useTranslations } from '../../i18n/utils'
+
+const t = useTranslations(Astro.currentLocale || 'en')
+---
+
+<div id="consent-banner" role="dialog" aria-labelledby="consent-heading" aria-modal="true" hidden>
+  <div class="consent-backdrop"></div>
+  <div class="consent-container">
+    <h2 id="consent-heading">{t.consent.banner.heading}</h2>
+    <p class="consent-description" set:html={t.consent.banner.description} />
+
+    <!-- Necessary (always-on, disabled) -->
+    <div class="consent-category consent-category--disabled">
+      <div class="consent-category-info">
+        <span class="consent-category-label">
+          {t.consent.category.necessary.label}
+        </span>
+        <span class="consent-category-desc">
+          {t.consent.category.necessary.description}
+        </span>
+      </div>
+      <input
+        type="checkbox"
+        checked
+        disabled
+        aria-disabled="true"
+        class="consent-checkbox"
+      />
+    </div>
+
+    <!-- Analytics (opt-in) -->
+    <div class="consent-category">
+      <div class="consent-category-info">
+        <span class="consent-category-label">
+          {t.consent.category.analytics.label}
+        </span>
+        <span class="consent-category-desc">
+          {t.consent.category.analytics.description}
+        </span>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked="false"
+        aria-label="Analytics cookies"
+        data-consent-analytics
+        class="consent-toggle"
+      >
+        <span class="consent-toggle-thumb"></span>
+      </button>
+    </div>
+
+    <!-- Actions: Equal prominence -->
+    <div class="consent-actions">
+      <button type="button" data-consent-accept-all class="consent-button consent-button--primary">
+        {t.consent.action.acceptAll}
+      </button>
+      <button type="button" data-consent-reject-all class="consent-button consent-button--primary">
+        {t.consent.action.rejectAll}
+      </button>
+      <button type="button" data-consent-save class="consent-button consent-button--secondary">
+        {t.consent.action.savePreferences}
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  #consent-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #consent-banner[hidden] {
+    display: none;
+  }
+
+  .consent-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+
+  .consent-container {
+    position: relative;
+    max-width: 480px;
+    width: 90%;
+    background: var(--color-background, #1a1a1a);
+    border: 1px solid var(--color-border, #333);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  #consent-heading {
+    margin: 0 0 1rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text, #fff);
+  }
+
+  .consent-description {
+    margin: 0 0 1.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-text-muted, #aaa);
+  }
+
+  .consent-description :global(a) {
+    color: var(--color-accent, #0ea5e9);
+    text-decoration: underline;
+  }
+
+  .consent-category {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border, #333);
+    margin-bottom: 0.75rem;
+    background: var(--color-surface, #222);
+  }
+
+  .consent-category--disabled {
+    opacity: 0.6;
+    background: var(--color-muted, #2a2a2a);
+  }
+
+  .consent-category-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+  }
+
+  .consent-category-label {
+    font-weight: 600;
+    color: var(--color-text, #fff);
+  }
+
+  .consent-category-desc {
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #aaa);
+  }
+
+  .consent-checkbox {
+    width: 20px;
+    height: 20px;
+  }
+
+  .consent-toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--color-border, #444);
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .consent-toggle[aria-checked="true"] {
+    background: var(--color-accent, #0ea5e9);
+  }
+
+  .consent-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+
+  .consent-toggle[aria-checked="true"] .consent-toggle-thumb {
+    transform: translateX(20px);
+  }
+
+  .consent-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .consent-button {
+    flex: 1;
+    min-width: 0;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+  }
+
+  .consent-button--primary,
+  .consent-button--secondary {
+    background: var(--color-surface, #333);
+    color: var(--color-text, #fff);
+    border-color: var(--color-border, #444);
+  }
+
+  .consent-button--primary:hover,
+  .consent-button--secondary:hover {
+    background: var(--color-surface-hover, #3a3a3a);
+    border-color: var(--color-accent, #0ea5e9);
+  }
+
+  @media (max-width: 640px) {
+    .consent-container {
+      width: 95%;
+      padding: 1.5rem;
+    }
+
+    .consent-actions {
+      flex-direction: column;
+    }
+
+    .consent-button {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  import { CURRENT_CONSENT_VERSION, CURRENT_POLICY_VERSION, PT_CONSENT_KEY } from '../../constants/consent'
+  import type { ConsentReceipt } from '@profiletailors/shared-web'
+  import { validateConsentReceipt } from '@profiletailors/shared-web'
+
+  // Initialize banner
+  function initConsentBanner() {
+    const banner = document.getElementById('consent-banner')
+    if (!banner) return
+
+    const analyticsToggle = banner.querySelector('[data-consent-analytics]') as HTMLButtonElement
+    const acceptBtn = banner.querySelector('[data-consent-accept-all]') as HTMLButtonElement
+    const rejectBtn = banner.querySelector('[data-consent-reject-all]') as HTMLButtonElement
+    const saveBtn = banner.querySelector('[data-consent-save]') as HTMLButtonElement
+
+    // Check if banner should be shown
+    const existingConsent = loadConsent()
+    const hasDNT = window.__PT_DNT || false
+
+    if (!existingConsent) {
+      // Set default based on DNT/GPC
+      const defaultAnalytics = !hasDNT
+      analyticsToggle.setAttribute('aria-checked', String(defaultAnalytics))
+      if (defaultAnalytics) {
+        analyticsToggle.classList.add('consent-toggle--on')
+      }
+      banner.removeAttribute('hidden')
+    }
+
+    // Toggle analytics
+    analyticsToggle?.addEventListener('click', () => {
+      const isChecked = analyticsToggle.getAttribute('aria-checked') === 'true'
+      analyticsToggle.setAttribute('aria-checked', String(!isChecked))
+      analyticsToggle.classList.toggle('consent-toggle--on')
+    })
+
+    // Accept all
+    acceptBtn?.addEventListener('click', () => {
+      saveConsentChoice(true)
+      closeBanner()
+    })
+
+    // Reject all
+    rejectBtn?.addEventListener('click', () => {
+      saveConsentChoice(false)
+      closeBanner()
+    })
+
+    // Save preferences
+    saveBtn?.addEventListener('click', () => {
+      const analytics = analyticsToggle.getAttribute('aria-checked') === 'true'
+      saveConsentChoice(analytics)
+      closeBanner()
+    })
+  }
+
+  function saveConsentChoice(analytics: boolean) {
+    const receipt: ConsentReceipt = {
+      consentVersion: CURRENT_CONSENT_VERSION,
+      policyVersion: CURRENT_POLICY_VERSION,
+      timestamp: new Date().toISOString(),
+      region: 'EU',
+      categories: {
+        necessary: true,
+        analytics,
+      },
+      dnt: window.__PT_DNT || false,
+      source: 'banner',
+    }
+
+    try {
+      localStorage.setItem(PT_CONSENT_KEY, JSON.stringify(receipt))
+      // Reload to apply changes
+      window.location.reload()
+    } catch (error) {
+      console.error('[Consent] Failed to save:', error)
+    }
+  }
+
+  function loadConsent(): ConsentReceipt | null {
+    try {
+      const raw = localStorage.getItem(PT_CONSENT_KEY)
+      if (!raw) return null
+      // Use shared validation schema
+      const parsed = JSON.parse(raw)
+      return validateConsentReceipt(parsed)
+    } catch {
+      return null
+    }
+  }
+
+  function closeBanner() {
+    const banner = document.getElementById('consent-banner')
+    banner?.setAttribute('hidden', '')
+  }
+
+  // Initialize on load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initConsentBanner)
+  } else {
+    initConsentBanner()
+  }
+</script>

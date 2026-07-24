@@ -1,0 +1,6 @@
+name = "profiletailors-app"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-07-24"
+
+[vars]
+VITE_API_BASE_URL = "https://api.profiletailors.com"

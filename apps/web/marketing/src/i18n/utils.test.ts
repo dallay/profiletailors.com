@@ -149,7 +149,7 @@ describe('i18n utils', () => {
       const tEn = useTranslations(new URL('https://example.com/'));
       const tEs = useTranslations(new URL('https://example.com/es/'));
       expect(tEn.consent.banner.description).toContain('href="/privacy/"');
-      expect(tEs.consent.banner.description).toContain('href="/privacy/"');
+      expect(tEs.consent.banner.description).toContain('href="/es/privacy/"');
     });
 
     it('marks the necessary category as always-required copy, distinct from the opt-in analytics category', () => {

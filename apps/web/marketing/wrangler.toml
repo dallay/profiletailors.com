@@ -1,0 +1,8 @@
+name = "profiletailors-marketing"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-07-24"
+
+[vars]
+PUBLIC_AHREFS_ANALYTICS_KEY = ""
+PUBLIC_WAITLIST_ENABLED = "false"
+PUBLIC_WAITLIST_API_BASE = ""
