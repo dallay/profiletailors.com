@@ -58,7 +58,7 @@ test.describe('Waitlist Form — Marketing E2E', () => {
 
     expect(interceptedBody).toMatchObject({
       email: 'user@example.com',
-      consents: {
+      consent: {
         earlyAccess: true,
         marketing: false,
       },
