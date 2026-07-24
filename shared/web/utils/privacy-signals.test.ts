@@ -3,13 +3,38 @@ import { hasPrivacySignal, isDNTEnabled, isGPCEnabled } from './privacy-signals'
 
 describe('privacy-signals', () => {
   let originalNavigator: Navigator
+  let originalDNT: PropertyDescriptor | undefined
+  let originalGPC: PropertyDescriptor | undefined
 
   beforeEach(() => {
     originalNavigator = global.navigator
+    if (global.navigator) {
+      originalDNT = Object.getOwnPropertyDescriptor(global.navigator, 'doNotTrack')
+      originalGPC = Object.getOwnPropertyDescriptor(global.navigator, 'globalPrivacyControl')
+    }
   })
 
   afterEach(() => {
-    global.navigator = originalNavigator
+    // Restore navigator first if it was set to undefined
+    if (!global.navigator && originalNavigator) {
+      global.navigator = originalNavigator
+    }
+
+    // Then restore properties
+    if (global.navigator) {
+      if (originalDNT) {
+        Object.defineProperty(global.navigator, 'doNotTrack', originalDNT)
+      } else if (Object.getOwnPropertyDescriptor(global.navigator, 'doNotTrack')) {
+        // @ts-expect-error Cleanup test stub
+        delete global.navigator.doNotTrack
+      }
+      if (originalGPC) {
+        Object.defineProperty(global.navigator, 'globalPrivacyControl', originalGPC)
+      } else if (Object.getOwnPropertyDescriptor(global.navigator, 'globalPrivacyControl')) {
+        // @ts-expect-error Cleanup test stub
+        delete global.navigator.globalPrivacyControl
+      }
+    }
   })
 
   describe('isDNTEnabled', () => {
@@ -41,9 +66,11 @@ describe('privacy-signals', () => {
     })
 
     it('returns false in SSR context (no navigator)', () => {
+      const savedNavigator = global.navigator
       // @ts-expect-error Testing SSR scenario
       global.navigator = undefined
       expect(isDNTEnabled()).toBe(false)
+      global.navigator = savedNavigator
     })
 
     it('returns true via the legacy window.doNotTrack fallback even when navigator.doNotTrack is unset', () => {
@@ -86,9 +113,11 @@ describe('privacy-signals', () => {
     })
 
     it('returns false in SSR context (no navigator)', () => {
+      const savedNavigator = global.navigator
       // @ts-expect-error Testing SSR scenario
       global.navigator = undefined
       expect(isGPCEnabled()).toBe(false)
+      global.navigator = savedNavigator
     })
   })
 
