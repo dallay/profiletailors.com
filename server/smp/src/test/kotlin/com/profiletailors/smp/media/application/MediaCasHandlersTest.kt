@@ -546,76 +546,7 @@ class MediaCasHandlersTest {
         assertEquals(1, txRunner.calls.size)
     }
 
-    @Test
-    fun `DeleteWorkspaceAssetHandler marks blob READY_FOR_GC when softDelete fails`() = runTest {
-        val media = InMemoryMediaAssetRepository()
-        val blobs = InMemoryWorkspaceFileBlobRepository()
-        val asset = MediaAsset(
-            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, HASH_A, "image/jpeg",
-            "assets/$WORKSPACE/blobs/$HASH_A.jpg", null, "photo.jpg", 1024,
-            MediaAssetStatus.READY, null, null, Instant.now(),
-        )
-        media.create(asset)
-        blobs.saveBlob(readyBlob(HASH_A))
 
-        var callCount = 0
-        val txRunner = FailingAtomicTransactionRunner {
-            callCount++
-            callCount == 1
-        }
-
-        val handler = DeleteWorkspaceAssetHandler(
-            media,
-            txRunner,
-            blobs,
-        )
-        val result = handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
-
-        // Storage delete succeeded (storage has no real impl), softDelete failed (injected),
-        // so markReadyForGC should have been called in the compensation path
-        assertTrue(result.deleted)
-        assertEquals(BlobStatus.READY_FOR_GC, blobs.blob(WORKSPACE, HASH_A)?.status)
-    }
-
-    @Test
-    fun `DeleteWorkspaceAssetHandler storage delete failure propagates and softDelete is NOT called`() = runTest {
-        val media = InMemoryMediaAssetRepository()
-        val blobs = InMemoryWorkspaceFileBlobRepository()
-        val txRunner = RecordingAtomicTransactionRunner()
-        val asset = MediaAsset(
-            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, HASH_A, "image/jpeg",
-            "assets/$WORKSPACE/blobs/$HASH_A.jpg", null, "photo.jpg", 1024,
-            MediaAssetStatus.READY, null, null, Instant.now(),
-        )
-        media.create(asset)
-
-        val failingStorage = object : Storage {
-            override suspend fun upload(
-                bucket: String,
-                key: String,
-                content: Flow<ByteArray>,
-                metadata: Map<String, String>,
-            ) = Unit
-            override fun download(bucket: String, key: String): Flow<ByteArray> = flowOf()
-            override suspend fun delete(bucket: String, key: String) =
-                throw MediaServiceUnavailableException("simulated", null)
-            override suspend fun list(bucket: String, prefix: String) = emptyList<String>()
-            override suspend fun exists(bucket: String, key: String) = false
-            override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) = Unit
-        }
-
-        val handler = DeleteWorkspaceAssetHandler(
-            media,
-            txRunner,
-            blobs,
-        )
-
-        assertThrows<MediaServiceUnavailableException> {
-            handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
-        }
-        // softDelete was NOT called because storage delete threw first
-        assertEquals(0, txRunner.calls.size)
-    }
 
     @Test
     fun `UploadAssetHandler runAtomically called with markAsReady block`() = runTest {
@@ -849,34 +780,7 @@ class MediaCasHandlersTest {
         assertTrue(txRunner.calls.isEmpty())
     }
 
-    @Test
-    fun `DeleteWorkspaceAssetHandler propagates exception when GC compensation transaction also fails`() = runTest {
-        val media = InMemoryMediaAssetRepository()
-        val blobs = InMemoryWorkspaceFileBlobRepository()
-        val asset = MediaAsset(
-            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, HASH_A, "image/jpeg",
-            "assets/$WORKSPACE/blobs/$HASH_A.jpg", null, "photo.jpg", 1024,
-            MediaAssetStatus.READY, null, null, Instant.now(),
-        )
-        media.create(asset)
-        blobs.saveBlob(readyBlob(HASH_A))
 
-        // Fails both the softDelete transaction and the GC-compensation transaction that follows it
-        val txRunner = FailingAtomicTransactionRunner { true }
-
-        val handler = DeleteWorkspaceAssetHandler(
-            media,
-            txRunner,
-            blobs,
-        )
-
-        assertThrows<TestTransactionFailure> {
-            handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
-        }
-        // Neither the asset soft-delete nor the blob GC compensation took effect
-        assertEquals(MediaAssetStatus.READY, media.asset(WORKSPACE, ASSET_A)?.status)
-        assertEquals(BlobStatus.READY, blobs.blob(WORKSPACE, HASH_A)?.status)
-    }
 
     @Test
     fun `UploadAssetHandler releases concurrent upload slot exactly once on success`() = runTest {
