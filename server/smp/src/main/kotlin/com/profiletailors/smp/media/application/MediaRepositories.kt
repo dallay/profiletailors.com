@@ -133,6 +133,24 @@ interface MediaAssetRepository {
      * @return the oldest active asset for that hash, or null if none exists.
      */
     suspend fun findActiveByWorkspaceAndHash(workspaceId: String, fileHash: String): MediaAsset?
+
+    /**
+     * Finds READY assets created before CAS migration that still have no file hash.
+     * Used by MediaAssetBackfillJob.
+     */
+    suspend fun findReadyAssetsWithoutHash(limit: Int): List<MediaAsset> = emptyList()
+
+    /**
+     * Updates a READY asset with CAS metadata computed during backfill.
+     */
+    suspend fun updateReadyAssetCasMetadata(
+        assetId: String,
+        workspaceId: String,
+        fileHash: String,
+        storageKey: String,
+        detectedMediaType: String,
+        fileSizeBytes: Long,
+    ): MediaAsset? = null
 }
 
 /**
