@@ -194,7 +194,7 @@ publishing:
     state-signing-secret: ${SMP_LINKEDIN_STATE_SIGNING_SECRET:test-linkedin-oauth-state-secret}
   credentials:
     encryption:
-      key: ${PUBLISHING_CREDENTIALS_ENCRYPTION_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key (32 bytes)
+      key: ${PUBLISHING_CREDENTIALS_ENCRYPTION_KEY:test-encryption-credentials-dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key (32 bytes)
 
 management:
   server:

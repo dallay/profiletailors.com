@@ -12,8 +12,8 @@ import com.profiletailors.smp.publishing.domain.PublicationRetryNotAllowedExcept
 import com.profiletailors.smp.publishing.domain.PublicationStateTransitionException
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 
@@ -25,9 +25,9 @@ class PublishingProblemDetailsHandlerTest {
         val exception = ProviderNotConfiguredException(SocialProvider.LINKEDIN)
         val problem = handler.handle(exception)
 
-        assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), problem.status)
-        assertEquals("Provider not configured", problem.title)
-        assertEquals("Provider 'LINKEDIN' is not configured.", problem.detail)
+        problem.status shouldBe HttpStatus.SERVICE_UNAVAILABLE.value()
+        problem.title shouldBe "Provider not configured"
+        problem.detail shouldBe "The requested provider is not available."
     }
 
     @Test
@@ -35,9 +35,9 @@ class PublishingProblemDetailsHandlerTest {
         val exception = ExpiredOAuthStateException()
         val problem = handler.handle(exception)
 
-        assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
-        assertEquals("OAuth state expired", problem.title)
-        assertEquals("OAuth state has expired.", problem.detail)
+        problem.status shouldBe HttpStatus.BAD_REQUEST.value()
+        problem.title shouldBe "OAuth state expired"
+        problem.detail shouldBe "OAuth state has expired."
     }
 
     @Test
@@ -45,9 +45,9 @@ class PublishingProblemDetailsHandlerTest {
         val exception = InvalidOAuthStateException("Custom message")
         val problem = handler.handle(exception)
 
-        assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
-        assertEquals("OAuth state invalid", problem.title)
-        assertEquals("Custom message", problem.detail)
+        problem.status shouldBe HttpStatus.BAD_REQUEST.value()
+        problem.title shouldBe "OAuth state invalid"
+        problem.detail shouldBe "OAuth state is invalid."
     }
 
     @Test
@@ -55,9 +55,9 @@ class PublishingProblemDetailsHandlerTest {
         val exception = PublicationNotFoundException("pub-missing")
         val problem = handler.handle(exception)
 
-        assertEquals(HttpStatus.NOT_FOUND.value(), problem.status)
-        assertEquals("Publication not found", problem.title)
-        assertEquals("Publication 'pub-missing' was not found in the active workspace.", problem.detail)
+        problem.status shouldBe HttpStatus.NOT_FOUND.value()
+        problem.title shouldBe "Publication not found"
+        problem.detail shouldBe "Publication not found."
     }
 
     // -------------------------------------------------------------------------
@@ -69,9 +69,9 @@ class PublishingProblemDetailsHandlerTest {
         val exception = PublicationEditNotAllowedException("pub-123")
         val problem = handler.handle(exception)
 
-        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
-        assertEquals("Publication state conflict", problem.title)
-        assertTrue(problem.detail!!.contains("pub-123"))
+        problem.status shouldBe HttpStatus.CONFLICT.value()
+        problem.title shouldBe "Publication state conflict"
+        problem.detail shouldBe "The publication cannot transition from its current state."
     }
 
     @Test
@@ -79,9 +79,9 @@ class PublishingProblemDetailsHandlerTest {
         val exception = PublicationDeletionNotAllowedException("pub-456")
         val problem = handler.handle(exception)
 
-        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
-        assertEquals("Publication state conflict", problem.title)
-        assertTrue(problem.detail!!.contains("pub-456"))
+        problem.status shouldBe HttpStatus.CONFLICT.value()
+        problem.title shouldBe "Publication state conflict"
+        problem.detail shouldBe "The publication cannot transition from its current state."
     }
 
     @Test
@@ -89,9 +89,9 @@ class PublishingProblemDetailsHandlerTest {
         val exception = PublicationCancellationNotAllowedException("pub-789")
         val problem = handler.handle(exception)
 
-        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
-        assertEquals("Publication state conflict", problem.title)
-        assertTrue(problem.detail!!.contains("pub-789"))
+        problem.status shouldBe HttpStatus.CONFLICT.value()
+        problem.title shouldBe "Publication state conflict"
+        problem.detail shouldBe "The publication cannot transition from its current state."
     }
 
     @Test
@@ -99,9 +99,9 @@ class PublishingProblemDetailsHandlerTest {
         val exception = PublicationRetryNotAllowedException("pub-retry")
         val problem = handler.handle(exception)
 
-        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
-        assertEquals("Publication state conflict", problem.title)
-        assertTrue(problem.detail!!.contains("pub-retry"))
+        problem.status shouldBe HttpStatus.CONFLICT.value()
+        problem.title shouldBe "Publication state conflict"
+        problem.detail shouldBe "The publication cannot transition from its current state."
     }
 
     @Test
@@ -109,10 +109,9 @@ class PublishingProblemDetailsHandlerTest {
         val exception = PublicationAlreadyTerminalException("pub-terminal", PublicationStatus.PUBLISHED)
         val problem = handler.handle(exception)
 
-        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
-        assertEquals("Publication state conflict", problem.title)
-        assertTrue(problem.detail!!.contains("pub-terminal"))
-        assertTrue(problem.detail!!.contains("PUBLISHED"))
+        problem.status shouldBe HttpStatus.CONFLICT.value()
+        problem.title shouldBe "Publication state conflict"
+        problem.detail shouldBe "The publication cannot transition from its current state."
     }
 
     @Test
@@ -120,8 +119,23 @@ class PublishingProblemDetailsHandlerTest {
         val exception = PublicationStateTransitionException("Generic state transition error for pub-base")
         val problem = handler.handle(exception)
 
-        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
-        assertEquals("Publication state conflict", problem.title)
-        assertEquals("Generic state transition error for pub-base", problem.detail)
+        problem.status shouldBe HttpStatus.CONFLICT.value()
+        problem.title shouldBe "Publication state conflict"
+        problem.detail shouldBe "The publication cannot transition from its current state."
+    }
+
+    @Test
+    fun `maps asset not ready without leaking asset id`() {
+        val exception = com.profiletailors.smp.media.application.AssetNotReadyException(
+            "asset-123",
+            "storage unavailable",
+        )
+        val problem = handler.handle(exception)
+
+        problem.status shouldBe HttpStatus.BAD_REQUEST.value()
+        problem.title shouldBe "Asset not ready"
+        problem.detail shouldBe "One or more assets are not ready for publishing."
+        problem.properties?.get("errorCode") shouldBe "ASSET_NOT_READY"
+        problem.properties?.get("assetId").shouldBeNull()
     }
 }

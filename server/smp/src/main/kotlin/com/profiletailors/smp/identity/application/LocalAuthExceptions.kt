@@ -7,7 +7,7 @@ import com.profiletailors.smp.identity.domain.EmailStatus
 
 class InvalidEmailPasswordException : RuntimeException("Invalid email or password.")
 
-class UserAlreadyExistsException(email: String) : RuntimeException("A user with email '$email' already exists.")
+class UserAlreadyExistsException(email: String) : RuntimeException("User already exists.")
 
 class InvalidRegistrationInputException(message: String) : RuntimeException(message)
 

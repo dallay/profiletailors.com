@@ -32,6 +32,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "management.endpoint.health.group.readiness.include=",
         "management.endpoint.health.group.liveness.include=",
         "platform.workspace-context.header-name=X-Workspace-Id",
+        "app.security.cors.allowed-origins=http://localhost",
         "spring.main.allow-bean-definition-overriding=true",
         BddTestProperties.LINKEDIN_CLIENT_ID,
         BddTestProperties.LINKEDIN_CLIENT_SECRET,

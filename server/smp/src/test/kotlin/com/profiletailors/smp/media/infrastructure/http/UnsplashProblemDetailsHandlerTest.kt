@@ -23,14 +23,14 @@ class UnsplashProblemDetailsHandlerTest {
     }
 
     @Test
-    fun `photo not found exception maps to 404 with external id`() {
+    fun `photo not found exception maps to 404 with id omitted`() {
         val result = handler.handle(UnsplashPhotoNotFoundException("photo-404"))
 
         result.status shouldBe HttpStatus.NOT_FOUND.value()
         result.title shouldBe "Unsplash photo not found"
-        result.detail shouldBe "Unsplash photo photo-404 was not found."
+        result.detail shouldBe "Unsplash photo not found."
         result.properties?.get("errorCode") shouldBe "UNSPLASH_PHOTO_NOT_FOUND"
-        result.properties?.get("externalId") shouldBe "photo-404"
+        result.properties?.get("externalId") shouldBe null
     }
 
     @Test
@@ -50,7 +50,7 @@ class UnsplashProblemDetailsHandlerTest {
 
         result.status shouldBe HttpStatus.BAD_GATEWAY.value()
         result.title shouldBe "Unsplash provider error"
-        result.detail shouldBe "Unsplash timed out"
+        result.detail shouldBe "Unsplash is temporarily unavailable."
         result.properties?.get("errorCode") shouldBe "UNSPLASH_PROVIDER_ERROR"
     }
 }

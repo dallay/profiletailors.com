@@ -66,7 +66,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         seedMemberWithPreviewPermission()
         seedTargetScope(allowedTargetIdsJson = "[\"resource-2\"]")
 
-        expectPreviewDenied("Requested target $RESOURCE_ID is outside the allowed scope.")
+        expectPreviewDenied("You do not have permission to perform this action.")
         assertAuthorizationFacts(listOf(expectedFact(AuthorizationReasonCode.SCOPE_REDUCED_TARGET, allow = false)))
     }
 
@@ -76,7 +76,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         seedScopePermission()
         seedTargetScope(allowedTargetIdsJson = "[\"$RESOURCE_ID\"]")
 
-        expectPreviewDenied("Missing required permission $PERMISSION_RESOURCE_READ.")
+        expectPreviewDenied("You do not have permission to perform this action.")
         assertAuthorizationFacts(listOf(expectedFact(AuthorizationReasonCode.MISSING_PERMISSION, allow = false)))
     }
 
@@ -85,7 +85,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         seedMemberWithPreviewPermission()
         seedTargetScope(allowedTargetIdsJson = "[\"resource-*\"]")
 
-        expectPreviewDenied("Requested target $RESOURCE_ID is outside the allowed scope.")
+        expectPreviewDenied("You do not have permission to perform this action.")
         assertAuthorizationFacts(listOf(expectedFact(AuthorizationReasonCode.SCOPE_REDUCED_TARGET, allow = false)))
     }
 
