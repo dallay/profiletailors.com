@@ -2,9 +2,8 @@ package com.profiletailors.smp.credentials.infrastructure.security
 
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.spring.boot.security.SpringJwtClaimsMapper
-import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.security.oauth2.jwt.Jwt
 import java.time.Instant
@@ -14,7 +13,7 @@ class SpringJwtClaimsMapperTest {
     private val mapper = SpringJwtClaimsMapper()
 
     @Test
-    fun `maps service account JWT claims into a shared token representation`() = runTest {
+    fun `should map service account claims when principal_type is SERVICE_ACCOUNT`() {
         val issuedAt = Instant.parse("2026-05-15T10:15:30Z")
         val expiresAt = Instant.parse("2026-05-15T11:15:30Z")
         val jwt = Jwt.withTokenValue("service-token")
@@ -31,9 +30,9 @@ class SpringJwtClaimsMapperTest {
 
         val claims = mapper.map(jwt)
 
-        assertEquals(PrincipalType.SERVICE_ACCOUNT, claims.principalTypeHint)
-        assertEquals("svc-cred-1", claims.credentialReference)
-        assertEquals("https://issuer.example", claims.issuer)
+        claims.principalTypeHint shouldBe PrincipalType.SERVICE_ACCOUNT
+        claims.credentialReference shouldBe "svc-cred-1"
+        claims.issuer shouldBe "https://issuer.example"
         val expectedStringClaims = mapOf(
             "credential_reference" to "svc-cred-1",
             "email" to "bot@example.com",
@@ -43,22 +42,22 @@ class SpringJwtClaimsMapperTest {
             "sub" to "service-account-subject",
         )
 
-        assertEquals(expectedStringClaims, claims.stringClaims)
-        assertEquals(issuedAt, claims.issuedAt)
-        assertEquals(expiresAt, claims.expiresAt)
+        claims.stringClaims shouldBe expectedStringClaims
+        claims.issuedAt shouldBe issuedAt
+        claims.expiresAt shouldBe expiresAt
     }
 
     @Test
-    fun `rejects a JWT without an issuer claim`() = runTest {
+    fun `should reject JWT when issuer claim is missing`() {
         val jwt = Jwt.withTokenValue("token-value")
             .header("alg", "RS256")
             .claim("sub", "user-123")
             .build()
 
-        val exception = assertThrows(IllegalArgumentException::class.java) {
+        val exception = shouldThrow<IllegalArgumentException> {
             mapper.map(jwt)
         }
 
-        assertEquals("JWT missing 'iss' claim", exception.message)
+        exception.message shouldBe "JWT missing 'iss' claim"
     }
 }
