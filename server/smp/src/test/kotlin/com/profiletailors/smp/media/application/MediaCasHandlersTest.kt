@@ -537,8 +537,6 @@ class MediaCasHandlersTest {
 
         val handler = DeleteWorkspaceAssetHandler(
             media,
-            FakeStorage().service(),
-            MediaUploadSettings(1, 200, "bucket"),
             txRunner,
             blobs,
         )
@@ -568,8 +566,6 @@ class MediaCasHandlersTest {
 
         val handler = DeleteWorkspaceAssetHandler(
             media,
-            FakeStorage().service(),
-            MediaUploadSettings(1, 200, "bucket"),
             txRunner,
             blobs,
         )
@@ -610,8 +606,6 @@ class MediaCasHandlersTest {
 
         val handler = DeleteWorkspaceAssetHandler(
             media,
-            StorageApplicationService(failingStorage, NoopEventPublisher(), NoopStorageObservation()),
-            MediaUploadSettings(1, 200, "bucket"),
             txRunner,
             blobs,
         )
@@ -795,8 +789,6 @@ class MediaCasHandlersTest {
 
         val handler = DeleteWorkspaceAssetHandler(
             media,
-            storage.service(),
-            MediaUploadSettings(1, 200, "bucket"),
             txRunner,
             blobs,
         )
@@ -827,8 +819,6 @@ class MediaCasHandlersTest {
 
         val handler = DeleteWorkspaceAssetHandler(
             media,
-            FakeStorage().service(),
-            MediaUploadSettings(1, 200, "bucket"),
             txRunner,
             blobs,
         )
@@ -849,8 +839,6 @@ class MediaCasHandlersTest {
 
         val handler = DeleteWorkspaceAssetHandler(
             media,
-            FakeStorage().service(),
-            MediaUploadSettings(1, 200, "bucket"),
             txRunner,
             blobs,
         )
@@ -878,8 +866,6 @@ class MediaCasHandlersTest {
 
         val handler = DeleteWorkspaceAssetHandler(
             media,
-            FakeStorage().service(),
-            MediaUploadSettings(1, 200, "bucket"),
             txRunner,
             blobs,
         )

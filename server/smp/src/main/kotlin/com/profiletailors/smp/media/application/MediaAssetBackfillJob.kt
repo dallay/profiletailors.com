@@ -30,10 +30,6 @@ class MediaAssetBackfillJob(
 ) {
     private val logger = LoggerFactory.getLogger(MediaAssetBackfillJob::class.java)
 
-    companion object {
-        private const val BATCH_SIZE = 50
-    }
-
     suspend fun run(limit: Int = BATCH_SIZE): BackfillRunResult {
         val startedAt = Instant.now()
         var scanned = 0
@@ -44,60 +40,9 @@ class MediaAssetBackfillJob(
 
         for (asset in candidates) {
             scanned++
-            try {
-                val currentStorageKey = asset.storageKey
-                if (currentStorageKey.isNullOrBlank()) {
-                    failed++
-                    logger.warn(
-                        "media.backfill.skip.noStorageKey assetId={} workspaceId={}",
-                        asset.assetId,
-                        asset.workspaceId,
-                    )
-                    continue
-                }
-
-                val detectedMediaType = asset.detectedMediaType ?: asset.mediaType
-                val hashAndSize = computeHashAndSize(asset.workspaceId, currentStorageKey)
-                val fileHash = hashAndSize.hash
-                val fileSizeBytes = hashAndSize.sizeBytes
-                val canonicalKey = MediaStorageKeys.canonicalKey(asset.workspaceId, fileHash, detectedMediaType)
-
-                if (canonicalKey != currentStorageKey) {
-                    storageApplicationService.copyObject(
-                        bucket = uploadSettings.storageBucket,
-                        sourceKey = currentStorageKey,
-                        destKey = canonicalKey,
-                    )
-                }
-
-                transactionRunner.runAtomically<Unit> {
-                    workspaceFileBlobRepository.upsertBlob(asset.workspaceId, fileHash)
-                    workspaceFileBlobRepository.markBlobReady(
-                        workspaceId = asset.workspaceId,
-                        fileHash = fileHash,
-                        storageKey = canonicalKey,
-                        detectedMediaType = detectedMediaType,
-                        fileSizeBytes = fileSizeBytes,
-                    )
-                    mediaAssetRepository.updateReadyAssetCasMetadata(
-                        assetId = asset.assetId,
-                        workspaceId = asset.workspaceId,
-                        fileHash = fileHash,
-                        storageKey = canonicalKey,
-                        detectedMediaType = detectedMediaType,
-                        fileSizeBytes = fileSizeBytes,
-                    )
-                }
-
-                backfilled++
-            } catch (e: RuntimeException) {
-                failed++
-                logger.error(
-                    "media.backfill.failed assetId={} workspaceId={}",
-                    asset.assetId,
-                    asset.workspaceId,
-                    e,
-                )
+            when (processAsset(asset)) {
+                AssetOutcome.BACKFILLED -> backfilled++
+                AssetOutcome.FAILED -> failed++
             }
         }
 
@@ -117,6 +62,63 @@ class MediaAssetBackfillJob(
         )
     }
 
+    private suspend fun processAsset(asset: MediaAsset): AssetOutcome {
+        return try {
+            val currentStorageKey = asset.storageKey
+            if (currentStorageKey.isNullOrBlank()) {
+                logger.warn(
+                    "media.backfill.skip.noStorageKey assetId={} workspaceId={}",
+                    asset.assetId,
+                    asset.workspaceId,
+                )
+                return AssetOutcome.FAILED
+            }
+
+            val detectedMediaType = asset.detectedMediaType ?: asset.mediaType
+            val hashAndSize = computeHashAndSize(asset.workspaceId, currentStorageKey)
+            val fileHash = hashAndSize.hash
+            val fileSizeBytes = hashAndSize.sizeBytes
+            val canonicalKey = MediaStorageKeys.canonicalKey(asset.workspaceId, fileHash, detectedMediaType)
+
+            if (canonicalKey != currentStorageKey) {
+                storageApplicationService.copyObject(
+                    bucket = uploadSettings.storageBucket,
+                    sourceKey = currentStorageKey,
+                    destKey = canonicalKey,
+                )
+            }
+
+            transactionRunner.runAtomically<Unit> {
+                workspaceFileBlobRepository.upsertBlob(asset.workspaceId, fileHash)
+                workspaceFileBlobRepository.markBlobReady(
+                    workspaceId = asset.workspaceId,
+                    fileHash = fileHash,
+                    storageKey = canonicalKey,
+                    detectedMediaType = detectedMediaType,
+                    fileSizeBytes = fileSizeBytes,
+                )
+                mediaAssetRepository.updateReadyAssetCasMetadata(
+                    assetId = asset.assetId,
+                    workspaceId = asset.workspaceId,
+                    fileHash = fileHash,
+                    storageKey = canonicalKey,
+                    detectedMediaType = detectedMediaType,
+                    fileSizeBytes = fileSizeBytes,
+                )
+            }
+
+            AssetOutcome.BACKFILLED
+        } catch (e: RuntimeException) {
+            logger.error(
+                "media.backfill.failed assetId={} workspaceId={}",
+                asset.assetId,
+                asset.workspaceId,
+                e,
+            )
+            AssetOutcome.FAILED
+        }
+    }
+
     private suspend fun computeHashAndSize(workspaceId: String, storageKey: String): HashAndSize {
         val digest = MessageDigest.getInstance("SHA-256")
         var size = 0L
@@ -133,7 +135,13 @@ class MediaAssetBackfillJob(
         return HashAndSize(hash = digest.digest().toHexString(), sizeBytes = size)
     }
 
+    private enum class AssetOutcome { BACKFILLED, FAILED }
+
     private data class HashAndSize(val hash: String, val sizeBytes: Long)
+
+    companion object {
+        private const val BATCH_SIZE = 50
+    }
 }
 
 data class BackfillRunResult(
