@@ -2,6 +2,7 @@ packages:
   - apps/web/marketing
   - apps/web/app
   - tools/compliance
+  - shared/web
 
 minimumReleaseAge: 4320
 

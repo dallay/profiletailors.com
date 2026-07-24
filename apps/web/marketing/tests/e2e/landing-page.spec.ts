@@ -1,7 +1,30 @@
 import { test, expect } from '@bgotink/playwright-coverage';
+import type { Page } from '@playwright/test';
+
+/**
+ * Helper: Pre-load valid consent receipt to dismiss banner.
+ * Call before page.goto() in tests that don't need the consent banner.
+ */
+async function dismissConsentBanner(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'pt-consent',
+      JSON.stringify({
+        consentVersion: 1,
+        policyVersion: '2026-07-23',
+        timestamp: new Date().toISOString(),
+        region: 'EU',
+        categories: { necessary: true, analytics: true },
+        dnt: false,
+        source: 'banner',
+      })
+    );
+  });
+}
 
 test.describe('Landing Page - Hero Section', () => {
   test('should display hero section with value proposition', async ({ page }) => {
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     // Verify hero section is visible
@@ -15,6 +38,7 @@ test.describe('Landing Page - Hero Section', () => {
   });
 
   test('should display hero with early access messaging', async ({ page }) => {
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     // Verify hero sections contain the new messaging (platform integrations were removed)
@@ -34,6 +58,7 @@ test.describe('Landing Page - Hero Section', () => {
 
 test.describe('Bilingual Support', () => {
   test('should switch between English and Spanish', async ({ page }) => {
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     // The language switcher is an <a> link with aria-label "Cambiar a español" or "Switch to English"
@@ -51,6 +76,7 @@ test.describe('Bilingual Support', () => {
   });
 
   test('should load Spanish version directly', async ({ page }) => {
+    await dismissConsentBanner(page);
     await page.goto('/es');
 
     // Verify page loaded
@@ -62,6 +88,7 @@ test.describe('Bilingual Support', () => {
   });
 
   test('should load English version directly', async ({ page }) => {
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     // Verify page loaded
@@ -74,7 +101,8 @@ test.describe('Bilingual Support', () => {
 });
 
 test.describe('Waitlist Form — Hero Container (enabled)', () => {
-  test('renders the active waitlist form when WAITLIST_ENABLED=true', async ({ page }: { page: import('@playwright/test').Page }): Promise<void> => {
+  test('renders the active waitlist form when WAITLIST_ENABLED=true', async ({ page }: { page: Page }): Promise<void> => {
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     const formContainer = page.locator('[data-hero-form]');
@@ -88,7 +116,8 @@ test.describe('Waitlist Form — Hero Container (enabled)', () => {
     await expect(successMessage).toBeHidden();
   });
 
-  test('renders the API base URL as a data attribute', async ({ page }: { page: import('@playwright/test').Page }): Promise<void> => {
+  test('renders the API base URL as a data attribute', async ({ page }: { page: Page }): Promise<void> => {
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     const form = page.getByRole('form', { name: /early access waitlist form/i });
@@ -102,6 +131,7 @@ test.describe('Waitlist Form — Hero Container (enabled)', () => {
 test.describe('Responsive Design', () => {
   test('should be mobile-friendly', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 }); // iPhone SE
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     // Verify page is visible and scrollable
@@ -115,6 +145,7 @@ test.describe('Responsive Design', () => {
 
   test('should adapt to tablet size', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 }); // iPad
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     await expect(page.locator('body')).toBeVisible();
@@ -122,6 +153,7 @@ test.describe('Responsive Design', () => {
 
   test('should work on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     await expect(page.locator('body')).toBeVisible();
@@ -130,6 +162,7 @@ test.describe('Responsive Design', () => {
 
 test.describe('Accessibility', () => {
   test('should have proper document structure', async ({ page }) => {
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     // Check for main landmark
@@ -144,6 +177,7 @@ test.describe('Accessibility', () => {
   });
 
   test('should have alt text for images', async ({ page }) => {
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     const images = page.locator('img');
@@ -158,6 +192,7 @@ test.describe('Accessibility', () => {
   });
 
   test('should be keyboard navigable', async ({ page }) => {
+    await dismissConsentBanner(page);
     await page.goto('/');
 
     // Tab through interactive elements
@@ -171,6 +206,7 @@ test.describe('Accessibility', () => {
 
 test.describe('Performance', () => {
   test('should load within reasonable time', async ({ page }) => {
+    await dismissConsentBanner(page);
     const startTime = Date.now();
     await page.goto('/');
     const loadTime = Date.now() - startTime;
@@ -188,6 +224,7 @@ test.describe('Performance', () => {
       }
     });
 
+    await dismissConsentBanner(page);
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 

@@ -1,0 +1,10 @@
+change: consent-management
+current_phase: design
+completed:
+  - init
+  - explore
+  - propose
+  - spec
+  - design
+next: tasks
+updated: "2026-07-23T22:03:00Z"

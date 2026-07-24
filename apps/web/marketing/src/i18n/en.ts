@@ -191,4 +191,32 @@ export const en = {
     errorGeneric: 'Could not register you. Please try again.',
     success: "You're on the list.",
   },
+  consent: {
+    banner: {
+      heading: 'We use cookies',
+      description:
+        'We use cookies to improve your experience. You can read our <a href="/privacy/">privacy policy</a> for more details.',
+    },
+    category: {
+      necessary: {
+        label: 'Necessary cookies',
+        description: 'Required for authentication, security, and basic site functionality.',
+      },
+      analytics: {
+        label: 'Analytics cookies',
+        description: 'Help us understand how you use the site to improve your experience.',
+      },
+    },
+    action: {
+      acceptAll: 'Accept all',
+      rejectAll: 'Reject all',
+      savePreferences: 'Save preferences',
+    },
+    footer: {
+      cookieSettings: 'Cookie settings',
+    },
+    privacy: {
+      link: 'privacy policy',
+    },
+  },
 } as const

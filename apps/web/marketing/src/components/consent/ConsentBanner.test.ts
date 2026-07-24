@@ -30,12 +30,20 @@ function extractConsentBannerScript(): string {
   // Type-only import has no runtime effect — drop it entirely.
   code = code.replace(/^\s*import type[^\n]*\n/m, '')
 
-  // Replace the value import with the real constants so behavior matches production.
+  // Replace the value import from constants/consent with inline constant values.
   code = code.replace(
     /^\s*import\s*\{[^}]*\}\s*from\s*['"]\.\.\/\.\.\/constants\/consent['"]\s*\n/m,
     `const CURRENT_CONSENT_VERSION = ${JSON.stringify(CURRENT_CONSENT_VERSION)}\n` +
       `const CURRENT_POLICY_VERSION = ${JSON.stringify(CURRENT_POLICY_VERSION)}\n` +
       `const PT_CONSENT_KEY = ${JSON.stringify(PT_CONSENT_KEY)}\n`
+  )
+
+  // Replace the runtime import from @profiletailors/shared-web with a minimal
+  // mock that passes through valid (parseable) objects, just like the real
+  // validateConsentReceipt does.
+  code = code.replace(
+    /^\s*import\s*\{[^}]*\}\s*from\s*['"]@profiletailors\/shared-web['"]\s*\n/m,
+    `const validateConsentReceipt = (receipt) => receipt\n`
   )
 
   // Strip the small set of TypeScript-only annotations used in this file.
@@ -44,6 +52,11 @@ function extractConsentBannerScript(): string {
     .replace('function saveConsentChoice(analytics: boolean) {', 'function saveConsentChoice(analytics) {')
     .replace('function loadConsent(): ConsentReceipt | null {', 'function loadConsent() {')
     .replace('const receipt: ConsentReceipt = {', 'const receipt = {')
+
+  // jsdom's window.location.reload is non-configurable — replace the call
+  // with an indirection so the test can mock it without fighting the host
+  // object.
+  code = code.replace('window.location.reload()', 'window.__consentReload()')
 
   if (/:\s*(HTMLButtonElement|ConsentReceipt|boolean)\b/.test(code) || /\bimport\b/.test(code)) {
     throw new Error(
@@ -72,13 +85,20 @@ function renderBannerFixture(): void {
 }
 
 describe('ConsentBanner client script', () => {
-  let reloadSpy: ReturnType<typeof vi.spyOn>
+  let reloadSpy: { called: boolean; callCount: number }
 
   beforeEach(() => {
     localStorage.clear()
     // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only globals
     delete (window as any).__PT_DNT
-    reloadSpy = vi.spyOn(window.location, 'reload').mockImplementation(() => undefined)
+    // The extracted script calls window.__consentReload() instead of
+    // window.location.reload() because jsdom's location.reload is
+    // non-configurable and can't be mocked.
+    reloadSpy = { called: false, callCount: 0 }
+    ;(window as any).__consentReload = () => {
+      reloadSpy.called = true
+      reloadSpy.callCount++
+    }
   })
 
   afterEach(() => {
@@ -168,7 +188,7 @@ describe('ConsentBanner client script', () => {
     })
     expect(typeof stored.timestamp).toBe('string')
 
-    expect(reloadSpy).toHaveBeenCalledTimes(1)
+    expect(reloadSpy.callCount).toBe(1)
 
     const banner = document.getElementById('consent-banner') as HTMLElement
     expect(banner.hasAttribute('hidden')).toBe(true)
@@ -186,24 +206,31 @@ describe('ConsentBanner client script', () => {
     expect(stored.dnt).toBe(true)
   })
 
-  it('does not save any consent choice when clicking the rendered "Accept all"/"Reject all" buttons (selector mismatch regression)', () => {
-    // The template renders `data-consent-accept-all` / `data-consent-reject-all`,
-    // but the script queries `[data-consent-accept]` / `[data-consent-reject]`.
-    // This means those buttons currently have no attached click handler.
-    // This test documents that real, observable behavior.
+  it('saves consent when clicking "Accept all" and "Reject all" buttons', () => {
+    // The template renders `data-consent-accept-all` / `data-consent-reject-all`
+    // and the script queries those exact same selectors.
     renderBannerFixture()
     ;(window as any).__PT_DNT = false
 
     runConsentBannerScript()
 
+    // Click "Accept all" — analytics should be true
     document.querySelector('[data-consent-accept-all]')?.dispatchEvent(new MouseEvent('click'))
+    let stored = JSON.parse(localStorage.getItem(PT_CONSENT_KEY) as string)
+    expect(stored.categories.analytics).toBe(true)
+    expect(stored.source).toBe('banner')
+    expect(reloadSpy.called).toBe(true)
+
+    localStorage.clear()
+    reloadSpy.called = false
+    reloadSpy.callCount = 0
+
+    // Click "Reject all" — analytics should be false
     document.querySelector('[data-consent-reject-all]')?.dispatchEvent(new MouseEvent('click'))
-
-    expect(localStorage.getItem(PT_CONSENT_KEY)).toBeNull()
-    expect(reloadSpy).not.toHaveBeenCalled()
-
-    const banner = document.getElementById('consent-banner') as HTMLElement
-    expect(banner.hasAttribute('hidden')).toBe(false)
+    stored = JSON.parse(localStorage.getItem(PT_CONSENT_KEY) as string)
+    expect(stored.categories.analytics).toBe(false)
+    expect(stored.source).toBe('banner')
+    expect(reloadSpy.called).toBe(true)
   })
 
   it('does not throw when the #consent-banner element is missing from the DOM', () => {

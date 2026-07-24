@@ -1,14 +1,15 @@
 ---
-
-
-
-
-
-
-
 import { AHREFS_ANALYTICS_KEY } from 'astro:env/client'
 ---
 
-{AHREFS_ANALYTICS_KEY && (
-  <script type="text/partytown" is:inline src="https://analytics.ahrefs.com/analytics.js" data-key={AHREFS_ANALYTICS_KEY} async></script>
-)}
+<script is:inline define:vars={{ AHREFS_ANALYTICS_KEY }}>
+  // Only load analytics if consent is given
+  if (window.__PT_CONSENT_ANALYTICS === true && AHREFS_ANALYTICS_KEY) {
+    const script = document.createElement('script')
+    script.type = 'text/partytown'
+    script.src = 'https://analytics.ahrefs.com/analytics.js'
+    script.setAttribute('data-key', AHREFS_ANALYTICS_KEY)
+    script.async = true
+    document.head.appendChild(script)
+  }
+</script>
