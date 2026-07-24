@@ -1,5 +1,55 @@
 schemaVersion: 1
 task: environment-configuration-auditor
-lastExecution: null
-findings: [ ]
-checks: [ ]
+lastExecution: "2026-07-22T18:00:00Z"
+findings:
+  - id: CONFIG-DRIFT-CORS
+    title: "CORS Credentials Alignment"
+    status: resolved
+    classification: DRIFT
+    evidence: "SMP_CORS_ALLOW_CREDENTIALS in application.yaml missing from .env.example"
+    risk: LOW
+    message: "Added SMP_CORS_ALLOW_CREDENTIALS=true with detailed comments to .env.example and .env."
+  - id: CONFIG-DRIFT-WAITLIST-LIMIT
+    title: "Waitlist Rate Limiting Alignment"
+    status: resolved
+    classification: DRIFT
+    evidence: "SMP_WAITLIST_RATE_LIMIT_* variables in application.yaml missing from .env.example"
+    risk: LOW
+    message: "Added waitlist rate limit configurations to .env.example and .env."
+  - id: CONFIG-DRIFT-EMAIL
+    title: "Transactional Email Alignment"
+    status: resolved
+    classification: DRIFT
+    evidence: "SMP_EMAIL_SENDER, SMP_EMAIL_VERIFICATION_SUBJECT_PREFIX, SMP_RESEND_API_KEY in application.yaml missing from .env.example"
+    risk: LOW
+    message: "Added Transactional Email configuration section and parameters to .env.example and .env."
+  - id: CONFIG-DRIFT-MEDIA-STORAGE
+    title: "Media Assets & Storage Alignment"
+    status: resolved
+    classification: DRIFT
+    evidence: "SMP_STORAGE_DEFAULT, SMP_MEDIA_DEDUP_ENABLED, SMP_MEDIA_CONTEXT_INTEGRATION_ENABLED in application.yaml missing from .env.example"
+    risk: LOW
+    message: "Added media and default storage bucket variables to .env.example and .env."
+  - id: CONFIG-DRIFT-PUBLISHING
+    title: "Publishing worker recovery and LinkedIn API version Alignment"
+    status: resolved
+    classification: DRIFT
+    evidence: "SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL, SMP_LINKEDIN_API_VERSION in application.yaml missing from .env.example"
+    risk: LOW
+    message: "Added recovery interval and api version settings to .env.example and .env."
+  - id: CONFIG-DRIFT-SECRETS-DOCS
+    title: "Credential Encryption Key Documentation Drift"
+    status: resolved
+    classification: DRIFT
+    evidence: "Incorrect references to PUBLISHING_CREDENTIALS_KEY in docs/production-secrets.md, docs/publishing-failure-modes.md, and docs/release-verification.md"
+    risk: LOW
+    message: "Replaced obsolete references of PUBLISHING_CREDENTIALS_KEY with the actual configured variable PUBLISHING_CREDENTIALS_ENCRYPTION_KEY."
+checks:
+  - name: "Environment Variable Parity Check"
+    status: Passed
+  - name: "Documentation Integrity Check"
+    status: Passed
+  - name: "Production Credentials Validator Test"
+    status: Passed
+  - name: "Liquibase Baseline Test"
+    status: Passed
