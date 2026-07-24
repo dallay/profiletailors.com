@@ -153,6 +153,9 @@ importers:
       '@iconify-json/lucide':
         specifier: ^1.2.116
         version: 1.2.118
+      '@profiletailors/shared-web':
+        specifier: workspace:*
+        version: link:../../../shared/web
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.1(vite@7.3.6(@types/node@25.9.3)(jiti@2.7.0)(lightningcss@1.32.0)(stylus@0.57.0)(yaml@2.9.0))
