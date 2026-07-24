@@ -196,7 +196,7 @@ export const es = {
     banner: {
       heading: 'Usamos cookies',
       description:
-        'Usamos cookies para mejorar tu experiencia. Puedes leer nuestra <a href="/privacy/">política de privacidad</a> para más detalles.',
+        'Usamos cookies para mejorar tu experiencia. Puedes leer nuestra <a href="/es/privacy/">política de privacidad</a> para más detalles.',
     },
     category: {
       necessary: {

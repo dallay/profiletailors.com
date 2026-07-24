@@ -4,7 +4,7 @@
 
 ### 1.1 Dual-Surface Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                     CONSENT FLOW ARCHITECTURE                     │
 ├─────────────────────────────────────────────────────────────────┤
@@ -270,6 +270,8 @@ const analyticsChecked = currentConsent?.categories?.analytics ?? false
     if (typeof receipt.policyVersion !== 'string') return false
     if (!/^\d{4}-\d{2}-\d{2}$/.test(receipt.policyVersion)) return false
     if (typeof receipt.timestamp !== 'string') return false
+    // ISO 8601 datetime: e.g. 2026-07-23T10:00:00Z — reject loosely formatted dates
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(receipt.timestamp)) return false
     if (typeof receipt.region !== 'string') return false
     if (receipt.region.length !== 2) return false
     if (typeof receipt.categories !== 'object') return false
@@ -1355,6 +1357,7 @@ Partytown is already integrated. The consent check adds no additional worker ove
 **Question**: How should we architect for future categories (Marketing, Functional, etc.) without requiring `consentVersion` bumps?
 
 **Architecture**:
+
 ```typescript
 interface ConsentReceipt {
   categories: {

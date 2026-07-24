@@ -1,16 +1,22 @@
 import { z } from 'zod'
 
+/** Centralized consent contract constants — single source of truth */
+export const EXPECTED_CONSENT_VERSION = 1 as const
+export const EXPECTED_REGION = 'EU' as const
+export const CONSENT_SOURCES = ['banner', 'settings-panel'] as const
+
 export const consentReceiptSchema = z.object({
-  consentVersion: z.number().int().min(1),
-  policyVersion: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD'),
-  timestamp: z.string().datetime(),
-  region: z.string().length(2),
+  consentVersion: z.literal(EXPECTED_CONSENT_VERSION),
+  // ISO calendar date — rejects impossible dates like 2026-02-31
+  policyVersion: z.iso.date(),
+  timestamp: z.iso.datetime(),
+  region: z.literal(EXPECTED_REGION),
   categories: z.object({
     necessary: z.literal(true),
     analytics: z.boolean(),
   }),
   dnt: z.boolean(),
-  source: z.enum(['banner', 'settings']),
+  source: z.enum(CONSENT_SOURCES),
 })
 
 export type ConsentReceipt = z.infer<typeof consentReceiptSchema>

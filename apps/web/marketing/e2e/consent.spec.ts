@@ -1,9 +1,20 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Request } from '@playwright/test'
+
+// Window type extensions for consent flags
+declare global {
+  interface Window {
+    __PT_CONSENT_ANALYTICS?: boolean
+    __PT_DNT?: boolean
+  }
+}
 
 test.describe('Consent Management', () => {
   test.beforeEach(async ({ page }) => {
+    // Initialize consent state before any navigation
+    await page.addInitScript(() => {
+      localStorage.removeItem('pt-consent')
+    })
     await page.goto('/')
-    await page.evaluate(() => localStorage.removeItem('pt-consent'))
   })
 
   // TASK-014: Accept all scenario
@@ -16,9 +27,10 @@ test.describe('Consent Management', () => {
     await page.click('[data-consent-accept]')
 
     // Verify localStorage receipt
-    const receipt = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('pt-consent')!)
-    )
+    const receipt = await page.evaluate(() => {
+      const raw = localStorage.getItem('pt-consent')
+      return raw ? JSON.parse(raw) : null
+    })
     expect(receipt.categories.analytics).toBe(true)
     expect(receipt.categories.necessary).toBe(true)
     expect(receipt.source).toBe('banner')
@@ -28,7 +40,7 @@ test.describe('Consent Management', () => {
     await expect(banner).toBeHidden()
 
     // Verify analytics script loaded (window.__PT_CONSENT_ANALYTICS should be true)
-    const analyticsFlag = await page.evaluate(() => (window as any).__PT_CONSENT_ANALYTICS)
+    const analyticsFlag = await page.evaluate(() => window.__PT_CONSENT_ANALYTICS)
     expect(analyticsFlag).toBe(true)
   })
 
@@ -38,13 +50,14 @@ test.describe('Consent Management', () => {
     const banner = page.locator('#consent-banner')
     await expect(banner).toBeVisible()
 
-    // Click reject all
-    await page.click('[data-consent-reject]')
+    // Click reject all using accessible selector
+    await page.getByRole('button', { name: 'Reject all' }).click()
 
     // Verify localStorage receipt
-    const receipt = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('pt-consent')!)
-    )
+    const receipt = await page.evaluate(() => {
+      const raw = localStorage.getItem('pt-consent')
+      return raw ? JSON.parse(raw) : null
+    })
     expect(receipt.categories.analytics).toBe(false)
     expect(receipt.categories.necessary).toBe(true)
 
@@ -53,8 +66,17 @@ test.describe('Consent Management', () => {
     await expect(banner).toBeHidden()
 
     // Verify analytics flag is false
-    const analyticsFlag = await page.evaluate(() => (window as any).__PT_CONSENT_ANALYTICS)
+    const analyticsFlag = await page.evaluate(() => window.__PT_CONSENT_ANALYTICS)
     expect(analyticsFlag).toBe(false)
+
+    // Verify no Ahrefs request occurred
+    const ahrefsRequests: Request[] = []
+    await page.route(/analytics\.ahrefs\.com/, (route) => {
+      ahrefsRequests.push(route.request())
+      route.abort()
+    })
+    await page.goto('/')
+    expect(ahrefsRequests).toHaveLength(0)
   })
 
   // TASK-016: DNT enabled scenario
@@ -74,22 +96,23 @@ test.describe('Consent Management', () => {
     const banner = page.locator('#consent-banner')
     await expect(banner).toBeVisible()
 
-    // Toggle should be OFF by default when DNT is enabled
-    const toggle = page.locator('[data-consent-analytics]')
+    // Toggle should be OFF by default when DNT is enabled (using accessible selector)
+    const toggle = page.getByRole('switch', { name: 'Analytics cookies' })
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
 
-    // User can still override
-    await page.click('[data-consent-accept]')
+    // User can still override using accessible selector
+    await page.getByRole('button', { name: 'Accept all' }).click()
 
     // Verify receipt with dnt flag
-    const receipt = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('pt-consent')!)
-    )
+    const receipt = await page.evaluate(() => {
+      const raw = localStorage.getItem('pt-consent')
+      return raw ? JSON.parse(raw) : null
+    })
     expect(receipt.dnt).toBe(true)
     expect(receipt.categories.analytics).toBe(true) // User override
 
     // Verify DNT signal was detected
-    const dntFlag = await page.evaluate(() => (window as any).__PT_DNT)
+    const dntFlag = await page.evaluate(() => window.__PT_DNT)
     expect(dntFlag).toBe(true)
   })
 
@@ -109,9 +132,10 @@ test.describe('Consent Management', () => {
     await page.click('[data-consent-save]')
 
     // Verify localStorage receipt
-    const receipt = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem('pt-consent')!)
-    )
+    const receipt = await page.evaluate(() => {
+      const raw = localStorage.getItem('pt-consent')
+      return raw ? JSON.parse(raw) : null
+    })
     expect(receipt.categories.analytics).toBe(false)
     expect(receipt.source).toBe('banner')
   })

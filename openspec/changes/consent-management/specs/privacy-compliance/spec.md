@@ -341,7 +341,7 @@ The system MUST provide consent banner copy in English and Spanish with legally 
 | Key | EN | ES |
 |-----|----|----|
 | `consent.banner.heading` | "We use cookies" | "Usamos cookies" |
-| `consent.banner.description` | "We use cookies to improve your experience. You can read our [privacy policy](#) for more details." | "Usamos cookies para mejorar tu experiencia. Puedes leer nuestra [política de privacidad](#) para más detalles." |
+| `consent.banner.description` | "We use cookies to improve your experience. You can read our [privacy policy](/privacy/) for more details." | "Usamos cookies para mejorar tu experiencia. Puedes leer nuestra [política de privacidad](/es/privacy/) para más detalles." |
 | `consent.category.necessary.label` | "Necessary cookies" | "Cookies necesarias" |
 | `consent.category.necessary.description` | "Required for authentication, security, and basic site functionality." | "Requeridas para autenticación, seguridad y funcionalidad básica del sitio." |
 | `consent.category.analytics.label` | "Analytics cookies" | "Cookies de análisis" |

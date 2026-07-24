@@ -10,7 +10,7 @@ Profile Tailors must comply with GDPR/LOPD-GDD requirements for cookie consent b
 - **Consent banner UI**: Astro component for marketing site, shadcn-vue component for app
 - **localStorage consent storage**: Versioned receipt with `consentVersion`, `policyVersion`, timestamp, region, and category choices
 - **Script blocking**: Inline check prevents Ahrefs load until consent granted
-- **Three categories**: Necessary (always on), Analytics (opt-in), Marketing (opt-in)
+- **Two categories**: Necessary (always on), Analytics (opt-in)
 - **DNT/GPC handling**: Respect Do Not Track and Global Privacy Control signals as default rejections
 - **Granular withdrawal**: Users can revoke consent per category from settings
 - **i18n**: English and Spanish UX copy

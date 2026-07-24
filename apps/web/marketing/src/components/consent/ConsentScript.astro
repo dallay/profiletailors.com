@@ -9,13 +9,12 @@
 // Must run before Analytics.astro or any third-party scripts
 // ─────────────────────────────────────────────────────────────────────────────
 
-(function () {
-  'use strict'
-
+(() => {
   // ── Constants ─────────────────────────────────────────────────────────────
-  var CONSENT_KEY = 'pt-consent'
-  var CONSENT_VERSION = 1
-  var ANALYTICS_FLAG = '__PT_CONSENT_ANALYTICS'
+  const CONSENT_KEY = 'pt-consent'
+  const CONSENT_VERSION = 1
+  const ANALYTICS_FLAG = '__PT_CONSENT_ANALYTICS'
+  const CURRENT_POLICY_VERSION = '2026-07-23'
 
   // ── DNT/GPC Detection ──────────────────────────────────────────────────────
   function isDNTEnabled() {
@@ -41,6 +40,7 @@
     if (receipt.consentVersion !== CONSENT_VERSION) return false
     if (typeof receipt.policyVersion !== 'string') return false
     if (!/^\d{4}-\d{2}-\d{2}$/.test(receipt.policyVersion)) return false
+    if (receipt.policyVersion !== CURRENT_POLICY_VERSION) return false
     if (typeof receipt.timestamp !== 'string') return false
     if (typeof receipt.region !== 'string') return false
     if (receipt.region.length !== 2) return false
@@ -54,10 +54,10 @@
 
   // ── Main Consent Check ─────────────────────────────────────────────────────
   function checkConsent() {
-    var analyticsAllowed = false
-    var dntSignal = hasPrivacySignal()
-    var stored = null
-    var receipt = null
+    let analyticsAllowed = false
+    const dntSignal = hasPrivacySignal()
+    let stored = null
+    let receipt = null
 
     try {
       stored = localStorage.getItem(CONSENT_KEY)
@@ -70,6 +70,10 @@
           analyticsAllowed = receipt.categories.analytics === true
         }
         // Invalid receipt falls through to default: analyticsAllowed = false
+        // Ensure current policyVersion matches the shared constant for consistency
+        if (receipt && typeof receipt.policyVersion === 'string' && receipt.policyVersion !== CURRENT_POLICY_VERSION) {
+          analyticsAllowed = false
+        }
       }
       // No receipt: analyticsAllowed = false (restrictive default)
     } catch (e) {

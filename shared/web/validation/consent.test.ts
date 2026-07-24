@@ -13,10 +13,10 @@ describe('consentReceiptSchema', () => {
       analytics: true,
     },
     dnt: false,
-    source: 'banner',
+    source: 'settings-panel',
   }
 
-  it('validates a complete receipt', () => {
+  it('validates a complete receipt with exact contract', () => {
     const result = consentReceiptSchema.safeParse(validReceipt)
     expect(result.success).toBe(true)
     if (result.success) {
@@ -24,14 +24,26 @@ describe('consentReceiptSchema', () => {
     }
   })
 
-  it('rejects wrong consentVersion', () => {
+  it('rejects wrong consentVersion (0)', () => {
     const receipt = { ...validReceipt, consentVersion: 0 }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects future consentVersion (2)', () => {
+    const receipt = { ...validReceipt, consentVersion: 2 }
     const result = consentReceiptSchema.safeParse(receipt)
     expect(result.success).toBe(false)
   })
 
   it('rejects invalid policyVersion format', () => {
     const receipt = { ...validReceipt, policyVersion: 'July 23, 2026' }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects impossible ISO date (2026-02-31)', () => {
+    const receipt = { ...validReceipt, policyVersion: '2026-02-31' }
     const result = consentReceiptSchema.safeParse(receipt)
     expect(result.success).toBe(false)
   })
@@ -48,6 +60,12 @@ describe('consentReceiptSchema', () => {
     expect(result.success).toBe(false)
   })
 
+  it('rejects non-EU region code', () => {
+    const receipt = { ...validReceipt, region: 'US' }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(false)
+  })
+
   it('rejects necessary not true', () => {
     const receipt = { ...validReceipt, categories: { necessary: false, analytics: true } }
     const result = consentReceiptSchema.safeParse(receipt)
@@ -58,6 +76,18 @@ describe('consentReceiptSchema', () => {
     const receipt = { ...validReceipt, source: 'invalid' }
     const result = consentReceiptSchema.safeParse(receipt)
     expect(result.success).toBe(false)
+  })
+
+  it('accepts source "banner"', () => {
+    const receipt = { ...validReceipt, source: 'banner' }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts source "settings-panel"', () => {
+    const receipt = { ...validReceipt, source: 'settings-panel' }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(true)
   })
 })
 
@@ -70,7 +100,7 @@ describe('validateConsentReceipt', () => {
       region: 'EU',
       categories: { necessary: true, analytics: false },
       dnt: true,
-      source: 'settings',
+      source: 'settings-panel',
     }
     expect(validateConsentReceipt(receipt)).toEqual(receipt)
   })

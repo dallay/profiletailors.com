@@ -43,6 +43,7 @@ const t = useTranslations(Astro.currentLocale || 'en')
         type="button"
         role="switch"
         aria-checked="false"
+        aria-label="Analytics cookies"
         data-consent-analytics
         class="consent-toggle"
       >
@@ -55,7 +56,7 @@ const t = useTranslations(Astro.currentLocale || 'en')
       <button type="button" data-consent-accept-all class="consent-button consent-button--primary">
         {t.consent.action.acceptAll}
       </button>
-      <button type="button" data-consent-reject-all class="consent-button consent-button--secondary">
+      <button type="button" data-consent-reject-all class="consent-button consent-button--primary">
         {t.consent.action.rejectAll}
       </button>
       <button type="button" data-consent-save class="consent-button consent-button--secondary">
@@ -196,7 +197,7 @@ const t = useTranslations(Astro.currentLocale || 'en')
     margin-top: 1.5rem;
   }
 
-  .consent-btn {
+  .consent-button {
     flex: 1;
     min-width: 0;
     padding: 0.75rem 1rem;
@@ -208,15 +209,15 @@ const t = useTranslations(Astro.currentLocale || 'en')
     border: 2px solid transparent;
   }
 
-  .consent-btn--primary,
-  .consent-btn--secondary {
+  .consent-button--primary,
+  .consent-button--secondary {
     background: var(--color-surface, #333);
     color: var(--color-text, #fff);
     border-color: var(--color-border, #444);
   }
 
-  .consent-btn--primary:hover,
-  .consent-btn--secondary:hover {
+  .consent-button--primary:hover,
+  .consent-button--secondary:hover {
     background: var(--color-surface-hover, #3a3a3a);
     border-color: var(--color-accent, #0ea5e9);
   }
@@ -231,7 +232,7 @@ const t = useTranslations(Astro.currentLocale || 'en')
       flex-direction: column;
     }
 
-    .consent-btn {
+    .consent-button {
       width: 100%;
     }
   }
@@ -240,6 +241,7 @@ const t = useTranslations(Astro.currentLocale || 'en')
 <script>
   import { CURRENT_CONSENT_VERSION, CURRENT_POLICY_VERSION, PT_CONSENT_KEY } from '../../constants/consent'
   import type { ConsentReceipt } from '@profiletailors/shared-web'
+  import { validateConsentReceipt } from '@profiletailors/shared-web'
 
   // Initialize banner
   function initConsentBanner() {
@@ -247,8 +249,8 @@ const t = useTranslations(Astro.currentLocale || 'en')
     if (!banner) return
 
     const analyticsToggle = banner.querySelector('[data-consent-analytics]') as HTMLButtonElement
-    const acceptBtn = banner.querySelector('[data-consent-accept]') as HTMLButtonElement
-    const rejectBtn = banner.querySelector('[data-consent-reject]') as HTMLButtonElement
+    const acceptBtn = banner.querySelector('[data-consent-accept-all]') as HTMLButtonElement
+    const rejectBtn = banner.querySelector('[data-consent-reject-all]') as HTMLButtonElement
     const saveBtn = banner.querySelector('[data-consent-save]') as HTMLButtonElement
 
     // Check if banner should be shown
@@ -319,7 +321,9 @@ const t = useTranslations(Astro.currentLocale || 'en')
     try {
       const raw = localStorage.getItem(PT_CONSENT_KEY)
       if (!raw) return null
-      return JSON.parse(raw)
+      // Use shared validation schema
+      const parsed = JSON.parse(raw)
+      return validateConsentReceipt(parsed)
     } catch {
       return null
     }
