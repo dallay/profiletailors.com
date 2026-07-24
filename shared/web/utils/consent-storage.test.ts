@@ -38,6 +38,11 @@ describe('consent-storage', () => {
       expect(loadConsent()).toBeNull()
     })
 
+    it('returns null when stored data is a JSON array instead of an object', () => {
+      localStorage.setItem('pt-consent', JSON.stringify(['not', 'an', 'object']))
+      expect(loadConsent()).toBeNull()
+    })
+
     it('returns null when localStorage is unavailable', () => {
       const originalGetItem = Storage.prototype.getItem
       Storage.prototype.getItem = vi.fn(() => {

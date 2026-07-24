@@ -19,7 +19,7 @@ describe('privacy-signals', () => {
     if (!global.navigator && originalNavigator) {
       global.navigator = originalNavigator
     }
-    
+
     // Then restore properties
     if (global.navigator) {
       if (originalDNT) {
@@ -71,6 +71,21 @@ describe('privacy-signals', () => {
       global.navigator = undefined
       expect(isDNTEnabled()).toBe(false)
       global.navigator = savedNavigator
+    })
+
+    it('returns true via the legacy window.doNotTrack fallback even when navigator.doNotTrack is unset', () => {
+      Object.defineProperty(global.navigator, 'doNotTrack', {
+        value: null,
+        writable: true,
+        configurable: true,
+      })
+      // biome-ignore lint/suspicious/noExplicitAny: exercising the legacy window fallback
+      ;(window as any).doNotTrack = '1'
+
+      expect(isDNTEnabled()).toBe(true)
+
+      // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only global
+      delete (window as any).doNotTrack
     })
   })
 

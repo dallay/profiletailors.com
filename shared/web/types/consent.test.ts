@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CURRENT_CONSENT_VERSION, CURRENT_POLICY_VERSION, PT_CONSENT_KEY } from './consent'
+import { CURRENT_CONSENT_VERSION, CURRENT_POLICY_VERSION, CONSENT_STORAGE_KEY, ANALYTICS_FLAG } from './consent'
 
 describe('consent constants', () => {
   it('defines the current consent version as a positive integer', () => {
@@ -13,12 +13,15 @@ describe('consent constants', () => {
   })
 
   it('defines the localStorage key used for the consent receipt', () => {
-    expect(PT_CONSENT_KEY).toBe('pt-consent')
-    expect(typeof PT_CONSENT_KEY).toBe('string')
+    expect(CONSENT_STORAGE_KEY).toBe('pt-consent')
+  })
+
+  it('defines the window global name used by the inline consent script', () => {
+    expect(ANALYTICS_FLAG).toBe('__PT_CONSENT_ANALYTICS')
   })
 
   it('exposes distinct, non-empty values for every constant', () => {
-    const values = [CURRENT_CONSENT_VERSION, CURRENT_POLICY_VERSION, PT_CONSENT_KEY]
+    const values = [CURRENT_CONSENT_VERSION, CURRENT_POLICY_VERSION, CONSENT_STORAGE_KEY, ANALYTICS_FLAG]
     values.forEach((value) => {
       expect(value).toBeDefined()
       expect(value).not.toBe('')

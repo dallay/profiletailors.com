@@ -13,10 +13,10 @@ describe('consentReceiptSchema', () => {
       analytics: true,
     },
     dnt: false,
-    source: 'settings-panel',
+    source: 'banner',
   }
 
-  it('validates a complete receipt with exact contract', () => {
+  it('validates a complete receipt', () => {
     const result = consentReceiptSchema.safeParse(validReceipt)
     expect(result.success).toBe(true)
     if (result.success) {
@@ -88,6 +88,36 @@ describe('consentReceiptSchema', () => {
     const receipt = { ...validReceipt, source: 'settings-panel' }
     const result = consentReceiptSchema.safeParse(receipt)
     expect(result.success).toBe(true)
+  })
+
+  it('rejects a non-integer consentVersion', () => {
+    const receipt = { ...validReceipt, consentVersion: 1.5 }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects a negative consentVersion', () => {
+    const receipt = { ...validReceipt, consentVersion: -1 }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects a timestamp missing timezone information', () => {
+    const receipt = { ...validReceipt, timestamp: '2026-07-23T10:00:00' }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects analytics as a non-boolean value', () => {
+    const receipt = { ...validReceipt, categories: { necessary: true, analytics: 'true' } }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects a receipt missing the dnt field', () => {
+    const { dnt, ...receiptWithoutDnt } = validReceipt
+    const result = consentReceiptSchema.safeParse(receiptWithoutDnt)
+    expect(result.success).toBe(false)
   })
 })
 
