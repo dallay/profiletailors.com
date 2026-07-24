@@ -19,7 +19,7 @@ import java.time.Instant
 class MediaAssetBackfillJobTest {
 
     @Test
-    fun `run backfills assets without hash and updates metadata`() = runTest {
+    fun `should backfill assets and update metadata when they have no hash`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()
@@ -45,7 +45,7 @@ class MediaAssetBackfillJobTest {
     }
 
     @Test
-    fun `run copies to canonical key when storage key differs`() = runTest {
+    fun `should copy to canonical key when storage key differs from current key`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()
@@ -65,7 +65,7 @@ class MediaAssetBackfillJobTest {
     }
 
     @Test
-    fun `run does not copy when asset already at canonical key`() = runTest {
+    fun `should not copy when asset is already at canonical key`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()
@@ -86,7 +86,7 @@ class MediaAssetBackfillJobTest {
     }
 
     @Test
-    fun `run skips assets with blank storage key`() = runTest {
+    fun `should skip assets with blank storage key`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()
@@ -105,7 +105,7 @@ class MediaAssetBackfillJobTest {
     }
 
     @Test
-    fun `run continues after individual asset failure`() = runTest {
+    fun `should continue processing remaining assets when one fails`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()
@@ -135,7 +135,7 @@ class MediaAssetBackfillJobTest {
     }
 
     @Test
-    fun `run handles storage download failure gracefully`() = runTest {
+    fun `should fail gracefully on storage download failure`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()
@@ -153,7 +153,7 @@ class MediaAssetBackfillJobTest {
     }
 
     @Test
-    fun `run respects batch limit`() = runTest {
+    fun `should respect the configured batch limit`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()
@@ -175,7 +175,7 @@ class MediaAssetBackfillJobTest {
     }
 
     @Test
-    fun `run reports zero when no candidates`() = runTest {
+    fun `should report zero counts when no candidates exist`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()
@@ -190,7 +190,7 @@ class MediaAssetBackfillJobTest {
     }
 
     @Test
-    fun `run updates blob ready and asset cas metadata`() = runTest {
+    fun `should update blob ready and asset CAS metadata on success`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()
@@ -212,7 +212,7 @@ class MediaAssetBackfillJobTest {
     }
 
     @Test
-    fun `run updates asset with detected media type from detectedMediaType field`() = runTest {
+    fun `should use detectedMediaType when present for media type resolution`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()
@@ -246,7 +246,7 @@ class MediaAssetBackfillJobTest {
     }
 
     @Test
-    fun `run upserts blob before marking ready`() = runTest {
+    fun `should upsert blob before marking it ready`() = runTest {
         val media = BackfillInMemoryMediaAssetRepository()
         val blobs = BackfillInMemoryWorkspaceFileBlobRepository()
         val storage = BackfillInMemoryFakeStorage()

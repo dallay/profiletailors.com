@@ -40,7 +40,10 @@ function isRetryable(err: unknown): boolean {
   if (typeof status !== 'number') {
     return true
   }
-  return status >= 500
+  if (!Number.isFinite(status)) {
+    return false
+  }
+  return status >= 500 && status < 600
 }
 
 export type UseUploadAssetReturn = {
@@ -66,7 +69,6 @@ export function useUploadAsset(): UseUploadAssetReturn {
     const initialDelayMs = options.initialDelayMs ?? DEFAULT_INITIAL_DELAY_MS
     const maxDelayMs = options.maxDelayMs ?? DEFAULT_MAX_DELAY_MS
 
-    // Validate retry options
     if (!Number.isInteger(maxAttempts) || maxAttempts <= 0 || !Number.isFinite(maxAttempts)) {
       throw new Error('maxAttempts must be a positive finite integer')
     }
