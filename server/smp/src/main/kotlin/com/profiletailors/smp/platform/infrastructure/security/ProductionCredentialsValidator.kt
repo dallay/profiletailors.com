@@ -39,7 +39,7 @@ import kotlin.runCatching
  *
  * **Related:**
  * - Issue #233 (MVP Launch Readiness): "No default credentials can reach production"
- * - Issue #176: `PUBLISHING_CREDENTIALS_KEY` has no validation
+ * - Issue #176: `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` has no validation
  * - [Production Secrets Reference](docs/production-secrets.md)
  *
  * @see com.profiletailors.smp.identity.infrastructure.security.LocalJwtSecretResolver
