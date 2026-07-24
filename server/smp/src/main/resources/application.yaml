@@ -75,6 +75,8 @@ media:
   # let Spring resolve the ${SMP_...} placeholder to empty, which the
   # validator must catch.
   preview-signing-secret: ${SMP_MEDIA_PREVIEW_SIGNING_SECRET:}
+  dedup:
+    enabled: ${SMP_MEDIA_DEDUP_ENABLED:true}
 
 platform:
   workspace-context:
