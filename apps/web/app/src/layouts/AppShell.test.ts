@@ -147,7 +147,19 @@ vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
         status: 'ACTIVE',
       },
     ],
+    providerCatalog: [
+      {
+        provider: 'linkedin',
+        accountKinds: ['PERSONAL_PROFILE'],
+        state: 'AVAILABLE',
+        reason: null,
+        channelLimit: null,
+        connectedChannelCount: 0,
+        canConnectMore: true,
+      },
+    ],
     fetchChannels: vi.fn().mockResolvedValue([]),
+    refreshWorkspaceData: vi.fn().mockResolvedValue(undefined),
     connectLinkedInPersonalProfile: vi.fn().mockResolvedValue(undefined),
   }),
 }))
@@ -198,7 +210,11 @@ vi.mock('@layouts/sidebar/SidebarNavSection.vue', () => ({
 }))
 
 vi.mock('@layouts/sidebar/SidebarConnectSection.vue', () => ({
-  default: { template: '<div class="sidebar-connect" />' },
+  default: {
+    props: ['providers'],
+    template:
+      '<div class="sidebar-connect">{{ providers.map((provider) => provider.provider).join(",") }}</div>',
+  },
 }))
 
 vi.mock('@layouts/sidebar/SidebarAccountSection.vue', () => ({
@@ -238,6 +254,14 @@ describe('AppShell scheduler sidebar navigation', () => {
     authState.user.emailStatus = 'VERIFIED'
     authState.resendVerificationStatus = 'idle'
     authState.resendVerificationError = null
+  })
+
+  it('passes the backend-resolved catalog to the connect section', () => {
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    expect(wrapper.get('.sidebar-connect').text()).toBe('linkedin')
   })
 
   it('clears channel filters without leaving scheduler when All channels is selected', async () => {

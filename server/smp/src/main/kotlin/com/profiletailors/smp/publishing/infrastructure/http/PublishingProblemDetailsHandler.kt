@@ -5,6 +5,7 @@ import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
+import com.profiletailors.smp.publishing.domain.ProviderConnectionNotAvailableException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAlreadyTerminalException
 import com.profiletailors.smp.publishing.domain.PublicationCancellationNotAllowedException
@@ -28,6 +29,13 @@ class PublishingProblemDetailsHandler {
     ).apply {
         title = "Provider not configured"
     }
+
+    @ExceptionHandler(ProviderConnectionNotAvailableException::class)
+    fun handle(exception: ProviderConnectionNotAvailableException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, PROVIDER_CONNECTION_NOT_AVAILABLE_DETAIL).apply {
+            title = "Provider connection unavailable"
+            setProperty("reason", exception.reason?.name)
+        }
 
     @ExceptionHandler(
         PublicationEditNotAllowedException::class,
@@ -109,6 +117,8 @@ class PublishingProblemDetailsHandler {
 
     companion object {
         private const val PROVIDER_NOT_CONFIGURED_DETAIL = "The requested provider is not available."
+        private const val PROVIDER_CONNECTION_NOT_AVAILABLE_DETAIL =
+            "The requested provider cannot accept a new connection."
         private const val PUBLICATION_STATE_CONFLICT_DETAIL =
             "The publication cannot transition from its current state."
         private const val PUBLICATION_NOT_FOUND_DETAIL = "Publication not found."

@@ -5,6 +5,7 @@ import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
 import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
+import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
@@ -31,6 +32,12 @@ private fun isBddUserToken(token: String): Boolean = token == "valid-token" ||
 @TestConfiguration
 @ConditionalOnProperty(name = ["bdd.variant"])
 class CommonBddTestConfiguration {
+
+    @Bean
+    @Primary
+    fun bddProviderCatalogPolicyControl(
+        connectedSocialChannelReadRepository: ConnectedSocialChannelReadRepository,
+    ): BddProviderCatalogPolicyControl = BddProviderCatalogPolicyControl(connectedSocialChannelReadRepository)
 
     @Bean
     fun bddDatabaseSupport(

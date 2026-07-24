@@ -3,7 +3,9 @@ import { Pencil } from '@lucide/vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import WorkspaceAvatar from '@shared/components/WorkspaceAvatar.vue'
+import { getProviderPresentation } from '@shared/lib/provider-presentation'
 import WorkspaceIconModal from '@modules/workspace/presentation/components/WorkspaceIconModal.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,9 +44,7 @@ const linkedinConnected = computed(
   () => route.query.connected === 'linkedin' && route.query.provider === 'linkedin',
 )
 
-const linkedInChannels = computed(() =>
-  publishing.channels.filter((channel) => channel.provider === 'linkedin'),
-)
+const connectedChannels = computed(() => publishing.channels)
 
 const channelsPanelFocused = computed(() => route.query.panel === 'channels')
 
@@ -57,11 +57,6 @@ watch(
   },
   { immediate: true },
 )
-
-function getProviderBadge(provider: string) {
-  if (provider === 'linkedin') return 'LI'
-  return provider.slice(0, 2).toUpperCase()
-}
 
 const connectingLinkedIn = ref(false)
 
@@ -257,9 +252,9 @@ function segmentedControlClass(active: boolean) {
             {{ $t('channels.loading') }}
           </p>
 
-          <div v-if="linkedInChannels.length" class="space-y-3">
+          <div v-if="connectedChannels.length" class="space-y-3">
             <div
-              v-for="channel in linkedInChannels"
+              v-for="channel in connectedChannels"
               :key="channel.id"
               class="flex items-center gap-4 rounded-2xl border border-border-subtle bg-bg-primary px-4 py-4"
               data-testid="settings-connected-channel"
@@ -274,12 +269,12 @@ function segmentedControlClass(active: boolean) {
                 v-else
                 class="flex size-11 shrink-0 items-center justify-center rounded-full border border-border-visible bg-bg-surface font-mono text-[10px] font-bold uppercase text-text-display"
               >
-                {{ getProviderBadge(channel.provider) }}
+                <SocialProviderIcon :provider="channel.provider" />
               </div>
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-medium text-text-display">{{ channel.name }}</p>
                 <p class="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-text-secondary">
-                  {{ t('channels.accountLabel') }} · {{ channel.accountId }}
+                  {{ getProviderPresentation(channel.provider).label }} · {{ channel.accountId }}
                 </p>
               </div>
               <span

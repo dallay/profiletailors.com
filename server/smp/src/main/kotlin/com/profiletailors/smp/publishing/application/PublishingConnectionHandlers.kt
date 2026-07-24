@@ -22,6 +22,7 @@ import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
+import com.profiletailors.smp.publishing.domain.ProviderCatalogPolicy
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.SocialAccount
@@ -31,6 +32,7 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.domain.permissiveProviderCatalogPolicy
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import java.time.Clock
 import java.util.UUID
@@ -47,6 +49,7 @@ internal class InitiateLinkedInConnectionHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val providerCatalogPolicy: ProviderCatalogPolicy = permissiveProviderCatalogPolicy,
 ) : CommandWithResultHandler<InitiateLinkedInConnectionCommand, LinkedInConnectionInitiationResult> {
     override suspend fun handle(command: InitiateLinkedInConnectionCommand): LinkedInConnectionInitiationResult {
         val principalCtx = principalContextProvider.require()
@@ -57,10 +60,11 @@ internal class InitiateLinkedInConnectionHandler(
             AuthFeature.CONNECT_SOCIAL,
         )
 
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        providerCatalogPolicy.requireAvailable(SocialProvider.LINKEDIN, workspaceId)
         if (!authorizationUrlBuilder.isConfigured()) {
             throw ProviderNotConfiguredException(SocialProvider.LINKEDIN)
         }
-        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val issuedAt = clock.instant()
         val expiresAt = issuedAt.plus(STATE_TTL)
         val state = oauthStateSigner.sign(
