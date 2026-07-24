@@ -131,4 +131,68 @@ describe('useUploadAsset', () => {
 
     expect(mockPutAsset).toHaveBeenCalledTimes(1)
   })
+
+  it('throws on invalid maxDelayMs', async (): Promise<void> => {
+    const { uploadAsset } = useUploadAsset()
+    const file = new File(['hello'], 'a.jpg', { type: 'image/jpeg' })
+
+    await expect(
+      uploadAsset(file, 'ws-1', 'asset-8', { maxAttempts: 2, initialDelayMs: 1, maxDelayMs: -1 }),
+    ).rejects.toThrow('maxDelayMs must be a finite non-negative number')
+
+    expect(mockPutAsset).not.toHaveBeenCalled()
+  })
+
+  it('retries on non-object (primitive) failures', async (): Promise<void> => {
+    mockPutAsset
+      .mockRejectedValueOnce('something went wrong')
+      .mockResolvedValueOnce({ assetId: 'a1', status: 'READY', deduped: true })
+
+    const { uploadAsset } = useUploadAsset()
+    const file = new File(['hello'], 'a.jpg', { type: 'image/jpeg' })
+
+    const result = await uploadAsset(file, 'ws-1', 'asset-9', {
+      maxAttempts: 2,
+      initialDelayMs: 1,
+      maxDelayMs: 1,
+    })
+
+    expect(result).toMatchObject({ assetId: 'a1', status: 'READY' })
+    expect(mockPutAsset).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries on non-number status values', async (): Promise<void> => {
+    mockPutAsset
+      .mockRejectedValueOnce({ status: 'error' })
+      .mockResolvedValueOnce({ assetId: 'a1', status: 'READY', deduped: true })
+
+    const { uploadAsset } = useUploadAsset()
+    const file = new File(['hello'], 'a.jpg', { type: 'image/jpeg' })
+
+    const result = await uploadAsset(file, 'ws-1', 'asset-10', {
+      maxAttempts: 2,
+      initialDelayMs: 1,
+      maxDelayMs: 1,
+    })
+
+    expect(result).toMatchObject({ assetId: 'a1', status: 'READY' })
+    expect(mockPutAsset).toHaveBeenCalledTimes(2)
+  })
+
+  it('exhausts all retry attempts and throws', async (): Promise<void> => {
+    mockPutAsset.mockRejectedValue({ status: 503 })
+
+    const { uploadAsset } = useUploadAsset()
+    const file = new File(['hello'], 'a.jpg', { type: 'image/jpeg' })
+
+    await expect(
+      uploadAsset(file, 'ws-1', 'asset-11', {
+        maxAttempts: 2,
+        initialDelayMs: 1,
+        maxDelayMs: 1,
+      }),
+    ).rejects.toMatchObject({ status: 503 })
+
+    expect(mockPutAsset).toHaveBeenCalledTimes(2)
+  })
 })
