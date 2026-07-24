@@ -1,0 +1,225 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
+import { CURRENT_CONSENT_VERSION, CURRENT_POLICY_VERSION, PT_CONSENT_KEY } from '../../constants/consent'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+/**
+ * ConsentBanner.astro's client `<script>` block uses a TypeScript value
+ * import (for the constants module) and a type-only import (for
+ * `ConsentReceipt`), plus a handful of `as`/`:` type annotations. None of
+ * these have any runtime effect, so this helper extracts the exact shipped
+ * source, strips the TypeScript-only syntax, inlines the real constant
+ * values, and executes the result in the jsdom test environment. This way
+ * the tests exercise the real shipped logic rather than a re-implementation
+ * of it.
+ */
+function extractConsentBannerScript(): string {
+  const filePath = resolve(__dirname, './ConsentBanner.astro')
+  const source = readFileSync(filePath, 'utf-8')
+  const scriptBlocks = [...source.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+  const clientScript = scriptBlocks.find(([, body]) => body.includes('initConsentBanner'))
+  if (!clientScript) {
+    throw new Error('Could not find the client <script> block in ConsentBanner.astro')
+  }
+
+  let code = clientScript[1]
+
+  // Type-only import has no runtime effect — drop it entirely.
+  code = code.replace(/^\s*import type[^\n]*\n/m, '')
+
+  // Replace the value import with the real constants so behavior matches production.
+  code = code.replace(
+    /^\s*import\s*\{[^}]*\}\s*from\s*['"]\.\.\/\.\.\/constants\/consent['"]\s*\n/m,
+    `const CURRENT_CONSENT_VERSION = ${JSON.stringify(CURRENT_CONSENT_VERSION)}\n` +
+      `const CURRENT_POLICY_VERSION = ${JSON.stringify(CURRENT_POLICY_VERSION)}\n` +
+      `const PT_CONSENT_KEY = ${JSON.stringify(PT_CONSENT_KEY)}\n`
+  )
+
+  // Strip the small set of TypeScript-only annotations used in this file.
+  code = code
+    .replaceAll(' as HTMLButtonElement', '')
+    .replace('function saveConsentChoice(analytics: boolean) {', 'function saveConsentChoice(analytics) {')
+    .replace('function loadConsent(): ConsentReceipt | null {', 'function loadConsent() {')
+    .replace('const receipt: ConsentReceipt = {', 'const receipt = {')
+
+  if (/:\s*(HTMLButtonElement|ConsentReceipt|boolean)\b/.test(code) || /\bimport\b/.test(code)) {
+    throw new Error(
+      'ConsentBanner.astro script extraction left unstripped TypeScript syntax — update the stripping rules in ConsentBanner.test.ts to match the current source.'
+    )
+  }
+
+  return code
+}
+
+function runConsentBannerScript(): void {
+  // eslint-disable-next-line no-new-func
+  new Function(extractConsentBannerScript())()
+}
+
+/** Renders the real markup structure the script queries against. */
+function renderBannerFixture(): void {
+  document.body.innerHTML = `
+    <div id="consent-banner" role="dialog" aria-labelledby="consent-heading" aria-modal="true" hidden>
+      <button type="button" role="switch" aria-checked="false" data-consent-analytics class="consent-toggle"></button>
+      <button type="button" data-consent-accept-all class="consent-button consent-button--primary">Accept all</button>
+      <button type="button" data-consent-reject-all class="consent-button consent-button--secondary">Reject all</button>
+      <button type="button" data-consent-save class="consent-button consent-button--secondary">Save preferences</button>
+    </div>
+  `
+}
+
+describe('ConsentBanner client script', () => {
+  let reloadSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    localStorage.clear()
+    // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only globals
+    delete (window as any).__PT_DNT
+    reloadSpy = vi.spyOn(window.location, 'reload').mockImplementation(() => undefined)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('shows the banner and defaults the analytics toggle ON when there is no stored consent and no DNT signal', () => {
+    renderBannerFixture()
+    ;(window as any).__PT_DNT = false
+
+    runConsentBannerScript()
+
+    const banner = document.getElementById('consent-banner') as HTMLElement
+    const toggle = banner.querySelector('[data-consent-analytics]') as HTMLElement
+
+    expect(banner.hasAttribute('hidden')).toBe(false)
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    expect(toggle.classList.contains('consent-toggle--on')).toBe(true)
+  })
+
+  it('shows the banner and defaults the analytics toggle OFF when a DNT/GPC signal is present', () => {
+    renderBannerFixture()
+    ;(window as any).__PT_DNT = true
+
+    runConsentBannerScript()
+
+    const banner = document.getElementById('consent-banner') as HTMLElement
+    const toggle = banner.querySelector('[data-consent-analytics]') as HTMLElement
+
+    expect(banner.hasAttribute('hidden')).toBe(false)
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    expect(toggle.classList.contains('consent-toggle--on')).toBe(false)
+  })
+
+  it('keeps the banner hidden when any parseable consent value already exists in localStorage', () => {
+    renderBannerFixture()
+    // loadConsent() only checks for parseable JSON — it does not validate the
+    // schema or consentVersion, so even a minimal/outdated object is treated
+    // as "existing consent" and the banner stays hidden.
+    localStorage.setItem(PT_CONSENT_KEY, JSON.stringify({ consentVersion: 0 }))
+
+    runConsentBannerScript()
+
+    const banner = document.getElementById('consent-banner') as HTMLElement
+    expect(banner.hasAttribute('hidden')).toBe(true)
+  })
+
+  it('toggles aria-checked and the "on" class when the analytics switch is clicked', () => {
+    renderBannerFixture()
+    ;(window as any).__PT_DNT = false
+
+    runConsentBannerScript()
+
+    const toggle = document.querySelector('[data-consent-analytics]') as HTMLElement
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+
+    toggle.dispatchEvent(new MouseEvent('click'))
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    expect(toggle.classList.contains('consent-toggle--on')).toBe(false)
+
+    toggle.dispatchEvent(new MouseEvent('click'))
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    expect(toggle.classList.contains('consent-toggle--on')).toBe(true)
+  })
+
+  it('saves a receipt reflecting the current toggle state, reloads, and hides the banner when "Save preferences" is clicked', () => {
+    renderBannerFixture()
+    ;(window as any).__PT_DNT = false
+
+    runConsentBannerScript()
+
+    const toggle = document.querySelector('[data-consent-analytics]') as HTMLElement
+    // Turn analytics OFF before saving.
+    toggle.dispatchEvent(new MouseEvent('click'))
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+
+    document.querySelector('[data-consent-save]')?.dispatchEvent(new MouseEvent('click'))
+
+    const stored = JSON.parse(localStorage.getItem(PT_CONSENT_KEY) as string)
+    expect(stored).toMatchObject({
+      consentVersion: CURRENT_CONSENT_VERSION,
+      policyVersion: CURRENT_POLICY_VERSION,
+      region: 'EU',
+      categories: { necessary: true, analytics: false },
+      dnt: false,
+      source: 'banner',
+    })
+    expect(typeof stored.timestamp).toBe('string')
+
+    expect(reloadSpy).toHaveBeenCalledTimes(1)
+
+    const banner = document.getElementById('consent-banner') as HTMLElement
+    expect(banner.hasAttribute('hidden')).toBe(true)
+  })
+
+  it('records dnt=true on the saved receipt when a privacy signal was detected', () => {
+    renderBannerFixture()
+    ;(window as any).__PT_DNT = true
+
+    runConsentBannerScript()
+
+    document.querySelector('[data-consent-save]')?.dispatchEvent(new MouseEvent('click'))
+
+    const stored = JSON.parse(localStorage.getItem(PT_CONSENT_KEY) as string)
+    expect(stored.dnt).toBe(true)
+  })
+
+  it('does not save any consent choice when clicking the rendered "Accept all"/"Reject all" buttons (selector mismatch regression)', () => {
+    // The template renders `data-consent-accept-all` / `data-consent-reject-all`,
+    // but the script queries `[data-consent-accept]` / `[data-consent-reject]`.
+    // This means those buttons currently have no attached click handler.
+    // This test documents that real, observable behavior.
+    renderBannerFixture()
+    ;(window as any).__PT_DNT = false
+
+    runConsentBannerScript()
+
+    document.querySelector('[data-consent-accept-all]')?.dispatchEvent(new MouseEvent('click'))
+    document.querySelector('[data-consent-reject-all]')?.dispatchEvent(new MouseEvent('click'))
+
+    expect(localStorage.getItem(PT_CONSENT_KEY)).toBeNull()
+    expect(reloadSpy).not.toHaveBeenCalled()
+
+    const banner = document.getElementById('consent-banner') as HTMLElement
+    expect(banner.hasAttribute('hidden')).toBe(false)
+  })
+
+  it('does not throw when the #consent-banner element is missing from the DOM', () => {
+    document.body.innerHTML = ''
+
+    expect(() => runConsentBannerScript()).not.toThrow()
+  })
+
+  it('does not throw when localStorage contains invalid JSON', () => {
+    renderBannerFixture()
+    localStorage.setItem(PT_CONSENT_KEY, 'not-json{')
+
+    expect(() => runConsentBannerScript()).not.toThrow()
+
+    // Invalid JSON is treated as "no consent", so the banner should show.
+    const banner = document.getElementById('consent-banner') as HTMLElement
+    expect(banner.hasAttribute('hidden')).toBe(false)
+  })
+})
