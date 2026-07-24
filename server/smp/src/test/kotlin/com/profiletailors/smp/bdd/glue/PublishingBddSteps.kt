@@ -401,7 +401,7 @@ class PublishingBddSteps {
     @Then("the catalog should contain available LinkedIn personal profile without secrets or plans")
     fun thenCatalogShouldContainAvailableLinkedInPersonalProfileWithoutSecretsOrPlans() {
         val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
-        val linkedIn = providers.single { it["provider"] == "LINKEDIN" }
+        val linkedIn = providers.single { it["provider"] == "linkedin" }
 
         assertEquals(listOf("PERSONAL_PROFILE"), linkedIn["accountKinds"])
         assertEquals("AVAILABLE", linkedIn["state"])
@@ -415,7 +415,7 @@ class PublishingBddSteps {
     @Then("the catalog should omit LinkedIn")
     fun thenCatalogShouldOmitLinkedIn() {
         val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
-        assertTrue(providers.none { it["provider"] == "LINKEDIN" }) {
+        assertTrue(providers.none { it["provider"] == "linkedin" }) {
             "Expected LinkedIn to be omitted but got: $providers (body: ${publishingResponseBodyText()})"
         }
     }
@@ -450,7 +450,7 @@ class PublishingBddSteps {
 
     private fun linkedInCatalogItem(): Map<String, Any?> {
         val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
-        return providers.single { it["provider"] == "LINKEDIN" }
+        return providers.single { it["provider"] == "linkedin" }
     }
 
     private fun initiateLinkedInConnection(
