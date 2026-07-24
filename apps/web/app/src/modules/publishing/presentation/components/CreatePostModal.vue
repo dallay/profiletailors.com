@@ -7,7 +7,11 @@ import { useComposerMediaPicker } from '@modules/publishing/application/useCompo
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import { Check, ChevronDown, Hash, Smile, Sparkles, X } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
+import {
+  isSocialProvider,
+  usePublishingStore,
+  type Publication,
+} from '@modules/publishing/infrastructure/publishing.store'
 import { useMediaStore } from '@modules/media'
 import { proxyImageUrl, resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import PostPreviewPanel from '@modules/publishing/presentation/components/composer/PostPreviewPanel.vue'
@@ -199,7 +203,7 @@ async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
   }
 
   const pubChannelId = pub.accountId
-    ?? publishingStore.channels.find((ch) => pub.channels?.includes(ch.provider))?.id
+    ?? publishingStore.channels.find((ch) => isSocialProvider(ch.provider) && pub.channels?.includes(ch.provider))?.id
     ?? null
   selectedChannelId.value = pubChannelId
 
@@ -328,7 +332,9 @@ const selectedChannel = computed(() =>
   ?? null,
 )
 const selectedProviders = computed(() =>
-  selectedChannel.value ? [selectedChannel.value.provider] : [],
+  selectedChannel.value && isSocialProvider(selectedChannel.value.provider)
+    ? [selectedChannel.value.provider]
+    : [],
 )
 const selectedChannelInitials = computed(() => {
   const name = selectedChannel.value?.name?.trim()

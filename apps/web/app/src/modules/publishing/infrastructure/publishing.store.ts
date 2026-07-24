@@ -11,6 +11,13 @@ export type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 // ---------------------------------------------------------------------------
 
 export type SocialProvider = 'twitter' | 'linkedin' | 'instagram' | 'facebook'
+export type ChannelProvider = string
+
+const SOCIAL_PROVIDERS = new Set<SocialProvider>(['twitter', 'linkedin', 'instagram', 'facebook'])
+
+export function isSocialProvider(provider: string): provider is SocialProvider {
+  return SOCIAL_PROVIDERS.has(provider as SocialProvider)
+}
 
 export type SocialConnectionResult = {
   connectionId: string
@@ -31,7 +38,7 @@ export type SocialAccountSummary = {
 export type Channel = {
   id: string
   name: string
-  provider: SocialProvider
+  provider: ChannelProvider
   avatar: string
   avatarUrl?: string
   handle: string
@@ -213,8 +220,7 @@ function readStoredPublications(): string | null {
 /** Maps a backend provider string to the frontend channel type. */
 function toChannelProvider(backendProvider: string): Publication['channels'][number] {
   const lower = backendProvider.toLowerCase()
-  const known = new Set(['twitter', 'linkedin', 'instagram', 'facebook'])
-  return known.has(lower) ? (lower as Publication['channels'][number]) : 'linkedin'
+  return isSocialProvider(lower) ? lower : 'linkedin'
 }
 
 const CHANNEL_ATTACHMENT_LIMITS: Record<SocialProvider, number> = {
@@ -224,12 +230,12 @@ const CHANNEL_ATTACHMENT_LIMITS: Record<SocialProvider, number> = {
   facebook: 10,
 }
 
-function resolveChannelMaxAttachments(provider: SocialProvider): number {
-  return CHANNEL_ATTACHMENT_LIMITS[provider]
+function resolveChannelMaxAttachments(provider: string): number | undefined {
+  return CHANNEL_ATTACHMENT_LIMITS[provider as SocialProvider]
 }
 
 function apiChannelToChannel(api: ConnectedSocialChannelSummary): Channel {
-  const provider = toChannelProvider(api.provider)
+  const provider = api.provider.toLowerCase()
 
   return {
     id: api.socialAccountId,

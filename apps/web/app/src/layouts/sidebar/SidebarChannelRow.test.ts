@@ -51,6 +51,21 @@ describe('SidebarChannelRow', () => {
     expect(wrapper.text()).toContain(getProviderBadge('linkedin'))
   })
 
+  it('uses the central provider presentation for a connected provider without an avatar', () => {
+    const wrapper = mount(SidebarChannelRow, {
+      props: {
+        channel: makeChannel({
+          provider: 'threads' as Channel['provider'],
+          avatarUrl: undefined,
+        }),
+        isActive: false,
+        queuedCount: 0,
+      },
+    })
+
+    expect(wrapper.text()).toContain('@')
+  })
+
   it('swaps to the fallback badge and emits avatarError on img @error', async () => {
     const wrapper = mount(SidebarChannelRow, {
       props: { channel: makeChannel(), isActive: false, queuedCount: 0 },
