@@ -48,7 +48,7 @@ Chain strategy: stacked-to-main
 
 ## Phase 4: Sidebar Migration and Verification
 
-- [ ] 4.1 RED: add `SidebarConnectSection` tests for available CTA, locked non-actionable reason, hidden omission, and absent static/coming-soon controls.
-- [ ] 4.2 GREEN: update `apps/web/app/src/layouts/sidebar/SidebarConnectSection.vue` to render catalog states and remove fake static provider UI.
-- [ ] 4.3 REFACTOR: remove obsolete static connect mappings/assets and ensure connected-channel fallbacks consume `provider-presentation.ts`.
-- [ ] 4.4 Run focused backend unit/WebFlux/BDD and frontend Vitest suites; verify every catalog, OAuth, and workspace-switch scenario above.
+- [x] 4.1 RED: add `SidebarConnectSection` tests for available CTA, locked non-actionable reason, hidden omission, and absent static/coming-soon controls.
+- [x] 4.2 GREEN: update `apps/web/app/src/layouts/sidebar/SidebarConnectSection.vue` to render catalog states and remove fake static provider UI.
+- [x] 4.3 REFACTOR: remove obsolete static connect mappings/assets and ensure connected-channel fallbacks consume `provider-presentation.ts`.
+- [x] 4.4 Run focused backend unit/WebFlux/BDD and frontend Vitest suites; verify every catalog, OAuth, and workspace-switch scenario above.

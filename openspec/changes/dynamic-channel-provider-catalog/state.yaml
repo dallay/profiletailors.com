@@ -5,6 +5,7 @@ completed:
   - spec
   - design
   - tasks
+  - apply
 history:
   - phase: explore
     completed_at: 2026-07-24
@@ -30,6 +31,9 @@ history:
   - phase: apply
     completed_at: 2026-07-24
     note: PR 1 backend catalog, policy seams, resolved HTTP contract, OAuth revalidation, unit tests, and fast BDD completed. SPA work units remain.
+  - phase: apply
+    completed_at: 2026-07-24
+    note: PR 3 migrated the sidebar to the resolved catalog, centralized connected-channel fallbacks, and completed focused frontend and backend validation.
 current_phase: apply
-next: apply
+next: verify
 updated: 2026-07-24

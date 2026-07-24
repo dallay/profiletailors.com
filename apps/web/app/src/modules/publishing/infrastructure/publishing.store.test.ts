@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import {
+  isSocialProvider,
   usePublishingStore,
   type CalendarResponse,
   type ProviderCatalogItem,
@@ -27,6 +28,13 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   register: vi.fn(),
   logoutSession: vi.fn(),
 }))
+
+describe('isSocialProvider', () => {
+  it('accepts publishable providers and rejects unknown connected providers', () => {
+    expect(isSocialProvider('linkedin')).toBe(true)
+    expect(isSocialProvider('mastodon')).toBe(false)
+  })
+})
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -205,7 +213,7 @@ describe('publishing store', () => {
       ])
     })
 
-    it('falls back to linkedin when backend provider is unknown', async () => {
+    it('preserves an unknown backend provider for neutral connected-channel presentation', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
@@ -227,7 +235,7 @@ describe('publishing store', () => {
 
       await store.fetchChannels()
 
-      expect(store.channels[0]?.provider).toBe('linkedin')
+      expect(store.channels[0]?.provider).toBe('mastodon')
     })
 
     it('maps null avatarUrl to undefined when backend omits avatar', async () => {

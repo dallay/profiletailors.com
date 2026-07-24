@@ -19,14 +19,18 @@ import {
 } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import AppHeader from './AppHeader.vue'
-import { getProviderBadge } from '@shared/lib/provider-styles'
+import {
+  getProviderPresentation,
+  PROVIDER_ACTIONS,
+  type ProviderCatalogItem,
+} from '@shared/lib/provider-presentation'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { usePublishingStore, type Channel } from '@modules/publishing/infrastructure/publishing.store'
 import SidebarHeaderSection from '@layouts/sidebar/SidebarHeaderSection.vue'
 import SidebarNavSection, { type NavGroup } from '@layouts/sidebar/SidebarNavSection.vue'
 import SidebarChannelsSection, { type SidebarChannel } from '@layouts/sidebar/SidebarChannelsSection.vue'
-import SidebarConnectSection, { type ConnectChannel } from '@layouts/sidebar/SidebarConnectSection.vue'
+import SidebarConnectSection from '@layouts/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@layouts/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@layouts/UploadProgressToast.vue'
 import { Toaster } from '@/components/ui/sonner'
@@ -126,21 +130,10 @@ const navigationGroups = computed<NavGroup[]>(() => [
 const sidebarChannels = computed<SidebarChannel[]>(() =>
   (publishingStore.channels as Channel[]).map((channel) => ({
     ...channel,
-    badge: getProviderBadge(channel.provider),
+    badge: getProviderPresentation(channel.provider).badge,
     queuedCount: queuedByProvider.value.get(channel.provider) ?? 0,
   })),
 )
-
-// ---------------------------------------------------------------------------
-// Connect providers
-// ---------------------------------------------------------------------------
-
-const connectChannels = computed<ConnectChannel[]>(() => [
-  { id: 'linkedin', label: 'LinkedIn profile', badge: 'in' },
-  { id: 'threads', label: 'Threads', badge: '@' },
-  { id: 'bluesky', label: 'Bluesky', badge: 'b' },
-  { id: 'facebook', label: 'Facebook', badge: 'f' },
-])
 
 // ---------------------------------------------------------------------------
 // Header pieces
@@ -194,19 +187,19 @@ function selectWorkspace(ws: { workspaceId: string }) {
   workspace.setActiveWorkspaceId(ws.workspaceId)
 }
 
-async function handleConnectChannel(channel: ConnectChannel) {
-  if (channel.id === 'linkedin') {
-    try {
-      await publishingStore.connectLinkedInPersonalProfile()
-    } catch (err) {
-      // Transient message is shown by SidebarConnectSection via useConnectMessage.
-      console.error('Failed to connect LinkedIn', err)
-    }
+async function handleConnectProvider(provider: ProviderCatalogItem) {
+  if (
+    provider.state !== 'AVAILABLE' ||
+    getProviderPresentation(provider.provider).action !== PROVIDER_ACTIONS.CONNECT_LINKEDIN_PERSONAL_PROFILE
+  ) {
+    return
   }
-}
 
-function handleMoreChannels() {
-  // Transient message is owned by SidebarConnectSection via useConnectMessage.
+  try {
+    await publishingStore.connectLinkedInPersonalProfile()
+  } catch (err) {
+    console.error('Failed to connect LinkedIn', err)
+  }
 }
 
 function onOpenSettings() {
@@ -306,9 +299,8 @@ onBeforeUnmount(() => {
             />
 
             <SidebarConnectSection
-              :providers="connectChannels"
-              @connect="handleConnectChannel"
-              @more="handleMoreChannels"
+              :providers="publishingStore.providerCatalog"
+              @connect="handleConnectProvider"
             />
           </SidebarGroup>
         </SidebarContent>
