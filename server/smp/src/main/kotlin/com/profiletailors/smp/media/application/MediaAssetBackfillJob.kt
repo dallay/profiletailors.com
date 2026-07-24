@@ -133,10 +133,7 @@ class MediaAssetBackfillJob(
         return HashAndSize(hash = digest.digest().toHexString(), sizeBytes = size)
     }
 
-    private data class HashAndSize(
-        val hash: String,
-        val sizeBytes: Long,
-    )
+    private data class HashAndSize(val hash: String, val sizeBytes: Long)
 }
 
 data class BackfillRunResult(

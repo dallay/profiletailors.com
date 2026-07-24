@@ -478,9 +478,8 @@ class R2dbcMediaAssetRepository(
             .one()
             .awaitSingleOrNull()
 
-    override suspend fun findReadyAssetsWithoutHash(limit: Int): List<MediaAsset> =
-        databaseClient.sql(
-            """
+    override suspend fun findReadyAssetsWithoutHash(limit: Int): List<MediaAsset> = databaseClient.sql(
+        """
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
                    failure_reason, upload_started_at, created_at, updated_at,
@@ -492,13 +491,13 @@ class R2dbcMediaAssetRepository(
               AND storage_key IS NOT NULL
             ORDER BY created_at ASC
             LIMIT :limit
-            """.trimIndent(),
-        )
-            .bind("limit", limit)
-            .map { row, _ -> rowToMediaAsset(row) }
-            .all()
-            .collectList()
-            .awaitSingle()
+        """.trimIndent(),
+    )
+        .bind("limit", limit)
+        .map { row, _ -> rowToMediaAsset(row) }
+        .all()
+        .collectList()
+        .awaitSingle()
 
     override suspend fun updateReadyAssetCasMetadata(
         assetId: String,

@@ -1266,8 +1266,6 @@ private fun deleteHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWo
 private fun deleteWorkspaceHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository) =
     DeleteWorkspaceAssetHandler(
         media,
-        FakeStorage().service(),
-        MediaUploadSettings(1, 200, "bucket"),
         NoopAtomicTransactionRunner,
         blobs,
     )
