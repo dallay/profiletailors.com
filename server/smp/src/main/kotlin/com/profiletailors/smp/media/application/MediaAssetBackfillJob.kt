@@ -2,6 +2,7 @@ package com.profiletailors.smp.media.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaStorageKeys
 import com.profiletailors.storage.application.StorageApplicationService
 import kotlinx.coroutines.flow.collect
