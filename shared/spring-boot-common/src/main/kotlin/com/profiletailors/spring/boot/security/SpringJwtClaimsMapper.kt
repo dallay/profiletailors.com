@@ -1,22 +1,27 @@
-package com.profiletailors.smp.identity.infrastructure.security
+package com.profiletailors.spring.boot.security
 
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.smp.credentials.application.FederatedTokenValidator
-import com.profiletailors.smp.credentials.domain.CredentialType
-import com.profiletailors.smp.credentials.domain.ValidatedToken
 import org.springframework.security.oauth2.jwt.Jwt
+import java.time.Instant
 
-class SpringJwtValidatedTokenMapper : FederatedTokenValidator<Jwt> {
-    override suspend fun validate(token: Jwt): ValidatedToken {
+data class JwtTokenClaims(
+    val tokenValue: String,
+    val subject: String,
+    val issuer: String,
+    val audience: Set<String>,
+    val issuedAt: Instant?,
+    val expiresAt: Instant?,
+    val tokenId: String?,
+    val stringClaims: Map<String, String>,
+    val principalTypeHint: PrincipalType,
+    val credentialReference: String?,
+)
+
+class SpringJwtClaimsMapper {
+    fun map(token: Jwt): JwtTokenClaims {
         val principalTypeHint = resolvePrincipalTypeHint(token)
-        val credentialReference = token.getClaimAsString("credential_reference") ?: token.id
 
-        return ValidatedToken(
-            credentialType = if (principalTypeHint == PrincipalType.SERVICE_ACCOUNT) {
-                CredentialType.SERVICE_ACCOUNT
-            } else {
-                CredentialType.JWT
-            },
+        return JwtTokenClaims(
             tokenValue = token.tokenValue,
             subject = token.subject,
             issuer = token.issuer?.toString() ?: throw IllegalArgumentException("JWT missing 'iss' claim"),
@@ -24,11 +29,11 @@ class SpringJwtValidatedTokenMapper : FederatedTokenValidator<Jwt> {
             issuedAt = token.issuedAt,
             expiresAt = token.expiresAt,
             tokenId = token.id,
-            claims = token.claims
+            stringClaims = token.claims
                 .filterValues { value -> value is String }
                 .mapValues { (_, value) -> value as String },
             principalTypeHint = principalTypeHint,
-            credentialReference = credentialReference,
+            credentialReference = token.getClaimAsString("credential_reference") ?: token.id,
         )
     }
 

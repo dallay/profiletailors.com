@@ -106,9 +106,6 @@ class IdentitySecurityConfiguration {
     }
 
     @Bean
-    fun jwtValidatedTokenMapper(): FederatedTokenValidator<Jwt> = SpringJwtValidatedTokenMapper()
-
-    @Bean
     fun jwtPrincipalAuthenticationConverter(
         jwtValidatedTokenMapper: FederatedTokenValidator<Jwt>,
         jwtAuthenticatedPrincipalMaterializer: JwtAuthenticatedPrincipalMaterializer,
