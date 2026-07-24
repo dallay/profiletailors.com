@@ -89,8 +89,8 @@ watch(
   ([isAuthenticated, activeWorkspaceId]) => {
     if (!isAuthenticated || !activeWorkspaceId) return
 
-    publishingStore.fetchChannels().catch((err) => {
-      console.warn('Unable to load connected channels', err)
+    publishingStore.refreshWorkspaceData().catch((err) => {
+      console.warn('Unable to load workspace publishing data', err)
     })
   },
   { immediate: true },

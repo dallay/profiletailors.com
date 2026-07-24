@@ -148,6 +148,7 @@ vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
       },
     ],
     fetchChannels: vi.fn().mockResolvedValue([]),
+    refreshWorkspaceData: vi.fn().mockResolvedValue(undefined),
     connectLinkedInPersonalProfile: vi.fn().mockResolvedValue(undefined),
   }),
 }))

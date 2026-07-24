@@ -41,10 +41,10 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: Typed SPA Catalog
 
-- [ ] 3.1 RED: add Vitest coverage for discriminated catalog types, LinkedIn label, known icons, and neutral unknown-provider fallback.
-- [ ] 3.2 GREEN: create `apps/web/app/src/shared/lib/provider-presentation.ts` and update `apps/web/app/src/shared/components/SocialProviderIcon.vue` to centralize typed labels, icons, actions, and fallback.
-- [ ] 3.3 RED: add store tests for catalog/channel parallel reloads, workspace switches, errors, and stale entries becoming non-actionable.
-- [ ] 3.4 GREEN: update `apps/web/app/src/modules/publishing/infrastructure/publishing.store.ts` and `apps/web/app/src/layouts/AppShell.vue` to load both workspace sources safely.
+- [x] 3.1 RED: add Vitest coverage for discriminated catalog types, LinkedIn label, known icons, and neutral unknown-provider fallback.
+- [x] 3.2 GREEN: create `apps/web/app/src/shared/lib/provider-presentation.ts` and update `apps/web/app/src/shared/components/SocialProviderIcon.vue` to centralize typed labels, icons, actions, and fallback.
+- [x] 3.3 RED: add store tests for catalog/channel parallel reloads, workspace switches, errors, and stale entries becoming non-actionable.
+- [x] 3.4 GREEN: update `apps/web/app/src/modules/publishing/infrastructure/publishing.store.ts` and `apps/web/app/src/layouts/AppShell.vue` to load both workspace sources safely.
 
 ## Phase 4: Sidebar Migration and Verification
 
