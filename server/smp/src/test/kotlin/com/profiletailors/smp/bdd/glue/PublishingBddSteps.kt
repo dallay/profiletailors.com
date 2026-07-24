@@ -326,6 +326,20 @@ class PublishingBddSteps {
         }
     }
 
+    @Then("the catalog should contain available LinkedIn personal profile without secrets or plans")
+    fun thenCatalogShouldContainAvailableLinkedInPersonalProfileWithoutSecretsOrPlans() {
+        val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
+        val linkedIn = providers.single { it["provider"] == "LINKEDIN" }
+
+        assertEquals(listOf("PERSONAL_PROFILE"), linkedIn["accountKinds"])
+        assertEquals("AVAILABLE", linkedIn["state"])
+        assertEquals(null, linkedIn["reason"])
+        assertEquals(null, linkedIn["channelLimit"])
+        assertEquals(true, linkedIn["canConnectMore"])
+        assertTrue(!publishingResponseBodyText().contains("clientSecret"))
+        assertTrue(!publishingResponseBodyText().contains("plan"))
+    }
+
     private fun extractPublicationIdFromResponse(): String =
         latestPublicationId ?: error("No publication ID available from previous response")
 

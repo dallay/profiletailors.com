@@ -7,7 +7,7 @@ Feature: Publishing channels and providers
     Then the publishing response status should be 200
     And the channels list should be empty
 
-  Scenario: List configured providers
+  Scenario: List resolved provider catalog
     When the client lists configured providers
     Then the publishing response status should be 200
-    And the providers list should contain "linkedin"
+    And the catalog should contain available LinkedIn personal profile without secrets or plans

@@ -13,6 +13,7 @@ import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuer
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
+import com.profiletailors.smp.publishing.application.ListProviderCatalogQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsResponse
 import com.profiletailors.smp.publishing.application.PublicationResult
@@ -98,18 +99,9 @@ class PublishingChannelController(
         @RequestParam(required = false) status: SocialConnectionStatus? = null,
     ): ConnectedChannelsResponse = mediator.send(ListConnectedChannelsQuery(status = status))
 
-    @Operation(
-        summary = "List configured publishing providers",
-        description = "Returns which social providers have credentials configured and are available for connection.",
-    )
+    @Operation(summary = "List workspace-resolved publishing providers")
     @GetMapping("/providers", version = "1")
-    fun listConfiguredProviders(): ConfiguredProvidersResponse = ConfiguredProvidersResponse(
-        providers = buildList {
-            if (linkedInPublishingProperties.isConfigured()) {
-                add(ConfiguredProvider(name = "linkedin", configured = true))
-            }
-        },
-    )
+    suspend fun listConfiguredProviders() = mediator.send(ListProviderCatalogQuery)
 
     @Operation(summary = "Stream connected channel change notifications")
     @GetMapping("/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])

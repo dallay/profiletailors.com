@@ -1,0 +1,35 @@
+change: dynamic-channel-provider-catalog
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+history:
+  - phase: explore
+    completed_at: 2026-07-24
+    note: Initial exploration completed.
+  - phase: propose
+    completed_at: 2026-07-24
+    note: Initial proposal completed.
+  - phase: explore
+    completed_at: 2026-07-24
+    note: Revisited after requirements expanded to include available and locked provider lists, policy/capacity behavior, connection entry points, and icon fallback coverage. Existing proposal requires revision.
+  - phase: propose
+    completed_at: 2026-07-24
+    note: Proposal updated with finalized provider-state, permissive policy-seam, catalog ordering, icon, and OAuth revalidation decisions.
+  - phase: spec
+    completed_at: 2026-07-24
+    note: Delta specifications added for resolved provider catalog, shell rendering, and OAuth policy revalidation.
+  - phase: design
+    completed_at: 2026-07-24
+    note: Technical design completed with hexagonal catalog policy seams, typed API contract, OAuth enforcement, SPA presentation registry, and mandatory BDD coverage.
+  - phase: tasks
+    completed_at: 2026-07-24
+    note: Dependency-ordered TDD task breakdown completed with backend, SPA, migration, BDD, and focused validation work units.
+  - phase: apply
+    completed_at: 2026-07-24
+    note: PR 1 backend catalog, policy seams, resolved HTTP contract, OAuth revalidation, unit tests, and fast BDD completed. SPA work units remain.
+current_phase: apply
+next: apply
+updated: 2026-07-24
