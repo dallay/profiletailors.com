@@ -26,14 +26,36 @@ function backoffDelay(attempt: number, initialDelayMs: number, maxDelayMs: numbe
 }
 
 function isRetryable(err: unknown): boolean {
-  const apiErr = err as { status?: number }
-  return apiErr.status === undefined || apiErr.status >= 500
+  if (err === null || err === undefined) {
+    return true
+  }
+  if (typeof err !== 'object') {
+    return true
+  }
+  const apiErr = err as { status?: unknown }
+  if (!('status' in apiErr)) {
+    return true
+  }
+  const status = apiErr.status
+  if (typeof status !== 'number') {
+    return true
+  }
+  return status >= 500
+}
+
+export type UseUploadAssetReturn = {
+  uploadAsset: (
+    file: File,
+    workspaceId: string,
+    assetId?: string,
+    options?: UploadAssetOptions,
+  ) => Promise<UploadResult>
 }
 
 /**
  * Composable that runs the PUT-first media upload flow with bounded retry/backoff.
  */
-export function useUploadAsset() {
+export function useUploadAsset(): UseUploadAssetReturn {
   async function uploadAsset(
     file: File,
     workspaceId: string,
@@ -43,6 +65,17 @@ export function useUploadAsset() {
     const maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
     const initialDelayMs = options.initialDelayMs ?? DEFAULT_INITIAL_DELAY_MS
     const maxDelayMs = options.maxDelayMs ?? DEFAULT_MAX_DELAY_MS
+
+    // Validate retry options
+    if (!Number.isInteger(maxAttempts) || maxAttempts <= 0 || !Number.isFinite(maxAttempts)) {
+      throw new Error('maxAttempts must be a positive finite integer')
+    }
+    if (!Number.isFinite(initialDelayMs) || initialDelayMs < 0) {
+      throw new Error('initialDelayMs must be a finite non-negative number')
+    }
+    if (!Number.isFinite(maxDelayMs) || maxDelayMs < 0) {
+      throw new Error('maxDelayMs must be a finite non-negative number')
+    }
 
     let lastError: unknown
 

@@ -546,8 +546,6 @@ class MediaCasHandlersTest {
         assertEquals(1, txRunner.calls.size)
     }
 
-
-
     @Test
     fun `UploadAssetHandler runAtomically called with markAsReady block`() = runTest {
         val media = InMemoryMediaAssetRepository()
@@ -779,8 +777,6 @@ class MediaCasHandlersTest {
         }
         assertTrue(txRunner.calls.isEmpty())
     }
-
-
 
     @Test
     fun `UploadAssetHandler releases concurrent upload slot exactly once on success`() = runTest {

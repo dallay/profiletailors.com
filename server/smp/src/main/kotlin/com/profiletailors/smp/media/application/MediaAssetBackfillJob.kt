@@ -109,7 +109,7 @@ class MediaAssetBackfillJob(
             }
 
             AssetOutcome.BACKFILLED
-        } catch (e: RuntimeException) {
+        } catch (e: Exception) {
             logger.error(
                 "media.backfill.failed assetId={} workspaceId={}",
                 asset.assetId,
