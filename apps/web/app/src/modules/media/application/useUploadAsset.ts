@@ -1,4 +1,8 @@
-import { putAsset, type PutAssetResponse, type UploadAssetResponse } from '@modules/media/services/media-api'
+import {
+  putAsset,
+  type PutAssetResponse,
+  type UploadAssetResponse,
+} from '@modules/media/services/media-api'
 
 type UploadResult = PutAssetResponse | UploadAssetResponse
 

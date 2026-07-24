@@ -70,7 +70,7 @@ class MediaAssetBackfillJob(
                     )
                 }
 
-                transactionRunner.runAtomically {
+                transactionRunner.runAtomically<Unit> {
                     workspaceFileBlobRepository.upsertBlob(asset.workspaceId, fileHash)
                     workspaceFileBlobRepository.markBlobReady(
                         workspaceId = asset.workspaceId,
