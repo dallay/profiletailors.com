@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { usePublishingStore, type CalendarResponse } from './publishing.store'
+import {
+  isSocialProvider,
+  usePublishingStore,
+  type CalendarResponse,
+  type ProviderCatalogItem,
+} from './publishing.store'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 // ---------------------------------------------------------------------------
@@ -23,6 +28,13 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   register: vi.fn(),
   logoutSession: vi.fn(),
 }))
+
+describe('isSocialProvider', () => {
+  it('accepts publishable providers and rejects unknown connected providers', () => {
+    expect(isSocialProvider('linkedin')).toBe(true)
+    expect(isSocialProvider('mastodon')).toBe(false)
+  })
+})
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -94,6 +106,16 @@ const mockConflictCalendarResponse: CalendarResponse = {
     },
   ],
   activity: [{ date: '2026-06-15', density: 'MEDIUM', count: 2 }],
+}
+
+const availableLinkedInProvider: ProviderCatalogItem = {
+  provider: 'linkedin',
+  accountKinds: ['PERSONAL_PROFILE'],
+  state: 'AVAILABLE',
+  reason: null,
+  channelLimit: null,
+  connectedChannelCount: 0,
+  canConnectMore: true,
 }
 
 // ---------------------------------------------------------------------------
@@ -191,7 +213,7 @@ describe('publishing store', () => {
       ])
     })
 
-    it('falls back to linkedin when backend provider is unknown', async () => {
+    it('preserves an unknown backend provider for neutral connected-channel presentation', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
@@ -213,7 +235,7 @@ describe('publishing store', () => {
 
       await store.fetchChannels()
 
-      expect(store.channels[0]?.provider).toBe('linkedin')
+      expect(store.channels[0]?.provider).toBe('mastodon')
     })
 
     it('maps null avatarUrl to undefined when backend omits avatar', async () => {
@@ -323,24 +345,29 @@ describe('publishing store', () => {
     })
   })
 
-  describe('fetchConfiguredProviders', () => {
-    it('keeps only configured provider names', async () => {
+  describe('refreshWorkspaceData', () => {
+    it('reloads the channel list and typed provider catalog in parallel', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
-        providers: [
-          { name: 'linkedin', configured: true },
-          { name: 'twitter', configured: false },
-          { name: 'instagram', configured: true },
-        ],
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockImplementation(async (path: string) => {
+        if (path === '/api/publishing/channels') return { channels: [] }
+        return { providers: [availableLinkedInProvider] }
       })
 
-      await store.fetchConfiguredProviders()
+      await store.refreshWorkspaceData()
 
-      expect(store.configuredProviders).toEqual(['linkedin', 'instagram'])
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/channels', {
+        method: 'GET',
+        workspaceScoped: true,
+      })
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/channels/providers', {
+        method: 'GET',
+        workspaceScoped: true,
+      })
+      expect(store.providerCatalog).toEqual([availableLinkedInProvider])
+      expect(store.configuredProviders).toEqual(['linkedin'])
       expect(store.isLinkedInConfigured).toBe(true)
-      expect(store.providersLoading).toBe(false)
     })
 
     it('maps per-provider attachment limits onto channels', () => {
@@ -356,28 +383,41 @@ describe('publishing store', () => {
       expect(store.channels.map((channel) => channel.maxAttachments)).toEqual([9, 4, 10, 10])
     })
 
-    it('preserves existing providers when request fails', async () => {
+    it('clears provider catalog entries when their reload fails so they cannot remain actionable', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-      store.configuredProviders = ['linkedin']
+      store.providerCatalog = [availableLinkedInProvider]
       vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('provider fetch failed'))
 
-      await store.fetchConfiguredProviders()
+      await expect(store.fetchProviderCatalog()).rejects.toThrow('provider fetch failed')
 
-      expect(store.configuredProviders).toEqual(['linkedin'])
+      expect(store.providerCatalog).toEqual([])
       expect(store.providersLoading).toBe(false)
     })
 
-    it('clears configured providers when unauthenticated', async () => {
+    it('does not let an older workspace response restore stale catalog entries', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
-      store.configuredProviders = ['linkedin']
-      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      let resolveOlder: ((value: { providers: ProviderCatalogItem[] }) => void) | undefined
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockImplementation(async () => {
+        if (!resolveOlder) {
+          return new Promise<{ providers: ProviderCatalogItem[] }>((resolve) => {
+            resolveOlder = resolve
+          })
+        }
+        return { providers: [] }
+      })
 
-      await store.fetchConfiguredProviders()
+      const older = store.fetchProviderCatalog()
+      const newer = store.fetchProviderCatalog()
+      await newer
+      resolveOlder?.({ providers: [availableLinkedInProvider] })
+      await older
 
-      expect(store.configuredProviders).toEqual([])
+      expect(apiFetch).toHaveBeenCalledTimes(2)
+      expect(store.providerCatalog).toEqual([])
     })
   })
 

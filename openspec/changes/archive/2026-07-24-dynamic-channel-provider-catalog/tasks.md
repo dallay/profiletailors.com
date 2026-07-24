@@ -41,14 +41,14 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: Typed SPA Catalog
 
-- [ ] 3.1 RED: add Vitest coverage for discriminated catalog types, LinkedIn label, known icons, and neutral unknown-provider fallback.
-- [ ] 3.2 GREEN: create `apps/web/app/src/shared/lib/provider-presentation.ts` and update `apps/web/app/src/shared/components/SocialProviderIcon.vue` to centralize typed labels, icons, actions, and fallback.
-- [ ] 3.3 RED: add store tests for catalog/channel parallel reloads, workspace switches, errors, and stale entries becoming non-actionable.
-- [ ] 3.4 GREEN: update `apps/web/app/src/modules/publishing/infrastructure/publishing.store.ts` and `apps/web/app/src/layouts/AppShell.vue` to load both workspace sources safely.
+- [x] 3.1 RED: add Vitest coverage for discriminated catalog types, LinkedIn label, known icons, and neutral unknown-provider fallback.
+- [x] 3.2 GREEN: create `apps/web/app/src/shared/lib/provider-presentation.ts` and update `apps/web/app/src/shared/components/SocialProviderIcon.vue` to centralize typed labels, icons, actions, and fallback.
+- [x] 3.3 RED: add store tests for catalog/channel parallel reloads, workspace switches, errors, and stale entries becoming non-actionable.
+- [x] 3.4 GREEN: update `apps/web/app/src/modules/publishing/infrastructure/publishing.store.ts` and `apps/web/app/src/layouts/AppShell.vue` to load both workspace sources safely.
 
 ## Phase 4: Sidebar Migration and Verification
 
-- [ ] 4.1 RED: add `SidebarConnectSection` tests for available CTA, locked non-actionable reason, hidden omission, and absent static/coming-soon controls.
-- [ ] 4.2 GREEN: update `apps/web/app/src/layouts/sidebar/SidebarConnectSection.vue` to render catalog states and remove fake static provider UI.
-- [ ] 4.3 REFACTOR: remove obsolete static connect mappings/assets and ensure connected-channel fallbacks consume `provider-presentation.ts`.
-- [ ] 4.4 Run focused backend unit/WebFlux/BDD and frontend Vitest suites; verify every catalog, OAuth, and workspace-switch scenario above.
+- [x] 4.1 RED: add `SidebarConnectSection` tests for available CTA, locked non-actionable reason, hidden omission, and absent static/coming-soon controls.
+- [x] 4.2 GREEN: update `apps/web/app/src/layouts/sidebar/SidebarConnectSection.vue` to render catalog states and remove fake static provider UI.
+- [x] 4.3 REFACTOR: remove obsolete static connect mappings/assets and ensure connected-channel fallbacks consume `provider-presentation.ts`.
+- [x] 4.4 Run focused backend unit/WebFlux/BDD and frontend Vitest suites; verify every catalog, OAuth, and workspace-switch scenario above.

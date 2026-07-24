@@ -5,6 +5,7 @@ completed:
   - spec
   - design
   - tasks
+  - apply
 history:
   - phase: explore
     completed_at: 2026-07-24
@@ -30,6 +31,15 @@ history:
   - phase: apply
     completed_at: 2026-07-24
     note: PR 1 backend catalog, policy seams, resolved HTTP contract, OAuth revalidation, unit tests, and fast BDD completed. SPA work units remain.
-current_phase: apply
-next: apply
+  - phase: apply
+    completed_at: 2026-07-24
+    note: PR 3 migrated the sidebar to the resolved catalog, centralized connected-channel fallbacks, and completed focused frontend and backend validation.
+  - phase: verify
+    completed_at: 2026-07-24
+    note: Verification failed: required BDD coverage for catalog states, capacity/existing-channel behavior, workspace isolation, and OAuth denials is missing despite task 2.5 being marked complete.
+  - phase: verify
+    completed_at: 2026-07-24
+    note: Reverification after corrective BDD merge passed with warnings. Forced fast BDD covers available, hidden, locked, capacity/existing-channel, workspace isolation, OAuth policy denial, missing authentication, and missing workspace context; backend checks, coverage generation, SPA tests, and SPA build passed.
+current_phase: verify
+next: archive
 updated: 2026-07-24
