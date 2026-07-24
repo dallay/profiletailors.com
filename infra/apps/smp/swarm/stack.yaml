@@ -92,7 +92,7 @@ services:
         gid: "1001"
         mode: 0400
       - source: publishing_credentials_key
-        target: PUBLISHING_CREDENTIALS_KEY
+        target: PUBLISHING_CREDENTIALS_ENCRYPTION_KEY
         uid: "1002"
         gid: "1001"
         mode: 0400

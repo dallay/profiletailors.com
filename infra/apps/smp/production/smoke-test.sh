@@ -56,7 +56,7 @@ assert_secret_not_in_environment() {
     local container_id
     container_id="$("${compose[@]}" ps -q "$service")"
     if docker inspect "$container_id" --format '{{range .Config.Env}}{{println .}}{{end}}' |
-        grep -Eq '^(SMP_DB_PASSWORD|SMP_LOCAL_JWT_SECRET|PUBLISHING_CREDENTIALS_KEY|SMP_MEDIA_PREVIEW_SIGNING_SECRET|SMP_LINKEDIN_STATE_SIGNING_SECRET|SMP_LINKEDIN_CLIENT_SECRET|SMP_RESEND_API_KEY)='; then
+        grep -Eq '^(SMP_DB_PASSWORD|SMP_LOCAL_JWT_SECRET|PUBLISHING_CREDENTIALS_ENCRYPTION_KEY|SMP_MEDIA_PREVIEW_SIGNING_SECRET|SMP_LINKEDIN_STATE_SIGNING_SECRET|SMP_LINKEDIN_CLIENT_SECRET|SMP_RESEND_API_KEY)='; then
         echo "Service ${service} exposes a secret through its environment."
         exit 1
     fi
