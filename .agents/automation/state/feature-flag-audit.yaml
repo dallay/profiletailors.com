@@ -1,5 +1,48 @@
 schemaVersion: 1
 task: feature-flag-auditor
-lastExecution: null
-findings: [ ]
-checks: [ ]
+lastExecution: "2026-07-25T16:00:00Z"
+findings:
+  - id: FF-DASHBOARD-STALE
+    title: "Stale pt-dashboard-new Feature Flag"
+    status: unresolved
+    classification: STALE
+    evidence: "apps/web/app/src/modules/dashboard/presentation/views/HomeView.vue"
+    risk: LOW
+    message: "The pt-dashboard-new localStorage feature flag is obsolete; the legacy dashboard template was entirely removed, leaving a dead toggle and UI element."
+  - id: FF-WAITLIST-CONSISTENT
+    title: "Consistent WAITLIST_ENABLED Gate"
+    status: resolved
+    classification: CONSISTENT
+    evidence: "apps/web/marketing/src/components/Hero.astro, apps/web/marketing/astro.config.mjs"
+    risk: LOW
+    message: "The WAITLIST_ENABLED compilation flag correctly defaults to false in development and configuration, serving as a compliant gate (PA-004) preventing waitlist collection."
+  - id: FF-RATE-LIMIT-DRIFT
+    title: "Backend Platform Rate Limiting Hook Configuration Drift"
+    status: unresolved
+    classification: INCONSISTENT
+    evidence: "server/smp/src/main/resources/application.yaml, .env.example"
+    risk: LOW
+    message: "SMP_PLATFORM_RATE_LIMIT_ENABLED defaults to true in application.yaml, but is explicitly set to false in .env.example."
+  - id: FF-AUDIT-METRICS-CONSISTENT
+    title: "Consistent Backend Audit and Metrics Hooks"
+    status: resolved
+    classification: CONSISTENT
+    evidence: "server/smp/src/main/resources/application.yaml, .env.example"
+    risk: LOW
+    message: "SMP_PLATFORM_AUDIT_ENABLED and SMP_PLATFORM_METRICS_ENABLED default consistently to false in both Spring application.yaml and the .env.example template."
+  - id: FF-UNSPLASH-CONSISTENT
+    title: "Consistent Unsplash Provider Feature Flag"
+    status: resolved
+    classification: CONSISTENT
+    evidence: "server/smp/src/main/resources/application.yaml, apps/web/app/src/modules/publishing/presentation/components/CreatePostModal.vue"
+    risk: LOW
+    message: "The Unsplash media provider feature is disabled by default (SMP_MEDIAPROVIDER_UNSPLASH_ENABLED=false) on both backend and frontend, aligning with data inventory (PA-008)."
+checks:
+  - name: "Feature Flag Frontend Inspection"
+    status: Passed
+  - name: "Feature Flag Backend Inspection"
+    status: Passed
+  - name: "Environment Template Alignment Check"
+    status: Passed
+  - name: "Data Inventory Compliance Verification"
+    status: Passed
