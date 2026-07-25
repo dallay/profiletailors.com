@@ -3,6 +3,8 @@ package com.profiletailors.smp.credentials
 import org.springframework.modulith.ApplicationModule
 
 @ApplicationModule(
-    allowedDependencies = [],
+    allowedDependencies = [
+        "identity :: application",
+    ],
 )
 internal class ModuleMetadata

@@ -4,37 +4,16 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.PermissionKey
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRepository
 import com.profiletailors.smp.governance.domain.SubjectReference
 import kotlinx.coroutines.flow.Flow
 
-private val CONSENT_READ_PERMISSION = PermissionKey.of("workspace", "consent", "read")
-private val CONSENT_WRITE_PERMISSION = PermissionKey.of("workspace", "consent", "write")
-
-private suspend fun authorizeWorkspaceConsentRead(authorizationDecider: WorkspaceAuthorizationDecider) {
-    val decision = authorizationDecider.decideDetailed(CONSENT_READ_PERMISSION)
-    if (decision.decision != AuthorizationDecision.ALLOW) {
-        throw AuthorizationDeniedException.forDecision(decision, CONSENT_READ_PERMISSION)
-    }
-}
-
-private suspend fun authorizeWorkspaceConsentWrite(authorizationDecider: WorkspaceAuthorizationDecider) {
-    val decision = authorizationDecider.decideDetailed(CONSENT_WRITE_PERMISSION)
-    if (decision.decision != AuthorizationDecision.ALLOW) {
-        throw AuthorizationDeniedException.forDecision(decision, CONSENT_WRITE_PERMISSION)
-    }
-}
-
 @Service
 internal class RecordWorkspaceConsentHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val recordConsentHandler: RecordConsentHandler,
-    private val authorizationDecider: WorkspaceAuthorizationDecider,
+    private val authorizationService: GovernanceAuthorizationService,
 ) : CommandWithResultHandler<RecordWorkspaceConsentCommand, RecordConsentOutcome> {
     /**
      * Records consent for the current workspace.
@@ -45,7 +24,7 @@ internal class RecordWorkspaceConsentHandler(
      * @throws IllegalArgumentException If no workspace is available or an enum value is invalid.
      */
     override suspend fun handle(command: RecordWorkspaceConsentCommand): RecordConsentOutcome {
-        authorizeWorkspaceConsentWrite(authorizationDecider)
+        authorizationService.authorizeConsentWrite()
         return recordConsentHandler.handle(
             RecordConsentCommand(
                 workspaceId = requireNotNull(resourceContextProvider.require().workspaceId),
@@ -64,7 +43,7 @@ internal class RecordWorkspaceConsentHandler(
 internal class WithdrawWorkspaceConsentHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val withdrawConsentHandler: WithdrawConsentHandler,
-    private val authorizationDecider: WorkspaceAuthorizationDecider,
+    private val authorizationService: GovernanceAuthorizationService,
 ) : CommandWithResultHandler<WithdrawWorkspaceConsentCommand, ConsentRecord> {
     /**
      * Withdraws a workspace consent for the specified subject.
@@ -75,7 +54,7 @@ internal class WithdrawWorkspaceConsentHandler(
      * @throws IllegalArgumentException If the workspace ID is missing or an enum value is invalid.
      */
     override suspend fun handle(command: WithdrawWorkspaceConsentCommand): ConsentRecord {
-        authorizeWorkspaceConsentWrite(authorizationDecider)
+        authorizationService.authorizeConsentWrite()
         return withdrawConsentHandler.handle(
             WithdrawConsentCommand(
                 workspaceId = requireNotNull(resourceContextProvider.require().workspaceId),
@@ -92,7 +71,7 @@ internal class WithdrawWorkspaceConsentHandler(
 internal class GetWorkspaceConsentRecordsHandler(
     private val repository: ConsentRepository,
     private val resourceContextProvider: ResourceContextProvider,
-    private val authorizationDecider: WorkspaceAuthorizationDecider,
+    private val authorizationService: GovernanceAuthorizationService,
 ) : QueryHandler<GetWorkspaceConsentRecordsQuery, Flow<ConsentRecord>> {
     /**
      * Retrieves active consent records for the current workspace.
@@ -104,7 +83,7 @@ internal class GetWorkspaceConsentRecordsHandler(
      * @throws IllegalArgumentException If the subject kind is invalid.
      */
     override suspend fun handle(query: GetWorkspaceConsentRecordsQuery): Flow<ConsentRecord> {
-        authorizeWorkspaceConsentRead(authorizationDecider)
+        authorizationService.authorizeConsentRead()
         return repository.findActiveByWorkspace(
             requireNotNull(resourceContextProvider.require().workspaceId),
             query.subjectKind,
@@ -117,7 +96,7 @@ internal class GetWorkspaceConsentRecordsHandler(
 internal class GetConsentHistoryHandler(
     private val repository: ConsentRepository,
     private val resourceContextProvider: ResourceContextProvider,
-    private val authorizationDecider: WorkspaceAuthorizationDecider,
+    private val authorizationService: GovernanceAuthorizationService,
 ) : QueryHandler<GetConsentHistoryQuery, Flow<ConsentRecord>> {
     /**
      * Retrieves historical consent records for the current workspace identity.
@@ -128,7 +107,7 @@ internal class GetConsentHistoryHandler(
      * @throws IllegalArgumentException If the workspace context has no workspace ID or the subject kind is invalid.
      */
     override suspend fun handle(query: GetConsentHistoryQuery): Flow<ConsentRecord> {
-        authorizeWorkspaceConsentRead(authorizationDecider)
+        authorizationService.authorizeConsentRead()
         return repository.findHistoricalByIdentity(
             requireNotNull(resourceContextProvider.require().workspaceId),
             SubjectReference(query.subjectValue, query.subjectKind),

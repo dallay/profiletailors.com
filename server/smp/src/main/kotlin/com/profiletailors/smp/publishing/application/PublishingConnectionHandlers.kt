@@ -6,12 +6,6 @@ import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.identity.application.AuthFeature
-import com.profiletailors.smp.identity.application.EmailVerificationPolicy
-import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
-import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
 import com.profiletailors.smp.publishing.domain.ChannelEventType
@@ -33,7 +27,6 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.permissiveProviderCatalogPolicy
-import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import java.time.Clock
 import java.util.UUID
 
@@ -47,18 +40,12 @@ internal class InitiateLinkedInConnectionHandler(
     private val oauthStateSigner: OAuthStateSigner,
     private val authorizationUrlBuilder: LinkedInAuthorizationUrlBuilder,
     private val clock: Clock,
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val emailVerificationGate: PublishingEmailVerificationGate = NoOpPublishingEmailVerificationGate,
     private val providerCatalogPolicy: ProviderCatalogPolicy = permissiveProviderCatalogPolicy,
 ) : CommandWithResultHandler<InitiateLinkedInConnectionCommand, LinkedInConnectionInitiationResult> {
     override suspend fun handle(command: InitiateLinkedInConnectionCommand): LinkedInConnectionInitiationResult {
         val principalCtx = principalContextProvider.require()
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.CONNECT_SOCIAL,
-        )
+        emailVerificationGate.requireVerified(principalCtx, PublishingFeature.CONNECT_SOCIAL)
 
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         providerCatalogPolicy.requireAvailable(SocialProvider.LINKEDIN, workspaceId)
@@ -105,18 +92,11 @@ internal class CompleteLinkedInConnectionHandler(
     private val channelEventPublisher: ChannelEventPublisher,
     private val clock: Clock,
     private val transactionRunner: AtomicTransactionRunner,
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy =
-        permissiveEmailVerificationPolicy,
+    private val emailVerificationGate: PublishingEmailVerificationGate = NoOpPublishingEmailVerificationGate,
 ) : CommandWithResultHandler<CompleteLinkedInConnectionCommand, SocialConnectionResult> {
     override suspend fun handle(command: CompleteLinkedInConnectionCommand): SocialConnectionResult {
         val principalCtx = principalContextProvider.require()
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.CONNECT_SOCIAL,
-        )
+        emailVerificationGate.requireVerified(principalCtx, PublishingFeature.CONNECT_SOCIAL)
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
         validateState(command, principalCtx.principalId, workspaceId)

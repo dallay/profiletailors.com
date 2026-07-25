@@ -1,9 +1,9 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.media.application.AssetNotReadyException
-import com.profiletailors.smp.media.application.MediaAssetResolver
-import com.profiletailors.smp.media.application.MediaServiceUnavailableException
+import com.profiletailors.smp.publishing.application.PublishingAssetNotReadyException
+import com.profiletailors.smp.publishing.application.PublishingMediaAssetResolver
+import com.profiletailors.smp.publishing.application.PublishingMediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
@@ -37,7 +37,7 @@ class PublishingJobExecutor(
     private val publicationJobRepository: PublicationJobRepository,
     private val publicationRepository: PublicationRepository,
     private val socialAccountRepository: SocialAccountRepository,
-    private val mediaAssetResolver: MediaAssetResolver,
+    private val mediaAssetResolver: PublishingMediaAssetResolver,
     private val deliveryAttemptRepository: DeliveryAttemptRepository,
     private val notificationEventRepository: NotificationEventRepository?,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
@@ -76,14 +76,14 @@ class PublishingJobExecutor(
             handleReconnectRequired(claim, publication, socialAccount, exception, now)
         } catch (exception: PublishingFailureException) {
             handlePublishFailure(claim, publication, exception.failure, now)
-        } catch (exception: AssetNotReadyException) {
+        } catch (exception: PublishingAssetNotReadyException) {
             handlePublishFailure(
                 claim,
                 publication,
                 PublishingFailure.mediaNotFound(exception::class.simpleName),
                 now,
             )
-        } catch (exception: MediaServiceUnavailableException) {
+        } catch (exception: PublishingMediaServiceUnavailableException) {
             handlePublishFailure(
                 claim,
                 publication,

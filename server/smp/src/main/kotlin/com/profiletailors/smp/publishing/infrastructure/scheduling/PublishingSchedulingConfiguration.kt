@@ -1,7 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.publishing.application.PublishingMediaAssetResolver
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
@@ -23,7 +23,7 @@ class PublishingSchedulingConfiguration(
     private val publicationJobRepository: PublicationJobRepository,
     private val publicationRepository: PublicationRepository,
     private val socialAccountRepository: SocialAccountRepository,
-    private val mediaAssetResolver: MediaAssetResolver,
+    private val mediaAssetResolver: PublishingMediaAssetResolver,
     private val deliveryAttemptRepository: DeliveryAttemptRepository,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val socialPublisher: SocialPublisher,

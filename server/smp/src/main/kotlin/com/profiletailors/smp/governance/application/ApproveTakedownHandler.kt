@@ -6,9 +6,6 @@ import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.smp.audit.domain.AuditHook
-import com.profiletailors.smp.audit.domain.MutationAuditFact
-import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
 import com.profiletailors.smp.governance.domain.event.TakedownApproved
@@ -34,7 +31,7 @@ internal class ApproveTakedownHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val principalContextProvider: PrincipalContextProvider,
     private val authorizationService: GovernanceAuthorizationService,
-    private val auditHook: AuditHook,
+    private val governanceMutationAuditPort: GovernanceMutationAuditPort,
     private val eventPublisher: EventPublisher<DomainEvent>,
 ) : CommandWithResultHandler<ApproveTakedownCommand, TakedownReport> {
 
@@ -61,18 +58,15 @@ internal class ApproveTakedownHandler(
             ),
         )
 
-        auditHook.onMutation(
-            MutationAuditFact(
-                action = "MEDIA_TAKEDOWN_APPROVED",
-                targetType = "takedown_report",
-                targetId = saved.reportId,
-                actorPrincipalId = actor.principalId,
-                workspaceId = workspaceId,
-                outcome = MutationAuditOutcome.SUCCESS,
-                details = mapOf(
-                    "assetId" to report.assetId,
-                    "previousStatus" to report.status.name,
-                ),
+        governanceMutationAuditPort.recordSuccess(
+            action = "MEDIA_TAKEDOWN_APPROVED",
+            targetType = "takedown_report",
+            targetId = saved.reportId,
+            actorPrincipalId = actor.principalId,
+            workspaceId = workspaceId,
+            details = mapOf(
+                "assetId" to report.assetId,
+                "previousStatus" to report.status.name,
             ),
         )
 

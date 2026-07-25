@@ -6,9 +6,6 @@ import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.smp.audit.domain.AuditHook
-import com.profiletailors.smp.audit.domain.MutationAuditFact
-import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
 import com.profiletailors.smp.governance.domain.event.TakedownRejected
@@ -33,7 +30,7 @@ internal class RejectTakedownHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val principalContextProvider: PrincipalContextProvider,
     private val authorizationService: GovernanceAuthorizationService,
-    private val auditHook: AuditHook,
+    private val governanceMutationAuditPort: GovernanceMutationAuditPort,
     private val eventPublisher: EventPublisher<DomainEvent>,
 ) : CommandWithResultHandler<RejectTakedownCommand, TakedownReport> {
 
@@ -51,19 +48,16 @@ internal class RejectTakedownHandler(
         val dismissed = report.dismiss(actor.principalId, command.reason, Instant.now())
         val saved = repository.save(dismissed)
 
-        auditHook.onMutation(
-            MutationAuditFact(
-                action = "MEDIA_TAKEDOWN_REJECTED",
-                targetType = "takedown_report",
-                targetId = saved.reportId,
-                actorPrincipalId = actor.principalId,
-                workspaceId = workspaceId,
-                outcome = MutationAuditOutcome.SUCCESS,
-                details = mapOf(
-                    "assetId" to report.assetId,
-                    "previousStatus" to report.status.name,
-                    "rejectionReason" to command.reason,
-                ),
+        governanceMutationAuditPort.recordSuccess(
+            action = "MEDIA_TAKEDOWN_REJECTED",
+            targetType = "takedown_report",
+            targetId = saved.reportId,
+            actorPrincipalId = actor.principalId,
+            workspaceId = workspaceId,
+            details = mapOf(
+                "assetId" to report.assetId,
+                "previousStatus" to report.status.name,
+                "rejectionReason" to command.reason,
             ),
         )
 

@@ -6,9 +6,6 @@ import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.smp.audit.domain.AuditHook
-import com.profiletailors.smp.audit.domain.MutationAuditFact
-import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
 import com.profiletailors.smp.governance.domain.TakedownReportStatus
@@ -32,7 +29,7 @@ internal class ReportTakedownHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val principalIdentityPort: PrincipalIdentityPort,
     private val authorizationService: GovernanceAuthorizationService,
-    private val auditHook: AuditHook,
+    private val governanceMutationAuditPort: GovernanceMutationAuditPort,
     private val eventPublisher: EventPublisher<DomainEvent>,
 ) : CommandWithResultHandler<ReportTakedownCommand, TakedownReport> {
 
@@ -68,18 +65,15 @@ internal class ReportTakedownHandler(
 
         val saved = repository.save(report)
 
-        auditHook.onMutation(
-            MutationAuditFact(
-                action = "MEDIA_TAKEDOWN_REPORTED",
-                targetType = "takedown_report",
-                targetId = saved.reportId,
-                actorPrincipalId = actor.principalId,
-                workspaceId = workspaceId,
-                outcome = MutationAuditOutcome.SUCCESS,
-                details = mapOf(
-                    "assetId" to command.assetId,
-                    "reason" to command.reason,
-                ),
+        governanceMutationAuditPort.recordSuccess(
+            action = "MEDIA_TAKEDOWN_REPORTED",
+            targetType = "takedown_report",
+            targetId = saved.reportId,
+            actorPrincipalId = actor.principalId,
+            workspaceId = workspaceId,
+            details = mapOf(
+                "assetId" to command.assetId,
+                "reason" to command.reason,
             ),
         )
 

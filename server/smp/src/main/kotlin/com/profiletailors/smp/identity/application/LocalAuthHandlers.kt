@@ -5,12 +5,6 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
-import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
-import com.profiletailors.smp.governance.application.RecordConsentCommand
-import com.profiletailors.smp.governance.application.RecordConsentHandler
-import com.profiletailors.smp.governance.domain.ConsentType
-import com.profiletailors.smp.governance.domain.SubjectReference
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
@@ -25,7 +19,7 @@ internal data class AuthSessionContext(
     val workspaceId: String? = null,
     val clock: Clock,
     val localJwtIssuer: LocalJwtIssuer,
-    val refreshSessionLifecycleService: RefreshSessionLifecycleService,
+    val refreshSessionPort: IdentityRefreshSessionPort,
 )
 
 internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSessionResult {
@@ -37,7 +31,7 @@ internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSes
         emailStatus = context.emailStatus,
         issuedAt = context.clock.instant(),
     )
-    val refreshSession = context.refreshSessionLifecycleService.issue(context.principalId)
+    val refreshSession = context.refreshSessionPort.issue(context.principalId)
     return LocalAuthSessionResult(
         tokens = AuthTokens(
             accessToken = token.value,
@@ -64,8 +58,8 @@ internal class RegisterUserHandler(
     private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val localJwtIssuer: LocalJwtIssuer,
-    private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
-    private val recordConsentHandler: RecordConsentHandler,
+    private val refreshSessionPort: IdentityRefreshSessionPort,
+    private val consentRecorder: IdentityConsentRecorder,
 ) : CommandWithResultHandler<RegisterUserCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: RegisterUserCommand): LocalAuthSessionResult {
@@ -120,7 +114,7 @@ internal class RegisterUserHandler(
                 emailStatus = EmailStatus.PENDING,
                 clock = clock,
                 localJwtIssuer = localJwtIssuer,
-                refreshSessionLifecycleService = refreshSessionLifecycleService,
+                refreshSessionPort = refreshSessionPort,
             ),
         )
     }
@@ -186,28 +180,22 @@ internal class RegisterUserHandler(
     }
 
     private suspend fun recordConsentRecords(principalId: String, workspaceId: String, acceptedTermsVersion: String) {
-        recordConsentHandler.handle(
-            RecordConsentCommand(
-                workspaceId = workspaceId,
-                subjectReference = SubjectReference.user(principalId),
-                consentType = ConsentType.CONTRACT_ACCEPTANCE,
-                purpose = AGE_ELIGIBILITY_PURPOSE,
-                policyVersion = AGE_ELIGIBILITY_POLICY_VERSION,
-                source = CONSENT_SOURCE,
-                locale = CONSENT_LOCALE,
-            ),
+        consentRecorder.recordContractAcceptance(
+            workspaceId = workspaceId,
+            principalId = principalId,
+            purpose = AGE_ELIGIBILITY_PURPOSE,
+            policyVersion = AGE_ELIGIBILITY_POLICY_VERSION,
+            source = CONSENT_SOURCE,
+            locale = CONSENT_LOCALE,
         )
 
-        recordConsentHandler.handle(
-            RecordConsentCommand(
-                workspaceId = workspaceId,
-                subjectReference = SubjectReference.user(principalId),
-                consentType = ConsentType.CONTRACT_ACCEPTANCE,
-                purpose = TERMS_ACCEPTANCE_PURPOSE,
-                policyVersion = acceptedTermsVersion,
-                source = CONSENT_SOURCE,
-                locale = CONSENT_LOCALE,
-            ),
+        consentRecorder.recordContractAcceptance(
+            workspaceId = workspaceId,
+            principalId = principalId,
+            purpose = TERMS_ACCEPTANCE_PURPOSE,
+            policyVersion = acceptedTermsVersion,
+            source = CONSENT_SOURCE,
+            locale = CONSENT_LOCALE,
         )
     }
 
@@ -252,7 +240,7 @@ internal class LoginUserHandler(
     private val passwordHasher: PasswordHasher,
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val localJwtIssuer: LocalJwtIssuer,
-    private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
+    private val refreshSessionPort: IdentityRefreshSessionPort,
     private val clock: Clock,
 ) : CommandWithResultHandler<LoginUserCommand, LocalAuthSessionResult> {
 
@@ -276,7 +264,7 @@ internal class LoginUserHandler(
                 emailStatus = emailStatus,
                 clock = clock,
                 localJwtIssuer = localJwtIssuer,
-                refreshSessionLifecycleService = refreshSessionLifecycleService,
+                refreshSessionPort = refreshSessionPort,
             ),
         )
     }
@@ -286,21 +274,21 @@ internal class LoginUserHandler(
 internal class RefreshUserSessionHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val localJwtIssuer: LocalJwtIssuer,
-    private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
+    private val refreshSessionPort: IdentityRefreshSessionPort,
     private val clock: Clock,
 ) : CommandWithResultHandler<RefreshUserSessionCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: RefreshUserSessionCommand): LocalAuthSessionResult {
-        val rotatedSession = refreshSessionLifecycleService.rotate(command.rawRefreshToken)
-        val identityFacts = principalIdentityLookup.findByPrincipalId(rotatedSession.current.principalId)
+        val rotatedSession = refreshSessionPort.rotate(command.rawRefreshToken)
+        val identityFacts = principalIdentityLookup.findByPrincipalId(rotatedSession.principalId)
 
         val email = identityFacts?.email
-            ?: error("Email could not be resolved for principal '${rotatedSession.current.principalId}'.")
+            ?: error("Email could not be resolved for principal '${rotatedSession.principalId}'.")
         val username = identityFacts.username
         val emailStatus = identityFacts.emailStatus ?: EmailStatus.VERIFIED
 
         val token = localJwtIssuer.issue(
-            principalId = rotatedSession.current.principalId,
+            principalId = rotatedSession.principalId,
             subject = "local:$email",
             email = email,
             username = username,
@@ -312,25 +300,25 @@ internal class RefreshUserSessionHandler(
             tokens = AuthTokens(
                 accessToken = token.value,
                 expiresIn = token.expiresInSeconds,
-                principalId = rotatedSession.current.principalId,
+                principalId = rotatedSession.principalId,
                 email = email,
                 username = username,
                 emailStatus = emailStatus.name,
             ),
-            refreshToken = rotatedSession.current.refreshToken,
+            refreshToken = rotatedSession.refreshToken,
         )
     }
 }
 
 @Service
-internal class LogoutUserSessionHandler(private val refreshSessionLifecycleService: RefreshSessionLifecycleService) :
+internal class LogoutUserSessionHandler(private val refreshSessionPort: IdentityRefreshSessionPort) :
     CommandWithResultHandler<LogoutUserSessionCommand, LogoutUserSessionResult> {
 
     override suspend fun handle(command: LogoutUserSessionCommand): LogoutUserSessionResult {
         val rawRefreshToken = command.rawRefreshToken ?: return LogoutUserSessionResult()
         try {
-            refreshSessionLifecycleService.revoke(rawRefreshToken)
-        } catch (_: RefreshSessionNotActiveException) {
+            refreshSessionPort.revoke(rawRefreshToken)
+        } catch (_: IdentityRefreshSessionNotActiveException) {
             // Idempotent logout: local cleanup still proceeds.
         }
         return LogoutUserSessionResult()
@@ -342,7 +330,7 @@ internal class VerifyEmailHandler(
     private val identityRegistrationGateway: IdentityRegistrationGateway,
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val localJwtIssuer: LocalJwtIssuer,
-    private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
+    private val refreshSessionPort: IdentityRefreshSessionPort,
     private val clock: Clock,
     private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<VerifyEmailCommand, LocalAuthSessionResult> {
@@ -376,7 +364,7 @@ internal class VerifyEmailHandler(
                 workspaceId = null,
                 clock = clock,
                 localJwtIssuer = localJwtIssuer,
-                refreshSessionLifecycleService = refreshSessionLifecycleService,
+                refreshSessionPort = refreshSessionPort,
             ),
         )
     }

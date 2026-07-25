@@ -1,20 +1,15 @@
 package com.profiletailors.smp.governance.application
 
 import com.profiletailors.common.domain.Service
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
-import com.profiletailors.smp.governance.domain.GovernancePermission
 
 /**
  * Governance-specific authorization helpers.
  *
- * Provides convenience methods for checking governance permissions and
- * throwing [AuthorizationDeniedException] on denial, matching the
+ * Provides convenience methods for checking governance permissions, matching the
  * pattern established by [ConsentHandlers].
  */
 @Service
-internal class GovernanceAuthorizationService(private val authorizationDecider: WorkspaceAuthorizationDecider) {
+internal class GovernanceAuthorizationService(private val authorizationGate: GovernanceAuthorizationGate) {
     /**
      * Ensures the caller has [GovernancePermission.MEDIA_READ] in the
      * current workspace context.
@@ -22,7 +17,7 @@ internal class GovernanceAuthorizationService(private val authorizationDecider: 
      * @throws AuthorizationDeniedException if permission is denied.
      */
     suspend fun authorizeMediaRead() {
-        authorize(GovernancePermission.MEDIA_READ)
+        authorize(GovernanceAuthorizationPermission.MEDIA_READ)
     }
 
     /**
@@ -32,13 +27,22 @@ internal class GovernanceAuthorizationService(private val authorizationDecider: 
      * @throws AuthorizationDeniedException if permission is denied.
      */
     suspend fun authorizeMediaTakedown() {
-        authorize(GovernancePermission.MEDIA_TAKEDOWN)
+        authorize(GovernanceAuthorizationPermission.MEDIA_TAKEDOWN)
     }
 
-    private suspend fun authorize(permission: GovernancePermission) {
-        val decision = authorizationDecider.decideDetailed(permission.permissionKey)
-        if (decision.decision != AuthorizationDecision.ALLOW) {
-            throw AuthorizationDeniedException.forDecision(decision, permission.permissionKey)
-        }
+    suspend fun authorizeConsentRead() {
+        authorize(GovernanceAuthorizationPermission.CONSENT_READ)
+    }
+
+    suspend fun authorizeConsentWrite() {
+        authorize(GovernanceAuthorizationPermission.CONSENT_WRITE)
+    }
+
+    suspend fun authorizeAuditRead() {
+        authorize(GovernanceAuthorizationPermission.AUDIT_READ)
+    }
+
+    private suspend fun authorize(permission: GovernanceAuthorizationPermission) {
+        authorizationGate.requireAllowed(permission)
     }
 }

@@ -2,9 +2,6 @@ package com.profiletailors.smp.privacy.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.context.PrincipalContextProvider
-import com.profiletailors.smp.audit.domain.AuditHook
-import com.profiletailors.smp.audit.domain.MutationAuditFact
-import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 
 /**
  * Auditor for privacy DSAR (Data Subject Access Request) lifecycle events.
@@ -28,7 +25,7 @@ import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 @Service
 class PrivacyMutationAuditor(
     private val principalContextProvider: PrincipalContextProvider,
-    private val auditHook: AuditHook,
+    private val auditPort: PrivacyMutationAuditPort,
 ) {
     /**
      * Record a successful mutation audit event.
@@ -39,14 +36,14 @@ class PrivacyMutationAuditor(
      */
     suspend fun recordSuccess(action: String, requestId: String, details: Map<String, String> = emptyMap()) {
         val actor = principalContextProvider.require()
-        auditHook.onMutation(
-            MutationAuditFact(
+        auditPort.onMutation(
+            PrivacyMutationAuditFact(
                 action = action,
                 targetType = TARGET_TYPE,
                 targetId = requestId,
                 actorPrincipalId = actor.principalId,
                 workspaceId = SENTINEL_WORKSPACE_ID,
-                outcome = MutationAuditOutcome.SUCCESS,
+                outcome = PrivacyMutationAuditOutcome.SUCCESS,
                 details = details,
             ),
         )
@@ -67,14 +64,14 @@ class PrivacyMutationAuditor(
         details: Map<String, String> = emptyMap(),
     ) {
         val actor = principalContextProvider.require()
-        auditHook.onMutation(
-            MutationAuditFact(
+        auditPort.onMutation(
+            PrivacyMutationAuditFact(
                 action = action,
                 targetType = TARGET_TYPE,
                 targetId = requestId,
                 actorPrincipalId = actor.principalId,
                 workspaceId = SENTINEL_WORKSPACE_ID,
-                outcome = MutationAuditOutcome.REJECTED,
+                outcome = PrivacyMutationAuditOutcome.REJECTED,
                 details = details + ("reason" to reason),
             ),
         )

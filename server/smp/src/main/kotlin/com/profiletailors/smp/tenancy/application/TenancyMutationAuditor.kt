@@ -2,14 +2,11 @@ package com.profiletailors.smp.tenancy.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.context.PrincipalContextProvider
-import com.profiletailors.smp.audit.domain.AuditHook
-import com.profiletailors.smp.audit.domain.MutationAuditFact
-import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 
 @Service
 internal class TenancyMutationAuditor(
     private val principalContextProvider: PrincipalContextProvider,
-    private val auditHook: AuditHook,
+    private val tenancyMutationAuditPort: TenancyMutationAuditPort,
 ) {
     suspend fun recordSuccess(
         action: String,
@@ -19,16 +16,14 @@ internal class TenancyMutationAuditor(
         details: Map<String, String> = emptyMap(),
     ) {
         val actor = principalContextProvider.require()
-        auditHook.onMutation(
-            MutationAuditFact(
-                action = action,
-                targetType = targetType,
-                targetId = targetId,
-                actorPrincipalId = actor.principalId,
-                workspaceId = workspaceId,
-                outcome = MutationAuditOutcome.SUCCESS,
-                details = details,
-            ),
+        tenancyMutationAuditPort.record(
+            action = action,
+            targetType = targetType,
+            targetId = targetId,
+            actorPrincipalId = actor.principalId,
+            workspaceId = workspaceId,
+            outcome = TenancyMutationAuditOutcome.SUCCESS,
+            details = details,
         )
     }
 
@@ -41,16 +36,14 @@ internal class TenancyMutationAuditor(
         details: Map<String, String> = emptyMap(),
     ) {
         val actor = principalContextProvider.require()
-        auditHook.onMutation(
-            MutationAuditFact(
-                action = action,
-                targetType = targetType,
-                targetId = targetId,
-                actorPrincipalId = actor.principalId,
-                workspaceId = workspaceId,
-                outcome = MutationAuditOutcome.REJECTED,
-                details = details + ("reason" to reason),
-            ),
+        tenancyMutationAuditPort.record(
+            action = action,
+            targetType = targetType,
+            targetId = targetId,
+            actorPrincipalId = actor.principalId,
+            workspaceId = workspaceId,
+            outcome = TenancyMutationAuditOutcome.REJECTED,
+            details = details + ("reason" to reason),
         )
     }
 }

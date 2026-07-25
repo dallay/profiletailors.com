@@ -8,7 +8,6 @@ import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
-import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import java.time.Clock
 import java.util.Locale
 import java.util.UUID

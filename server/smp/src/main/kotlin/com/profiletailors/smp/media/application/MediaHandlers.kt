@@ -5,13 +5,6 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.identity.application.AuthFeature
-import com.profiletailors.smp.identity.application.EmailVerificationPolicy
-import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
-import com.profiletailors.smp.identity.application.permissivePrincipalContextProvider
-import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
@@ -75,9 +68,8 @@ class CreateUploadedAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val uploadSettings: MediaUploadSettings,
-    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalContextProvider(),
+    private val emailVerificationGate: MediaEmailVerificationGate = NoOpMediaEmailVerificationGate,
 ) : CommandWithResultHandler<CreateUploadedAssetCommand, CreateUploadedAssetResult> {
 
     private val logger = LoggerFactory.getLogger(CreateUploadedAssetHandler::class.java)
@@ -125,12 +117,7 @@ class CreateUploadedAssetHandler(
     }
 
     private suspend fun requireMediaUploadVerification() {
-        requireEmailVerification(
-            principalContextProvider.require(),
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.UPLOAD_MEDIA,
-        )
+        emailVerificationGate.requireVerified(principalContextProvider.require(), MediaFeature.UPLOAD_MEDIA)
     }
 
     private suspend fun enforceCreationRateLimit(workspaceId: String) {
@@ -212,9 +199,8 @@ class UploadAssetHandler(
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val storageApplicationService: StorageApplicationService,
     private val uploadSettings: MediaUploadSettings,
-    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalContextProvider(),
+    private val emailVerificationGate: MediaEmailVerificationGate = NoOpMediaEmailVerificationGate,
     private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<LegacyUploadAssetCommand, LegacyUploadAssetResult> {
 
@@ -243,12 +229,7 @@ class UploadAssetHandler(
 
     @Suppress("TooGenericExceptionCaught")
     override suspend fun handle(command: LegacyUploadAssetCommand): LegacyUploadAssetResult {
-        requireEmailVerification(
-            principalContextProvider.require(),
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.UPLOAD_MEDIA,
-        )
+        emailVerificationGate.requireVerified(principalContextProvider.require(), MediaFeature.UPLOAD_MEDIA)
         val now = Instant.now()
         val assetId = command.assetId
         val workspaceId = command.workspaceId

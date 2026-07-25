@@ -1,7 +1,16 @@
 package com.profiletailors.smp.privacy.application
 
-import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import java.time.Instant
+
+data class PrivacyPrincipalIdentityFacts(
+    val principalId: String,
+    val subject: String,
+    val email: String?,
+    val username: String?,
+    val provider: String?,
+    val displayIdentity: String,
+    val emailStatus: String?,
+)
 
 /**
  * Port for anonymizing identity data (user_identities, principals).
@@ -117,7 +126,7 @@ interface MediaDeletionPort {
  * Port for data aggregation from the identity context.
  */
 fun interface IdentityDataPort {
-    suspend fun getIdentityFacts(principalId: String): PrincipalIdentityFacts?
+    suspend fun getIdentityFacts(principalId: String): PrivacyPrincipalIdentityFacts?
 }
 
 /**

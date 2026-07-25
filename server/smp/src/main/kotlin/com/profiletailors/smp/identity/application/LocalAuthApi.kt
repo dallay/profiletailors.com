@@ -1,7 +1,6 @@
 package com.profiletailors.smp.identity.application
 
 import com.profiletailors.common.domain.bus.command.CommandWithResult
-import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.identity.domain.EmailStatus
 
 data class RegisterUserCommand(
@@ -33,7 +32,7 @@ data class AuthTokens(
     val workspaceId: String? = null,
 )
 
-data class LocalAuthSessionResult(val tokens: AuthTokens, val refreshToken: RefreshSessionToken)
+data class LocalAuthSessionResult(val tokens: AuthTokens, val refreshToken: IdentityRefreshSessionToken)
 
 data class LogoutUserSessionResult(val clearedClientSession: Boolean = true)
 

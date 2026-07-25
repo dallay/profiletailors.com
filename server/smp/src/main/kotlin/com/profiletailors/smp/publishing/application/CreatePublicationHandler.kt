@@ -5,14 +5,6 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.identity.application.AuthFeature
-import com.profiletailors.smp.identity.application.EmailVerificationPolicy
-import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
-import com.profiletailors.smp.identity.application.requireEmailVerification
-import com.profiletailors.smp.media.application.MediaAssetResolver
-import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
@@ -29,7 +21,6 @@ import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
-import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Clock
 import java.time.Instant
@@ -52,28 +43,16 @@ internal class CreatePublicationHandler(
     private val transactionRunner: AtomicTransactionRunner,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val schedulingPolicy: PublicationSchedulingPolicy,
-    private val mediaAssetResolver: MediaAssetResolver,
+    private val mediaAssetResolver: PublishingMediaAssetResolver,
     private val mediaIntegrationSettings: PublishingMediaIntegrationSettings,
     private val clock: Clock,
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy =
-        permissiveEmailVerificationPolicy,
+    private val emailVerificationGate: PublishingEmailVerificationGate = NoOpPublishingEmailVerificationGate,
 ) : CommandWithResultHandler<CreatePublicationCommand, PublicationResult> {
     override suspend fun handle(command: CreatePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.PUBLISH_CONTENT,
-        )
+        emailVerificationGate.requireVerified(principalCtx, PublishingFeature.PUBLISH_CONTENT)
         if (command.scheduleMode != ScheduleMode.NOW) {
-            requireEmailVerification(
-                principalCtx,
-                principalIdentityLookup,
-                emailVerificationPolicy,
-                AuthFeature.SCHEDULE_POST,
-            )
+            emailVerificationGate.requireVerified(principalCtx, PublishingFeature.SCHEDULE_POST)
         }
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
@@ -123,7 +102,7 @@ internal class CreatePublicationHandler(
      *
      * When `mediaIntegrationSettings.enabled` is true and `assetIds` is non-empty:
      *   - Calls `mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)` with a 5-second timeout
-     *   - Throws `MediaServiceUnavailableException` on timeout or infrastructure failure
+    *   - Throws `PublishingMediaServiceUnavailableException` on timeout or infrastructure failure
      *   - Throws `AssetNotReadyException` for missing, cross-workspace, or non-READY assets
      *
      * When `mediaIntegrationSettings.enabled` is false or `assetIds` is empty:
@@ -147,7 +126,7 @@ internal class CreatePublicationHandler(
     ): List<PublicationAsset> {
         val resolvedAssets = withTimeoutOrNull(TIMEOUT_MILLIS) {
             mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)
-        } ?: throw MediaServiceUnavailableException(
+        } ?: throw PublishingMediaServiceUnavailableException(
             "Media asset resolution timed out after " +
                 "${TIMEOUT_MILLIS / MILLIS_PER_SECOND} seconds",
         )

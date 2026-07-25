@@ -1,6 +1,5 @@
 package com.profiletailors.smp.privacy.application
 
-import com.profiletailors.smp.identity.application.CloseAccountOrchestrationPort
 import org.slf4j.LoggerFactory
 
 /**
@@ -25,11 +24,11 @@ class CloseAccountOrchestrator(
     private val publishingDeletionPort: PublishingDeletionPort,
     private val mediaDeletionPort: MediaDeletionPort,
     private val tenancyDataPort: TenancyDataPort,
-) : CloseAccountOrchestrationPort {
+) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    override suspend fun execute(principalId: String) {
+    suspend fun execute(principalId: String) {
         logger.info("Executing account closure for principal {}", principalId)
 
         // Step 1: Revoke credentials (sessions + API keys)

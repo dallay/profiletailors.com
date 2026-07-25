@@ -3,13 +3,6 @@ package com.profiletailors.smp.media.application
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
-import com.profiletailors.smp.identity.application.AuthFeature
-import com.profiletailors.smp.identity.application.EmailVerificationPolicy
-import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
-import com.profiletailors.smp.identity.application.permissivePrincipalContextProvider
-import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
@@ -191,9 +184,8 @@ class ImportUnsplashPhotoHandler(
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val mediaImportService: MediaImportService,
     private val settings: UnsplashImportSettings,
-    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalContextProvider(),
+    private val emailVerificationGate: MediaEmailVerificationGate = NoOpMediaEmailVerificationGate,
 ) : CommandWithResultHandler<ImportUnsplashPhotoCommand, MediaAssetSummary> {
     /**
      * Authorizes and rate-limits Unsplash import requests before delegating the media import.
@@ -203,12 +195,7 @@ class ImportUnsplashPhotoHandler(
      */
     override suspend fun handle(command: ImportUnsplashPhotoCommand): MediaAssetSummary {
         val principalContext = principalContextProvider.require()
-        requireEmailVerification(
-            principalContext,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.UPLOAD_MEDIA,
-        )
+        emailVerificationGate.requireVerified(principalContext, MediaFeature.UPLOAD_MEDIA)
         enforceCreationRateLimit(command.workspaceId)
         return mediaImportService.importUnsplashPhoto(command)
     }

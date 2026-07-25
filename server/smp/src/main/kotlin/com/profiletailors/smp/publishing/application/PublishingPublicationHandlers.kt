@@ -5,14 +5,6 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.identity.application.AuthFeature
-import com.profiletailors.smp.identity.application.EmailVerificationPolicy
-import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
-import com.profiletailors.smp.identity.application.requireEmailVerification
-import com.profiletailors.smp.media.application.MediaAssetResolver
-import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
@@ -28,7 +20,6 @@ import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
-import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Clock
 import java.time.Instant
@@ -47,20 +38,14 @@ internal class EditPublicationHandler(
     private val transactionRunner: AtomicTransactionRunner,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val schedulingPolicy: PublicationSchedulingPolicy,
-    private val mediaAssetResolver: MediaAssetResolver,
+    private val mediaAssetResolver: PublishingMediaAssetResolver,
     private val mediaIntegrationSettings: PublishingMediaIntegrationSettings,
     private val clock: Clock,
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val emailVerificationGate: PublishingEmailVerificationGate = NoOpPublishingEmailVerificationGate,
 ) : CommandWithResultHandler<EditPublicationCommand, PublicationResult> {
     override suspend fun handle(command: EditPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.PUBLISH_CONTENT,
-        )
+        emailVerificationGate.requireVerified(principalCtx, PublishingFeature.PUBLISH_CONTENT)
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
@@ -117,7 +102,7 @@ internal class EditPublicationHandler(
     ): List<PublicationAsset> {
         val resolvedAssets = withTimeoutOrNull(TIMEOUT_MILLIS) {
             mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)
-        } ?: throw MediaServiceUnavailableException(
+        } ?: throw PublishingMediaServiceUnavailableException(
             "Media asset resolution timed out after " +
                 "${TIMEOUT_MILLIS / MILLIS_PER_SECOND} seconds",
         )
@@ -163,8 +148,7 @@ internal class DeletePublicationHandler(
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
     private val clock: Clock,
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val emailVerificationGate: PublishingEmailVerificationGate = NoOpPublishingEmailVerificationGate,
 ) : CommandWithResultHandler<DeletePublicationCommand, PublicationResult> {
     override suspend fun handle(command: DeletePublicationCommand): PublicationResult {
         val ctxBefore = resourceContextProvider.current()
@@ -172,12 +156,7 @@ internal class DeletePublicationHandler(
             "/tmp/debug-wf.log",
         ).appendText("[DEBUG_HANDLER] DeletePublicationHandler.handle: current()=$ctxBefore\n")
         val principalCtx = principalContextProvider.require()
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.PUBLISH_CONTENT,
-        )
+        emailVerificationGate.requireVerified(principalCtx, PublishingFeature.PUBLISH_CONTENT)
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
@@ -197,17 +176,11 @@ internal class CancelPublicationHandler(
     private val publicationJobRepository: PublicationJobRepository,
     private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val emailVerificationGate: PublishingEmailVerificationGate = NoOpPublishingEmailVerificationGate,
 ) : CommandWithResultHandler<CancelPublicationCommand, PublicationResult> {
     override suspend fun handle(command: CancelPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.PUBLISH_CONTENT,
-        )
+        emailVerificationGate.requireVerified(principalCtx, PublishingFeature.PUBLISH_CONTENT)
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
@@ -232,17 +205,11 @@ internal class RetryPublicationHandler(
     private val transactionRunner: AtomicTransactionRunner,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val clock: Clock,
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val emailVerificationGate: PublishingEmailVerificationGate = NoOpPublishingEmailVerificationGate,
 ) : CommandWithResultHandler<RetryPublicationCommand, PublicationResult> {
     override suspend fun handle(command: RetryPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.SCHEDULE_POST,
-        )
+        emailVerificationGate.requireVerified(principalCtx, PublishingFeature.SCHEDULE_POST)
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
@@ -278,17 +245,11 @@ internal class ReschedulePublicationHandler(
     private val transactionRunner: AtomicTransactionRunner,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val clock: Clock,
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val emailVerificationGate: PublishingEmailVerificationGate = NoOpPublishingEmailVerificationGate,
 ) : CommandWithResultHandler<ReschedulePublicationCommand, PublicationResult> {
     override suspend fun handle(command: ReschedulePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.SCHEDULE_POST,
-        )
+        emailVerificationGate.requireVerified(principalCtx, PublishingFeature.SCHEDULE_POST)
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)

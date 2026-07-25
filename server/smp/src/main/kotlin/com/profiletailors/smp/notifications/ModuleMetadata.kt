@@ -29,7 +29,6 @@ import org.springframework.modulith.ApplicationModule
 @ApplicationModule(
     allowedDependencies = [
         "identity :: application",
-        "identity :: infrastructure",
     ],
 )
 internal class ModuleMetadata

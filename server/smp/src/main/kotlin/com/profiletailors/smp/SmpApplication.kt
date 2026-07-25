@@ -7,6 +7,7 @@ import org.springframework.boot.runApplication
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.FilterType
 import org.springframework.context.annotation.Import
+import org.springframework.modulith.Modulithic
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Repository
@@ -24,7 +25,11 @@ import org.springframework.stereotype.Service as SpringService
  *
  * The `excludeFilters` block is retained as a defence against accidentally moving test-only
  * classes (e.g. BDD glue, integration harnesses) into the main source set.
+ *
+ * `@Modulithic` makes the modular-monolith contract explicit at the application root so
+ * Spring Modulith tooling, verification, and generated documentation are anchored here.
  */
+@Modulithic
 @SpringBootApplication
 @EnableScheduling
 @Import(StorageAutoConfiguration::class)

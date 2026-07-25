@@ -1,11 +1,11 @@
 package com.profiletailors.smp.publishing.infrastructure.media
 
 import com.profiletailors.common.domain.Service
-import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetRepository
-import com.profiletailors.smp.media.application.MediaAssetResolver
-import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.media.domain.MediaAssetStatus
+import com.profiletailors.smp.publishing.application.PublishingAssetNotReadyException
+import com.profiletailors.smp.publishing.application.PublishingMediaAssetResolver
+import com.profiletailors.smp.publishing.application.PublishingResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import org.slf4j.LoggerFactory
@@ -14,11 +14,14 @@ import org.slf4j.LoggerFactory
 class MediaAssetResolverImpl(
     private val mediaAssetRepository: MediaAssetRepository,
     private val publicationAssetRepository: PublicationAssetRepository,
-) : MediaAssetResolver {
+) : PublishingMediaAssetResolver {
 
     private val logger = LoggerFactory.getLogger(MediaAssetResolverImpl::class.java)
 
-    override suspend fun resolveReadyAssets(workspaceId: String, assetIds: List<String>): List<ResolvedAssetSummary> {
+    override suspend fun resolveReadyAssets(
+        workspaceId: String,
+        assetIds: List<String>,
+    ): List<PublishingResolvedAssetSummary> {
         if (assetIds.isEmpty()) return emptyList()
 
         val mediaAssets = mediaAssetRepository.findByWorkspaceAndIds(workspaceId, assetIds)
@@ -48,7 +51,7 @@ class MediaAssetResolverImpl(
                 val storageKey = requireNotNull(asset.storageKey) {
                     "READY media asset ${asset.assetId} has no storageKey"
                 }
-                ResolvedAssetSummary(
+                PublishingResolvedAssetSummary(
                     assetId = asset.assetId,
                     workspaceId = asset.workspaceId,
                     storageKey = storageKey,
@@ -58,7 +61,7 @@ class MediaAssetResolverImpl(
 
         val resolvedLegacy = legacyUsableAssets.mapNotNull { asset ->
             val key = asset.storageKey ?: return@mapNotNull null
-            ResolvedAssetSummary(
+            PublishingResolvedAssetSummary(
                 assetId = asset.id,
                 workspaceId = asset.workspaceId,
                 storageKey = key,
@@ -90,7 +93,7 @@ class MediaAssetResolverImpl(
                         asset.assetId,
                         asset.status,
                     )
-                    throw AssetNotReadyException(asset.assetId, "asset status is ${asset.status}")
+                    throw PublishingAssetNotReadyException(asset.assetId, "asset status is ${asset.status}")
                 }
             } else if (inLegacy) {
                 if (!usableInLegacy) {
@@ -99,14 +102,17 @@ class MediaAssetResolverImpl(
                         "publishing.asset.validation.rejected publicationId=null assetId={} reason=legacy-not-ready",
                         asset.id,
                     )
-                    throw AssetNotReadyException(asset.id, "legacy asset status is ${asset.status}")
+                    throw PublishingAssetNotReadyException(asset.id, "legacy asset status is ${asset.status}")
                 }
             } else {
                 logger.debug(
                     "publishing.asset.validation.rejected publicationId=null assetId={} reason=missing",
                     requestedId,
                 )
-                throw AssetNotReadyException(requestedId, "asset not found in media context or legacy store")
+                throw PublishingAssetNotReadyException(
+                    requestedId,
+                    "asset not found in media context or legacy store",
+                )
             }
         }
     }

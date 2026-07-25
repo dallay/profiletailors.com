@@ -15,7 +15,6 @@ import com.profiletailors.smp.publishing.domain.ProviderWorkspaceCapacityPolicy
 import com.profiletailors.smp.publishing.domain.ProviderWorkspaceEntitlementPolicy
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 
 data object ListProviderCatalogQuery : Query<ProviderCatalogResponse>
 

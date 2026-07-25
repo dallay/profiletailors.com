@@ -4,11 +4,7 @@ import org.springframework.modulith.ApplicationModule
 
 @ApplicationModule(
     allowedDependencies = [
-        "audit :: application",
-        "audit :: domain",
-        "authorization :: domain",
         "identity :: application",
-        "platform :: infrastructure",
         "tenancy :: application",
         "media :: application",
         "media :: domain",

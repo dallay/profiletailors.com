@@ -6,7 +6,8 @@ import org.springframework.modulith.ApplicationModule
     allowedDependencies = [
         "authorization :: domain",
         "audit :: domain",
-        "tenancy :: *",
+        "tenancy :: application",
+        "tenancy :: domain",
     ],
 )
 internal class ModuleMetadata

@@ -3,10 +3,6 @@ package com.profiletailors.smp.governance.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.PermissionKey
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.AuditEventCursor
 import com.profiletailors.smp.governance.domain.AuditEventCursorCodec
 import com.profiletailors.smp.governance.domain.AuditEventFilter
@@ -14,22 +10,14 @@ import com.profiletailors.smp.governance.domain.AuditEventPage
 import com.profiletailors.smp.governance.domain.AuditEventPageRequest
 import com.profiletailors.smp.governance.domain.AuditEventReader
 
-private val AUDIT_READ_PERMISSION: PermissionKey = PermissionKey.of("workspace", "audit", "read")
-
 @Service
 internal class GetWorkspaceAuditEventsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val auditEventReader: AuditEventReader,
-    private val workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,
+    private val authorizationService: GovernanceAuthorizationService,
 ) : QueryHandler<GetWorkspaceAuditEventsQuery, WorkspaceAuditEventsResponse> {
     override suspend fun handle(query: GetWorkspaceAuditEventsQuery): WorkspaceAuditEventsResponse {
-        val decision = workspaceAuthorizationDecider.decideDetailed(requiredPermission = AUDIT_READ_PERMISSION)
-        if (decision.decision != AuthorizationDecision.ALLOW) {
-            throw AuthorizationDeniedException.forDecision(
-                decision = decision,
-                requiredPermission = AUDIT_READ_PERMISSION,
-            )
-        }
+        authorizationService.authorizeAuditRead()
 
         val resourceContext = resourceContextProvider.require()
         val workspaceId = requireNotNull(resourceContext.workspaceId)

@@ -1,7 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
-import com.profiletailors.smp.media.application.AssetNotReadyException
-import com.profiletailors.smp.media.application.MediaServiceUnavailableException
+import com.profiletailors.smp.publishing.application.PublishingAssetNotReadyException
+import com.profiletailors.smp.publishing.application.PublishingMediaServiceUnavailableException
 import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
@@ -87,9 +87,9 @@ class PublishingProblemDetailsHandler {
      * creation was blocked due to infrastructure unavailability — it should NOT be
      * treated as a permanent client error.
      */
-    @ExceptionHandler(MediaServiceUnavailableException::class)
+    @ExceptionHandler(PublishingMediaServiceUnavailableException::class)
     @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: MediaServiceUnavailableException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handle(exception: PublishingMediaServiceUnavailableException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.SERVICE_UNAVAILABLE,
         MEDIA_SERVICE_UNAVAILABLE_DETAIL,
     ).apply {
@@ -105,9 +105,9 @@ class PublishingProblemDetailsHandler {
      * - Asset belongs to a different workspace
      * - Asset is not in READY status (still PROCESSING or FAILED)
      */
-    @ExceptionHandler(AssetNotReadyException::class)
+    @ExceptionHandler(PublishingAssetNotReadyException::class)
     @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: AssetNotReadyException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handle(exception: PublishingAssetNotReadyException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.BAD_REQUEST,
         ASSET_NOT_READY_DETAIL,
     ).apply {

@@ -3,14 +3,10 @@ package com.profiletailors.smp.publishing.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
-import com.profiletailors.smp.media.application.MediaAssetResolver
-import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.ActivityThresholds
 import com.profiletailors.smp.publishing.domain.ConflictDetectionPolicy
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationRepository
-import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -21,8 +17,8 @@ import java.time.Duration
 internal class GetCalendarPublicationsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
-    private val mediaAssetResolver: MediaAssetResolver,
-    private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
+    private val mediaAssetResolver: PublishingMediaAssetResolver,
+    private val assetPreviewUrlResolver: PublishingAssetPreviewUrlResolver,
 ) : QueryHandler<GetCalendarPublicationsQuery, CalendarResponse> {
     private val logger: Logger = LoggerFactory.getLogger(GetCalendarPublicationsHandler::class.java)
     override suspend fun handle(query: GetCalendarPublicationsQuery): CalendarResponse {
@@ -79,7 +75,7 @@ internal class GetCalendarPublicationsHandler(
 
     private suspend fun resolvePreviewUrl(
         publication: PublicationDraft,
-        assetsById: Map<String, ResolvedAssetSummary>,
+        assetsById: Map<String, PublishingResolvedAssetSummary>,
     ): String? {
         val readyAssets = publication.assetIds
             .mapNotNull { assetsById[it] }
