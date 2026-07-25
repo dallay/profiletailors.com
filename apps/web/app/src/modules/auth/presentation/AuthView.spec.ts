@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import AuthView from './AuthView.vue'
 
@@ -15,7 +15,10 @@ const publicCapabilitiesLoad = vi.hoisted(() => vi.fn())
 
 vi.mock('vue-router', () => ({
   useRoute: () => routeState,
-  useRouter: () => ({ replace }),
+  useRouter: () => ({
+    replace,
+    currentRoute: { value: { query: {} } },
+  }),
 }))
 
 vi.mock('@modules/auth/infrastructure/auth.store', () => ({
@@ -108,6 +111,7 @@ describe('AuthView validation', () => {
     await wrapper.find('input#ageEligibility').setValue(true)
     await wrapper.find('input#terms').setValue(true)
     await wrapper.find('form').trigger('submit.prevent')
+    await flushPromises()
 
     // Expecting full RegisterPayload with eligibility fields
     expect(registerWithPassword).toHaveBeenCalledWith({

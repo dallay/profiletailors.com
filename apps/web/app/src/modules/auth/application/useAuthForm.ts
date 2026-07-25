@@ -1,8 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useFormValidation, type ValidationRule } from '@shared/composables'
-import { type AuthCredentials, authCredentialsSchema, registerSchema } from '@shared/lib/validation/schemas'
-import type { RegisterPayload } from '@modules/auth/infrastructure/auth-api'
 
 interface AuthFormValues {
   email: string
@@ -19,7 +17,7 @@ const emailRules: ValidationRule[] = [
   },
   {
     validate: (val: unknown) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val)),
-    message: 'emailInvalid',
+    message: 'invalidEmail',
   },
 ]
 
@@ -38,6 +36,10 @@ export function useAuthForm() {
   const route = useRoute()
   const isRegisterMode = computed(() => route.name === 'register')
 
+  const email = ref('')
+  const password = ref('')
+  const confirmPassword = ref('')
+
   const formValidation = useFormValidation<AuthFormValues>({
     email: emailRules,
     password: passwordRules,
@@ -45,6 +47,11 @@ export function useAuthForm() {
       {
         validate: (val: unknown) => !isRegisterMode.value || Boolean(val),
         message: 'confirmPasswordRequired',
+      },
+      {
+        validate: (val: unknown) =>
+          !isRegisterMode.value || !confirmPassword.value || val === password.value.trim(),
+        message: 'passwordsMustMatch',
       },
     ],
     confirmedAgeEligibility: [
@@ -60,32 +67,31 @@ export function useAuthForm() {
       },
     ],
   })
-
-  const email = ref('')
-  const password = ref('')
-  const confirmPassword = ref('')
   const confirmedAgeEligibility = ref(false)
   const acceptedTerms = ref(false)
   const formError = ref<string | null>(null)
   const isSubmitting = ref(false)
 
   // Clear form when mode changes
-  watch(() => route.name, () => {
-    email.value = ''
-    password.value = ''
-    confirmPassword.value = ''
-    confirmedAgeEligibility.value = false
-    acceptedTerms.value = false
-    formError.value = null
-    formValidation.reset()
-  })
+  watch(
+    () => route.name,
+    () => {
+      email.value = ''
+      password.value = ''
+      confirmPassword.value = ''
+      confirmedAgeEligibility.value = false
+      acceptedTerms.value = false
+      formError.value = null
+      formValidation.reset()
+    },
+  )
 
   const validateForm = (): boolean => {
     const values: AuthFormValues = {
-      email: email.value,
-      password: password.value,
+      email: email.value.trim(),
+      password: password.value.trim(),
       ...(isRegisterMode.value && {
-        confirmPassword: confirmPassword.value,
+        confirmPassword: confirmPassword.value.trim(),
         confirmedAgeEligibility: confirmedAgeEligibility.value,
         acceptedTerms: acceptedTerms.value,
       }),
@@ -95,12 +101,16 @@ export function useAuthForm() {
   }
 
   const getFormPayload = () => {
+    const trimmed = {
+      email: email.value.trim(),
+      password: password.value.trim(),
+    }
+
     if (isRegisterMode.value) {
       return {
         type: 'register' as const,
         data: {
-          email: email.value,
-          password: password.value,
+          ...trimmed,
           confirmPassword: confirmPassword.value,
           confirmedAgeEligibility: confirmedAgeEligibility.value,
           acceptedTerms: acceptedTerms.value,
@@ -110,10 +120,7 @@ export function useAuthForm() {
 
     return {
       type: 'login' as const,
-      data: {
-        email: email.value,
-        password: password.value,
-      },
+      data: trimmed,
     }
   }
 
