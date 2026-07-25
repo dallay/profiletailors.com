@@ -3,11 +3,11 @@ import { defineStore } from 'pinia'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import {
   type MediaAssetSummary,
+  putAsset,
   listAssets,
   getAsset,
   deleteAsset,
 } from '@modules/media/services/media-api'
-import { useUploadAsset } from '@modules/media/application/useUploadAsset'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -126,8 +126,6 @@ export type UploadItem = {
 // ---------------------------------------------------------------------------
 
 export const useMediaStore = defineStore('media', () => {
-  const { uploadAsset: uploadAssetWithBackoff } = useUploadAsset()
-
   // ─── State ───────────────────────────────────────────────────────────────
 
   /** All assets known to the store (loaded via listAssets). */
@@ -279,7 +277,7 @@ export const useMediaStore = defineStore('media', () => {
     }
 
     try {
-      const result = await uploadAssetWithBackoff(file, workspaceId, stableAssetId)
+      const result = await executeWithRetry(() => putAsset(file, workspaceId, stableAssetId))
 
       // Update with assetId after PUT
       uploads.value[tempKey] = {

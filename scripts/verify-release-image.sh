@@ -62,7 +62,7 @@ docker run \
     --env SMP_LOCAL_JWT_SECRET="$jwt_secret" \
     --env SMP_LOCAL_JWT_ISSUER=http://localhost/profiletailors-release \
     --env SMP_JWT_ISSUER_URI=http://localhost/profiletailors-release \
-    --env PUBLISHING_CREDENTIALS_ENCRYPTION_KEY="$publishing_key" \
+    --env PUBLISHING_CREDENTIALS_KEY="$publishing_key" \
     --env SMP_MEDIA_PREVIEW_SIGNING_SECRET="$media_signing_secret" \
     --env SMP_LINKEDIN_STATE_SIGNING_SECRET="$linkedin_state_signing_secret" \
     --env SMP_PUBLISHING_WORKER_ENABLED=false \

@@ -13,17 +13,14 @@ import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuer
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
-import com.profiletailors.smp.publishing.application.ListProviderCatalogQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsResponse
-import com.profiletailors.smp.publishing.application.ProviderCatalogResponse
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventType
-import com.profiletailors.smp.publishing.domain.ProviderCatalogItem
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
@@ -56,7 +53,6 @@ import java.time.DateTimeException
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
-import java.util.Locale
 
 @Validated
 @RestController
@@ -102,10 +98,18 @@ class PublishingChannelController(
         @RequestParam(required = false) status: SocialConnectionStatus? = null,
     ): ConnectedChannelsResponse = mediator.send(ListConnectedChannelsQuery(status = status))
 
-    @Operation(summary = "List workspace-resolved publishing providers")
+    @Operation(
+        summary = "List configured publishing providers",
+        description = "Returns which social providers have credentials configured and are available for connection.",
+    )
     @GetMapping("/providers", version = "1")
-    suspend fun listConfiguredProviders(): ProviderCatalogHttpResponse =
-        mediator.send(ListProviderCatalogQuery).toHttpResponse()
+    fun listConfiguredProviders(): ConfiguredProvidersResponse = ConfiguredProvidersResponse(
+        providers = buildList {
+            if (linkedInPublishingProperties.isConfigured()) {
+                add(ConfiguredProvider(name = "linkedin", configured = true))
+            }
+        },
+    )
 
     @Operation(summary = "Stream connected channel change notifications")
     @GetMapping("/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
@@ -133,32 +137,6 @@ data class ChannelEventResponse(
     val workspaceId: String,
     val socialAccountId: String?,
     val occurredAt: Instant,
-)
-
-data class ProviderCatalogHttpResponse(val providers: List<ProviderCatalogItemHttpResponse>)
-
-data class ProviderCatalogItemHttpResponse(
-    val provider: String,
-    val accountKinds: Set<String>,
-    val state: String,
-    val reason: String?,
-    val channelLimit: Int?,
-    val connectedChannelCount: Int,
-    val canConnectMore: Boolean,
-)
-
-private fun ProviderCatalogResponse.toHttpResponse(): ProviderCatalogHttpResponse = ProviderCatalogHttpResponse(
-    providers = providers.map(ProviderCatalogItem::toHttpResponse),
-)
-
-private fun ProviderCatalogItem.toHttpResponse(): ProviderCatalogItemHttpResponse = ProviderCatalogItemHttpResponse(
-    provider = provider.name.lowercase(Locale.ROOT),
-    accountKinds = accountKinds,
-    state = state.name,
-    reason = reason?.name,
-    channelLimit = channelLimit,
-    connectedChannelCount = connectedChannelCount,
-    canConnectMore = canConnectMore,
 )
 
 private fun ChannelEvent.toResponse(): ChannelEventResponse = ChannelEventResponse(

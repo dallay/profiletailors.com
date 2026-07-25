@@ -67,7 +67,7 @@ services:
       - source: local_jwt_secret
         target: SMP_LOCAL_JWT_SECRET
       - source: publishing_credentials_key
-        target: PUBLISHING_CREDENTIALS_ENCRYPTION_KEY
+        target: PUBLISHING_CREDENTIALS_KEY
       - source: media_preview_signing_secret
         target: SMP_MEDIA_PREVIEW_SIGNING_SECRET
       - source: linkedin_state_signing_secret

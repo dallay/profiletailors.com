@@ -9,9 +9,8 @@ import com.profiletailors.smp.media.application.RateLimitExceededException
 import com.profiletailors.smp.media.application.UnsupportedMediaTypeException
 import com.profiletailors.smp.media.application.UploadConflictException
 import com.profiletailors.smp.media.application.UploadInProgressException
-import io.kotest.matchers.nulls.shouldBeNull
-import io.kotest.matchers.nulls.shouldNotBeNull
-import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -26,47 +25,47 @@ class MediaProblemDetailsHandlerTest {
         val exception = AssetNotFoundException("asset-42")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.NOT_FOUND.value()
-        result.detail shouldBe "Requested asset was not found."
-        result.title shouldBe "Asset not found"
-        result.properties?.get("errorCode") shouldBe "ASSET_NOT_FOUND"
-        result.properties?.get("assetId").shouldBeNull()
+        assertEquals(HttpStatus.NOT_FOUND.value(), result.status)
+        assertEquals("Asset asset-42 not found.", result.detail)
+        assertEquals("Asset not found", result.title)
+        assertEquals("ASSET_NOT_FOUND", result.properties?.get("errorCode"))
+        assertEquals("asset-42", result.properties?.get("assetId"))
     }
 
     @Test
-    fun `UploadConflictException → 409 redacts status`() {
+    fun `UploadConflictException → 409 with currentStatus`() {
         val exception = UploadConflictException("asset-1", "READY")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.CONFLICT.value()
-        result.detail shouldBe "The asset cannot be uploaded in its current state."
-        result.title shouldBe "Upload conflict"
-        result.properties?.get("errorCode") shouldBe "ASSET_UPLOAD_CONFLICT"
-        result.properties?.get("currentStatus").shouldBeNull()
+        assertEquals(HttpStatus.CONFLICT.value(), result.status)
+        assertEquals("Asset asset-1 has already completed upload and cannot be re-uploaded.", result.detail)
+        assertEquals("Upload conflict", result.title)
+        assertEquals("ASSET_UPLOAD_CONFLICT", result.properties?.get("errorCode"))
+        assertEquals("READY", result.properties?.get("currentStatus"))
     }
 
     @Test
-    fun `UploadInProgressException → 409 redacts status`() {
+    fun `UploadInProgressException → 409 with currentStatus`() {
         val exception = UploadInProgressException("asset-2", "PROCESSING")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.CONFLICT.value()
-        result.detail shouldBe "An upload is already in progress for this asset."
-        result.title shouldBe "Upload in progress"
-        result.properties?.get("errorCode") shouldBe "ASSET_UPLOAD_IN_PROGRESS"
-        result.properties?.get("currentStatus").shouldBeNull()
+        assertEquals(HttpStatus.CONFLICT.value(), result.status)
+        assertEquals("Asset asset-2 already has an upload in progress.", result.detail)
+        assertEquals("Upload in progress", result.title)
+        assertEquals("ASSET_UPLOAD_IN_PROGRESS", result.properties?.get("errorCode"))
+        assertEquals("PROCESSING", result.properties?.get("currentStatus"))
     }
 
     @Test
-    fun `AssetNotReadyException → 422 redacts reason`() {
+    fun `AssetNotReadyException → 422 with reason`() {
         val exception = AssetNotReadyException("asset-3", "storage unavailable")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.UNPROCESSABLE_ENTITY.value()
-        result.detail shouldBe "The asset is not ready for this operation."
-        result.title shouldBe "Asset not ready"
-        result.properties?.get("errorCode") shouldBe "ASSET_NOT_READY"
-        result.properties?.get("reason").shouldBeNull()
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), result.status)
+        assertEquals("Asset asset-3 is not ready: storage unavailable", result.detail)
+        assertEquals("Asset not ready", result.title)
+        assertEquals("ASSET_NOT_READY", result.properties?.get("errorCode"))
+        assertEquals("storage unavailable", result.properties?.get("reason"))
     }
 
     @Test
@@ -78,12 +77,12 @@ class MediaProblemDetailsHandlerTest {
         )
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.BAD_REQUEST.value()
-        result.detail shouldBe "Unsupported media type."
-        result.title shouldBe "Unsupported media type"
-        result.properties?.get("errorCode") shouldBe "UNSUPPORTED_MEDIA_TYPE"
-        result.properties?.get("declaredType") shouldBe "video/avi"
-        result.properties?.get("detectedType") shouldBe "application/x-msdownload"
+        assertEquals(HttpStatus.BAD_REQUEST.value(), result.status)
+        assertEquals("Unsupported media type.", result.detail)
+        assertEquals("Unsupported media type", result.title)
+        assertEquals("UNSUPPORTED_MEDIA_TYPE", result.properties?.get("errorCode"))
+        assertEquals("video/avi", result.properties?.get("declaredType"))
+        assertEquals("application/x-msdownload", result.properties?.get("detectedType"))
     }
 
     @Test
@@ -95,8 +94,8 @@ class MediaProblemDetailsHandlerTest {
         )
         val result = handler.handle(exception)
 
-        result.properties?.get("declaredType") shouldBe "application/zip"
-        result.properties?.get("detectedType").shouldBeNull()
+        assertEquals("application/zip", result.properties?.get("declaredType"))
+        assertNull(result.properties?.get("detectedType"))
     }
 
     @Test
@@ -104,12 +103,12 @@ class MediaProblemDetailsHandlerTest {
         val exception = FileTooLargeException(600_000_000L, 500_000_000L)
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.PAYLOAD_TOO_LARGE.value()
-        result.detail shouldBe "File size (600000000 bytes) exceeds the 500 MB limit."
-        result.title shouldBe "File too large"
-        result.properties?.get("errorCode") shouldBe "FILE_TOO_LARGE"
-        result.properties?.get("actualSize") shouldBe 600_000_000L
-        result.properties?.get("maxAllowed") shouldBe 500_000_000L
+        assertEquals(HttpStatus.PAYLOAD_TOO_LARGE.value(), result.status)
+        assertEquals("File size (600000000 bytes) exceeds the 500 MB limit.", result.detail)
+        assertEquals("File too large", result.title)
+        assertEquals("FILE_TOO_LARGE", result.properties?.get("errorCode"))
+        assertEquals(600_000_000L, result.properties?.get("actualSize"))
+        assertEquals(500_000_000L, result.properties?.get("maxAllowed"))
     }
 
     @Test
@@ -124,58 +123,58 @@ class MediaProblemDetailsHandlerTest {
         val response = handler.handle(exception)
 
         val entity = response
-        entity.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
-        entity.headers[HttpHeaders.RETRY_AFTER]?.first() shouldBe "3600"
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, entity.statusCode)
+        assertEquals("3600", entity.headers[HttpHeaders.RETRY_AFTER]?.first())
 
-        val body = entity.body.shouldNotBeNull()
-        body.detail shouldBe "Rate limit exceeded. Please try again later."
-        body.title shouldBe "Rate limit exceeded"
-        body.properties?.get("errorCode") shouldBe "RATE_LIMIT_EXCEEDED"
-        body.properties?.get("workspaceId").shouldBeNull()
-        body.properties?.get("limitType").shouldBeNull()
-        body.properties?.get("currentValue").shouldBeNull()
-        body.properties?.get("limitValue").shouldBeNull()
-        body.properties?.get("retryAfterSeconds") shouldBe 3600
+        val body = entity.body!!
+        assertEquals("Rate limit exceeded for hourly_creations.", body.detail)
+        assertEquals("Rate limit exceeded", body.title)
+        assertEquals("RATE_LIMIT_EXCEEDED", body.properties?.get("errorCode"))
+        assertEquals("ws-1", body.properties?.get("workspaceId"))
+        assertEquals("hourly_creations", body.properties?.get("limitType"))
+        assertEquals(201, body.properties?.get("currentValue"))
+        assertEquals(200, body.properties?.get("limitValue"))
+        assertEquals(3600, body.properties?.get("retryAfterSeconds"))
     }
 
     @Test
-    fun `InvalidCursorException → 400 with redacted message`() {
+    fun `InvalidCursorException → 400 with exception message`() {
         val exception = InvalidCursorException("Cursor is malformed: invalid base64")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.BAD_REQUEST.value()
-        result.detail shouldBe "Invalid pagination cursor."
-        result.title shouldBe "Invalid cursor"
-        result.properties?.get("errorCode") shouldBe "INVALID_CURSOR"
+        assertEquals(HttpStatus.BAD_REQUEST.value(), result.status)
+        assertEquals("Cursor is malformed: invalid base64", result.detail)
+        assertEquals("Invalid cursor", result.title)
+        assertEquals("INVALID_CURSOR", result.properties?.get("errorCode"))
     }
 
     @Test
-    fun `InvalidCursorException uses default detail when message is blank`() {
+    fun `InvalidCursorException keeps empty message when provided`() {
         val exception = InvalidCursorException("")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.BAD_REQUEST.value()
-        result.detail shouldBe "Invalid pagination cursor."
+        assertEquals(HttpStatus.BAD_REQUEST.value(), result.status)
+        assertEquals("", result.detail)
     }
 
     @Test
-    fun `MediaServiceUnavailableException → 503 with redacted message`() {
+    fun `MediaServiceUnavailableException → 503 with message`() {
         val exception = MediaServiceUnavailableException("Storage gateway unreachable")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.SERVICE_UNAVAILABLE.value()
-        result.detail shouldBe "Media service is temporarily unavailable."
-        result.title shouldBe "Media service unavailable"
-        result.properties?.get("errorCode") shouldBe "MEDIA_SERVICE_UNAVAILABLE"
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), result.status)
+        assertEquals("Storage gateway unreachable", result.detail)
+        assertEquals("Media service unavailable", result.title)
+        assertEquals("MEDIA_SERVICE_UNAVAILABLE", result.properties?.get("errorCode"))
     }
 
     @Test
-    fun `MediaServiceUnavailableException uses default detail when message is blank`() {
+    fun `MediaServiceUnavailableException keeps empty message when provided`() {
         val exception = MediaServiceUnavailableException("")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.SERVICE_UNAVAILABLE.value()
-        result.detail shouldBe "Media service is temporarily unavailable."
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), result.status)
+        assertEquals("", result.detail)
     }
 
     @Test
@@ -183,10 +182,10 @@ class MediaProblemDetailsHandlerTest {
         val exception = ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "File too large")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.PAYLOAD_TOO_LARGE.value()
-        result.detail shouldBe "File too large"
-        result.title shouldBe "File too large"
-        result.properties?.get("errorCode") shouldBe "FILE_TOO_LARGE"
+        assertEquals(HttpStatus.PAYLOAD_TOO_LARGE.value(), result.status)
+        assertEquals("File too large", result.detail)
+        assertEquals("File too large", result.title)
+        assertEquals("FILE_TOO_LARGE", result.properties?.get("errorCode"))
     }
 
     @Test
@@ -194,9 +193,9 @@ class MediaProblemDetailsHandlerTest {
         val exception = ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.FORBIDDEN.value()
-        result.detail shouldBe "Access denied"
-        result.title shouldBe "403"
+        assertEquals(HttpStatus.FORBIDDEN.value(), result.status)
+        assertEquals("Access denied", result.detail)
+        assertEquals("403", result.title)
     }
 
     @Test
@@ -204,7 +203,7 @@ class MediaProblemDetailsHandlerTest {
         val exception = ResponseStatusException(HttpStatus.BAD_GATEWAY, null)
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.BAD_GATEWAY.value()
-        result.detail shouldBe "502"
+        assertEquals(HttpStatus.BAD_GATEWAY.value(), result.status)
+        assertEquals("502", result.detail)
     }
 }

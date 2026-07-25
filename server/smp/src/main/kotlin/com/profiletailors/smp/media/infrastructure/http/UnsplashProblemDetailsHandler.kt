@@ -14,7 +14,6 @@ private val logger = LoggerFactory.getLogger(UnsplashProblemDetailsHandler::clas
 
 @RestControllerAdvice
 class UnsplashProblemDetailsHandler {
-
     /**
      * Creates a problem detail response for an unconfigured Unsplash provider.
      *
@@ -22,10 +21,9 @@ class UnsplashProblemDetailsHandler {
      * @return A service-unavailable problem detail with the configuration error code.
      */
     @ExceptionHandler(UnsplashProviderNotConfiguredException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: UnsplashProviderNotConfiguredException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.SERVICE_UNAVAILABLE,
-        UNSPLASH_NOT_CONFIGURED_DETAIL,
+        exception.message ?: "Unsplash is not configured for this environment.",
     ).apply {
         title = "Unsplash is not configured"
         setProperty(ERROR_CODE_PROPERTY, "UNSPLASH_NOT_CONFIGURED")
@@ -35,17 +33,16 @@ class UnsplashProblemDetailsHandler {
      * Creates a not-found problem response for an unavailable Unsplash photo.
      *
      * @param exception The exception containing the photo's external identifier and optional detail message.
-     * @return A problem detail with HTTP status 404. The photo's external identifier is omitted
-     * from the response to avoid leaking provider-side identifiers to the caller.
+     * @return A problem detail with HTTP status 404 and the photo's external identifier.
      */
     @ExceptionHandler(UnsplashPhotoNotFoundException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: UnsplashPhotoNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.NOT_FOUND,
-        UNSPLASH_PHOTO_NOT_FOUND_DETAIL,
+        exception.message ?: "Unsplash photo not found.",
     ).apply {
         title = "Unsplash photo not found"
         setProperty(ERROR_CODE_PROPERTY, "UNSPLASH_PHOTO_NOT_FOUND")
+        setProperty("externalId", exception.externalId)
     }
 
     /**
@@ -76,17 +73,14 @@ class UnsplashProblemDetailsHandler {
         logger.warn("Unsplash provider request failed: {}", exception.message)
         return ProblemDetail.forStatusAndDetail(
             HttpStatus.BAD_GATEWAY,
-            UNSPLASH_PROVIDER_ERROR_DETAIL,
+            exception.message ?: "Unsplash is temporarily unavailable.",
         ).apply {
             title = "Unsplash provider error"
             setProperty(ERROR_CODE_PROPERTY, "UNSPLASH_PROVIDER_ERROR")
         }
     }
 
-    companion object {
+    private companion object {
         const val ERROR_CODE_PROPERTY = "errorCode"
-        private const val UNSPLASH_NOT_CONFIGURED_DETAIL = "Unsplash is not configured for this environment."
-        private const val UNSPLASH_PHOTO_NOT_FOUND_DETAIL = "Unsplash photo not found."
-        private const val UNSPLASH_PROVIDER_ERROR_DETAIL = "Unsplash is temporarily unavailable."
     }
 }

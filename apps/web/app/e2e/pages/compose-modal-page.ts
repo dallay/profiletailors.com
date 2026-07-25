@@ -489,6 +489,11 @@ export class ComposeModalPage {
   }
 
   async openMediaPicker(): Promise<void> {
+    // `add-media-button` is sr-only and visually overlapped by the visible
+    // `composer-upload-trigger` icon button, so it can never receive a real
+    // pointer click. The sources popover (chevron trigger → "Library" entry)
+    // calls the same openMediaLibrary() handler and is the actual clickable
+    // path a mouse user has to open the picker.
     await this.page.getByTestId('composer-sources-trigger').click()
     await this.page.getByTestId('composer-source-library').click()
   }

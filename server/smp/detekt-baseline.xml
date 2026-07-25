@@ -168,8 +168,6 @@
     <ID>StringLiteralDuplication:R2dbcMediaRepositories.kt:R2dbcMediaAssetRepository$"fileHash"</ID>
     <ID>StringLiteralDuplication:R2dbcMediaRepositories.kt:R2dbcMediaAssetRepository$"fileSizeBytes"</ID>
     <ID>StringLiteralDuplication:R2dbcMediaRepositories.kt:R2dbcMediaAssetRepository$"workspaceId"</ID>
-    <ID>StringLiteralDuplication:R2dbcMediaRepositories.kt:R2dbcMediaAssetRepository$"storageKey"</ID>
-    <ID>StringLiteralDuplication:R2dbcMediaRepositories.kt:R2dbcMediaAssetRepository$"detectedMediaType"</ID>
     <ID>StringLiteralDuplication:R2dbcNotificationEventRepository.kt:R2dbcNotificationEventRepository$"workspaceId"</ID>
     <ID>StringLiteralDuplication:R2dbcPublishingConnectionRepositories.kt:R2dbcSocialConnectionRepository$"provider"</ID>
     <ID>StringLiteralDuplication:R2dbcPublishingConnectionRepositories.kt:R2dbcSocialConnectionRepository$"status"</ID>

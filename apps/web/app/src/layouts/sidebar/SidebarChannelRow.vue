@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
-import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
+import { getProviderBadge } from '@shared/lib/provider-styles'
 import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
 
 interface SidebarChannel extends Channel {
@@ -51,7 +51,7 @@ function onAvatarError() {
         v-else
         class="flex size-5 items-center justify-center rounded-full border border-border-visible bg-bg-primary font-mono text-[7px] font-bold uppercase leading-none text-text-display"
       >
-        <SocialProviderIcon :provider="channel.provider" />
+        {{ getProviderBadge(channel.provider) }}
       </span>
       <span class="absolute -right-1 -bottom-1 flex size-3.5 items-center justify-center rounded-full border border-bg-surface bg-bg-primary font-mono text-[7px] font-bold uppercase leading-none text-text-display">
         {{ channel.badge }}

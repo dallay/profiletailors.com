@@ -2,8 +2,6 @@
 import '@styles/global.css'
 import type { Locale } from '@i18n/utils'
 import Analytics from '@components/Analytics.astro'
-import ConsentScript from '@components/consent/ConsentScript.astro'
-import ConsentBanner from '@components/consent/ConsentBanner.astro'
 
 interface Props {
   title?: string
@@ -54,8 +52,6 @@ const jsonLdString = JSON.stringify(jsonLd)
 <html lang={lang}>
   <head>
     <meta charset="utf-8" />
-    <!-- Consent check: must run before Analytics -->
-    <ConsentScript />
     <!-- Theme: must run synchronously before first paint to prevent FOUC -->
     <script is:inline>
       (() => {
@@ -122,6 +118,5 @@ const jsonLdString = JSON.stringify(jsonLd)
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <slot />
     <Analytics />
-    <ConsentBanner />
   </body>
 </html>

@@ -10,13 +10,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 class AuthorizationProblemDetailsHandler {
 
     @ExceptionHandler(AuthorizationDeniedException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: AuthorizationDeniedException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, AUTHORIZATION_DENIED_DETAIL).apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.message ?: "Forbidden").apply {
             title = "Authorization denied"
         }
-
-    companion object {
-        private const val AUTHORIZATION_DENIED_DETAIL = "You do not have permission to perform this action."
-    }
 }

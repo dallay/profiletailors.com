@@ -1,7 +1,6 @@
 package com.profiletailors.smp.media.infrastructure
 
 import com.profiletailors.smp.media.application.BlobGarbageCollector
-import com.profiletailors.smp.media.application.MediaAssetBackfillJob
 import com.profiletailors.smp.media.application.MediaAssetExpirationJob
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Component
 class MediaReconcilerScheduler(
     private val blobGarbageCollector: BlobGarbageCollector,
     private val mediaAssetExpirationJob: MediaAssetExpirationJob,
-    private val mediaAssetBackfillJob: MediaAssetBackfillJob,
 ) {
     @Scheduled(fixedRate = GC_FIXED_RATE_MILLIS, initialDelay = GC_INITIAL_DELAY_MILLIS)
     suspend fun runGarbageCollector() {
@@ -31,17 +29,10 @@ class MediaReconcilerScheduler(
         mediaAssetExpirationJob.run()
     }
 
-    @Scheduled(fixedRate = BACKFILL_FIXED_RATE_MILLIS, initialDelay = BACKFILL_INITIAL_DELAY_MILLIS)
-    suspend fun runBackfillJob() {
-        mediaAssetBackfillJob.run()
-    }
-
     private companion object {
         private const val GC_FIXED_RATE_MILLIS = 60 * 60 * 1000L // 1 hour
         private const val GC_INITIAL_DELAY_MILLIS = 2 * 60 * 1000L // 2 minutes
         private const val EXPIRATION_FIXED_RATE_MILLIS = 6 * 60 * 60 * 1000L // 6 hours
         private const val EXPIRATION_INITIAL_DELAY_MILLIS = 3 * 60 * 1000L // 3 minutes
-        private const val BACKFILL_FIXED_RATE_MILLIS = 24 * 60 * 60 * 1000L // 24 hours
-        private const val BACKFILL_INITIAL_DELAY_MILLIS = 5 * 60 * 1000L // 5 minutes
     }
 }

@@ -478,60 +478,6 @@ class R2dbcMediaAssetRepository(
             .one()
             .awaitSingleOrNull()
 
-    override suspend fun findReadyAssetsWithoutHash(limit: Int): List<MediaAsset> = databaseClient.sql(
-        """
-            SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
-                   detected_media_type, original_filename, file_size_bytes, status,
-                   failure_reason, upload_started_at, created_at, updated_at,
-                   source_provider, external_id, source_url, author_name, author_url, metadata,
-                   licence
-            FROM media_assets
-            WHERE status = 'READY'
-              AND file_hash IS NULL
-              AND storage_key IS NOT NULL
-            ORDER BY created_at ASC
-            LIMIT :limit
-        """.trimIndent(),
-    )
-        .bind("limit", limit)
-        .map { row, _ -> rowToMediaAsset(row) }
-        .all()
-        .collectList()
-        .awaitSingle()
-
-    override suspend fun updateReadyAssetCasMetadata(
-        assetId: String,
-        workspaceId: String,
-        fileHash: String,
-        storageKey: String,
-        detectedMediaType: String,
-        fileSizeBytes: Long,
-    ): MediaAsset? {
-        databaseClient.sql(
-            """
-            UPDATE media_assets
-            SET file_hash = :fileHash,
-                storage_key = :storageKey,
-                detected_media_type = :detectedMediaType,
-                file_size_bytes = :fileSizeBytes,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE asset_id = :assetId
-              AND workspace_id = :workspaceId
-              AND status = 'READY'
-            """.trimIndent(),
-        )
-            .bind("fileHash", fileHash)
-            .bind("storageKey", storageKey)
-            .bind("detectedMediaType", detectedMediaType)
-            .bind("fileSizeBytes", fileSizeBytes)
-            .bind("assetId", assetId)
-            .bind("workspaceId", workspaceId)
-            .then()
-            .awaitSingleOrNull()
-
-        return findByWorkspaceAndId(workspaceId, assetId)
-    }
-
     private fun rowToMediaAsset(row: Readable): MediaAsset = MediaAsset(
         assetId = requireNotNull(row.get("asset_id", String::class.java)),
         workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),

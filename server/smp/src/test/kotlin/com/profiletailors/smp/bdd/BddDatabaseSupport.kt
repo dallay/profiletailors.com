@@ -32,7 +32,6 @@ class BddDatabaseSupport(
         const val RESOURCE_ID = "resource-1"
         const val WORKSPACE_HEADER = "X-Workspace-Id"
         const val USER_BEARER = "Bearer valid-token"
-        const val VERIFIED_USER_BEARER = "Bearer verified-token"
         const val API_VERSION_MEDIA_TYPE = "application/vnd.api.v1+json"
         const val ACCESS_SUMMARY_PATH = "/api/authorization/workspace-access/current"
         const val RESOURCE_PREVIEW_PATH_TEMPLATE = "/api/authorization/resources/%s/preview"

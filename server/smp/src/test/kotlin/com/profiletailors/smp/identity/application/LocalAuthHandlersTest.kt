@@ -359,7 +359,7 @@ class LocalAuthHandlersTest {
             )
             throw AssertionError("Expected UserAlreadyExistsException")
         } catch (e: UserAlreadyExistsException) {
-            assertEquals("User already exists.", e.message)
+            assertTrue(e.message?.contains("yuniel@example.com") == true)
         }
     }
 

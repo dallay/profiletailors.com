@@ -438,31 +438,57 @@ truth for its rendered state.
 
 ---
 
-### Requirement: Centralized Provider Presentation
-
-The SPA MUST use a typed presentation registry for catalogs and channel fallbacks. It MUST label `LinkedIn`; `PERSONAL_PROFILE` remains account-kind metadata. Known providers MUST have label/icon data; unknown providers MUST use a neutral icon, never another provider's branding.
-
-#### Scenario: Unknown connected provider is neutral
-- GIVEN a connected channel has an unrecognized provider
-- WHEN the sidebar renders its fallback presentation
-- THEN it MUST use the neutral icon and safe label
-- AND it MUST NOT render LinkedIn branding
-
 ### Requirement: SidebarConnectSection (connect channels + message)
 
-The section MUST render the server catalog separately: hide `HIDDEN`, connect `AVAILABLE`, and render `LOCKED` without a CTA using its reason. Static providers, “More”, and coming-soon controls/messages MUST NOT render. The shell MUST load catalog and channels together initially and on workspace change; stale entries MUST be non-actionable.
+File: `components/sidebar/SidebarConnectSection.vue`. Renders connect list (LinkedIn,
+Threads, Bluesky, Facebook) + "More" button. Owns the transient `connectMessage` ref via
+`useConnectMessage`. The message paragraph is wrapped in `aria-live="polite"`. The section
+does NOT start `setTimeout` itself — the composable owns the timer.
 
-#### Scenario: Available and locked catalog entries render
-- GIVEN `AVAILABLE` and `LOCKED` catalog entries
-- WHEN the section renders
-- THEN only the available entry MUST expose a connect action
-- AND the locked entry MUST be non-actionable
+| Aspect      | Value                                            |
+|-------------|--------------------------------------------------|
+| Props       | `providers: ConnectChannel[]`                    |
+| Emits       | `connect: [channel: ConnectChannel]`, `more: []` |
+| Local state | only the `useConnectMessage` return value        |
 
-#### Scenario: Workspace switch reloads both sources
-- GIVEN workspace A data is visible, including a `HIDDEN` entry
-- WHEN the active workspace changes to B
-- THEN it MUST reload B's catalog and channels
-- AND no hidden or actionable A entry MUST remain
+`ConnectChannel.id` is `'linkedin' | 'threads' | 'bluesky' | 'facebook'`.
+
+#### Scenario: Connect list renders
+
+- GIVEN `providers` has 4 entries
+- WHEN the section mounts
+- THEN 4 connect buttons render (badge + label + "+ Connect")
+- AND a "More" button renders below
+
+#### Scenario: Activating LinkedIn emits `connect` with the linkedin channel
+
+- GIVEN the LinkedIn row is rendered
+- WHEN the user clicks it
+- THEN `connect(linkedinChannel)` is emitted
+- AND the shell sets `connectingLinkedIn` message and calls
+  `publishingStore.connectLinkedInPersonalProfile()`
+
+#### Scenario: Activating Threads/Bluesky/Facebook shows a transient "coming soon" message
+
+- GIVEN the Threads row is rendered and no prior message is shown
+- WHEN the user clicks it
+- THEN `connect(threadsChannel)` is emitted
+- AND the shell sets a "coming soon" message
+- AND the message auto-clears after 3500 ms (composable)
+
+#### Scenario: "More" button emits `more`
+
+- GIVEN the section is rendered
+- WHEN the user clicks "More"
+- THEN `more()` is emitted
+- AND the shell shows a "More channels coming soon" message for 3500 ms
+
+#### Scenario: Section unmount clears the pending timer
+
+- GIVEN a message is currently displayed
+- WHEN the section is unmounted before 3500 ms elapses
+- THEN the pending timeout is cleared
+- AND no late callback mutates a stale ref
 
 ---
 

@@ -5,7 +5,6 @@ import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
-import com.profiletailors.smp.publishing.domain.ProviderConnectionNotAvailableException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAlreadyTerminalException
 import com.profiletailors.smp.publishing.domain.PublicationCancellationNotAllowedException
@@ -20,22 +19,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
 class PublishingProblemDetailsHandler {
-
     @ExceptionHandler(ProviderNotConfiguredException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: ProviderNotConfiguredException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.SERVICE_UNAVAILABLE,
-        PROVIDER_NOT_CONFIGURED_DETAIL,
+        exception.message ?: "Provider not configured",
     ).apply {
         title = "Provider not configured"
     }
-
-    @ExceptionHandler(ProviderConnectionNotAvailableException::class)
-    fun handle(exception: ProviderConnectionNotAvailableException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, PROVIDER_CONNECTION_NOT_AVAILABLE_DETAIL).apply {
-            title = "Provider connection unavailable"
-            setProperty("reason", exception.reason?.name)
-        }
 
     @ExceptionHandler(
         PublicationEditNotAllowedException::class,
@@ -45,34 +35,30 @@ class PublishingProblemDetailsHandler {
         PublicationAlreadyTerminalException::class,
         PublicationStateTransitionException::class,
     )
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: PublicationStateTransitionException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.CONFLICT,
-        PUBLICATION_STATE_CONFLICT_DETAIL,
+        exception.message ?: "Publication state transition conflict",
     ).apply {
         title = "Publication state conflict"
     }
 
     @ExceptionHandler(PublicationNotFoundException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: PublicationNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.NOT_FOUND,
-        PUBLICATION_NOT_FOUND_DETAIL,
+        exception.message ?: "Publication not found",
     ).apply {
         title = "Publication not found"
     }
 
     @ExceptionHandler(ExpiredOAuthStateException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: ExpiredOAuthStateException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, OAUTH_STATE_EXPIRED_DETAIL).apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "OAuth state expired").apply {
             title = "OAuth state expired"
         }
 
     @ExceptionHandler(InvalidOAuthStateException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: InvalidOAuthStateException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, OAUTH_STATE_INVALID_DETAIL).apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "OAuth state invalid").apply {
             title = "OAuth state invalid"
         }
 
@@ -88,10 +74,9 @@ class PublishingProblemDetailsHandler {
      * treated as a permanent client error.
      */
     @ExceptionHandler(MediaServiceUnavailableException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: MediaServiceUnavailableException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.SERVICE_UNAVAILABLE,
-        MEDIA_SERVICE_UNAVAILABLE_DETAIL,
+        exception.message ?: "Media service is unavailable",
     ).apply {
         title = "Media service unavailable"
         setProperty("errorCode", "MEDIA_SERVICE_UNAVAILABLE")
@@ -106,25 +91,12 @@ class PublishingProblemDetailsHandler {
      * - Asset is not in READY status (still PROCESSING or FAILED)
      */
     @ExceptionHandler(AssetNotReadyException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: AssetNotReadyException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.BAD_REQUEST,
-        ASSET_NOT_READY_DETAIL,
+        exception.message ?: "Asset ${exception.assetId} is not ready for publishing",
     ).apply {
         title = "Asset not ready"
         setProperty("errorCode", "ASSET_NOT_READY")
-    }
-
-    companion object {
-        private const val PROVIDER_NOT_CONFIGURED_DETAIL = "The requested provider is not available."
-        private const val PROVIDER_CONNECTION_NOT_AVAILABLE_DETAIL =
-            "The requested provider cannot accept a new connection."
-        private const val PUBLICATION_STATE_CONFLICT_DETAIL =
-            "The publication cannot transition from its current state."
-        private const val PUBLICATION_NOT_FOUND_DETAIL = "Publication not found."
-        private const val OAUTH_STATE_EXPIRED_DETAIL = "OAuth state has expired."
-        private const val OAUTH_STATE_INVALID_DETAIL = "OAuth state is invalid."
-        private const val MEDIA_SERVICE_UNAVAILABLE_DETAIL = "Media service is unavailable."
-        private const val ASSET_NOT_READY_DETAIL = "One or more assets are not ready for publishing."
+        setProperty("assetId", exception.assetId)
     }
 }

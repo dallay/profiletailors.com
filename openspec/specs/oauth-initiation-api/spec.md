@@ -9,24 +9,35 @@ parameter and returns it for the SPA to redirect the user, enabling the client-s
 
 ### Requirement: LinkedIn OAuth Initiation Endpoint
 
-`POST /api/publishing/linkedin/connections/initiate` MUST return signed `authorizationUrl` and `state` to an authenticated workspace caller. Before generation, the server MUST re-evaluate LinkedIn personal-profile policy. It MUST deny initiation unless `AVAILABLE`; the client catalog MUST NOT authorize. State MUST remain tamper-evident and validatable at completion.
+The system MUST expose `POST /api/publishing/linkedin/connections/initiate` that generates a
+LinkedIn authorization URL including a cryptographically signed `state` parameter and returns it to
+the requesting SPA.
 
-#### Scenario: Available provider initiates connection
-- GIVEN an authenticated caller, workspace context, and `AVAILABLE` policy
-- WHEN initiation is called
-- THEN it MUST return 200 with `authorizationUrl` and signed `state`
-- AND the URL MUST include required parameters
+The endpoint MUST require authentication and an active workspace context. The returned response MUST
+include `authorizationUrl` and `state`. The `state` parameter MUST be signed or encrypted to prevent
+tampering and MUST be validated on the completion endpoint.
 
-#### Scenario: Policy changed after catalog load
-- GIVEN the SPA previously received `AVAILABLE`
-- AND current server policy is `LOCKED` or `HIDDEN`
-- WHEN initiation is called
-- THEN it MUST reject the request without an authorization URL or state
+#### Scenario: Authenticated user initiates LinkedIn connection
 
-#### Scenario: Missing workspace or authentication is rejected
-- GIVEN workspace context or a valid Bearer token is absent
-- WHEN initiation is called
-- THEN the system MUST reject the request with the existing 400 or 401 behavior
+- GIVEN an authenticated principal and a valid `X-Workspace-Id` header
+- WHEN `POST /api/publishing/linkedin/connections/initiate` is called
+- THEN the system MUST return 200 with `authorizationUrl` and `state`
+- AND `authorizationUrl` MUST include the signed `state` parameter, `client_id`, `redirect_uri`, and
+  required `scope`
+- AND `state` MUST be tamper-evident (signed or encrypted)
+
+#### Scenario: Initiation without workspace context is rejected
+
+- GIVEN an authenticated principal
+- AND no `X-Workspace-Id` header is provided
+- WHEN `POST /api/publishing/linkedin/connections/initiate` is called
+- THEN the system MUST return 400 with an error indicating workspace context is required
+
+#### Scenario: Unauthenticated initiation is rejected
+
+- GIVEN no valid Bearer token is present
+- WHEN `POST /api/publishing/linkedin/connections/initiate` is called
+- THEN the system MUST return 401
 
 ### Requirement: OAuth State Prevents CSRF and Tampering
 

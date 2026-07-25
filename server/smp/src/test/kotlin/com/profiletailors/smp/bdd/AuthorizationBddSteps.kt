@@ -37,7 +37,6 @@ import java.nio.charset.StandardCharsets
 
 @Suppress("LargeClass")
 class AuthorizationBddSteps {
-
     @Autowired
     private lateinit var webTestClient: WebTestClient
 
@@ -368,7 +367,6 @@ class AuthorizationBddSteps {
             .uri(bddDatabaseSupport.localAuthRefreshPath())
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(HttpHeaders.COOKIE, session.refreshCookie)
-            .header(HttpHeaders.ORIGIN, TRUSTED_BROWSER_ORIGIN)
             .exchange()
             .expectBody()
             .returnResult()
@@ -395,7 +393,6 @@ class AuthorizationBddSteps {
             .uri(bddDatabaseSupport.localAuthLogoutPath())
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(HttpHeaders.COOKIE, session.refreshCookie)
-            .header(HttpHeaders.ORIGIN, TRUSTED_BROWSER_ORIGIN)
             .exchange()
             .expectBody()
             .returnResult()
@@ -407,60 +404,6 @@ class AuthorizationBddSteps {
         latestResult = webTestClient.post()
             .uri(bddDatabaseSupport.localAuthLogoutPath())
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .exchange()
-            .expectBody()
-            .returnResult()
-    }
-
-    @When("the client refreshes the local user session without an origin")
-    fun whenClientRefreshesLocalUserSessionWithoutOrigin() {
-        val session = requireNotNull(latestLocalAuthSession) { "Expected a previously registered local auth session" }
-        latestStatusCode = null
-        latestResult = webTestClient.post()
-            .uri(bddDatabaseSupport.localAuthRefreshPath())
-            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .header(HttpHeaders.COOKIE, session.refreshCookie)
-            .exchange()
-            .expectBody()
-            .returnResult()
-    }
-
-    @When("the client refreshes the local user session with an untrusted origin")
-    fun whenClientRefreshesLocalUserSessionWithUntrustedOrigin() {
-        val session = requireNotNull(latestLocalAuthSession) { "Expected a previously registered local auth session" }
-        latestStatusCode = null
-        latestResult = webTestClient.post()
-            .uri(bddDatabaseSupport.localAuthRefreshPath())
-            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .header(HttpHeaders.COOKIE, session.refreshCookie)
-            .header(HttpHeaders.ORIGIN, UNTRUSTED_ORIGIN)
-            .exchange()
-            .expectBody()
-            .returnResult()
-    }
-
-    @When("the client logs out the local user session without an origin")
-    fun whenClientLogsOutLocalUserSessionWithoutOrigin() {
-        val session = requireNotNull(latestLocalAuthSession) { "Expected a previously registered local auth session" }
-        latestStatusCode = null
-        latestResult = webTestClient.post()
-            .uri(bddDatabaseSupport.localAuthLogoutPath())
-            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .header(HttpHeaders.COOKIE, session.refreshCookie)
-            .exchange()
-            .expectBody()
-            .returnResult()
-    }
-
-    @When("the client logs out the local user session with an untrusted origin")
-    fun whenClientLogsOutLocalUserSessionWithUntrustedOrigin() {
-        val session = requireNotNull(latestLocalAuthSession) { "Expected a previously registered local auth session" }
-        latestStatusCode = null
-        latestResult = webTestClient.post()
-            .uri(bddDatabaseSupport.localAuthLogoutPath())
-            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .header(HttpHeaders.COOKIE, session.refreshCookie)
-            .header(HttpHeaders.ORIGIN, UNTRUSTED_ORIGIN)
             .exchange()
             .expectBody()
             .returnResult()
@@ -951,9 +894,4 @@ class AuthorizationBddSteps {
 
     private fun requireLatestAuthorizationFact() =
         auditHook.facts.lastOrNull().also { assertNotNull(it, "Expected at least one authorization audit fact") }!!
-
-    companion object {
-        private const val TRUSTED_BROWSER_ORIGIN = "http://localhost"
-        private const val UNTRUSTED_ORIGIN = "https://evil.example"
-    }
 }

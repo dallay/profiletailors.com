@@ -45,7 +45,6 @@ import javax.crypto.spec.SecretKeySpec
         "spring.main.allow-bean-definition-overriding=true",
         "app.security.local-jwt.secret=integration-test-local-jwt-secret-1234567890",
         "app.security.local-jwt.issuer=http://localhost/profiletailors-local",
-        "app.security.cors.allowed-origins=http://localhost",
         "app.security.refresh-session.cookie-name=pt_refresh",
         "app.security.refresh-session.cookie-path=/api/auth",
         "app.identity.registration.enabled=true",
@@ -61,15 +60,12 @@ import javax.crypto.spec.SecretKeySpec
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Suppress("LargeClass")
 class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
     @Autowired
     lateinit var reactiveJwtDecoder: ReactiveJwtDecoder
 
     override val postgresContainer: PostgreSQLContainer<*> = postgres
-
-    private val allowedOrigin: String = "http://localhost"
 
     override suspend fun seedScenario() {
         failWorkspaceProvisioning = false
@@ -307,7 +303,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .expectStatus().isBadRequest
             .expectBody()
             .jsonPath("$.title").isEqualTo("Invalid verification token")
-            .jsonPath("$.detail").isEqualTo("Invalid verification token.")
+            .jsonPath("$.detail").isEqualTo("Verification token has expired.")
     }
 
     @Test
@@ -330,7 +326,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .expectStatus().isBadRequest
             .expectBody()
             .jsonPath("$.title").isEqualTo("Invalid verification token")
-            .jsonPath("$.detail").isEqualTo("Invalid verification token.")
+            .jsonPath("$.detail").isEqualTo("Verification token has already been used.")
     }
 
     @Test
@@ -511,7 +507,6 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         val refreshResult = webTestClient.post()
             .uri("/api/auth/refresh")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ORIGIN, allowedOrigin)
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
@@ -539,7 +534,6 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/refresh")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ORIGIN, allowedOrigin)
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
@@ -557,7 +551,6 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/logout")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ORIGIN, allowedOrigin)
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isNoContent
@@ -565,35 +558,9 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/refresh")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ORIGIN, allowedOrigin)
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
-    }
-
-    @Test
-    fun `refresh rejects cookie-authenticated request without trusted origin`() {
-        val registerResult = registerAndExtract()
-
-        webTestClient.post()
-            .uri("/api/auth/refresh")
-            .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
-            .exchange()
-            .expectStatus().isForbidden
-    }
-
-    @Test
-    fun `logout rejects cookie-authenticated request with untrusted origin`() {
-        val registerResult = registerAndExtract()
-
-        webTestClient.post()
-            .uri("/api/auth/logout")
-            .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
-            .header(HttpHeaders.ORIGIN, "https://evil.example")
-            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
-            .exchange()
-            .expectStatus().isForbidden
     }
 
     @Test

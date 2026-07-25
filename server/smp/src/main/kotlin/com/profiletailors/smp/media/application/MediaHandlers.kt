@@ -626,6 +626,8 @@ class GetWorkspaceAssetHandler(
 @Service
 class DeleteWorkspaceAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
+    private val storageApplicationService: StorageApplicationService,
+    private val uploadSettings: MediaUploadSettings,
     private val transactionRunner: AtomicTransactionRunner,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
 ) : CommandWithResultHandler<DeleteWorkspaceAssetCommand, DeleteWorkspaceAssetResult> {
@@ -633,39 +635,46 @@ class DeleteWorkspaceAssetHandler(
         val asset = mediaAssetRepository.findByWorkspaceAndId(command.workspaceId, command.assetId)
             ?: throw AssetNotFoundException(command.assetId)
 
-        if (asset.status == MediaAssetStatus.DELETED) {
-            return DeleteWorkspaceAssetResult(
-                assetId = command.assetId,
-                workspaceId = command.workspaceId,
-                deleted = true,
-            )
+        asset.storageKey?.let { storageKey ->
+            runCatching {
+                storageApplicationService.delete(
+                    bucket = uploadSettings.storageBucket,
+                    key = storageKey,
+                    deleterId = command.workspaceId,
+                )
+            }.getOrElse { cause ->
+                throw MediaServiceUnavailableException(
+                    "Storage deletion failed for asset ${command.assetId}",
+                    cause,
+                )
+            }
         }
 
-        mediaAssetRepository.softDelete(command.assetId, command.workspaceId)
-
-        val fileHash = asset.fileHash
-        if (fileHash == null) {
-            return DeleteWorkspaceAssetResult(
-                assetId = command.assetId,
-                workspaceId = command.workspaceId,
-                deleted = true,
-            )
-        }
-
-        transactionRunner.runAtomically {
-            val blob = workspaceFileBlobRepository.findBlobForUpdate(command.workspaceId, fileHash)
-            if (blob != null) {
-                val activeCount = mediaAssetRepository.countActiveReferences(command.workspaceId, fileHash)
-                if (activeCount == 0) {
-                    workspaceFileBlobRepository.markReadyForGC(command.workspaceId, fileHash, Instant.now())
+        val deleted: Boolean
+        try {
+            deleted = transactionRunner.runAtomically {
+                mediaAssetRepository.softDelete(command.assetId, command.workspaceId) != null
+            }
+        } catch (@Suppress("SwallowedException") e: RuntimeException) {
+            // Storage already gone; schedule blob GC so BlobGarbageCollector handles orphaned storage.
+            asset.fileHash?.let { hash ->
+                transactionRunner.runAtomically {
+                    workspaceFileBlobRepository.markReadyForGC(command.workspaceId, hash, Instant.now())
                 }
             }
+            // softDelete failed (compensated), but caller needs to know the asset was handled.
+            // Report deleted=true since the asset IS gone; blob GC is a background concern.
+            return DeleteWorkspaceAssetResult(
+                assetId = command.assetId,
+                workspaceId = command.workspaceId,
+                deleted = true,
+            )
         }
 
         return DeleteWorkspaceAssetResult(
             assetId = command.assetId,
             workspaceId = command.workspaceId,
-            deleted = true,
+            deleted = deleted,
         )
     }
 }

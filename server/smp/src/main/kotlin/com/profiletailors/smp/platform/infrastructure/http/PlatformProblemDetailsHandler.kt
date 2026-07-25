@@ -13,36 +13,26 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 class PlatformProblemDetailsHandler {
 
     @ExceptionHandler(MissingPrincipalContextException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: MissingPrincipalContextException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, UNAUTHORIZED_DETAIL).apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.message ?: "Unauthorized").apply {
             title = "Principal context missing"
         }
 
     @ExceptionHandler(ApiKeyCredentialNotActiveException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: ApiKeyCredentialNotActiveException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, UNAUTHORIZED_DETAIL).apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.message ?: "Unauthorized").apply {
             title = "API key credential invalid"
         }
 
     @ExceptionHandler(MissingResourceContextException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: MissingResourceContextException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, BAD_REQUEST_DETAIL).apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
             title = "Resource context missing"
         }
 
     @ExceptionHandler(RefreshSessionNotActiveException::class)
-    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: RefreshSessionNotActiveException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, INVALID_REFRESH_SESSION_DETAIL).apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.message ?: "Unauthorized").apply {
             title = "Refresh session invalid"
         }
-
-    companion object {
-        private const val UNAUTHORIZED_DETAIL = "Authentication is required."
-        private const val BAD_REQUEST_DETAIL = "The request is missing required context."
-        private const val INVALID_REFRESH_SESSION_DETAIL = "Session is not active."
-    }
 }

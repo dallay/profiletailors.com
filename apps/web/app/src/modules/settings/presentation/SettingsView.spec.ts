@@ -126,30 +126,6 @@ describe('SettingsView channel connection CTA', () => {
     expect(wrapper.text()).toContain('channels.active')
   })
 
-  it('renders an unknown connected provider with the neutral central fallback', async () => {
-    const publishing = usePublishingStore()
-    publishing.channels = [
-      {
-        id: 'mastodon-1',
-        accountId: 'mastodon-1',
-        name: 'Mastodon account',
-        provider: 'mastodon' as never,
-        avatar: '',
-        handle: 'Mastodon account',
-        status: 'ACTIVE',
-      },
-    ]
-    vi.spyOn(publishing, 'fetchChannels').mockResolvedValue(publishing.channels)
-    vi.spyOn(publishing, 'fetchConfiguredProviders').mockResolvedValue()
-
-    const wrapper = mountSettings()
-    await flushPromises()
-
-    expect(wrapper.find('[data-testid="settings-connected-channel"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Unknown provider')
-    expect(wrapper.text()).toContain('•')
-  })
-
   it('shows needsReconnect badge for a non-ACTIVE LinkedIn channel', async () => {
     const publishing = usePublishingStore()
     publishing.channels = [

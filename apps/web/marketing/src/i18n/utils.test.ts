@@ -103,64 +103,6 @@ describe('i18n utils', () => {
     });
   });
 
-  describe('consent translations', () => {
-    it('EN has a complete consent structure', () => {
-      const t = useTranslations(new URL('https://example.com/'));
-      expect(t.consent.banner.heading).toBeTruthy();
-      expect(t.consent.banner.description).toBeTruthy();
-      expect(t.consent.category.necessary.label).toBeTruthy();
-      expect(t.consent.category.necessary.description).toBeTruthy();
-      expect(t.consent.category.analytics.label).toBeTruthy();
-      expect(t.consent.category.analytics.description).toBeTruthy();
-      expect(t.consent.action.acceptAll).toBeTruthy();
-      expect(t.consent.action.rejectAll).toBeTruthy();
-      expect(t.consent.action.savePreferences).toBeTruthy();
-      expect(t.consent.footer.cookieSettings).toBeTruthy();
-      expect(t.consent.privacy.link).toBeTruthy();
-    });
-
-    it('ES has the same consent section structure as EN', () => {
-      const tEn = useTranslations(new URL('https://example.com/'));
-      const tEs = useTranslations(new URL('https://example.com/es/'));
-      expect(Object.keys(tEs.consent)).toEqual(Object.keys(tEn.consent));
-      expect(Object.keys(tEs.consent.banner)).toEqual(Object.keys(tEn.consent.banner));
-      expect(Object.keys(tEs.consent.category)).toEqual(Object.keys(tEn.consent.category));
-      expect(Object.keys(tEs.consent.category.necessary)).toEqual(
-        Object.keys(tEn.consent.category.necessary)
-      );
-      expect(Object.keys(tEs.consent.category.analytics)).toEqual(
-        Object.keys(tEn.consent.category.analytics)
-      );
-      expect(Object.keys(tEs.consent.action)).toEqual(Object.keys(tEn.consent.action));
-      expect(Object.keys(tEs.consent.footer)).toEqual(Object.keys(tEn.consent.footer));
-      expect(Object.keys(tEs.consent.privacy)).toEqual(Object.keys(tEn.consent.privacy));
-    });
-
-    it('translates the consent banner copy differently per locale', () => {
-      const tEn = useTranslations(new URL('https://example.com/'));
-      const tEs = useTranslations(new URL('https://example.com/es/'));
-      expect(tEn.consent.banner.heading).not.toBe(tEs.consent.banner.heading);
-      expect(tEn.consent.action.acceptAll).not.toBe(tEs.consent.action.acceptAll);
-      expect(tEn.consent.action.rejectAll).not.toBe(tEs.consent.action.rejectAll);
-      expect(tEn.consent.action.savePreferences).not.toBe(tEs.consent.action.savePreferences);
-    });
-
-    it('links the consent banner description to the privacy policy page in both locales', () => {
-      const tEn = useTranslations(new URL('https://example.com/'));
-      const tEs = useTranslations(new URL('https://example.com/es/'));
-      expect(tEn.consent.banner.description).toContain('href="/privacy/"');
-      expect(tEs.consent.banner.description).toContain('href="/es/privacy/"');
-    });
-
-    it('marks the necessary category as always-required copy, distinct from the opt-in analytics category', () => {
-      const t = useTranslations(new URL('https://example.com/'));
-      expect(t.consent.category.necessary.label).not.toBe(t.consent.category.analytics.label);
-      expect(t.consent.category.necessary.description).not.toBe(
-        t.consent.category.analytics.description
-      );
-    });
-  });
-
   describe('marketing claims', () => {
     it('does not advertise unverified integrations, demand, registration, pricing, or worldwide availability', () => {
       const tEn = useTranslations(new URL('https://example.com/'));

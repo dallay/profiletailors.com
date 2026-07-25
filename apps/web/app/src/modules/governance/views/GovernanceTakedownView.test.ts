@@ -50,7 +50,8 @@ vi.mock('@/components/ui/alert-dialog', () => ({
   AlertDialogCancel: { template: '<button class="ui-alert-dialog-cancel"><slot /></button>' },
   AlertDialogAction: {
     emits: ['click'],
-    template: '<button class="ui-alert-dialog-action" @click.stop="$emit(\'click\')"><slot /></button>',
+    template:
+      '<button class="ui-alert-dialog-action" @click.stop="$emit(\'click\')"><slot /></button>',
   },
 }))
 
@@ -62,7 +63,8 @@ vi.mock('@/components/ui/textarea', () => ({
   Textarea: {
     props: ['modelValue'],
     emits: ['update:modelValue'],
-    template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+    template:
+      '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
   },
 }))
 
@@ -187,15 +189,18 @@ describe('GovernanceTakedownView.vue', () => {
     const approveBtn = buttons.find((b) => b.text() === 'governance.takedown.review.approveAction')
     expect(approveBtn).toBeDefined()
 
-    await approveBtn!.trigger('click')
+    // Dispatch a native click event directly on the button element
+    approveBtn!.element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await flushPromises()
 
     expect(mockApprove).toHaveBeenCalledTimes(1)
     expect(mockApprove).toHaveBeenCalledWith('rpt-1')
   })
 
-  it('calls rejectTakedown with rejection reason after opening reject dialog', async (): Promise<void> => {
-    mockReject.mockResolvedValue(makeReport({ reportId: 'rpt-1', status: 'DISMISSED', rejectionReason: 'Valid reason' }))
+  it('calls rejectTakedown with rejection reason after opening reject dialog', async () => {
+    mockReject.mockResolvedValue(
+      makeReport({ reportId: 'rpt-1', status: 'DISMISSED', rejectionReason: 'Valid reason' }),
+    )
     mockListReports.mockResolvedValue([makeReport({ reportId: 'rpt-1' })])
 
     const wrapper = mount(GovernanceTakedownView, {
@@ -211,7 +216,8 @@ describe('GovernanceTakedownView.vue', () => {
     expect(rejectBtn).toBeDefined()
 
     // Open reject dialog
-    await rejectBtn!.trigger('click')
+    await rejectBtn!.element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
 
     // Find textarea and enter rejection reason
     const textarea = wrapper.find('textarea')
@@ -221,7 +227,7 @@ describe('GovernanceTakedownView.vue', () => {
     // Find confirm rejection button inside dialog and click it
     const actionBtn = wrapper.find('.ui-alert-dialog-action')
     expect(actionBtn.exists()).toBe(true)
-    await actionBtn.trigger('click')
+    await actionBtn.element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await flushPromises()
 
     expect(mockReject).toHaveBeenCalledTimes(1)

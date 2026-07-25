@@ -22,7 +22,7 @@ import kotlin.runCatching
  *
  * **What it checks:**
  * - `SMP_DB_PASSWORD` must contain at least 32 characters and must not use a placeholder.
- * - `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` must be configured without a placeholder.
+ * - `PUBLISHING_CREDENTIALS_KEY` must be configured without a placeholder.
  * - `SMP_LOCAL_JWT_SECRET` must be configured without a placeholder outside exclusive development.
  * - `SMP_MEDIA_PREVIEW_SIGNING_SECRET` must be configured without a placeholder because signed
  *   public media URLs rely on it as their access-control boundary.
@@ -39,7 +39,7 @@ import kotlin.runCatching
  *
  * **Related:**
  * - Issue #233 (MVP Launch Readiness): "No default credentials can reach production"
- * - Issue #176: `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` has no validation
+ * - Issue #176: `PUBLISHING_CREDENTIALS_KEY` has no validation
  * - [Production Secrets Reference](docs/production-secrets.md)
  *
  * @see com.profiletailors.smp.identity.infrastructure.security.LocalJwtSecretResolver
@@ -92,9 +92,9 @@ class ProductionCredentialsValidator(private val environment: Environment) {
     }
 
     private fun checkPublishingKey(): String? {
-        val credentialsKey = normalizedCredential("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY")
+        val credentialsKey = normalizedCredential("PUBLISHING_CREDENTIALS_KEY")
         return if (isUnsafeCredential(credentialsKey)) {
-            "PUBLISHING_CREDENTIALS_ENCRYPTION_KEY is not configured or uses an unsafe placeholder. " +
+            "PUBLISHING_CREDENTIALS_KEY is not configured or uses an unsafe placeholder. " +
                 "This key is required to encrypt " +
                 "OAuth access/refresh tokens stored in the database. Without it, LinkedIn " +
                 "publishing will fail. $SECRET_GENERATION_GUIDANCE"

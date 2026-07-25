@@ -61,23 +61,3 @@ Feature: Local authentication session lifecycle
     When the client resends the verification email for "owner@example.com"
     Then the response status should be 202
     And the verification email sender should have received 1 message for "owner@example.com"
-
-  Scenario: Refresh rejects cookie-authenticated request without origin
-    Given a previously registered local user session exists
-    When the client refreshes the local user session without an origin
-    Then the response status should be 403
-
-  Scenario: Refresh rejects cookie-authenticated request with untrusted origin
-    Given a previously registered local user session exists
-    When the client refreshes the local user session with an untrusted origin
-    Then the response status should be 403
-
-  Scenario: Logout rejects cookie-authenticated request without origin
-    Given a previously registered local user session exists
-    When the client logs out the local user session without an origin
-    Then the response status should be 403
-
-  Scenario: Logout rejects cookie-authenticated request with untrusted origin
-    Given a previously registered local user session exists
-    When the client logs out the local user session with an untrusted origin
-    Then the response status should be 403

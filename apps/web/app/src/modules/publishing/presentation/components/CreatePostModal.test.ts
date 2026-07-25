@@ -121,7 +121,6 @@ vi.mock('@lucide/vue', () => {
   const stub = { template: '<svg />' }
   return {
     Image: stub,
-    ImageIcon: stub,
     Calendar: stub,
     Check: stub,
     ChevronDown: stub,

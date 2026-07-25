@@ -26,9 +26,6 @@ class PublishingBddSteps {
     @Autowired
     private lateinit var bddDatabaseSupport: BddDatabaseSupport
 
-    @Autowired
-    private lateinit var providerCatalogPolicyControl: BddProviderCatalogPolicyControl
-
     private var latestPublishingResponse: EntityExchangeResult<ByteArray>? = null
     private var latestPublicationId: String? = null
     private var currentSocialConnectionId: String? = null
@@ -43,12 +40,10 @@ class PublishingBddSteps {
         currentSocialConnectionId = null
         currentSocialAccountId = null
         currentPublicationId = null
-        providerCatalogPolicyControl.reset()
     }
 
     @Given("a connected LinkedIn social account exists")
     fun givenConnectedLinkedInSocialAccountExists() = runBlocking {
-        bddDatabaseSupport.seedWorkspace()
         bddDatabaseSupport.seedSocialConnection("social-conn-1", "LINKEDIN", "ACTIVE")
         bddDatabaseSupport.seedSocialAccount(
             accountId = "social-acc-1",
@@ -277,65 +272,6 @@ class PublishingBddSteps {
             .returnResult()
     }
 
-    @Given("LinkedIn provider policy is hidden for the workspace")
-    fun givenLinkedInProviderPolicyIsHiddenForWorkspace() {
-        providerCatalogPolicyControl.setHidden(BddDatabaseSupport.WORKSPACE_ID)
-    }
-
-    @Given("LinkedIn provider policy is entitlement locked for the workspace")
-    fun givenLinkedInProviderPolicyIsEntitlementLockedForWorkspace() {
-        providerCatalogPolicyControl.setEntitlementLocked(BddDatabaseSupport.WORKSPACE_ID)
-    }
-
-    @Given("LinkedIn provider policy is capacity locked for the workspace")
-    fun givenLinkedInProviderPolicyIsCapacityLockedForWorkspace() {
-        providerCatalogPolicyControl.setCapacityLocked(BddDatabaseSupport.WORKSPACE_ID)
-    }
-
-    @Given("LinkedIn provider policy is available for workspace {string}")
-    fun givenLinkedInProviderPolicyIsAvailableForWorkspace(workspaceId: String) {
-        providerCatalogPolicyControl.setAvailable(workspaceId)
-    }
-
-    @Given("LinkedIn provider policy is entitlement locked for workspace {string}")
-    fun givenLinkedInProviderPolicyIsEntitlementLockedForWorkspace(workspaceId: String) {
-        providerCatalogPolicyControl.setEntitlementLocked(workspaceId)
-    }
-
-    @When("the client lists configured providers for workspace {string}")
-    fun whenClientListsConfiguredProvidersForWorkspace(workspaceId: String) {
-        latestPublishingResponse = webTestClient.get()
-            .uri(bddDatabaseSupport.publishingChannelProvidersPath())
-            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
-            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .header(BddDatabaseSupport.WORKSPACE_HEADER, workspaceId)
-            .exchange()
-            .expectBody()
-            .returnResult()
-    }
-
-    @When("the client initiates a LinkedIn connection")
-    fun whenClientInitiatesLinkedInConnection() {
-        latestPublishingResponse = initiateLinkedInConnection(
-            authorization = BddDatabaseSupport.VERIFIED_USER_BEARER,
-            workspaceId = BddDatabaseSupport.WORKSPACE_ID,
-        )
-    }
-
-    @When("the unauthenticated client initiates a LinkedIn connection")
-    fun whenUnauthenticatedClientInitiatesLinkedInConnection() {
-        latestPublishingResponse =
-            initiateLinkedInConnection(authorization = null, workspaceId = BddDatabaseSupport.WORKSPACE_ID)
-    }
-
-    @When("the client initiates a LinkedIn connection without workspace context")
-    fun whenClientInitiatesLinkedInConnectionWithoutWorkspaceContext() {
-        latestPublishingResponse = initiateLinkedInConnection(
-            authorization = BddDatabaseSupport.VERIFIED_USER_BEARER,
-            workspaceId = null,
-        )
-    }
-
     @Then("the publishing response status should be {int}")
     fun thenPublishingResponseStatusShouldBe(status: Int) {
         val response = latestPublishingResponse ?: error("No publishing response captured")
@@ -382,14 +318,6 @@ class PublishingBddSteps {
         }
     }
 
-    @Then("the channels list should contain the existing LinkedIn channel")
-    fun thenChannelsListShouldContainExistingLinkedInChannel() {
-        val channels: List<Map<String, Any?>> = parsePublishingResponseField("channels")
-        assertTrue(channels.any { it["provider"] == "LINKEDIN" }) {
-            "Expected the existing LinkedIn channel but got: $channels (body: ${publishingResponseBodyText()})"
-        }
-    }
-
     @Then("the providers list should contain {string}")
     fun thenProvidersListShouldContain(provider: String) {
         val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
@@ -398,81 +326,11 @@ class PublishingBddSteps {
         }
     }
 
-    @Then("the catalog should contain available LinkedIn personal profile without secrets or plans")
-    fun thenCatalogShouldContainAvailableLinkedInPersonalProfileWithoutSecretsOrPlans() {
-        val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
-        val linkedIn = providers.single { it["provider"] == "linkedin" }
-
-        assertEquals(listOf("PERSONAL_PROFILE"), linkedIn["accountKinds"])
-        assertEquals("AVAILABLE", linkedIn["state"])
-        assertEquals(null, linkedIn["reason"])
-        assertEquals(null, linkedIn["channelLimit"])
-        assertEquals(true, linkedIn["canConnectMore"])
-        assertTrue(!publishingResponseBodyText().contains("clientSecret"))
-        assertTrue(!publishingResponseBodyText().contains("plan"))
-    }
-
-    @Then("the catalog should omit LinkedIn")
-    fun thenCatalogShouldOmitLinkedIn() {
-        val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
-        assertTrue(providers.none { it["provider"] == "linkedin" }) {
-            "Expected LinkedIn to be omitted but got: $providers (body: ${publishingResponseBodyText()})"
-        }
-    }
-
-    @Then("the catalog should contain LinkedIn locked for {string}")
-    fun thenCatalogShouldContainLinkedInLockedFor(reason: String) {
-        val linkedIn = linkedInCatalogItem()
-        assertEquals("LOCKED", linkedIn["state"])
-        assertEquals(reason, linkedIn["reason"])
-    }
-
-    @Then("the catalog should contain LinkedIn locked for {string} with {int} connected channel")
-    fun thenCatalogShouldContainLinkedInLockedForWithConnectedChannel(reason: String, connectedChannelCount: Int) {
-        thenCatalogShouldContainLinkedInLockedFor(reason)
-        assertEquals(connectedChannelCount, linkedInCatalogItem()["connectedChannelCount"])
-        assertEquals(false, linkedInCatalogItem()["canConnectMore"])
-    }
-
-    @Then("the OAuth denial should report {string} without authorization details")
-    fun thenOAuthDenialShouldReportReasonWithoutAuthorizationDetails(reason: String) {
-        val body = publishingResponseBodyText()
-        assertTrue(body.contains(reason)) { "Expected policy reason $reason in response: $body" }
-        assertTrue(!body.contains("authorizationUrl")) { "OAuth denial must not expose an authorization URL: $body" }
-        assertTrue(!body.contains("\"state\"")) { "OAuth denial must not expose OAuth state: $body" }
-    }
-
     private fun extractPublicationIdFromResponse(): String =
         latestPublicationId ?: error("No publication ID available from previous response")
 
     private fun publishingResponseBodyText(): String =
         String(latestPublishingResponse?.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
-
-    private fun linkedInCatalogItem(): Map<String, Any?> {
-        val providers: List<Map<String, Any?>> = parsePublishingResponseField("providers")
-        return providers.single { it["provider"] == "linkedin" }
-    }
-
-    private fun initiateLinkedInConnection(
-        authorization: String?,
-        workspaceId: String?,
-    ): EntityExchangeResult<ByteArray> {
-        var request = webTestClient.post()
-            .uri("/api/publishing/linkedin/connections/initiate")
-            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .contentType(MediaType.APPLICATION_JSON)
-        if (authorization != null) {
-            request = request.header(HttpHeaders.AUTHORIZATION, authorization)
-        }
-        if (workspaceId != null) {
-            request = request.header(BddDatabaseSupport.WORKSPACE_HEADER, workspaceId)
-        }
-        return request
-            .bodyValue("""{"redirectUri":"https://app.example.com/callback"}""")
-            .exchange()
-            .expectBody()
-            .returnResult()
-    }
 
     private inline fun <reified T> parsePublishingResponseField(field: String): T {
         val body = publishingResponseBodyText()

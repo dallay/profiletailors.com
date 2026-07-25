@@ -14,12 +14,9 @@ class MediaProperties(
     val maxCreationsPerHour: Int = 200,
     val storage: Storage = Storage(),
     val stale: Stale = Stale(),
-    val dedup: Dedup = Dedup(),
     val previewUrlExpirySeconds: Long = 3600,
 ) {
     class Storage(val bucket: String = "attachments")
 
     class Stale(val thresholdHours: Long = 2, val gracePeriodMinutes: Long = 30)
-
-    class Dedup(val enabled: Boolean = true)
 }

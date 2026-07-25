@@ -1,23 +1,13 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { consumeSseStream } from '@shared/lib/sse'
-import type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 import { resolveApiUrl, useAuthStore } from '@modules/auth'
-
-export type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 
 // ---------------------------------------------------------------------------
 // Types — Channel & Publication (frontend model)
 // ---------------------------------------------------------------------------
 
 export type SocialProvider = 'twitter' | 'linkedin' | 'instagram' | 'facebook'
-export type ChannelProvider = string
-
-const SOCIAL_PROVIDERS = new Set<SocialProvider>(['twitter', 'linkedin', 'instagram', 'facebook'])
-
-export function isSocialProvider(provider: string): provider is SocialProvider {
-  return SOCIAL_PROVIDERS.has(provider as SocialProvider)
-}
 
 export type SocialConnectionResult = {
   connectionId: string
@@ -38,7 +28,7 @@ export type SocialAccountSummary = {
 export type Channel = {
   id: string
   name: string
-  provider: ChannelProvider
+  provider: SocialProvider
   avatar: string
   avatarUrl?: string
   handle: string
@@ -175,10 +165,6 @@ export type ConnectedChannelsResponse = {
   channels: ConnectedSocialChannelSummary[]
 }
 
-type ProviderCatalogResponse = {
-  providers: ProviderCatalogItem[]
-}
-
 type LinkedInConnectionInitiationResult = {
   authorizationUrl: string
   state: string
@@ -220,7 +206,8 @@ function readStoredPublications(): string | null {
 /** Maps a backend provider string to the frontend channel type. */
 function toChannelProvider(backendProvider: string): Publication['channels'][number] {
   const lower = backendProvider.toLowerCase()
-  return isSocialProvider(lower) ? lower : 'linkedin'
+  const known = new Set(['twitter', 'linkedin', 'instagram', 'facebook'])
+  return known.has(lower) ? (lower as Publication['channels'][number]) : 'linkedin'
 }
 
 const CHANNEL_ATTACHMENT_LIMITS: Record<SocialProvider, number> = {
@@ -230,12 +217,12 @@ const CHANNEL_ATTACHMENT_LIMITS: Record<SocialProvider, number> = {
   facebook: 10,
 }
 
-function resolveChannelMaxAttachments(provider: string): number | undefined {
-  return CHANNEL_ATTACHMENT_LIMITS[provider as SocialProvider]
+function resolveChannelMaxAttachments(provider: SocialProvider): number {
+  return CHANNEL_ATTACHMENT_LIMITS[provider]
 }
 
 function apiChannelToChannel(api: ConnectedSocialChannelSummary): Channel {
-  const provider = api.provider.toLowerCase()
+  const provider = toChannelProvider(api.provider)
 
   return {
     id: api.socialAccountId,
@@ -385,7 +372,6 @@ export const usePublishingStore = defineStore('publishing', () => {
   const channelsError = ref<string | null>(null)
   const channelEventsConnected = ref(false)
   const channelEventsAbortController = ref<AbortController | null>(null)
-  const latestChannelsFetchId = ref(0)
 
   // Monotonic counter that tracks the most recent in-flight fetchCalendar call.
   // Stale callers compare their captured id against this and bail out before
@@ -393,11 +379,9 @@ export const usePublishingStore = defineStore('publishing', () => {
   // rapid watcher firings when URL state changes) cannot clobber newer data.
   const latestCalendarFetchId = ref(0)
 
-  const providerCatalog = ref<ProviderCatalogItem[]>([])
-  const providerCatalogError = ref<string | null>(null)
+  // Configured providers (which channels are available to connect)
   const configuredProviders = ref<string[]>([])
   const providersLoading = ref(false)
-  const latestProviderCatalogFetchId = ref(0)
 
   // Seeding initial mock publications
   const initialPublications: Publication[] = [
@@ -492,7 +476,6 @@ export const usePublishingStore = defineStore('publishing', () => {
   // -----------------------------------------------------------------------
 
   async function fetchChannels(): Promise<Channel[]> {
-    const fetchId = ++latestChannelsFetchId.value
     if (!auth.isAuthenticated) {
       channels.value = []
       channelsError.value = null
@@ -507,60 +490,36 @@ export const usePublishingStore = defineStore('publishing', () => {
         method: 'GET',
         workspaceScoped: true,
       })
-      if (fetchId !== latestChannelsFetchId.value) return channels.value
       channels.value = data.channels.map(apiChannelToChannel)
       return channels.value
     } catch (err) {
-      if (fetchId !== latestChannelsFetchId.value) return channels.value
       const message = err instanceof Error ? err.message : 'Unable to load connected channels.'
       channelsError.value = message
       throw err
     } finally {
-      if (fetchId === latestChannelsFetchId.value) channelsLoading.value = false
-    }
-  }
-
-  async function fetchProviderCatalog(): Promise<ProviderCatalogItem[]> {
-    const fetchId = ++latestProviderCatalogFetchId.value
-    if (!auth.isAuthenticated) {
-      providerCatalog.value = []
-      providerCatalogError.value = null
-      configuredProviders.value = []
-      return []
-    }
-
-    providersLoading.value = true
-    providerCatalogError.value = null
-    providerCatalog.value = []
-    try {
-      const data = await auth.apiFetch<ProviderCatalogResponse>(
-        '/api/publishing/channels/providers',
-        { method: 'GET', workspaceScoped: true },
-      )
-      if (fetchId !== latestProviderCatalogFetchId.value) return providerCatalog.value
-      providerCatalog.value = data.providers
-      configuredProviders.value = data.providers
-        .filter((provider) => provider.state === 'AVAILABLE')
-        .map((provider) => provider.provider)
-      return providerCatalog.value
-    } catch (err) {
-      if (fetchId !== latestProviderCatalogFetchId.value) return providerCatalog.value
-      providerCatalog.value = []
-      configuredProviders.value = []
-      providerCatalogError.value =
-        err instanceof Error ? err.message : 'Unable to load available providers.'
-      throw err
-    } finally {
-      if (fetchId === latestProviderCatalogFetchId.value) providersLoading.value = false
+      channelsLoading.value = false
     }
   }
 
   async function fetchConfiguredProviders(): Promise<void> {
-    await fetchProviderCatalog()
-  }
+    if (!auth.isAuthenticated) {
+      configuredProviders.value = []
+      return
+    }
 
-  async function refreshWorkspaceData(): Promise<void> {
-    await Promise.allSettled([fetchChannels(), fetchProviderCatalog()])
+    providersLoading.value = true
+    try {
+      const data = await auth.apiFetch<{ providers: { name: string; configured: boolean }[] }>(
+        '/api/publishing/channels/providers',
+        { method: 'GET', workspaceScoped: true },
+      )
+      configuredProviders.value = data.providers.filter((p) => p.configured).map((p) => p.name)
+    } catch {
+      // Silently fail — preserve existing provider state rather than collapsing
+      // transient network errors into a "not configured" state
+    } finally {
+      providersLoading.value = false
+    }
   }
 
   const isLinkedInConfigured = computed(() => configuredProviders.value.includes('linkedin'))
@@ -1102,8 +1061,6 @@ export const usePublishingStore = defineStore('publishing', () => {
     channelsError,
     channelEventsConnected,
     channelEventsAbortController,
-    providerCatalog,
-    providerCatalogError,
     publications,
     activity,
     conflicts,
@@ -1124,9 +1081,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     isPublicationDeletable,
     // Actions
     fetchChannels,
-    fetchProviderCatalog,
     fetchConfiguredProviders,
-    refreshWorkspaceData,
     connectLinkedInPersonalProfile,
     completeLinkedInConnectionFromCallback,
     subscribeChannelEvents,
