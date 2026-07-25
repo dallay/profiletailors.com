@@ -49,7 +49,8 @@ vi.mock('@/components/ui/alert-dialog', () => ({
   AlertDialogFooter: { template: '<div class="ui-alert-dialog-footer"><slot /></div>' },
   AlertDialogCancel: { template: '<button class="ui-alert-dialog-cancel"><slot /></button>' },
   AlertDialogAction: {
-    template: '<button class="ui-alert-dialog-action" @click="$emit(\'click\')"><slot /></button>',
+    emits: ['click'],
+    template: '<button class="ui-alert-dialog-action" @click.stop="$emit(\'click\')"><slot /></button>',
   },
 }))
 
@@ -58,7 +59,11 @@ vi.mock('@/components/ui/label', () => ({
 }))
 
 vi.mock('@/components/ui/textarea', () => ({
-  Textarea: { template: '<textarea />' },
+  Textarea: {
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template: '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+  },
 }))
 
 vi.mock('@lucide/vue', () => {
@@ -190,8 +195,38 @@ describe('GovernanceTakedownView.vue', () => {
     expect(mockApprove).toHaveBeenCalledWith('rpt-1')
   })
 
-  // Reject-flow interaction test needs AlertDialog open/close orchestration
-  // which depends on Radix-vue internals. The approve test above validates
-  // the click → handler → API pattern for the simpler case.
-  it.todo('calls rejectTakedown with rejection reason after opening reject dialog')
+  it('calls rejectTakedown with rejection reason after opening reject dialog', async () => {
+    mockReject.mockResolvedValue(makeReport({ reportId: 'rpt-1', status: 'DISMISSED', rejectionReason: 'Valid reason' }))
+    mockListReports.mockResolvedValue([makeReport({ reportId: 'rpt-1' })])
+
+    const wrapper = mount(GovernanceTakedownView, {
+      global: {
+        stubs: { Teleport: true },
+        mocks: { $t: (key: string) => key },
+      },
+    })
+    await flushPromises()
+
+    const buttons = wrapper.findAll('button')
+    const rejectBtn = buttons.find((b) => b.text() === 'governance.takedown.review.rejectAction')
+    expect(rejectBtn).toBeDefined()
+
+    // Open reject dialog
+    await rejectBtn!.element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+
+    // Find textarea and enter rejection reason
+    const textarea = wrapper.find('textarea')
+    expect(textarea.exists()).toBe(true)
+    await textarea.setValue('Valid reason')
+
+    // Find confirm rejection button inside dialog and click it
+    const actionBtn = wrapper.find('.ui-alert-dialog-action')
+    expect(actionBtn.exists()).toBe(true)
+    await actionBtn.element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+
+    expect(mockReject).toHaveBeenCalledTimes(1)
+    expect(mockReject).toHaveBeenCalledWith('rpt-1', { rejectionReason: 'Valid reason' })
+  })
 })

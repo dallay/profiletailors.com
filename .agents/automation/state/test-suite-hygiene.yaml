@@ -1,5 +1,38 @@
 schemaVersion: 1
 task: test-suite-hygiene
-lastExecution: null
-findings: [ ]
-checks: [ ]
+lastExecution: "2026-07-22T18:15:00Z"
+findings:
+  - id: "apps-web-app-e2e-specs-register-flow-webkit-skip"
+    type: "skipped-test"
+    file: "apps/web/app/e2e/specs/register-flow.spec.ts"
+    details: "WebKit project is skipped/excluded from register-flow E2E tests due to known Playwright cookie handling limitations with routeFromHAR responses."
+    status: "ignored"
+    reason: "Documented platform/engine constraint (WebKit is officially excluded from the Dashboard E2E matrix)."
+  - id: "apps-web-app-e2e-specs-security-webkit-skip"
+    type: "skipped-test"
+    file: "apps/web/app/e2e/specs/security.spec.ts"
+    details: "WebKit project is skipped/excluded from security E2E tests due to known Playwright cookie handling limitations with routeFromHAR responses."
+    status: "ignored"
+    reason: "Documented platform/engine constraint (WebKit is officially excluded from the Dashboard E2E matrix)."
+  - id: "server-smp-modular-structure-test-disabled-1"
+    type: "disabled-test"
+    file: "server/smp/src/test/kotlin/com/profiletailors/smp/ModularStructureTest.kt"
+    details: "Prints module structure to console (@Disabled('Manual test - prints module structure to console'))"
+    status: "ignored"
+    reason: "Intended as a manual utility/test run on demand rather than a standard CI/CD assertion."
+  - id: "server-smp-modular-structure-test-disabled-2"
+    type: "disabled-test"
+    file: "server/smp/src/test/kotlin/com/profiletailors/smp/ModularStructureTest.kt"
+    details: "Generates documentation files (@Disabled('Manual test - generates documentation files'))"
+    status: "ignored"
+    reason: "Intended as a manual utility/test run on demand rather than a standard CI/CD assertion."
+  - id: "apps-web-app-governance-takedown-view-test-todo"
+    type: "todo-test"
+    file: "apps/web/app/src/modules/governance/views/GovernanceTakedownView.test.ts"
+    details: "it.todo('calls rejectTakedown with rejection reason after opening reject dialog')"
+    status: "resolved"
+checks:
+  - name: "Vitest Governance Takedown Unit Tests"
+    status: "Passed"
+  - name: "Playwright Governance Takedown E2E Tests"
+    status: "Passed"
