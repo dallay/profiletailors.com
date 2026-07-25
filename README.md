@@ -26,6 +26,12 @@ Public-facing marketing site for the Profile Tailors social media management pla
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![codecov](https://codecov.io/gh/dallay/profiletailors.com/graph/badge.svg?token=B70EGR3KBD)](https://codecov.io/gh/dallay/profiletailors.com)
 
+---
+
+## Getting Started
+
+### Repository Structure
+
 ```text
 profiletailors.com/
 ├── apps/
@@ -65,10 +71,6 @@ profiletailors.com/
 ├── LICENSE
 └── README.md
 ```
-
----
-
-## Getting Started
 
 ### Prerequisites
 
