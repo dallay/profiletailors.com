@@ -1,5 +1,17 @@
 schemaVersion: 1
 task: api-contract-drift-auditor
-lastExecution: null
-findings: [ ]
-checks: [ ]
+lastExecution: "2026-07-19T18:55:00Z"
+findings:
+  - id: privacy-dsar-contract-drift
+    status: resolved
+    severity: MEDIUM
+    description: "Mismatch between frontend payload structure (nested correctionData) and backend DTO properties (flat root properties newEmail and newUsername) for DSAR correction requests, as well as returned DTO shapes from submit and list/detail endpoints."
+    location: "apps/web/app/src/modules/settings/infrastructure/privacy.store.ts"
+    evidence: "Flat backend model in SubmitPrivacyRequestDto and PrivacyRequestStatusResponseDto vs. nested front-end DTO expectations in privacy.store.ts."
+checks:
+  - id: frontend-unit-tests
+    status: Passed
+    executedAt: "2026-07-19T18:53:36Z"
+  - id: marketing-unit-tests
+    status: Passed
+    executedAt: "2026-07-19T18:48:18Z"
