@@ -19,7 +19,7 @@ class ProductionCredentialsValidatorTest {
     fun `should fail when SMP_DB_PASSWORD is CHANGE_ME`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "valid-key-here")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "valid-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-32-bytes-minimum!")
         }
         val validator = ProductionCredentialsValidator(environment)
@@ -51,7 +51,7 @@ class ProductionCredentialsValidatorTest {
     fun `should fail when SMP_DB_PASSWORD is blank`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "valid-key-here")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "valid-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-32-bytes-minimum!")
         }
         val validator = ProductionCredentialsValidator(environment)
@@ -79,10 +79,10 @@ class ProductionCredentialsValidatorTest {
     }
 
     @Test
-    fun `should fail when PUBLISHING_CREDENTIALS_KEY is blank`() {
+    fun `should fail when PUBLISHING_CREDENTIALS_ENCRYPTION_KEY is blank`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "strong-password-here")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-32-bytes-minimum!")
         }
         val validator = ProductionCredentialsValidator(environment)
@@ -91,14 +91,14 @@ class ProductionCredentialsValidatorTest {
             validator.validateCredentials()
         }
 
-        exception.message shouldContain "PUBLISHING_CREDENTIALS_KEY"
+        exception.message shouldContain "PUBLISHING_CREDENTIALS_ENCRYPTION_KEY"
         exception.message shouldContain "OAuth"
     }
 
     @Test
     fun `should reject a publishing key placeholder with leading whitespace`() {
         val environment = validEnvironment().apply {
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "  CHANGE_ME_PUBLISHING_KEY")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "  CHANGE_ME_PUBLISHING_KEY")
         }
         val validator = ProductionCredentialsValidator(environment)
 
@@ -106,7 +106,7 @@ class ProductionCredentialsValidatorTest {
             validator.validateCredentials()
         }
 
-        exception.message shouldContain "PUBLISHING_CREDENTIALS_KEY"
+        exception.message shouldContain "PUBLISHING_CREDENTIALS_ENCRYPTION_KEY"
         exception.message shouldContain "unsafe placeholder"
     }
 
@@ -114,7 +114,7 @@ class ProductionCredentialsValidatorTest {
     fun `should fail when both SMP_LOCAL_JWT_SECRET and SMP_LOCAL_JWT_DEV_FALLBACK are blank`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "strong-password-here")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "valid-key-here")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "valid-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setProperty("SMP_LOCAL_JWT_DEV_FALLBACK", "")
         }
@@ -132,7 +132,7 @@ class ProductionCredentialsValidatorTest {
     fun `should fail when SMP_MEDIA_PREVIEW_SIGNING_SECRET is blank`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "strong-password-here")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "valid-key-here")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "valid-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-32-bytes-minimum!")
             setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "")
         }
@@ -195,7 +195,7 @@ class ProductionCredentialsValidatorTest {
     fun `should not accept media preview YAML fallback like random uuid`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "strong-password-here")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "valid-key-here")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "valid-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-32-bytes-minimum!")
             setProperty("media.preview-signing-secret", "\${random.uuid}")
             setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "valid-linkedin-state-secret-32-bytes")
@@ -213,7 +213,7 @@ class ProductionCredentialsValidatorTest {
     fun `should fail with multiple violations when multiple secrets are invalid`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setProperty("SMP_LOCAL_JWT_DEV_FALLBACK", "")
             setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "")
@@ -225,7 +225,7 @@ class ProductionCredentialsValidatorTest {
         }
 
         exception.message shouldContain "SMP_DB_PASSWORD"
-        exception.message shouldContain "PUBLISHING_CREDENTIALS_KEY"
+        exception.message shouldContain "PUBLISHING_CREDENTIALS_ENCRYPTION_KEY"
         exception.message shouldContain "SMP_LOCAL_JWT_SECRET"
         exception.message shouldContain "SMP_MEDIA_PREVIEW_SIGNING_SECRET"
         exception.message shouldContain "SMP_LINKEDIN_STATE_SIGNING_SECRET"
@@ -235,7 +235,7 @@ class ProductionCredentialsValidatorTest {
     fun `should pass when all credentials are properly configured`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "  strong-random-password-at-least-32-chars  ")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "  base64-encoded-32-byte-key-here  ")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "  base64-encoded-32-byte-key-here  ")
             setProperty("SMP_LOCAL_JWT_SECRET", "  valid-secret-minimum-32-bytes!  ")
             setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "  valid-media-preview-secret-32-bytes  ")
             setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "  valid-linkedin-state-secret-32-bytes  ")
@@ -250,7 +250,7 @@ class ProductionCredentialsValidatorTest {
     fun `should pass when SMP_LOCAL_JWT_DEV_FALLBACK is set instead of SMP_LOCAL_JWT_SECRET`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "strong-random-password-at-least-32-chars")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "base64-encoded-32-byte-key-here")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "base64-encoded-32-byte-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setProperty("SMP_LOCAL_JWT_DEV_FALLBACK", "valid-fallback-secret-32-bytes!")
             setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "valid-media-preview-secret-32-bytes")
@@ -319,7 +319,7 @@ class ProductionCredentialsValidatorTest {
         val environment = MockEnvironment().apply {
             // Intentionally use unsafe values
             setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setActiveProfiles("test")
         }
@@ -333,7 +333,7 @@ class ProductionCredentialsValidatorTest {
     fun `should fail in dev profile when credentials are invalid`() {
         val environment = MockEnvironment().apply {
             setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setActiveProfiles("dev")
         }
@@ -356,7 +356,7 @@ class ProductionCredentialsValidatorTest {
         val environment = MockEnvironment().apply {
             // Intentionally use unsafe values
             setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             // Previous detection attempted to use this property, but it's never
             // exposed through the Environment by Spring Boot TestContext framework
@@ -375,7 +375,7 @@ class ProductionCredentialsValidatorTest {
         val environment = MockEnvironment().apply {
             // Intentionally use unsafe values
             setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             // Simulate BDD test context (set in CucumberSpringConfiguration)
             setProperty("bdd.variant", "fast")
@@ -391,7 +391,7 @@ class ProductionCredentialsValidatorTest {
         val environment = MockEnvironment().apply {
             // Intentionally use unsafe values
             setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
-            setProperty("PUBLISHING_CREDENTIALS_KEY", "")
+            setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             // Simulate non-web production context (batch/worker app)
             setProperty("spring.main.web-application-type", "NONE")
@@ -406,7 +406,7 @@ class ProductionCredentialsValidatorTest {
 
     private fun validEnvironment() = MockEnvironment().apply {
         setProperty("SMP_DB_PASSWORD", "strong-random-password-at-least-32-chars")
-        setProperty("PUBLISHING_CREDENTIALS_KEY", "base64-encoded-32-byte-key-here")
+        setProperty("PUBLISHING_CREDENTIALS_ENCRYPTION_KEY", "base64-encoded-32-byte-key-here")
         setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-minimum-32-bytes!")
         setProperty("SMP_MEDIA_PREVIEW_SIGNING_SECRET", "valid-media-preview-secret-32-bytes")
         setProperty("SMP_LINKEDIN_STATE_SIGNING_SECRET", "valid-linkedin-state-secret-32-bytes")

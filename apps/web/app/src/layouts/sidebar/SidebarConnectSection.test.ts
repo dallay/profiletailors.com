@@ -1,87 +1,67 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import SidebarConnectSection, { type ConnectChannel } from './SidebarConnectSection.vue'
+import SidebarConnectSection from './SidebarConnectSection.vue'
+import type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }))
 
-const providers: ConnectChannel[] = [
-  { id: 'linkedin', label: 'LinkedIn profile', badge: 'in' },
-  { id: 'threads', label: 'Threads', badge: '@' },
-  { id: 'bluesky', label: 'Bluesky', badge: 'b' },
-  { id: 'facebook', label: 'Facebook', badge: 'f' },
+const providers: ProviderCatalogItem[] = [
+  {
+    provider: 'linkedin',
+    accountKinds: ['PERSONAL_PROFILE'],
+    state: 'AVAILABLE',
+    reason: null,
+    channelLimit: null,
+    connectedChannelCount: 0,
+    canConnectMore: true,
+  },
+  {
+    provider: 'instagram',
+    accountKinds: ['PERSONAL_PROFILE'],
+    state: 'LOCKED',
+    reason: 'CAPACITY_REACHED',
+    channelLimit: null,
+    connectedChannelCount: 1,
+    canConnectMore: true,
+  },
+  {
+    provider: 'threads',
+    accountKinds: ['PERSONAL_PROFILE'],
+    state: 'HIDDEN',
+    reason: null,
+    channelLimit: null,
+    connectedChannelCount: 0,
+    canConnectMore: true,
+  },
 ]
 
 describe('SidebarConnectSection', () => {
-  beforeEach(() => {
-    vi.useFakeTimers()
-  })
-
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  it('renders 4 connect buttons + a More button', () => {
-    const wrapper = mount(SidebarConnectSection, { props: { providers } })
-    const buttons = wrapper.findAll('button')
-    // 4 providers + 1 More button = 5
-    expect(buttons).toHaveLength(5)
-  })
-
-  it('emits connect(linkedin) when the LinkedIn row is clicked', async () => {
+  it('renders an available provider as an actionable connect CTA', async () => {
     const wrapper = mount(SidebarConnectSection, { props: { providers } })
 
-    // Find the LinkedIn button — it contains "LinkedIn profile" and "+ connect"
-    const li = wrapper.findAll('button').find((b) => b.text().includes('LinkedIn profile'))
-    expect(li).toBeTruthy()
-    await li?.trigger('click')
+    const connectButton = wrapper.get('[data-testid="connect-provider-linkedin"]')
+    expect(connectButton.text()).toContain('LinkedIn')
+    await connectButton.trigger('click')
 
-    expect(wrapper.emitted('connect')).toBeTruthy()
-    const payload = wrapper.emitted('connect')?.[0]?.[0] as ConnectChannel
-    expect(payload.id).toBe('linkedin')
+    expect(wrapper.emitted('connect')?.[0]).toEqual([providers[0]])
   })
 
-  it('shows a transient "coming soon" message on Threads click and auto-clears after 3500ms', async () => {
+  it('renders a locked provider reason without an actionable CTA', () => {
     const wrapper = mount(SidebarConnectSection, { props: { providers } })
 
-    const threads = wrapper.findAll('button').find((b) => b.text().includes('Threads'))
-    await threads?.trigger('click')
-
-    // The connect message paragraph should appear (aria-live)
-    const live = wrapper.find('[aria-live="polite"]')
-    expect(live.exists()).toBe(true)
-    expect(live.text()).toContain('Threads')
-
-    // Advance past the 3500ms default
-    vi.advanceTimersByTime(3500)
-    await wrapper.vm.$nextTick()
-
-    // After timer fires, the message paragraph is gone
-    expect(wrapper.find('[aria-live="polite"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="locked-provider-instagram"]').text()).toContain(
+      'CAPACITY_REACHED',
+    )
+    expect(wrapper.find('[data-testid="connect-provider-instagram"]').exists()).toBe(false)
   })
 
-  it('emits more() on the More button', async () => {
+  it('omits hidden providers and all static coming-soon controls', () => {
     const wrapper = mount(SidebarConnectSection, { props: { providers } })
 
-    const more = wrapper.findAll('button').find((b) => b.text().includes('channels.more'))
-    expect(more).toBeTruthy()
-    await more?.trigger('click')
-
-    expect(wrapper.emitted('more')).toBeTruthy()
-  })
-
-  it('cancels the pending timer on unmount', async () => {
-    const wrapper = mount(SidebarConnectSection, { props: { providers } })
-
-    const threads = wrapper.findAll('button').find((b) => b.text().includes('Threads'))
-    await threads?.trigger('click')
-
-    // Message present
-    expect(wrapper.find('[aria-live="polite"]').exists()).toBe(true)
-
-    // Unmount before 3500ms — no error, no late callback
-    wrapper.unmount()
-    vi.advanceTimersByTime(5000)
+    expect(wrapper.text()).not.toContain('Threads')
+    expect(wrapper.text()).not.toContain('channels.more')
+    expect(wrapper.findAll('button')).toHaveLength(1)
   })
 })
