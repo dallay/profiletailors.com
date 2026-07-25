@@ -1,25 +1,40 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
-import { type AuthCredentials, authCredentialsSchema, registerSchema } from '@shared/lib/validation/schemas'
 import type { RegisterPayload } from '@modules/auth/infrastructure/auth-api'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublicCapabilitiesStore } from '@modules/auth/infrastructure/public-capabilities.store'
+import { useAuthForm } from '@modules/auth/application/useAuthForm'
 
 const { t } = useI18n()
 const auth = useAuthStore()
-const route = useRoute()
 const router = useRouter()
 const capabilities = usePublicCapabilitiesStore()
+
+const {
+  email,
+  password,
+  confirmPassword,
+  confirmedAgeEligibility,
+  acceptedTerms,
+  formError,
+  isSubmitting,
+  isRegisterMode,
+  fieldErrors,
+  validateForm,
+  getFormPayload,
+  resetForm,
+  setFormError,
+  setSubmitting,
+} = useAuthForm()
 
 onMounted(() => {
   capabilities.load()
 })
 
-const isRegisterMode = computed(() => route.name === 'register')
-const alternateRoute = computed(() => isRegisterMode.value ? '/login' : '/register')
+const alternateRoute = computed(() => (isRegisterMode.value ? '/login' : '/register'))
 const showRegistrationLink = computed(
   () => !isRegisterMode.value && capabilities.capabilityChecked && capabilities.registrationEnabled,
 )
@@ -27,81 +42,40 @@ const registrationClosed = computed(
   () => isRegisterMode.value && capabilities.capabilityChecked && !capabilities.registrationEnabled,
 )
 
-const email = ref('')
-const password = ref('')
-const confirmPassword = ref('')
-const confirmedAgeEligibility = ref(false)
-const acceptedTerms = ref(false)
-const formError = ref<string | null>(null)
-const fieldErrors = ref<{ email?: string; password?: string; confirmPassword?: string; confirmedAgeEligibility?: string; acceptedTerms?: string }>({})
-
-if (auth.error) {
-  formError.value = auth.error
-}
-
-// Clear form and store state when navigating between /login and /register
-// (both use the same AuthView component, so setup() runs only once)
-watch(() => route.name, () => {
-  formError.value = null
-  fieldErrors.value = {}
-  email.value = ''
-  password.value = ''
-  confirmPassword.value = ''
-  confirmedAgeEligibility.value = false
-  acceptedTerms.value = false
-  auth.clearError()
-})
-
 async function handleSubmit() {
-  formError.value = null
-  fieldErrors.value = {}
+  setFormError(null)
   auth.clearError()
 
-  const validationResult = isRegisterMode.value
-    ? registerSchema.safeParse({
-        email: email.value,
-        password: password.value,
-        confirmPassword: confirmPassword.value,
-        confirmedAgeEligibility: confirmedAgeEligibility.value,
-        acceptedTerms: acceptedTerms.value,
-      })
-    : authCredentialsSchema.safeParse({ email: email.value, password: password.value })
-
-  if (!validationResult.success) {
-    const errors = validationResult.error.flatten().fieldErrors as Partial<
-      Record<'email' | 'password' | 'confirmPassword' | 'confirmedAgeEligibility' | 'acceptedTerms', string[]>
-    >
-    fieldErrors.value = {
-      email: errors.email?.[0],
-      password: errors.password?.[0],
-      confirmPassword: errors.confirmPassword?.[0],
-      confirmedAgeEligibility: errors.confirmedAgeEligibility?.[0],
-      acceptedTerms: errors.acceptedTerms?.[0],
-    }
+  if (!validateForm()) {
     return
   }
 
-  const payload = validationResult.data
+  setSubmitting(true)
 
   try {
-    if (isRegisterMode.value) {
-      // confirmPassword is only for client-side validation; not sent to the server
-      const { email, password } = payload as AuthCredentials
+    const payload = getFormPayload()
+
+    if (payload.type === 'register') {
       const registerPayload: RegisterPayload = {
-        email,
-        password,
+        email: payload.data.email,
+        password: payload.data.password,
         confirmedAgeEligibility: true,
         acceptedTermsVersion: 'terms-v1.0.0',
       }
       await auth.registerWithPassword(registerPayload)
     } else {
-      await auth.loginWithPassword(payload as AuthCredentials)
+      await auth.loginWithPassword({
+        email: payload.data.email,
+        password: payload.data.password,
+      })
     }
 
-    const redirectTo = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+    const redirectTo = typeof router.currentRoute.value.query.redirect === 'string' ? router.currentRoute.value.query.redirect : '/'
     await router.replace(redirectTo)
-  } catch {
-    formError.value = auth.error
+  } catch (err) {
+    setFormError(auth.error || 'Unknown error')
+  } finally {
+    setSubmitting(false)
   }
 }
 </script>

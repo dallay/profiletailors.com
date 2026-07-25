@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -7,81 +7,26 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { approveTakedown, listTakedownReports, rejectTakedown, type TakedownReportResponse, type TakedownReportStatus } from '@modules/governance/services/governance-api'
+import { useTakedownReportLoader, useTakedownReportFilters, useRejectReportDialog, useTakedownReportActions } from '@modules/governance/application'
 
 const { t } = useI18n()
 
-const reports = ref<TakedownReportResponse[]>([])
-const isLoading = ref(true)
-const mutatingIds = reactive(new Set<string>())
-const error = ref<string | null>(null)
-const statusFilter = ref<TakedownReportStatus | 'ALL'>('ALL')
+// Use composables
+const loader = useTakedownReportLoader(t)
+const filters = useTakedownReportFilters(loader.reports)
+const rejectDialog = useRejectReportDialog()
+const actions = useTakedownReportActions(loader.reports, t)
 
-const rejectReportId = ref<string | null>(null)
-const rejectionReason = ref('')
-
-const filteredReports = computed(() => {
-  if (statusFilter.value === 'ALL') {
-    return reports.value
-  }
-  return reports.value.filter((r) => r.status === statusFilter.value)
-})
-
-async function loadReports() {
-  isLoading.value = true
-  error.value = null
-  try {
-    reports.value = await listTakedownReports()
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : t('governance.takedown.review.errors.loadFailed')
-  } finally {
-    isLoading.value = false
-  }
+async function handleApproveClick(reportId: string) {
+  await actions.handleApprove(reportId)
 }
 
-async function handleApprove(reportId: string) {
-  mutatingIds.add(reportId)
-  error.value = null
-  try {
-    const updated = await approveTakedown(reportId)
-    const idx = reports.value.findIndex((r) => r.reportId === reportId)
-    if (idx !== -1) {
-      reports.value[idx] = updated
-    }
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : t('governance.takedown.review.errors.approveFailed')
-  } finally {
-    mutatingIds.delete(reportId)
-  }
-}
-
-function openRejectDialog(reportId: string) {
-  rejectReportId.value = reportId
-  rejectionReason.value = ''
-}
-
-async function handleReject() {
-  const id = rejectReportId.value
-  if (!id || !rejectionReason.value.trim()) {
+async function handleRejectClick() {
+  if (!rejectDialog.rejectReportId.value || rejectDialog.isReasonEmpty()) {
     return
   }
-  mutatingIds.add(id)
-  error.value = null
-  try {
-    const updated = await rejectTakedown(id, {
-      rejectionReason: rejectionReason.value.trim(),
-    })
-    const idx = reports.value.findIndex((r) => r.reportId === id)
-    if (idx !== -1) {
-      reports.value[idx] = updated
-    }
-    rejectReportId.value = null
-    rejectionReason.value = ''
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : t('governance.takedown.review.errors.rejectFailed')
-  } finally {
-    mutatingIds.delete(id)
-  }
+  await actions.handleReject(rejectDialog.rejectReportId.value, rejectDialog.getReason())
+  rejectDialog.closeDialog()
 }
 
 function statusBadgeClass(status: string) {
@@ -109,7 +54,7 @@ function formatDate(dateStr: string) {
 
 // Load on mount
 onMounted(() => {
-  loadReports()
+  loader.loadReports()
 })
 </script>
 
@@ -126,7 +71,7 @@ onMounted(() => {
 
     <div class="flex items-center gap-3">
       <select
-        v-model="statusFilter"
+        v-model="filters.statusFilter"
         data-testid="filter-status"
         :aria-label="$t('governance.takedown.review.statusFilter')"
         class="rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display"
@@ -137,28 +82,28 @@ onMounted(() => {
         <option value="DISMISSED">{{ $t('governance.takedown.review.statusDismissed') }}</option>
       </select>
 
-      <Button type="button" variant="outline" size="sm" @click="loadReports">
+      <Button type="button" variant="outline" size="sm" @click="loader.loadReports">
         {{ $t('governance.takedown.review.refresh') }}
       </Button>
     </div>
 
-    <div v-if="error" class="rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
-      {{ error }}
+    <div v-if="actions.error" class="rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
+      {{ actions.error }}
     </div>
 
-    <div v-if="isLoading" class="flex items-center gap-2 text-sm text-text-secondary">
+    <div v-if="loader.isLoading" class="flex items-center gap-2 text-sm text-text-secondary">
       <span class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
       {{ $t('governance.takedown.review.loading') }}
     </div>
 
-    <div v-else-if="filteredReports.length === 0" class="rounded-2xl border border-dashed border-border-visible bg-bg-primary/30 p-10 text-center">
+    <div v-else-if="filters.filteredReports.length === 0" class="rounded-2xl border border-dashed border-border-visible bg-bg-primary/30 p-10 text-center">
       <p class="text-sm text-text-display">{{ $t('governance.takedown.review.empty') }}</p>
       <p class="mt-1 text-xs text-text-secondary">{{ $t('governance.takedown.review.emptyHint') }}</p>
     </div>
 
     <div v-else class="space-y-4">
       <article
-        v-for="report in filteredReports"
+        v-for="report in filters.filteredReports"
         :key="report.reportId"
         class="rounded-xl border border-border-subtle bg-bg-primary/40 p-4 space-y-3"
       >
@@ -190,8 +135,8 @@ onMounted(() => {
               variant="outline"
               size="sm"
               class="text-success border-success/30 hover:bg-success/10"
-              :disabled="mutatingIds.has(report.reportId)"
-              @click="handleApprove(report.reportId)"
+              :disabled="actions.mutatingIds.has(report.reportId)"
+              @click="handleApproveClick(report.reportId)"
             >
               {{ $t('governance.takedown.review.approveAction') }}
             </Button>
@@ -202,8 +147,8 @@ onMounted(() => {
                   variant="outline"
                   size="sm"
                   class="text-error border-error/30 hover:bg-error/10"
-                  :disabled="mutatingIds.has(report.reportId)"
-                  @click="openRejectDialog(report.reportId)"
+                  :disabled="actions.mutatingIds.has(report.reportId)"
+                  @click="rejectDialog.openDialog(report.reportId)"
                 >
                   {{ $t('governance.takedown.review.rejectAction') }}
                 </Button>
@@ -219,18 +164,18 @@ onMounted(() => {
                   <Label for="reject-reason">{{ $t('governance.takedown.review.rejectDialog.reasonLabel') }}</Label>
                   <Textarea
                     id="reject-reason"
-                    v-model="rejectionReason"
+                    v-model="rejectDialog.rejectionReason"
                     :rows="3"
                     class="mt-1.5"
                     :placeholder="$t('governance.takedown.review.rejectDialog.reasonPlaceholder')"
                   />
                 </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel @click="rejectReportId = null">{{ $t('workspace.cancel') }}</AlertDialogCancel>
+                  <AlertDialogCancel @click="rejectDialog.closeDialog">{{ $t('workspace.cancel') }}</AlertDialogCancel>
                   <AlertDialogAction
                     class="bg-error text-text-display hover:bg-error/90"
-                    :disabled="!rejectionReason.trim() || mutatingIds.has(report.reportId)"
-                    @click="handleReject"
+                    :disabled="rejectDialog.isReasonEmpty() || actions.mutatingIds.has(report.reportId)"
+                    @click="handleRejectClick"
                   >
                     {{ $t('governance.takedown.review.rejectAction') }}
                   </AlertDialogAction>

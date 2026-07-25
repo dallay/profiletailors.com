@@ -4,8 +4,8 @@ import { useI18n } from 'vue-i18n'
 import type { DateValue } from 'reka-ui'
 import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { useComposerMediaPicker } from '@modules/publishing/application/useComposerMediaPicker'
-import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
-import { ImageIcon, Check, ChevronDown, Hash, Smile, Sparkles, X } from '@lucide/vue'
+import { CalendarDate, getLocalTimeZone } from '@internationalized/date'
+import { X } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import {
   isSocialProvider,
@@ -13,58 +13,26 @@ import {
   type Publication,
 } from '@modules/publishing/infrastructure/publishing.store'
 import { useMediaStore } from '@modules/media'
-import { proxyImageUrl, resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
+import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import PostPreviewPanel from '@modules/publishing/presentation/components/composer/PostPreviewPanel.vue'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@modules/publishing/presentation/components/composer/post-preview.types'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Progress } from '@/components/ui/progress'
-import Spinner from '@/components/ui/spinner/Spinner.vue'
 import ComposerMediaPickerShell from '@modules/publishing/presentation/components/composer/ComposerMediaPickerShell.vue'
 import MediaProviderPanel from '@modules/publishing/presentation/components/composer/MediaProviderPanel.vue'
-
-type ComposerScheduleMode = 'now' | 'next' | 'custom'
-const COMPOSER_SUPPORTED_MEDIA_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'video/mp4',
-])
-
-type ComposerInlineAttachment =
-  | {
-    key: string
-    kind: 'draft'
-    assetId: string
-    name: string
-    previewUrl: string | null
-    isUploading: false
-    uploadProgress: 100
-    uploadStateLabel: null
-  }
-  | {
-    key: string
-    kind: 'local-upload'
-    assetId: null
-    name: string
-    previewUrl: string | null
-    isUploading: boolean
-    uploadProgress: number | null
-    uploadStateLabel: string | null
-  }
+import ComposerChannelSelector from '@modules/publishing/presentation/components/composer/ComposerChannelSelector.vue'
+import ComposerAttachmentsArea from '@modules/publishing/presentation/components/composer/ComposerAttachmentsArea.vue'
+import ComposerScheduleFooter from '@modules/publishing/presentation/components/composer/ComposerScheduleFooter.vue'
+import ComposerEditor from '@modules/publishing/presentation/components/composer/ComposerEditor.vue'
+import ComposerMediaUpload from '@modules/publishing/presentation/components/composer/ComposerMediaUpload.vue'
+import ComposerFormSection from '@modules/publishing/presentation/components/composer/ComposerFormSection.vue'
+import type { ComposerScheduleMode, ComposerInlineAttachment } from '@modules/publishing/presentation/components/composer/composer.types'
+import { useComposerForm } from '@modules/publishing/presentation/composables/useComposerForm'
+import { useComposerMediaUpload } from '@modules/publishing/presentation/composables/useComposerMediaUpload'
 
 const props = withDefaults(
   defineProps<{
     isOpen?: boolean
-    initialDate?: string // ISO string
-    editingPublication?: Publication // Pre-fill for editing
-    /**
-     * Provider to surface as a browsable source inside the media picker.
-     * The parent owns the feature flag and only passes `provider="unsplash"`
-     * when the provider is configured and enabled.
-     */
+    initialDate?: string
+    editingPublication?: Publication
     provider?: 'unsplash' | null
   }>(),
   {
@@ -84,60 +52,30 @@ const auth = useAuthStore()
 const publishingStore = usePublishingStore()
 const mediaStore = useMediaStore()
 
+// Composables
+const form = useComposerForm({
+  editingPublication: props.editingPublication ?? null,
+  initialDate: props.initialDate,
+})
+const upload = useComposerMediaUpload()
 
-const postText = ref('')
-const selectedChannelId = ref<string | null>(null)
-
-
+// Composer media picker
 const picker = useComposerMediaPicker({
   mediaStore,
   publishingStore,
   editingPublication: () => props.editingPublication ?? null,
   provider: () => props.provider ?? null,
-  initialChannelId: () => selectedChannelId.value,
+  initialChannelId: () => form.selectedChannelId.value,
   onAttachmentsChanged: () => {
-    assetsTouched.value = true
+    form.assetsTouched.value = true
   },
 })
-const avatarLoadFailed = ref<Record<string, boolean>>({})
-const submitError = ref('')
-const firstComment = ref('')
-const createAnother = ref(false)
-const priorityMode = ref(false)
-const scheduleMode = ref<ComposerScheduleMode>('now')
-const isDatePickerOpen = ref(false)
 
+// Modal & focus
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
 
-
-const isEditMode = computed(() => !!props.editingPublication)
-const _isCreating = computed(() => !isEditMode.value)
-const assetsTouched = ref(false)
-let suppressAssetTouchTracking = false
-
-
-const uploadPreviewBlob = ref<string | null>(null)
-const selectedUploadFile = ref<File | null>(null)
-const uploadTempKey = ref<string | null>(null)
-const uploadProgress = ref(0)
-const isLocalUploadInFlight = ref(false)
-const pickerSessionUploadInput = ref<HTMLInputElement | null>(null)
-const isMediaSourcesOpen = ref(false)
-const isDropzoneActive = ref(false)
-
-function clearUploadPreviewBlob() {
-  if (uploadPreviewBlob.value) {
-    URL.revokeObjectURL(uploadPreviewBlob.value)
-    uploadPreviewBlob.value = null
-  }
-}
-
-
-const selectedCalendarDate = ref<DateValue>()
-const scheduleTime = ref('10:00')
-
-
+// Time tracking
 const now = ref(new Date())
 let timer: ReturnType<typeof setInterval>
 
@@ -150,140 +88,25 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(timer)
   picker.stopAllReconciliationPollers()
+  upload.clearUploadPreviewBlob()
 })
 
-const todayDateValue = computed(() => today(getLocalTimeZone()))
-
-const minTimeForDate = computed(() => {
-  if (selectedCalendarDate.value?.compare(todayDateValue.value) === 0) {
-    const future = new Date(now.value.getTime() + 5 * 60_000)
-    // Check for midnight rollover: if now+5min crosses into tomorrow,
-    // no valid time remains for today — return an impossible value
-    const futureDate = new CalendarDate(future.getFullYear(), future.getMonth() + 1, future.getDate())
-    if (futureDate.compare(todayDateValue.value) !== 0) {
-      return '23:59'
-    }
-    return `${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`
-  }
-  // Future date: any time is valid
-  return '00:00'
-})
-
-async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
-  postText.value = pub.content ?? ''
-  firstComment.value = ''
-  priorityMode.value = pub.priority ?? false
-  const modeMap: Record<string, ComposerScheduleMode> = {
-    NOW: 'now',
-    NEXT_SLOT: 'next',
-    SCHEDULED_AT: 'custom',
-  }
-  scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
-
-  assetsTouched.value = false
-  picker.draftAttachmentIds.value = []
-  picker.pickerSelectionIds.value = []
-  picker.resetPickerSessionTracking()
-  mediaStore.clearSelection()
-  if (pub.assetIds?.length) {
-    const resolvedAssetIds = await Promise.all(
-      pub.assetIds.map(async (assetId) => {
-        if (!mediaStore.assetsById[assetId]) {
-          try {
-            await mediaStore.loadAsset(assetId)
-          } catch (err) {
-            const status = err instanceof Error && 'status' in err ? err.status : undefined
-            if (status === 404) return null
-          }
-        }
-        return assetId
-      }),
-    )
-    picker.draftAttachmentIds.value = resolvedAssetIds.filter((assetId): assetId is string => assetId !== null)
-  }
-
-  const pubChannelId = pub.accountId
-    ?? publishingStore.channels.find((ch) => isSocialProvider(ch.provider) && pub.channels?.includes(ch.provider))?.id
-    ?? null
-  selectedChannelId.value = pubChannelId
-
-  if (scheduleMode.value === 'custom' && pub.scheduledAt) {
-    const dateSrc = new Date(pub.scheduledAt)
-    selectedCalendarDate.value = new CalendarDate(
-      dateSrc.getFullYear(),
-      dateSrc.getMonth() + 1,
-      dateSrc.getDate(),
-    )
-    scheduleTime.value = `${String(dateSrc.getHours()).padStart(2, '0')}:${String(dateSrc.getMinutes()).padStart(2, '0')}`
-  } else {
-    selectedCalendarDate.value = undefined
-    scheduleTime.value = ''
-  }
-}
-
-function initCreateMode() {
-  postText.value = ''
-  firstComment.value = ''
-  priorityMode.value = false
-  scheduleMode.value = props.initialDate ? 'custom' : 'now'
-  assetsTouched.value = false
-  picker.draftAttachmentIds.value = []
-  picker.pickerSelectionIds.value = []
-  picker.resetPickerSessionTracking()
-  mediaStore.clearSelection()
-  selectedChannelId.value = publishingStore.channels[0]?.id ?? null
-
-  const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
-  selectedCalendarDate.value = new CalendarDate(
-    defaultDate.getFullYear(),
-    defaultDate.getMonth() + 1,
-    defaultDate.getDate(),
-  )
-  scheduleTime.value = `${String(defaultDate.getHours()).padStart(2, '0')}:${String(defaultDate.getMinutes()).padStart(2, '0')}`
-}
-
-async function initializeComposerForOpen() {
-  submitError.value = ''
-  isDatePickerOpen.value = false
-  avatarLoadFailed.value = {}
-  clearUploadPreviewBlob()
-  selectedUploadFile.value = null
-  uploadTempKey.value = null
-  uploadProgress.value = 0
-  isLocalUploadInFlight.value = false
-  isMediaSourcesOpen.value = false
-  isDropzoneActive.value = false
-  picker.isMediaPickerOpen.value = false
-  picker.mediaPickerCollectionState.value = 'LOADING'
-
-  suppressAssetTouchTracking = true
-  if (isEditMode.value && props.editingPublication) {
-    await initEditMode(props.editingPublication)
-  } else {
-    initCreateMode()
-  }
-  suppressAssetTouchTracking = false
-
-  if (auth.isAuthenticated) {
-    try {
-      await mediaStore.loadDanglingAssets()
-    } catch {
-      // Non-critical — dangling load failure shouldn't block the composer
-    }
-  }
-
-  await nextTick()
-  if (props.isOpen) {
-    activateFocusTrap()
-  }
-}
-
-// Initialize Date + focus trap
+// Lifecycle hooks
 watch(
   () => props.isOpen,
   async (open) => {
     if (open) {
-      await initializeComposerForOpen()
+      form.clearError()
+      await form.initialize()
+      if (auth.isAuthenticated) {
+        try {
+          await mediaStore.loadDanglingAssets()
+        } catch {
+          // Non-critical
+        }
+      }
+      await nextTick()
+      activateFocusTrap()
     } else {
       deactivateFocusTrap()
     }
@@ -291,16 +114,16 @@ watch(
 )
 
 onMounted(async () => {
-  if (props.isOpen && isEditMode.value) {
-    await initializeComposerForOpen()
+  if (props.isOpen && form.isEditMode.value) {
+    await form.initialize()
   }
 })
 
 watch(
   () => mediaStore.selectedAssetIds,
   () => {
-    if (isEditMode.value && !suppressAssetTouchTracking) {
-      assetsTouched.value = true
+    if (form.isEditMode.value) {
+      form.assetsTouched.value = true
     }
   },
   { deep: true },
@@ -310,24 +133,19 @@ watch(
   () => publishingStore.channels,
   (channels) => {
     if (channels.length === 0) {
-      selectedChannelId.value = null
+      form.selectedChannelId.value = null
       return
     }
     const activeIds = new Set(channels.filter(ch => ch.status === 'ACTIVE').map(ch => ch.id))
-    if (!activeIds.has(selectedChannelId.value ?? '')) {
-      selectedChannelId.value = channels.find(ch => ch.status === 'ACTIVE')?.id ?? null
+    if (!activeIds.has(form.selectedChannelId.value ?? '')) {
+      form.selectedChannelId.value = channels.find(ch => ch.status === 'ACTIVE')?.id ?? null
     }
   },
 )
-
-
-const isSubmitting = ref(false)
-const isAiProcessing = ref(false)
+// Computed
 const charLimit = 3000
-const charsRemaining = computed(() => charLimit - postText.value.length)
-const isTextTooLong = computed(() => charsRemaining.value < 0)
 const selectedChannel = computed(() =>
-  publishingStore.channels.find((channel) => channel.id === selectedChannelId.value)
+  publishingStore.channels.find((channel) => channel.id === form.selectedChannelId.value)
   ?? publishingStore.channels[0]
   ?? null,
 )
@@ -336,6 +154,7 @@ const selectedProviders = computed(() =>
     ? [selectedChannel.value.provider]
     : [],
 )
+
 const selectedChannelInitials = computed(() => {
   const name = selectedChannel.value?.name?.trim()
   if (!name) return 'PT'
@@ -352,195 +171,135 @@ const selectedChannelInitials = computed(() => {
     .toUpperCase()
 })
 
-const selectedDateLabel = computed(() => {
-  if (!selectedCalendarDate.value) return 'Select date'
-  const date = selectedCalendarDate.value.toDate(getLocalTimeZone())
-  return date.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-})
-
-const scheduleHelperText = computed(() => {
-  if (scheduleMode.value === 'now') return 'Publishes with the creation date and time.'
-  if (scheduleMode.value === 'next') return 'Publishes in the next available schedule slot.'
-  return `Publishes on ${selectedDateLabel.value} at ${scheduleTime.value}.`
-})
-
 const canSubmit = computed(() => {
   return (
     !!selectedChannel.value &&
-    postText.value.trim().length > 0 &&
-    !isTextTooLong.value &&
-    !isSubmitting.value &&
+    form.postText.value.trim().length > 0 &&
+    form.postText.value.length <= charLimit &&
+    !form.isSubmitting.value &&
     !picker.isAttachmentLimitExceeded.value
   )
 })
 
-
-function handleFileSelect(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files?.length) {
-    const files = Array.from(target.files)
-    if (picker.isMediaPickerOpen.value) {
-      picker.handlePickerUploadSelection(files).catch(() => undefined)
-    } else {
-      addFiles(files)
+// Methods
+async function handleFileSelect(files: File[]) {
+  if (picker.isMediaPickerOpen.value) {
+    picker.handlePickerUploadSelection(files).catch(() => undefined)
+  } else {
+    const success = upload.addFiles(files)
+    if (success && form.isEditMode.value) {
+      form.assetsTouched.value = true
     }
-    target.value = ''
   }
 }
 
-function openUploadPicker() {
-  pickerSessionUploadInput.value?.click()
-}
+async function handleSchedule() {
+  if (!canSubmit.value) return
 
-function openMediaLibrary() {
-  isMediaSourcesOpen.value = false
-  picker.openMediaPicker('library').catch(() => undefined)
-}
-
-function openUnsplashLibrary() {
-  isMediaSourcesOpen.value = false
-  picker.openMediaPicker('unsplash').catch(() => undefined)
-}
-
-function handleDropzoneDragOver(event: DragEvent) {
-  event.preventDefault()
-  isDropzoneActive.value = true
-}
-
-function handleDropzoneDragLeave(event: DragEvent) {
-  event.preventDefault()
-  isDropzoneActive.value = false
-}
-
-function extractFilesFromDataTransfer(dataTransfer: DataTransfer | null): File[] {
-  if (!dataTransfer) return []
-  return Array.from(dataTransfer.files ?? [])
-}
-
-function extractFilesFromClipboard(clipboardData: DataTransfer | null): File[] {
-  if (!clipboardData) return []
-
-  const clipboardFiles = Array.from(clipboardData.files ?? [])
-  if (clipboardFiles.length > 0) return clipboardFiles
-
-  return Array.from(clipboardData.items ?? [])
-    .filter((item) => item.kind === 'file')
-    .map((item) => item.getAsFile())
-    .filter((file): file is File => file !== null)
-}
-
-function handleComposerSurfaceDragOver(event: DragEvent) {
-  const files = extractFilesFromDataTransfer(event.dataTransfer)
-  if (files.length === 0) return
-  event.preventDefault()
-  isDropzoneActive.value = true
-}
-
-function handleComposerSurfaceDragLeave(event: DragEvent) {
-  event.preventDefault()
-  isDropzoneActive.value = false
-}
-
-function handleComposerSurfaceDrop(event: DragEvent) {
-  const files = extractFilesFromDataTransfer(event.dataTransfer)
-  if (files.length === 0) return
-  event.preventDefault()
-  isDropzoneActive.value = false
-  addFiles(files)
-}
-
-function handleComposerSurfacePaste(event: ClipboardEvent) {
-  const files = extractFilesFromClipboard(event.clipboardData)
-  if (files.length === 0) return
-  event.preventDefault()
-  addFiles(files)
-}
-
-function handleDropzoneDrop(event: DragEvent) {
-  handleComposerSurfaceDrop(event)
-}
-
-function addFiles(filesList: File[]) {
-  if (isEditMode.value) assetsTouched.value = true
-  const file = filesList.find((file) => {
-    const isSupported = COMPOSER_SUPPORTED_MEDIA_TYPES.has(file.type)
-    const isUnderLimit = file.size <= 10 * 1024 * 1024 // 10MB
-    if (!isSupported) alert('Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.')
-    if (!isUnderLimit) alert('File size exceeds 10MB limit.')
-    return isSupported && isUnderLimit
-  })
-
-  if (!file) return
-
-  clearUploadPreviewBlob()
-  selectedUploadFile.value = file
-  uploadPreviewBlob.value = URL.createObjectURL(file)
-  uploadTempKey.value = `modal-upload-${Date.now()}`
-  uploadProgress.value = 0
-  isLocalUploadInFlight.value = false
-}
-
-/**
- * Reserves an asset, begins upload, and tracks progress.
- * On success, the READY asset is added to the media store selection.
- */
-async function _uploadAndTrack(file: File) {
-  // Revoke any previous preview blob
-  clearUploadPreviewBlob()
-  uploadPreviewBlob.value = URL.createObjectURL(file)
-  uploadProgress.value = 0
-
-  const tempKey = `modal-upload-${Date.now()}`
-  uploadTempKey.value = tempKey
+  const shouldCreateAnother = form.createAnother.value
+  form.isSubmitting.value = true
 
   try {
-    const asset = await mediaStore.createAndUpload(file, tempKey, (pct) => {
-      uploadProgress.value = pct
-    })
+    const scheduledDate = form.resolveScheduledDate(now.value)
+    if (form.submitError.value) return
 
-    if (isEditMode.value) assetsTouched.value = true
-    // Upload succeeded — add to selection for the publication
+    const uploadOk = upload.selectedUploadFile.value && upload.uploadTempKey.value
+      ? await uploadAndTrackDeferred()
+      : true
+    if (!uploadOk) return
+
+    const normalizedPostText = form.postText.value.trim()
+    const backendScheduleMode = form.resolveScheduleMode(form.scheduleMode.value)
+
+    if (form.isEditMode.value && props.editingPublication) {
+      await handleEditSubmit(normalizedPostText, scheduledDate, backendScheduleMode)
+    } else {
+      await handleCreateSubmit(normalizedPostText, scheduledDate, backendScheduleMode)
+    }
+  } catch (err) {
+    form.submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
+    console.error('Error scheduling post', err)
+  } finally {
+    form.isSubmitting.value = false
+  }
+}
+
+async function uploadAndTrackDeferred(): Promise<boolean> {
+  if (!upload.selectedUploadFile.value || !upload.uploadTempKey.value) return true
+  upload.isLocalUploadInFlight.value = true
+  await nextTick()
+  try {
+    const asset = await mediaStore.createAndUpload(
+      upload.selectedUploadFile.value,
+      upload.uploadTempKey.value,
+      (pct) => {
+        upload.uploadProgress.value = pct
+      },
+    )
+    if (form.isEditMode.value) form.assetsTouched.value = true
     mediaStore.addToSelection(asset.assetId)
-
-    // Keep the transient preview blob alive until the user closes/removes the media.
-    // The backend does not yet expose a download/thumbnail URL for READY assets.
-    uploadTempKey.value = null
-    uploadProgress.value = 0
+    picker.draftAttachmentIds.value = [...picker.draftAttachmentIds.value, asset.assetId]
+    return true
   } catch {
-    // Error is already tracked in mediaStore.uploadList
-    // Blob preview stays so user can see what failed
-    uploadTempKey.value = null
-    uploadProgress.value = 0
+    form.submitError.value = 'Media upload failed. Please try again.'
+    return false
+  } finally {
+    upload.isLocalUploadInFlight.value = false
   }
 }
 
-/**
- * Removes the current upload selection (READY asset from store + any in-progress state).
- */
-function removeFile() {
-  if (isEditMode.value) assetsTouched.value = true
-  clearUploadPreviewBlob()
-  selectedUploadFile.value = null
-  if (uploadTempKey.value) {
-    mediaStore.dismissUpload(uploadTempKey.value)
-  }
-  uploadTempKey.value = null
-  uploadProgress.value = 0
-  isLocalUploadInFlight.value = false
+async function handleEditSubmit(
+  normalizedPostText: string,
+  scheduledDate: Date | undefined,
+  backendScheduleMode: NonNullable<Publication['scheduleMode']>,
+) {
+  const editingPublication = props.editingPublication
+  if (!editingPublication) return
+
+  await publishingStore.updatePost(editingPublication.id, {
+    content: normalizedPostText,
+    scheduledAt: scheduledDate?.toISOString(),
+    priority: form.priorityMode.value,
+    scheduleMode: backendScheduleMode,
+    ...(form.assetsTouched.value ? { assetIds: [...picker.draftAttachmentIds.value] } : {}),
+  })
+  emit('updated')
+  emit('close')
 }
 
-/**
- * Whether the current composer media is an image that can be previewed.
- * Prefer the transient upload file while an upload is in progress, then fall back
- * to the first selected READY asset once the upload completes.
- */
+async function handleCreateSubmit(
+  normalizedPostText: string,
+  scheduledDate: Date | undefined,
+  backendScheduleMode: NonNullable<Publication['scheduleMode']>,
+) {
+  await publishingStore.schedulePost({
+    content: normalizedPostText,
+    title: 'Post from App',
+    channels: selectedProviders.value,
+    scheduledAt: scheduledDate?.toISOString(),
+    nextSlotAfter: form.scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
+    scheduleMode: backendScheduleMode,
+    priority: form.priorityMode.value,
+    thumbnail: selectedAssetIsImage.value
+      ? (upload.uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
+      : undefined,
+    assetIds: [...picker.draftAttachmentIds.value],
+    socialAccountId: selectedChannel.value?.accountId,
+  })
+  emit('created')
+  if (form.createAnother.value) {
+    form.reset()
+    upload.clearUploadPreviewBlob()
+    picker.draftAttachmentIds.value = []
+    picker.pickerSelectionIds.value = []
+    picker.resetPickerSessionTracking()
+  } else {
+    emit('close')
+  }
+}
+
 const selectedAssetIsImage = computed(() => {
-  const uploadFile = currentUpload.value?.file ?? selectedUploadFile.value
+  const uploadFile = currentUpload.value?.file ?? upload.selectedUploadFile.value
   if (uploadFile) {
     return uploadFile.type.startsWith('image/')
   }
@@ -552,14 +311,9 @@ const selectedAssetIsImage = computed(() => {
   return first.mediaType.startsWith('image/')
 })
 
-/**
- * The preview URL for the composer media.
- * Uses the transient blob immediately after file selection so the LinkedIn preview
- * updates before the backend upload finishes.
- */
 const selectedAssetPreviewUrl = computed<string | null>(() => {
-  if (uploadPreviewBlob.value && selectedAssetIsImage.value) {
-    return uploadPreviewBlob.value
+  if (upload.uploadPreviewBlob.value && selectedAssetIsImage.value) {
+    return upload.uploadPreviewBlob.value
   }
 
   const first = picker.draftAttachmentIds.value
@@ -571,13 +325,13 @@ const selectedAssetPreviewUrl = computed<string | null>(() => {
 })
 
 const selectedPreviewMedia = computed<PostPreviewMedia | null>(() => {
-  const uploadFile = currentUpload.value?.file ?? selectedUploadFile.value
+  const uploadFile = currentUpload.value?.file ?? upload.selectedUploadFile.value
   if (uploadFile) {
     const isImage = uploadFile.type.startsWith('image/')
 
     return {
       kind: isImage ? 'image' : 'video',
-      url: isImage ? uploadPreviewBlob.value : null,
+      url: isImage ? upload.uploadPreviewBlob.value : null,
       alt: 'Media preview',
       name: uploadFile.name,
     }
@@ -603,17 +357,13 @@ const linkedinPreview = computed<LinkedInPreviewModel>(() => ({
   authorHandle: selectedChannel.value?.handle || 'LinkedIn Member',
   authorAvatarUrl: selectedChannel.value?.avatarUrl ?? null,
   authorInitials: selectedChannelInitials.value,
-  text: postText.value,
+  text: form.postText.value,
   placeholderText: t('composer.seePreviewHere'),
   media: selectedPreviewMedia.value,
 }))
 
-/**
- * The current in-flight or failed upload item being tracked (max 1 for MVP).
- * Completed uploads should fall through to the selected asset preview state.
- */
 const currentUpload = computed(() => {
-  const trackedUpload = uploadTempKey.value ? mediaStore.uploads[uploadTempKey.value] : undefined
+  const trackedUpload = upload.uploadTempKey.value ? mediaStore.uploads[upload.uploadTempKey.value] : undefined
   if (trackedUpload) {
     return trackedUpload.status === 'done' ? null : trackedUpload
   }
@@ -627,7 +377,7 @@ const currentUpload = computed(() => {
 
 const normalizedUploadProgress = computed<number | null>(() => {
   if (!currentUpload.value) return null
-  return Math.max(0, Math.min(100, currentUpload.value.progress ?? uploadProgress.value ?? 0))
+  return Math.max(0, Math.min(100, currentUpload.value.progress ?? upload.uploadProgress.value ?? 0))
 })
 
 const currentUploadStateLabel = computed<string | null>(() => {
@@ -641,14 +391,14 @@ const currentUploadStateLabel = computed<string | null>(() => {
 })
 
 const composerInlineAttachments = computed<ComposerInlineAttachment[]>(() => {
-  const localUploadAttachment: ComposerInlineAttachment[] = selectedUploadFile.value
+  const localUploadAttachment: ComposerInlineAttachment[] = upload.selectedUploadFile.value
     ? [
       {
-        key: uploadTempKey.value ?? `local-upload-${selectedUploadFile.value.name}`,
+        key: upload.uploadTempKey.value ?? `local-upload-${upload.selectedUploadFile.value.name}`,
         kind: 'local-upload',
         assetId: null,
-        name: selectedUploadFile.value.name,
-        previewUrl: selectedUploadFile.value.type.startsWith('image/') ? uploadPreviewBlob.value : null,
+        name: upload.selectedUploadFile.value.name,
+        previewUrl: upload.selectedUploadFile.value.type.startsWith('image/') ? upload.uploadPreviewBlob.value : null,
         isUploading: currentUpload.value?.status === 'uploading',
         uploadProgress: normalizedUploadProgress.value,
         uploadStateLabel: currentUploadStateLabel.value,
@@ -669,229 +419,13 @@ const composerInlineAttachments = computed<ComposerInlineAttachment[]>(() => {
 
   return [...localUploadAttachment, ...persistedAttachments]
 })
-
-const visibleInlineAttachments = computed(() => composerInlineAttachments.value.slice(0, 3))
-const hiddenInlineAttachmentCount = computed(() =>
-  Math.max(0, composerInlineAttachments.value.length - visibleInlineAttachments.value.length),
-)
-
-function selectChannel(channelId: string) {
-  selectedChannelId.value = channelId
-}
-
-function onChannelAvatarError(channelId: string) {
-  avatarLoadFailed.value[channelId] = true
-}
-
-function shouldShowChannelAvatar(channelId: string, avatarUrl?: string): boolean {
-  return !!(avatarUrl && !avatarLoadFailed.value[channelId])
-}
-
-// Format hashtags helper
-function appendHashtag() {
-  const tag = prompt('Enter tag (e.g. #socialmedia):')
-  if (tag) {
-    const formatted = tag.startsWith('#') ? tag : `#${tag}`
-    postText.value = postText.value ? `${postText.value} ${formatted}` : formatted
-  }
-}
-
-function handleEmojiPicker() {
-  postText.value = `${postText.value}${postText.value ? ' ' : ''}🙂`
-}
-
-// AI Assist helper
-function handleAiAssist() {
-  if (!postText.value.trim()) {
-    postText.value = 'Profile Tailors is officially launching! Minimalist scheduling, analytics, and multichannel delivery designed for creators. 🚀'
-    return
-  }
-  isAiProcessing.value = true
-  setTimeout(() => {
-    postText.value = `${postText.value}\n\nProgramado vía @ProfileTailors`
-    isAiProcessing.value = false
-  }, 800)
-}
-
-/**
- * Validates the custom schedule date and time inputs.
- * Returns an error message string on failure, or undefined on success.
- * Sets finalScheduledDate when the date is valid.
- */
-function validateCustomSchedule(finalScheduledDate: Date): string | undefined {
-  if (!selectedCalendarDate.value) {
-    return 'Select a date.'
-  }
-
-  const [hoursRaw, minutesRaw] = scheduleTime.value.split(':').map(Number)
-  const hours = hoursRaw ?? Number.NaN
-  const minutes = minutesRaw ?? Number.NaN
-
-  const isValidHours = Number.isInteger(hours) && hours >= 0 && hours <= 23
-  const isValidMinutes = Number.isInteger(minutes) && minutes >= 0 && minutes <= 59
-  if (!isValidHours || !isValidMinutes) {
-    return 'Invalid time selected.'
-  }
-
-  finalScheduledDate.setHours(hours, minutes, 0, 0)
-
-  const earliestAllowed = new Date(now.value.getTime() + 5 * 60_000)
-  if (finalScheduledDate < earliestAllowed) {
-    return 'Selected date and time must be in the future.'
-  }
-
-  return undefined
-}
-
-
-function resolveScheduleMode(
-  mode: ComposerScheduleMode,
-): NonNullable<Publication['scheduleMode']> {
-  if (mode === 'now') return 'NOW'
-  if (mode === 'next') return 'NEXT_SLOT'
-  return 'SCHEDULED_AT'
-}
-
-function resolveScheduledDate(): Date | undefined {
-  if (scheduleMode.value !== 'custom') return undefined
-  if (!selectedCalendarDate.value) {
-    submitError.value = 'Select a date.'
-    return undefined
-  }
-  const date = selectedCalendarDate.value.toDate(getLocalTimeZone())
-  const error = validateCustomSchedule(date)
-  if (error) {
-    submitError.value = error
-    return undefined
-  }
-  return date
-}
-
-async function uploadDeferredFile(): Promise<boolean> {
-  if (!selectedUploadFile.value || !uploadTempKey.value) return true
-  isLocalUploadInFlight.value = true
-  await nextTick()
-  try {
-    const asset = await mediaStore.createAndUpload(
-      selectedUploadFile.value,
-      uploadTempKey.value,
-      (pct) => {
-        uploadProgress.value = pct
-      },
-    )
-    if (isEditMode.value) assetsTouched.value = true
-    mediaStore.addToSelection(asset.assetId)
-    picker.draftAttachmentIds.value = [...picker.draftAttachmentIds.value, asset.assetId]
-    return true
-  } catch {
-    submitError.value = 'Media upload failed. Please try again.'
-    return false
-  } finally {
-    isLocalUploadInFlight.value = false
-  }
-}
-
-function resetPostForm() {
-  postText.value = ''
-  removeFile()
-  firstComment.value = ''
-  picker.draftAttachmentIds.value = []
-  picker.pickerSelectionIds.value = []
-  picker.resetPickerSessionTracking()
-}
-
-function finalizeAfterCreate(shouldCreateAnother: boolean) {
-  if (shouldCreateAnother) {
-    resetPostForm()
-  } else {
-    emit('close')
-  }
-}
-
-async function handleSchedule() {
-  if (!canSubmit.value) return
-
-  const shouldCreateAnother = createAnother.value
-
-  isSubmitting.value = true
-  submitError.value = ''
-
-  try {
-    const scheduledDate = resolveScheduledDate()
-    if (submitError.value) return
-
-    const uploadOk = selectedUploadFile.value && uploadTempKey.value
-      ? await uploadDeferredFile()
-      : true
-    if (!uploadOk) return
-
-    const normalizedPostText = postText.value.trim()
-    const backendScheduleMode = resolveScheduleMode(scheduleMode.value)
-
-    if (isEditMode.value && props.editingPublication) {
-      await handleEditSubmit(normalizedPostText, scheduledDate, backendScheduleMode)
-    } else {
-      await handleCreateSubmit(normalizedPostText, scheduledDate, backendScheduleMode)
-    }
-  } catch (err) {
-    submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
-    console.error('Error scheduling post', err)
-    if (shouldCreateAnother) {
-      resetPostForm()
-    }
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-async function handleEditSubmit(
-  normalizedPostText: string,
-  scheduledDate: Date | undefined,
-  backendScheduleMode: NonNullable<Publication['scheduleMode']>,
-) {
-  const editingPublication = props.editingPublication
-  if (!editingPublication) return
-
-  await publishingStore.updatePost(editingPublication.id, {
-    content: normalizedPostText,
-    scheduledAt: scheduledDate?.toISOString(),
-    priority: priorityMode.value,
-    scheduleMode: backendScheduleMode,
-    ...(assetsTouched.value ? { assetIds: [...picker.draftAttachmentIds.value] } : {}),
-  })
-  emit('updated')
-  emit('close')
-}
-
-async function handleCreateSubmit(
-  normalizedPostText: string,
-  scheduledDate: Date | undefined,
-  backendScheduleMode: NonNullable<Publication['scheduleMode']>,
-) {
-  await publishingStore.schedulePost({
-    content: normalizedPostText,
-    title: 'Post from App',
-    channels: selectedProviders.value,
-    scheduledAt: scheduledDate?.toISOString(),
-    nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
-    scheduleMode: backendScheduleMode,
-    priority: priorityMode.value,
-    thumbnail: selectedAssetIsImage.value
-      ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
-      : undefined,
-    assetIds: [...picker.draftAttachmentIds.value],
-    socialAccountId: selectedChannel.value?.accountId,
-  })
-  emit('created')
-  finalizeAfterCreate(createAnother.value)
-}
 </script>
 
 <template>
   <Teleport to="body">
     <!-- biome-ignore lint/a11y/noStaticElementInteractions: overlay backdrop, closes on outside click -->
     <div
-      v-if="isOpen"
+      v-if="props.isOpen"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in"
       @click.self="emit('close')"
       @keydown.escape="emit('close')"
@@ -903,7 +437,8 @@ async function handleCreateSubmit(
         aria-labelledby="create-post-title"
         class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row"
       >
-        <button type="button"
+        <button
+          type="button"
           @click="emit('close')"
           class="absolute top-4 right-4 z-50 flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display lg:hidden"
         >
@@ -912,10 +447,11 @@ async function handleCreateSubmit(
 
         <div class="flex min-h-0 flex-1 flex-col space-y-6 border-b border-border-subtle p-6 lg:border-b-0 lg:border-r overflow-hidden">
           <div class="flex items-center justify-between">
-              <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
-                {{ isEditMode ? $t('composer.editTitle') : $t('composer.title') }}
-              </h3>
-            <button type="button"
+            <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
+              {{ form.isEditMode ? $t('composer.editTitle') : $t('composer.title') }}
+            </h3>
+            <button
+              type="button"
               @click="emit('close')"
               class="hidden lg:flex size-7 items-center justify-center rounded-xl border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display cursor-pointer"
             >
@@ -923,247 +459,59 @@ async function handleCreateSubmit(
             </button>
           </div>
 
-          <div class="space-y-2">
-            <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
-              {{ $t('dashboard.selectChannels') }}
-            </span>
-            <div class="flex flex-wrap gap-2 items-center">
-              <button type="button"
-                v-for="ch in publishingStore.channels.filter(ch => ch.status === 'ACTIVE')"
-                :key="ch.id"
-                @click="isEditMode ? undefined : selectChannel(ch.id)"
-                :disabled="isEditMode"
-                class="relative flex items-center gap-2 border rounded-full px-3 py-1.5 font-mono text-[10px] tracking-wide transition-all"
-                :class="[
-                  selectedChannelId === ch.id
-                    ? 'border-text-display bg-bg-primary text-text-display font-bold'
-                    : 'border-border-visible text-text-secondary hover:text-text-display bg-bg-primary/50',
-                  isEditMode ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
-                ]"
-                :data-edit-disabled="isEditMode ? 'true' : 'false'"
-              >
-                <img
-                  v-if="shouldShowChannelAvatar(ch.id, ch.avatarUrl)"
-                  :src="proxyImageUrl(ch.avatarUrl ?? '')"
-                  :alt="`${ch.name} avatar`"
-                  class="size-4.5 rounded-full object-cover border border-border-subtle"
-                  @error="onChannelAvatarError(ch.id)"
-                />
-                <span
-                  v-else
-                  class="flex size-4.5 shrink-0 items-center justify-center rounded-full border border-border-visible bg-bg-primary font-mono text-[7px] font-bold uppercase text-text-display"
-                >
-                  {{ ch.provider === 'linkedin' ? 'in' : ch.provider.charAt(0) }}
-                </span>
-                <span class="max-w-[120px] truncate">{{ ch.name }}</span>
-                <span
-                  class="flex size-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-bg-primary"
-                  :class="selectedChannelId === ch.id ? 'bg-text-display' : 'bg-border-visible text-text-secondary'"
-                >
-                  <component :is="selectedChannelId === ch.id ? Check : X" class="size-2" />
-                </span>
-              </button>
+          <ComposerChannelSelector
+            :channels="publishingStore.channels.filter(ch => ch.status === 'ACTIVE')"
+            :model-value="form.selectedChannelId.value"
+            :is-edit-mode="form.isEditMode.value"
+            @update:model-value="form.selectedChannelId.value = $event"
+          />
 
-              <button type="button"
-                class="flex size-8 items-center justify-center rounded-full border border-dashed border-border-visible text-text-secondary hover:text-text-display hover:border-text-display bg-transparent transition-colors cursor-pointer"
-                title="Connect another channel"
-              >
-                <span class="text-base font-light">+</span>
-              </button>
-            </div>
-          </div>
+          <!-- Editor Section -->
+          <ComposerEditor
+            :model-value="form.postText.value"
+            :char-limit="charLimit"
+            :placeholder="$t('composer.placeholder')"
+            @update:modelValue="form.postText.value = $event"
+            @emoji-click="form.postText.value += ' 🙂'"
+            @ai-assist-click="form.isAiProcessing.value = true; setTimeout(() => { form.postText.value += '\n\nProgramado vía @ProfileTailors'; form.isAiProcessing.value = false }, 800)"
+          />
 
-          <div class="flex flex-1 flex-col rounded-[24px] border border-border-visible bg-bg-primary/70 min-h-[420px]">
-            <label for="create-post-text" class="sr-only">Post content</label>
-            <textarea
-              id="create-post-text"
-              v-model="postText"
-              :placeholder="$t('composer.placeholder')"
-              class="min-h-[260px] w-full flex-1 resize-none bg-transparent p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
-              data-testid="composer-textarea"
-              @dragover="handleComposerSurfaceDragOver"
-              @dragleave="handleComposerSurfaceDragLeave"
-              @drop="handleComposerSurfaceDrop"
-              @paste="handleComposerSurfacePaste"
-            ></textarea>
+          <!-- Media Upload Section -->
+          <ComposerMediaUpload
+            :attachments="composerInlineAttachments"
+            :is-dropzone-active="form.isDropzoneActive.value"
+            :is-local-upload-in-flight="upload.isLocalUploadInFlight.value"
+            :normalized-upload-progress="normalizedUploadProgress"
+            :current-upload-state-label="currentUploadStateLabel"
+            :has-unsplash="picker.effectiveProvider.value === 'unsplash'"
+            :chars-remaining="charLimit - form.postText.value.length"
+            :char-limit="charLimit"
+            :is-text-too-long="form.postText.value.length > charLimit"
+            @dragover="(e) => { e.preventDefault(); form.isDropzoneActive.value = true }"
+            @dragleave="(e) => { e.preventDefault(); form.isDropzoneActive.value = false }"
+            @drop="(e) => { e.preventDefault(); form.isDropzoneActive.value = false; handleFileSelect(upload.extractFilesFromDataTransfer(e.dataTransfer)) }"
+            @paste="(e) => { e.preventDefault(); handleFileSelect(upload.extractFilesFromClipboard(e.clipboardData)) }"
+            @open-upload-picker="$refs.pickerSessionUploadInput?.click()"
+            @open-media-library="picker.openMediaPicker('library').catch(() => undefined)"
+            @open-unsplash-library="picker.openMediaPicker('unsplash').catch(() => undefined)"
+            @remove-draft-attachment="(assetId) => { picker.removeDraftAttachment(assetId); form.assetsTouched.value = true }"
+            @remove-local-upload="() => { upload.removeFile(); form.assetsTouched.value = true }"
+            @file-selected="handleFileSelect"
+            @update:isDropzoneActive="form.isDropzoneActive.value = $event"
+          />
 
-            <div class="border-t border-border-subtle/70 px-4 py-4">
-              <div class="flex flex-wrap items-center gap-3">
-                <div
-                  v-for="asset in visibleInlineAttachments"
-                  :key="asset.key"
-                  :title="asset.name"
-                  class="group relative h-[118px] w-[118px] overflow-hidden rounded-[18px] border border-border-visible bg-bg-primary/50"
-                  :data-testid="asset.kind === 'draft' ? `inline-attachment-${asset.assetId}` : 'inline-local-upload'"
-                >
-                  <img
-                    v-if="asset.previewUrl"
-                    :src="asset.previewUrl"
-                    alt="Selected media preview"
-                    class="h-full w-full object-cover"
-                    data-testid="attachment-preview-image"
-                  >
-                  <div
-                    v-else
-                    class="flex h-full w-full items-center justify-center bg-bg-primary/40 text-text-secondary"
-                  >
-                    <ImageIcon class="size-6" />
-                  </div>
+          <input
+            ref="pickerSessionUploadInput"
+            type="file"
+            class="hidden"
+            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
+            aria-label="Upload media file"
+            @change="(e) => handleFileSelect(Array.from((e.target as HTMLInputElement).files ?? []))"
+          />
 
-                  <div
-                    v-if="asset.kind === 'local-upload' ? isLocalUploadInFlight || asset.isUploading : asset.isUploading"
-                    class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55 px-3 text-center backdrop-blur-sm"
-                    data-testid="inline-upload-overlay"
-                  >
-                    <Spinner class="size-5 text-[var(--upload-accent)]" />
-                    <p class="text-xs font-medium leading-tight text-white">
-                      {{ asset.kind === 'local-upload' ? (currentUploadStateLabel ?? asset.uploadStateLabel ?? t('composer.media.uploadingProgress', { progress: Math.round(normalizedUploadProgress ?? 0) })) : asset.uploadStateLabel }}
-                    </p>
-                    <Progress
-                      :model-value="asset.kind === 'local-upload' ? (normalizedUploadProgress ?? 0) : (asset.uploadProgress ?? 0)"
-                      class="h-1 w-full bg-white/15 [&_[data-slot=progress-indicator]]:bg-[var(--upload-accent)]"
-                    />
-                    <p class="text-[10px] leading-tight text-white/70">
-                      {{ t('composer.media.keepEditingWhileUploading') }}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    class="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black/85"
-                    :data-testid="asset.kind === 'draft' ? `attachment-remove-${asset.assetId}` : 'attachment-remove-local-upload'"
-                    :aria-label="t('composer.media.removeAttachment', { name: asset.name })"
-                    @click="asset.kind === 'draft' ? picker.removeDraftAttachment(asset.assetId) : removeFile()"
-                  >
-                    <X class="size-3.5" />
-                  </button>
-                </div>
-
-                <div
-                  v-if="hiddenInlineAttachmentCount > 0"
-                  class="flex h-[118px] w-[118px] items-center justify-center rounded-[18px] border border-dashed border-border-visible bg-bg-primary/30 font-mono text-xs tracking-[0.2em] text-text-secondary"
-                  data-testid="inline-attachment-overflow"
-                >
-                  +{{ hiddenInlineAttachmentCount }}
-                </div>
-
-                <button
-                  type="button"
-                  class="flex h-[118px] w-[118px] cursor-pointer flex-col items-center justify-center rounded-[18px] border border-dashed px-4 text-center transition"
-                  :class="isDropzoneActive ? 'border-[var(--upload-accent)] bg-[var(--upload-accent)]/10' : 'border-border-visible bg-bg-primary/30 hover:border-text-display/40'"
-                  data-testid="composer-inline-dropzone"
-                  @click="openUploadPicker"
-                  @dragover="handleDropzoneDragOver"
-                  @dragleave="handleDropzoneDragLeave"
-                  @drop="handleDropzoneDrop"
-                >
-                  <ImageIcon class="mb-3 size-6 text-text-secondary" />
-                  <p class="text-[12px] leading-5 text-text-secondary">
-                    {{ t('composer.media.dropzoneTitle') }}
-                    <span class="block font-medium text-[var(--upload-accent)]">{{ t('composer.media.dropzoneBody') }}</span>
-                  </p>
-                </button>
-              </div>
-
-              <div class="mt-4 flex items-center justify-between gap-4">
-                <div class="flex items-center gap-1 text-text-secondary">
-                  <button
-                    type="button"
-                    class="sr-only"
-                    data-testid="add-media-button"
-                    @click="openMediaLibrary"
-                  >
-                    {{ t('composer.media.addMedia') }}
-                  </button>
-                  <button
-                    type="button"
-                    class="flex h-10 w-10 items-center justify-center rounded-xl border border-border-visible bg-bg-surface transition hover:border-text-display hover:text-text-display"
-                    data-testid="composer-upload-trigger"
-                    @click="openUploadPicker"
-                  >
-                    <ImageIcon class="size-4" />
-                  </button>
-
-                  <Popover v-model:open="isMediaSourcesOpen">
-                    <PopoverTrigger as-child>
-                      <button
-                        type="button"
-                        class="flex h-10 w-10 items-center justify-center rounded-xl border border-border-visible bg-bg-surface transition hover:border-text-display hover:text-text-display"
-                        data-testid="composer-sources-trigger"
-                      >
-                        <ChevronDown class="size-4" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" class="w-60 rounded-2xl border-border-subtle bg-bg-surface p-2">
-                      <div class="space-y-1">
-                        <button
-                          type="button"
-                          class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-text-body transition hover:bg-bg-primary"
-                          data-testid="composer-source-library"
-                          @click="openMediaLibrary"
-                        >
-                          <span>{{ t('composer.media.sourceLibrary') }}</span>
-                        </button>
-                        <button
-                          v-if="picker.effectiveProvider.value === 'unsplash'"
-                          type="button"
-                          class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-text-body transition hover:bg-bg-primary"
-                          data-testid="composer-source-unsplash"
-                          @click="openUnsplashLibrary"
-                        >
-                          <span>{{ t('composer.media.sourceExternal') }}</span>
-                        </button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-
-                  <button type="button"
-                    @click="handleEmojiPicker"
-                    class="flex h-10 w-10 items-center justify-center rounded-xl text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
-                    title="Open emoji picker"
-                  >
-                    <Smile class="size-4" />
-                  </button>
-                  <button type="button"
-                    @click="appendHashtag"
-                    class="flex h-10 w-10 items-center justify-center rounded-xl text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
-                    title="Insert tag"
-                  >
-                    <Hash class="size-4" />
-                  </button>
-                  <button type="button"
-                    @click="handleAiAssist"
-                    class="flex h-10 items-center gap-1 rounded-xl px-2 text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
-                    title="AI Assist"
-                  >
-                    <Sparkles class="size-4" />
-                    <span class="font-mono text-[8px] uppercase tracking-wider font-bold">AI</span>
-                  </button>
-                </div>
-
-                <span
-                  class="font-mono text-[10px]"
-                  :class="isTextTooLong ? 'text-error font-bold' : 'text-text-secondary'"
-                >
-                  {{ charsRemaining }} / {{ charLimit }}
-                </span>
-              </div>
-
-              <input
-                id="create-post-file-input"
-                ref="pickerSessionUploadInput"
-                data-testid="picker-upload-input"
-                type="file"
-                class="hidden"
-                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
-                aria-label="Upload media file"
-                @change="handleFileSelect"
-              >
-            </div>
-          </div>
+          <!-- Attachment Limit Warning -->
           <p
             v-if="picker.isAttachmentLimitExceeded.value"
-            data-testid="attachment-limit-warning"
             class="rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-xs text-error"
           >
             {{ t('composer.media.limitWarning', {
@@ -1171,6 +519,8 @@ async function handleCreateSubmit(
               max: Number.isFinite(picker.effectiveAttachmentLimit.value) ? picker.effectiveAttachmentLimit.value : t('composer.media.limitInfinite'),
             }) }}
           </p>
+
+          <!-- Media Picker Shell -->
           <ComposerMediaPickerShell
             :is-open="picker.isMediaPickerOpen.value"
             :active-source="picker.activeMediaPickerSource.value"
@@ -1186,10 +536,7 @@ async function handleCreateSubmit(
             @provider-import="picker.handleProviderImport"
             @close="picker.closeMediaPicker()"
           >
-            <template
-              v-if="picker.effectiveProvider.value === 'unsplash'"
-              #provider
-            >
+            <template v-if="picker.effectiveProvider.value === 'unsplash'" #provider>
               <MediaProviderPanel
                 :results="picker.providerResults.value"
                 :is-searching="picker.providerSearching.value"
@@ -1199,129 +546,39 @@ async function handleCreateSubmit(
             </template>
           </ComposerMediaPickerShell>
 
-          <div class="space-y-2">
-            <label for="create-post-first-comment" class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
-              {{ $t('composer.firstComment') }}
-            </label>
-            <input
-              id="create-post-first-comment"
-              v-model="firstComment"
-              type="text"
-              :placeholder="$t('composer.firstCommentPlaceholder')"
-              class="w-full bg-bg-primary border border-border-visible rounded-xl px-4 py-2.5 text-xs text-text-body placeholder:text-text-secondary focus:outline-none focus:border-text-display font-sans"
-            />
-          </div>
+          <!-- First Comment Section -->
+          <ComposerFormSection
+            :model-value="form.firstComment.value"
+            @update:modelValue="form.firstComment.value = $event"
+          />
         </div>
 
+        <!-- Preview & Schedule Footer -->
         <PostPreviewPanel
           provider="linkedin"
           :title="$t('composer.linkedinPreview')"
           :linkedin-preview="linkedinPreview"
         >
           <template #footer>
-            <div class="border-t border-border-subtle pt-6 space-y-4">
-              <div class="space-y-3">
-                <div class="flex items-center gap-4 bg-bg-surface border border-border-subtle p-3 rounded-xl">
-                <CalendarIcon class="size-4 text-text-secondary shrink-0" />
-                <div class="flex-1 space-y-2 text-xs">
-                  <span class="text-text-secondary">Schedule Mode:</span>
-                  <div
-                    class="grid grid-cols-3 gap-1 rounded-lg bg-bg-primary/60 p-1"
-                    role="radiogroup"
-                    aria-label="Schedule mode"
-                  >
-                  <label
-                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                    :class="scheduleMode === 'now' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                  >
-                    <input type="radio" v-model="scheduleMode" value="now" class="sr-only" />
-                    Now
-                  </label>
-                  <label
-                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                    :class="scheduleMode === 'next' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                  >
-                    <input type="radio" v-model="scheduleMode" value="next" class="sr-only" />
-                    Next Schedule
-                  </label>
-                  <label
-                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                    :class="scheduleMode === 'custom' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                  >
-                    <input type="radio" v-model="scheduleMode" value="custom" class="sr-only" />
-                    Pick Date
-                  </label>
-                  </div>
-                  <p class="text-[10px] leading-4 text-text-secondary">
-                    {{ scheduleHelperText }}
-                  </p>
-                </div>
-              </div>
-
-              <div v-if="scheduleMode === 'custom'" class="grid grid-cols-[1fr_112px] gap-3 animate-slide-down">
-                <Popover v-model:open="isDatePickerOpen">
-                  <PopoverTrigger as-child>
-                    <button
-                      type="button"
-                      class="flex items-center justify-between gap-2 bg-bg-surface border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-body hover:border-text-display focus:outline-none focus:border-text-display font-sans"
-                    >
-                      <span>{{ selectedDateLabel }}</span>
-                      <CalendarIcon class="size-3.5 text-text-secondary" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent class="w-auto p-0 bg-bg-surface border-border-subtle" align="start">
-                    <Calendar
-                      v-model="selectedCalendarDate"
-                      :min-value="todayDateValue"
-                      layout="month-and-year"
-                      initial-focus
-                      @update:model-value="isDatePickerOpen = false"
-                    />
-                  </PopoverContent>
-                </Popover>
-                <label for="create-post-schedule-time" class="sr-only">Schedule time</label>
-                <input
-                  id="create-post-schedule-time"
-                  v-model="scheduleTime"
-                  type="time"
-                  :min="minTimeForDate"
-                  class="bg-bg-surface border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-body focus:outline-none focus:border-text-display font-sans"
-                />
-              </div>
-
-              <div class="flex items-center justify-between text-[10px] font-mono text-text-secondary px-1">
-                <label class="flex items-center gap-1.5 cursor-pointer hover:text-text-display select-none">
-                  <input type="checkbox" v-model="priorityMode" class="accent-text-display" />
-                  <span>Priority Queue</span>
-                </label>
-                <label v-if="!isEditMode" class="flex items-center gap-1.5 cursor-pointer hover:text-text-display select-none">
-                  <input type="checkbox" v-model="createAnother" class="accent-text-display" />
-                  <span>Create Another</span>
-                </label>
-              </div>
-            </div>
-
-              <p v-if="submitError" class="rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
-                {{ submitError }}
-              </p>
-
-              <div class="grid grid-cols-3 gap-3">
-                <button type="button"
-                  @click="emit('close')"
-                  class="col-span-1 border border-border-visible text-text-body hover:border-text-display hover:text-text-display font-mono text-[10px] font-bold uppercase tracking-wider rounded-full py-2.5 transition-all text-center cursor-pointer"
-                >
-                  {{ $t('composer.cancelBtn') }}
-                </button>
-
-                <Button
-                  @click="handleSchedule"
-                  :disabled="!canSubmit"
-                  class="col-span-2 justify-center py-2.5 font-bold"
-                >
-                  {{ isEditMode ? $t('composer.saveChanges') : scheduleMode === 'now' ? 'Schedule Now' : scheduleMode === 'next' ? 'Next Schedule' : $t('composer.scheduleBtn') }}
-                </Button>
-              </div>
-            </div>
+            <ComposerScheduleFooter
+              :model-value:schedule-mode="form.scheduleMode.value"
+              :model-value:selected-calendar-date="form.selectedCalendarDate.value"
+              :model-value:schedule-time="form.scheduleTime.value"
+              :model-value:priority-mode="form.priorityMode.value"
+              :model-value:create-another="form.createAnother.value"
+              :is-edit-mode="form.isEditMode.value"
+              :can-submit="canSubmit"
+              :is-submitting="form.isSubmitting.value"
+              :submit-error="form.submitError.value"
+              :now="now"
+              @update:schedule-mode="form.scheduleMode.value = $event"
+              @update:selected-calendar-date="form.selectedCalendarDate.value = $event"
+              @update:schedule-time="form.scheduleTime.value = $event"
+              @update:priority-mode="form.priorityMode.value = $event"
+              @update:create-another="form.createAnother.value = $event"
+              @close="emit('close')"
+              @submit="handleSchedule"
+            />
           </template>
         </PostPreviewPanel>
       </dialog>
@@ -1336,9 +593,6 @@ async function handleCreateSubmit(
 .animate-zoom-in {
   animation: zoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-.animate-slide-down {
-  animation: slideDown 0.15s ease-out forwards;
-}
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -1347,9 +601,5 @@ async function handleCreateSubmit(
 @keyframes zoomIn {
   from { transform: scale(0.96); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
-}
-@keyframes slideDown {
-  from { height: 0; opacity: 0; overflow: hidden; }
-  to { height: 38px; opacity: 1; }
 }
 </style>

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Check, Search, X } from '@lucide/vue'
 import {
@@ -8,6 +7,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useComposerMediaPickerState } from './useComposerMediaPickerState'
 import type {
   ComposerMediaPickerAsset,
   ComposerMediaPickerApplyPayload,
@@ -43,26 +43,14 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const providerQuery = ref('')
-
-watch(
-  () => props.isOpen,
-  (isOpen): void => {
-    if (!isOpen) providerQuery.value = ''
-  },
-)
-
-const selectedIds = computed(() => props.assets.filter((asset) => asset.selected).map((asset) => asset.assetId))
-const isLibrarySource = computed(() => props.activeSource === 'library')
-const providerEnabled = computed(() => props.provider === 'unsplash')
-const modalTitle = computed(() =>
-  isLibrarySource.value ? t('composer.picker.header') : t('composer.picker.unsplashChip'),
-)
-const modalDescription = computed(() =>
-  isLibrarySource.value
-    ? t('composer.picker.libraryDescription')
-    : t('composer.picker.providerDescription'),
-)
+const {
+  providerQuery,
+  selectedIds,
+  isLibrarySource,
+  providerEnabled,
+  modalTitle,
+  modalDescription,
+} = useComposerMediaPickerState(props.isOpen, props.activeSource, props.assets, props.provider)
 
 function toggleAsset(asset: ComposerMediaPickerAsset): void {
   if (!asset.selectable || !isLibrarySource.value) return

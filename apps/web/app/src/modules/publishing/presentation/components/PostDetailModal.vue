@@ -2,10 +2,12 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CalendarClock, ExternalLink, Pencil, Trash2, X, AlertTriangle, CheckCircle2, Clock } from '@lucide/vue'
-import { useFocusTrap } from '@shared/composables/useFocusTrap'
+import { useFocusTrap, useDeleteConfirmation } from '@shared/composables'
 import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
 import { usePublishingErrors } from '@modules/publishing/presentation/composables/usePublishingErrors'
+import { usePostDetailDisplay } from './usePostDetailDisplay'
 import { getProviderBadge } from '@shared/lib/provider-styles'
+import PublicationRescheduleForm from '@modules/publishing/presentation/components/PublicationRescheduleForm.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -27,6 +29,17 @@ const { t, locale: i18nLocale } = useI18n()
 const publishingStore = usePublishingStore()
 const { failureCopy, actionErrorMessage } = usePublishingErrors(() => props.publication)
 
+// Use composables for delete and reschedule state
+const deleteConfirm = useDeleteConfirmation({
+  onConfirm: async () => {
+    if (!props.publication) return
+    await publishingStore.deletePost(props.publication.id)
+    emit('deleted', props.publication.id)
+    closeModal()
+  },
+  onCancel: () => {},
+})
+
 const isReadOnly = computed(() => props.publication?.status === 'PUBLISHED')
 const canEditPublication = computed(() =>
   props.publication ? publishingStore.isPublicationEditable(props.publication.status) : false,
@@ -35,94 +48,16 @@ const canDelete = computed(() =>
   props.publication ? publishingStore.isPublicationDeletable(props.publication.status) : false,
 )
 
-const statusLabel = computed(() => {
-  if (!props.publication) return ''
-  switch (props.publication.status) {
-    case 'DRAFT':
-      return t('postDetail.status.draft')
-    case 'QUEUED':
-      return t('postDetail.status.queued')
-    case 'SCHEDULED':
-      return t('postDetail.status.scheduled')
-    case 'PROCESSING':
-      return t('postDetail.status.processing')
-    case 'PUBLISHED':
-      return t('postDetail.status.published')
-    case 'BLOCKED':
-      return t('postDetail.status.blocked')
-    case 'FAILED':
-      return t('postDetail.status.failed')
-    case 'CANCELLED':
-      return t('postDetail.status.cancelled')
-    default:
-      return props.publication.status
-  }
-})
+const { statusLabel, statusTone, viewPostUrl, scheduledAtLabel, publishedAtLabel } = usePostDetailDisplay(
+  props.publication,
+  i18nLocale.value,
+)
 
-const statusTone = computed(() => {
-  if (!props.publication) return 'text-text-secondary'
-  switch (props.publication.status) {
-    case 'PUBLISHED':
-      return 'text-success'
-    case 'BLOCKED':
-    case 'FAILED':
-      return 'text-error'
-    case 'CANCELLED':
-      return 'text-text-secondary'
-    case 'PROCESSING':
-    case 'QUEUED':
-    case 'SCHEDULED':
-      return 'text-warning'
-    default:
-      return 'text-text-secondary'
-  }
-})
-
-const viewPostUrl = computed(() => {
-  if (!props.publication) return null
-  // Prefer the public URL the backend provides (e.g. https://www.linkedin.com/feed/update/...)
-  if (props.publication.publicUrl) return props.publication.publicUrl
-  // Fallback: build a LinkedIn share URL from the URN when the backend did not return one
-  const urn = props.publication.externalPublicationId
-  if (urn?.startsWith('urn:li:')) {
-    return `https://www.linkedin.com/feed/update/${encodeURIComponent(urn)}`
-  }
-  return null
-})
-
-const dateLocale = computed(() => (i18nLocale.value === 'es' ? 'es-ES' : 'en-US'))
-
-const scheduledAtLabel = computed(() => {
-  if (!props.publication?.scheduledAt) return ''
-  const d = new Date(props.publication.scheduledAt)
-  return d.toLocaleString(dateLocale.value, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-})
-
-const publishedAtLabel = computed(() => {
-  if (!props.publication?.publishedAt) return ''
-  const d = new Date(props.publication.publishedAt)
-  return d.toLocaleString(dateLocale.value, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-})
-
-const isDeleting = ref(false)
-const deleteError = ref('')
+const isDeleting = computed(() => deleteConfirm.isDeleting.value)
+const deleteError = computed(() => deleteConfirm.error.value)
 
 const showReschedule = ref(false)
-const newScheduledAt = ref('')
+const rescheduleInitialDate = ref('')
 const rescheduleError = ref('')
 const isRetrying = ref(false)
 const retryError = ref('')
@@ -152,29 +87,22 @@ function closeModal() {
   emit('close')
 }
 
-async function deletePublication() {
+async function requestDelete() {
   if (!props.publication || isDeleting.value || !canDelete.value) return
-  isDeleting.value = true
-  deleteError.value = ''
   try {
-    await publishingStore.deletePost(props.publication.id)
-    emit('deleted', props.publication.id)
-    closeModal()
+    await deleteConfirm.confirm()
   } catch (err) {
-    deleteError.value = actionErrorMessage(err, 'delete')
+    deleteConfirm.setError(actionErrorMessage(err, 'delete'))
     console.error('Failed to delete publication', err)
-  } finally {
-    isDeleting.value = false
   }
 }
 
 function openReschedule() {
   if (!props.publication?.scheduledAt) return
-  // Pre-fill with current scheduled date, local datetime-local format
   const d = new Date(props.publication.scheduledAt)
   const offset = d.getTimezoneOffset()
   const local = new Date(d.getTime() - offset * 60_000)
-  newScheduledAt.value = local.toISOString().slice(0, 16)
+  rescheduleInitialDate.value = local.toISOString().slice(0, 16)
   showReschedule.value = true
   rescheduleError.value = ''
 }
@@ -194,18 +122,11 @@ async function retryPublication() {
   }
 }
 
-async function confirmReschedule() {
-  if (!props.publication || !newScheduledAt.value) return
+async function confirmReschedule(newIso: string) {
   rescheduleError.value = ''
-  const newDate = new Date(newScheduledAt.value)
-  if (Number.isNaN(newDate.getTime()) || newDate <= new Date()) {
-    rescheduleError.value = t('postDetail.rescheduleInvalidDate')
-    return
-  }
   try {
-    const newIso = newDate.toISOString()
-    await publishingStore.reschedulePublication(props.publication.id, newIso)
-    emit('reschedule', { id: props.publication.id, scheduledAt: newIso })
+    await publishingStore.reschedulePublication(props.publication!.id, newIso)
+    emit('reschedule', { id: props.publication!.id, scheduledAt: newIso })
     showReschedule.value = false
     closeModal()
   } catch (err) {
@@ -357,38 +278,18 @@ function cancelReschedule() {
             <p v-if="deleteError" class="text-[10px] font-mono text-error">{{ deleteError }}</p>
             <p v-if="retryError" role="alert" class="text-[10px] font-mono text-error">{{ retryError }}</p>
           </div>
-          <div v-if="showReschedule" class="px-6 pt-3 pb-2 space-y-2">
-            <label for="reschedule-datetime" class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
-              {{ t('postDetail.scheduledFor') }}
-            </label>
-            <input
-              id="reschedule-datetime"
-              v-model="newScheduledAt"
-              type="datetime-local"
-              class="w-full rounded-xl border border-border-visible bg-bg-surface text-text-body px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-text-display/30"
-              :aria-label="t('postDetail.scheduledFor')"
-            />
-            <p v-if="rescheduleError" role="alert" class="text-[10px] font-mono text-error">{{ rescheduleError }}</p>
-            <div class="flex gap-2">
-              <button type="button"
-                @click="confirmReschedule"
-                class="px-3 py-2 rounded-xl bg-text-display text-bg-primary hover:opacity-90 transition-opacity text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
-              >
-                {{ t('postDetail.rescheduleConfirm') }}
-              </button>
-              <button type="button"
-                @click="cancelReschedule"
-                class="px-3 py-2 rounded-xl border border-border-visible text-text-body hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
-              >
-                {{ t('postDetail.rescheduleCancel') }}
-              </button>
-            </div>
-          </div>
+          <PublicationRescheduleForm
+            v-if="showReschedule"
+            :initial-scheduled-at="rescheduleInitialDate"
+            :api-error="rescheduleError"
+            @confirm="confirmReschedule"
+            @cancel="cancelReschedule"
+          />
           <div v-if="!showReschedule" class="flex items-center justify-between gap-3 p-6">
         <div class="flex items-center gap-2">
           <button type="button"
             v-if="canDelete"
-            @click="deletePublication"
+            @click="requestDelete"
             :disabled="isDeleting"
             class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-error hover:text-error transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
           >

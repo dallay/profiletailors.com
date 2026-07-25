@@ -7,41 +7,61 @@ import { h, render } from 'vue'
 const cache = new Map<string, string>()
 
 // Convert object to a consistent string key
-function serializeKey(key: Record<string, any>): string {
+function serializeKey(key: Record<string, unknown>): string {
   return JSON.stringify(
     key,
     Object.keys(key).sort((a, b) => a.localeCompare(b)),
   )
 }
 
-interface Constructor<P = any> {
+interface Constructor<P = unknown> {
   __isFragment?: never
   __isTeleport?: never
   __isSuspense?: never
   new (
-    ...args: any[]
+    ...args: unknown[]
   ): {
     $props: P
   }
 }
 
-export function componentToString<P>(config: ChartConfig, component: Constructor<P>, props?: P) {
+interface TooltipData {
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
+export function componentToString<P extends Record<string, unknown>>(
+  config: ChartConfig,
+  component: Constructor<P>,
+  props?: P,
+) {
   if (!isClient) return
 
   // This function will be called once during mount lifecycle
   const id = useId()
 
   // https://unovis.dev/docs/auxiliary/Crosshair#component-props
-  return (_data: any, x: number | Date) => {
-    const data = 'data' in _data ? _data.data : _data
-    const serializedKey = `${id}-${serializeKey(data)}`
+  return (rawData: unknown, x: number | Date): string => {
+    const data = (rawData as TooltipData | undefined)?.data ?? rawData
+    
+    if (typeof data !== 'object' || data === null) {
+      return ''
+    }
+
+    const serializedKey = `${id}-${serializeKey(data as Record<string, unknown>)}`
     const cachedContent = cache.get(serializedKey)
     if (cachedContent) return cachedContent
 
-    const vnode = h<unknown>(component, { ...props, payload: data, config, x })
+    const vnode = h<P>(component, { 
+      ...props, 
+      payload: data, 
+      config, 
+      x 
+    })
     const div = document.createElement('div')
     render(vnode, div)
-    cache.set(serializedKey, div.innerHTML)
-    return div.innerHTML
+    const html = div.innerHTML
+    cache.set(serializedKey, html)
+    return html
   }
 }

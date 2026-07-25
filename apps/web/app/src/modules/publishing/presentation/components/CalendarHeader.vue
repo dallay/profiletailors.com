@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import {
   Ban,
   CalendarDays,
@@ -15,23 +14,18 @@ import {
 } from '@lucide/vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import type { SchedulerStatus, SchedulerSurface } from '@modules/publishing/application/useCalendarUrl'
+import { useCalendarHeaderState } from '@modules/publishing/application'
 import { Button } from '@/components/ui/button'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 
 const publishingStore = usePublishingStore()
 
 const props = defineProps<{
-  /** Current calendar sub-view */
   calendarView: 'month' | 'week' | 'day'
-  /** Full scheduler surface */
   surface: SchedulerSurface
-  /** Formatted period label (e.g. "June 2026", "Jun 8 – 14, 2026") */
   periodLabel: string
-  /** Active timezone (from URL) */
   timezone: string
-  /** Active status filter (from URL) */
   status: string
-  /** Active channel IDs filter (from URL) */
   channelIds: string[]
 }>()
 
@@ -46,31 +40,19 @@ const emit = defineEmits<{
   (e: 'newPost'): void
 }>()
 
-/** Derives the calendar surface from the current calendarView prop for the calendar toggle. */
-const calendarSurface = computed<SchedulerSurface>(() =>
-  props.calendarView === 'month' ? 'calendar-month' : 'calendar-week',
+const { calendarSurface, selectedChannel, statusIcon } = useCalendarHeaderState(
+  props.calendarView,
+  props.surface,
+  props.status,
+  props.channelIds,
 )
 
-/** Computes the currently selected channel to render its custom network icon if filtered. */
-const selectedChannel = computed(() => {
-  const id = props.channelIds?.[0]
-  if (!id) return null
-  return publishingStore.channels.find((ch) => ch.accountId === id)
-})
-
-/** Computes the status icon to dynamically show based on selected status. */
-const statusIcon = computed(() => {
-  switch (props.status) {
-    case 'queued':
-      return Clock
-    case 'published':
-      return Check
-    case 'cancelled':
-      return Ban
-    default:
-      return Folder
-  }
-})
+const statusIconMap: Record<string, any> = {
+  Clock,
+  Check,
+  Ban,
+  Folder,
+}
 </script>
 
 <template>
@@ -182,7 +164,7 @@ const statusIcon = computed(() => {
           <option value="published">Published</option>
           <option value="cancelled">Cancelled</option>
         </select>
-        <component :is="statusIcon" class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
+        <component :is="statusIconMap[statusIcon.value]" class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
         <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
       </div>
 
