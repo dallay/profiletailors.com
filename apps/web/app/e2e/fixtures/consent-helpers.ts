@@ -17,12 +17,17 @@ const CONSENT_STORAGE_KEY = 'pt-consent'
 const CURRENT_CONSENT_VERSION = 1
 const CURRENT_POLICY_VERSION = '2026-07-23'
 
-export interface TestConsentReceipt {
+export type ConsentCategories = {
+  necessary: true
+  analytics: boolean
+}
+
+export type TestConsentReceipt = {
   consentVersion: number
   policyVersion: string
   timestamp: string
   region: string
-  categories: { necessary: true; analytics: boolean }
+  categories: ConsentCategories
   dnt: boolean
   source: 'banner' | 'settings-panel'
 }

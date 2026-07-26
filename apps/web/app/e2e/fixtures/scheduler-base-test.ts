@@ -63,9 +63,12 @@ export const test = base.extend<{ resetSession: () => Promise<void> }>({
     // ConsentBanner never blocks the dashboard UI in scheduler tests.
     // Wraps in try-catch for about:blank where localStorage may throw.
     const receipt = JSON.stringify(VALID_CONSENT)
-    await context.addInitScript(`
-      try { localStorage.setItem('${CONSENT_STORAGE_KEY}', '${receipt}'); } catch {}
-    `)
+    await context.addInitScript(
+      ({ key, value }: { key: string; value: string }) => {
+        try { localStorage.setItem(key, value); } catch {}
+      },
+      { key: CONSENT_STORAGE_KEY, value: receipt },
+    )
 
     await use(page)
   },
