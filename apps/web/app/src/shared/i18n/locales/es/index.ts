@@ -14,6 +14,7 @@ import analytics from './analytics'
 import media from './media'
 import settings from './settings'
 import { governance } from './governance'
+import { consent } from './consent'
 
 export default {
   common,
@@ -32,4 +33,5 @@ export default {
   media,
   settings,
   governance,
+  consent,
 }
