@@ -1107,6 +1107,27 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
 
     await wrapper.unmount()
   })
+
+  it('selects the publication channel and locks it in edit mode', async () => {
+    const channels = [
+      makeChannel('ch-first', { name: 'First channel' }),
+      makeChannel('ch-publication', { name: 'Publication channel' }),
+    ]
+    const wrapper = mountModal(channels, {
+      editingPublication: makeEditingPublication({ accountId: 'ch-publication' }),
+    })
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    const publicationChannel = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('button[data-edit-disabled="true"]'),
+    ).find((button) => button.textContent?.includes('Publication channel'))
+
+    expect(publicationChannel).toBeDefined()
+    expect(publicationChannel?.disabled).toBe(true)
+    expect(publicationChannel?.className).toContain('border-text-display')
+  })
 })
 
 describe('CreatePostModal.vue — inline composer media layout', () => {

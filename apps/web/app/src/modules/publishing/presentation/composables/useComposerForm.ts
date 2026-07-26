@@ -98,7 +98,10 @@ export function useComposerForm(options: UseComposerFormOptions = {}) {
     scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
 
     assetsTouched.value = false
-    selectedChannelId.value = publishingStore.channels[0]?.id ?? null
+    selectedChannelId.value =
+      publishingStore.channels.find((channel) => channel.accountId === pub.accountId)?.id ??
+      publishingStore.channels[0]?.id ??
+      null
 
     if (pub.scheduledAt && scheduleMode.value === 'custom') {
       const dateSrc = new Date(pub.scheduledAt)
