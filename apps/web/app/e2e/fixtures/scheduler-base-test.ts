@@ -65,7 +65,9 @@ export const test = base.extend<{ resetSession: () => Promise<void> }>({
     const receipt = JSON.stringify(VALID_CONSENT)
     await context.addInitScript(
       ({ key, value }: { key: string; value: string }) => {
-        try { localStorage.setItem(key, value); } catch {}
+        try {
+          localStorage.setItem(key, value)
+        } catch {}
       },
       { key: CONSENT_STORAGE_KEY, value: receipt },
     )
