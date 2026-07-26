@@ -9,9 +9,7 @@ import com.profiletailors.smp.privacy.application.PrivacyMutationAuditPort
 import org.springframework.stereotype.Component
 
 @Component
-class AuditHookPrivacyMutationAuditPort(
-    private val auditHook: AuditHook,
-) : PrivacyMutationAuditPort {
+class AuditHookPrivacyMutationAuditPort(private val auditHook: AuditHook) : PrivacyMutationAuditPort {
     override suspend fun onMutation(fact: PrivacyMutationAuditFact) {
         auditHook.onMutation(
             MutationAuditFact(

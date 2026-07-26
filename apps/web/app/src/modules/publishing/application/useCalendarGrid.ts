@@ -1,10 +1,10 @@
-import { computed, ref } from 'vue'
+import { computed, type Ref } from 'vue'
 
 export interface CalendarGrid {
   weeks: Date[][]
 }
 
-export function useCalendarGrid(baseDate: globalThis.Ref<Date>) {
+export function useCalendarGrid(baseDate: Ref<Date>) {
   const monthGrid = computed(() => {
     const year = baseDate.value.getFullYear()
     const month = baseDate.value.getMonth()
@@ -68,8 +68,7 @@ export function useCalendarGrid(baseDate: globalThis.Ref<Date>) {
 
   const isCurrentMonth = (d: Date): boolean => {
     return (
-      d.getMonth() === baseDate.value.getMonth() &&
-      d.getFullYear() === baseDate.value.getFullYear()
+      d.getMonth() === baseDate.value.getMonth() && d.getFullYear() === baseDate.value.getFullYear()
     )
   }
 

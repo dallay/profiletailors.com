@@ -1,8 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.media.application.MediaAssetResolver
-import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
@@ -40,6 +38,8 @@ import java.time.ZoneOffset
 import java.util.concurrent.Delayed
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
+import com.profiletailors.smp.publishing.application.PublishingMediaAssetResolver as MediaAssetResolver
+import com.profiletailors.smp.publishing.application.PublishingResolvedAssetSummary as ResolvedAssetSummary
 
 class PublishingSchedulingConfigurationTest {
 

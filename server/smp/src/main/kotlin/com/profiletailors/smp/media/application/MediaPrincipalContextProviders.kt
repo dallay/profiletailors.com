@@ -4,8 +4,8 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
 
-fun permissiveMediaPrincipalContextProvider(): PrincipalContextProvider =
-    PermissiveMediaPrincipalContextProviderImpl()
+@Suppress("FunctionNameMaxLength")
+fun permissiveMediaPrincipalProvider(): PrincipalContextProvider = PermissiveMediaPrincipalContextProviderImpl()
 
 private class PermissiveMediaPrincipalContextProviderImpl : PrincipalContextProvider {
     private val dummy = PrincipalContext(

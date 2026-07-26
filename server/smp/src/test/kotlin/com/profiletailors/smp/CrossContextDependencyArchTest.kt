@@ -20,6 +20,7 @@ import java.util.stream.Collectors
  * This freezes the current architecture surface so we can tighten it incrementally
  * without accidental new couplings.
  */
+@Suppress("MaxLineLength", "LabeledExpression", "ClassOrdering", "StringShouldBeRawString")
 internal class CrossContextDependencyArchTest {
 
     private lateinit var importedClasses: JavaClasses
@@ -35,8 +36,10 @@ internal class CrossContextDependencyArchTest {
             "com\\.profiletailors\\.smp\\.([a-z]+)\\.(domain|application|infrastructure)(?:\\..*)?",
         )
 
-        private val SOURCE_PACKAGE = Regex("^package\\s+com\\.profiletailors\\.smp\\.([a-z]+)\\.application(?:\\..*)?\\s*$")
-        private val IMPORT_LINE = Regex("^import\\s+com\\.profiletailors\\.smp\\.([a-z]+)\\.(application|domain|infrastructure)\\..*")
+        private val SOURCE_PACKAGE =
+            Regex("^package\\s+com\\.profiletailors\\.smp\\.([a-z]+)\\.application(?:\\..*)?\\s*$")
+        private val IMPORT_LINE =
+            Regex("^import\\s+com\\.profiletailors\\.smp\\.([a-z]+)\\.(application|domain|infrastructure)\\..*")
 
         private val ALLOWED_FILE_IMPORTS = emptySet<AllowlistedCrossContextImport>()
     }
@@ -69,24 +72,29 @@ internal class CrossContextDependencyArchTest {
 
         assertTrue(
             violations.isEmpty(),
-            "Cross-context application->infrastructure dependencies are forbidden:\n${violations.sorted().joinToString("\n")}",
+            "Cross-context application->infrastructure dependencies are forbidden:\n${violations.sorted().joinToString(
+                "\n",
+            )}",
         )
     }
 
     @Test
+    @Suppress("LongMethod")
     fun applicationLayerCrossContextImportsShouldBeFileAllowlisted() {
-        val appSourcesRoot = Path.of("server", "smp", "src", "main", "kotlin", "com", "profiletailors", "smp")
+        val appSourcesRoot = Path.of("src", "main", "kotlin", "com", "profiletailors", "smp")
         val observed = Files.walk(appSourcesRoot).use { paths ->
             paths
                 .filter { Files.isRegularFile(it) && it.fileName.toString().endsWith(".kt") }
                 .map { path -> path.normalize() }
                 .flatMap { path ->
                     val lines = Files.readAllLines(path)
-                    val packageLine = lines.firstOrNull { it.startsWith("package ") } ?: return@flatMap emptyList<AllowlistedCrossContextImport>().stream()
+                    val packageLine =
+                        lines.firstOrNull { it.startsWith("package ") }
+                            ?: return@flatMap emptyList<AllowlistedCrossContextImport>().stream()
                     val sourceMatch = SOURCE_PACKAGE.matchEntire(packageLine.trim())
                         ?: return@flatMap emptyList<AllowlistedCrossContextImport>().stream()
                     val fromContext = sourceMatch.groupValues[1]
-                    val relativeFile = path.toString().replace('\\\\', '/')
+                    val relativeFile = path.toString().replace('\\', '/')
 
                     lines.asSequence()
                         .map { it.trim() }
@@ -105,7 +113,7 @@ internal class CrossContextDependencyArchTest {
                             }
                         }
                         .distinct()
-                        .asIterable()
+                        .toList()
                         .stream()
                 }
                 .collect(Collectors.toSet())

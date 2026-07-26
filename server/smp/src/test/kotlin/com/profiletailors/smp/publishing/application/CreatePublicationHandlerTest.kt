@@ -7,7 +7,6 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationDraft
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
+import com.profiletailors.smp.publishing.application.PublishingMediaAssetResolver as MediaAssetResolver
 
 class CreatePublicationHandlerTest {
     private val principalContextProvider = mockk<PrincipalContextProvider>(relaxed = true)

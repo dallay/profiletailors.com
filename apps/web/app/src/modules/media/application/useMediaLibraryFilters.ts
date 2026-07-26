@@ -1,14 +1,16 @@
-import { computed, ref } from 'vue'
-import type { MediaStatus } from '@modules/media/services/media-api'
-import type { MediaAsset } from '@modules/media/infrastructure/media.store'
+import { computed, ref, type Ref } from 'vue'
+import type { MediaAssetSummary, MediaStatus } from '@modules/media/services/media-api'
 
-export function useMediaLibraryFilters(assets: globalThis.Ref<MediaAsset[]>) {
+export function useMediaLibraryFilters(assets: Ref<MediaAssetSummary[]>) {
   const searchQuery = ref('')
   const statusFilter = ref<'ALL' | 'READY' | 'PROCESSING' | 'FAILED' | 'SUSPENDED'>('ALL')
   const typeFilter = ref<'ALL' | 'IMAGE' | 'VIDEO' | 'PDF' | 'OTHER'>('ALL')
-  const sortBy = ref<'newest' | 'oldest' | 'filename-asc' | 'filename-desc' | 'size-desc' | 'size-asc' | 'status'>('newest')
+  const sortBy = ref<
+    'newest' | 'oldest' | 'filename-asc' | 'filename-desc' | 'size-desc' | 'size-asc' | 'status'
+  >('newest')
 
-  const isProcessingStatus = (status: MediaStatus): boolean => status === 'PENDING_UPLOAD' || status === 'UPLOADING'
+  const isProcessingStatus = (status: MediaStatus): boolean =>
+    status === 'PENDING_UPLOAD' || status === 'UPLOADING'
   const isImage = (mediaType: string) => mediaType.startsWith('image/')
   const isVideo = (mediaType: string) => mediaType.startsWith('video/')
   const isPdf = (mediaType: string) => mediaType === 'application/pdf'

@@ -1,18 +1,18 @@
-import { computed } from 'vue'
+import { computed, type ComputedRef, type Ref } from 'vue'
 import type { AudienceGrowthPoint } from '@modules/dashboard/domain/dashboard.types'
 
 interface ChartScaling {
   MARGIN: { top: number; right: number; bottom: number; left: number }
   CHART_DIMS: { width: number; height: number }
-  yMin: globalThis.Ref<number>
-  yMax: globalThis.Ref<number>
-  yRange: globalThis.Ref<number>
-  xScale: globalThis.Ref<number[]>
-  yScale: globalThis.Ref<number[]>
+  yMin: ComputedRef<number>
+  yMax: ComputedRef<number>
+  yRange: ComputedRef<number>
+  xScale: ComputedRef<number[]>
+  yScale: ComputedRef<number[]>
 }
 
 export function useAudienceChartVisualization(
-  data: globalThis.Ref<AudienceGrowthPoint[]>,
+  data: Ref<AudienceGrowthPoint[]>,
   scaling: ChartScaling,
 ) {
   const { MARGIN, CHART_DIMS, yMin, yRange, xScale, yScale } = scaling
@@ -23,7 +23,9 @@ export function useAudienceChartVisualization(
     const xs = xScale.value
     const ys = yScale.value
     if (xs.length < 2) return ''
-    return xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${(ys[i] ?? 0).toFixed(1)}`).join('')
+    return xs
+      .map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${(ys[i] ?? 0).toFixed(1)}`)
+      .join('')
   })
 
   const areaPath = computed(() => {

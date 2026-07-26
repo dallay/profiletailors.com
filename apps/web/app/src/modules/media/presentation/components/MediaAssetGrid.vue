@@ -16,12 +16,13 @@ import MediaAttribution from '@modules/media/presentation/components/MediaAttrib
 import { useMediaAssetDisplay, formatFileSize, triggerAssetDownload } from '@modules/media/application'
 import type { MediaAssetSummary } from '@modules/media/services/media-api'
 
-const props = defineProps<{
+const _props = defineProps<{
   assets: MediaAssetSummary[]
   selectedAssetIds: string[]
   isLoading: boolean
   loadError: string | null
   hasNextPage: boolean
+  hasActiveFilters: boolean
 }>()
 
 const emit = defineEmits<{
@@ -53,8 +54,12 @@ function handleDownload(asset: MediaAssetSummary) {
 
     <div v-else-if="assets.length === 0" class="rounded-2xl border border-dashed border-border-visible bg-bg-primary/30 p-10 text-center">
       <Image class="mx-auto size-8 text-text-secondary" />
-      <p class="mt-3 text-sm text-text-display">{{ $t('media.emptyTitle') }}</p>
-      <p class="mt-1 text-xs text-text-secondary">{{ $t('media.emptyBody') }}</p>
+      <p class="mt-3 text-sm text-text-display">
+        {{ $t(hasActiveFilters ? 'media.noFilteredAssetsTitle' : 'media.emptyTitle') }}
+      </p>
+      <p class="mt-1 text-xs text-text-secondary">
+        {{ $t(hasActiveFilters ? 'media.noFilteredAssetsBody' : 'media.emptyBody') }}
+      </p>
     </div>
 
     <div v-else class="space-y-5">

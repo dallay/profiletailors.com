@@ -2,8 +2,6 @@ package com.profiletailors.smp.publishing.integration
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.integration.support.countPublicationJobs
-import com.profiletailors.smp.media.application.MediaAssetResolver
-import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcAtomicTransactionRunner
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
@@ -60,6 +58,8 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
+import com.profiletailors.smp.publishing.application.PublishingMediaAssetResolver as MediaAssetResolver
+import com.profiletailors.smp.publishing.application.PublishingResolvedAssetSummary as ResolvedAssetSummary
 
 /**
  * PostgreSQL integration tests proving that PublishingJobExecutor worker methods execute

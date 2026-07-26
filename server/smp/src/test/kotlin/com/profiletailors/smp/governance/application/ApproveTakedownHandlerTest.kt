@@ -7,14 +7,7 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
-import com.profiletailors.smp.audit.domain.AuditHook
-import com.profiletailors.smp.audit.domain.MutationAuditFact
-import com.profiletailors.smp.audit.domain.MutationAuditOutcome
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
 import com.profiletailors.smp.governance.domain.TakedownReportStatus
@@ -34,18 +27,17 @@ internal class ApproveTakedownHandlerTest {
     private val mediaAssetStatusPort: MediaAssetStatusPort = mockk()
     private val resourceContextProvider: ResourceContextProvider = mockk()
     private val principalContextProvider: com.profiletailors.common.domain.context.PrincipalContextProvider = mockk()
-    private val authorizationDecider: WorkspaceAuthorizationDecider = mockk()
-    private val auditHook: AuditHook = mockk()
     private val eventPublisher: EventPublisher<DomainEvent> = mockk()
 
-    private val authorizationService = GovernanceAuthorizationService(authorizationDecider)
+    private val authorizationService: GovernanceAuthorizationService = mockk()
+    private val governanceMutationAuditPort: GovernanceMutationAuditPort = mockk()
     private val handler = ApproveTakedownHandler(
         repository = repository,
         mediaAssetStatusPort = mediaAssetStatusPort,
         resourceContextProvider = resourceContextProvider,
         principalContextProvider = principalContextProvider,
         authorizationService = authorizationService,
-        auditHook = auditHook,
+        governanceMutationAuditPort = governanceMutationAuditPort,
         eventPublisher = eventPublisher,
     )
 
@@ -63,10 +55,7 @@ internal class ApproveTakedownHandlerTest {
             updatedAt = Instant.parse("2026-07-21T09:00:00Z"),
         )
 
-        coEvery { authorizationDecider.decideDetailed(any()) } returns AuthorizationDecisionResult(
-            decision = AuthorizationDecision.ALLOW,
-            reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-        )
+        coEvery { authorizationService.authorizeMediaTakedown() } returns Unit
         coEvery { resourceContextProvider.require() } returns
             ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = "ws-001")
         coEvery { principalContextProvider.require() } returns
@@ -78,7 +67,7 @@ internal class ApproveTakedownHandlerTest {
         coEvery { repository.findById("ws-001", "report-001") } returns report
         coEvery { repository.save(any()) } answers { firstArg() }
         coEvery { mediaAssetStatusPort.updateAssetStatus(any()) } returns Unit
-        coEvery { auditHook.onMutation(any()) } returns Unit
+        coEvery { governanceMutationAuditPort.recordSuccess(any(), any(), any(), any(), any(), any()) } returns Unit
         coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
         val result = handler.handle(ApproveTakedownCommand("report-001"))
@@ -94,11 +83,15 @@ internal class ApproveTakedownHandlerTest {
                         update.status == AssetStatus.SUSPENDED
                 },
             )
-            auditHook.onMutation(
-                match { fact: MutationAuditFact ->
-                    fact.action == "MEDIA_TAKEDOWN_APPROVED" &&
-                        fact.targetType == "takedown_report" &&
-                        fact.outcome == MutationAuditOutcome.SUCCESS
+            governanceMutationAuditPort.recordSuccess(
+                action = "MEDIA_TAKEDOWN_APPROVED",
+                targetType = "takedown_report",
+                targetId = "report-001",
+                actorPrincipalId = "reviewer-001",
+                workspaceId = "ws-001",
+                details = match { details ->
+                    details["assetId"] == "asset-001" &&
+                        details["previousStatus"] == TakedownReportStatus.REPORTED.name
                 },
             )
             eventPublisher.publish(
@@ -114,10 +107,7 @@ internal class ApproveTakedownHandlerTest {
 
     @Test
     fun `throws TakedownReportNotFoundException when report not found`() = runTest {
-        coEvery { authorizationDecider.decideDetailed(any()) } returns AuthorizationDecisionResult(
-            decision = AuthorizationDecision.ALLOW,
-            reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-        )
+        coEvery { authorizationService.authorizeMediaTakedown() } returns Unit
         coEvery { resourceContextProvider.require() } returns
             ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = "ws-001")
         coEvery { principalContextProvider.require() } returns
@@ -135,10 +125,7 @@ internal class ApproveTakedownHandlerTest {
 
     @Test
     fun `throws AuthorizationDeniedException when not authorized`() = runTest {
-        coEvery { authorizationDecider.decideDetailed(any()) } returns AuthorizationDecisionResult(
-            decision = AuthorizationDecision.DENY,
-            reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
-        )
+        coEvery { authorizationService.authorizeMediaTakedown() } throws AuthorizationDeniedException("Denied")
 
         shouldThrow<AuthorizationDeniedException> {
             handler.handle(ApproveTakedownCommand("report-001"))

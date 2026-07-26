@@ -19,7 +19,7 @@ export function formatFileSize(bytes: number | null | undefined): string | null 
  */
 export function triggerAssetDownload(
   downloadUrl: string | null,
-  filename: string = 'media-asset'
+  filename: string = 'media-asset',
 ): void {
   if (!downloadUrl) return
 

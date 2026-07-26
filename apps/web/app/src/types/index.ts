@@ -3,23 +3,8 @@
  * Re-export common types from modules and shared utilities.
  */
 
-// Auth types
-export type { AuthUser, AuthToken, AuthState } from '@modules/auth'
-
-// Publishing types
-export type {
-  Publication,
-  PublicationUpdate,
-  Channel,
-  SocialProvider,
-  SocialAccountSummary,
-  SocialConnectionResult,
-} from '@modules/publishing'
-
-// Media types
-export type { MediaAsset, MediaUploadProgress } from '@modules/media'
-
 // Shared composable types
+import type { ApiError } from '@shared/composables'
 export type { ApiError } from '@shared/composables'
 export type { ValidationRule } from '@shared/composables'
 

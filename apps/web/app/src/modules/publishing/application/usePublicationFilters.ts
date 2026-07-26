@@ -5,7 +5,7 @@ interface UsePublicationFiltersOptions {
   publications?: Publication[]
 }
 
-export function usePublicationFilters(options: UsePublicationFiltersOptions = {}) {
+export function usePublicationFilters(_options: UsePublicationFiltersOptions = {}) {
   const query = ref('')
   const statusFilter = ref<'all' | 'queued' | 'published' | 'cancelled'>('all')
   const channelIdFilter = ref<string | undefined>(undefined)

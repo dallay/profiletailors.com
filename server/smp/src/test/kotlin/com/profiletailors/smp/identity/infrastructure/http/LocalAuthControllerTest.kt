@@ -8,9 +8,9 @@ import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.testfixture.CredentialGenerator
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
-import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.AuthTokens
+import com.profiletailors.smp.identity.application.IdentityRefreshSessionToken
 import com.profiletailors.smp.identity.application.LocalAuthSessionResult
 import com.profiletailors.smp.identity.application.LoginUserCommand
 import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
@@ -194,7 +194,7 @@ class LocalAuthControllerTest {
             username = username,
             emailStatus = emailStatus,
         ),
-        refreshToken = RefreshSessionToken("refresh-lookup", "refresh-secret"),
+        refreshToken = IdentityRefreshSessionToken("refresh-lookup", "refresh-secret"),
     )
 
     private fun requestWithCookie(name: String, value: String): ServerHttpRequest =

@@ -3,12 +3,7 @@ package com.profiletailors.smp.governance.application
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
-import com.profiletailors.smp.authorization.domain.PermissionKey
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.AuditEventCursor
 import com.profiletailors.smp.governance.domain.AuditEventCursorCodec
 import com.profiletailors.smp.governance.domain.AuditEventFilter
@@ -16,6 +11,8 @@ import com.profiletailors.smp.governance.domain.AuditEventItem
 import com.profiletailors.smp.governance.domain.AuditEventPageRequest
 import com.profiletailors.smp.governance.domain.AuditEventReader
 import com.profiletailors.smp.governance.domain.InvalidAuditEventCursorException
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -25,6 +22,8 @@ import org.junit.jupiter.api.Test
 import java.time.Instant
 
 class GetWorkspaceAuditEventsHandlerTest {
+
+    private val authorizationService: GovernanceAuthorizationService = mockk()
 
     @Test
     fun `reads workspace audit events with filters normalized limit and page metadata`() = runTest {
@@ -66,8 +65,10 @@ class GetWorkspaceAuditEventsHandlerTest {
                     )
                 }
             },
-            workspaceAuthorizationDecider = allowDecider(),
+            authorizationService = authorizationService,
         )
+
+        coEvery { authorizationService.authorizeAuditRead() } returns Unit
 
         val response = handler.handle(
             GetWorkspaceAuditEventsQuery(
@@ -129,8 +130,10 @@ class GetWorkspaceAuditEventsHandlerTest {
                     pageRequest: AuditEventPageRequest,
                 ): List<AuditEventItem> = listOf(auditItem("audit-1"))
             },
-            workspaceAuthorizationDecider = allowDecider(),
+            authorizationService = authorizationService,
         )
+
+        coEvery { authorizationService.authorizeAuditRead() } returns Unit
 
         val response = handler.handle(GetWorkspaceAuditEventsQuery(limit = 10))
 
@@ -155,8 +158,10 @@ class GetWorkspaceAuditEventsHandlerTest {
                     pageRequest: AuditEventPageRequest,
                 ): List<AuditEventItem> = emptyList()
             },
-            workspaceAuthorizationDecider = allowDecider(),
+            authorizationService = authorizationService,
         )
+
+        coEvery { authorizationService.authorizeAuditRead() } returns Unit
 
         assertThrows(InvalidAuditEventCursorException::class.java) {
             kotlinx.coroutines.runBlocking {
@@ -181,8 +186,10 @@ class GetWorkspaceAuditEventsHandlerTest {
                     pageRequest: AuditEventPageRequest,
                 ): List<AuditEventItem> = emptyList()
             },
-            workspaceAuthorizationDecider = denyDecider(),
+            authorizationService = authorizationService,
         )
+
+        coEvery { authorizationService.authorizeAuditRead() } throws AuthorizationDeniedException("Denied")
 
         assertThrows(AuthorizationDeniedException::class.java) {
             kotlinx.coroutines.runBlocking { handler.handle(GetWorkspaceAuditEventsQuery()) }
@@ -206,40 +213,4 @@ class GetWorkspaceAuditEventsHandlerTest {
         details = mapOf("ownerPrincipalId" to "owner-2"),
         createdAt = Instant.parse("2026-05-20T12:00:00Z"),
     )
-
-    private fun allowDecider() = object : WorkspaceAuthorizationDecider {
-        override suspend fun decide(
-            requiredPermission: PermissionKey,
-            requiredEntitlementKey: String?,
-            resourceContextOverride: ResourceContext?,
-        ): AuthorizationDecision = AuthorizationDecision.ALLOW
-
-        override suspend fun decideDetailed(
-            requiredPermission: PermissionKey,
-            requiredEntitlementKey: String?,
-            resourceContextOverride: ResourceContext?,
-        ): AuthorizationDecisionResult = AuthorizationDecisionResult(
-            decision = AuthorizationDecision.ALLOW,
-            reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-            roleKeys = setOf("auditor"),
-        )
-    }
-
-    private fun denyDecider() = object : WorkspaceAuthorizationDecider {
-        override suspend fun decide(
-            requiredPermission: PermissionKey,
-            requiredEntitlementKey: String?,
-            resourceContextOverride: ResourceContext?,
-        ): AuthorizationDecision = AuthorizationDecision.DENY
-
-        override suspend fun decideDetailed(
-            requiredPermission: PermissionKey,
-            requiredEntitlementKey: String?,
-            resourceContextOverride: ResourceContext?,
-        ): AuthorizationDecisionResult = AuthorizationDecisionResult(
-            decision = AuthorizationDecision.DENY,
-            reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
-            roleKeys = emptySet(),
-        )
-    }
 }

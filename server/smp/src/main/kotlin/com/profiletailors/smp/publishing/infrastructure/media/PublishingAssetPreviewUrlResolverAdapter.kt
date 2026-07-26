@@ -5,9 +5,8 @@ import com.profiletailors.smp.publishing.application.PublishingAssetPreviewUrlRe
 import org.springframework.stereotype.Component
 
 @Component
-internal class PublishingAssetPreviewUrlResolverAdapter(
-    private val delegate: AssetPreviewUrlResolver,
-) : PublishingAssetPreviewUrlResolver {
+internal class PublishingAssetPreviewUrlResolverAdapter(private val delegate: AssetPreviewUrlResolver) :
+    PublishingAssetPreviewUrlResolver {
     override suspend fun resolvePreviewUrl(
         assetId: String,
         workspaceId: String,

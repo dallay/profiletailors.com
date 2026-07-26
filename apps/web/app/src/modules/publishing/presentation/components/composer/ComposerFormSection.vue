@@ -3,12 +3,10 @@ interface Props {
   modelValue: string
 }
 
-interface Emits {
-  (e: 'update:modelValue', value: string): void
-}
+type Emits = (e: 'update:modelValue', value: string) => void
 
 defineProps<Props>()
-defineEmits<Emits>()
+const emit = defineEmits<Emits>()
 </script>
 
 <template>

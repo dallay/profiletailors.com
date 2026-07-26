@@ -3,12 +3,7 @@ package com.profiletailors.smp.governance.application
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
-import com.profiletailors.smp.authorization.domain.PermissionKey
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.governance.domain.ConsentStatus
@@ -28,12 +23,12 @@ internal class RecordWorkspaceConsentHandlerTest {
 
     private val resourceContextProvider: ResourceContextProvider = mockk()
     private val recordConsentHandler: RecordConsentHandler = mockk()
-    private val authorizationDecider: WorkspaceAuthorizationDecider = mockk()
+    private val authorizationService: GovernanceAuthorizationService = mockk()
 
     private val handler = RecordWorkspaceConsentHandler(
         resourceContextProvider = resourceContextProvider,
         recordConsentHandler = recordConsentHandler,
-        authorizationDecider = authorizationDecider,
+        authorizationService = authorizationService,
     )
 
     @Test
@@ -48,10 +43,7 @@ internal class RecordWorkspaceConsentHandlerTest {
             locale = "en",
         )
 
-        coEvery { authorizationDecider.decideDetailed(any()) } returns AuthorizationDecisionResult(
-            decision = AuthorizationDecision.ALLOW,
-            reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-        )
+        coEvery { authorizationService.authorizeConsentWrite() } returns Unit
         coEvery { resourceContextProvider.require() } returns
             ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = "ws-001")
         coEvery { recordConsentHandler.handle(any()) } returns RecordConsentOutcome(
@@ -75,7 +67,7 @@ internal class RecordWorkspaceConsentHandlerTest {
         result.created shouldBe true
         result.record.status shouldBe ConsentStatus.ACTIVE
 
-        coVerify { authorizationDecider.decideDetailed(PermissionKey.of("workspace", "consent", "write")) }
+        coVerify { authorizationService.authorizeConsentWrite() }
     }
 
     @Test
@@ -90,10 +82,7 @@ internal class RecordWorkspaceConsentHandlerTest {
             locale = "en",
         )
 
-        coEvery { authorizationDecider.decideDetailed(any()) } returns AuthorizationDecisionResult(
-            decision = AuthorizationDecision.DENY,
-            reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
-        )
+        coEvery { authorizationService.authorizeConsentWrite() } throws AuthorizationDeniedException("Denied")
 
         shouldThrow<AuthorizationDeniedException> { handler.handle(command) }
     }

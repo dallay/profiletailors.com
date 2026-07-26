@@ -4,26 +4,12 @@ import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.testfixture.CredentialGenerator
-import com.profiletailors.smp.credentials.application.ActiveRefreshSession
-import com.profiletailors.smp.credentials.application.CreatedRefreshSession
-import com.profiletailors.smp.credentials.application.RefreshSessionGateway
-import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
-import com.profiletailors.smp.credentials.application.RefreshSessionProperties
-import com.profiletailors.smp.credentials.application.RefreshSessionToken
-import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
-import com.profiletailors.smp.governance.application.RecordConsentCommand
-import com.profiletailors.smp.governance.application.RecordConsentHandler
-import com.profiletailors.smp.governance.application.RecordConsentOutcome
-import com.profiletailors.smp.governance.domain.ConsentRecord
-import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.identity.application.EmailVerificationTokenData
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -38,13 +24,6 @@ class LocalAuthHandlersTest {
 
     private val validPassword = CredentialGenerator.generateValidPassword()
     private val fixedClock = Clock.fixed(Instant.parse("2026-05-20T10:15:30Z"), ZoneOffset.UTC)
-    private val refreshProperties = RefreshSessionProperties(
-        cookieName = "pt_refresh",
-        cookiePath = "/api/auth",
-        sameSite = "Lax",
-        secure = false,
-        ttlSeconds = 604800,
-    )
 
     @Test
     fun `register wraps writes in transaction and defers side effects until after commit`() = runTest {
@@ -67,9 +46,9 @@ class LocalAuthHandlersTest {
             eventPublisher = eventPublisher,
             clock = fixedClock,
             localJwtIssuer = jwtIssuer,
-            refreshSessionLifecycleService = refreshSvc,
+            refreshSessionPort = refreshSvc,
             transactionRunner = transactionRunner,
-            recordConsentHandler = recordConsentHandler,
+            consentRecorder = recordConsentHandler,
         )
 
         handler.handle(
@@ -113,9 +92,9 @@ class LocalAuthHandlersTest {
             eventPublisher = RecordingEventPublisher(),
             clock = fixedClock,
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = recordConsentHandler(),
+            consentRecorder = recordConsentHandler(),
         )
 
         try {
@@ -146,9 +125,9 @@ class LocalAuthHandlersTest {
             eventPublisher = RecordingEventPublisher(),
             clock = fixedClock,
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = recordConsentHandler(),
+            consentRecorder = recordConsentHandler(),
         )
 
         try {
@@ -179,9 +158,9 @@ class LocalAuthHandlersTest {
             eventPublisher = RecordingEventPublisher(),
             clock = fixedClock,
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = recordConsentHandler(),
+            consentRecorder = recordConsentHandler(),
         )
 
         try {
@@ -215,9 +194,9 @@ class LocalAuthHandlersTest {
             eventPublisher = RecordingEventPublisher(order),
             clock = fixedClock,
             localJwtIssuer = FakeLocalJwtIssuer(order),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
+            refreshSessionPort = fakeRefreshLifecycleService(order),
             transactionRunner = RecordingAtomicTransactionRunner(order),
-            recordConsentHandler = recordConsentHandler,
+            consentRecorder = recordConsentHandler,
         )
 
         handler.handle(
@@ -254,9 +233,9 @@ class LocalAuthHandlersTest {
             eventPublisher = eventPublisher,
             clock = fixedClock,
             localJwtIssuer = jwtIssuer,
-            refreshSessionLifecycleService = refreshSvc,
+            refreshSessionPort = refreshSvc,
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = recordConsentHandler(),
+            consentRecorder = recordConsentHandler(),
         )
 
         val result = handler.handle(
@@ -307,9 +286,9 @@ class LocalAuthHandlersTest {
             eventPublisher = RecordingEventPublisher(),
             clock = fixedClock,
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = recordConsentHandler(),
+            consentRecorder = recordConsentHandler(),
         )
 
         val result = handler.handle(
@@ -342,9 +321,9 @@ class LocalAuthHandlersTest {
             eventPublisher = RecordingEventPublisher(),
             clock = fixedClock,
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             transactionRunner = NoopAtomicTransactionRunner,
-            recordConsentHandler = recordConsentHandler(),
+            consentRecorder = recordConsentHandler(),
         )
 
         try {
@@ -379,7 +358,7 @@ class LocalAuthHandlersTest {
                 principalFacts = identityFacts(EmailStatus.VERIFIED),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             clock = fixedClock,
         )
 
@@ -406,7 +385,7 @@ class LocalAuthHandlersTest {
                 principalFacts = identityFacts(),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             clock = fixedClock,
         )
 
@@ -425,7 +404,7 @@ class LocalAuthHandlersTest {
                 principalFacts = identityFacts(EmailStatus.VERIFIED),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             clock = fixedClock,
         )
 
@@ -443,7 +422,7 @@ class LocalAuthHandlersTest {
                 principalFacts = identityFacts(),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             clock = fixedClock,
         )
 
@@ -462,7 +441,7 @@ class LocalAuthHandlersTest {
             passwordHasher = FakePasswordHasher(),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             clock = fixedClock,
         )
 
@@ -552,7 +531,7 @@ class LocalAuthHandlersTest {
             identityRegistrationGateway = identityGateway,
             principalIdentityLookup = principalLookup,
             localJwtIssuer = FakeLocalJwtIssuer(order),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
+            refreshSessionPort = fakeRefreshLifecycleService(order),
             clock = fixedClock,
             transactionRunner = transactionRunner,
         )
@@ -598,7 +577,7 @@ class LocalAuthHandlersTest {
             identityRegistrationGateway = identityGateway,
             principalIdentityLookup = principalLookup,
             localJwtIssuer = FakeLocalJwtIssuer(order),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
+            refreshSessionPort = fakeRefreshLifecycleService(order),
             clock = fixedClock,
             transactionRunner = transactionRunner,
         )
@@ -708,7 +687,7 @@ class LocalAuthHandlersTest {
             workspaceId = "ws-123",
             clock = fixedClock,
             localJwtIssuer = jwtIssuer,
-            refreshSessionLifecycleService = refreshSvc,
+            refreshSessionPort = refreshSvc,
         )
 
         val result = issueAuthSession(context)
@@ -749,7 +728,7 @@ class LocalAuthHandlersTest {
             workspaceId = null,
             clock = fixedClock,
             localJwtIssuer = jwtIssuer,
-            refreshSessionLifecycleService = refreshSvc,
+            refreshSessionPort = refreshSvc,
         )
 
         val result = issueAuthSession(context)
@@ -764,15 +743,22 @@ class LocalAuthHandlersTest {
         assertEquals("refresh-secret", result.refreshToken.secret)
     }
 
-    private fun fakeRefreshLifecycleService(order: MutableList<String>? = null): RefreshSessionLifecycleService =
-        RefreshSessionLifecycleService(
-            refreshSessionGateway = FakeRefreshSessionGateway(order),
-            refreshSessionTokenService = object : RefreshSessionTokenService() {
-                override fun issue(): RefreshSessionToken = RefreshSessionToken("refresh-lookup", "refresh-secret")
-            },
-            properties = refreshProperties,
-            clock = fixedClock,
-        )
+    private fun fakeRefreshLifecycleService(order: MutableList<String>? = null): IdentityRefreshSessionPort =
+        object : IdentityRefreshSessionPort {
+            override suspend fun issue(principalId: String) = IdentityCreatedRefreshSession(
+                principalId = principalId,
+                refreshToken = IdentityRefreshSessionToken("refresh-lookup", "refresh-secret").also {
+                    order?.add("refresh:create")
+                },
+            )
+
+            override suspend fun rotate(rawRefreshToken: String) = IdentityRotatedRefreshSession(
+                principalId = "user-1",
+                refreshToken = IdentityRefreshSessionToken("refresh-lookup", "refresh-secret"),
+            )
+
+            override suspend fun revoke(rawRefreshToken: String) = Unit
+        }
 
     private fun identityFacts(emailStatus: EmailStatus = EmailStatus.PENDING): PrincipalIdentityFacts =
         PrincipalIdentityFacts(
@@ -946,47 +932,6 @@ class LocalAuthHandlersTest {
         }
     }
 
-    private class FakeRefreshSessionGateway(private val order: MutableList<String>? = null) : RefreshSessionGateway {
-        override suspend fun create(
-            principalId: String,
-            refreshToken: RefreshSessionToken,
-            expiresAt: Instant,
-        ): CreatedRefreshSession {
-            order?.add("refresh:create")
-            return CreatedRefreshSession(
-                id = "refresh-session-1",
-                principalId = principalId,
-                refreshToken = refreshToken,
-                expiresAt = expiresAt,
-            )
-        }
-
-        override suspend fun requireActive(refreshToken: RefreshSessionToken, now: Instant): ActiveRefreshSession =
-            ActiveRefreshSession(
-                id = "refresh-session-1",
-                principalId = "user-1",
-                lookupKey = refreshToken.lookupKey,
-                tokenVerifier = "verifier",
-                expiresAt = now.plusSeconds(3600),
-                createdAt = now,
-                lastUsedAt = null,
-            )
-
-        override suspend fun rotate(
-            currentSessionId: String,
-            replacementToken: RefreshSessionToken,
-            expiresAt: Instant,
-            now: Instant,
-        ): CreatedRefreshSession = CreatedRefreshSession(
-            id = "refresh-session-2",
-            principalId = "user-1",
-            refreshToken = replacementToken,
-            expiresAt = expiresAt,
-        )
-
-        override suspend fun revoke(currentSessionId: String, now: Instant) = Unit
-    }
-
     private class FakeWorkspaceProvisioningService(private val order: MutableList<String>? = null) :
         WorkspaceProvisioningService {
         override suspend fun provisionDefaultWorkspace(
@@ -1014,29 +959,11 @@ class LocalAuthHandlersTest {
     private fun recordConsentHandler(
         order: MutableList<String>? = null,
         recordedPurposes: MutableList<String> = mutableListOf(),
-    ): RecordConsentHandler {
-        val handler = mockk<RecordConsentHandler>()
-        coEvery { handler.handle(any()) } answers {
-            val command = firstArg<RecordConsentCommand>()
+    ): IdentityConsentRecorder =
+        IdentityConsentRecorder { workspaceId, principalId, purpose, policyVersion, source, locale ->
             order?.add("consent:record")
-            recordedPurposes.add(command.purpose)
-            RecordConsentOutcome(
-                created = true,
-                record = ConsentRecord(
-                    id = ConsentRecordId("test-cs-${java.util.UUID.randomUUID()}"),
-                    workspaceId = command.workspaceId,
-                    subjectReference = command.subjectReference,
-                    consentType = command.consentType,
-                    purpose = command.purpose,
-                    policyVersion = command.policyVersion,
-                    source = command.source,
-                    locale = command.locale,
-                    givenAt = java.time.Instant.now(),
-                ),
-            )
+            recordedPurposes.add(purpose)
         }
-        return handler
-    }
 
     private class FakeRegistrationAvailability(private val enabled: Boolean = true) : RegistrationAvailabilityPort {
         override fun isRegistrationEnabled(): Boolean = enabled

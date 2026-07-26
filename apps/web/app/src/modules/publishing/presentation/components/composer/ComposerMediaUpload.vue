@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { computed, ref, } from 'vue'
 import type { ComposerInlineAttachment } from '@modules/publishing/presentation/components/composer/composer.types'
-import { useMediaStore } from '@modules/media'
-import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 
-const COMPOSER_SUPPORTED_MEDIA_TYPES = new Set([
+const _COMPOSER_SUPPORTED_MEDIA_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/gif',
@@ -50,15 +47,13 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
-const { t } = useI18n()
-
 const pickerSessionUploadInput = ref<HTMLInputElement | null>(null)
 const visibleInlineAttachments = computed(() => props.attachments.slice(0, 3))
 const hiddenInlineAttachmentCount = computed(() =>
   Math.max(0, props.attachments.length - visibleInlineAttachments.value.length),
 )
 
-function openUploadPicker() {
+function _openUploadPicker() {
   pickerSessionUploadInput.value?.click()
 }
 
@@ -72,8 +67,10 @@ function handleFileSelect(e: Event) {
 </script>
 
 <template>
-  <div
+  <section
+    aria-label="Media upload zone"
     class="space-y-4"
+    data-testid="composer-inline-dropzone"
     @dragover="emit('dragover', $event)"
     @dragleave="emit('dragleave', $event)"
     @drop="emit('drop', $event)"
@@ -87,7 +84,11 @@ function handleFileSelect(e: Event) {
           :key="attachment.key"
           class="relative group"
         >
-          <div class="aspect-square rounded-lg overflow-hidden border border-border-visible bg-bg-secondary">
+          <div
+            class="aspect-square rounded-lg overflow-hidden border border-border-visible bg-bg-secondary"
+            :data-testid="attachment.kind === 'local-upload' ? 'inline-local-upload' : undefined"
+            :title="attachment.kind === 'local-upload' ? attachment.name : undefined"
+          >
             <img
               v-if="attachment.previewUrl"
               :src="attachment.previewUrl"
@@ -104,7 +105,7 @@ function handleFileSelect(e: Event) {
               class="absolute inset-0 bg-black/50 flex items-center justify-center"
             >
               <div class="text-center">
-                <div class="text-sm font-semibold text-white mb-2">{{ attachment.uploadProgress }}%</div>
+                <div class="text-sm font-semibold text-white mb-2">{{ attachment.uploadStateLabel ?? `${attachment.uploadProgress}%` }}</div>
                 <div class="w-12 h-1 bg-white/30 rounded-full overflow-hidden">
                   <div
                     class="h-full bg-white rounded-full transition-all"
@@ -117,10 +118,11 @@ function handleFileSelect(e: Event) {
             <!-- Remove button -->
             <button
               v-if="!attachment.isUploading"
+              :data-testid="attachment.kind === 'draft' ? `attachment-remove-${attachment.assetId}` : undefined"
               type="button"
               @click="
-                attachment.kind === 'draft'
-                  ? emit('remove-draft-attachment', attachment.assetId!)
+                attachment.kind === 'draft' && attachment.assetId
+                  ? emit('remove-draft-attachment', attachment.assetId)
                   : emit('remove-local-upload')
               "
               class="absolute top-1 right-1 hidden group-hover:flex size-6 items-center justify-center rounded-lg bg-error/80 text-white hover:bg-error transition-colors"
@@ -129,7 +131,7 @@ function handleFileSelect(e: Event) {
               ✕
             </button>
           </div>
-          <p class="text-xs text-text-secondary mt-1 truncate">{{ attachment.name }}</p>
+          <p v-if="attachment.kind === 'draft'" class="text-xs text-text-secondary mt-1 truncate">{{ attachment.name }}</p>
         </div>
       </div>
 
@@ -138,6 +140,10 @@ function handleFileSelect(e: Event) {
         +{{ hiddenInlineAttachmentCount }} more {{ hiddenInlineAttachmentCount === 1 ? 'file' : 'files' }}
       </div>
     </div>
+
+    <p v-if="isLocalUploadInFlight || currentUploadStateLabel" class="text-xs text-text-secondary">
+      {{ $t('composer.media.keepEditingWhileUploading') }}
+    </p>
 
     <!-- Upload actions -->
     <div class="flex flex-wrap gap-2">
@@ -149,11 +155,12 @@ function handleFileSelect(e: Event) {
         📤 {{ $t('composer.media.upload') }}
       </button>
       <button
+        data-testid="add-media-button"
         type="button"
         @click="emit('open-media-library')"
         class="px-3 py-2 rounded-lg bg-bg-secondary hover:bg-bg-tertiary text-text-display text-xs font-medium transition-colors"
       >
-        📷 {{ $t('composer.media.library') }}
+        📷 {{ $t('composer.media.addMedia') }}
       </button>
       <button
         v-if="hasUnsplash"
@@ -167,6 +174,7 @@ function handleFileSelect(e: Event) {
 
     <!-- Hidden file input -->
     <input
+      data-testid="picker-upload-input"
       ref="pickerSessionUploadInput"
       type="file"
       class="hidden"
@@ -184,7 +192,7 @@ function handleFileSelect(e: Event) {
         <span class="text-sm font-medium text-primary">{{ $t('composer.media.dropHere') }}</span>
       </div>
     </transition>
-  </div>
+  </section>
 </template>
 
 <style scoped>

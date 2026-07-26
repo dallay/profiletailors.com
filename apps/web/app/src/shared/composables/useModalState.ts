@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 
-interface UseModalStateOptions {
+export interface UseModalStateOptions {
   onClose?: () => void
 }
 

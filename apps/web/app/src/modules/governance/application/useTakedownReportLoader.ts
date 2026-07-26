@@ -1,7 +1,10 @@
 import { ref } from 'vue'
-import { listTakedownReports, type TakedownReportResponse } from '@modules/governance/services/governance-api'
+import {
+  listTakedownReports,
+  type TakedownReportResponse,
+} from '@modules/governance/services/governance-api'
 
-export function useTakedownReportLoader(t: any) {
+export function useTakedownReportLoader(t: (key: string) => string) {
   const reports = ref<TakedownReportResponse[]>([])
   const isLoading = ref(true)
   const error = ref<string | null>(null)
@@ -12,7 +15,8 @@ export function useTakedownReportLoader(t: any) {
     try {
       reports.value = await listTakedownReports()
     } catch (err) {
-      error.value = err instanceof Error ? err.message : t('governance.takedown.review.errors.loadFailed')
+      error.value =
+        err instanceof Error ? err.message : t('governance.takedown.review.errors.loadFailed')
     } finally {
       isLoading.value = false
     }

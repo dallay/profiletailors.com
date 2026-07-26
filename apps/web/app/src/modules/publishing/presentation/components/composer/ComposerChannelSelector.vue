@@ -4,15 +4,13 @@ import { Check, X } from '@lucide/vue'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
 import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
 
-const props = defineProps<{
+const _props = defineProps<{
   channels: Channel[]
   modelValue: string | null
   isEditMode: boolean
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', channelId: string): void
-}>()
+const emit = defineEmits<(e: 'update:modelValue', channelId: string) => void>()
 
 const avatarLoadFailed = ref<Record<string, boolean>>({})
 

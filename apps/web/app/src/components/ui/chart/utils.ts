@@ -1,7 +1,7 @@
 import type { ChartConfig } from '.'
 import { isClient } from '@vueuse/core'
 import { useId } from 'reka-ui'
-import { h, render } from 'vue'
+import { h, render, type Component } from 'vue'
 
 // Simple cache using a Map to store serialized object keys
 const cache = new Map<string, string>()
@@ -43,7 +43,7 @@ export function componentToString<P extends Record<string, unknown>>(
   // https://unovis.dev/docs/auxiliary/Crosshair#component-props
   return (rawData: unknown, x: number | Date): string => {
     const data = (rawData as TooltipData | undefined)?.data ?? rawData
-    
+
     if (typeof data !== 'object' || data === null) {
       return ''
     }
@@ -52,11 +52,11 @@ export function componentToString<P extends Record<string, unknown>>(
     const cachedContent = cache.get(serializedKey)
     if (cachedContent) return cachedContent
 
-    const vnode = h<P>(component, { 
-      ...props, 
-      payload: data, 
-      config, 
-      x 
+    const vnode = h(component as Component, {
+      ...props,
+      payload: data,
+      config,
+      x,
     })
     const div = document.createElement('div')
     render(vnode, div)

@@ -513,6 +513,10 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     params.onAttachmentsChanged?.()
   }
 
+  function syncDraftAttachments(assetIds: string[]) {
+    draftAttachmentIds.value = [...assetIds]
+  }
+
   /**
    * Uploads the first supported image or MP4 file and stages the resulting asset.
    *
@@ -673,6 +677,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     applyPickerSelection,
     togglePickerAsset,
     removeDraftAttachment,
+    syncDraftAttachments,
     handlePickerUploadSelection,
 
     // Reconciliation

@@ -3,7 +3,7 @@ type StatusFilter = 'ALL' | 'READY' | 'PROCESSING' | 'FAILED' | 'SUSPENDED'
 type TypeFilter = 'ALL' | 'IMAGE' | 'VIDEO' | 'PDF' | 'OTHER'
 type SortBy = 'newest' | 'oldest' | 'filename-asc' | 'filename-desc' | 'size-desc' | 'size-asc' | 'status'
 
-const props = defineProps<{
+const _props = defineProps<{
   searchQuery: string
   statusFilter: StatusFilter
   typeFilter: TypeFilter

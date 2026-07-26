@@ -1,7 +1,10 @@
-import { computed, ref } from 'vue'
-import type { TakedownReportResponse, TakedownReportStatus } from '@modules/governance/services/governance-api'
+import { computed, ref, type Ref } from 'vue'
+import type {
+  TakedownReportResponse,
+  TakedownReportStatus,
+} from '@modules/governance/services/governance-api'
 
-export function useTakedownReportFilters(reports: globalThis.Ref<TakedownReportResponse[]>) {
+export function useTakedownReportFilters(reports: Ref<TakedownReportResponse[]>) {
   const statusFilter = ref<TakedownReportStatus | 'ALL'>('ALL')
 
   const filteredReports = computed(() => {

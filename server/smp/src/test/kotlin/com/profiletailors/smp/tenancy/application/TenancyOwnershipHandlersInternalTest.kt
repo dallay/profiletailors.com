@@ -12,6 +12,7 @@ import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditFact
+import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.smp.tenancy.domain.LastOwnerRemovalRequiresReplacementException
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
@@ -544,13 +545,39 @@ class TenancyOwnershipHandlersInternalTest {
             memberships[principalId]
     }
 
-    private class CapturingAuditHook : AuditHook {
+    private class CapturingAuditHook :
+        AuditHook,
+        TenancyMutationAuditPort {
         val mutations = mutableListOf<MutationAuditFact>()
 
         override suspend fun onRequestHandled(requestName: String, outcome: RequestOutcome) = Unit
         override suspend fun onAuthorizationDecision(fact: AuthorizationDecisionAuditFact) = Unit
         override suspend fun onMutation(fact: MutationAuditFact) {
             mutations += fact
+        }
+
+        override suspend fun record(
+            action: String,
+            targetType: String,
+            targetId: String,
+            actorPrincipalId: String,
+            workspaceId: String?,
+            outcome: TenancyMutationAuditOutcome,
+            details: Map<String, String>,
+        ) {
+            mutations += MutationAuditFact(
+                action = action,
+                targetType = targetType,
+                targetId = targetId,
+                actorPrincipalId = actorPrincipalId,
+                workspaceId = workspaceId,
+                outcome = if (outcome == TenancyMutationAuditOutcome.SUCCESS) {
+                    MutationAuditOutcome.SUCCESS
+                } else {
+                    MutationAuditOutcome.REJECTED
+                },
+                details = details,
+            )
         }
     }
 

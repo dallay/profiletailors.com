@@ -6,11 +6,9 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
-import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
 import com.profiletailors.smp.identity.domain.EmailStatus
-import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.BlobUpsertResult
 import com.profiletailors.smp.media.domain.MediaAsset
@@ -46,8 +44,7 @@ class MediaCasHandlersTest {
             InMemoryRateLimitRepository(),
             MediaUploadSettings(1, 200, "bucket"),
             FixedPrincipalContextProvider,
-            FixedPrincipalIdentityLookup(EmailStatus.PENDING),
-            emailVerificationPolicyOf(),
+            emailVerificationGate = EmailStatusMediaVerificationGate(EmailStatus.PENDING),
         )
 
         assertThrows<FeatureEmailVerificationRequired> {
@@ -65,8 +62,7 @@ class MediaCasHandlersTest {
             InMemoryRateLimitRepository(),
             MediaUploadSettings(1, 200, "bucket"),
             FixedPrincipalContextProvider,
-            FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
-            emailVerificationPolicyOf(),
+            emailVerificationGate = EmailStatusMediaVerificationGate(EmailStatus.VERIFIED),
         )
 
         val result = handler.handle(
@@ -88,8 +84,7 @@ class MediaCasHandlersTest {
             storage.service(),
             MediaUploadSettings(1, 200, "bucket"),
             FixedPrincipalContextProvider,
-            FixedPrincipalIdentityLookup(EmailStatus.PENDING),
-            emailVerificationPolicyOf(),
+            emailVerificationGate = EmailStatusMediaVerificationGate(EmailStatus.PENDING),
             NoopAtomicTransactionRunner,
         )
 
@@ -634,8 +629,7 @@ class MediaCasHandlersTest {
             MediaUploadSettings(1, 200, "bucket"),
             txRunner,
             FixedPrincipalContextProvider,
-            FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
-            emailVerificationPolicyOf(),
+            emailVerificationGate = EmailStatusMediaVerificationGate(EmailStatus.VERIFIED),
         )
 
         val result = handler.handle(PutAssetCommand(ASSET_A, WORKSPACE, HASH_A, 1024, "image/jpeg", "photo.jpg"))
@@ -662,8 +656,7 @@ class MediaCasHandlersTest {
             MediaUploadSettings(1, 200, "bucket"),
             txRunner,
             FixedPrincipalContextProvider,
-            FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
-            emailVerificationPolicyOf(),
+            emailVerificationGate = EmailStatusMediaVerificationGate(EmailStatus.VERIFIED),
         )
 
         assertThrows<IllegalStateException> {
@@ -689,8 +682,7 @@ class MediaCasHandlersTest {
             MediaUploadSettings(1, 200, "bucket"),
             txRunner,
             FixedPrincipalContextProvider,
-            FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
-            emailVerificationPolicyOf(),
+            emailVerificationGate = EmailStatusMediaVerificationGate(EmailStatus.VERIFIED),
         )
 
         assertThrows<RateLimitExceededException> {
@@ -842,8 +834,7 @@ class MediaCasHandlersTest {
             storage.service(),
             MediaUploadSettings(1, 200, "bucket"),
             FixedPrincipalContextProvider,
-            FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
-            emailVerificationPolicyOf(),
+            emailVerificationGate = EmailStatusMediaVerificationGate(EmailStatus.VERIFIED),
             NoopAtomicTransactionRunner,
         )
 
@@ -1111,8 +1102,7 @@ private fun putHandler(
     MediaUploadSettings(1, 200, "bucket"),
     NoopAtomicTransactionRunner,
     FixedPrincipalContextProvider,
-    FixedPrincipalIdentityLookup(emailStatus),
-    emailVerificationPolicyOf(),
+    emailVerificationGate = EmailStatusMediaVerificationGate(emailStatus),
 )
 private fun uploadHandler(
     media: InMemoryMediaAssetRepository,
@@ -1126,8 +1116,7 @@ private fun uploadHandler(
     MediaUploadSettings(1, 200, "bucket"),
     NoopAtomicTransactionRunner,
     FixedPrincipalContextProvider,
-    FixedPrincipalIdentityLookup(emailStatus),
-    emailVerificationPolicyOf(),
+    emailVerificationGate = EmailStatusMediaVerificationGate(emailStatus),
 )
 
 private fun uploadLegacyHandler(
@@ -1142,8 +1131,7 @@ private fun uploadLegacyHandler(
     storage.service(),
     MediaUploadSettings(1, 200, "bucket"),
     FixedPrincipalContextProvider,
-    FixedPrincipalIdentityLookup(emailStatus),
-    emailVerificationPolicyOf(),
+    emailVerificationGate = EmailStatusMediaVerificationGate(emailStatus),
     transactionRunner,
 )
 private fun deleteHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository) =
@@ -1213,27 +1201,12 @@ private object FixedPrincipalContextProvider : PrincipalContextProvider {
     )
 }
 
-private class FixedPrincipalIdentityLookup(private val emailStatus: EmailStatus) : PrincipalIdentityLookup {
-    override suspend fun findBySubject(
-        principalType: PrincipalType,
-        subject: String,
-        provider: String?,
-    ): PrincipalIdentityFacts? = facts("principal-1")
-
-    override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = facts("principal-1")
-
-    override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = facts(principalId)
-
-    private fun facts(principalId: String) = PrincipalIdentityFacts(
-        principalId = principalId,
-        principalType = PrincipalType.USER,
-        subject = "local:owner@example.com",
-        provider = null,
-        displayIdentity = "Owner",
-        email = "owner@example.com",
-        username = "owner",
-        emailStatus = emailStatus,
-    )
+private class EmailStatusMediaVerificationGate(private val emailStatus: EmailStatus) : MediaEmailVerificationGate {
+    override suspend fun requireVerified(principal: PrincipalContext, feature: MediaFeature) {
+        if (emailStatus != EmailStatus.VERIFIED) {
+            throw FeatureEmailVerificationRequired(AuthFeature.UPLOAD_MEDIA)
+        }
+    }
 }
 
 private fun reconcilerSettings() = MediaReconcilerSettings("bucket", 2, 30)

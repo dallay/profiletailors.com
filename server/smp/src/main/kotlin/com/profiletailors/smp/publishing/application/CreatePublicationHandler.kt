@@ -102,7 +102,7 @@ internal class CreatePublicationHandler(
      *
      * When `mediaIntegrationSettings.enabled` is true and `assetIds` is non-empty:
      *   - Calls `mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)` with a 5-second timeout
-    *   - Throws `PublishingMediaServiceUnavailableException` on timeout or infrastructure failure
+     *   - Throws `PublishingMediaServiceUnavailableException` on timeout or infrastructure failure
      *   - Throws `AssetNotReadyException` for missing, cross-workspace, or non-READY assets
      *
      * When `mediaIntegrationSettings.enabled` is false or `assetIds` is empty:

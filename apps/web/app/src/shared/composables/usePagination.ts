@@ -5,10 +5,7 @@ interface UsePaginationOptions {
   initialPage?: number
 }
 
-export function usePagination<T>(
-  items: T[] = [],
-  options: UsePaginationOptions = {},
-) {
+export function usePagination<T>(items: T[] = [], options: UsePaginationOptions = {}) {
   const pageSize = ref(options.pageSize ?? 10)
   const currentPage = ref(options.initialPage ?? 1)
 

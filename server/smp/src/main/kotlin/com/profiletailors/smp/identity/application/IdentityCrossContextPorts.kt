@@ -1,21 +1,12 @@
 package com.profiletailors.smp.identity.application
 
-data class IdentityRefreshSessionToken(
-    val lookupKey: String,
-    val secret: String,
-) {
+data class IdentityRefreshSessionToken(val lookupKey: String, val secret: String) {
     fun asCookieValue(): String = "$lookupKey.$secret"
 }
 
-data class IdentityCreatedRefreshSession(
-    val principalId: String,
-    val refreshToken: IdentityRefreshSessionToken,
-)
+data class IdentityCreatedRefreshSession(val principalId: String, val refreshToken: IdentityRefreshSessionToken)
 
-data class IdentityRotatedRefreshSession(
-    val principalId: String,
-    val refreshToken: IdentityRefreshSessionToken,
-)
+data class IdentityRotatedRefreshSession(val principalId: String, val refreshToken: IdentityRefreshSessionToken)
 
 interface IdentityRefreshSessionPort {
     suspend fun issue(principalId: String): IdentityCreatedRefreshSession

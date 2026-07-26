@@ -12,7 +12,11 @@ export function useComposerScheduleState(now: Date) {
   const minTimeForDate = (selectedCalendarDate: DateValue | undefined): string => {
     if (selectedCalendarDate?.compare(todayDateValue.value) === 0) {
       const future = new Date(now.getTime() + 5 * 60_000)
-      const futureDate = new CalendarDate(future.getFullYear(), future.getMonth() + 1, future.getDate())
+      const futureDate = new CalendarDate(
+        future.getFullYear(),
+        future.getMonth() + 1,
+        future.getDate(),
+      )
       if (futureDate.compare(todayDateValue.value) !== 0) {
         return '23:59'
       }

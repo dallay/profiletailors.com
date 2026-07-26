@@ -94,12 +94,5 @@ function segmentedControlClass(active: boolean) {
 
     <AccountClosureSection />
 
-    <WorkspaceIconModal
-      v-model:open="iconModalOpen"
-      :current-icon="workspace.activeWorkspace?.icon ?? null"
-      :is-updating="updatingIcon"
-      :error-message="iconError"
-      @select="selectIcon"
-    />
   </div>
 </template>

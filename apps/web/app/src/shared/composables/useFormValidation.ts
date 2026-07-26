@@ -10,7 +10,7 @@ interface FieldValidation<T = unknown> {
   error?: string
 }
 
-export function useFormValidation<T extends Record<string, unknown>>(
+export function useFormValidation<T extends object>(
   fieldsDefinition: Record<keyof T, ValidationRule[]> = {} as Record<keyof T, ValidationRule[]>,
 ) {
   const fields = ref<Record<string, FieldValidation>>({})
@@ -36,10 +36,10 @@ export function useFormValidation<T extends Record<string, unknown>>(
     return true
   }
 
-  const validateAll = (values: Record<string, unknown>): boolean => {
+  const validateAll = (values: T): boolean => {
     let isValid = true
     Object.keys(fields.value).forEach((name) => {
-      if (!validateField(name, values[name])) {
+      if (!validateField(name, (values as Record<string, unknown>)[name])) {
         isValid = false
       }
     })

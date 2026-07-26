@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
 import com.profiletailors.smp.publishing.application.PublicationNotFoundException
+import com.profiletailors.smp.publishing.application.PublishingAssetNotReadyException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
@@ -126,7 +127,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps asset not ready without leaking asset id`() {
-        val exception = com.profiletailors.smp.media.application.AssetNotReadyException(
+        val exception = PublishingAssetNotReadyException(
             "asset-123",
             "storage unavailable",
         )

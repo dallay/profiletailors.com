@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AudienceGrowthPoint } from '@modules/dashboard/domain/dashboard.types'
 import { formatNumber } from '@shared/lib/formatters'
@@ -24,12 +24,14 @@ const hoveredIndex = ref<number | null>(null)
 
 // Use composables for chart logic
 const scaling = useAudienceChartScaling(
-  ref(props.data)
+  toRef(props, 'data'),
 )
 const visualization = useAudienceChartVisualization(
-  ref(props.data),
+  toRef(props, 'data'),
   scaling,
 )
+const { MARGIN, CHART_DIMS, xScale, yScale } = scaling
+const { hasData, linePath, areaPath, milestones, yTicks, xLabels } = visualization
 
 function formatTooltipValue(value: number): string {
   return formatNumber(value)
@@ -54,25 +56,25 @@ function formatTooltipValue(value: number): string {
       <template #default="{ id }">
         <div class="relative w-full h-full" :data-chart="id">
           <svg
-            :viewBox="`0 0 ${scaling.CHART_DIMS.width} ${scaling.CHART_DIMS.height}`"
+            :viewBox="`0 0 ${CHART_DIMS.width} ${CHART_DIMS.height}`"
             class="w-full h-full overflow-visible"
             preserveAspectRatio="xMidYMid meet"
             role="img"
             aria-label="Audience growth line chart"
             @mouseleave="hoveredIndex = null"
           >
-            <g v-for="tick in visualization.yTicks" :key="tick.y">
+            <g v-for="tick in yTicks" :key="tick.y">
               <line
-                :x1="scaling.MARGIN.left"
+                :x1="MARGIN.left"
                 :y1="tick.y"
-                :x2="scaling.CHART_DIMS.width - scaling.MARGIN.right"
+                :x2="CHART_DIMS.width - MARGIN.right"
                 :y2="tick.y"
                 stroke="var(--border-color)"
                 stroke-width="1"
                 stroke-dasharray="3,3"
               />
               <text
-                :x="scaling.MARGIN.left - 8"
+                :x="MARGIN.left - 8"
                 :y="tick.y + 4"
                 text-anchor="end"
                 class="text-[10px] fill-[var(--text-secondary)] font-[var(--font-space-mono)]"
@@ -81,10 +83,10 @@ function formatTooltipValue(value: number): string {
               </text>
             </g>
 
-            <g v-for="(label, i) in visualization.xLabels" :key="i">
+            <g v-for="(label, i) in xLabels" :key="i">
               <text
                 :x="label.x"
-                :y="scaling.CHART_DIMS.height - 8"
+                :y="CHART_DIMS.height - 8"
                 text-anchor="middle"
                 class="text-[10px] fill-[var(--text-secondary)] font-[var(--font-space-mono)]"
               >
@@ -93,14 +95,14 @@ function formatTooltipValue(value: number): string {
             </g>
 
             <path
-              v-if="visualization.areaPath"
-              :d="visualization.areaPath"
+              v-if="areaPath"
+              :d="areaPath"
               fill="var(--chart-area)"
               opacity="0.15"
             />
             <path
-              v-if="visualization.linePath"
-              :d="visualization.linePath"
+              v-if="linePath"
+              :d="linePath"
               fill="none"
               stroke="var(--chart-line)"
               stroke-width="2"
@@ -110,13 +112,13 @@ function formatTooltipValue(value: number): string {
 
             <!-- biome-ignore lint/a11y/noStaticElementInteractions: SVG <g> hover for chart tooltip, no semantic alternative -->
             <g
-              v-for="(point, i) in scaling.xScale"
+              v-for="(point, i) in xScale"
               :key="i"
               @mouseenter="hoveredIndex = i"
             >
               <circle
                 :cx="point"
-                :cy="scaling.yScale[i]"
+                :cy="yScale[i]"
                 :r="hoveredIndex === i ? 5 : 3"
                 :fill="hoveredIndex === i ? 'var(--chart-line)' : 'var(--background-primary)'"
                 :stroke="hoveredIndex === i ? 'var(--background-primary)' : 'var(--chart-line)'"
@@ -125,12 +127,12 @@ function formatTooltipValue(value: number): string {
               />
             </g>
 
-            <g v-for="(m, i) in visualization.milestones" :key="i">
+            <g v-for="(m, i) in milestones" :key="i">
               <line
                 :x1="m.x"
                 :y1="m.y"
                 :x2="m.x"
-                :y2="scaling.CHART_DIMS.height - scaling.MARGIN.bottom"
+                :y2="CHART_DIMS.height - MARGIN.bottom"
                 stroke="var(--success-color)"
                 stroke-width="1"
                 stroke-dasharray="4,3"
@@ -158,10 +160,10 @@ function formatTooltipValue(value: number): string {
             v-if="hasData && hoveredIndex !== null && hoveredIndex < data.length"
             class="absolute bg-[var(--background-surface)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-xs shadow-xl pointer-events-none"
             :style="{
-              left: (xScale[hoveredIndex] ?? 0) < chartDims.width / 2
-                ? `${((xScale[hoveredIndex] ?? 0) / chartDims.width) * 100 + 2}%`
-                : `${((xScale[hoveredIndex] ?? 0) / chartDims.width) * 100 - 20}%`,
-              top: `${((yScale[hoveredIndex] ?? 0) / chartDims.height) * 100 - 10}%`,
+              left: (xScale[hoveredIndex] ?? 0) < CHART_DIMS.width / 2
+                ? `${((xScale[hoveredIndex] ?? 0) / CHART_DIMS.width) * 100 + 2}%`
+                : `${((xScale[hoveredIndex] ?? 0) / CHART_DIMS.width) * 100 - 20}%`,
+              top: `${((yScale[hoveredIndex] ?? 0) / CHART_DIMS.height) * 100 - 10}%`,
             }"
           >
             <p class="text-[var(--text-secondary)] font-[var(--font-space-mono)] text-[10px] uppercase tracking-wider">

@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePublishingStore, type Publication, type ActivityEntry } from '@modules/publishing/infrastructure/publishing.store'
-import { useCalendarUrl, useCalendarGrid, usePublicationFilters, useDragAndDrop, usePublicationActions } from '@modules/publishing/application'
+import { useCalendarUrl, useCalendarGrid, usePublicationFilters, useDragAndDrop, useSchedulerWeekTimeline } from '@modules/publishing/application'
 import CreatePostModal from '@modules/publishing/presentation/components/CreatePostModal.vue'
 import PostDetailModal from '@modules/publishing/presentation/components/PostDetailModal.vue'
 import CalendarHeader from '@modules/publishing/presentation/components/CalendarHeader.vue'
@@ -30,7 +30,8 @@ const currentBaseDate = computed(() => {
 })
 
 // Calendar Grid Management
-const { monthGrid, weekDays, isCurrentMonth } = useCalendarGrid(currentBaseDate)
+const { monthGrid, weekDays } = useCalendarGrid(currentBaseDate)
+const { slotKey } = useSchedulerWeekTimeline()
 
 
 const isModalOpen = ref(false)
@@ -77,7 +78,7 @@ async function onDropCell(e: DragEvent, targetDate: Date, targetHour?: number) {
 /** Build a 6×7 grid (weeks × days) for the current month. */
 // (Moved to useCalendarGrid composable)
 
-const isCurrentMonth = (d: Date) =>
+const _isCurrentMonth = (d: Date) =>
   d.getMonth() === currentBaseDate.value.getMonth() &&
   d.getFullYear() === currentBaseDate.value.getFullYear()
 
@@ -220,11 +221,11 @@ function openDayView(date: Date) {
   url.setDate(`${y}-${m}-${d}`)
 }
 
-function publicationDragStart(e: DragEvent, pub: Publication) {
+function _publicationDragStart(e: DragEvent, pub: Publication) {
   onDragStart(e, pub.id, pub.scheduledAt)
 }
 
-function publicationDragEnd(e: DragEvent) {
+function _publicationDragEnd(e: DragEvent) {
   onDragEnd(e)
 }
 
@@ -374,8 +375,8 @@ watch(
           :activity-by-date="activityByDate"
           @click-day="openDayView"
           @click-publication="openPostDetail"
-          @dragstart="onDragStart($event.event, $event.pub)"
-          @dragend="onDragEnd"
+           @dragstart="_publicationDragStart($event.event, $event.pub)"
+           @dragend="_publicationDragEnd($event)"
           @drop-cell="onDropCell($event.event, $event.date)"
         />
         <SchedulerWeekTimeline
@@ -386,8 +387,8 @@ watch(
           @click-publication="openPostDetail"
           @add-post="openNewPostForSlot($event.date, $event.hour)"
           @delete-publication="handleDeletePublication"
-          @dragstart="onDragStart($event.event, $event.pub)"
-          @dragend="onDragEnd"
+           @dragstart="_publicationDragStart($event.event, $event.pub)"
+           @dragend="_publicationDragEnd($event)"
           @drop-cell="onDropCell($event.event, $event.date, $event.hour)"
         />
       </div>

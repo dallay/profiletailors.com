@@ -20,12 +20,10 @@ const {
   confirmedAgeEligibility,
   acceptedTerms,
   formError,
-  isSubmitting,
   isRegisterMode,
   fieldErrors,
   validateForm,
   getFormPayload,
-  resetForm,
   setFormError,
   setSubmitting,
 } = useAuthForm()
@@ -72,7 +70,7 @@ async function handleSubmit() {
 
     const redirectTo = typeof router.currentRoute.value.query.redirect === 'string' ? router.currentRoute.value.query.redirect : '/'
     await router.replace(redirectTo)
-  } catch (err) {
+  } catch (_err) {
     setFormError(auth.error || 'Unknown error')
   } finally {
     setSubmitting(false)

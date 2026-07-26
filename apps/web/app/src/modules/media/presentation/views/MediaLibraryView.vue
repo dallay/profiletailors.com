@@ -25,6 +25,15 @@ const assets = computed(() =>
 // Use composables for filters and selection
 const filters = useMediaLibraryFilters(assets)
 const selection = useMediaLibrarySelection(filters.visibleAssets)
+const { searchQuery, statusFilter, typeFilter, sortBy, visibleAssets } = filters
+const { selectedAssetIds, allVisibleSelected, toggleSelectAllVisible, toggleAssetSelection, clearSelection } = selection
+const hasActiveFilters = computed(
+  () =>
+    searchQuery.value.trim() !== '' ||
+    statusFilter.value !== 'ALL' ||
+    typeFilter.value !== 'ALL' ||
+    sortBy.value !== 'newest',
+)
 
 const readyAssets = computed(() => assets.value.filter((a) => a.status === 'READY'))
 const processingAssets = computed(() => assets.value.filter((a) => a.status === 'PENDING_UPLOAD' || a.status === 'UPLOADING'))
@@ -49,7 +58,7 @@ async function deleteSelectedAssets() {
       // Continue deleting other selected assets even if one fails
     }
   }
-  selection.clearSelection()
+  clearSelection()
 }
 
 async function refreshLibrary() {
@@ -157,35 +166,36 @@ onMounted(async () => {
 
     <!-- Stats + filters -->
     <MediaFilterBar
-      v-model:search-query="filters.searchQuery"
-      v-model:status-filter="filters.statusFilter"
-      v-model:type-filter="filters.typeFilter"
-      v-model:sort-by="filters.sortBy"
-      :all-visible-selected="selection.allVisibleSelected"
-      :visible-count="filters.visibleAssets.length"
+      v-model:search-query="searchQuery"
+      v-model:status-filter="statusFilter"
+      v-model:type-filter="typeFilter"
+      v-model:sort-by="sortBy"
+      :all-visible-selected="allVisibleSelected"
+      :visible-count="visibleAssets.length"
       :total-count="assets.length"
       :ready-count="readyAssets.length"
       :processing-count="processingAssets.length + mediaStore.pendingUploads.length"
       :failed-count="failedAssets.length + mediaStore.failedUploads.length"
-      @toggle-select-all="selection.toggleSelectAllVisible"
+      @toggle-select-all="toggleSelectAllVisible"
     />
 
     <!-- Bulk selection actions -->
     <MediaBulkActionBar
-      v-if="selection.selectedAssetIds.length > 0"
-      :selected-count="selection.selectedAssetIds.length"
-      @clear-selection="selection.clearSelection"
+      v-if="selectedAssetIds.length > 0"
+      :selected-count="selectedAssetIds.length"
+      @clear-selection="clearSelection"
       @delete-selected="deleteSelectedAssets"
     />
 
     <!-- Asset grid -->
     <MediaAssetGrid
-      :assets="filters.visibleAssets"
-      :selected-asset-ids="selection.selectedAssetIds"
+      :assets="visibleAssets"
+      :selected-asset-ids="selectedAssetIds"
       :is-loading="mediaStore.isLoading"
       :load-error="mediaStore.loadError"
       :has-next-page="!!mediaStore.nextCursor"
-      @toggle-asset="selection.toggleAssetSelection"
+      :has-active-filters="hasActiveFilters"
+      @toggle-asset="toggleAssetSelection"
       @delete-asset="deletePersistedAsset"
       @load-more="loadMore"
     />

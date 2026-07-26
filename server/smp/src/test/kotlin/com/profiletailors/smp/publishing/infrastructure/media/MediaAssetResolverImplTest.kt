@@ -1,9 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.media
 
-import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetRepository
 import com.profiletailors.smp.media.application.PagedMediaAssets
-import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
@@ -18,6 +16,8 @@ import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import com.profiletailors.smp.publishing.application.PublishingAssetNotReadyException as AssetNotReadyException
+import com.profiletailors.smp.publishing.application.PublishingResolvedAssetSummary as ResolvedAssetSummary
 
 class MediaAssetResolverImplTest {
 

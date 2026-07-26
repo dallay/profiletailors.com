@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
 
-const emit = defineEmits<{
-  (e: 'reconnect'): void
-}>()
+const emit = defineEmits<(e: 'reconnect') => void>()
 </script>
 
 <template>

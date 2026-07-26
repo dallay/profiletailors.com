@@ -7,9 +7,7 @@ import com.profiletailors.smp.governance.application.GovernanceMutationAuditPort
 import org.springframework.stereotype.Component
 
 @Component
-internal class AuditHookGovernanceMutationAuditPort(
-    private val auditHook: AuditHook,
-) : GovernanceMutationAuditPort {
+internal class AuditHookGovernanceMutationAuditPort(private val auditHook: AuditHook) : GovernanceMutationAuditPort {
 
     override suspend fun recordSuccess(
         action: String,
@@ -27,7 +25,7 @@ internal class AuditHookGovernanceMutationAuditPort(
                 actorPrincipalId = actorPrincipalId,
                 workspaceId = workspaceId,
                 outcome = MutationAuditOutcome.SUCCESS,
-                details = details,
+                details = details.mapValues { (_, value) -> value?.toString() ?: "null" },
             ),
         )
     }

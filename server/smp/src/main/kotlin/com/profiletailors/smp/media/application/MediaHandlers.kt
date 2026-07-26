@@ -68,7 +68,7 @@ class CreateUploadedAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val uploadSettings: MediaUploadSettings,
-    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalContextProvider(),
+    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalProvider(),
     private val emailVerificationGate: MediaEmailVerificationGate = NoOpMediaEmailVerificationGate,
 ) : CommandWithResultHandler<CreateUploadedAssetCommand, CreateUploadedAssetResult> {
 
@@ -199,7 +199,7 @@ class UploadAssetHandler(
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val storageApplicationService: StorageApplicationService,
     private val uploadSettings: MediaUploadSettings,
-    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalContextProvider(),
+    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalProvider(),
     private val emailVerificationGate: MediaEmailVerificationGate = NoOpMediaEmailVerificationGate,
     private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<LegacyUploadAssetCommand, LegacyUploadAssetResult> {
@@ -658,9 +658,8 @@ class PutAssetHandler(
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val uploadSettings: MediaUploadSettings,
     private val transactionRunner: AtomicTransactionRunner,
-    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalProvider(),
+    private val emailVerificationGate: MediaEmailVerificationGate = NoOpMediaEmailVerificationGate,
 ) : CommandWithResultHandler<PutAssetCommand, PutAssetResult> {
 
     private val logger = LoggerFactory.getLogger(PutAssetHandler::class.java)
@@ -672,12 +671,7 @@ class PutAssetHandler(
     }
 
     override suspend fun handle(command: PutAssetCommand): PutAssetResult {
-        requireEmailVerification(
-            principalContextProvider.require(),
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.UPLOAD_MEDIA,
-        )
+        emailVerificationGate.requireVerified(principalContextProvider.require(), MediaFeature.UPLOAD_MEDIA)
         // 1. Validate UUID v4
         validateAssetId(command.assetId)
 
@@ -959,9 +953,8 @@ class CasUploadAssetHandler(
     private val storageApplicationService: StorageApplicationService,
     private val uploadSettings: MediaUploadSettings,
     private val transactionRunner: AtomicTransactionRunner,
-    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalProvider(),
+    private val emailVerificationGate: MediaEmailVerificationGate = NoOpMediaEmailVerificationGate,
 ) : CommandWithResultHandler<CasUploadAssetCommand, CasUploadAssetResult> {
 
     private val logger = LoggerFactory.getLogger(CasUploadAssetHandler::class.java)
@@ -986,12 +979,7 @@ class CasUploadAssetHandler(
     }
 
     override suspend fun handle(command: CasUploadAssetCommand): CasUploadAssetResult {
-        requireEmailVerification(
-            principalContextProvider.require(),
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.UPLOAD_MEDIA,
-        )
+        emailVerificationGate.requireVerified(principalContextProvider.require(), MediaFeature.UPLOAD_MEDIA)
         val assetId = command.assetId
         val workspaceId = command.workspaceId
 

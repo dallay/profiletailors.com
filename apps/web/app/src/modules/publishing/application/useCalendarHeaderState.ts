@@ -1,13 +1,13 @@
 import { computed } from 'vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
-import type { SchedulerStatus, SchedulerSurface } from '@modules/publishing/application/useCalendarUrl'
+import type { SchedulerSurface } from '@modules/publishing/application/useCalendarUrl'
 
 /**
  * Provides calendar header state derivation and filter management
  */
 export function useCalendarHeaderState(
   calendarView: 'month' | 'week' | 'day',
-  surface: SchedulerSurface,
+  _surface: SchedulerSurface,
   status: string,
   channelIds: string[],
 ) {

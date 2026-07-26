@@ -38,6 +38,7 @@ const deleteConfirm = useDeleteConfirmation({
     closeModal()
   },
   onCancel: () => {},
+  formatError: (error) => actionErrorMessage(error, 'delete'),
 })
 
 const isReadOnly = computed(() => props.publication?.status === 'PUBLISHED')
@@ -69,7 +70,7 @@ watch(
   () => [props.isOpen, props.publication] as const,
   async ([open]) => {
     if (open) {
-      deleteError.value = ''
+      deleteConfirm.clearError()
       retryError.value = ''
       await nextTick()
       // Guard against the modal being closed during the await window
@@ -89,12 +90,7 @@ function closeModal() {
 
 async function requestDelete() {
   if (!props.publication || isDeleting.value || !canDelete.value) return
-  try {
-    await deleteConfirm.confirm()
-  } catch (err) {
-    deleteConfirm.setError(actionErrorMessage(err, 'delete'))
-    console.error('Failed to delete publication', err)
-  }
+  await deleteConfirm.confirm()
 }
 
 function openReschedule() {
@@ -123,10 +119,12 @@ async function retryPublication() {
 }
 
 async function confirmReschedule(newIso: string) {
+  const publication = props.publication
+  if (!publication) return
   rescheduleError.value = ''
   try {
-    await publishingStore.reschedulePublication(props.publication!.id, newIso)
-    emit('reschedule', { id: props.publication!.id, scheduledAt: newIso })
+    await publishingStore.reschedulePublication(publication.id, newIso)
+    emit('reschedule', { id: publication.id, scheduledAt: newIso })
     showReschedule.value = false
     closeModal()
   } catch (err) {

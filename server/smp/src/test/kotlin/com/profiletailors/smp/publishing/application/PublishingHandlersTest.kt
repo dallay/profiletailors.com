@@ -7,6 +7,7 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
@@ -15,10 +16,7 @@ import com.profiletailors.smp.identity.application.permissiveEmailVerificationPo
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.media.application.AssetNotReadyException
-import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
-import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
-import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.ActivityDensity
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.ChannelEvent
@@ -75,6 +73,9 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import com.profiletailors.smp.publishing.application.PublishingAssetPreviewUrlResolver as AssetPreviewUrlResolver
+import com.profiletailors.smp.publishing.application.PublishingMediaAssetResolver as MediaAssetResolver
+import com.profiletailors.smp.publishing.application.PublishingResolvedAssetSummary as ResolvedAssetSummary
 
 class PublishingHandlersTest {
 
@@ -97,6 +98,11 @@ class PublishingHandlersTest {
 
     /** Always returns true — email verification gate is enforced. */
     private val strictEmailVerificationPolicy: EmailVerificationPolicy = emailVerificationPolicyOf()
+
+    private object PendingEmailVerificationGate : PublishingEmailVerificationGate {
+        override suspend fun requireVerified(principal: PrincipalContext, feature: PublishingFeature): Unit =
+            throw FeatureEmailVerificationRequired(AuthFeature.PUBLISH_CONTENT)
+    }
 
     private fun recordingTransactionRunner(): RecordingAtomicTransactionRunner =
         RecordingAtomicTransactionRunner(mutableListOf())
@@ -229,6 +235,7 @@ class PublishingHandlersTest {
     }
 
     /** Returns emailStatus = PENDING so strict gate blocks the call. */
+    @Suppress("UnusedPrivateClass")
     private class PendingEmailIdentityLookup : PrincipalIdentityLookup {
         override suspend fun findBySubject(
             principalType: PrincipalType,
@@ -2718,8 +2725,7 @@ class PublishingHandlersTest {
             channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
             transactionRunner = recordingTransactionRunner(),
-            principalIdentityLookup = PendingEmailIdentityLookup(),
-            emailVerificationPolicy = strictEmailVerificationPolicy,
+            emailVerificationGate = PendingEmailVerificationGate,
         )
 
         assertThrows(FeatureEmailVerificationRequired::class.java) {
@@ -2844,8 +2850,7 @@ class PublishingHandlersTest {
             mediaAssetResolver = FakeMediaAssetResolver(),
             mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
-            principalIdentityLookup = PendingEmailIdentityLookup(),
-            emailVerificationPolicy = strictEmailVerificationPolicy,
+            emailVerificationGate = PendingEmailVerificationGate,
         )
 
         assertThrows(FeatureEmailVerificationRequired::class.java) {
@@ -2904,8 +2909,7 @@ class PublishingHandlersTest {
             mediaAssetResolver = FakeMediaAssetResolver(),
             mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
-            principalIdentityLookup = PendingEmailIdentityLookup(),
-            emailVerificationPolicy = strictEmailVerificationPolicy,
+            emailVerificationGate = PendingEmailVerificationGate,
         )
 
         assertThrows(FeatureEmailVerificationRequired::class.java) {
@@ -3047,8 +3051,7 @@ class PublishingHandlersTest {
             publicationRepository = InMemoryPublicationRepository(publication),
             publicationJobRepository = InMemoryPublicationJobRepository(),
             clock = fixedClock,
-            principalIdentityLookup = PendingEmailIdentityLookup(),
-            emailVerificationPolicy = strictEmailVerificationPolicy,
+            emailVerificationGate = PendingEmailVerificationGate,
         )
 
         assertThrows(FeatureEmailVerificationRequired::class.java) {
@@ -3078,8 +3081,7 @@ class PublishingHandlersTest {
             publicationJobRepository = InMemoryPublicationJobRepository(),
             transactionRunner = recordingTransactionRunner(),
             clock = fixedClock,
-            principalIdentityLookup = PendingEmailIdentityLookup(),
-            emailVerificationPolicy = strictEmailVerificationPolicy,
+            emailVerificationGate = PendingEmailVerificationGate,
         )
 
         assertThrows(FeatureEmailVerificationRequired::class.java) {
@@ -3111,8 +3113,7 @@ class PublishingHandlersTest {
             transactionRunner = recordingTransactionRunner(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
-            principalIdentityLookup = PendingEmailIdentityLookup(),
-            emailVerificationPolicy = strictEmailVerificationPolicy,
+            emailVerificationGate = PendingEmailVerificationGate,
         )
 
         assertThrows(FeatureEmailVerificationRequired::class.java) {
@@ -3143,8 +3144,7 @@ class PublishingHandlersTest {
             transactionRunner = recordingTransactionRunner(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
-            principalIdentityLookup = PendingEmailIdentityLookup(),
-            emailVerificationPolicy = strictEmailVerificationPolicy,
+            emailVerificationGate = PendingEmailVerificationGate,
         )
 
         assertThrows(FeatureEmailVerificationRequired::class.java) {

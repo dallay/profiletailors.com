@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Check, Search, X } from '@lucide/vue'
 import {
@@ -50,7 +51,12 @@ const {
   providerEnabled,
   modalTitle,
   modalDescription,
-} = useComposerMediaPickerState(props.isOpen, props.activeSource, props.assets, props.provider)
+} = useComposerMediaPickerState(
+  toRef(props, 'isOpen'),
+  toRef(props, 'activeSource'),
+  toRef(props, 'assets'),
+  toRef(props, 'provider'),
+)
 
 function toggleAsset(asset: ComposerMediaPickerAsset): void {
   if (!asset.selectable || !isLibrarySource.value) return

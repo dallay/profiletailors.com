@@ -6,12 +6,13 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.credentials.application.ActiveRefreshSession
 import com.profiletailors.smp.credentials.application.CreatedRefreshSession
 import com.profiletailors.smp.credentials.application.RefreshSessionGateway
-import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
-import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
-import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
 import com.profiletailors.smp.identity.application.EmailVerificationTokenHasher
+import com.profiletailors.smp.identity.application.IdentityCreatedRefreshSession
+import com.profiletailors.smp.identity.application.IdentityRefreshSessionPort
+import com.profiletailors.smp.identity.application.IdentityRefreshSessionToken
 import com.profiletailors.smp.identity.application.IdentityRegistrationGateway
+import com.profiletailors.smp.identity.application.IdentityRotatedRefreshSession
 import com.profiletailors.smp.identity.application.IssuedAccessToken
 import com.profiletailors.smp.identity.application.LocalJwtIssuer
 import com.profiletailors.smp.identity.application.ResendVerificationCommand
@@ -95,7 +96,7 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
             identityRegistrationGateway = FailingEmailStatusGateway(identityRegistrationGateway),
             principalIdentityLookup = principalIdentityLookup,
             localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            refreshSessionPort = fakeRefreshLifecycleService(),
             clock = clock,
             transactionRunner = transactionRunner,
         )
@@ -186,20 +187,19 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
         .one()
         .awaitSingle()
 
-    private fun fakeRefreshLifecycleService(): RefreshSessionLifecycleService = RefreshSessionLifecycleService(
-        refreshSessionGateway = FakeRefreshSessionGateway(),
-        refreshSessionTokenService = object : RefreshSessionTokenService() {
-            override fun issue(): RefreshSessionToken = RefreshSessionToken("refresh-lookup", "refresh-secret")
-        },
-        properties = RefreshSessionProperties(
-            cookieName = "pt_refresh",
-            cookiePath = "/api/auth",
-            sameSite = "Lax",
-            secure = false,
-            ttlSeconds = 604_800,
-        ),
-        clock = clock,
-    )
+    private fun fakeRefreshLifecycleService(): IdentityRefreshSessionPort = object : IdentityRefreshSessionPort {
+        override suspend fun issue(principalId: String) = IdentityCreatedRefreshSession(
+            principalId = principalId,
+            refreshToken = IdentityRefreshSessionToken("refresh-lookup", "refresh-secret"),
+        )
+
+        override suspend fun rotate(rawRefreshToken: String) = IdentityRotatedRefreshSession(
+            principalId = "user-1",
+            refreshToken = IdentityRefreshSessionToken("refresh-lookup", "refresh-secret"),
+        )
+
+        override suspend fun revoke(rawRefreshToken: String) = Unit
+    }
 
     private class InjectedEmailStatusFailure : RuntimeException("Injected email status update failure")
 
@@ -228,6 +228,7 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
         ): IssuedAccessToken = IssuedAccessToken("token-for-$email", 900)
     }
 
+    @Suppress("UnusedPrivateClass")
     private class FakeRefreshSessionGateway : RefreshSessionGateway {
         override suspend fun create(
             principalId: String,

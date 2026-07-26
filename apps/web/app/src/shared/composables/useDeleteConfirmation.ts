@@ -3,6 +3,7 @@ import { ref } from 'vue'
 interface UseDeleteConfirmationOptions {
   onConfirm?: () => Promise<void> | void
   onCancel?: () => void
+  formatError?: (error: unknown) => string
 }
 
 export function useDeleteConfirmation(options: UseDeleteConfirmationOptions = {}) {
@@ -30,7 +31,7 @@ export function useDeleteConfirmation(options: UseDeleteConfirmationOptions = {}
       await options.onConfirm?.()
       close()
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'An error occurred'
+      error.value = options.formatError?.(err) ?? 'An error occurred'
     } finally {
       isDeleting.value = false
     }
@@ -43,5 +44,8 @@ export function useDeleteConfirmation(options: UseDeleteConfirmationOptions = {}
     open,
     close,
     confirm,
+    clearError: () => {
+      error.value = null
+    },
   }
 }

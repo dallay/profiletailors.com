@@ -1,6 +1,5 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useMediaStore } from '@modules/media'
-import type { ComposerInlineAttachment } from '@modules/publishing/presentation/components/composer/composer.types'
 
 const COMPOSER_SUPPORTED_MEDIA_TYPES = new Set([
   'image/jpeg',
@@ -32,7 +31,8 @@ export function useComposerMediaUpload() {
     const file = filesList.find((file) => {
       const isSupported = COMPOSER_SUPPORTED_MEDIA_TYPES.has(file.type)
       const isUnderLimit = file.size <= 10 * 1024 * 1024 // 10MB
-      if (!isSupported) alert('Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.')
+      if (!isSupported)
+        alert('Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.')
       if (!isUnderLimit) alert('File size exceeds 10MB limit.')
       return isSupported && isUnderLimit
     })

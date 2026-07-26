@@ -17,11 +17,11 @@ fun interface PublishingAssetPreviewUrlResolver {
         workspaceId: String,
         mediaType: String,
         storageKey: String?,
-        externalUrl: String? = null,
+        externalUrl: String?,
     ): String?
 }
 
-class PublishingAssetNotReadyException(assetId: String, reason: String) :
+class PublishingAssetNotReadyException(val assetId: String, reason: String) :
     RuntimeException("Asset '$assetId' is not ready: $reason")
 
 class PublishingMediaServiceUnavailableException(message: String, cause: Throwable? = null) :

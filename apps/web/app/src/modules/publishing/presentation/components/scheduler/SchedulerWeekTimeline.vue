@@ -26,7 +26,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const publishingStore = usePublishingStore()
 
-const { dateKey, slotKey, formatDayName, isToday, isPastSlot } = useSchedulerWeekTimeline()
+const { slotKey, formatDayName, isToday, isPastSlot } = useSchedulerWeekTimeline()
 
 function publicationsForSlot(date: Date, hour: number): Publication[] {
   return props.publicationsBySlot.get(slotKey(date, hour)) ?? []

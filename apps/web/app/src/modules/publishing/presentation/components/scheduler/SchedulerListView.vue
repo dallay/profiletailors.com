@@ -3,7 +3,7 @@ import { Trash2 } from '@lucide/vue'
 import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
 import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
 
-const props = defineProps<{
+const _props = defineProps<{
   publications: Publication[]
 }>()
 

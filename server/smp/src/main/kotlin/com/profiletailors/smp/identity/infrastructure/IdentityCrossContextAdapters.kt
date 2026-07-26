@@ -56,9 +56,8 @@ class CredentialsIdentityRefreshSessionAdapter(
 }
 
 @Component
-class GovernanceIdentityConsentRecorderAdapter(
-    private val recordConsentHandler: RecordConsentHandler,
-) : IdentityConsentRecorder {
+class GovernanceIdentityConsentRecorderAdapter(private val recordConsentHandler: RecordConsentHandler) :
+    IdentityConsentRecorder {
     override suspend fun recordContractAcceptance(
         workspaceId: String,
         principalId: String,

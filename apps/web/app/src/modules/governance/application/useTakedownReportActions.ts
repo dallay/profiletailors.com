@@ -1,7 +1,14 @@
-import { reactive, ref } from 'vue'
-import { approveTakedown, rejectTakedown, type TakedownReportResponse } from '@modules/governance/services/governance-api'
+import { reactive, ref, type Ref } from 'vue'
+import {
+  approveTakedown,
+  rejectTakedown,
+  type TakedownReportResponse,
+} from '@modules/governance/services/governance-api'
 
-export function useTakedownReportActions(reports: globalThis.Ref<TakedownReportResponse[]>, t: any) {
+export function useTakedownReportActions(
+  reports: Ref<TakedownReportResponse[]>,
+  t: (key: string) => string,
+) {
   const mutatingIds = reactive(new Set<string>())
   const error = ref<string | null>(null)
 
@@ -15,7 +22,8 @@ export function useTakedownReportActions(reports: globalThis.Ref<TakedownReportR
         reports.value[idx] = updated
       }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : t('governance.takedown.review.errors.approveFailed')
+      error.value =
+        err instanceof Error ? err.message : t('governance.takedown.review.errors.approveFailed')
     } finally {
       mutatingIds.delete(reportId)
     }
@@ -36,7 +44,8 @@ export function useTakedownReportActions(reports: globalThis.Ref<TakedownReportR
         reports.value[idx] = updated
       }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : t('governance.takedown.review.errors.rejectFailed')
+      error.value =
+        err instanceof Error ? err.message : t('governance.takedown.review.errors.rejectFailed')
     } finally {
       mutatingIds.delete(reportId)
     }

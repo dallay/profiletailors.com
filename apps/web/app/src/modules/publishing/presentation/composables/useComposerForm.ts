@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import type { DateValue } from 'reka-ui'
 import { CalendarDate, getLocalTimeZone } from '@internationalized/date'
 import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
@@ -13,7 +13,7 @@ interface UseComposerFormOptions {
 }
 
 export function useComposerForm(options: UseComposerFormOptions = {}) {
-  const mediaStore = useMediaStore()
+  const _mediaStore = useMediaStore()
   const publishingStore = usePublishingStore()
 
   // Form state
@@ -62,7 +62,9 @@ export function useComposerForm(options: UseComposerFormOptions = {}) {
     return undefined
   }
 
-  function resolveScheduleMode(mode: ComposerScheduleMode): NonNullable<Publication['scheduleMode']> {
+  function resolveScheduleMode(
+    mode: ComposerScheduleMode,
+  ): NonNullable<Publication['scheduleMode']> {
     if (mode === 'now') return 'NOW'
     if (mode === 'next') return 'NEXT_SLOT'
     return 'SCHEDULED_AT'
@@ -96,6 +98,7 @@ export function useComposerForm(options: UseComposerFormOptions = {}) {
     scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
 
     assetsTouched.value = false
+    selectedChannelId.value = publishingStore.channels[0]?.id ?? null
 
     if (pub.scheduledAt && scheduleMode.value === 'custom') {
       const dateSrc = new Date(pub.scheduledAt)

@@ -1,11 +1,10 @@
 package com.profiletailors.smp.media.infrastructure
 
 import com.profiletailors.common.domain.context.PrincipalContextProvider
-import com.profiletailors.smp.identity.application.EmailVerificationPolicy
-import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.ImportUnsplashPhotoHandler
 import com.profiletailors.smp.media.application.MediaAssetRepository
+import com.profiletailors.smp.media.application.MediaEmailVerificationGate
 import com.profiletailors.smp.media.application.MediaImportService
 import com.profiletailors.smp.media.application.MediaPreviewTokenService
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
@@ -120,15 +119,13 @@ class MediaConfiguration {
         mediaImportService: MediaImportService,
         settings: UnsplashImportSettings,
         principalContextProvider: PrincipalContextProvider,
-        principalIdentityLookup: PrincipalIdentityLookup,
-        emailVerificationPolicy: EmailVerificationPolicy,
+        emailVerificationGate: MediaEmailVerificationGate,
     ): ImportUnsplashPhotoHandler = ImportUnsplashPhotoHandler(
         mediaRateLimitRepository = mediaRateLimitRepository,
         mediaImportService = mediaImportService,
         settings = settings,
         principalContextProvider = principalContextProvider,
-        principalIdentityLookup = principalIdentityLookup,
-        emailVerificationPolicy = emailVerificationPolicy,
+        emailVerificationGate = emailVerificationGate,
     )
 
     private companion object {

@@ -1,11 +1,13 @@
-import { computed, ref } from 'vue'
-import type { MediaAsset } from '@modules/media/infrastructure/media.store'
+import { computed, ref, type Ref } from 'vue'
+import type { MediaAssetSummary } from '@modules/media/services/media-api'
 
-export function useMediaLibrarySelection(visibleAssets: globalThis.Ref<MediaAsset[]>) {
+export function useMediaLibrarySelection(visibleAssets: Ref<MediaAssetSummary[]>) {
   const selectedAssetIds = ref<string[]>([])
 
-  const allVisibleSelected = computed(() =>
-    visibleAssets.value.length > 0 && visibleAssets.value.every((a) => selectedAssetIds.value.includes(a.assetId)),
+  const allVisibleSelected = computed(
+    () =>
+      visibleAssets.value.length > 0 &&
+      visibleAssets.value.every((a) => selectedAssetIds.value.includes(a.assetId)),
   )
 
   const hasSelection = computed(() => selectedAssetIds.value.length > 0)

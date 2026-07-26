@@ -16,17 +16,21 @@ const loader = useTakedownReportLoader(t)
 const filters = useTakedownReportFilters(loader.reports)
 const rejectDialog = useRejectReportDialog()
 const actions = useTakedownReportActions(loader.reports, t)
+const { isLoading, error: loadError, loadReports } = loader
+const { statusFilter, filteredReports } = filters
+const { rejectionReason, rejectReportId, openDialog, closeDialog, isReasonEmpty, getReason } = rejectDialog
+const { mutatingIds, error: actionError, handleApprove, handleReject } = actions
 
 async function handleApproveClick(reportId: string) {
-  await actions.handleApprove(reportId)
+  await handleApprove(reportId)
 }
 
 async function handleRejectClick() {
-  if (!rejectDialog.rejectReportId.value || rejectDialog.isReasonEmpty()) {
+  if (!rejectReportId.value || isReasonEmpty()) {
     return
   }
-  await actions.handleReject(rejectDialog.rejectReportId.value, rejectDialog.getReason())
-  rejectDialog.closeDialog()
+  await handleReject(rejectReportId.value, getReason())
+  closeDialog()
 }
 
 function statusBadgeClass(status: string) {
@@ -54,7 +58,7 @@ function formatDate(dateStr: string) {
 
 // Load on mount
 onMounted(() => {
-  loader.loadReports()
+  loadReports()
 })
 </script>
 
@@ -71,7 +75,7 @@ onMounted(() => {
 
     <div class="flex items-center gap-3">
       <select
-        v-model="filters.statusFilter"
+        v-model="statusFilter"
         data-testid="filter-status"
         :aria-label="$t('governance.takedown.review.statusFilter')"
         class="rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display"
@@ -82,28 +86,28 @@ onMounted(() => {
         <option value="DISMISSED">{{ $t('governance.takedown.review.statusDismissed') }}</option>
       </select>
 
-      <Button type="button" variant="outline" size="sm" @click="loader.loadReports">
+      <Button type="button" variant="outline" size="sm" @click="loadReports">
         {{ $t('governance.takedown.review.refresh') }}
       </Button>
     </div>
 
-    <div v-if="actions.error" class="rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
-      {{ actions.error }}
+    <div v-if="actionError || loadError" class="rounded-xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
+      {{ actionError || loadError }}
     </div>
 
-    <div v-if="loader.isLoading" class="flex items-center gap-2 text-sm text-text-secondary">
+    <div v-if="isLoading" class="flex items-center gap-2 text-sm text-text-secondary">
       <span class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
       {{ $t('governance.takedown.review.loading') }}
     </div>
 
-    <div v-else-if="filters.filteredReports.length === 0" class="rounded-2xl border border-dashed border-border-visible bg-bg-primary/30 p-10 text-center">
+    <div v-else-if="filteredReports.length === 0" class="rounded-2xl border border-dashed border-border-visible bg-bg-primary/30 p-10 text-center">
       <p class="text-sm text-text-display">{{ $t('governance.takedown.review.empty') }}</p>
       <p class="mt-1 text-xs text-text-secondary">{{ $t('governance.takedown.review.emptyHint') }}</p>
     </div>
 
     <div v-else class="space-y-4">
       <article
-        v-for="report in filters.filteredReports"
+        v-for="report in filteredReports"
         :key="report.reportId"
         class="rounded-xl border border-border-subtle bg-bg-primary/40 p-4 space-y-3"
       >
@@ -135,7 +139,7 @@ onMounted(() => {
               variant="outline"
               size="sm"
               class="text-success border-success/30 hover:bg-success/10"
-              :disabled="actions.mutatingIds.has(report.reportId)"
+              :disabled="mutatingIds.has(report.reportId)"
               @click="handleApproveClick(report.reportId)"
             >
               {{ $t('governance.takedown.review.approveAction') }}
@@ -147,8 +151,8 @@ onMounted(() => {
                   variant="outline"
                   size="sm"
                   class="text-error border-error/30 hover:bg-error/10"
-                  :disabled="actions.mutatingIds.has(report.reportId)"
-                  @click="rejectDialog.openDialog(report.reportId)"
+                  :disabled="mutatingIds.has(report.reportId)"
+                  @click="openDialog(report.reportId)"
                 >
                   {{ $t('governance.takedown.review.rejectAction') }}
                 </Button>
@@ -164,17 +168,17 @@ onMounted(() => {
                   <Label for="reject-reason">{{ $t('governance.takedown.review.rejectDialog.reasonLabel') }}</Label>
                   <Textarea
                     id="reject-reason"
-                    v-model="rejectDialog.rejectionReason"
+                    v-model="rejectionReason"
                     :rows="3"
                     class="mt-1.5"
                     :placeholder="$t('governance.takedown.review.rejectDialog.reasonPlaceholder')"
                   />
                 </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel @click="rejectDialog.closeDialog">{{ $t('workspace.cancel') }}</AlertDialogCancel>
+                  <AlertDialogCancel @click="closeDialog">{{ $t('workspace.cancel') }}</AlertDialogCancel>
                   <AlertDialogAction
                     class="bg-error text-text-display hover:bg-error/90"
-                    :disabled="rejectDialog.isReasonEmpty() || actions.mutatingIds.has(report.reportId)"
+                    :disabled="isReasonEmpty() || mutatingIds.has(report.reportId)"
                     @click="handleRejectClick"
                   >
                     {{ $t('governance.takedown.review.rejectAction') }}

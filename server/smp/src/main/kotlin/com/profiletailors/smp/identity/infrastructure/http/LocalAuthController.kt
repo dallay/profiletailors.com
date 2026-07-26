@@ -4,9 +4,11 @@ import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
+import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.domain.SessionCookie
 import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.AuthTokens
+import com.profiletailors.smp.identity.application.IdentityRefreshSessionNotActiveException
 import com.profiletailors.smp.identity.application.LocalAuthSessionResult
 import com.profiletailors.smp.identity.application.LoginUserCommand
 import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
@@ -58,7 +60,10 @@ class LocalAuthController(
         return ResponseEntity.status(HttpStatus.CREATED)
             .header(
                 HttpHeaders.SET_COOKIE,
-                refreshSessionCookieFactory.buildSetCookie(result.refreshToken).toResponseCookie().toString(),
+                refreshSessionCookieFactory
+                    .buildSetCookie(result.refreshToken.toCredentialsToken())
+                    .toResponseCookie()
+                    .toString(),
             )
             .body(result.tokens)
     }
@@ -77,14 +82,23 @@ class LocalAuthController(
     @Operation(summary = "Refresh user session")
     @PostMapping("/refresh", version = "1")
     suspend fun refresh(request: ServerHttpRequest): ResponseEntity<AuthTokens> {
-        val result = mediator.send(
-            RefreshUserSessionCommand(
-                rawRefreshToken = readRefreshCookie(request) ?: throw RefreshSessionNotActiveException(
-                    lookupKey = "missing",
-                    reason = RefreshSessionFailureReason.MISSING,
+        val rawRefreshToken = readRefreshCookie(request)
+            ?: throw RefreshSessionNotActiveException(
+                lookupKey = "missing",
+                reason = RefreshSessionFailureReason.MISSING,
+            )
+        val result = try {
+            mediator.send(
+                RefreshUserSessionCommand(
+                    rawRefreshToken = rawRefreshToken,
                 ),
-            ),
-        )
+            )
+        } catch (_: IdentityRefreshSessionNotActiveException) {
+            throw RefreshSessionNotActiveException(
+                lookupKey = "invalid",
+                reason = RefreshSessionFailureReason.INVALID,
+            )
+        }
         return sessionResponse(result)
     }
 
@@ -121,9 +135,15 @@ class LocalAuthController(
     private fun sessionResponse(result: LocalAuthSessionResult): ResponseEntity<AuthTokens> = ResponseEntity.ok()
         .header(
             HttpHeaders.SET_COOKIE,
-            refreshSessionCookieFactory.buildSetCookie(result.refreshToken).toResponseCookie().toString(),
+            refreshSessionCookieFactory
+                .buildSetCookie(result.refreshToken.toCredentialsToken())
+                .toResponseCookie()
+                .toString(),
         )
         .body(result.tokens)
+
+    private fun com.profiletailors.smp.identity.application.IdentityRefreshSessionToken.toCredentialsToken() =
+        RefreshSessionToken(lookupKey, secret)
 
     private fun readRefreshCookie(request: ServerHttpRequest): String? =
         request.cookies.getFirst(refreshSessionProperties.cookieName)?.value

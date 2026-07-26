@@ -8,9 +8,7 @@ import com.profiletailors.smp.tenancy.application.TenancyMutationAuditPort
 import org.springframework.stereotype.Component
 
 @Component
-internal class AuditHookTenancyMutationAuditPort(
-    private val auditHook: AuditHook,
-) : TenancyMutationAuditPort {
+internal class AuditHookTenancyMutationAuditPort(private val auditHook: AuditHook) : TenancyMutationAuditPort {
 
     override suspend fun record(
         action: String,

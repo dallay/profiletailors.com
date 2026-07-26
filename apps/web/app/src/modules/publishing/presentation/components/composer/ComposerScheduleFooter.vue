@@ -2,12 +2,11 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { DateValue } from 'reka-ui'
-import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import { CalendarIcon } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { useComposerScheduleState } from './useComposerScheduleState'
+import { useComposerScheduleState } from '../../../application/useComposerScheduleState'
 import type { ComposerScheduleMode } from './composer.types'
 
 const props = defineProps<{
@@ -70,7 +69,7 @@ const localCreateAnother = computed({
   set: (val) => emit('update:createAnother', val),
 })
 
-function onCalendarUpdate(val: DateValue) {
+function onCalendarUpdate(val: DateValue | undefined) {
   emit('update:selectedCalendarDate', val)
   isDatePickerOpen.value = false
 }

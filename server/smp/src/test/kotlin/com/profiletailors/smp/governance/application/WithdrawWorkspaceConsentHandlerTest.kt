@@ -3,12 +3,7 @@ package com.profiletailors.smp.governance.application
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
-import com.profiletailors.smp.authorization.domain.PermissionKey
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.ConsentRecord
 import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.governance.domain.ConsentStatus
@@ -28,12 +23,12 @@ internal class WithdrawWorkspaceConsentHandlerTest {
 
     private val resourceContextProvider: ResourceContextProvider = mockk()
     private val withdrawConsentHandler: WithdrawConsentHandler = mockk()
-    private val authorizationDecider: WorkspaceAuthorizationDecider = mockk()
+    private val authorizationService: GovernanceAuthorizationService = mockk()
 
     private val handler = WithdrawWorkspaceConsentHandler(
         resourceContextProvider = resourceContextProvider,
         withdrawConsentHandler = withdrawConsentHandler,
-        authorizationDecider = authorizationDecider,
+        authorizationService = authorizationService,
     )
 
     @Test
@@ -46,10 +41,7 @@ internal class WithdrawWorkspaceConsentHandlerTest {
             reason = "user_request",
         )
 
-        coEvery { authorizationDecider.decideDetailed(any()) } returns AuthorizationDecisionResult(
-            decision = AuthorizationDecision.ALLOW,
-            reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-        )
+        coEvery { authorizationService.authorizeConsentWrite() } returns Unit
         coEvery { resourceContextProvider.require() } returns
             ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = "ws-001")
         coEvery { withdrawConsentHandler.handle(any()) } returns ConsentRecord(
@@ -70,7 +62,7 @@ internal class WithdrawWorkspaceConsentHandlerTest {
         val result = handler.handle(command)
 
         result.status shouldBe ConsentStatus.WITHDRAWN
-        coVerify { authorizationDecider.decideDetailed(PermissionKey.of("workspace", "consent", "write")) }
+        coVerify { authorizationService.authorizeConsentWrite() }
     }
 
     @Test
@@ -82,10 +74,7 @@ internal class WithdrawWorkspaceConsentHandlerTest {
             policyVersion = "2026-07-01",
         )
 
-        coEvery { authorizationDecider.decideDetailed(any()) } returns AuthorizationDecisionResult(
-            decision = AuthorizationDecision.DENY,
-            reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
-        )
+        coEvery { authorizationService.authorizeConsentWrite() } throws AuthorizationDeniedException("Denied")
 
         shouldThrow<AuthorizationDeniedException> { handler.handle(command) }
     }

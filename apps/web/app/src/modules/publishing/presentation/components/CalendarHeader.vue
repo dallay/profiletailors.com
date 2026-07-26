@@ -47,7 +47,7 @@ const { calendarSurface, selectedChannel, statusIcon } = useCalendarHeaderState(
   props.channelIds,
 )
 
-const statusIconMap: Record<string, any> = {
+const statusIconMap: Record<string, object> = {
   Clock,
   Check,
   Ban,
@@ -164,7 +164,7 @@ const statusIconMap: Record<string, any> = {
           <option value="published">Published</option>
           <option value="cancelled">Cancelled</option>
         </select>
-        <component :is="statusIconMap[statusIcon.value]" class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
+        <component :is="statusIconMap[statusIcon]" class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
         <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
       </div>
 

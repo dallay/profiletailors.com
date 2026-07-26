@@ -184,7 +184,7 @@ class ImportUnsplashPhotoHandler(
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val mediaImportService: MediaImportService,
     private val settings: UnsplashImportSettings,
-    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalContextProvider(),
+    private val principalContextProvider: PrincipalContextProvider = permissiveMediaPrincipalProvider(),
     private val emailVerificationGate: MediaEmailVerificationGate = NoOpMediaEmailVerificationGate,
 ) : CommandWithResultHandler<ImportUnsplashPhotoCommand, MediaAssetSummary> {
     /**

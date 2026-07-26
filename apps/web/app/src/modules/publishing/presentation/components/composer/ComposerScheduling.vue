@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 import type { DateValue } from 'reka-ui'
-import { CalendarDate, getLocalTimeZone } from '@internationalized/date'
 import type { ComposerScheduleMode } from '@modules/publishing/presentation/components/composer/composer.types'
-import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
 
 interface Props {
   scheduleMode?: ComposerScheduleMode
@@ -29,7 +25,7 @@ interface Emits {
   (e: 'submit'): void
 }
 
-const props = withDefaults(defineProps<Props>(), {
+const _props = withDefaults(defineProps<Props>(), {
   scheduleMode: 'now',
   scheduleTime: '10:00',
   priorityMode: false,
@@ -41,13 +37,11 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
-const { t } = useI18n()
-
 function handleScheduleModeChange(mode: ComposerScheduleMode) {
   emit('update:scheduleMode', mode)
 }
 
-function handleCalendarDateChange(date: DateValue | undefined) {
+function _handleCalendarDateChange(date: DateValue | undefined) {
   emit('update:selectedCalendarDate', date)
 }
 
@@ -59,10 +53,10 @@ function handleTimeChange(time: string) {
 <template>
   <div class="space-y-4">
     <!-- Schedule Mode Selection -->
-    <div class="space-y-3">
-      <label class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
+    <fieldset class="space-y-3">
+      <legend class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
         {{ $t('composer.schedule.mode') }}
-      </label>
+      </legend>
       <div class="grid grid-cols-3 gap-2">
         <button
           type="button"
@@ -101,7 +95,7 @@ function handleTimeChange(time: string) {
           {{ $t('composer.schedule.custom') }}
         </button>
       </div>
-    </div>
+    </fieldset>
 
     <!-- Custom Date/Time (only when custom mode) -->
     <div v-if="scheduleMode === 'custom'" class="space-y-3 p-3 rounded-lg bg-bg-secondary/50">

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 
 interface Props {
   modelValue: string
@@ -24,7 +23,6 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
-const { t } = useI18n()
 const isAiProcessing = ref(false)
 
 const charsRemaining = computed(() => props.charLimit - props.modelValue.length)

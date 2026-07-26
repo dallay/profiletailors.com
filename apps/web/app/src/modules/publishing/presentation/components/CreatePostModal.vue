@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { DateValue } from 'reka-ui'
 import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { useComposerMediaPicker } from '@modules/publishing/application/useComposerMediaPicker'
-import { CalendarDate, getLocalTimeZone } from '@internationalized/date'
 import { X } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import {
@@ -19,12 +17,11 @@ import type { LinkedInPreviewModel, PostPreviewMedia } from '@modules/publishing
 import ComposerMediaPickerShell from '@modules/publishing/presentation/components/composer/ComposerMediaPickerShell.vue'
 import MediaProviderPanel from '@modules/publishing/presentation/components/composer/MediaProviderPanel.vue'
 import ComposerChannelSelector from '@modules/publishing/presentation/components/composer/ComposerChannelSelector.vue'
-import ComposerAttachmentsArea from '@modules/publishing/presentation/components/composer/ComposerAttachmentsArea.vue'
 import ComposerScheduleFooter from '@modules/publishing/presentation/components/composer/ComposerScheduleFooter.vue'
 import ComposerEditor from '@modules/publishing/presentation/components/composer/ComposerEditor.vue'
 import ComposerMediaUpload from '@modules/publishing/presentation/components/composer/ComposerMediaUpload.vue'
 import ComposerFormSection from '@modules/publishing/presentation/components/composer/ComposerFormSection.vue'
-import type { ComposerScheduleMode, ComposerInlineAttachment } from '@modules/publishing/presentation/components/composer/composer.types'
+import type { ComposerInlineAttachment } from '@modules/publishing/presentation/components/composer/composer.types'
 import { useComposerForm } from '@modules/publishing/presentation/composables/useComposerForm'
 import { useComposerMediaUpload } from '@modules/publishing/presentation/composables/useComposerMediaUpload'
 
@@ -73,11 +70,20 @@ const picker = useComposerMediaPicker({
 
 // Modal & focus
 const modalContainer = ref<HTMLElement | null>(null)
+const pickerSessionUploadInput = ref<HTMLInputElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
 
 // Time tracking
 const now = ref(new Date())
 let timer: ReturnType<typeof setInterval>
+
+function runAiAssist() {
+  form.isAiProcessing.value = true
+  window.setTimeout(() => {
+    form.postText.value += '\n\nProgramado vía @ProfileTailors'
+    form.isAiProcessing.value = false
+  }, 800)
+}
 
 onMounted(() => {
   timer = setInterval(() => {
@@ -98,6 +104,7 @@ watch(
     if (open) {
       form.clearError()
       await form.initialize()
+      picker.syncDraftAttachments(props.editingPublication?.assetIds ?? [])
       if (auth.isAuthenticated) {
         try {
           await mediaStore.loadDanglingAssets()
@@ -116,6 +123,7 @@ watch(
 onMounted(async () => {
   if (props.isOpen && form.isEditMode.value) {
     await form.initialize()
+    picker.syncDraftAttachments(props.editingPublication?.assetIds ?? [])
   }
 })
 
@@ -196,7 +204,7 @@ async function handleFileSelect(files: File[]) {
 async function handleSchedule() {
   if (!canSubmit.value) return
 
-  const shouldCreateAnother = form.createAnother.value
+  const _shouldCreateAnother = form.createAnother.value
   form.isSubmitting.value = true
 
   try {
@@ -473,7 +481,11 @@ const composerInlineAttachments = computed<ComposerInlineAttachment[]>(() => {
             :placeholder="$t('composer.placeholder')"
             @update:modelValue="form.postText.value = $event"
             @emoji-click="form.postText.value += ' 🙂'"
-            @ai-assist-click="form.isAiProcessing.value = true; setTimeout(() => { form.postText.value += '\n\nProgramado vía @ProfileTailors'; form.isAiProcessing.value = false }, 800)"
+            @ai-assist-click="runAiAssist"
+            @dragover="(e) => { e.preventDefault(); form.isDropzoneActive.value = true }"
+            @dragleave="(e) => { e.preventDefault(); form.isDropzoneActive.value = false }"
+            @drop="(e) => { e.preventDefault(); form.isDropzoneActive.value = false; handleFileSelect(upload.extractFilesFromDataTransfer(e.dataTransfer)) }"
+            @paste="(e) => { e.preventDefault(); handleFileSelect(upload.extractFilesFromClipboard(e.clipboardData)) }"
           />
 
           <!-- Media Upload Section -->
@@ -491,7 +503,7 @@ const composerInlineAttachments = computed<ComposerInlineAttachment[]>(() => {
             @dragleave="(e) => { e.preventDefault(); form.isDropzoneActive.value = false }"
             @drop="(e) => { e.preventDefault(); form.isDropzoneActive.value = false; handleFileSelect(upload.extractFilesFromDataTransfer(e.dataTransfer)) }"
             @paste="(e) => { e.preventDefault(); handleFileSelect(upload.extractFilesFromClipboard(e.clipboardData)) }"
-            @open-upload-picker="$refs.pickerSessionUploadInput?.click()"
+            @open-upload-picker="pickerSessionUploadInput?.click()"
             @open-media-library="picker.openMediaPicker('library').catch(() => undefined)"
             @open-unsplash-library="picker.openMediaPicker('unsplash').catch(() => undefined)"
             @remove-draft-attachment="(assetId) => { picker.removeDraftAttachment(assetId); form.assetsTouched.value = true }"
@@ -512,6 +524,7 @@ const composerInlineAttachments = computed<ComposerInlineAttachment[]>(() => {
           <!-- Attachment Limit Warning -->
           <p
             v-if="picker.isAttachmentLimitExceeded.value"
+            data-testid="attachment-limit-warning"
             class="rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-xs text-error"
           >
             {{ t('composer.media.limitWarning', {
@@ -561,11 +574,11 @@ const composerInlineAttachments = computed<ComposerInlineAttachment[]>(() => {
         >
           <template #footer>
             <ComposerScheduleFooter
-              :model-value:schedule-mode="form.scheduleMode.value"
-              :model-value:selected-calendar-date="form.selectedCalendarDate.value"
-              :model-value:schedule-time="form.scheduleTime.value"
-              :model-value:priority-mode="form.priorityMode.value"
-              :model-value:create-another="form.createAnother.value"
+               :schedule-mode="form.scheduleMode.value"
+               :selected-calendar-date="form.selectedCalendarDate.value"
+               :schedule-time="form.scheduleTime.value"
+               :priority-mode="form.priorityMode.value"
+               :create-another="form.createAnother.value"
               :is-edit-mode="form.isEditMode.value"
               :can-submit="canSubmit"
               :is-submitting="form.isSubmitting.value"

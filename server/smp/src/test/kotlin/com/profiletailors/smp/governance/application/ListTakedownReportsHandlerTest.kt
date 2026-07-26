@@ -3,11 +3,7 @@ package com.profiletailors.smp.governance.application
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.TakedownReport
 import com.profiletailors.smp.governance.domain.TakedownReportRepository
 import com.profiletailors.smp.governance.domain.TakedownReportStatus
@@ -25,9 +21,7 @@ internal class ListTakedownReportsHandlerTest {
 
     private val repository: TakedownReportRepository = mockk()
     private val resourceContextProvider: ResourceContextProvider = mockk()
-    private val authorizationDecider: WorkspaceAuthorizationDecider = mockk()
-
-    private val authorizationService = GovernanceAuthorizationService(authorizationDecider)
+    private val authorizationService: GovernanceAuthorizationService = mockk()
     private val handler = ListTakedownReportsHandler(
         repository = repository,
         resourceContextProvider = resourceContextProvider,
@@ -50,10 +44,7 @@ internal class ListTakedownReportsHandlerTest {
             ),
         )
 
-        coEvery { authorizationDecider.decideDetailed(any()) } returns AuthorizationDecisionResult(
-            decision = AuthorizationDecision.ALLOW,
-            reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-        )
+        coEvery { authorizationService.authorizeMediaRead() } returns Unit
         coEvery { resourceContextProvider.require() } returns
             ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = "ws-001")
         coEvery { repository.findByWorkspace("ws-001", null) } returns flowOf(reports[0])
@@ -66,10 +57,7 @@ internal class ListTakedownReportsHandlerTest {
 
     @Test
     fun `filters by status`() = runTest {
-        coEvery { authorizationDecider.decideDetailed(any()) } returns AuthorizationDecisionResult(
-            decision = AuthorizationDecision.ALLOW,
-            reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-        )
+        coEvery { authorizationService.authorizeMediaRead() } returns Unit
         coEvery { resourceContextProvider.require() } returns
             ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = "ws-001")
         coEvery { repository.findByWorkspace("ws-001", TakedownReportStatus.REPORTED) } returns flowOf()
@@ -81,10 +69,7 @@ internal class ListTakedownReportsHandlerTest {
 
     @Test
     fun `throws AuthorizationDeniedException when not authorized`() = runTest {
-        coEvery { authorizationDecider.decideDetailed(any()) } returns AuthorizationDecisionResult(
-            decision = AuthorizationDecision.DENY,
-            reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
-        )
+        coEvery { authorizationService.authorizeMediaRead() } throws AuthorizationDeniedException("Denied")
 
         shouldThrow<AuthorizationDeniedException> {
             handler.handle(ListTakedownReportsQuery())

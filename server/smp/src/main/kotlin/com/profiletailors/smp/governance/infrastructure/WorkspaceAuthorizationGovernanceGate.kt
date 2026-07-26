@@ -9,9 +9,8 @@ import com.profiletailors.smp.governance.application.GovernanceAuthorizationPerm
 import org.springframework.stereotype.Component
 
 @Component
-internal class WorkspaceAuthorizationGovernanceGate(
-    private val authorizationDecider: WorkspaceAuthorizationDecider,
-) : GovernanceAuthorizationGate {
+internal class WorkspaceAuthorizationGovernanceGate(private val authorizationDecider: WorkspaceAuthorizationDecider) :
+    GovernanceAuthorizationGate {
 
     override suspend fun requireAllowed(permission: GovernanceAuthorizationPermission) {
         val requiredPermission = permission.toPermissionKey()
@@ -25,10 +24,17 @@ internal class WorkspaceAuthorizationGovernanceGate(
     }
 
     private fun GovernanceAuthorizationPermission.toPermissionKey(): PermissionKey = when (this) {
-        GovernanceAuthorizationPermission.MEDIA_READ -> PermissionKey.of("workspace", "governance", "media-read")
-        GovernanceAuthorizationPermission.MEDIA_TAKEDOWN -> PermissionKey.of("workspace", "governance", "media-takedown")
-        GovernanceAuthorizationPermission.CONSENT_READ -> PermissionKey.of("workspace", "consent", "read")
-        GovernanceAuthorizationPermission.CONSENT_WRITE -> PermissionKey.of("workspace", "consent", "write")
-        GovernanceAuthorizationPermission.AUDIT_READ -> PermissionKey.of("workspace", "audit", "read")
+        GovernanceAuthorizationPermission.MEDIA_READ ->
+            permissionKey("governance", "media-read")
+        GovernanceAuthorizationPermission.MEDIA_TAKEDOWN ->
+            permissionKey("governance", "media-takedown")
+        GovernanceAuthorizationPermission.CONSENT_READ ->
+            permissionKey("consent", "read")
+        GovernanceAuthorizationPermission.CONSENT_WRITE ->
+            permissionKey("consent", "write")
+        GovernanceAuthorizationPermission.AUDIT_READ ->
+            permissionKey("audit", "read")
     }
+
+    private fun permissionKey(resource: String, action: String) = PermissionKey.of("workspace", resource, action)
 }

@@ -4,10 +4,8 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.smp.media.application.AssetNotReadyException
-import com.profiletailors.smp.media.application.MediaAssetResolver
-import com.profiletailors.smp.media.application.MediaServiceUnavailableException
-import com.profiletailors.smp.media.application.ResolvedAssetSummary
+import com.profiletailors.smp.publishing.application.PublishingAssetNotReadyException
+import com.profiletailors.smp.publishing.application.PublishingMediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
@@ -46,6 +44,8 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
+import com.profiletailors.smp.publishing.application.PublishingMediaAssetResolver as MediaAssetResolver
+import com.profiletailors.smp.publishing.application.PublishingResolvedAssetSummary as ResolvedAssetSummary
 
 @Suppress("LargeClass")
 class PublishingWorkerTest {
@@ -558,7 +558,7 @@ class PublishingWorkerTest {
                 publicationRepository = publicationRepository,
                 socialAccountRepository = InMemoryAccountRepository(successAccount()),
                 mediaAssetResolver = FailingMediaAssetResolver(
-                    MediaServiceUnavailableException(
+                    PublishingMediaServiceUnavailableException(
                         "GET https://storage.example.com/bucket/assets/workspace-1/raw.png " +
                             "Authorization: Bearer secret-token",
                     ),
@@ -585,7 +585,7 @@ class PublishingWorkerTest {
             publisher.called shouldBe false
             attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.FAILED
             attemptRepository.lastAttempt?.providerErrorCode shouldBe "MEDIA_UNAVAILABLE"
-            attemptRepository.lastAttempt?.providerMessage shouldBe "MediaServiceUnavailableException"
+            attemptRepository.lastAttempt?.providerMessage shouldBe "PublishingMediaServiceUnavailableException"
             jobRepository.retriedJobId shouldBe "job-1"
         }
 
@@ -602,7 +602,7 @@ class PublishingWorkerTest {
             publicationRepository = publicationRepository,
             socialAccountRepository = InMemoryAccountRepository(successAccount()),
             mediaAssetResolver = FailingMediaAssetResolver(
-                AssetNotReadyException(
+                PublishingAssetNotReadyException(
                     "asset-missing",
                     "bucket/assets/workspace-1/raw.png token=secret",
                 ),
@@ -628,7 +628,7 @@ class PublishingWorkerTest {
 
         publisher.called shouldBe false
         attemptRepository.lastAttempt?.providerErrorCode shouldBe "MEDIA_NOT_FOUND"
-        attemptRepository.lastAttempt?.providerMessage shouldBe "AssetNotReadyException"
+        attemptRepository.lastAttempt?.providerMessage shouldBe "PublishingAssetNotReadyException"
         publicationRepository.failedReasonCode shouldBe "MEDIA_NOT_FOUND"
         jobRepository.failedJobId shouldBe "job-1"
     }

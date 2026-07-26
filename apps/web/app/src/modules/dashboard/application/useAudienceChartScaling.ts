@@ -1,10 +1,10 @@
-import { computed } from 'vue'
+import { computed, type Ref } from 'vue'
 import type { AudienceGrowthPoint } from '@modules/dashboard/domain/dashboard.types'
 
 const MARGIN = { top: 20, right: 20, bottom: 36, left: 48 }
 const CHART_DIMS = { width: 600, height: 240 }
 
-export function useAudienceChartScaling(data: globalThis.Ref<AudienceGrowthPoint[]>) {
+export function useAudienceChartScaling(data: Ref<AudienceGrowthPoint[]>) {
   const yMin = computed(() => {
     if (data.value.length === 0) return 0
     return Math.min(...data.value.map((d) => d.followers))

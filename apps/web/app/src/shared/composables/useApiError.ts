@@ -60,10 +60,7 @@ export function useApiError() {
   const is401 = computed(() => error.value?.status === 401)
   const is403 = computed(() => error.value?.status === 403)
 
-  const retry = async <T,>(
-    fn: () => Promise<T>,
-    maxRetries: number = 3,
-  ): Promise<T> => {
+  const retry = async <T>(fn: () => Promise<T>, maxRetries: number = 3): Promise<T> => {
     let lastError: unknown
 
     for (let i = 0; i < maxRetries; i++) {
@@ -77,7 +74,7 @@ export function useApiError() {
 
         if (i < maxRetries - 1) {
           // Exponential backoff: 1s, 2s, 4s
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000))
+          await new Promise((resolve) => setTimeout(resolve, 2 ** i * 1000))
         }
       }
     }

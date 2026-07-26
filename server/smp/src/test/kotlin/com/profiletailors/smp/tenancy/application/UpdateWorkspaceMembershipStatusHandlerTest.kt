@@ -155,7 +155,9 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
             memberships[principalId]
     }
 
-    private class CapturingAuditHook : AuditHook {
+    private class CapturingAuditHook :
+        AuditHook,
+        TenancyMutationAuditPort {
         val mutations = mutableListOf<MutationAuditFact>()
 
         override suspend fun onRequestHandled(requestName: String, outcome: RequestOutcome) = Unit
@@ -164,6 +166,30 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
 
         override suspend fun onMutation(fact: MutationAuditFact) {
             mutations += fact
+        }
+
+        override suspend fun record(
+            action: String,
+            targetType: String,
+            targetId: String,
+            actorPrincipalId: String,
+            workspaceId: String?,
+            outcome: TenancyMutationAuditOutcome,
+            details: Map<String, String>,
+        ) {
+            mutations += MutationAuditFact(
+                action = action,
+                targetType = targetType,
+                targetId = targetId,
+                actorPrincipalId = actorPrincipalId,
+                workspaceId = workspaceId,
+                outcome = if (outcome == TenancyMutationAuditOutcome.SUCCESS) {
+                    com.profiletailors.smp.audit.domain.MutationAuditOutcome.SUCCESS
+                } else {
+                    com.profiletailors.smp.audit.domain.MutationAuditOutcome.REJECTED
+                },
+                details = details,
+            )
         }
     }
 
