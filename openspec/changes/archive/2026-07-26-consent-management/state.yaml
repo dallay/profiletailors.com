@@ -1,0 +1,16 @@
+change: consent-management
+current_phase: archive
+completed:
+  - init
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: none
+updated: "2026-07-26T11:00:00Z"
+archived: true
+archive_date: "2026-07-26"
