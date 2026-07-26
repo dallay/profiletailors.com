@@ -51,20 +51,17 @@ export async function setConsentReceipt(
     source: 'banner',
     ...overrides,
   }
-  await page.evaluate(
-    ({ key, value }) => localStorage.setItem(key, JSON.stringify(value)),
-    { key: CONSENT_STORAGE_KEY, value: receipt },
-  )
+  await page.evaluate(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
+    key: CONSENT_STORAGE_KEY,
+    value: receipt,
+  })
 }
 
 /**
  * Clear consent state from localStorage.
  */
 export async function clearConsent(page: Page): Promise<void> {
-  await page.evaluate(
-    (key) => localStorage.removeItem(key),
-    CONSENT_STORAGE_KEY,
-  )
+  await page.evaluate((key) => localStorage.removeItem(key), CONSENT_STORAGE_KEY)
 }
 
 /**
