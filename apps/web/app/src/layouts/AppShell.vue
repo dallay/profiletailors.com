@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
@@ -34,6 +34,9 @@ import SidebarConnectSection from '@layouts/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@layouts/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@layouts/UploadProgressToast.vue'
 import { Toaster } from '@/components/ui/sonner'
+import ConsentBanner from '@/components/consent/ConsentBanner.vue'
+import CookieSettings from '@/components/consent/CookieSettings.vue'
+import { useConsentStore } from '@modules/settings/infrastructure/consent.store'
 import { useQueuedCounts } from '@modules/publishing/application/useQueuedCounts'
 
 // ---------------------------------------------------------------------------
@@ -43,6 +46,8 @@ import { useQueuedCounts } from '@modules/publishing/application/useQueuedCounts
 const auth = useAuthStore()
 const workspace = useWorkspaceStore()
 const publishingStore = usePublishingStore()
+const _consentStore = useConsentStore()
+const showCookieSettings = ref(false)
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
@@ -216,6 +221,10 @@ async function handleResendVerification() {
   }
 }
 
+function openCookieSettings() {
+  showCookieSettings.value = true
+}
+
 async function handleLogout() {
   try {
     await auth.logout()
@@ -376,8 +385,22 @@ onBeforeUnmount(() => {
             <RouterView />
           </main>
 
+          <!-- Cookie settings footer link -->
+          <div class="flex items-center justify-center border-t border-border-subtle px-4 py-2">
+            <button
+              type="button"
+              class="text-xs text-text-secondary transition-colors hover:text-text-display hover:underline"
+              data-testid="cookie-settings-link"
+              @click="openCookieSettings"
+            >
+              {{ t('consent.footer.cookieSettings') }}
+            </button>
+          </div>
+
           <UploadProgressToast />
           <Toaster position="bottom-right" />
+          <ConsentBanner />
+          <CookieSettings v-model:open="showCookieSettings" />
         </div>
       </SidebarInset>
     </SidebarProvider>
