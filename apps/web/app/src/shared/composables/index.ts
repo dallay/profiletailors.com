@@ -7,9 +7,6 @@ export type { ValidationRule } from './useFormValidation'
 
 export { usePagination } from './usePagination'
 
-export { useApiError } from './useApiError'
-export type { ApiError } from './useApiError'
-
 export { useDeleteConfirmation } from './useDeleteConfirmation'
 
 // Existing exports

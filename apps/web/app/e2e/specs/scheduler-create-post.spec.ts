@@ -205,7 +205,7 @@ test.describe('Scheduler — Create Post', () => {
     await composeModal.expectVisible()
     await expect(composeModal.attachmentPreview).toBeVisible()
     await composeModal.fillText(updatedText)
-    await page.getByRole('button', { name: /save|guardar/i }).click()
+    await composeModal.clickSave()
     await composeModal.expectHidden()
 
     expect(patchUrl).toContain(`/api/publishing/publications/${backendId}`)

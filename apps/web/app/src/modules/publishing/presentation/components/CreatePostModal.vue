@@ -98,13 +98,27 @@ onUnmounted(() => {
 })
 
 // Lifecycle hooks
+async function hydrateEditingAttachments() {
+  const assetIds = props.editingPublication?.assetIds ?? []
+  picker.syncDraftAttachments(assetIds)
+
+  await Promise.allSettled(
+    assetIds
+      .filter((assetId) => mediaStore.assetsById[assetId] === undefined)
+      .map(async (assetId) => {
+        const asset = await mediaStore.loadAsset(assetId)
+        mediaStore.upsertAsset(asset)
+      }),
+  )
+}
+
 watch(
   () => props.isOpen,
   async (open) => {
     if (open) {
       form.clearError()
       await form.initialize()
-      picker.syncDraftAttachments(props.editingPublication?.assetIds ?? [])
+      await hydrateEditingAttachments()
       if (auth.isAuthenticated) {
         try {
           await mediaStore.loadDanglingAssets()
@@ -123,7 +137,7 @@ watch(
 onMounted(async () => {
   if (props.isOpen && form.isEditMode.value) {
     await form.initialize()
-    picker.syncDraftAttachments(props.editingPublication?.assetIds ?? [])
+    await hydrateEditingAttachments()
   }
 })
 

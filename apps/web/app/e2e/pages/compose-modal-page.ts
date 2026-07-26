@@ -74,6 +74,10 @@ export class ComposeModalPage {
       .filter({ hasText: /schedule post|programar publicación/i })
   }
 
+  get saveButton(): Locator {
+    return this.page.getByRole('dialog').getByRole('button', { name: /save|guardar/i })
+  }
+
   get nextScheduleSubmitButton(): Locator {
     // The submit button has `data-slot="button"` (from the shadcn Button component).
     return this.page.locator('button[data-slot="button"]').filter({ hasText: /next schedule/i })
@@ -428,6 +432,10 @@ export class ComposeModalPage {
 
   async clickSchedulePost(): Promise<void> {
     await this.schedulePostButton.click()
+  }
+
+  async clickSave(): Promise<void> {
+    await this.saveButton.click({ force: true })
   }
 
   async clickNextSchedule(): Promise<void> {

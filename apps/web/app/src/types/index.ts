@@ -4,8 +4,6 @@
  */
 
 // Shared composable types
-import type { ApiError } from '@shared/composables'
-export type { ApiError } from '@shared/composables'
 export type { ValidationRule } from '@shared/composables'
 
 // Common utility types
@@ -31,12 +29,6 @@ export interface PaginationState {
 }
 
 // API response types
-export interface ApiResponse<T> {
-  data: T
-  error?: ApiError
-  status: number
-}
-
 export interface PaginatedResponse<T> {
   items: T[]
   pagination: PaginationState

@@ -1146,6 +1146,34 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
       (document.querySelector('input[type="checkbox"]') as HTMLInputElement | null)?.checked,
     ).toBe(true)
   })
+
+  it('hydrates persisted publication assets when edit mode opens', async () => {
+    const mediaStore = useMediaStore()
+    const persistedAsset: MediaAssetSummary = {
+      assetId: 'asset-persisted',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: 'persisted.png',
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/asset-persisted/preview',
+    }
+    const loadAsset = vi.spyOn(mediaStore, 'loadAsset').mockResolvedValue(persistedAsset)
+    const wrapper = mountModal([makeChannel('ch-edit-1')], { isOpen: false })
+
+    await wrapper.setProps({
+      editingPublication: makeEditingPublication({ assetIds: [persistedAsset.assetId] }),
+      isOpen: true,
+    })
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect(loadAsset).toHaveBeenCalledWith(persistedAsset.assetId)
+    expect(getByTestId('composer-inline-dropzone').querySelector('img')).not.toBeNull()
+  })
 })
 
 describe('CreatePostModal.vue — inline composer media layout', () => {
