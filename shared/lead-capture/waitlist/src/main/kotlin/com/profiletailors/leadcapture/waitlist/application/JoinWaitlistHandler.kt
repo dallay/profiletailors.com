@@ -20,6 +20,14 @@ class JoinWaitlistHandler(
     private val clock: () -> Instant = Instant::now,
 ) {
 
+    /**
+     * Adds a new entry to the requested waitlist when the waitlist accepts entries.
+     *
+     * @param command The command containing the waitlist and entry details.
+     * @return The join outcome: `JOINED_NEW` for a newly saved entry or `ALREADY_JOINED` when the email is already registered.
+     * @throws WaitlistNotFoundException If the requested waitlist does not exist.
+     * @throws WaitlistClosedException If the requested waitlist does not accept entries.
+     */
     fun handle(command: JoinWaitlistCommand): JoinResult {
         val waitlist = waitlistRepository.findByKey(command.waitlistKey)
             ?: throw WaitlistNotFoundException(command.waitlistKey)
