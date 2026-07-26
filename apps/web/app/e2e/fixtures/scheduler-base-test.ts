@@ -9,10 +9,42 @@
  *
  * @see fixtures/base-test.ts for the HAR auth replay layer
  * @see fixtures/scheduler-mocks.ts for the scheduler mock definitions
+ *
+ * ═══════════════════════════════════════════════════════════════════════
+ * Consent seeding
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * The ConsentBanner (a shadcn-vue Dialog) mounts inside AppShell and
+ * shows as a modal overlay when no valid consent is found in localStorage.
+ * This blocks the heading locators that all scheduler tests wait for.
+ *
+ * We seed a valid consent receipt via addInitScript so the banner never
+ * appears during scheduler tests. The script runs before any app JS on
+ * every navigation, so the Pinia store finds valid consent immediately.
+ *
+ * The separate consent.spec.ts test imports base-test.ts directly and
+ * manages consent state on its own, so seeding here does NOT affect it.
+ *
+ * See also: clearConsent / setConsentReceipt in consent-helpers.ts
+ *           (not used here — we want consent pre-seeded, not cleared).
  */
 
 import { test as base, expect } from './base-test'
 import { registerSchedulerMocks, resetSchedulerMocks } from './scheduler-mocks'
+
+/**
+ * Valid ConsentReceipt that passes the Zod schema validation.
+ * @see shared/web/validation/consent.ts — consentReceiptSchema
+ */
+const VALID_CONSENT = {
+  consentVersion: 1,
+  policyVersion: '2026-07-23',
+  timestamp: new Date().toISOString(),
+  region: 'EU',
+  categories: { necessary: true, analytics: true },
+  dnt: false,
+  source: 'banner',
+} as const
 
 export const test = base.extend<{ resetSession: () => Promise<void> }>({
   page: async ({ page, context }, use) => {
@@ -21,6 +53,15 @@ export const test = base.extend<{ resetSession: () => Promise<void> }>({
     // they are registered after routeFromHAR.
     await registerSchedulerMocks(context)
     resetSchedulerMocks()
+
+    // Seed consent in localStorage before every navigation so the
+    // ConsentBanner never blocks the dashboard UI in scheduler tests.
+    // Wraps in try-catch for about:blank where localStorage may throw.
+    const receipt = JSON.stringify(VALID_CONSENT)
+    await context.addInitScript(`
+      try { localStorage.setItem('pt-consent', '${receipt}'); } catch {}
+    `)
+
     await use(page)
   },
 })
