@@ -247,6 +247,8 @@ async function uploadAndTrackDeferred(): Promise<boolean> {
     if (form.isEditMode.value) form.assetsTouched.value = true
     mediaStore.addToSelection(asset.assetId)
     picker.draftAttachmentIds.value = [...picker.draftAttachmentIds.value, asset.assetId]
+    upload.uploadTempKey.value = null
+    upload.removeFile()
     return true
   } catch {
     form.submitError.value = 'Media upload failed. Please try again.'
