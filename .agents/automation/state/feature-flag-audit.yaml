@@ -37,6 +37,20 @@ findings:
     evidence: "server/smp/src/main/resources/application.yaml, apps/web/app/src/modules/publishing/presentation/components/CreatePostModal.vue"
     risk: LOW
     message: "The Unsplash media provider feature is disabled by default (SMP_MEDIAPROVIDER_UNSPLASH_ENABLED=false) on both backend and frontend, aligning with data inventory (PA-008)."
+  - id: FF-REGISTRATION-CONSISTENT
+    title: "Consistent Registration Feature Flag"
+    status: resolved
+    classification: CONSISTENT
+    evidence: "server/smp/src/main/resources/application.yaml, .env.example"
+    risk: LOW
+    message: "SMP_REGISTRATION_ENABLED defaults consistently to false in both application.yaml (line 51) and .env.example (line 114), keeping public registration disabled by default."
+  - id: FF-PUBLISHING-WORKER-CONSISTENT
+    title: "Consistent Publishing Worker Feature Flag"
+    status: resolved
+    classification: CONSISTENT
+    evidence: "server/smp/src/main/resources/application.yaml, .env.example"
+    risk: LOW
+    message: "SMP_PUBLISHING_WORKER_ENABLED defaults consistently to false in both application.yaml (line 112) and .env.example (line 117), keeping the background worker disabled by default."
 checks:
   - name: "Feature Flag Frontend Inspection"
     status: Passed
@@ -45,4 +59,6 @@ checks:
   - name: "Environment Template Alignment Check"
     status: Passed
   - name: "Data Inventory Compliance Verification"
+    status: Passed
+  - name: "Frontend Unit Testing Check"
     status: Passed

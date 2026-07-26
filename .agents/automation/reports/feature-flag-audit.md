@@ -13,6 +13,7 @@ The audit concluded with **CHANGES_APPLIED**. All state and report files have be
 - **Frontend Applications (`apps/web/`)**:
   - `apps/web/app/src/modules/dashboard/presentation/views/HomeView.vue` (checked `pt-dashboard-new` localStorage flag)
   - `apps/web/marketing/src/components/Hero.astro` and `astro.config.mjs` (checked `WAITLIST_ENABLED` compile/runtime flag)
+  - `apps/web/app/src/modules/publishing/presentation/components/CreatePostModal.vue` (checked `provider` prop for Unsplash media provider integration)
 - **Backend Application (`server/smp/`)**:
   - `server/smp/src/main/resources/application.yaml` (checked `SMP_PLATFORM_RATE_LIMIT_ENABLED`, `SMP_PLATFORM_AUDIT_ENABLED`, `SMP_PLATFORM_METRICS_ENABLED`, `SMP_REGISTRATION_ENABLED`, `SMP_PUBLISHING_WORKER_ENABLED`, and `SMP_MEDIAPROVIDER_UNSPLASH_ENABLED`)
 - **Environment & Compliance Documentation**:
@@ -33,6 +34,8 @@ The audit concluded with **CHANGES_APPLIED**. All state and report files have be
 | **FF-RATE-LIMIT-DRIFT** | `SMP_PLATFORM_RATE_LIMIT_ENABLED` | Backend (Spring) | Toggle platform-wide rate-limiting hook | Defaults to `true` in `application.yaml` if omitted, but explicitly set to `false` in `.env.example`. | **INCONSISTENT** |
 | **FF-AUDIT-METRICS-CONSISTENT** | `SMP_PLATFORM_AUDIT_ENABLED`, `SMP_PLATFORM_METRICS_ENABLED` | Backend (Spring) | Control audit event logging and prometheus metrics exporter hooks | Consistent. Both default to `false` in `application.yaml` when not configured, and are explicitly `false` in `.env.example`. | **CONSISTENT** |
 | **FF-UNSPLASH-CONSISTENT** | `SMP_MEDIAPROVIDER_UNSPLASH_ENABLED`, `provider` | Backend & Frontend | Gated Unsplash integration (data inventory PA-008) | Consistent. Disabled by default in both backend YAML and frontend post-composer configuration. | **CONSISTENT** |
+| **FF-REGISTRATION-CONSISTENT** | `SMP_REGISTRATION_ENABLED` | Backend (Spring) | Controls public self-service registration endpoint | Consistent. Defaults to `false` in `application.yaml` (line 51) and explicitly set to `false` in `.env.example` (line 114). | **CONSISTENT** |
+| **FF-PUBLISHING-WORKER-CONSISTENT** | `SMP_PUBLISHING_WORKER_ENABLED` | Backend (Spring) | Controls the background publishing worker process | Consistent. Defaults to `false` in `application.yaml` (line 112) and explicitly set to `false` in `.env.example` (line 117). | **CONSISTENT** |
 
 ## Validation Table
 
@@ -55,7 +58,9 @@ None.
 
 ## Automation State
 
+- **schemaVersion**: `1`
 - **Task**: `feature-flag-auditor`
+- **lastExecution**: `2026-07-25T16:00:00Z`
 - **Result Status**: `CHANGES_APPLIED`
 
 ## Risk Assessment
