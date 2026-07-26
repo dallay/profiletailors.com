@@ -2,6 +2,8 @@ package com.profiletailors.leadcapture.waitlist.application
 
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecordRequest
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
+import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotification
+import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotifier
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistClosedException
@@ -14,6 +16,7 @@ class JoinWaitlistHandler(
     private val entryRepository: WaitlistEntryRepository,
     private val idGenerator: WaitlistEntryIdGenerator,
     private val consentRecorder: WaitlistConsentRecorder = WaitlistConsentRecorder.noop,
+    private val notifier: WaitlistEntryJoinedNotifier = WaitlistEntryJoinedNotifier.noop,
     private val clock: () -> Instant = Instant::now,
 ) {
 
@@ -48,6 +51,15 @@ class JoinWaitlistHandler(
                         consent = result.entry.consent,
                         locale = result.entry.locale,
                         source = result.entry.source,
+                    ),
+                )
+                notifier.notify(
+                    WaitlistEntryJoinedNotification(
+                        waitlistEntryId = result.entry.id,
+                        waitlistKey = command.waitlistKey,
+                        waitlistName = waitlist.name,
+                        normalizedEmail = result.entry.normalizedEmail,
+                        locale = result.entry.locale,
                     ),
                 )
                 JoinResult.JOINED_NEW

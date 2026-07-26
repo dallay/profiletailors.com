@@ -4,6 +4,7 @@ import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.JoinResult
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
+import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotifier
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
@@ -64,6 +65,7 @@ class WaitlistApplicationConfigurationTest {
             entryRepository = RecordingWaitlistEntryRepository(),
             idGenerator = { _, _ -> WaitlistEntryId("test-id") },
             consentRecorder = WaitlistConsentRecorder.noop,
+            notifier = WaitlistEntryJoinedNotifier.noop,
         )
 
         val fixedClock = Instant.parse("2026-07-17T10:00:00Z")
