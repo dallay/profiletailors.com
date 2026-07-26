@@ -100,7 +100,7 @@ vi.mock('vue-sonner', () => ({
 vi.mock('@modules/publishing/presentation/components/CreatePostModal.vue', () => ({
   default: {
     template:
-      '<div v-if="isOpen" data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button><button data-testid="create-post-created" @click="$emit(\'created\')">created</button></div><div v-if="isOpen" data-testid="create-post-modal-open">open</div>',
+      '<div v-if="isOpen" data-testid="create-post-modal" :data-editing-publication-id="editingPublication?.id ?? \'\'"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button><button data-testid="create-post-created" @click="$emit(\'created\')">created</button></div><div v-if="isOpen" data-testid="create-post-modal-open">open</div>',
     props: ['isOpen', 'initialDate', 'editingPublication', 'provider'],
     emits: ['close', 'created', 'updated'],
   },
@@ -570,6 +570,35 @@ describe('SchedulerView', () => {
 
     expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(true)
     expect(mockController.closePostDetail).toHaveBeenCalled()
+  })
+
+  it('clears the editing publication when opening a new post after edit mode', async () => {
+    const store = usePublishingStore()
+    const pub: Publication = {
+      id: 'pub-edit-then-create',
+      content: 'Editable post',
+      channels: ['linkedin'],
+      scheduledAt: '2026-06-25T10:00:00Z',
+      status: 'SCHEDULED',
+      priority: false,
+    }
+    store.publications = [pub]
+
+    const wrapper = mountView({ date: '2026-06-25', postId: pub.id })
+    await flushPromises()
+    await wrapper.find('[data-testid="detail-edit"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(
+      wrapper.find('[data-testid="create-post-modal"]').attributes('data-editing-publication-id'),
+    ).toBe(pub.id)
+
+    await wrapper.find('[data-testid="header-new-post"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(
+      wrapper.find('[data-testid="create-post-modal"]').attributes('data-editing-publication-id'),
+    ).toBe('')
   })
 
   describe('route-driven post detail modal', () => {

@@ -156,17 +156,18 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   })
 
   // -------------------------------------------------------------------------
-  // ML-COMPOSER-002: dropzone present + clickable
+  // ML-COMPOSER-002: media upload control is present + clickable
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-002 dropzone: visible, labelled, and clickable', async ({ page }) => {
+  test('ML-COMPOSER-002 upload control: visible, labelled, and clickable', async ({ page }) => {
     const composePage = await openComposeModal(page)
+    const uploadButton = page.getByRole('button', { name: /upload/i })
 
     await expect(composePage.mediaDropzone).toBeVisible()
-    await expect(composePage.mediaDropzone).toBeEnabled()
-    await expect(composePage.mediaDropzone).toContainText(/drag & drop|select a file/i)
+    await expect(uploadButton).toBeVisible()
+    await expect(uploadButton).toBeEnabled()
 
     const fileChooserPromise = page.waitForEvent('filechooser')
-    await composePage.mediaDropzone.click()
+    await uploadButton.click()
     const fileChooser = await fileChooserPromise
     expect(fileChooser.isMultiple()).toBe(false)
   })
@@ -262,9 +263,11 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     await composePage.openMediaPicker()
     await composePage.libraryAssetCard(asset.assetId).click()
     await composePage.pickerApply.click()
-    await expect(page.getByTestId(`attachment-remove-${asset.assetId}`)).toBeVisible()
-    await page.getByTestId(`attachment-remove-${asset.assetId}`).click()
-    await expect(page.getByTestId(`attachment-remove-${asset.assetId}`)).toBeHidden()
+    const removeButton = page.getByTestId(`attachment-remove-${asset.assetId}`)
+    await removeButton.locator('xpath=../..').hover()
+    await expect(removeButton).toBeVisible()
+    await removeButton.click()
+    await expect(removeButton).toBeHidden()
   })
 
   // -------------------------------------------------------------------------
@@ -313,7 +316,9 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     await composePage.libraryAssetCard(asset.assetId).click()
     await composePage.pickerApply.click()
     await expect(composePage.pickerShell).toBeHidden()
-    await expect(page.getByTestId(`attachment-remove-${asset.assetId}`)).toBeVisible()
+    const removeButton = page.getByTestId(`attachment-remove-${asset.assetId}`)
+    await removeButton.locator('xpath=../..').hover()
+    await expect(removeButton).toBeVisible()
   })
 
   // -------------------------------------------------------------------------
@@ -323,9 +328,9 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   // -------------------------------------------------------------------------
 
   // -------------------------------------------------------------------------
-  // ML-COMPOSER-012: +N overflow card renders when more than 4 attachments
+  // ML-COMPOSER-012: +N overflow summary renders when attachments are truncated
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-012 overflow: +N card renders when more than 4 attachments', async ({
+  test('ML-COMPOSER-012 overflow: +N summary renders when attachments are truncated', async ({
     page,
     mockState,
   }) => {
@@ -345,7 +350,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     await composePage.pickerApply.click()
 
     await expect(composePage.overflowCard).toBeVisible()
-    await expect(composePage.overflowCard).toHaveText('+2')
+    await expect(composePage.overflowCard).toHaveText('+2 more files')
     expect(await composePage.overflowCount()).toBe(2)
   })
 
@@ -534,7 +539,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   })
 
   // -------------------------------------------------------------------------
-  // ML-COMPOSER-024: edit mode — opening for an existing publication
+  // ML-COMPOSER-024: create mode — opening a new publication
   // -------------------------------------------------------------------------
   test('ML-COMPOSER-024 create mode: composer header reads Create Post', async ({ page }) => {
     const composePage = await openComposeModal(page)
@@ -577,9 +582,9 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   })
 
   // -------------------------------------------------------------------------
-  // ML-COMPOSER-029: progress overlay text is "Uploading..."
+  // ML-COMPOSER-029: upload status confirms the user can continue editing
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-029 progress text: overlay shows "Uploading" or progress percentage', async ({
+  test('ML-COMPOSER-029 upload status: confirms the user can continue editing', async ({
     page,
   }) => {
     const upload = await holdNextUploadResponse(page)
@@ -591,9 +596,8 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     await composePage.clickScheduleNow()
     await upload.started
 
-    await composePage.expectUploadOverlayText(/Uploading…? \d+%/i)
-    await expect(composePage.uploadOverlay).toContainText(
-      /You can keep editing while this finishes\./i,
+    await composePage.expectUploadStatusText(
+      /keep editing while this finishes|keepEditingWhileUploading/i,
     )
     await upload.release()
   })

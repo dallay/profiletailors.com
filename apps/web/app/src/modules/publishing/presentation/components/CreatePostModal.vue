@@ -386,12 +386,12 @@ const currentUpload = computed(() => {
 })
 
 const normalizedUploadProgress = computed<number | null>(() => {
-  if (!currentUpload.value) return null
-  return Math.max(0, Math.min(100, currentUpload.value.progress ?? upload.uploadProgress.value ?? 0))
+  if (!upload.isLocalUploadInFlight.value) return null
+  return Math.max(0, Math.min(100, currentUpload.value?.progress ?? upload.uploadProgress.value))
 })
 
 const currentUploadStateLabel = computed<string | null>(() => {
-  if (currentUpload.value?.status !== 'uploading') return null
+  if (!upload.isLocalUploadInFlight.value) return null
   if ((normalizedUploadProgress.value ?? 0) >= 100) {
     return t('composer.media.finishingUpload')
   }
@@ -409,7 +409,7 @@ const composerInlineAttachments = computed<ComposerInlineAttachment[]>(() => {
         assetId: null,
         name: upload.selectedUploadFile.value.name,
         previewUrl: upload.selectedUploadFile.value.type.startsWith('image/') ? upload.uploadPreviewBlob.value : null,
-        isUploading: currentUpload.value?.status === 'uploading',
+        isUploading: upload.isLocalUploadInFlight.value,
         uploadProgress: normalizedUploadProgress.value,
         uploadStateLabel: currentUploadStateLabel.value,
       },
@@ -458,7 +458,7 @@ const composerInlineAttachments = computed<ComposerInlineAttachment[]>(() => {
         <div class="flex min-h-0 flex-1 flex-col space-y-6 border-b border-border-subtle p-6 lg:border-b-0 lg:border-r overflow-hidden">
           <div class="flex items-center justify-between">
             <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
-              {{ form.isEditMode ? $t('composer.editTitle') : $t('composer.title') }}
+              {{ form.isEditMode.value ? $t('composer.editTitle') : $t('composer.title') }}
             </h3>
             <button
               type="button"

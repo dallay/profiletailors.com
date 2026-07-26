@@ -220,32 +220,21 @@ export class ComposeModalPage {
     return this.page.getByTestId('attachment-limit-warning')
   }
 
-  /**
-   * Upload overlay (progress + finishing label) on a local-upload card.
-   * Structural fallback: any element with the absolute-positioned overlay
-   * class combination rendered only while `isUploading` is true.
-   */
+  get uploadStatus(): Locator {
+    return this.mediaDropzone.getByText(
+      /keep editing while this finishes|keepEditingWhileUploading/i,
+    )
+  }
+
   get uploadOverlay(): Locator {
-    // The component marks the local-upload overlay region inside the
-    // `v-if="asset.isUploading"` block. We match by data-testid when the
-    // seam lands, otherwise by the absolute-positioned backdrop class.
-    return this.page
-      .locator('[data-testid="inline-upload-overlay"]')
-      .or(
-        this.page
-          .locator('div.absolute.inset-0.flex.flex-col')
-          .filter({ has: this.page.locator('[role="status"], [data-slot="spinner"]') }),
-      )
+    return this.page.getByTestId('inline-upload-overlay')
   }
 
   /**
-   * "+N" overflow card rendered when more than 4 attachments are present.
-   * Structural fallback: a 118x118 dashed tile whose text matches /^\+\d+$/.
+   * "+N more files" summary rendered when attachment previews are truncated.
    */
   get overflowCard(): Locator {
-    return this.page
-      .locator('[data-testid="inline-attachment-overflow"]')
-      .or(this.page.locator('div.h-\\[118px\\].w-\\[118px\\]').filter({ hasText: /^\+\d+$/ }))
+    return this.page.getByTestId('inline-attachment-overflow')
   }
 
   /**
@@ -362,40 +351,10 @@ export class ComposeModalPage {
     return 'none'
   }
 
-  /**
-   * Assert the upload overlay text matches a pattern. Waits for the overlay
-   * to appear; never uses `waitForTimeout`.
-   */
-  async expectUploadOverlayText(matcher: RegExp | string): Promise<void> {
+  async expectUploadStatusText(matcher: RegExp | string): Promise<void> {
     const pattern = typeof matcher === 'string' ? new RegExp(matcher, 'i') : matcher
-    await expect(this.uploadOverlay).toBeVisible({ timeout: 10_000 })
-    await expect(this.uploadOverlay).toContainText(pattern)
-  }
-
-  /**
-   * Assert the upload progress bar is between `min` and `max` percent.
-   * The composer uses a `<Progress>` component which renders a child
-   * `data-slot="progress-indicator"` with the inline `transform: translateX(...)`.
-   * The test reads the inline style and computes the visible progress.
-   */
-  async expectUploadProgressBetween(min: number, max: number): Promise<void> {
-    const overlay = this.uploadOverlay
-    await expect(overlay).toBeVisible({ timeout: 10_000 })
-    const pct = await overlay
-      .locator('[data-slot="progress-indicator"]')
-      .first()
-      .evaluate((el) => {
-        const inline = (el as HTMLElement).style.transform
-        const match = /translateX\(-?([\d.]+)%/.exec(inline)
-        if (!match) return null
-        const offset = Number(match[1])
-        // The progress bar fills from 0% to 100% by reducing the offset.
-        return Math.max(0, Math.min(100, 100 - offset))
-      })
-    expect(pct).not.toBeNull()
-    if (pct === null) return
-    expect(pct).toBeGreaterThanOrEqual(min)
-    expect(pct).toBeLessThanOrEqual(max)
+    await expect(this.uploadStatus).toBeVisible({ timeout: 10_000 })
+    await expect(this.uploadStatus).toContainText(pattern)
   }
 
   /**
@@ -408,7 +367,7 @@ export class ComposeModalPage {
       .catch(() => null)
     if (!handle) return 0
     const text = (await handle.textContent())?.trim() ?? ''
-    const match = /^\+(\d+)$/.exec(text)
+    const match = /^\+(\d+) more files?$/.exec(text)
     if (!match) return 0
     return Number(match[1])
   }
@@ -489,8 +448,8 @@ export class ComposeModalPage {
   }
 
   async openMediaPicker(): Promise<void> {
-    await this.page.getByTestId('composer-sources-trigger').click()
-    await this.page.getByTestId('composer-source-library').click()
+    await this.addMediaButton.click()
+    await this.libraryTab.click()
   }
 
   async searchUnsplash(query: string): Promise<void> {

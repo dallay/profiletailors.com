@@ -1185,6 +1185,7 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
 
   it('shows a round spinner upload overlay instead of the stuck preparing state', async () => {
     const mediaStore = useMediaStore()
+    vi.spyOn(mediaStore, 'createAndUpload').mockImplementation(() => new Promise(() => undefined))
     const wrapper = mountModal([makeChannel('ch-inline')])
     await flushModal(wrapper)
 
@@ -1197,16 +1198,18 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
     pickerUploadInput.dispatchEvent(new Event('change'))
     await flushModal(wrapper)
 
-    mediaStore.uploads['modal-upload-inline'] = {
-      tempKey: 'modal-upload-inline',
-      assetId: 'asset-inline-upload',
-      file: uploadFile,
-      progress: 42,
-      status: 'uploading',
-    }
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Upload progress'
+    textarea.dispatchEvent(new Event('input'))
     await flushModal(wrapper)
 
-    expect(document.body.innerHTML).toContain('Uploading… 42%')
+    const scheduleButton = Array.from(document.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Schedule Now'),
+    )
+    scheduleButton?.click()
+    await flushModal(wrapper)
+
+    expect(document.body.innerHTML).toContain('Uploading… 0%')
     expect(document.body.innerHTML).toContain('You can keep editing while this finishes.')
     expect(document.body.innerHTML).not.toContain('Preparing upload')
   })

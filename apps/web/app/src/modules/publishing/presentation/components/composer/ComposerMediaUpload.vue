@@ -101,7 +101,8 @@ function handleFileSelect(e: Event) {
 
             <!-- Progress -->
             <div
-              v-if="attachment.isUploading && attachment.uploadProgress"
+              v-if="attachment.isUploading && attachment.uploadProgress !== null"
+              data-testid="inline-upload-overlay"
               class="absolute inset-0 bg-black/50 flex items-center justify-center"
             >
               <div class="text-center">
@@ -136,7 +137,11 @@ function handleFileSelect(e: Event) {
       </div>
 
       <!-- Hidden attachments indicator -->
-      <div v-if="hiddenInlineAttachmentCount > 0" class="text-xs text-text-secondary">
+      <div
+        v-if="hiddenInlineAttachmentCount > 0"
+        data-testid="inline-attachment-overflow"
+        class="text-xs text-text-secondary"
+      >
         +{{ hiddenInlineAttachmentCount }} more {{ hiddenInlineAttachmentCount === 1 ? 'file' : 'files' }}
       </div>
     </div>

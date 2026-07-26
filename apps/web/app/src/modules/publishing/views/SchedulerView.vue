@@ -199,6 +199,7 @@ const publicationsBySlot = computed(() => {
 function openNewPostForSlot(date: Date, hour?: number) {
   if (publishingStore.hasNoChannels) return
 
+  editingPublication.value = null
   const d = new Date(date)
   if (hour === undefined) d.setHours(12, 0, 0, 0)
   else d.setHours(hour, 0, 0, 0)
@@ -209,6 +210,7 @@ function openNewPostForSlot(date: Date, hour?: number) {
 function openNewPostGeneral() {
   if (publishingStore.hasNoChannels) return
 
+  editingPublication.value = null
   selectedCellDate.value = undefined
   isModalOpen.value = true
 }
