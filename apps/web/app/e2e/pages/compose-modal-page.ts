@@ -107,7 +107,7 @@ export class ComposeModalPage {
   }
 
   get mediaFileInput(): Locator {
-    return this.page.locator('#create-post-file-input')
+    return this.page.locator('[data-testid="picker-upload-input"]')
   }
 
   get attachmentPreview(): Locator {
