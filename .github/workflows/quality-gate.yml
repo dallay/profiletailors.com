@@ -155,10 +155,12 @@ jobs:
 
       - name: SonarQube Quality Gate check
         uses: sonarsource/sonarqube-quality-gate-action@cf038b0e0cdecfa9e56c198bbb7d21d751d62c3b # v1.2.0
-        timeout-minutes: 5
+        timeout-minutes: 15
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          pollingTimeoutSec: 900
 
       # Upload coverage artifacts for debugging
       - name: Upload backend coverage reports
