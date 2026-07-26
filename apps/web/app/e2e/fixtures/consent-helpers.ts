@@ -7,7 +7,7 @@
  * @see auth-helpers.ts — similar pattern for auth state management
  */
 
-import type { Page } from '@playwright/test'
+import type { Page, Route } from '@playwright/test'
 
 // ---------------------------------------------------------------------------
 // Constants — matching shared/web/types/consent.ts
@@ -51,17 +51,21 @@ export async function setConsentReceipt(
     source: 'banner',
     ...overrides,
   }
-  await page.evaluate(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
-    key: CONSENT_STORAGE_KEY,
-    value: receipt,
-  })
+  await page.evaluate(
+    ({ key, value }: { key: string; value: TestConsentReceipt }) =>
+      localStorage.setItem(key, JSON.stringify(value)),
+    {
+      key: CONSENT_STORAGE_KEY,
+      value: receipt,
+    },
+  )
 }
 
 /**
  * Clear consent state from localStorage.
  */
 export async function clearConsent(page: Page): Promise<void> {
-  await page.evaluate((key) => localStorage.removeItem(key), CONSENT_STORAGE_KEY)
+  await page.evaluate((key: string) => localStorage.removeItem(key), CONSENT_STORAGE_KEY)
 }
 
 /**
@@ -74,7 +78,7 @@ export async function mockPrivacySignals(
   page: Page,
   signals: { dnt?: boolean; gpc?: boolean } = {},
 ): Promise<void> {
-  await page.addInitScript((opts) => {
+  await page.addInitScript((opts: { dnt?: boolean; gpc?: boolean }) => {
     if (opts.dnt) {
       Object.defineProperty(navigator, 'doNotTrack', {
         value: '1',
@@ -99,7 +103,7 @@ export async function mockPrivacySignals(
  * backend for authenticated users.
  */
 export async function mockConsentSync(page: Page): Promise<void> {
-  await page.route('**/api/governance/consent', async (route) => {
+  await page.route('**/api/governance/consent', async (route: Route) => {
     if (route.request().method() === 'POST') {
       await route.fulfill({
         status: 200,

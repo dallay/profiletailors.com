@@ -31,14 +31,19 @@
 
 import { test as base, expect } from './base-test'
 import { registerSchedulerMocks, resetSchedulerMocks } from './scheduler-mocks'
+import {
+  CURRENT_CONSENT_VERSION,
+  CURRENT_POLICY_VERSION,
+  CONSENT_STORAGE_KEY,
+} from '../../../../../shared/web/types/consent'
 
 /**
  * Valid ConsentReceipt that passes the Zod schema validation.
  * @see shared/web/validation/consent.ts — consentReceiptSchema
  */
 const VALID_CONSENT = {
-  consentVersion: 1,
-  policyVersion: '2026-07-23',
+  consentVersion: CURRENT_CONSENT_VERSION,
+  policyVersion: CURRENT_POLICY_VERSION,
   timestamp: new Date().toISOString(),
   region: 'EU',
   categories: { necessary: true, analytics: true },
@@ -59,7 +64,7 @@ export const test = base.extend<{ resetSession: () => Promise<void> }>({
     // Wraps in try-catch for about:blank where localStorage may throw.
     const receipt = JSON.stringify(VALID_CONSENT)
     await context.addInitScript(`
-      try { localStorage.setItem('pt-consent', '${receipt}'); } catch {}
+      try { localStorage.setItem('${CONSENT_STORAGE_KEY}', '${receipt}'); } catch {}
     `)
 
     await use(page)
