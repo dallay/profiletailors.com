@@ -64,7 +64,7 @@ export const test = base.extend<{ resetSession: () => Promise<void> }>({
     // Wraps in try-catch for about:blank where localStorage may throw.
     const receipt = JSON.stringify(VALID_CONSENT)
     await context.addInitScript(
-      ({ key, value }: { key: string; value: string }) => {
+      ({ key, value }: { key: string; value: string }): void => {
         try {
           localStorage.setItem(key, value)
         } catch {}

@@ -64,7 +64,7 @@ export const test = base.extend<MediaMockFixtures>({
       source: 'banner',
     })
     await context.addInitScript(
-      ({ key, value }: { key: string; value: string }) => {
+      ({ key, value }: { key: string; value: string }): void => {
         try { localStorage.setItem(key, value) } catch {}
       },
       { key: CONSENT_STORAGE_KEY, value: receipt },
