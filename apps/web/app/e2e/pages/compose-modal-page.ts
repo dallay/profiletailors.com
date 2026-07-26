@@ -111,13 +111,13 @@ export class ComposeModalPage {
   }
 
   get attachmentPreview(): Locator {
-    return this.page.locator('img[alt="Selected media preview"]')
+    return this.mediaDropzone.locator('img')
   }
 
   get removeAttachmentButton(): Locator {
     return this.page
       .locator('div.relative.group')
-      .filter({ has: this.page.locator('img[alt="Selected media preview"]') })
+      .filter({ has: this.attachmentPreview })
       .locator('button')
   }
 
