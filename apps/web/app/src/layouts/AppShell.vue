@@ -204,14 +204,6 @@ function onOpenSettings() {
   })
 }
 
-async function handleResendVerification() {
-  try {
-    await auth.resendVerificationEmail()
-  } catch (err) {
-    console.error('Failed to resend verification email', err)
-  }
-}
-
 function openCookieSettings() {
   showCookieSettings.value = true
 }
