@@ -1,5 +1,4 @@
-import { validateConsentReceipt } from '../validation/consent'
-import type { ConsentReceipt } from '../types/consent'
+import { validateConsentReceipt, type ConsentReceipt } from '../validation/consent'
 import { CONSENT_STORAGE_KEY } from '../types/consent'
 
 /**

@@ -168,11 +168,25 @@ vi.mock('@shared/lib/provider-styles', () => ({
   getProviderBadge: () => 'LI',
 }))
 
+vi.mock('@modules/settings/infrastructure/consent.store', () => ({
+  useConsentStore: () => ({
+    openSettings: vi.fn(),
+  }),
+}))
+
 vi.mock('@modules/publishing/application/useQueuedCounts', () => ({
   useQueuedCounts: () => ({
     total: { value: 0 },
     byProvider: { value: new Map() },
   }),
+}))
+
+vi.mock('@/components/ui/sonner', () => ({
+  Toaster: { template: '<div class="sonner-toaster" />' },
+}))
+
+vi.mock('@/components/consent/ConsentBanner.vue', () => ({
+  default: { template: '<div class="consent-banner" />' },
 }))
 
 vi.mock('@/components/ui/sidebar', () => ({

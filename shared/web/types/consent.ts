@@ -1,29 +1,3 @@
-/**
- * Consent receipt stored in localStorage.
- * Must be validated on read; invalid receipts = no consent.
- */
-export interface ConsentReceipt {
-  /** Material version: increment when purposes/categories change */
-  consentVersion: number
-  /** Privacy policy date: YYYY-MM-DD */
-  policyVersion: string
-  /** ISO 8601 timestamp of consent grant */
-  timestamp: string
-  /** Region code: 'EU' for MVP (over-compliance) */
-  region: string
-  /** Category choices */
-  categories: {
-    /** Always true — required for basic functionality */
-    necessary: true
-    /** Opt-in analytics consent */
-    analytics: boolean
-  }
-  /** DNT or GPC was active at consent time */
-  dnt: boolean
-  /** How consent was given */
-  source: 'banner' | 'settings'
-}
-
 /** Category names for consent */
 export type ConsentCategory = 'necessary' | 'analytics'
 
