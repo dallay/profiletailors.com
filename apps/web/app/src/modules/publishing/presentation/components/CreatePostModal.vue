@@ -51,7 +51,7 @@ const mediaStore = useMediaStore()
 
 // Composables
 const form = useComposerForm({
-  editingPublication: props.editingPublication ?? null,
+  editingPublication: () => props.editingPublication ?? null,
   initialDate: props.initialDate,
 })
 const upload = useComposerMediaUpload()

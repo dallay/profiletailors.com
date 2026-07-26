@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, toValue, type MaybeRefOrGetter } from 'vue'
 import type { DateValue } from 'reka-ui'
 import { CalendarDate, getLocalTimeZone } from '@internationalized/date'
 import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
@@ -7,7 +7,7 @@ import { useMediaStore } from '@modules/media'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 
 interface UseComposerFormOptions {
-  editingPublication?: Publication | null
+  editingPublication?: MaybeRefOrGetter<Publication | null | undefined>
   initialDate?: string
   onAssetsTouched?: () => void
 }
@@ -34,7 +34,8 @@ export function useComposerForm(options: UseComposerFormOptions = {}) {
   const isDropzoneActive = ref(false)
 
   // Computed
-  const isEditMode = computed(() => !!options.editingPublication)
+  const editingPublication = () => toValue(options.editingPublication) ?? null
+  const isEditMode = computed(() => !!editingPublication())
 
   // Validation
   function validateCustomSchedule(now: Date, finalScheduledDate: Date): string | undefined {
@@ -138,8 +139,9 @@ export function useComposerForm(options: UseComposerFormOptions = {}) {
     submitError.value = ''
     isDropzoneActive.value = false
 
-    if (isEditMode.value && options.editingPublication) {
-      await initEditMode(options.editingPublication)
+    const publication = editingPublication()
+    if (publication) {
+      await initEditMode(publication)
     } else {
       initCreateMode()
     }

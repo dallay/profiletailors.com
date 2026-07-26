@@ -1128,6 +1128,24 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     expect(publicationChannel?.disabled).toBe(true)
     expect(publicationChannel?.className).toContain('border-text-display')
   })
+
+  it('initializes edit state when the editing publication is set after mount', async () => {
+    const wrapper = mountModal([makeChannel('ch-edit-1')], { isOpen: false })
+    const editingPublication = makeEditingPublication({ priority: true })
+
+    await wrapper.setProps({ editingPublication, isOpen: true })
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    expect((getByTestId('composer-textarea') as HTMLTextAreaElement).value).toBe(
+      editingPublication.content,
+    )
+    expect(document.body.textContent).toContain('composer.saveChanges')
+    expect(
+      (document.querySelector('input[type="checkbox"]') as HTMLInputElement | null)?.checked,
+    ).toBe(true)
+  })
 })
 
 describe('CreatePostModal.vue — inline composer media layout', () => {
