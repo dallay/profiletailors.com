@@ -2,6 +2,11 @@ import { test as base, expect, type Page } from '@bgotink/playwright-coverage'
 import { mockAuthenticatedSession } from './auth-helpers'
 import { MediaLibraryPage } from '../pages/media-library-page'
 import {
+  CURRENT_CONSENT_VERSION,
+  CURRENT_POLICY_VERSION,
+  CONSENT_STORAGE_KEY,
+} from '../../../../../shared/web/types/consent'
+import {
   type MockListResponse,
   type MockPutResponse,
   MediaRouteState,
@@ -46,6 +51,27 @@ export const test = base.extend<MediaMockFixtures>({
     // "Upload files" button and blocks every upload-flow test in this spec.
     await mockAuthenticatedSession(page, { emailStatus: 'VERIFIED' })
     await registerMediaMocks(context, mockState)
+
+    // Seed consent before every navigation so the ConsentBanner never
+    // blocks the dashboard UI in media/composer tests.
+    const receipt = JSON.stringify({
+      consentVersion: CURRENT_CONSENT_VERSION,
+      policyVersion: CURRENT_POLICY_VERSION,
+      timestamp: new Date().toISOString(),
+      region: 'EU',
+      categories: { necessary: true, analytics: true },
+      dnt: false,
+      source: 'banner',
+    })
+    await context.addInitScript(
+      ({ key, value }: { key: string; value: string }): void => {
+        try {
+          localStorage.setItem(key, value)
+        } catch {}
+      },
+      { key: CONSENT_STORAGE_KEY, value: receipt },
+    )
+
     await use(page)
     await context.unrouteAll({ behavior: 'wait' })
   },

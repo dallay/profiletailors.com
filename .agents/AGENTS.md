@@ -143,3 +143,42 @@ external reference (spec, RFC, issue).
 - **Env loading:** `bootRun` reads root `.env`. Tests need `SMP_DB_TEST_PASSWORD` set.
 - **Test tags:** `@Tag("postgres")` and `@Tag("bdd")` exist but do NOT hide failures — all tests run
   by default.
+
+## Consent Management
+
+Consent management spans both frontend surfaces (marketing + app) using a shared layer at
+`shared/web/`.
+
+### Shared Layer (`shared/web/`)
+- **Types**: `types/consent.ts` — `ConsentReceipt` interface, version/policy constants
+- **Validation**: `validation/consent.ts` — Zod schema with `validateConsentReceipt()`
+- **Storage**: `utils/consent-storage.ts` — `loadConsent()`, `saveConsent()`, `clearConsent()`
+- **Privacy signals**: `utils/detect-privacy-signals.ts` — DNT/GPC detection
+
+### localStorage Schema
+- Key: `pt-consent`
+- Contains: `consentVersion`, `policyVersion`, `timestamp`, `region`, `categories`,
+  `dnt`, `source`
+- Source values: `'banner'` | `'settings-panel'`
+- Invalid receipts are treated as no consent (graceful degradation)
+
+### Consent Flow
+1. Inline script reads localStorage → validates → sets `window.__PT_CONSENT_ANALYTICS`
+2. If no valid consent → banner shows → user accepts/rejects → saved to localStorage
+3. Analytics scripts check `window.__PT_CONSENT_ANALYTICS` before loading
+4. DNT/GPC signals pre-disable analytics toggle when detected
+
+### Version Upgrades
+- Increment `EXPECTED_CONSENT_VERSION` in `validation/consent.ts`
+- Old consent receipts fail validation → banner re-shows → user re-consents
+
+### Backend API
+- `POST /api/governance/consent` — record consent
+- `POST /api/governance/consent/withdraw` — withdraw consent
+- `GET /api/governance/consent` — list consent records
+- `GET /api/governance/consent/history` — consent history
+- Backend consent API lacks Cucumber BDD coverage (gap documented)
+
+### E2E Tests
+- Marketing: `apps/web/marketing/e2e/consent.spec.ts` (4 scenarios)
+- App: `apps/web/app/e2e/specs/consent.spec.ts` (3 scenarios)

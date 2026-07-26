@@ -83,6 +83,7 @@ vi.mock('@lucide/vue', () => {
     Settings: stub,
     Shield: stub,
     Users: stub,
+    XIcon: stub,
   }
 })
 
