@@ -34,7 +34,7 @@ All 20 automated tasks have been audited, their states parsed, and their finding
 | **frontend-route-navigation-auditor** | `frontend-route-navigation.yaml` | `frontend-route-navigation.md` | <span style="color:gray">**NO_RECENT_EXECUTION**</span> | `None` | `N/A` | 0 | 0 |
 | **justfile-verification** | `justfile-verification.yaml` | `justfile-verification.md` | <span style="color:gray">**NO_RECENT_EXECUTION**</span> | `None` | `N/A` | 0 | 0 |
 | **logging-hygiene-auditor** | `logging-hygiene.yaml` | `logging-hygiene.md` | <span style="color:gray">**NO_RECENT_EXECUTION**</span> | `None` | `N/A` | 0 | 0 |
-| **maintenance-coordinator** | `maintenance-coordinator.yaml` | `maintenance-status.md` | <span style="color:green">**HEALTHY**</span> | `2026-07-26T03:48:11Z` | `CHANGES_APPLIED` | 1 | 3 |
+| **maintenance-coordinator** | `maintenance-coordinator.yaml` | `maintenance-status.md` | <span style="color:red">**HAS_UNRESOLVED_FINDINGS**</span> | `2026-07-26T03:48:11Z` | `CHANGES_APPLIED` | 1 | 3 |
 | **openspec-reconciliation** | `openspec-reconciliation.yaml` | `openspec-reconciliation.md` | <span style="color:gray">**NO_RECENT_EXECUTION**</span> | `None` | `N/A` | 0 | 0 |
 | **security-configuration-drift-auditor** | `security-configuration-drift.yaml` | `security-configuration-drift.md` | <span style="color:red">**HAS_UNRESOLVED_FINDINGS**</span> | `2026-07-23T18:45:32Z` | `PARTIALLY_COMPLETED` | 1 | 3 |
 | **spring-configuration-binding-auditor** | `spring-configuration-binding.yaml` | `spring-configuration-binding.md` | <span style="color:gray">**NO_RECENT_EXECUTION**</span> | `None` | `N/A` | 0 | 0 |
@@ -56,7 +56,7 @@ All 20 automated tasks have been audited, their states parsed, and their finding
 
 - **Finding ID:** `AUTO-security-configuration-drift-unresolved` (aggregated from `actuator-prometheus-exposure-drift`)
 - **Description:** The `/actuator/prometheus` endpoint is matched under `permitAll()` in the main Spring Security filter chain. While the endpoint is bound only to the dedicated management port 9091 (not the main application port 7638), it remains unauthenticated on that management port.
-- **Risk:** **MEDIUM** (aggregated from task-level HIGH RISK but operationally isolated). Enforces VPC-level network security controls instead of application-level authentication to avoid breaking Prometheus scraper setups.
+- **Risk:** **HIGH**. Though the endpoint is isolated to management port 9091, the lack of authentication remains a security concern until remediation and testing are complete.
 - **Remediation Plan:** Review scrapers' support for basic auth / Bearer tokens before removing `permitAll()` in `IdentitySecurityConfiguration.kt`.
 
 ## Blockers
@@ -69,7 +69,8 @@ State tracking is maintained in `.agents/automation/state/maintenance-coordinato
 
 ## Risk Assessment
 
-- **Overall Risk:** **LOW** (This run acts strictly as a coordinator. It does not introduce or modify production code, focusing solely on metadata and documentation aggregation).
+- **Coordinator Activity Risk:** **LOW** (This run acts strictly as a coordinator. It does not introduce or modify production code, focusing solely on metadata and documentation aggregation).
+- **Inherited Security Finding Risk:** **HIGH** (The unresolved security configuration drift finding regarding unauthenticated `/actuator/prometheus` endpoint exposure remains at HIGH risk until remediation and testing are complete).
 
 ## Human Review Notes
 
