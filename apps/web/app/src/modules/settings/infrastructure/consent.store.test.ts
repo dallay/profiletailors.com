@@ -35,7 +35,6 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
     isAuthenticated: true,
     accessToken: mockAccessToken,
     user: mockUser,
-    userId: 'user-1',
   }),
 }))
 
@@ -43,7 +42,7 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function validReceipt(overrides?: Partial<ConsentReceipt>): ConsentReceipt {
+function validReceipt(overrides?: Partial<Record<string, unknown>>): ConsentReceipt {
   return {
     consentVersion: CURRENT_CONSENT_VERSION,
     policyVersion: CURRENT_POLICY_VERSION,

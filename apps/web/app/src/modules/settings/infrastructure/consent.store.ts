@@ -93,7 +93,7 @@ export const useConsentStore = defineStore('consent', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        subjectReference: { user: auth.userId },
+        subjectReference: { user: auth.user?.principalId },
         purpose: 'web.analytics',
         granted: receipt.categories.analytics,
         timestamp: receipt.timestamp,
@@ -151,7 +151,7 @@ function detectDNTSignal(): boolean {
 function userIsAuthenticated(): boolean {
   try {
     const auth = useAuthStore()
-    return !!auth.userId
+    return !!auth.user?.principalId
   } catch {
     return false
   }

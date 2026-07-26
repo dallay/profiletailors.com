@@ -96,7 +96,7 @@ describe('CookieSettings', () => {
 
     const buttons = wrapper.findAll('[data-testid="button-stub"]')
     // Last button is Accept All
-    await buttons[buttons.length - 1].trigger('click')
+    await buttons[buttons.length - 1]!.trigger('click')
 
     expect(mockSaveConsent).toHaveBeenCalledWith({
       analytics: true,
@@ -110,7 +110,7 @@ describe('CookieSettings', () => {
 
     const buttons = wrapper.findAll('[data-testid="button-stub"]')
     // First button is Reject All
-    await buttons[0].trigger('click')
+    await buttons[0]!.trigger('click')
 
     expect(mockSaveConsent).toHaveBeenCalledWith({
       analytics: false,
@@ -125,7 +125,7 @@ describe('CookieSettings', () => {
 
     const buttons = wrapper.findAll('[data-testid="button-stub"]')
     // Middle button is Save
-    await buttons[1].trigger('click')
+    await buttons[1]!.trigger('click')
 
     expect(mockSaveConsent).toHaveBeenCalledWith({
       analytics: false,
@@ -138,7 +138,7 @@ describe('CookieSettings', () => {
     await flushPromises()
 
     const buttons = wrapper.findAll('[data-testid="button-stub"]')
-    await buttons[1].trigger('click')
+    await buttons[1]!.trigger('click')
 
     expect(wrapper.emitted('update:open')).toBeTruthy()
     expect(wrapper.emitted('update:open')![0]).toEqual([false])
