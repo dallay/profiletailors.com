@@ -23,7 +23,10 @@ import org.springframework.web.bind.annotation.RestController
 class WaitlistController(private val joinWaitlist: JoinWaitlistHandler) {
 
     @PostMapping("/{waitlistKey}/entries")
-    fun join(@PathVariable waitlistKey: String, @RequestBody request: JoinWaitlistRequest): ResponseEntity<Any> = try {
+    suspend fun join(
+        @PathVariable waitlistKey: String,
+        @RequestBody request: JoinWaitlistRequest,
+    ): ResponseEntity<Any> = try {
         joinWaitlist.handle(request.toCommand(waitlistKey))
         ResponseEntity.status(HttpStatus.ACCEPTED).body(JoinWaitlistResponse())
     } catch (_: WaitlistNotFoundException) {

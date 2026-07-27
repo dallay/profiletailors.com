@@ -31,7 +31,7 @@ data class WaitlistEntryJoinedNotification(
  * published via the event bus.
  */
 fun interface WaitlistEntryJoinedNotifier {
-    fun notify(notification: WaitlistEntryJoinedNotification)
+    suspend fun notify(notification: WaitlistEntryJoinedNotification)
 
     companion object {
         /** A no-op notifier used in tests and contexts where events are not consumed. */

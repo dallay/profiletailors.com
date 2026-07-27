@@ -20,10 +20,11 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 internal class JoinWaitlistHandlerTest {
@@ -43,7 +44,7 @@ internal class JoinWaitlistHandlerTest {
     )
 
     @Test
-    fun `new email join returns Accepted with internal new distinction`() {
+    fun `new email join returns Accepted with internal new distinction`() = runTest {
         val waitlistId = WaitlistId("w-1")
         val activeWaitlist = Waitlist(
             id = waitlistId,
@@ -88,7 +89,7 @@ internal class JoinWaitlistHandlerTest {
     }
 
     @Test
-    fun `duplicate email join returns Accepted with internal already-joined distinction`() {
+    fun `duplicate email join returns Accepted with internal already-joined distinction`() = runTest {
         val waitlistId = WaitlistId("w-1")
         val activeWaitlist = Waitlist(
             id = waitlistId,
@@ -132,10 +133,10 @@ internal class JoinWaitlistHandlerTest {
     }
 
     @Test
-    fun `unknown waitlist key throws NotFound`() {
+    fun `unknown waitlist key throws NotFound`() = runTest {
         every { waitlistRepo.findByKey(WaitlistKey("nonexistent")) } returns null
 
-        assertThrows<WaitlistNotFoundException> {
+        assertFailsWith<WaitlistNotFoundException> {
             handler.handle(
                 JoinWaitlistCommand(
                     waitlistKey = WaitlistKey("nonexistent"),
@@ -151,7 +152,7 @@ internal class JoinWaitlistHandlerTest {
     }
 
     @Test
-    fun `paused waitlist throws Closed`() {
+    fun `paused waitlist throws Closed`() = runTest {
         val pausedWaitlist = Waitlist(
             id = WaitlistId("w-1"),
             key = WaitlistKey("profile-tailors-launch"),
@@ -161,7 +162,7 @@ internal class JoinWaitlistHandlerTest {
         )
         every { waitlistRepo.findByKey(any()) } returns pausedWaitlist
 
-        assertThrows<WaitlistClosedException> {
+        assertFailsWith<WaitlistClosedException> {
             handler.handle(
                 JoinWaitlistCommand(
                     waitlistKey = WaitlistKey("profile-tailors-launch"),

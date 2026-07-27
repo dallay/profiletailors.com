@@ -1,15 +1,10 @@
 package com.profiletailors.smp.notifications.infrastructure.events
 
 import com.profiletailors.common.domain.bus.event.DomainEvent
-import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotification
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotifier
 import com.profiletailors.notifications.domain.event.WaitlistEntryJoined
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import org.slf4j.LoggerFactory
+import com.profiletailors.spring.boot.bus.event.EventEmitter
 import org.springframework.stereotype.Component
 
 /**
@@ -21,36 +16,18 @@ import org.springframework.stereotype.Component
  * subscribed to it — most notably the welcome email consumer in the notifications module.
  */
 @Component
-internal class WaitlistEntryJoinedEventAdapter(
-    private val eventPublisher: EventPublisher<DomainEvent>,
-    private val publishScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-) : WaitlistEntryJoinedNotifier {
+internal class WaitlistEntryJoinedEventAdapter(private val eventEmitter: EventEmitter<DomainEvent>) :
+    WaitlistEntryJoinedNotifier {
 
-    @Suppress("TooGenericExceptionCaught")
-    override fun notify(notification: WaitlistEntryJoinedNotification) {
-        try {
-            publishScope.launch {
-                eventPublisher.publish(
-                    WaitlistEntryJoined(
-                        waitlistEntryId = notification.waitlistEntryId,
-                        waitlistKey = notification.waitlistKey,
-                        waitlistName = notification.waitlistName,
-                        normalizedEmail = notification.normalizedEmail.value,
-                        locale = notification.locale?.value,
-                    ),
-                )
-            }
-        } catch (e: Exception) {
-            log.warn(
-                "Failed to schedule WaitlistEntryJoined event for entry '{}' on waitlist '{}'",
-                notification.waitlistEntryId.value,
-                notification.waitlistKey.value,
-                e,
-            )
-        }
-    }
-
-    companion object {
-        private val log = LoggerFactory.getLogger(WaitlistEntryJoinedEventAdapter::class.java)
+    override suspend fun notify(notification: WaitlistEntryJoinedNotification) {
+        eventEmitter.publish(
+            WaitlistEntryJoined(
+                waitlistEntryId = notification.waitlistEntryId,
+                waitlistKey = notification.waitlistKey,
+                waitlistName = notification.waitlistName,
+                normalizedEmail = notification.normalizedEmail.value,
+                locale = notification.locale?.value,
+            ),
+        )
     }
 }
