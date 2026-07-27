@@ -6,13 +6,13 @@ findings: []
 checks:
   - id: println-check
     name: "Production print statement check"
-    status: passed
-    description: "Verified that no production Kotlin or Java source files use println or System.out/System.err."
+    status: Passed
+    description: "Verified that no production Kotlin source files use println or System.out/System.err."
   - id: console-log-check
     name: "Production console log check"
-    status: passed
+    status: Passed
     description: "Verified that no production Vue/TS frontend files contain stray or debug console.logs; mock mode logging is isolated and expected."
   - id: sensitive-data-leak-check
     name: "Sensitive logging leak audit"
-    status: passed
+    status: Passed
     description: "Ensured that no credentials, tokens, or personal identifiers are printed in raw logs; LogMasker and logging standards are adhered to."
