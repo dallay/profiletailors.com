@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { consentReceiptSchema, validateConsentReceipt } from './consent'
+import { consentReceiptSchema, EXPECTED_POLICY_VERSION, validateConsentReceipt } from './consent'
 import type { ConsentReceipt } from '../types/consent'
 
 describe('consentReceiptSchema', () => {
@@ -34,6 +34,16 @@ describe('consentReceiptSchema', () => {
     const receipt = { ...validReceipt, consentVersion: 2 }
     const result = consentReceiptSchema.safeParse(receipt)
     expect(result.success).toBe(false)
+  })
+
+  it('rejects stale policyVersion', () => {
+    const receipt = { ...validReceipt, policyVersion: '2026-07-22' }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(false)
+  })
+
+  it('keeps the expected policyVersion aligned with the shared consent constant', () => {
+    expect(EXPECTED_POLICY_VERSION).toBe(validReceipt.policyVersion)
   })
 
   it('rejects invalid policyVersion format', () => {
