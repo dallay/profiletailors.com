@@ -42,6 +42,12 @@ describe('consentReceiptSchema', () => {
     expect(result.success).toBe(false)
   })
 
+  it('rejects stale policyVersion dates', () => {
+    const receipt = { ...validReceipt, policyVersion: '2026-07-22' }
+    const result = consentReceiptSchema.safeParse(receipt)
+    expect(result.success).toBe(false)
+  })
+
   it('rejects impossible ISO date (2026-02-31)', () => {
     const receipt = { ...validReceipt, policyVersion: '2026-02-31' }
     const result = consentReceiptSchema.safeParse(receipt)
