@@ -17,12 +17,12 @@ import { proxyImageUrl, resolveApiUrl } from '@modules/auth/infrastructure/auth-
 import PostPreviewPanel from '@modules/publishing/presentation/components/composer/PostPreviewPanel.vue'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@modules/publishing/presentation/components/composer/post-preview.types'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Progress } from '@/components/ui/progress'
 import Spinner from '@/components/ui/spinner/Spinner.vue'
 import ComposerMediaPickerShell from '@modules/publishing/presentation/components/composer/ComposerMediaPickerShell.vue'
 import MediaProviderPanel from '@modules/publishing/presentation/components/composer/MediaProviderPanel.vue'
+import ComposerSchedulePanel from '@modules/publishing/presentation/components/composer/ComposerSchedulePanel.vue'
 
 type ComposerScheduleMode = 'now' | 'next' | 'custom'
 const COMPOSER_SUPPORTED_MEDIA_TYPES = new Set([
@@ -1220,74 +1220,16 @@ async function handleCreateSubmit(
         >
           <template #footer>
             <div class="border-t border-border-subtle pt-6 space-y-4">
-              <div class="space-y-3">
-                <div class="flex items-center gap-4 bg-bg-surface border border-border-subtle p-3 rounded-xl">
-                <CalendarIcon class="size-4 text-text-secondary shrink-0" />
-                <div class="flex-1 space-y-2 text-xs">
-                  <span class="text-text-secondary">Schedule Mode:</span>
-                  <div
-                    class="grid grid-cols-3 gap-1 rounded-lg bg-bg-primary/60 p-1"
-                    role="radiogroup"
-                    aria-label="Schedule mode"
-                  >
-                  <label
-                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                    :class="scheduleMode === 'now' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                  >
-                    <input type="radio" v-model="scheduleMode" value="now" class="sr-only" />
-                    Now
-                  </label>
-                  <label
-                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                    :class="scheduleMode === 'next' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                  >
-                    <input type="radio" v-model="scheduleMode" value="next" class="sr-only" />
-                    Next Schedule
-                  </label>
-                  <label
-                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                    :class="scheduleMode === 'custom' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                  >
-                    <input type="radio" v-model="scheduleMode" value="custom" class="sr-only" />
-                    Pick Date
-                  </label>
-                  </div>
-                  <p class="text-[10px] leading-4 text-text-secondary">
-                    {{ scheduleHelperText }}
-                  </p>
-                </div>
-              </div>
-
-              <div v-if="scheduleMode === 'custom'" class="grid grid-cols-[1fr_112px] gap-3 animate-slide-down">
-                <Popover v-model:open="isDatePickerOpen">
-                  <PopoverTrigger as-child>
-                    <button
-                      type="button"
-                      class="flex items-center justify-between gap-2 bg-bg-surface border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-body hover:border-text-display focus:outline-none focus:border-text-display font-sans"
-                    >
-                      <span>{{ selectedDateLabel }}</span>
-                      <CalendarIcon class="size-3.5 text-text-secondary" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent class="w-auto p-0 bg-bg-surface border-border-subtle" align="start">
-                    <Calendar
-                      v-model="selectedCalendarDate"
-                      :min-value="todayDateValue"
-                      layout="month-and-year"
-                      initial-focus
-                      @update:model-value="isDatePickerOpen = false"
-                    />
-                  </PopoverContent>
-                </Popover>
-                <label for="create-post-schedule-time" class="sr-only">Schedule time</label>
-                <input
-                  id="create-post-schedule-time"
-                  v-model="scheduleTime"
-                  type="time"
-                  :min="minTimeForDate"
-                  class="bg-bg-surface border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-body focus:outline-none focus:border-text-display font-sans"
-                />
-              </div>
+              <ComposerSchedulePanel
+                v-model:schedule-mode="scheduleMode"
+                v-model:selected-calendar-date="selectedCalendarDate"
+                v-model:schedule-time="scheduleTime"
+                v-model:is-date-picker-open="isDatePickerOpen"
+                :today-date-value="todayDateValue"
+                :min-time-for-date="minTimeForDate"
+                :selected-date-label="selectedDateLabel"
+                :schedule-helper-text="scheduleHelperText"
+              />
 
               <div class="flex items-center justify-between text-[10px] font-mono text-text-secondary px-1">
                 <label class="flex items-center gap-1.5 cursor-pointer hover:text-text-display select-none">
@@ -1299,7 +1241,6 @@ async function handleCreateSubmit(
                   <span>Create Another</span>
                 </label>
               </div>
-            </div>
 
               <p v-if="submitError" class="rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
                 {{ submitError }}
