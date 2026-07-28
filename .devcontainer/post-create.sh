@@ -1,20 +1,49 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+JUST_VERSION="1.57.0"
+
+# Source nvm so corepack uses the correct Node
+NVM_DIR="${NVM_DIR:-/usr/local/share/nvm}"
+if [ -s "${NVM_DIR}/nvm.sh" ]; then
+  # shellcheck source=/dev/null
+  . "${NVM_DIR}/nvm.sh"
+fi
+
 echo "⟳ Installing system packages..."
 sudo apt-get update -qq
-sudo apt-get install -y -qq --no-install-recommends just postgresql-client 2>/dev/null || {
-  echo "just not in apt — downloading binary..."
+
+# Install just from apt when available
+if sudo apt-get install -y -qq --no-install-recommends just 2>/dev/null; then
+  echo "   ✅ just installed from apt"
+else
+  echo "   just not in apt — downloading binary..."
   ARCH=$(uname -m)
   case "$ARCH" in
     x86_64)  ARCH="x86_64" ;;
-    aarch64) ARCH="arm64"   ;;
+    aarch64) ARCH="arm64"  ;;
   esac
-  curl -fsSL "https://github.com/casey/just/releases/latest/download/just-${ARCH}-unknown-linux-musl.tar.gz" \
-    | sudo tar -xz -C /usr/local/bin just
+  TARBALL="just-${JUST_VERSION}-${ARCH}-unknown-linux-musl.tar.gz"
+  TMPDIR=$(mktemp -d)
+  curl -fsSL "https://github.com/casey/just/releases/download/${JUST_VERSION}/${TARBALL}" \
+    -o "${TMPDIR}/${TARBALL}"
+  curl -fsSL "https://github.com/casey/just/releases/download/${JUST_VERSION}/SHA256SUMS" \
+    -o "${TMPDIR}/SHA256SUMS"
+  (cd "${TMPDIR}" && sha256sum -c --ignore-missing --status "SHA256SUMS" 2>/dev/null) || {
+    echo "   ⚠️ SHA-256 mismatch for just binary — aborting download" >&2
+    rm -rf "${TMPDIR}"
+    exit 1
+  }
+  sudo tar -xzf "${TMPDIR}/${TARBALL}" -C /usr/local/bin just
+  rm -rf "${TMPDIR}"
+  echo "   ✅ just ${JUST_VERSION} downloaded and verified"
+fi
+
+# Install postgresql-client separately so failures are visible
+sudo apt-get install -y -qq --no-install-recommends postgresql-client || {
+  echo "   ⚠️ postgresql-client not available (non-fatal)" >&2
 }
 sudo apt-get clean
-rm -rf /tmp/*
 
 echo "⟳ Enabling corepack..."
 corepack enable
@@ -27,7 +56,7 @@ if [ ! -f .env ]; then
 fi
 
 echo "⟳ Installing project dependencies..."
-pnpm install --frozen-lockfile
+just install
 
 echo "✅ Dev container setup complete"
 just -l 2>/dev/null | head -5

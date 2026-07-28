@@ -2,16 +2,16 @@
   "name": "Profile Tailors",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "features": {
-    "ghcr.io/devcontainers/features/java:1": {
+    "ghcr.io/devcontainers/features/java:1.8.0": {
       "version": "21",
       "installGradle": true,
       "gradleVersion": "9.5"
     },
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "22",
+    "ghcr.io/devcontainers/features/node:1.7.1": {
+      "version": "22.12.0",
       "pnpmVersion": "11.11.0"
     },
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1.10.0": {}
   },
   "mounts": [
     "source=profiletailors-pnpm-store,target=/home/vscode/.local/share/pnpm/store,type=volume",
@@ -51,11 +51,15 @@
       ],
       "settings": {
         "editor.formatOnSave": true,
-        "editor.defaultFormatter": "biomejs.biome",
         "[javascript]": { "editor.defaultFormatter": "biomejs.biome" },
         "[typescript]": { "editor.defaultFormatter": "biomejs.biome" },
         "[json]": { "editor.defaultFormatter": "biomejs.biome" },
-        "[jsonc]": { "editor.defaultFormatter": "biomejs.biome" }
+        "[jsonc]": { "editor.defaultFormatter": "biomejs.biome" },
+        "[astro]": { "editor.defaultFormatter": "astro-build.astro-vscode" },
+        "[vue]": { "editor.defaultFormatter": "Vue.volar" },
+        "[java]": { "editor.defaultFormatter": "redhat.java" },
+        "[yaml]": { "editor.defaultFormatter": "redhat.vscode-yaml" },
+        "[dockerfile]": { "editor.defaultFormatter": "ms-azuretools.vscode-docker" }
       }
     }
   },

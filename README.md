@@ -245,6 +245,7 @@ profiletailors.com/
 │   ├── security/                # Security primitives
 │   └── ...                      # Additional shared libraries
 ├── .agents/                      # Agent tooling config and skills
+├── .devcontainer/                # VS Code dev container configuration
 ├── .github/workflows/            # CI and automation
 ├── docs/                        # Architecture and security docs
 ├── openspec/                    # SDD artifacts
