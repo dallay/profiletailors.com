@@ -1,3 +1,11 @@
+interface PrivacyControlNavigator extends Navigator {
+  globalPrivacyControl?: boolean
+}
+
+interface LegacyDoNotTrackWindow extends Window {
+  doNotTrack?: string | null
+}
+
 /**
  * Check if Do Not Track (DNT) is enabled.
  * Returns false in SSR context.
@@ -7,11 +15,10 @@ export function isDNTEnabled(): boolean {
     return false
   }
 
-  return (
-    navigator.doNotTrack === '1' ||
-    navigator.doNotTrack === 'yes' ||
-    (window as any).doNotTrack === '1'
-  )
+  const legacyWindowDnt =
+    typeof window === 'undefined' ? undefined : (window as LegacyDoNotTrackWindow).doNotTrack
+
+  return navigator.doNotTrack === '1' || navigator.doNotTrack === 'yes' || legacyWindowDnt === '1'
 }
 
 /**
@@ -23,7 +30,7 @@ export function isGPCEnabled(): boolean {
     return false
   }
 
-  return (navigator as any).globalPrivacyControl === true
+  return (navigator as PrivacyControlNavigator).globalPrivacyControl === true
 }
 
 /**
