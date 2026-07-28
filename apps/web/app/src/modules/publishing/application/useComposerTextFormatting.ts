@@ -53,7 +53,10 @@ export function useComposerTextFormatting(
 
   function normalizeHashtag(tag: string): string {
     if (tag.startsWith('#')) {
-      const body = tag.slice(1).toLowerCase().replace(/[^a-z0-9_]/g, '')
+      const body = tag
+        .slice(1)
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '')
       return body ? `#${body}` : ''
     }
 
