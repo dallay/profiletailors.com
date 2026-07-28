@@ -4,6 +4,8 @@ import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.JoinResult
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
+import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotification
+import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotifier
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
 import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
@@ -12,6 +14,7 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistStatus
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import kotlin.test.assertEquals
@@ -58,32 +61,62 @@ class WaitlistApplicationConfigurationTest {
     }
 
     @Test
-    fun `joinWaitlistHandler wires repositories, generator, and clock into a working handler`() {
+    fun `joinWaitlistHandler notifies once with the saved entry payload`() = runTest {
+        val notifier = RecordingWaitlistEntryJoinedNotifier()
         val handler = configuration.joinWaitlistHandler(
             waitlistRepository = StubWaitlistRepository,
             entryRepository = RecordingWaitlistEntryRepository(),
             idGenerator = { _, _ -> WaitlistEntryId("test-id") },
             consentRecorder = WaitlistConsentRecorder.noop,
+            notifier = notifier,
         )
 
-        val fixedClock = Instant.parse("2026-07-17T10:00:00Z")
-        val result = handler.handle(
-            com.profiletailors.leadcapture.waitlist.application.JoinWaitlistCommand(
-                waitlistKey = WaitlistKey("profile-tailors-launch"),
-                email = EmailAddress("user@example.com"),
-                source = com.profiletailors.leadcapture.common.CaptureSource("marketing-site"),
-                formId = null,
-                locale = null,
-                metadata = com.profiletailors.leadcapture.common.LeadMetadata(),
-                consent = com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent(
-                    earlyAccess = true,
-                    version = "2026-07-17",
-                ),
-            ),
-        )
+        val result = handler.handle(joinCommand())
 
         assertEquals(JoinResult.JOINED_NEW, result)
+        assertEquals(
+            listOf(
+                WaitlistEntryJoinedNotification(
+                    waitlistEntryId = WaitlistEntryId("test-id"),
+                    waitlistKey = WaitlistKey("profile-tailors-launch"),
+                    waitlistName = "Profile Tailors Launch",
+                    normalizedEmail = NormalizedEmail.fromPersisted("user@example.com"),
+                    locale = null,
+                ),
+            ),
+            notifier.notifications,
+        )
     }
+
+    @Test
+    fun `joinWaitlistHandler does not notify when the entry already exists`() = runTest {
+        val notifier = RecordingWaitlistEntryJoinedNotifier()
+        val handler = configuration.joinWaitlistHandler(
+            waitlistRepository = StubWaitlistRepository,
+            entryRepository = RecordingWaitlistEntryRepository(alreadyExists = true),
+            idGenerator = { _, _ -> WaitlistEntryId("test-id") },
+            consentRecorder = WaitlistConsentRecorder.noop,
+            notifier = notifier,
+        )
+
+        val result = handler.handle(joinCommand())
+
+        assertEquals(JoinResult.ALREADY_JOINED, result)
+        assertTrue(notifier.notifications.isEmpty())
+    }
+
+    private fun joinCommand() = com.profiletailors.leadcapture.waitlist.application.JoinWaitlistCommand(
+        waitlistKey = WaitlistKey("profile-tailors-launch"),
+        email = EmailAddress("user@example.com"),
+        source = com.profiletailors.leadcapture.common.CaptureSource("marketing-site"),
+        formId = null,
+        locale = null,
+        metadata = com.profiletailors.leadcapture.common.LeadMetadata(),
+        consent = com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent(
+            earlyAccess = true,
+            version = "2026-07-17",
+        ),
+    )
 
     private object StubWaitlistRepository : WaitlistRepository {
         override fun findByKey(key: WaitlistKey): Waitlist? = Waitlist(
@@ -97,14 +130,24 @@ class WaitlistApplicationConfigurationTest {
         )
     }
 
-    private class RecordingWaitlistEntryRepository : WaitlistEntryRepository {
+    private class RecordingWaitlistEntryRepository(private val alreadyExists: Boolean = false) :
+        WaitlistEntryRepository {
         override fun findByNormalizedEmail(waitlistId: WaitlistId, email: NormalizedEmail): WaitlistEntry? = null
 
         override fun save(entry: WaitlistEntry): WaitlistEntry = entry
 
-        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult {
-            val stored = entry
-            return WaitlistEntryRepository.SaveResult.Saved(stored)
+        override fun saveIfNotExists(entry: WaitlistEntry): WaitlistEntryRepository.SaveResult = if (alreadyExists) {
+            WaitlistEntryRepository.SaveResult.AlreadyExists(entry)
+        } else {
+            WaitlistEntryRepository.SaveResult.Saved(entry)
+        }
+    }
+
+    private class RecordingWaitlistEntryJoinedNotifier : WaitlistEntryJoinedNotifier {
+        val notifications = mutableListOf<WaitlistEntryJoinedNotification>()
+
+        override suspend fun notify(notification: WaitlistEntryJoinedNotification) {
+            notifications += notification
         }
     }
 }

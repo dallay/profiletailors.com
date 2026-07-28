@@ -118,7 +118,7 @@ jobs:
       # Upload coverage in granular steps to ensure monorepo flags are correctly
       # attributed. Flags are aligned with codecov.yml.
       - name: Upload Backend coverage (shared)
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v5.4.0
+        uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # v5.4.0
         with:
           files: |
             shared/common/build/reports/kover/report.xml
@@ -134,7 +134,7 @@ jobs:
           verbose: true
 
       - name: Upload SMP coverage (server)
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v5.4.0
+        uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # v5.4.0
         with:
           files: server/smp/build/reports/kover/report.xml
           flags: smp
@@ -143,7 +143,7 @@ jobs:
           verbose: true
 
       - name: Upload Frontend coverage
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v5.4.0
+        uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # v5.4.0
         with:
           files: |
             apps/web/marketing/coverage/lcov.info
@@ -155,10 +155,12 @@ jobs:
 
       - name: SonarQube Quality Gate check
         uses: sonarsource/sonarqube-quality-gate-action@cf038b0e0cdecfa9e56c198bbb7d21d751d62c3b # v1.2.0
-        timeout-minutes: 5
+        timeout-minutes: 15
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          pollingTimeoutSec: 900
 
       # Upload coverage artifacts for debugging
       - name: Upload backend coverage reports
