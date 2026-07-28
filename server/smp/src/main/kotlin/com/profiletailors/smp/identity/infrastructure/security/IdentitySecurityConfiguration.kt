@@ -159,8 +159,6 @@ class IdentitySecurityConfiguration {
                     "/api/auth/refresh",
                     "/api/auth/logout",
                     "/api/auth/resend-verification",
-                    "/api/auth/forgot-password",
-                    "/api/auth/reset-password",
                 ).permitAll()
                 .pathMatchers(
                     HttpMethod.POST,

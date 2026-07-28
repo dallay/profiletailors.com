@@ -43,6 +43,36 @@ Public-facing marketing site for the Profile Tailors social media management pla
 > still require a POSIX shell — use **Git Bash** (included with [Git for Windows](https://git-scm.com))
 > or **WSL**.
 
+### Project Structure
+
+```text
+profiletailors.com/
+├── apps/
+│   └── web/
+│       ├── app/                  # Vue 3 dashboard application
+│       └── marketing/            # Astro marketing site
+├── server/
+│   └── smp/                     # Spring Boot 4 backend (Kotlin)
+├── shared/                      # Kotlin libraries + shared web assets
+│   ├── assets/                  # Shared logos, icons, and web assets
+│   ├── common/                  # Domain primitives, value objects, shared kernel
+│   ├── bus/                     # Event bus abstractions
+│   ├── security/                # Security primitives
+│   ├── web/                     # Shared web layer (consent, types, validation, utils)
+│   └── ...                      # Additional shared libraries
+├── tools/
+│   └── compliance/              # Compliance tooling (pnpm workspace)
+├── .agents/                      # Agent tooling config and skills
+├── .devcontainer/                # VS Code dev container configuration
+├── .github/workflows/            # CI and automation
+├── docs/                        # Architecture and security docs
+├── openspec/                    # SDD artifacts
+├── CONTRIBUTING.md
+├── CLA.md
+├── LICENSE
+└── README.md
+```
+
 ### Install and run locally
 
 #### 1) Install `just`
@@ -225,35 +255,6 @@ Contact: **security@profiletailors.com**
 - **Discussions:** https://github.com/dallay/profiletailors.com/discussions
 - **Issues:** https://github.com/dallay/profiletailors.com/issues
 - **Email:** **dev@profiletailors.com**
-
----
-
-## Project Structure
-
-```text
-profiletailors.com/
-├── apps/
-│   └── web/
-│       ├── app/                  # Vue 3 dashboard application
-│       └── marketing/            # Astro marketing site
-├── server/
-│   └── smp/                     # Spring Boot 4 backend (Kotlin)
-├── shared/                      # Kotlin libraries + shared web assets
-│   ├── assets/                  # Shared logos, icons, and web assets
-│   ├── common/                  # Domain primitives, value objects, shared kernel
-│   ├── bus/                     # Event bus abstractions
-│   ├── security/                # Security primitives
-│   └── ...                      # Additional shared libraries
-├── .agents/                      # Agent tooling config and skills
-├── .devcontainer/                # VS Code dev container configuration
-├── .github/workflows/            # CI and automation
-├── docs/                        # Architecture and security docs
-├── openspec/                    # SDD artifacts
-├── CONTRIBUTING.md
-├── CLA.md
-├── LICENSE
-└── README.md
-```
 
 ---
 

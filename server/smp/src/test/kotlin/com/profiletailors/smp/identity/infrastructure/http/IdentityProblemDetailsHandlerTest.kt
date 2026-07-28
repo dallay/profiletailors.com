@@ -3,17 +3,13 @@ package com.profiletailors.smp.identity.infrastructure.http
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.CloseAccountConfirmationException
 import com.profiletailors.smp.identity.application.CloseAccountRateLimitException
-import com.profiletailors.smp.identity.application.ExpiredPasswordResetTokenException
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
-import com.profiletailors.smp.identity.application.InvalidPasswordResetTokenException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
 import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
-import com.profiletailors.smp.identity.application.PasswordRecoveryDisabledException
 import com.profiletailors.smp.identity.application.RegistrationDisabledException
 import com.profiletailors.smp.identity.application.RegistrationValidationException
 import com.profiletailors.smp.identity.application.UnverifiedEmailException
-import com.profiletailors.smp.identity.application.UsedPasswordResetTokenException
 import com.profiletailors.smp.identity.application.UserAlreadyExistsException
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -105,28 +101,6 @@ class IdentityProblemDetailsHandlerTest {
         exception: FeatureEmailVerificationRequired,
     ) {
         assertProblemDetail(handler.handle(exception))
-    }
-
-    @Test
-    fun `password recovery disabled maps to service unavailable`() {
-        val result = handler.handle(PasswordRecoveryDisabledException())
-
-        result.status shouldBe HttpStatus.SERVICE_UNAVAILABLE.value()
-        result.title shouldBe "Password recovery disabled"
-        result.detail shouldBe "Password recovery is disabled."
-        result.properties?.get("code") shouldBe "PASSWORD_RECOVERY_DISABLED"
-    }
-
-    @Test
-    fun `password reset token errors retain distinct codes and identical public detail`() {
-        val invalid = handler.handle(InvalidPasswordResetTokenException())
-        val expired = handler.handle(ExpiredPasswordResetTokenException())
-        val used = handler.handle(UsedPasswordResetTokenException())
-
-        invalid.properties?.get("code") shouldBe "INVALID_PASSWORD_RESET_TOKEN"
-        expired.properties?.get("code") shouldBe "EXPIRED_PASSWORD_RESET_TOKEN"
-        used.properties?.get("code") shouldBe "USED_PASSWORD_RESET_TOKEN"
-        setOf(invalid.detail, expired.detail, used.detail).size shouldBe 1
     }
 
     @Test

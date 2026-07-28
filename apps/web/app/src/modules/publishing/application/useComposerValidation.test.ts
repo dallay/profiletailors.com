@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ref, type Ref } from 'vue'
+import { ref, isRef, type Ref } from 'vue'
 import { useComposerValidation, formatCharCount, getCharCountState } from './useComposerValidation'
 
 // Helper para crear refs de forma más fácil
@@ -62,8 +62,8 @@ describe('useComposerValidation', () => {
     })
 
     it('detects when text is near limit', () => {
-      // 2700 chars = 300 remaining, which is 10% of 3000
-      const postText = createRef('a'.repeat(2700))
+      // 2701 chars = 299 remaining, which is below the 10% threshold
+      const postText = createRef('a'.repeat(2701))
       const options = createMockOptions({
         postText,
         selectedChannel: undefined,
@@ -75,8 +75,31 @@ describe('useComposerValidation', () => {
 
       const validation = useComposerValidation(options)
 
-      expect(validation.charsRemaining.value).toBe(300)
+      expect(validation.charsRemaining.value).toBe(299)
       expect(validation.isTextTooLong.value).toBe(false)
+      expect(getCharCountState(validation.charsRemaining.value, validation.charLimit)).toBe(
+        'warning',
+      )
+    })
+
+    it('handles exactly-at-limit boundaries', () => {
+      // charsRemaining === 0 is warning, not error
+      expect(getCharCountState(0, 3000)).toBe('warning')
+
+      // LinkedIn attachmentCount === 9 is within the limit (9 <= 9)
+      const selectedChannel = createRef<ChannelShape>({
+        id: 'ch1',
+        provider: 'linkedin',
+        name: 'Test',
+        status: 'ACTIVE',
+      })
+      const options = createMockOptions({
+        postText: createRef('Hello'),
+        selectedChannel,
+        attachmentCount: 9,
+      })
+      const validation = useComposerValidation(options)
+      expect(validation.isAttachmentCountValid.value).toBe(true)
     })
 
     it('hasText is false for empty text', () => {
@@ -522,7 +545,7 @@ describe('useComposerValidation', () => {
 
   describe('reactivity', () => {
     it('updates canSubmit when channel changes', () => {
-      const selectedChannel = createRef<any>(undefined)
+      const selectedChannel = createRef<ChannelShape | undefined>(undefined)
       const options = createMockOptions({
         postText: createRef('Hello'),
         selectedChannel,
@@ -588,9 +611,17 @@ describe('useComposerValidation', () => {
 // HELPERS
 // ============================================================================
 
+type ChannelShape = {
+  id: string
+  provider: string
+  name: string
+  status: string
+  attachmentLimit?: number
+}
+
 type MockOptions = {
   postText: Ref<string> | string
-  selectedChannel: Ref<any> | any
+  selectedChannel: Ref<ChannelShape | undefined> | ChannelShape | undefined
   attachmentCount: Ref<number> | number
   isScheduleValid: Ref<boolean> | boolean
   isEditMode: Ref<boolean> | boolean
@@ -599,11 +630,18 @@ type MockOptions = {
 
 function normalizeRef<T>(value: Ref<T> | T | undefined): Ref<T | undefined> {
   if (value === undefined) return ref(undefined) as Ref<T | undefined>
-  if (value && typeof value === 'object' && 'value' in value) return value as Ref<T | undefined>
+  if (isRef(value)) return value as Ref<T | undefined>
   return ref(value) as Ref<T | undefined>
 }
 
-function createMockOptions(overrides: Partial<MockOptions>) {
+function createMockOptions(overrides: Partial<MockOptions>): {
+  postText: Ref<string>
+  selectedChannel: Ref<ChannelShape | undefined>
+  attachmentCount: Ref<number>
+  isScheduleValid: Ref<boolean>
+  isEditMode: Ref<boolean>
+  isSubmitting: Ref<boolean>
+} {
   return {
     postText: normalizeRef(overrides.postText ?? '') as Ref<string>,
     selectedChannel: normalizeRef(overrides.selectedChannel),

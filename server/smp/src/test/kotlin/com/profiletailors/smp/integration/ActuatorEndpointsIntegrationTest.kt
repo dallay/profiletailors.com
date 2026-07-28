@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.web.server.SecurityWebFilterChain
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -34,7 +33,6 @@ import org.testcontainers.junit.jupiter.Testcontainers
 @ContextConfiguration(
     classes = [ActuatorEndpointsIntegrationTest.TestSecurityConfig::class, TestStorageConfiguration::class],
 )
-@ActiveProfiles("test")
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [

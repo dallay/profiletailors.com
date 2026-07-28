@@ -20,8 +20,6 @@ interface RefreshSessionGateway {
     ): CreatedRefreshSession
 
     suspend fun revoke(currentSessionId: String, now: Instant)
-
-    suspend fun revokeAllForPrincipal(principalId: String, now: Instant) = Unit
 }
 
 class RefreshSessionNotActiveException(

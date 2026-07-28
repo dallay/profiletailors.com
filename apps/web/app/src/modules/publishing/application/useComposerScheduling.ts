@@ -1,28 +1,47 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, getCurrentInstance } from 'vue'
 import type { DateValue } from 'reka-ui'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 
 export type ComposerScheduleMode = 'now' | 'next' | 'custom'
 
-export interface UseComposerSchedulingOptions {
-  /**
-   * ISO string de fecha inicial para pre-cargar el calendario
-   * (usado en edit mode o cuando se crea desde una celda del calendario)
-   */
+export type UseComposerSchedulingOptions = {
+  /** ISO date string to pre-load the calendar (edit mode or calendar-cell creation). */
   initialDate?: string
 
-  /**
-   * Modo inicial de scheduling
-   */
+  /** Initial scheduling mode. */
   initialMode?: ComposerScheduleMode
 }
 
+export type UseComposerSchedulingResult = {
+  scheduleMode: import('vue').Ref<ComposerScheduleMode>
+  selectedCalendarDate: import('vue').Ref<DateValue | undefined>
+  scheduleTime: import('vue').Ref<string>
+  isDatePickerOpen: import('vue').Ref<boolean>
+  now: import('vue').Ref<Date>
+  todayDateValue: import('vue').ComputedRef<import('@internationalized/date').CalendarDate>
+  minTimeForDate: import('vue').ComputedRef<string>
+  selectedDateLabel: import('vue').ComputedRef<string>
+  scheduleHelperText: import('vue').ComputedRef<string>
+  isScheduleValid: import('vue').ComputedRef<boolean>
+  effectiveScheduledAt: import('vue').ComputedRef<string | null>
+  backendScheduleMode: import('vue').ComputedRef<'NOW' | 'NEXT_SLOT' | 'SCHEDULED_AT'>
+  setScheduleMode: (mode: ComposerScheduleMode) => void
+  setScheduleDate: (date: DateValue | undefined) => void
+  setScheduleTime: (time: string) => void
+  resetSchedule: () => void
+  loadFromPublication: (publication: {
+    scheduleMode?: 'NOW' | 'NEXT_SLOT' | 'SCHEDULED_AT' | null
+    scheduledAt?: string | null
+  }) => void
+  stopTicker: () => void
+}
+
 /**
- * Composable que maneja toda la lógica de scheduling del composer:
- * - Modos: now, next, custom
- * - Validación de fechas y horas
- * - Formateo de labels
- * - Reloj en tiempo real para validación de "today"
+ * Composable that manages all composer scheduling logic:
+ * - Modes: now, next, custom
+ * - Date/time validation
+ * - Label formatting
+ * - Real-time clock for "today" validation
  *
  * @example
  * ```ts
@@ -31,12 +50,13 @@ export interface UseComposerSchedulingOptions {
  *   initialMode: 'custom'
  * })
  *
- * // Usar en template
  * v-model="scheduling.scheduleMode.value"
  * :min-time-for-date="scheduling.minTimeForDate.value"
  * ```
  */
-export function useComposerScheduling(options: UseComposerSchedulingOptions = {}) {
+export function useComposerScheduling(
+  options: UseComposerSchedulingOptions = {},
+): UseComposerSchedulingResult {
   // ============================================================================
   // STATE
   // ============================================================================
@@ -46,28 +66,32 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
   const scheduleTime = ref('10:00')
   const isDatePickerOpen = ref(false)
 
-  /**
-   * Reloj en tiempo real que se actualiza cada minuto.
-   * Necesario para validar "today" correctamente cuando el usuario
-   * tiene el modal abierto por varios minutos.
-   */
   const now = ref(new Date())
 
   // ============================================================================
-  // LIFECYCLE - Clock ticker
+  // CLOCK TICKER
   // ============================================================================
 
   let ticker: ReturnType<typeof setInterval> | null = null
 
-  onMounted(() => {
-    ticker = setInterval(() => {
-      now.value = new Date()
-    }, 60_000) // Actualizar cada minuto
-  })
+  function stopTicker(): void {
+    if (ticker !== null) {
+      clearInterval(ticker)
+      ticker = null
+    }
+  }
 
-  onUnmounted(() => {
-    if (ticker) clearInterval(ticker)
-  })
+  // Start eagerly so the clock works even without a component mount
+  ticker = setInterval(() => {
+    now.value = new Date()
+  }, 60_000)
+
+  // Only register onUnmounted when called from an active component
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      stopTicker()
+    })
+  }
 
   // ============================================================================
   // COMPUTED
@@ -76,23 +100,21 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
   const todayDateValue = computed(() => today(getLocalTimeZone()))
 
   /**
-   * Tiempo mínimo permitido para la fecha seleccionada.
+   * Minimum allowed time for the selected date.
+   * - Today: now + 5min (allows backend processing time)
+   * - Near midnight rollover (now+5min crosses into tomorrow): '23:59' (impossible — forces future date)
+   * - Future date: '00:00' (any valid time)
    *
-   * - Si es today: now + 5min (para dar tiempo al backend a procesar)
-   * - Si estamos cerca de midnight rollover (now+5min cruza a mañana): '23:59' (imposible, fuerza elegir fecha futura)
-   * - Si es fecha futura: '00:00' (cualquier hora válida)
-   *
-   * El input type="time" usa esto como atributo `min`.
+   * Used as the `min` attribute on the time input.
    */
   const minTimeForDate = computed(() => {
     if (!selectedCalendarDate.value) return '00:00'
 
     // Comparar si la fecha seleccionada es hoy
     if (selectedCalendarDate.value.compare(todayDateValue.value) === 0) {
-      const future = new Date(now.value.getTime() + 5 * 60_000) // now + 5min
+      const future = new Date(now.value.getTime() + 5 * 60_000)
 
-      // Check for midnight rollover: if now+5min crosses into tomorrow,
-      // no valid time remains for today — return an impossible value
+      // If now+5min crosses into tomorrow, no valid time remains for today
       const futureDate = new CalendarDate(
         future.getFullYear(),
         future.getMonth() + 1,
@@ -104,16 +126,14 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
         return '23:59'
       }
 
-      // Retornar now + 5min como mínimo
       return `${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`
     }
 
-    // Future date: any time is valid
     return '00:00'
   })
 
   /**
-   * Label formateado de la fecha seleccionada (e.g. "Aug 15, 2026")
+   * Formatted label for the selected date (e.g. "Aug 15, 2026").
    */
   const selectedDateLabel = computed(() => {
     if (!selectedCalendarDate.value) return 'Select date'
@@ -127,7 +147,7 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
   })
 
   /**
-   * Texto de ayuda que explica cuándo se publicará el post
+   * Helper text explaining when the post will be published.
    */
   const scheduleHelperText = computed(() => {
     if (scheduleMode.value === 'now') {
@@ -144,21 +164,21 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
   })
 
   /**
-   * Validación: el schedule está completo y listo para submit
+   * Whether the schedule configuration is complete and ready to submit.
    */
   const isScheduleValid = computed(() => {
     if (scheduleMode.value === 'now' || scheduleMode.value === 'next') {
       return true
     }
-    // custom mode requiere fecha y hora
+    // custom mode requires both date and time
     return !!(selectedCalendarDate.value && scheduleTime.value)
   })
 
   /**
-   * ISO string de la fecha/hora efectiva para enviar al backend.
-   * - 'now': null (backend usa server timestamp)
-   * - 'next': null (backend calcula el next slot)
-   * - 'custom': ISO string con la fecha y hora seleccionadas en UTC
+   * Effective date/time ISO string for the backend payload.
+   * - 'now': null (backend uses server timestamp)
+   * - 'next': null (backend calculates next slot)
+   * - 'custom': ISO string with selected date and time in UTC
    */
   const effectiveScheduledAt = computed<string | null>(() => {
     if (scheduleMode.value !== 'custom') {
@@ -171,20 +191,27 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
 
     const [hoursRaw, minutesRaw] = scheduleTime.value.split(':').map(Number)
 
-    // Validar que los valores sean números válidos
-    if (Number.isNaN(hoursRaw) || Number.isNaN(minutesRaw)) {
+    // Validate numbers and range (hours 0—23, minutes 0—59)
+    if (
+      Number.isNaN(hoursRaw) ||
+      Number.isNaN(minutesRaw) ||
+      hoursRaw < 0 ||
+      hoursRaw > 23 ||
+      minutesRaw < 0 ||
+      minutesRaw > 59
+    ) {
       return null
     }
 
     const date = selectedCalendarDate.value.toDate(getLocalTimeZone())
-    date.setHours(hoursRaw ?? 0, minutesRaw ?? 0, 0, 0)
+    date.setHours(hoursRaw, minutesRaw, 0, 0)
 
     return date.toISOString()
   })
 
   /**
-   * Backend schedule mode para el payload
-   * Mapeo: 'now' → 'NOW', 'next' → 'NEXT_SLOT', 'custom' → 'SCHEDULED_AT'
+   * Backend schedule mode for the payload.
+   * Mapping: 'now' → 'NOW', 'next' → 'NEXT_SLOT', 'custom' → 'SCHEDULED_AT'
    */
   const backendScheduleMode = computed<'NOW' | 'NEXT_SLOT' | 'SCHEDULED_AT'>(() => {
     const modeMap: Record<ComposerScheduleMode, 'NOW' | 'NEXT_SLOT' | 'SCHEDULED_AT'> = {
@@ -200,17 +227,24 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
   // ============================================================================
 
   /**
-   * Si hay initialDate, pre-cargar el calendario en custom mode
+   * Hoisted helper to apply a valid date to the scheduling state.
+   * Leaves existing state unchanged when the date is invalid.
    */
-  if (options.initialDate) {
-    const initial = new Date(options.initialDate)
+  function applyDate(raw: string): void {
+    const parsed = new Date(raw)
+    if (Number.isNaN(parsed.getTime())) return
+
     selectedCalendarDate.value = new CalendarDate(
-      initial.getFullYear(),
-      initial.getMonth() + 1,
-      initial.getDate(),
+      parsed.getFullYear(),
+      parsed.getMonth() + 1,
+      parsed.getDate(),
     )
-    scheduleTime.value = `${String(initial.getHours()).padStart(2, '0')}:${String(initial.getMinutes()).padStart(2, '0')}`
+    scheduleTime.value = `${String(parsed.getHours()).padStart(2, '0')}:${String(parsed.getMinutes()).padStart(2, '0')}`
     scheduleMode.value = 'custom'
+  }
+
+  if (options.initialDate) {
+    applyDate(options.initialDate)
   }
 
   // ============================================================================
@@ -230,7 +264,7 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
   }
 
   /**
-   * Reset a estado inicial (now mode, sin fecha/hora)
+   * Reset to initial state (now mode, no date/time).
    */
   function resetSchedule() {
     scheduleMode.value = options.initialMode ?? 'now'
@@ -240,7 +274,7 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
   }
 
   /**
-   * Cargar scheduling desde un publication existente (edit mode)
+   * Load scheduling from an existing publication (edit mode).
    */
   function loadFromPublication(publication: {
     scheduleMode?: 'NOW' | 'NEXT_SLOT' | 'SCHEDULED_AT' | null
@@ -255,13 +289,7 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
     scheduleMode.value = modeMap[publication.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
 
     if (scheduleMode.value === 'custom' && publication.scheduledAt) {
-      const dateSrc = new Date(publication.scheduledAt)
-      selectedCalendarDate.value = new CalendarDate(
-        dateSrc.getFullYear(),
-        dateSrc.getMonth() + 1,
-        dateSrc.getDate(),
-      )
-      scheduleTime.value = `${String(dateSrc.getHours()).padStart(2, '0')}:${String(dateSrc.getMinutes()).padStart(2, '0')}`
+      applyDate(publication.scheduledAt)
     } else {
       selectedCalendarDate.value = undefined
       scheduleTime.value = '10:00'
@@ -273,14 +301,11 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
   // ============================================================================
 
   return {
-    // State
     scheduleMode,
     selectedCalendarDate,
     scheduleTime,
     isDatePickerOpen,
     now,
-
-    // Computed
     todayDateValue,
     minTimeForDate,
     selectedDateLabel,
@@ -288,12 +313,11 @@ export function useComposerScheduling(options: UseComposerSchedulingOptions = {}
     isScheduleValid,
     effectiveScheduledAt,
     backendScheduleMode,
-
-    // Actions
     setScheduleMode,
     setScheduleDate,
     setScheduleTime,
     resetSchedule,
     loadFromPublication,
+    stopTicker,
   }
 }

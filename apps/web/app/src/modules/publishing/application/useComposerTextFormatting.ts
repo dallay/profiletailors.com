@@ -1,36 +1,37 @@
 import { ref, type Ref } from 'vue'
 
-/**
- * Options para el composable de text formatting
- */
-export interface UseComposerTextFormattingOptions {
-  /**
-   * Texto del post (ref reactivo)
-   */
+export type UseComposerTextFormattingOptions = {
+  /** Reactive post text ref. */
   postText: Ref<string>
 
-  /**
-   * Callback opcional cuando se inserta un emoji
-   */
+  /** Optional callback when an emoji is inserted. */
   onEmojiInserted?: (emoji: string) => void
 
-  /**
-   * Callback opcional cuando se inserta un hashtag
-   */
+  /** Optional callback when a hashtag is inserted. */
   onHashtagInserted?: (hashtag: string) => void
 
-  /**
-   * Callback opcional cuando se aplica AI assist
-   */
+  /** Optional callback when AI assist has been applied. */
   onAiAssistApplied?: (text: string) => void
 }
 
+export type UseComposerTextFormattingResult = {
+  isAiProcessing: import('vue').Ref<boolean>
+  normalizeHashtag: (tag: string) => string
+  appendHashtag: (tag: string) => boolean
+  appendHashtagFromPrompt: () => boolean
+  insertEmoji: (emoji: string) => void
+  insertDefaultEmoji: () => void
+  applyAiAssist: () => Promise<void>
+  normalizeAllHashtags: (text: string) => string
+  formatForBackend: (text: string) => string
+}
+
 /**
- * Composable que maneja el formateo de texto en el composer:
- * - Inserción de hashtags
- * - Inserción de emojis
- * - AI assist (placeholder para integración futura)
- * - Normalización de texto antes de enviar al backend
+ * Composable that handles text formatting in the composer:
+ * - Hashtag insertion
+ * - Emoji insertion
+ * - AI assist (placeholder for future integration)
+ * - Text normalisation before sending to the backend
  *
  * @example
  * ```ts
@@ -39,46 +40,31 @@ export interface UseComposerTextFormattingOptions {
  *   onAiAssistApplied: (text) => console.log('AI generated:', text),
  * })
  *
- * // Usar
  * formatting.appendHashtag('socialmedia')
  * formatting.insertEmoji('🚀')
  * await formatting.applyAiAssist()
  * ```
  */
-export function useComposerTextFormatting(options: UseComposerTextFormattingOptions) {
+export function useComposerTextFormatting(
+  options: UseComposerTextFormattingOptions,
+): UseComposerTextFormattingResult {
   // ============================================================================
   // STATE
   // ============================================================================
 
-  /**
-   * Estado de procesamiento de AI (para UI loading states)
-   */
   const isAiProcessing = ref(false)
 
   // ============================================================================
   // HASHTAGS
   // ============================================================================
 
-  /**
-   * Normaliza un hashtag: añade # si no lo tiene, limpia caracteres inválidos
-   */
   function normalizeHashtag(tag: string): string {
-    // Si ya tiene #, verificar que sea válido
-    if (tag.startsWith('#')) {
-      return tag.toLowerCase().replace(/[^a-z0-9#_]/g, '')
-    }
-
-    // Añadir # y limpiar
-    const cleaned = tag.toLowerCase().replace(/[^a-z0-9_]/g, '')
+    const body = tag.startsWith('#') ? tag.slice(1) : tag
+    const cleaned = body.toLowerCase().replace(/[^a-z0-9_]/g, '')
     return cleaned ? `#${cleaned}` : ''
   }
 
-  /**
-   * Añade un hashtag al texto del post
-   * - Si el hashtag no empieza con #, lo añade
-   * - Si el texto ya tiene contenido, añade un espacio antes
-   * - Si el hashtag es vacío después de normalizar, no hace nada
-   */
+  /** Appends a normalised hashtag to the post text. */
   function appendHashtag(tag: string): boolean {
     if (!tag || tag.trim() === '') return false
 
@@ -94,10 +80,7 @@ export function useComposerTextFormatting(options: UseComposerTextFormattingOpti
     return true
   }
 
-  /**
-   * Pide al usuario un hashtag (usando prompt)
-   * @returns true si se añadió, false si el usuario canceló o el input era inválido
-   */
+  /** Prompts the user for a hashtag via the browser prompt API. */
   function appendHashtagFromPrompt(): boolean {
     const tag = prompt('Enter tag (e.g. #socialmedia):')
     if (!tag) return false
@@ -108,10 +91,7 @@ export function useComposerTextFormatting(options: UseComposerTextFormattingOpti
   // EMOJIS
   // ============================================================================
 
-  /**
-   * Inserta un emoji al final del texto
-   * - Si el texto ya tiene contenido y no termina con espacio, añade espacio
-   */
+  /** Inserts an emoji at the end of the post text, adding a space separator when needed. */
   function insertEmoji(emoji: string): void {
     if (!emoji) return
 
@@ -123,25 +103,18 @@ export function useComposerTextFormatting(options: UseComposerTextFormattingOpti
     options.onEmojiInserted?.(emoji)
   }
 
-  /**
-   * Inserta un emoji por defecto (🙂)
-   */
   function insertDefaultEmoji(): void {
     insertEmoji('🙂')
   }
 
   // ============================================================================
-  // AI ASSIST (PLACEHOLDER)
+  // AI ASSIST
   // ============================================================================
 
   /**
-   * Aplica AI Assist al texto
-   * NOTA: Esta es una implementación placeholder.
-   * En producción, esto debería llamar a un endpoint de AI.
-   *
-   * Comportamiento actual:
-   * - Si el texto está vacío, genera un post de ejemplo
-   * - Si hay texto, añade una firma con el brand
+   * Applies AI assist to the post text.
+   * NOTE: Placeholder implementation — in production this would call an AI endpoint.
+   * Empty text generates a sample post; existing text appends a brand signature.
    */
   async function applyAiAssist(): Promise<void> {
     if (isAiProcessing.value) return
@@ -149,17 +122,17 @@ export function useComposerTextFormatting(options: UseComposerTextFormattingOpti
     isAiProcessing.value = true
 
     try {
-      // Simular delay de API
+      // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 800))
 
       if (!options.postText.value.trim()) {
-        // Texto vacío: generar post de ejemplo
+        // Empty text: generate a sample post
         const generated =
           'Profile Tailors is officially launching! Minimalist scheduling, analytics, and multichannel delivery designed for creators. 🚀'
         options.postText.value = generated
         options.onAiAssistApplied?.(generated)
       } else {
-        // Texto existente: añadir firma
+        // Existing text: append brand signature
         const modified = `${options.postText.value}\n\nProgramado vía @ProfileTailors`
         options.postText.value = modified
         options.onAiAssistApplied?.(modified)
@@ -170,23 +143,20 @@ export function useComposerTextFormatting(options: UseComposerTextFormattingOpti
   }
 
   // ============================================================================
-  // TEXT NORMALIZATION (para envío al backend)
+  // TEXT NORMALISATION
   // ============================================================================
 
   /**
-   * Normaliza hashtags en todo el texto para envío al backend
-   * - Convierte todos los hashtags a lowercase
-   * - Elimina caracteres especiales
-   * - Normaliza espacios múltiples (pero preserva saltos de línea)
+   * Normalises all hashtags in text: lowercase, strips special chars,
+   * normalises multiple spaces while preserving line breaks.
    */
   function normalizeAllHashtags(text: string): string {
     return text
-      .replace(/[ \t]+/g, ' ') // Normaliza espacios y tabs múltiples
-      .split(/(\n+)/) // Divide por saltos de línea preservándolos
+      .replace(/[ \t]+/g, ' ') // Normalise multiple spaces and tabs
+      .split(/(\n+)/) // Split at line breaks, preserving them
       .map((part) => {
-        // Si es un salto de línea, lo preserva
-        if (/^\n+$/.test(part)) return part
-        // Si no, normaliza hashtags en cada línea
+        if (/^\n+$/.test(part)) return part // Preserve line breaks
+        // Normalise hashtags in each line
         return part
           .split(/\s+/)
           .map((word) => {
@@ -198,19 +168,17 @@ export function useComposerTextFormatting(options: UseComposerTextFormattingOpti
           .join(' ')
       })
       .join('')
-      .replace(/(\n)[ \t]+/g, '$1') // Elimina espacios después de saltos de línea
+      .replace(/(\n)[ \t]+/g, '$1') // Strip spaces after line breaks
   }
 
   /**
-   * Formatea el texto completo para enviar al backend
-   * - Normaliza hashtags
-   * - Trim de espacios al inicio y final
-   * - Normaliza saltos de línea múltiples
+   * Formats the full text for backend submission:
+   * normalises hashtags, trims, collapses excessive line breaks.
    */
   function formatForBackend(text: string): string {
     return normalizeAllHashtags(text)
       .trim()
-      .replace(/\n{3,}/g, '\n\n') // Máximo 2 saltos de línea consecutivos
+      .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive line breaks
   }
 
   // ============================================================================

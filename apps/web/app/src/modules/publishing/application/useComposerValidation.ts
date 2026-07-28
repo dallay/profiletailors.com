@@ -1,17 +1,27 @@
 import { computed, type Ref } from 'vue'
 
+/** Default character limit across providers */
+const CHAR_LIMIT = 3000
+
+/** Warning threshold: 10% of the character limit triggers a warning */
+const WARNING_THRESHOLD = 0.1
+
+/** Per-provider attachment limits */
+const PLATFORM_ATTACHMENT_LIMITS: Record<string, number> = {
+  linkedin: 9,
+  twitter: 4,
+  facebook: 10,
+  instagram: 10,
+}
+
 /**
- * Options para el composable de validación
+ * Options for the composer validation composable.
  */
-export interface UseComposerValidationOptions {
-  /**
-   * Texto del post
-   */
+export type UseComposerValidationOptions = {
+  /** Reactive post text ref. */
   postText: Ref<string>
 
-  /**
-   * Canal seleccionado (undefined si no hay ninguno)
-   */
+  /** Selected channel ref (undefined when none selected). */
   selectedChannel: Ref<
     | {
         id: string
@@ -23,88 +33,60 @@ export interface UseComposerValidationOptions {
     | undefined
   >
 
-  /**
-   * Número actual de attachments
-   */
+  /** Current attachment count. */
   attachmentCount: Ref<number>
 
-  /**
-   * Si el schedule es válido
-   */
+  /** Whether the schedule configuration is valid. */
   isScheduleValid: Ref<boolean>
 
-  /**
-   * Si está en modo edición (no requiere canal obligatorio)
-   */
+  /** Whether the composer is in edit mode (channel not required). */
   isEditMode: Ref<boolean>
 
-  /**
-   * Si está actualmente enviando/submitiendo
-   */
+  /** Whether the form is currently being submitted. */
   isSubmitting: Ref<boolean>
 }
 
 /**
- * Resultados de validación del composer
+ * Composer validation result.
  */
-export interface ComposerValidationResult {
-  /**
-   * Límite de caracteres (3000 para LinkedIn)
-   */
+export type ComposerValidationResult = {
+  /** Character limit for the active provider. */
   charLimit: number
 
-  /**
-   * Caracteres restantes
-   */
-  charsRemaining: Ref<number>
+  /** Remaining characters. */
+  charsRemaining: import('vue').ComputedRef<number>
 
-  /**
-   * Si el texto excede el límite
-   */
-  isTextTooLong: Ref<boolean>
+  /** Whether the text exceeds the character limit. */
+  isTextTooLong: import('vue').ComputedRef<boolean>
 
-  /**
-   * Si hay texto (no vacío)
-   */
-  hasText: Ref<boolean>
+  /** Whether there is non-whitespace text. */
+  hasText: import('vue').ComputedRef<boolean>
 
-  /**
-   * Límite de attachments efectivo según el canal
-   */
-  effectiveAttachmentLimit: Ref<number>
+  /** Effective attachment limit based on the selected channel. */
+  effectiveAttachmentLimit: import('vue').ComputedRef<number>
 
-  /**
-   * Si la cantidad de attachments es válida
-   */
-  isAttachmentCountValid: Ref<boolean>
+  /** Whether the current attachment count is within the limit. */
+  isAttachmentCountValid: import('vue').ComputedRef<boolean>
 
-  /**
-   * Número de attachments actuales
-   */
-  attachmentCount: Ref<number>
+  /** Current attachment count. */
+  attachmentCount: import('vue').ComputedRef<number>
 
-  /**
-   * Si puede hacer submit (todas las validaciones pasan)
-   */
-  canSubmit: Ref<boolean>
+  /** Whether all validations pass and the form can be submitted. */
+  canSubmit: import('vue').ComputedRef<boolean>
 
-  /**
-   * Errores de validación como array de strings
-   */
-  validationErrors: Ref<string[]>
+  /** Validation error messages. */
+  validationErrors: import('vue').ComputedRef<string[]>
 
-  /**
-   * Número de warnings (para UI)
-   */
-  warningCount: Ref<number>
+  /** Number of active warnings (non-blocking). */
+  warningCount: import('vue').ComputedRef<number>
 }
 
 /**
- * Composable que maneja toda la validación del composer:
- * - Límite de caracteres
- * - Campos requeridos
- * - Límite de attachments por canal
- * - Validación completa para submit
+ * Composable that handles all composer validation:
+ * - Character limits
+ * - Required fields
+ * - Per-channel attachment limits
+ * - Full submit-readiness check
  *
  * @example
  * ```ts
@@ -117,7 +99,7 @@ export interface ComposerValidationResult {
  *   isSubmitting: ref(false),
  * })
  *
- * // En template
+ * // In template
  * :disabled="!validation.canSubmit.value"
  * {{ validation.charsRemaining.value }} / {{ validation.charLimit }}
  * ```
@@ -125,21 +107,6 @@ export interface ComposerValidationResult {
 export function useComposerValidation(
   options: UseComposerValidationOptions,
 ): ComposerValidationResult {
-  // ============================================================================
-  // CONSTANTS
-  // ============================================================================
-
-  const CHAR_LIMIT = 3000
-  const WARNING_THRESHOLD = 0.1 // 10% del límite = warning
-
-  // Límites por proveedor (platform)
-  const PLATFORM_ATTACHMENT_LIMITS: Record<string, number> = {
-    linkedin: 9,
-    twitter: 4,
-    facebook: 10,
-    instagram: 10,
-  }
-
   // ============================================================================
   // COMPUTED - Límite de caracteres
   // ============================================================================
@@ -231,10 +198,9 @@ export function useComposerValidation(
     }
 
     if (!isAttachmentCountValid.value) {
-      const limit = Number.isFinite(effectiveAttachmentLimit.value)
-        ? `${options.attachmentCount.value}/${effectiveAttachmentLimit.value}`
-        : `${options.attachmentCount.value} (no limit)`
-      errors.push(`Too many attachments (${limit})`)
+      errors.push(
+        `Too many attachments (${options.attachmentCount.value}/${effectiveAttachmentLimit.value})`,
+      )
     }
 
     return errors
@@ -284,7 +250,7 @@ export function useComposerValidation(
 }
 
 /**
- * Helper para formatear el contador de caracteres
+ * Formats the character counter display string.
  */
 export function formatCharCount(remaining: number, limit: number): string {
   if (remaining < 0) {
@@ -294,7 +260,7 @@ export function formatCharCount(remaining: number, limit: number): string {
 }
 
 /**
- * Helper para obtener el estado del contador (normal, warning, error)
+ * Returns the char-count display state: normal, warning, or error.
  */
 export type CharCountState = 'normal' | 'warning' | 'error'
 

@@ -67,6 +67,20 @@ describe('useComposerTextFormatting', () => {
 
       expect(formatting.normalizeHashtag('!!!')).toBe('')
     })
+
+    it('returns empty string for bare #', () => {
+      const postText = createRef('')
+      const formatting = useComposerTextFormatting({ postText })
+
+      expect(formatting.normalizeHashtag('#')).toBe('')
+    })
+
+    it('returns empty string for # with only invalid chars', () => {
+      const postText = createRef('')
+      const formatting = useComposerTextFormatting({ postText })
+
+      expect(formatting.normalizeHashtag('#!!!')).toBe('')
+    })
   })
 
   // ============================================================================
@@ -176,35 +190,38 @@ describe('useComposerTextFormatting', () => {
   // ============================================================================
 
   describe('appendHashtagFromPrompt', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
     it('calls appendHashtag with prompt result', () => {
       const postText = createRef('')
       const formatting = useComposerTextFormatting({ postText })
 
-      // Mock prompt
-      const originalPrompt = global.prompt
-      global.prompt = vi.fn(() => 'socialmedia') as any
+      vi.stubGlobal(
+        'prompt',
+        vi.fn(() => 'socialmedia'),
+      )
 
       const result = formatting.appendHashtagFromPrompt()
 
       expect(result).toBe(true)
       expect(postText.value).toBe('#socialmedia')
-
-      global.prompt = originalPrompt
     })
 
     it('returns false when user cancels', () => {
       const postText = createRef('')
       const formatting = useComposerTextFormatting({ postText })
 
-      const originalPrompt = global.prompt
-      global.prompt = vi.fn(() => null) as any
+      vi.stubGlobal(
+        'prompt',
+        vi.fn(() => null),
+      )
 
       const result = formatting.appendHashtagFromPrompt()
 
       expect(result).toBe(false)
       expect(postText.value).toBe('')
-
-      global.prompt = originalPrompt
     })
   })
 
@@ -290,21 +307,31 @@ describe('useComposerTextFormatting', () => {
   // ============================================================================
 
   describe('applyAiAssist', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
     it('generates default text when empty', async () => {
+      vi.useFakeTimers()
       const postText = createRef('')
       const formatting = useComposerTextFormatting({ postText })
 
-      await formatting.applyAiAssist()
+      const promise = formatting.applyAiAssist()
+      vi.advanceTimersByTime(800)
+      await promise
 
       expect(postText.value).toContain('Profile Tailors')
       expect(postText.value).toContain('🚀')
     })
 
     it('appends signature to existing text', async () => {
+      vi.useFakeTimers()
       const postText = createRef('My custom post')
       const formatting = useComposerTextFormatting({ postText })
 
-      await formatting.applyAiAssist()
+      const promise = formatting.applyAiAssist()
+      vi.advanceTimersByTime(800)
+      await promise
 
       expect(postText.value).toContain('My custom post')
       expect(postText.value).toContain('@ProfileTailors')
@@ -312,6 +339,7 @@ describe('useComposerTextFormatting', () => {
     })
 
     it('sets isAiProcessing during processing', async () => {
+      vi.useFakeTimers()
       const postText = createRef('')
       const formatting = useComposerTextFormatting({ postText })
 
@@ -319,12 +347,14 @@ describe('useComposerTextFormatting', () => {
 
       expect(formatting.isAiProcessing.value).toBe(true)
 
+      vi.advanceTimersByTime(800)
       await promise
 
       expect(formatting.isAiProcessing.value).toBe(false)
     })
 
     it('calls onAiAssistApplied callback', async () => {
+      vi.useFakeTimers()
       const postText = createRef('')
       let appliedText = ''
       const formatting = useComposerTextFormatting({
@@ -334,27 +364,29 @@ describe('useComposerTextFormatting', () => {
         },
       })
 
-      await formatting.applyAiAssist()
+      const promise = formatting.applyAiAssist()
+      vi.advanceTimersByTime(800)
+      await promise
 
       expect(appliedText).toBeTruthy()
       expect(appliedText).toContain('Profile Tailors')
     })
 
     it('does nothing if already processing', async () => {
+      vi.useFakeTimers()
       const postText = createRef('')
       const formatting = useComposerTextFormatting({ postText })
 
-      // Iniciar primera llamada
       const promise1 = formatting.applyAiAssist()
 
-      // Intentar segunda llamada mientras está procesando
       const promise2 = formatting.applyAiAssist()
 
+      vi.advanceTimersByTime(800)
       await Promise.all([promise1, promise2])
 
-      // Solo se aplicó una vez
+      // Only applied once
       expect(postText.value).toContain('Profile Tailors')
-      expect(postText.value.split('Profile Tailors').length).toBe(2) // Solo una ocurrencia
+      expect(postText.value.split('Profile Tailors').length).toBe(2)
     })
   })
 

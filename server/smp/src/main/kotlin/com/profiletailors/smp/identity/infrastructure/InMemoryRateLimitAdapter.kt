@@ -17,30 +17,26 @@ class InMemoryRateLimitAdapter(
 ) : RateLimitPort {
 
     /** Keyed by principal ID → most recent attempt timestamp. */
-    private val store: MutableMap<String, Window> = ConcurrentHashMap()
+    private val store: MutableMap<String, Instant> = ConcurrentHashMap()
 
-    override fun tryAcquire(key: String, window: Duration, now: Instant): Boolean = tryAcquire(key, window, now, 1)
-
-    override fun tryAcquire(key: String, window: Duration, now: Instant, maxRequests: Int): Boolean {
-        require(maxRequests > 0)
+    override fun tryAcquire(key: String, window: Duration, now: Instant): Boolean {
         val adjustedNow = now.plus(clockSkewLeeway)
         val deadline = adjustedNow.minus(window)
 
         // Atomic conditional write: only update if the stored value is older than the window.
         // Using compute to avoid TOCTOU race between get/put.
-        val result = store.compute(key) { _, current ->
-            if (current != null && current.lastAttempt.isAfter(deadline)) {
-                if (current.count < maxRequests) Window(adjustedNow, current.count + 1) else current
+        val result = store.compute(key) { _, lastAttempt ->
+            if (lastAttempt != null && lastAttempt.isAfter(deadline)) {
+                // Still within the window — reject
+                lastAttempt
             } else {
-                Window(adjustedNow, 1)
+                // Outside the window — accept and stamp
+                adjustedNow
             }
         }
-        return result?.lastAttempt == adjustedNow && result.count <= maxRequests
+        // If the returned value equals adjustedNow, we acquired the permit.
+        return result == adjustedNow
     }
-
-    fun clear() = store.clear()
-
-    private data class Window(val lastAttempt: Instant, val count: Int)
 
     companion object {
         private val CLOCK_SKEW_LEEWAY: Duration = Duration.ofSeconds(5)

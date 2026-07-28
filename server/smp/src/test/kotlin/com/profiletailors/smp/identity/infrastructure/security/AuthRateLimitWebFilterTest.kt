@@ -60,61 +60,6 @@ class AuthRateLimitWebFilterTest {
     }
 
     @Test
-    fun `forgot password uses five request IP bucket and coded problem detail`() {
-        val filter = AuthRateLimitWebFilter()
-        val chain = WebFilterChain { Mono.empty() }
-        val remoteAddress = InetSocketAddress("203.0.113.11", 0)
-
-        repeat(5) {
-            val exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.post("/api/auth/forgot-password").remoteAddress(remoteAddress).build(),
-            )
-            filter.filter(exchange, chain).block()
-            exchange.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
-        }
-
-        val blocked = MockServerWebExchange.from(
-            MockServerHttpRequest.post("/api/auth/forgot-password").remoteAddress(remoteAddress).build(),
-        )
-        filter.filter(blocked, chain).block()
-
-        blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
-        blocked.response.bodyAsString.block()?.contains("AUTH_RATE_LIMIT_EXCEEDED") shouldBe true
-    }
-
-    @Test
-    fun `reset password uses ten attempt IP bucket`() {
-        val filter = AuthRateLimitWebFilter()
-        val chain = WebFilterChain { Mono.empty() }
-        val remoteAddress = InetSocketAddress("203.0.113.12", 0)
-
-        repeat(10) {
-            val exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.post("/api/auth/reset-password").remoteAddress(remoteAddress).build(),
-            )
-            filter.filter(exchange, chain).block()
-            exchange.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
-        }
-
-        val blocked = MockServerWebExchange.from(
-            MockServerHttpRequest.post("/api/auth/reset-password").remoteAddress(remoteAddress).build(),
-        )
-        filter.filter(blocked, chain).block()
-
-        blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
-    }
-
-    @Test
-    fun `forgot password admits a new request exactly when its window expires`() {
-        assertPasswordRecoveryWindowExpires("/api/auth/forgot-password", maxRequests = 5)
-    }
-
-    @Test
-    fun `reset password admits a new attempt exactly when its window expires`() {
-        assertPasswordRecoveryWindowExpires("/api/auth/reset-password", maxRequests = 10)
-    }
-
-    @Test
     fun `does not let spoofed forwarded for headers bypass login rate limit`() {
         val filter = AuthRateLimitWebFilter()
         val chain = WebFilterChain { Mono.empty() }
@@ -173,30 +118,8 @@ class AuthRateLimitWebFilterTest {
         filter.trackedWindowCount() shouldBe EXTRA_IPS_AFTER_EVICTION
     }
 
-    private fun assertPasswordRecoveryWindowExpires(path: String, maxRequests: Int) {
-        val baseline = Instant.parse("2026-07-01T00:00:00Z")
-        val clock = MutableClock(baseline)
-        val filter = AuthRateLimitWebFilter(clock)
-        val chain = WebFilterChain { Mono.empty() }
-        val remoteAddress = InetSocketAddress("203.0.113.20", 0)
-        fun exchange() = MockServerWebExchange.from(
-            MockServerHttpRequest.post(path).remoteAddress(remoteAddress).build(),
-        )
-
-        repeat(maxRequests) { filter.filter(exchange(), chain).block() }
-        val blocked = exchange()
-        filter.filter(blocked, chain).block()
-        blocked.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
-
-        clock.setInstant(baseline.plusMillis(PASSWORD_RECOVERY_WINDOW_MS))
-        val admitted = exchange()
-        filter.filter(admitted, chain).block()
-        admitted.response.statusCode shouldNotBe HttpStatus.TOO_MANY_REQUESTS
-    }
-
     private companion object {
         private const val WINDOW_MS = 60_000L
-        private const val PASSWORD_RECOVERY_WINDOW_MS = 15 * 60_000L
         private const val MAX_TRACKED_WINDOWS_FOR_TEST = 32
         private const val EXTRA_IPS_AFTER_EVICTION = 8
     }
