@@ -12,7 +12,9 @@ import com.profiletailors.smp.credentials.infrastructure.RefreshSessionConfigura
 import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.LocalJwtIssuer
+import com.profiletailors.smp.identity.application.MinimumDurationPasswordRecoveryTimingEqualizer
 import com.profiletailors.smp.identity.application.PasswordHasher
+import com.profiletailors.smp.identity.application.PasswordRecoveryTimingEqualizer
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
 import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
@@ -26,9 +28,20 @@ import org.springframework.security.oauth2.jwt.JwtEncoder
 import java.time.Clock
 
 @Configuration
-@EnableConfigurationProperties(RegistrationConfigurationProperties::class)
+@EnableConfigurationProperties(
+    RegistrationConfigurationProperties::class,
+    PasswordRecoveryConfigurationProperties::class,
+)
 @Suppress("TooManyFunctions")
 class IdentityBootstrapConfiguration {
+
+    @Bean
+    fun passwordRecoveryEnabled(properties: PasswordRecoveryConfigurationProperties): () -> Boolean =
+        { properties.enabled }
+
+    @Bean
+    fun recoveryTimingEqualizer(properties: PasswordRecoveryConfigurationProperties): PasswordRecoveryTimingEqualizer =
+        MinimumDurationPasswordRecoveryTimingEqualizer(properties.minimumResponseDuration)
 
     @Bean
     @Profile("!dev")
