@@ -29,7 +29,7 @@ const registrationClosed = computed(
 
 const email = ref('')
 const password = ref('')
-const passwordVisible = ref(false)
+const passwordVisible = ref<boolean>(false)
 const confirmPassword = ref('')
 const confirmedAgeEligibility = ref(false)
 const acceptedTerms = ref(false)
@@ -171,10 +171,10 @@ async function handleSubmit() {
 
           <form class="mt-8 space-y-5" @submit.prevent="handleSubmit">
             <div v-if="!isRegisterMode" class="space-y-3">
-              <Button type="button" variant="outline" class="w-full justify-center border-border-visible bg-bg-primary">
+              <Button type="button" variant="outline" class="w-full justify-center border-border-visible bg-bg-primary" disabled>
                 Continue with Google
               </Button>
-              <Button type="button" variant="outline" class="w-full justify-center border-border-visible bg-bg-primary">
+              <Button type="button" variant="outline" class="w-full justify-center border-border-visible bg-bg-primary" disabled>
                 Continue with Apple
               </Button>
             </div>
@@ -213,7 +213,7 @@ async function handleSubmit() {
                   id="password"
                   v-model="password"
                   :type="passwordVisible ? 'text' : 'password'"
-                  autocomplete="current-password"
+                  :autocomplete="isRegisterMode ? 'new-password' : 'current-password'"
                   :placeholder="$t('auth.passwordPlaceholder')"
                   :aria-invalid="fieldErrors.password ? 'true' : 'false'"
                   class="w-full rounded-2xl border border-border-visible bg-bg-primary py-3 pl-4 pr-20 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
@@ -221,7 +221,7 @@ async function handleSubmit() {
                 >
                 <button
                   type="button"
-                  aria-label="Show password"
+                  :aria-label="passwordVisible ? 'Hide' : 'Show'"
                   :aria-pressed="passwordVisible ? 'true' : 'false'"
                   class="absolute right-2 top-1/2 min-h-8 -translate-y-1/2 rounded-xl px-3 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-text-secondary transition-colors hover:text-text-display focus:outline-none focus-visible:ring-2 focus-visible:ring-text-display focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
                   @click="passwordVisible = !passwordVisible"

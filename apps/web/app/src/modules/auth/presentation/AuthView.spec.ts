@@ -83,7 +83,7 @@ describe('AuthView validation', () => {
     publicCapabilitiesLoad.mockReset()
   })
 
-  it('renders a native sign-in form that supports password managers and Enter submission', async () => {
+  it('renders a native sign-in form that supports password managers and Enter submission', async (): Promise<void> => {
     loginWithPassword.mockResolvedValue(undefined)
     const wrapper = mountAuthView()
 
@@ -91,7 +91,7 @@ describe('AuthView validation', () => {
     const emailInput = wrapper.find('input#email')
     const passwordInput = wrapper.find('input#password')
     const submitButton = wrapper.find('button[type="submit"]')
-    const toggleButton = wrapper.find('button[aria-label="Show password"]')
+    const toggleButton = wrapper.find('button[aria-label="Show"]')
 
     expect(form.exists()).toBe(true)
     expect(wrapper.find('label[for="email"]').exists()).toBe(true)
@@ -113,7 +113,7 @@ describe('AuthView validation', () => {
     })
   })
 
-  it('places federated sign-in buttons above the sign-in method divider', () => {
+  it('places federated sign-in buttons above the sign-in method divider', (): void => {
     const wrapper = mountAuthView()
     const text = wrapper.find('form').text()
 
@@ -122,14 +122,14 @@ describe('AuthView validation', () => {
     expect(wrapper.find('[data-testid="sign-in-method-divider"]').text()).toBe('or')
   })
 
-  it('toggles password visibility without submitting the form', async () => {
+  it('toggles password visibility without submitting the form', async (): Promise<void> => {
     const wrapper = mountAuthView()
-    const toggleButton = wrapper.find('button[aria-label="Show password"]')
+    const toggleButton = wrapper.find('button[aria-label="Show"]')
 
     await toggleButton.trigger('click')
 
     expect(wrapper.find('input#password').attributes('type')).toBe('text')
-    expect(toggleButton.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.find('button[aria-label="Hide"]').attributes('aria-pressed')).toBe('true')
     expect(loginWithPassword).not.toHaveBeenCalled()
   })
 
