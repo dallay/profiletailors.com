@@ -27,9 +27,10 @@ export class ComposeModalPage {
     return this.page.getByPlaceholder(/your comment|tu comentario/i)
   }
 
-  // Schedule mode tabs — labels wrap the visually-hidden radio inputs,
-  // so we target the <label> for both clicking (toggles the radio) and
-  // class checks (bg-text-display is on the label, not the input).
+  // Schedule mode tabs — <input type="radio"> inside styled <label>.
+  // getByRole('radio') resolves the hidden <input>, so xpath=.. gets the
+  // visible <label> for both clicking (toggles the radio) and class checks
+  // (bg-text-display is on the label, not the input).
   get nowTab(): Locator {
     return this.page.getByRole('radio', { name: /^now$/i }).locator('xpath=..')
   }
