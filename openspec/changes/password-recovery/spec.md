@@ -1,8 +1,10 @@
 # Spec: Password Recovery
 
-Delta spec for the `password-recovery` change. Defines two new capabilities
-(`password-recovery-api`, `password-recovery-ui`) and the requirements that
-must hold in every implementation.
+Delta spec for the `password-recovery` change. It preserves the complete
+product contract while assigning implementation and executable acceptance
+ownership to three delivery slices: **PR 1 core backend**, **PR 2 frontend**,
+and **PR 3 hardening**. A later slice does not weaken or remove its requirements;
+it only defers their production behavior and acceptance execution.
 
 ## Purpose
 
@@ -26,9 +28,26 @@ an email corresponds to an existing account.
   does NOT reuse the `email_verification_tokens` table or the
   `EmailVerificationTokenHasher` symbol. Independent lifecycle.
 
+## Delivery Classification
+
+| Requirement group | Delivery slice | Executable acceptance owner |
+|---|---|---|
+| REQ-PR, REQ-RP, REQ-TOK-01..05 | PR 1 core backend | PR 1 backend unit, HTTP, BDD, and real-Postgres tests where database semantics apply |
+| REQ-NOT-01..05 | PR 1 core backend | PR 1 notification/template acceptance |
+| REQ-NOT-06 | PR 3 hardening | PR 3 telemetry acceptance |
+| REQ-UI-01..16 | PR 2 frontend | PR 2 Vitest and Playwright acceptance |
+| Audit, retention cleanup, notification retry/final failure, and operational telemetry scenarios | PR 3 hardening | PR 3 backend acceptance |
+
+Feature-level delivery tags classify PR 1 backend scenarios, frontend coverage is
+owned by PR 2, and scenario-level `[PR 3]` headings plus `@pr-3` tags identify
+hardening overrides. PR 1 MUST NOT be considered responsible for implementing or
+executing PR 3 production behavior.
+
 ## Requirements
 
 ### REQ-PR — Request Password Reset
+
+**Delivery: PR 1 core backend.**
 
 The capability MUST satisfy these requirements when the system exposes
 `POST /api/auth/forgot-password`.
@@ -81,6 +100,8 @@ The capability MUST satisfy these requirements when the system exposes
   must be created.
 
 ### REQ-RP — Reset Password
+
+**Delivery: PR 1 core backend.**
 
 The capability MUST satisfy these requirements when the system exposes
 `POST /api/auth/reset-password`.
@@ -137,12 +158,15 @@ The capability MUST satisfy these requirements when the system exposes
 
 ### REQ-TOK — Token Storage
 
+**Delivery: PR 1 core backend, except retention cleanup acceptance is PR 3 hardening.**
+
 - **REQ-TOK-01** Tokens MUST be persisted in a dedicated table named
   `password_reset_tokens` with the schema described below.
 - **REQ-TOK-02** The table MUST have a unique constraint on `token_hash`.
 - **REQ-TOK-03** A foreign key from `principal_id` to
-  `principal_identities.principal_id` MUST exist with
-  `ON DELETE CASCADE`.
+  `user_identities.principal_id` MUST exist with `ON DELETE CASCADE`. The
+  column MUST use `VARCHAR(64)`, matching the existing identity schema's
+  `principals.id` and `user_identities.principal_id` types.
 - **REQ-TOK-04** A partial index on `(principal_id, expires_at)` filtered
   to `used_at IS NULL` MUST exist to support the active-token lookup.
 - **REQ-TOK-05** The table MUST NOT store the raw token, the email
@@ -155,7 +179,7 @@ Schema contract:
 ```sql
 CREATE TABLE password_reset_tokens (
     id UUID PRIMARY KEY,
-    principal_id VARCHAR(255) NOT NULL,
+    principal_id VARCHAR(64) NOT NULL,
     token_hash VARCHAR(128) NOT NULL UNIQUE,
     requested_at TIMESTAMPTZ NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
@@ -164,7 +188,7 @@ CREATE TABLE password_reset_tokens (
     user_agent_hash VARCHAR(128) NULL,
     CONSTRAINT fk_password_reset_principal
         FOREIGN KEY (principal_id)
-        REFERENCES principal_identities(principal_id)
+        REFERENCES user_identities(principal_id)
         ON DELETE CASCADE
 );
 
@@ -174,6 +198,9 @@ CREATE INDEX idx_password_reset_principal_active
 ```
 
 ### REQ-NOT — Notifications
+
+**Delivery: REQ-NOT-01..05 and primary dispatch are PR 1 core backend;
+REQ-NOT-06, retries, and terminal-failure recording are PR 3 hardening.**
 
 - **REQ-NOT-01** The `PasswordResetRequested` event MUST carry:
   `principalId: String`, `email: String`, `rawResetToken: String`.
@@ -190,11 +217,17 @@ CREATE INDEX idx_password_reset_principal_active
   property (see `EmailProperties`).
 - **REQ-NOT-05** The email template MUST escape user-controlled values
   to prevent HTML injection.
-- **REQ-NOT-06** Notification telemetry MUST include the notification
+- **REQ-NOT-06** [PR 3] Notification telemetry MUST include the notification
   type and delivery status, but MUST NOT include the raw token, the
   recipient's password, or the reset URL query string.
+- **REQ-NOT-07** [PR 3] Temporary delivery failures MUST be retried according
+  to the notification policy without exposing sensitive values in retry records.
+- **REQ-NOT-08** [PR 3] Exhausted delivery retries MUST produce a terminal
+  failure record and operational signal without storing the raw token or reset URL.
 
 ### REQ-UI — Frontend Flows
+
+**Delivery: PR 2 frontend.**
 
 - **REQ-UI-01** A "Forgot password?" link MUST be present and visible on
   the login page. The link MUST be reachable by keyboard and MUST
@@ -245,26 +278,42 @@ CREATE INDEX idx_password_reset_principal_active
 - **REQ-UI-16** The token query parameter MUST NOT be persisted to
   localStorage, sessionStorage, or analytics events.
 
+### REQ-HARD — Operational Hardening
+
+**Delivery: PR 3 hardening.**
+
+- **REQ-HARD-01** Successful resets MUST emit `PASSWORD_RESET_COMPLETED` with
+  principal identifier and occurrence time, and MUST exclude tokens and passwords.
+- **REQ-HARD-02** Suspicious repeated failures MAY emit a security event containing
+  hashed network identifiers and counts, and MUST exclude tokens and passwords.
+- **REQ-HARD-03** A scheduled, idempotent cleanup MUST delete expired tokens older
+  than the retention threshold while preserving active tokens and records inside the
+  audit-retention window.
+- **REQ-HARD-04** Operational telemetry MUST expose safe delivery and reset outcomes
+  without email, raw IP, token, password, or reset-URL query values.
+
 ## Behavior Coverage
 
-The following Gherkin feature files exercise every REQ-* above. They are
-materialized under
-`server/smp/src/test/resources/features/` and
-`apps/web/app/e2e/specs/` during implementation.
+Scenario delivery is determined by its inherited feature tag. Every backend feature
+is `@pr-1` by default; an explicit scenario-level `@pr-3` tag overrides that default.
+Frontend E2E scenarios are `@pr-2`. Therefore every listed scenario has exactly one
+acceptance owner even when its product requirement remains globally mandatory.
 
-- `identity-request-password-reset.feature`
-- `identity-reset-password.feature`
-- `identity-password-reset-persistence.feature`
-- `identity-password-reset-notifications.feature`
-- `identity-password-reset-security.feature`
-- `apps/web/app/e2e/specs/password-reset-frontend.spec.ts`
+| Artifact | Default owner | Override |
+|---|---|---|
+| `identity-request-password-reset.feature` | PR 1 | None |
+| `identity-reset-password.feature` | PR 1 | None |
+| `identity-password-reset-persistence.feature` | PR 1 | `@pr-3` retention cleanup |
+| `identity-password-reset-notifications.feature` | PR 1 | `@pr-3` retry, terminal failure, telemetry |
+| `identity-password-reset-security.feature` | PR 1 | `@pr-3` completed-reset and suspicious-attempt audit |
+| `apps/web/app/e2e/specs/password-reset-frontend.spec.ts` | PR 2 | None |
 
 ---
 
 ## Feature: Request Password Reset — `identity-request-password-reset.feature`
 
 ```gherkin
-@identity @password-recovery
+@identity @password-recovery @pr-1
 Feature: Request password reset
   As a user who cannot remember the account password
   I want to request a secure password reset link
@@ -384,13 +433,13 @@ Feature: Request password reset
     And all superseded tokens should be unusable
 
   @transaction
-  Scenario: Do not publish a notification when token persistence fails
+  Scenario: [PR 1] Do not publish a notification when token persistence fails
     Given a local account exists with email "user@example.com"
     And password reset token persistence will fail
     When the visitor requests a password reset for "user@example.com"
     Then no password reset notification should be published
     And no partial password reset token record should remain
-    And the failure should be recorded without exposing sensitive data
+    And the response should not expose sensitive data
 
   @notification
   Scenario: Password reset email contains the expected reset link
@@ -481,7 +530,7 @@ Feature: Request password reset
 ## Feature: Reset Password — `identity-reset-password.feature`
 
 ```gherkin
-@identity @password-recovery
+@identity @password-recovery @pr-1
 Feature: Reset password using a recovery token
   As a user who has received a password reset link
   I want to choose a new password
@@ -757,7 +806,7 @@ Feature: Reset password using a recovery token
 ## Feature: Persist Password Reset Tokens — `identity-password-reset-persistence.feature`
 
 ```gherkin
-@backend @persistence @password-recovery
+@backend @persistence @password-recovery @pr-1
 Feature: Persist password reset tokens securely
   As the authentication subsystem
   I want password reset tokens to be persisted safely
@@ -834,8 +883,8 @@ Feature: Persist password reset tokens securely
     And exactly one transaction should report no token consumed
     And the token should have one final used timestamp
 
-  @cleanup
-  Scenario: Remove expired password reset tokens
+  @cleanup @pr-3
+  Scenario: [PR 3] Remove expired password reset tokens
     Given expired and active password reset tokens exist
     When the expired-token cleanup job runs
     Then expired tokens older than the retention threshold should be deleted
@@ -848,7 +897,7 @@ Feature: Persist password reset tokens securely
 ## Feature: Deliver Password Reset Notifications — `identity-password-reset-notifications.feature`
 
 ```gherkin
-@notifications @password-recovery
+@notifications @password-recovery @pr-1
 Feature: Deliver password reset notifications
   As the platform
   I want password reset emails to be dispatched securely
@@ -876,15 +925,15 @@ Feature: Deliver password reset notifications
     When the transaction rolls back
     Then no password reset email should be dispatched
 
-  @retry
-  Scenario: Retry a temporary email provider failure
+  @retry @pr-3
+  Scenario: [PR 3] Retry a temporary email provider failure
     Given the password reset email provider is temporarily unavailable
     When the notification dispatcher attempts delivery
     Then the delivery should be retried according to notification policy
     And the raw token should not appear in retry logs
 
-  @failure
-  Scenario: Record a terminal notification failure
+  @failure @pr-3
+  Scenario: [PR 3] Record a terminal notification failure
     Given all configured delivery retries are exhausted
     When the password reset email cannot be delivered
     Then the notification should be marked as failed
@@ -908,8 +957,8 @@ Feature: Deliver password reset notifications
     Then user-controlled values should be safely escaped
     And no HTML injection should be possible
 
-  @privacy
-  Scenario: Notification telemetry excludes sensitive values
+  @privacy @pr-3
+  Scenario: [PR 3] Notification telemetry excludes sensitive values
     Given a password reset notification is dispatched
     Then telemetry may include the notification type
     And telemetry may include delivery status
@@ -923,7 +972,7 @@ Feature: Deliver password reset notifications
 ## Feature: Password Recovery Security Controls — `identity-password-reset-security.feature`
 
 ```gherkin
-@security @password-recovery
+@security @password-recovery @pr-1
 Feature: Password recovery security controls
   As the platform operator
   I want password recovery to resist common attacks
@@ -1003,10 +1052,11 @@ Feature: Password recovery security controls
     When password reset is requested for an existing account
     And password reset is requested for an unknown account
     Then neither HTTP response should wait for email delivery
+    And both accepted paths should complete account-dependent work before a bounded minimum-duration equalization boundary
     And response processing should avoid an obvious account-dependent delay
 
-  @audit
-  Scenario: Audit a successful password change
+  @audit @pr-3
+  Scenario: [PR 3] Audit a successful password change
     Given a valid password reset succeeds
     Then an audit event should record the principal identifier
     And the event should record the occurrence timestamp
@@ -1015,8 +1065,8 @@ Feature: Password recovery security controls
     And the event should not contain the password
     And the event should not contain the password hash
 
-  @audit
-  Scenario: Audit repeated suspicious reset failures without storing secrets
+  @audit @pr-3
+  Scenario: [PR 3] Audit repeated suspicious reset failures without storing secrets
     Given repeated invalid reset attempts are detected
     Then a security event may record a hashed network identifier
     And the event may record attempt counts

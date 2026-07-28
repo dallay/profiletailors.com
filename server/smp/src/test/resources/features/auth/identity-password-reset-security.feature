@@ -1,4 +1,4 @@
-@security @password-recovery @fast @postgres
+@identity @password-recovery @smoke @fast
 Feature: Password recovery security controls
   As the platform operator
   I want password recovery to resist common attacks
@@ -42,6 +42,14 @@ Feature: Password recovery security controls
     When the user resets the password using the token and a valid new password
     Then the password recovery response status should be 204
     And no new authenticated session should be created
+
+  @cors
+  Scenario: Reject reset requests from a disallowed origin
+    Given a local account exists with email "user@example.com"
+    And a valid unused password reset token exists for the account
+    When the password reset request is submitted from disallowed origin "https://evil.example"
+    Then the password recovery response status should be 403
+    And no password should be changed
 
   @replay
   Scenario: Prevent replay after a successful reset

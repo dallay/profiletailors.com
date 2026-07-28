@@ -34,12 +34,18 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
     }
 
     override suspend fun invalidateActiveTokens(principalId: String, invalidatedAt: Instant) {
+        databaseClient.sql("SELECT pg_advisory_xact_lock(hashtext(:principalId))")
+            .bind("principalId", principalId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
         databaseClient.sql(
             """
             UPDATE password_reset_tokens
             SET used_at = :invalidatedAt
             WHERE principal_id = :principalId
               AND used_at IS NULL
+              AND expires_at > :invalidatedAt
             """.trimIndent(),
         )
             .bind("invalidatedAt", invalidatedAt)

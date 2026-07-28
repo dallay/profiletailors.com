@@ -106,10 +106,12 @@ class IdentityProblemDetailsHandler {
     }
 
     @ExceptionHandler(ExpiredPasswordResetTokenException::class)
-    fun handle(exception: ExpiredPasswordResetTokenException): ProblemDetail = invalidResetProblem(exception)
+    fun handle(exception: ExpiredPasswordResetTokenException): ProblemDetail =
+        invalidResetProblem(exception, "EXPIRED_PASSWORD_RESET_TOKEN")
 
     @ExceptionHandler(UsedPasswordResetTokenException::class)
-    fun handle(exception: UsedPasswordResetTokenException): ProblemDetail = invalidResetProblem(exception)
+    fun handle(exception: UsedPasswordResetTokenException): ProblemDetail =
+        invalidResetProblem(exception, "USED_PASSWORD_RESET_TOKEN")
 
     @ExceptionHandler(PasswordRecoveryPasswordException::class)
     fun handle(exception: PasswordRecoveryPasswordException): ProblemDetail =
@@ -126,8 +128,13 @@ class IdentityProblemDetailsHandler {
         }
 
     @ExceptionHandler(PasswordRecoveryDisabledException::class)
-    fun handle(exception: PasswordRecoveryDisabledException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.message ?: PASSWORD_RECOVERY_DISABLED_DETAIL)
+    fun handle(exception: PasswordRecoveryDisabledException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        exception.message ?: PASSWORD_RECOVERY_DISABLED_DETAIL,
+    ).apply {
+        title = "Password recovery disabled"
+        setProperty("code", "PASSWORD_RECOVERY_DISABLED")
+    }
 
     @ExceptionHandler(WebExchangeBindException::class)
     @Suppress("UNUSED_PARAMETER")
@@ -176,14 +183,15 @@ class IdentityProblemDetailsHandler {
         private const val INVALID_PASSWORD_DETAIL = "Password does not meet policy requirements."
         private const val RATE_LIMIT_DETAIL = "Authentication rate limit exceeded. Try again later."
         private const val PASSWORD_RECOVERY_DISABLED_DETAIL = "Password recovery is not available."
-        private const val VALIDATION_DETAIL = "Request validation failed."
+        private const val VALIDATION_DETAIL = "Validation failure"
 
-        private fun invalidResetProblem(exception: RuntimeException): ProblemDetail = ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST,
-            exception.message ?: INVALID_RESET_TOKEN_DETAIL,
-        ).apply {
-            title = "Invalid password reset token"
-            setProperty("code", "INVALID_PASSWORD_RESET_TOKEN")
-        }
+        private fun invalidResetProblem(exception: RuntimeException, code: String): ProblemDetail =
+            ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                exception.message ?: INVALID_RESET_TOKEN_DETAIL,
+            ).apply {
+                title = "Invalid password reset token"
+                setProperty("code", code)
+            }
     }
 }

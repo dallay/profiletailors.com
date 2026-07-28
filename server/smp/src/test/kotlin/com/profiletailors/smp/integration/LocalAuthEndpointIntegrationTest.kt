@@ -505,6 +505,17 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
     }
 
     @Test
+    fun `reset password rejects a disallowed origin`() {
+        webTestClient.post()
+            .uri("/api/auth/reset-password")
+            .header(HttpHeaders.ORIGIN, "https://evil.example")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(mapOf("token" to "secret-reset-token", "newPassword" to "NewPassword123!"))
+            .exchange()
+            .expectStatus().isForbidden
+    }
+
+    @Test
     fun `refresh returns jwt with emailStatus verified claim`() {
         val registerResult = registerAndExtract()
 

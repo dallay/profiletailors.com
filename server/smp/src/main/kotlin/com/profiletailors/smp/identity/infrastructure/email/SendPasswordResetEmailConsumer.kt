@@ -4,7 +4,10 @@ import com.profiletailors.common.domain.bus.event.EventConsumer
 import com.profiletailors.common.domain.bus.event.Subscribe
 import com.profiletailors.smp.identity.application.EmailSender
 import com.profiletailors.smp.identity.domain.PasswordResetRequested
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Component
 
 /**
@@ -19,17 +22,29 @@ import org.springframework.stereotype.Component
 class SendPasswordResetEmailConsumer(
     private val emailSender: EmailSender,
     private val emailProperties: EmailProperties,
+    @Qualifier("passwordResetEmailTaskExecutor") private val taskExecutor: TaskExecutor,
 ) : EventConsumer<PasswordResetRequested> {
 
     private val log = LoggerFactory.getLogger(SendPasswordResetEmailConsumer::class.java)
 
     override suspend fun consume(event: PasswordResetRequested) {
+        taskExecutor.execute {
+            runBlocking { deliver(event) }
+        }
+    }
+
+    private suspend fun deliver(event: PasswordResetRequested) {
         val message = EmailTemplates.passwordResetEmail(
             username = event.email.substringBefore('@'),
             token = event.rawResetToken,
             publicAppUrl = emailProperties.publicAppUrl,
+            locale = event.locale,
         )
-        val subject = "Reset your password"
+        val subject = if (event.locale.lowercase().startsWith("es")) {
+            "Restablece tu contraseña"
+        } else {
+            "Reset your password"
+        }
         val result = emailSender.send(
             to = event.email,
             subject = subject,
@@ -37,9 +52,8 @@ class SendPasswordResetEmailConsumer(
         )
         if (!result.success) {
             log.error(
-                "Failed to send password reset email to recipient for principal '{}': {}",
+                "Password reset email delivery failed for principal '{}' with category 'provider-rejected'",
                 event.principalId,
-                result.error,
             )
         } else {
             log.info("Password reset email sent to recipient for principal '{}'", event.principalId)

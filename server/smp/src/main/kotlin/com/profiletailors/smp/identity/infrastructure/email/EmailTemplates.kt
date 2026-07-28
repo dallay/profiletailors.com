@@ -93,6 +93,7 @@ object EmailTemplates {
         username: String,
         token: String,
         publicAppUrl: String = DEFAULT_PUBLIC_APP_URL,
+        locale: String = "en",
     ): EmailMessage {
         val missingVariables = listOfNotNull(
             "token".takeIf { token.isBlank() },
@@ -103,27 +104,65 @@ object EmailTemplates {
         }
 
         val url = "${publicAppUrl.trimEnd('/')}/reset-password?token=$token"
-        val text = """
-            |Hi $username,
-            |
-            |We received a request to reset the password for your Profile Tailors account.
-            |
-            |Reset your password by clicking the link below:
-            |
-            |$url
-            |
-            |This link expires in 30 minutes.
-            |
-            |If you did not request a password reset, you can safely ignore this email.
-            |
-            |Best,
-            |The Profile Tailors Team
-        """.trimMargin()
-        val html = passwordResetHtml(escapeHtml(username), escapeHtml(url))
+        val spanish = locale.lowercase().startsWith("es")
+        val text = if (spanish) {
+            """
+                |Hola $username,
+                |
+                |Recibimos una solicitud para restablecer la contraseña de tu cuenta de Profile Tailors.
+                |
+                |Restablece tu contraseña mediante el siguiente enlace:
+                |
+                |$url
+                |
+                |Este enlace caduca en 30 minutos.
+                |
+                |Si no solicitaste restablecer tu contraseña, puedes ignorar este correo de forma segura.
+                |
+                |Saludos,
+                |El equipo de Profile Tailors
+            """.trimMargin()
+        } else {
+            """
+                |Hi $username,
+                |
+                |We received a request to reset the password for your Profile Tailors account.
+                |
+                |Reset your password by clicking the link below:
+                |
+                |$url
+                |
+                |This link expires in 30 minutes.
+                |
+                |If you did not request a password reset, you can safely ignore this email.
+                |
+                |Best,
+                |The Profile Tailors Team
+            """.trimMargin()
+        }
+        val html = passwordResetHtml(escapeHtml(username), escapeHtml(url), spanish)
         return EmailMessage(text = text, html = html)
     }
 
-    private fun passwordResetHtml(username: String, resetUrl: String): String = """
+    private fun passwordResetHtml(username: String, resetUrl: String, spanish: Boolean): String {
+        val title = if (spanish) "Restablece tu contraseña" else "Reset your password"
+        val requestText = if (spanish) {
+            "Recibimos una solicitud para restablecer la contraseña de tu cuenta de Profile Tailors."
+        } else {
+            "We received a request to reset the password for your Profile Tailors account."
+        }
+        val expiryText = if (spanish) "Este enlace caduca en 30 MINUTOS." else "This link expires in 30 MINUTES."
+        val ignoreText = if (spanish) {
+            "Si no solicitaste restablecer tu contraseña, puedes ignorar este correo de forma segura."
+        } else {
+            "If you did not request a password reset, you can safely ignore this email."
+        }
+        val fallbackText = if (spanish) {
+            "Si el botón no funciona, copia esta URL:"
+        } else {
+            "If the button does not work, copy this URL:"
+        }
+        return """
         <!doctype html>
         <html lang="en">
           <body style="margin:0;padding:0;background:#0a0a0a;color:#e5e5e5;font-family:'Space Grotesk','DM Sans',Arial,sans-serif;">
@@ -132,13 +171,13 @@ object EmailTemplates {
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#1a1a1a;border:1px solid #333333;border-collapse:collapse;">
                   <tr><td style="padding:32px;">
                     <p style="margin:0 0 24px;color:#a3a3a3;font-family:'Space Mono','JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;">PROFILE TAILORS / PASSWORD RESET</p>
-                    <h1 style="margin:0 0 24px;color:#ffffff;font-size:24px;font-weight:500;line-height:1.2;">Reset your password</h1>
-                    <p style="margin:0 0 16px;font-size:16px;line-height:1.5;">Hi $username,</p>
-                    <p style="margin:0 0 24px;font-size:16px;line-height:1.5;">We received a request to reset the password for your Profile Tailors account.</p>
-                    <p style="margin:0 0 32px;"><a href="$resetUrl" style="display:inline-block;background:#ffffff;color:#0a0a0a;border-radius:999px;padding:14px 24px;font-family:'Space Mono','JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-decoration:none;">Reset Password</a></p>
-                    <p style="margin:0 0 16px;color:#a3a3a3;font-size:14px;line-height:1.5;">This link expires in 30 MINUTES.</p>
-                    <p style="margin:0 0 16px;color:#a3a3a3;font-size:14px;line-height:1.5;">If you did not request a password reset, you can safely ignore this email.</p>
-                    <p style="margin:0 0 8px;color:#a3a3a3;font-size:14px;line-height:1.5;">If the button does not work, copy this URL:</p>
+                    <h1 style="margin:0 0 24px;color:#ffffff;font-size:24px;font-weight:500;line-height:1.2;">$title</h1>
+                    <p style="margin:0 0 16px;font-size:16px;line-height:1.5;">${if (spanish) "Hola" else "Hi"} $username,</p>
+                    <p style="margin:0 0 24px;font-size:16px;line-height:1.5;">$requestText</p>
+                    <p style="margin:0 0 32px;"><a href="$resetUrl" style="display:inline-block;background:#ffffff;color:#0a0a0a;border-radius:999px;padding:14px 24px;font-family:'Space Mono','JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.08em;text-decoration:none;">$title</a></p>
+                    <p style="margin:0 0 16px;color:#a3a3a3;font-size:14px;line-height:1.5;">$expiryText</p>
+                    <p style="margin:0 0 16px;color:#a3a3a3;font-size:14px;line-height:1.5;">$ignoreText</p>
+                    <p style="margin:0 0 8px;color:#a3a3a3;font-size:14px;line-height:1.5;">$fallbackText</p>
                     <p style="margin:0;color:#e5e5e5;font-family:'Space Mono','JetBrains Mono',monospace;font-size:12px;line-height:1.5;word-break:break-all;">$resetUrl</p>
                   </td></tr>
                 </table>
@@ -146,7 +185,8 @@ object EmailTemplates {
             </table>
         </body>
         </html>
-    """.trimIndent()
+        """.trimIndent()
+    }
 
     private fun escapeHtml(value: String): String = buildString(value.length) {
         value.forEach { character ->

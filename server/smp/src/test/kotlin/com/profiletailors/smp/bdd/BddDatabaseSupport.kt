@@ -1199,6 +1199,14 @@ class BddDatabaseSupport(
             .bind("id", principalId).bind("hash", hash).fetch().rowsUpdated().awaitSingle()
     }
 
+    suspend fun countAccountsByEmail(email: String): Long = databaseClient.sql(
+        "SELECT COUNT(*) AS total FROM user_identities WHERE email = :email",
+    ).bind("email", email).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+
+    suspend fun countPasswordCredentials(principalId: String): Long = databaseClient.sql(
+        "SELECT COUNT(*) AS total FROM local_password_credentials WHERE principal_id = :id",
+    ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+
     suspend fun lookupPasswordHash(principalId: String): String? = databaseClient.sql(
         "SELECT password_hash FROM local_password_credentials WHERE principal_id = :id",
     ).bind("id", principalId).map { row, _ -> row.get("password_hash", String::class.java)!! }

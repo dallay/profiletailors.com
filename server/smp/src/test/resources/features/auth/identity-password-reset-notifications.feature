@@ -1,4 +1,4 @@
-@notifications @password-recovery @fast @postgres
+@identity @password-recovery @smoke @fast
 Feature: Deliver password reset notifications
   As the platform
   I want password reset emails to be dispatched securely
@@ -28,7 +28,7 @@ Feature: Deliver password reset notifications
     And the email should state that the request can be ignored
 
   @privacy
-  Scenario: Notification telemetry excludes sensitive values
+  Scenario: Notification content excludes password secrets
     Given a local account exists with email "user@example.com"
     When the visitor requests a password reset for "user@example.com"
     Then the email should not contain the current password

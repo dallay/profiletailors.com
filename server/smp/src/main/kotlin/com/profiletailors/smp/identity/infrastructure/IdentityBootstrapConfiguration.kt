@@ -12,7 +12,9 @@ import com.profiletailors.smp.credentials.infrastructure.RefreshSessionConfigura
 import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.LocalJwtIssuer
+import com.profiletailors.smp.identity.application.MinimumDurationPasswordRecoveryTimingEqualizer
 import com.profiletailors.smp.identity.application.PasswordHasher
+import com.profiletailors.smp.identity.application.PasswordRecoveryTimingEqualizer
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
 import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
@@ -36,6 +38,10 @@ class IdentityBootstrapConfiguration {
     @Bean
     fun passwordRecoveryEnabled(properties: PasswordRecoveryConfigurationProperties): () -> Boolean =
         { properties.enabled }
+
+    @Bean
+    fun recoveryTimingEqualizer(properties: PasswordRecoveryConfigurationProperties): PasswordRecoveryTimingEqualizer =
+        MinimumDurationPasswordRecoveryTimingEqualizer(properties.minimumResponseDuration)
 
     @Bean
     @Profile("!dev")

@@ -56,6 +56,31 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `schema references user identities with compatible principal id width`() = runTest {
+        val metadata = databaseClient.sql(
+            """
+            SELECT ccu.table_name AS target_table,
+                   ccu.column_name AS target_column,
+                   cols.character_maximum_length AS principal_length
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.constraint_column_usage ccu
+              ON ccu.constraint_name = tc.constraint_name
+            JOIN information_schema.columns cols
+              ON cols.table_name = 'password_reset_tokens' AND cols.column_name = 'principal_id'
+            WHERE tc.constraint_name = 'fk_password_reset_principal'
+            """.trimIndent(),
+        ).map { row, _ ->
+            Triple(
+                row.get("target_table", String::class.java),
+                row.get("target_column", String::class.java),
+                row.get("principal_length", java.lang.Long::class.java)?.toLong(),
+            )
+        }.one().awaitSingle()
+
+        assertEquals(Triple("user_identities", "principal_id", 64L), metadata)
+    }
+
+    @Test
     fun `findByTokenHash returns null for unknown hash`() = runTest {
         assertNull(repository.findByTokenHash("not-stored"))
     }
@@ -95,6 +120,12 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         )
         repository.create(
             principalId = "user-1",
+            tokenHash = "expired-unused",
+            requestedAt = Instant.parse("2026-07-27T11:00:00Z"),
+            expiresAt = Instant.parse("2026-07-27T11:30:00Z"),
+        )
+        repository.create(
+            principalId = "user-1",
             tokenHash = "active-2",
             requestedAt = Instant.parse("2026-07-27T12:01:00Z"),
             expiresAt = Instant.parse("2026-07-27T12:31:00Z"),
@@ -112,8 +143,10 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         val active1 = repository.findByTokenHash("active-1")
         val active2 = repository.findByTokenHash("active-2")
         val used = repository.findByTokenHash("already-used")
+        val expiredUnused = repository.findByTokenHash("expired-unused")
         assertNotNull(active1?.usedAt)
         assertNotNull(active2?.usedAt)
+        assertNull(expiredUnused?.usedAt)
         assertEquals(Instant.parse("2026-07-27T11:45:00Z"), used?.usedAt)
     }
 

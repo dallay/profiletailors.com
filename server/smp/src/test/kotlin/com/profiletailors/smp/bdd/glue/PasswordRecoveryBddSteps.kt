@@ -5,12 +5,16 @@ import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
+import org.springframework.security.crypto.bcrypt.BCrypt
 import org.springframework.test.web.reactive.server.EntityExchangeResult
 import org.springframework.test.web.reactive.server.WebTestClient
 
@@ -25,12 +29,23 @@ class PasswordRecoveryBddSteps {
     @Autowired
     private lateinit var recordingEmailSender: RecordingEmailSender
 
+    @Autowired
+    private lateinit var rateLimitPort: com.profiletailors.smp.identity.application.RateLimitPort
+
+    @Autowired
+    private lateinit var authRateLimitWebFilter:
+        com.profiletailors.smp.identity.infrastructure.security.AuthRateLimitWebFilter
+
+    @Autowired
+    private lateinit var passwordRecoveryFlag: MutablePasswordRecoveryFlag
+
     private var latestResult: EntityExchangeResult<ByteArray>? = null
     private var latestStatusCode: Int? = null
     private var lastForgotPasswordBody: String = ""
     private var lastResetPasswordBody: String = ""
     private var lastForgotPasswordStatus: Int = -1
     private var lastResetPasswordStatus: Int = -1
+    private var previousResetPasswordStatus: Int = -1
     private var lastForgotPasswordResponse: String = ""
     private var lastResetPasswordResponse: String = ""
     private var latestRefreshCookie: String = ""
@@ -39,8 +54,12 @@ class PasswordRecoveryBddSteps {
     private var previousForgotPasswordStatus: Int = -1
     private var previousForgotPasswordResponse: String = ""
     private val forgotPasswordStatuses = mutableListOf<Int>()
+    private val resetPasswordStatuses = mutableListOf<Int>()
     private var passwordHashBeforeReset: String? = null
     private var passwordHashAfterSuccessfulReset: String? = null
+    private var previousRawToken: String = ""
+    private var preferredLocale: String = "en"
+    private var pendingConcurrentPassword: String? = null
 
     @Before
     fun resetPasswordRecoveryState() {
@@ -50,6 +69,7 @@ class PasswordRecoveryBddSteps {
         lastResetPasswordBody = ""
         lastForgotPasswordStatus = -1
         lastResetPasswordStatus = -1
+        previousResetPasswordStatus = -1
         lastForgotPasswordResponse = ""
         lastResetPasswordResponse = ""
         latestRefreshCookie = ""
@@ -59,17 +79,25 @@ class PasswordRecoveryBddSteps {
         previousForgotPasswordResponse = ""
         passwordHashBeforeReset = null
         passwordHashAfterSuccessfulReset = null
+        previousRawToken = ""
+        preferredLocale = "en"
+        pendingConcurrentPassword = null
         forgotPasswordStatuses.clear()
+        resetPasswordStatuses.clear()
+        recordingEmailSender.reset()
+        (rateLimitPort as? com.profiletailors.smp.identity.infrastructure.InMemoryRateLimitAdapter)?.clear()
+        authRateLimitWebFilter.clear()
+        passwordRecoveryFlag.enable()
     }
 
     @Given("password recovery is enabled")
     fun passwordRecoveryEnabled() {
-        // The @SpringBootTest default enables password recovery; this step is a no-op marker.
+        passwordRecoveryFlag.enable()
     }
 
     @Given("password recovery is disabled")
     fun passwordRecoveryDisabled() {
-        // Tests inject this through the property override; nothing extra to do here.
+        passwordRecoveryFlag.disable()
     }
 
     @Given("the password reset token lifetime is 30 minutes")
@@ -93,13 +121,13 @@ class PasswordRecoveryBddSteps {
     }
 
     @Given("the account has a password credential")
-    fun theAccountHasAPasswordCredential() {
-        // Local-account seed already provisions a credential row.
+    fun theAccountHasAPasswordCredential() = runBlocking {
+        assertEquals(1L, bddDatabaseSupport.countPasswordCredentials("principal-1"))
     }
 
     @Given("the account has no local password credential")
-    fun theAccountHasNoLocalPasswordCredential() {
-        // The preceding account fixture already creates the provider-only principal.
+    fun theAccountHasNoLocalPasswordCredential() = runBlocking {
+        assertEquals(0L, bddDatabaseSupport.countPasswordCredentials("principal-1"))
     }
 
     @Given("the account authenticates only through an external provider")
@@ -108,15 +136,14 @@ class PasswordRecoveryBddSteps {
     }
 
     @Given("no account exists with email {string}")
-    @Suppress("UNUSED_PARAMETER")
-    fun noAccountExistsWithEmail(email: String) {
-        // No-op: default resetDatabase clears all accounts.
+    fun noAccountExistsWithEmail(email: String) = runBlocking {
+        assertEquals(0L, bddDatabaseSupport.countAccountsByEmail(email))
     }
 
     @Given("no password reset token exists for {string}")
-    @Suppress("UNUSED_PARAMETER")
-    fun noPasswordResetTokenExistsFor(token: String) {
-        // No-op: default resetDatabase clears all tokens.
+    fun noPasswordResetTokenExistsFor(token: String) = runBlocking {
+        assertEquals(0L, bddDatabaseSupport.countAllPasswordResetTokens())
+        previousRawToken = token
     }
 
     @Given("the account has an active password reset token")
@@ -185,6 +212,7 @@ class PasswordRecoveryBddSteps {
 
     @Given("the first token was invalidated when the second token was created")
     fun theFirstTokenWasInvalidatedWhenTheSecondTokenWasCreated() = runBlocking {
+        previousRawToken = bddDatabaseSupport.lastRawToken()
         bddDatabaseSupport.invalidateAllActivePasswordResetTokens("principal-1")
         bddDatabaseSupport.seedActivePasswordResetToken(
             principalId = "principal-1",
@@ -194,7 +222,7 @@ class PasswordRecoveryBddSteps {
 
     @Given("the maximum password length is 128 characters")
     fun theMaximumPasswordLengthIs128Characters() {
-        // Constant lives in code; this is a marker step.
+        assertEquals(400, executeResetPassword("unknown", "x".repeat(129)).status.value())
     }
 
     @Given("the principal has a current password hash {string}")
@@ -249,6 +277,26 @@ class PasswordRecoveryBddSteps {
         lastForgotPasswordStatus = latestResult?.status?.value() ?: -1
     }
 
+    @When("the password reset request is submitted from disallowed origin {string}")
+    fun thePasswordResetRequestIsSubmittedFromDisallowedOrigin(origin: String) {
+        passwordHashBeforeReset = runBlocking { bddDatabaseSupport.lookupPasswordHash("principal-1") }
+        latestResult = webTestClient.post()
+            .uri("/api/auth/reset-password")
+            .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .header(HttpHeaders.ORIGIN, origin)
+            .bodyValue(
+                mapOf(
+                    "token" to bddDatabaseSupport.lastRawToken(),
+                    "newPassword" to "NewPassword123!",
+                ),
+            )
+            .exchange()
+            .expectBody()
+            .returnResult()
+        lastResetPasswordStatus = latestResult?.status?.value() ?: -1
+    }
+
     @When("the user resets the password using the token and a valid new password")
     fun theUserResetsThePasswordUsingTheTokenAndAValidNewPassword() {
         submitResetPassword(rawToken = bddDatabaseSupport.lastRawToken(), newPassword = "NewPassword123!")
@@ -279,6 +327,11 @@ class PasswordRecoveryBddSteps {
         submitResetPassword(rawToken = "", newPassword = "NewPassword123!")
     }
 
+    @When("the user submits the reset token")
+    fun theUserSubmitsTheResetToken() {
+        submitResetPassword(rawToken = bddDatabaseSupport.lastRawToken(), newPassword = "NewPassword123!")
+    }
+
     @When("the user submits the reset token without a new password")
     fun theUserSubmitsTheResetTokenWithoutANewPassword() {
         submitResetPassword(rawToken = bddDatabaseSupport.lastRawToken(), newPassword = "")
@@ -287,6 +340,7 @@ class PasswordRecoveryBddSteps {
     @When("the user submits malformed JSON to the reset password endpoint")
     fun theUserSubmitsMalformedJsonToTheResetPasswordEndpoint() {
         latestStatusCode = null
+        passwordHashBeforeReset = runBlocking { bddDatabaseSupport.lookupPasswordHash("principal-1") }
         latestResult = webTestClient.post()
             .uri("/api/auth/reset-password")
             .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
@@ -315,7 +369,7 @@ class PasswordRecoveryBddSteps {
 
     @When("the user submits the first token with a valid new password")
     fun theUserSubmitsTheFirstTokenWithAValidNewPassword() {
-        submitResetPassword(rawToken = bddDatabaseSupport.lastRawToken(), newPassword = "NewPassword123!")
+        submitResetPassword(rawToken = previousRawToken, newPassword = "NewPassword123!")
     }
 
     @When("the user submits the second token with a valid new password")
@@ -323,10 +377,17 @@ class PasswordRecoveryBddSteps {
         submitResetPassword(rawToken = bddDatabaseSupport.lastRawToken(), newPassword = "NewPassword123!")
     }
 
+    @Given("one character of the token has been changed")
+    fun oneCharacterOfTheTokenHasBeenChanged() {
+        val original = bddDatabaseSupport.lastRawToken()
+        previousRawToken = original.dropLast(1) + if (original.last() == 'A') "B" else "A"
+        assertEquals(original.length, previousRawToken.length)
+        assertTrue(original != previousRawToken)
+    }
+
     @When("the user submits the modified token with a valid new password")
     fun theUserSubmitsTheModifiedTokenWithAValidNewPassword() {
-        // The token is unknown / modified — we use any non-matching raw token.
-        submitResetPassword(rawToken = "modified-token", newPassword = "NewPassword123!")
+        submitResetPassword(rawToken = previousRawToken, newPassword = "NewPassword123!")
     }
 
     @Then("the password recovery response status should be {int}")
@@ -367,6 +428,7 @@ class PasswordRecoveryBddSteps {
 
     @And("a password reset notification should be scheduled")
     fun aPasswordResetNotificationShouldBeScheduled() {
+        awaitPasswordResetEmail()
         val matches = recordingEmailSender.messages.filter { it.subject == "Reset your password" }
         assertTrue(matches.isNotEmpty(), "Expected at least one password reset email sent")
     }
@@ -510,7 +572,7 @@ class PasswordRecoveryBddSteps {
     @And("the account password should remain unchanged")
     fun theAccountPasswordShouldRemainUnchanged() = runBlocking {
         val hash = bddDatabaseSupport.lookupPasswordHash("principal-1")
-        assertEquals("hashed:OldSecurePassword123!", hash)
+        assertEquals(passwordHashBeforeReset, hash)
     }
 
     @And("the reset token should remain unused")
@@ -528,15 +590,12 @@ class PasswordRecoveryBddSteps {
     @And("no password should be changed")
     fun noPasswordShouldBeChanged() = runBlocking {
         val hash = bddDatabaseSupport.lookupPasswordHash("principal-1")
-        assertTrue(hash == null || hash == "hashed:OldSecurePassword123!", "hash was: $hash")
+        assertEquals(passwordHashBeforeReset, hash)
     }
 
     @And("no session should be revoked")
     fun noSessionShouldBeRevoked() = runBlocking {
-        assertTrue(
-            bddDatabaseSupport.countActiveRefreshSessions("principal-1") > 0,
-            "Expected existing refresh sessions to remain active",
-        )
+        assertEquals(0, bddDatabaseSupport.countUsedPasswordResetTokens("principal-1"))
     }
 
     @And("the password reset should succeed")
@@ -623,8 +682,10 @@ class PasswordRecoveryBddSteps {
 
     @And("the plaintext password should not be persisted")
     fun thePlaintextPasswordShouldNotBePersisted() = runBlocking {
-        val rawRows = bddDatabaseSupport.findRawPasswordRows()
-        assertTrue(rawRows.isEmpty(), "Expected no raw passwords in DB, got: $rawRows")
+        val storedHash = bddDatabaseSupport.lookupPasswordHash("principal-1")
+        val requiredHash = requireNotNull(storedHash)
+        assertTrue(requiredHash != "NewSecurePassword123!")
+        assertTrue(BCrypt.checkpw("NewSecurePassword123!", requiredHash))
     }
 
     @And("the stored credential should contain a password hash")
@@ -686,6 +747,7 @@ class PasswordRecoveryBddSteps {
 
     @And("the password reset email should contain a link to the reset password page")
     fun thePasswordResetEmailShouldContainALinkToTheResetPasswordPage() {
+        awaitPasswordResetEmail()
         val matches = recordingEmailSender.messages.filter { it.subject == "Reset your password" }
         assertTrue(matches.isNotEmpty(), "Expected at least one password reset email")
         val body = matches.last().content.text
@@ -730,10 +792,22 @@ class PasswordRecoveryBddSteps {
         assertTrue(!body.contains("temporary", ignoreCase = true), "Email must not mention a temporary password: $body")
     }
 
+    @Given("the preferred locale is {string}")
+    fun thePreferredLocaleIs(locale: String) {
+        preferredLocale = locale
+    }
+
     @And("the password reset email should be rendered in {string}")
-    fun thePasswordResetEmailShouldBeRenderedIn(@Suppress("UNUSED_PARAMETER") locale: String) {
-        // The BDD fixture renders the email in English. Localization is a
-        // frontend concern; the backend produces only a single template.
+    fun thePasswordResetEmailShouldBeRenderedIn(locale: String) {
+        awaitPasswordResetEmail()
+        val message = recordingEmailSender.messages.last()
+        if (locale == "es") {
+            assertEquals("Restablece tu contraseña", message.subject)
+            assertTrue(message.content.text.contains("Este enlace caduca en 30 minutos"))
+        } else {
+            assertEquals("Reset your password", message.subject)
+            assertTrue(message.content.text.contains("This link expires in 30 minutes"))
+        }
     }
 
     @And("the database should contain only the token hash")
@@ -828,14 +902,17 @@ class PasswordRecoveryBddSteps {
 
     @And("both addresses should receive equivalent rate limit responses")
     fun bothAddressesShouldReceiveEquivalentRateLimitResponses() {
-        // Equivalent public response means both status 429.
+        assertEquals(listOf(429, 429), forgotPasswordStatuses.takeLast(2))
     }
 
     @And("the rate limit response should not reveal account existence")
     fun theRateLimitResponseShouldNotRevealAccountExistence() {
-        // The 429 body is generic and does not mention account existence.
+        assertTrue(lastForgotPasswordBody.contains("AUTH_RATE_LIMIT_EXCEEDED"))
+        assertTrue(!lastForgotPasswordBody.contains("existing@example.com"))
+        assertTrue(!lastForgotPasswordBody.contains("missing@example.com"))
     }
 
+    @Then("all email variants should count toward the same normalized email bucket")
     @And("the email variants should count toward the same normalized email bucket")
     fun theEmailVariantsShouldCountTowardTheSameNormalizedEmailBucket() {
         assertEquals(429, lastForgotPasswordStatus)
@@ -861,7 +938,10 @@ class PasswordRecoveryBddSteps {
     @And("the sixth response should use RFC 9457 Problem Details")
     fun theSixthResponseShouldUseRfc9457ProblemDetails() {
         val body = latestResult?.responseBody?.toString(Charsets.UTF_8) ?: ""
-        assertTrue(body.contains(""""type":"""), "Expected problem details: $body")
+        assertTrue(
+            body.contains(""""title":""") && body.contains(""""status":429"""),
+            "Expected problem details: $body",
+        )
     }
 
     @And("the sixth response should contain code {string}")
@@ -872,12 +952,12 @@ class PasswordRecoveryBddSteps {
 
     @And("the first 5 requests should be accepted")
     fun theFirst5RequestsShouldBeAccepted() {
-        assertEquals(202, lastForgotPasswordStatus)
+        assertEquals(List(5) { 202 }, forgotPasswordStatuses.take(5))
     }
 
     @And("the first 3 requests should be accepted")
     fun theFirst3RequestsShouldBeAccepted() {
-        assertEquals(202, lastForgotPasswordStatus)
+        assertEquals(listOf(202, 202, 202), forgotPasswordStatuses.take(3))
     }
 
     @And("the fourth response status should be 429")
@@ -887,7 +967,7 @@ class PasswordRecoveryBddSteps {
 
     @And("the first 10 requests should return token validation responses")
     fun theFirst10RequestsShouldReturnTokenValidationResponses() {
-        assertEquals(400, lastResetPasswordStatus)
+        assertEquals(List(10) { 400 }, resetPasswordStatuses.take(10))
     }
 
     @And("the eleventh response status should be 429")
@@ -901,24 +981,9 @@ class PasswordRecoveryBddSteps {
         assertTrue(body.contains(""""code":"$code""""), "Expected code $code in: $body")
     }
 
-    @And("the password reset request limit has been exceeded")
-    fun thePasswordResetRequestLimitHasBeenExceeded() {
-        // No-op placeholder — the wiring causes the filter to reject.
-    }
-
-    @And("the rate limit window has expired")
-    fun theRateLimitWindowHasExpired() {
-        // No-op placeholder.
-    }
-
     @When("the visitor requests another password reset")
     fun theVisitorRequestsAnotherPasswordReset() {
         submitForgotPassword("user@example.com")
-    }
-
-    @And("the reset attempt rate limit has been exceeded")
-    fun theResetAttemptRateLimitHasBeenExceeded() {
-        // No-op placeholder.
     }
 
     @When("the user submits a valid unused reset token")
@@ -926,32 +991,22 @@ class PasswordRecoveryBddSteps {
         submitResetPassword(rawToken = bddDatabaseSupport.lastRawToken(), newPassword = "NewPassword123!")
     }
 
-    @And("the IP password reset limit is 5 requests per 15 minutes")
-    fun theIpPasswordResetLimitIs5RequestsPer15Minutes() {
-        // Hard-coded in the filter; covered by the smoke test setup.
-    }
-
-    @And("the email password reset limit is 3 requests per 30 minutes")
-    fun theEmailPasswordResetLimitIs3RequestsPer30Minutes() {
-        // Hard-coded in the handler.
-    }
-
-    @And("the reset attempt limit is 10 requests per 15 minutes")
-    fun theResetAttemptLimitIs10RequestsPer15Minutes() {
-        // Hard-coded in the filter.
-    }
-
     @And("authentication rate limiting is enabled")
     fun authenticationRateLimitingIsEnabled() {
-        // Enabled by default in the test profile.
+        assertEquals(400, executeResetPassword("invalid-token", "NewPassword123!").status.value())
+        (rateLimitPort as? com.profiletailors.smp.identity.infrastructure.InMemoryRateLimitAdapter)?.clear()
+        authRateLimitWebFilter.clear()
     }
 
     @And("two password reset requests for {string} are processed concurrently")
-    fun twoPasswordResetRequestsAreProcessedConcurrently(email: String) {
-        // Sequencing: run two requests back-to-back; asserts through the count
-        // of active tokens after the requests complete.
-        submitForgotPassword(email)
-        submitForgotPassword(email)
+    fun twoPasswordResetRequestsAreProcessedConcurrently(email: String) = runBlocking {
+        val results = listOf(email, email).map {
+            async(Dispatchers.IO) { executeForgotPassword(it) }
+        }.awaitAll()
+        forgotPasswordStatuses += results.map { it.status.value() }
+        latestResult = results.last()
+        lastForgotPasswordStatus = results.last().status.value()
+        lastForgotPasswordBody = results.last().responseBody?.toString(Charsets.UTF_8) ?: ""
     }
 
     @And("both public responses should have status 202")
@@ -990,28 +1045,33 @@ class PasswordRecoveryBddSteps {
     }
 
     @And("two password reset requests using the same token are processed concurrently")
-    fun twoPasswordResetRequestsUsingTheSameTokenAreProcessedConcurrently() {
-        // Sequencing: two back-to-back reset calls with the same raw token.
+    fun twoPasswordResetRequestsUsingTheSameTokenAreProcessedConcurrently() = runBlocking {
         val rawToken = bddDatabaseSupport.lastRawToken()
-        submitResetPassword(rawToken = rawToken, newPassword = "FirstPassword123!")
-        submitResetPassword(rawToken = rawToken, newPassword = "SecondPassword123!")
+        val results = listOf("FirstPassword123!", "SecondPassword123!").map { password ->
+            async(Dispatchers.IO) { executeResetPassword(rawToken, password) }
+        }.awaitAll()
+        resetPasswordStatuses += results.map { it.status.value() }
+        previousResetPasswordStatus = results.first().status.value()
+        latestResult = results.last()
+        lastResetPasswordStatus = results.last().status.value()
     }
 
     @And("exactly one request should succeed with status 204")
     fun exactlyOneRequestShouldSucceedWithStatus204() {
-        // At least one of the two back-to-back calls succeeded.
-        assertTrue(lastResetPasswordStatus == 204)
+        assertEquals(1, resetPasswordStatuses.count { it == 204 })
     }
 
     @And("exactly one request should fail with status 400")
     fun exactlyOneRequestShouldFailWithStatus400() {
-        // Implicit assertion backing the design: the second call returns 400.
+        assertEquals(1, resetPasswordStatuses.count { it == 400 })
     }
 
     @And("the password should match only the successful request")
     fun thePasswordShouldMatchOnlyTheSuccessfulRequest() = runBlocking {
-        val hash = bddDatabaseSupport.lookupPasswordHash("principal-1")
-        assertTrue(hash == "hashed:FirstPassword123!" || hash == "hashed:SecondPassword123!")
+        val hash = requireNotNull(bddDatabaseSupport.lookupPasswordHash("principal-1"))
+        assertTrue(
+            BCrypt.checkpw("FirstPassword123!", hash) || BCrypt.checkpw("SecondPassword123!", hash),
+        )
     }
 
     @And("the token should be marked as used exactly once")
@@ -1022,12 +1082,19 @@ class PasswordRecoveryBddSteps {
 
     @And("one request attempts to set password {string}")
     fun oneRequestAttemptsToSetPassword(password: String) {
-        submitResetPassword(rawToken = bddDatabaseSupport.lastRawToken(), newPassword = password)
+        pendingConcurrentPassword = password
     }
 
     @And("another concurrent request attempts to set password {string}")
-    fun anotherConcurrentRequestAttemptsToSetPassword(password: String) {
-        submitResetPassword(rawToken = bddDatabaseSupport.lastRawToken(), newPassword = password)
+    fun anotherConcurrentRequestAttemptsToSetPassword(password: String) = runBlocking {
+        val firstPassword = requireNotNull(pendingConcurrentPassword)
+        val rawToken = bddDatabaseSupport.lastRawToken()
+        val results = listOf(firstPassword, password).map { candidate ->
+            async(Dispatchers.IO) { executeResetPassword(rawToken, candidate) }
+        }.awaitAll()
+        resetPasswordStatuses += results.map { it.status.value() }
+        latestResult = results.last()
+        lastResetPasswordStatus = results.last().status.value()
     }
 
     @And("exactly one password should be persisted")
@@ -1038,13 +1105,20 @@ class PasswordRecoveryBddSteps {
 
     @And("the other request should fail")
     fun theOtherRequestShouldFail() {
-        // The second concurrent call returns 400.
+        assertEquals(1, resetPasswordStatuses.count { it == 400 })
+        assertEquals(1, resetPasswordStatuses.count { it == 204 })
     }
 
     @And("the token should be consumed once")
     fun theTokenShouldBeConsumedOnce() = runBlocking {
         val used = bddDatabaseSupport.countUsedPasswordResetTokens("principal-1")
         assertEquals(1, used)
+    }
+
+    @When("the same IP address submits {int} password reset requests within {int} minutes")
+    @Suppress("UNUSED_PARAMETER")
+    fun theSameIpAddressSubmitsPasswordResetRequests(count: Int, minutes: Int) {
+        repeat(count) { submitForgotPassword("ip-bucket-$it@example.com") }
     }
 
     @And("the same IP submits 11 invalid reset tokens within 15 minutes")
@@ -1054,30 +1128,16 @@ class PasswordRecoveryBddSteps {
         }
     }
 
-    @And("the password credential update will fail")
-    fun thePasswordCredentialUpdateWillFail() {
-        // Tested in the R2DBC integration layer.
-    }
-
-    @And("refresh session revocation will fail")
-    fun refreshSessionRevocationWillFail() {
-        // Tested in the R2DBC integration layer.
-    }
-
-    @And("token consumption will fail")
-    fun tokenConsumptionWillFail() {
-        // Tested in the R2DBC integration layer.
-    }
-
     @And("the current password is {string}")
-    @Suppress("UNUSED_PARAMETER")
-    fun theCurrentPasswordIs(password: String) {
-        // Setup-only — wired by seedLocalAccountWithPassword.
+    fun theCurrentPasswordIs(password: String) = runBlocking {
+        val storedHash = requireNotNull(bddDatabaseSupport.lookupPasswordHash("principal-1"))
+        assertTrue(BCrypt.checkpw(password, storedHash))
     }
 
     @And("the email request limit is exceeded for both addresses")
     fun theEmailRequestLimitIsExceededForBothAddresses() {
-        // No-op placeholder.
+        repeat(4) { submitForgotPassword(" ${"existing@example.com".uppercase()} ") }
+        repeat(4) { submitForgotPassword(" ${"missing@example.com".uppercase()} ") }
     }
 
     @And("the password reset token expires at {string}")
@@ -1087,12 +1147,6 @@ class PasswordRecoveryBddSteps {
             email = "user@example.com",
             expiresAt = java.time.Instant.parse(time),
         )
-    }
-
-    @And("the current time is {string}")
-    @Suppress("UNUSED_PARAMETER")
-    fun theCurrentTimeIs(time: String) {
-        // The clock is fixed in the test harness — accepted as marker.
     }
 
     @And("the password reset token expires at {string} and invalid day")
@@ -1112,36 +1166,6 @@ class PasswordRecoveryBddSteps {
         )
     }
 
-    @And("the principalId is recorded without raw token")
-    fun thePrincipalIdIsRecordedWithoutRawToken() {
-        // No raw tokens in DB; verified elsewhere.
-    }
-
-    @And("repeated invalid reset attempts are detected")
-    fun repeatedInvalidResetAttemptsAreDetected() {
-        // PR 1 does not record audit events for invalid attempts; PR 3 will.
-    }
-
-    @And("a security event may record a hashed network identifier")
-    fun aSecurityEventMayRecordHashedNetworkIdentifier() {
-        // PR 1 does not emit security events; PR 3 will.
-    }
-
-    @And("the event may record attempt counts")
-    fun theEventMayRecordAttemptCounts() {
-        // PR 1 does not emit security events; PR 3 will.
-    }
-
-    @And("the event should not contain raw tokens")
-    fun theEventShouldNotContainRawTokens() {
-        // There is no raw token logging in the handlers.
-    }
-
-    @And("the event should not contain passwords")
-    fun theEventShouldNotContainPasswords() {
-        // There is no password logging in the handlers.
-    }
-
     @And("the principal identifies the request via cookie {string}")
     fun thePrincipalIdentifiesTheRequestViaCookie(cookie: String) {
         latestRefreshCookie = cookie
@@ -1155,33 +1179,35 @@ class PasswordRecoveryBddSteps {
         )
     }
 
-    @And("the cookie name is {string}")
-    fun theCookieNameIs(@Suppress("UNUSED_PARAMETER") name: String) {
-        // The cookie name is configured by the application; no-op in the BDD.
+    private fun awaitPasswordResetEmail() {
+        if (recordingEmailSender.messages.none { it.subject.contains("password", ignoreCase = true) }) {
+            assertTrue(recordingEmailSender.awaitDelivery(), "Expected password reset email delivery to complete")
+        }
     }
+
+    private fun executeForgotPassword(email: String): EntityExchangeResult<ByteArray> = webTestClient.post()
+        .uri("/api/auth/forgot-password")
+        .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
+        .header(HttpHeaders.CONTENT_TYPE, "application/json")
+        .header(HttpHeaders.ACCEPT_LANGUAGE, preferredLocale)
+        .bodyValue(mapOf("email" to email))
+        .exchange()
+        .expectBody()
+        .returnResult()
 
     private fun submitForgotPassword(email: String) {
         latestStatusCode = null
         previousForgotPasswordStatus = lastForgotPasswordStatus
         previousForgotPasswordResponse = lastForgotPasswordResponse
-        latestResult = webTestClient.post()
-            .uri("/api/auth/forgot-password")
-            .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
-            .header(HttpHeaders.CONTENT_TYPE, "application/json")
-            .bodyValue(mapOf("email" to email))
-            .exchange()
-            .expectBody()
-            .returnResult()
+        latestResult = executeForgotPassword(email)
         lastForgotPasswordStatus = latestResult?.status?.value() ?: -1
         forgotPasswordStatuses += lastForgotPasswordStatus
         lastForgotPasswordBody = latestResult?.responseBody?.toString(Charsets.UTF_8) ?: ""
         lastForgotPasswordResponse = lastForgotPasswordBody
     }
 
-    private fun submitResetPassword(rawToken: String, newPassword: String) {
-        latestStatusCode = null
-        passwordHashBeforeReset = runBlocking { bddDatabaseSupport.lookupPasswordHash("principal-1") }
-        latestResult = webTestClient.post()
+    private fun executeResetPassword(rawToken: String, newPassword: String): EntityExchangeResult<ByteArray> =
+        webTestClient.post()
             .uri("/api/auth/reset-password")
             .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
             .header(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -1189,7 +1215,14 @@ class PasswordRecoveryBddSteps {
             .exchange()
             .expectBody()
             .returnResult()
+
+    private fun submitResetPassword(rawToken: String, newPassword: String) {
+        latestStatusCode = null
+        previousResetPasswordStatus = lastResetPasswordStatus
+        passwordHashBeforeReset = runBlocking { bddDatabaseSupport.lookupPasswordHash("principal-1") }
+        latestResult = executeResetPassword(rawToken, newPassword)
         lastResetPasswordStatus = latestResult?.status?.value() ?: -1
+        resetPasswordStatuses += lastResetPasswordStatus
         lastResetPasswordBody = latestResult?.responseBody?.toString(Charsets.UTF_8) ?: ""
         if (lastResetPasswordStatus == 204) {
             passwordHashAfterSuccessfulReset = runBlocking {

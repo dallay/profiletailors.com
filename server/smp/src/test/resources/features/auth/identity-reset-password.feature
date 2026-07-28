@@ -1,4 +1,4 @@
-@identity @password-recovery @fast @postgres
+@identity @password-recovery @smoke @fast
 Feature: Reset password using a recovery token
   As a user who has received a password reset link
   I want to choose a new password
@@ -36,7 +36,7 @@ Feature: Reset password using a recovery token
     And the current password is "OldSecurePassword123!"
     And the account has an active password reset token
     When the user resets the password to "NewSecurePassword123!"
-    And the user attempts to refresh the session
+    And the user logs in with "user@example.com" and "OldSecurePassword123!"
     Then authentication should fail with invalid credentials
 
   @security
@@ -93,6 +93,14 @@ Feature: Reset password using a recovery token
     And no password should be changed
     When the user submits the second token with a valid new password
     Then the password recovery response status should be 204
+
+  @token
+  Scenario: Reject a token with modified characters
+    Given a valid unused password reset token exists
+    And one character of the token has been changed
+    When the user submits the modified token with a valid new password
+    Then the password recovery response status should be 400
+    And no password should be changed
 
   @validation
   Scenario Outline: Reject an invalid new password
@@ -175,10 +183,27 @@ Feature: Reset password using a recovery token
     And the password should match only the successful request
     And the token should be marked as used exactly once
 
+  @concurrency
+  Scenario: Concurrent reset attempts with different passwords are atomic
+    Given a valid unused password reset token exists
+    When one request attempts to set password "Password-A-123!"
+    And another concurrent request attempts to set password "Password-B-123!"
+    Then exactly one password should be persisted
+    And the other request should fail
+    And the token should be consumed once
+
   @rate-limit
   Scenario: Rate limit repeated invalid reset attempts from the same IP
-    Given the reset attempt limit is 10 requests per 15 minutes
     When the same IP submits 11 invalid reset tokens within 15 minutes
     Then the first 10 requests should return token validation responses
     And the eleventh response status should be 429
     And the response should contain code "AUTH_RATE_LIMIT_EXCEEDED"
+
+  @disabled
+  Scenario: Password recovery is disabled during reset
+    Given password recovery is disabled
+    And a previously issued reset token exists
+    When the user submits the reset token
+    Then the password recovery response status should be 503
+    And the password should remain unchanged
+    And the reset token should remain unused

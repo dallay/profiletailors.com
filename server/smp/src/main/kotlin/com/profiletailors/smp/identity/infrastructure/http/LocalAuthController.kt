@@ -33,6 +33,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.time.Duration
@@ -123,8 +124,16 @@ class LocalAuthController(
 
     @Operation(summary = "Request a password reset email")
     @PostMapping("/forgot-password", consumes = ["application/json"], version = "1")
-    suspend fun forgotPassword(@Valid @RequestBody request: ForgotPasswordRequest): ResponseEntity<Unit> {
-        mediator.send(RequestPasswordResetCommand(email = request.email))
+    suspend fun forgotPassword(
+        @Valid @RequestBody request: ForgotPasswordRequest,
+        @RequestHeader(HttpHeaders.ACCEPT_LANGUAGE, required = false) acceptLanguage: String?,
+    ): ResponseEntity<Unit> {
+        mediator.send(
+            RequestPasswordResetCommand(
+                email = request.email,
+                locale = preferredLocale(acceptLanguage),
+            ),
+        )
         return ResponseEntity.accepted().build()
     }
 
@@ -149,6 +158,9 @@ class LocalAuthController(
 
     private fun readRefreshCookie(request: ServerHttpRequest): String? =
         request.cookies.getFirst(refreshSessionProperties.cookieName)?.value
+
+    private fun preferredLocale(acceptLanguage: String?): String =
+        if (acceptLanguage?.trim()?.lowercase()?.startsWith("es") == true) "es" else "en"
 
     private fun SessionCookie.toResponseCookie(): ResponseCookie = ResponseCookie.from(name, value)
         .httpOnly(httpOnly)
@@ -275,8 +287,12 @@ data class ResetPasswordRequest(
     @field:Schema(description = "Raw password reset token", required = true)
     val token: String,
 
-    @field:NotBlank(message = "New password is required")
-    @field:Size(max = 128, message = "Password must not exceed 128 characters")
-    @field:Schema(description = "New account password", required = true, maxLength = 128, format = "password")
+    @field:Schema(
+        description = "New account password",
+        required = true,
+        minLength = 8,
+        maxLength = 128,
+        format = "password",
+    )
     val newPassword: String,
 )

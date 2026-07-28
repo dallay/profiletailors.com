@@ -62,8 +62,8 @@ class PasswordResetTokenHasherTest {
     }
 
     @Test
-    fun `1000 generated tokens are unique`() {
-        val iterations = 1000
+    fun `10000 generated tokens are unique`() {
+        val iterations = 10_000
         val rawTokens = mutableSetOf<String>()
         val tokenHashes = mutableSetOf<String>()
 

@@ -22,6 +22,8 @@ internal class RequestPasswordResetHandler(
     private val rateLimitPort: RateLimitPort,
     private val clock: Clock,
     private val passwordRecoveryEnabled: () -> Boolean,
+    private val timingEqualizer: PasswordRecoveryTimingEqualizer =
+        MinimumDurationPasswordRecoveryTimingEqualizer(Duration.ZERO),
     private val passwordResetEmailWindow: Duration = Duration.ofMinutes(PASSWORD_RESET_EMAIL_WINDOW_MINUTES),
     private val passwordResetEmailBucket: String = "password-reset-request-email",
 ) : CommandWithResultHandler<RequestPasswordResetCommand, RequestPasswordResetResult> {
@@ -31,10 +33,9 @@ internal class RequestPasswordResetHandler(
             throw PasswordRecoveryDisabledException()
         }
 
+        val requestStartedAt = timingEqualizer.markStart()
         val normalizedEmail = normalizeEmail(command.email)
 
-        // Enforce the per-email bucket BEFORE the existence check so unknown
-        // emails cannot bypass the limit by spamming random addresses.
         val now = clock.instant()
         val admitted = rateLimitPort.tryAcquire(
             key = "$passwordResetEmailBucket:$normalizedEmail",
@@ -49,10 +50,8 @@ internal class RequestPasswordResetHandler(
         val principalIdentity = principalIdentityLookup.findByEmail(normalizedEmail)
         val credential = localPasswordCredentialGateway.findByEmail(normalizedEmail)
 
-        // Only proceed when both a principal identity and a local credential are
-        // present. OAuth-only and unknown emails return silently — the response
-        // must not leak account existence.
         if (principalIdentity == null || credential == null) {
+            timingEqualizer.equalize(requestStartedAt)
             return RequestPasswordResetResult()
         }
 
@@ -69,16 +68,16 @@ internal class RequestPasswordResetHandler(
             )
         }
 
-        // Event dispatched only after the transaction commits — a rolled-back tx
-        // never sends an email.
         eventPublisher.publish(
             PasswordResetRequested(
                 principalId = principalId,
                 email = normalizedEmail,
                 rawResetToken = generated.rawToken,
+                locale = command.locale,
             ),
         )
 
+        timingEqualizer.equalize(requestStartedAt)
         return RequestPasswordResetResult()
     }
 }

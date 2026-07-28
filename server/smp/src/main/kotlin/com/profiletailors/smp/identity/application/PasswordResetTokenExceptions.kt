@@ -7,8 +7,6 @@ class ExpiredPasswordResetTokenException : InvalidPasswordResetTokenException()
 
 class UsedPasswordResetTokenException : InvalidPasswordResetTokenException()
 
-class PasswordRecoveryDisabledException : RuntimeException("Password recovery is disabled.")
-
 class PasswordRecoveryPasswordException(@Suppress("UNUSED_PARAMETER") password: String) :
     RuntimeException("Password does not meet policy requirements.")
 

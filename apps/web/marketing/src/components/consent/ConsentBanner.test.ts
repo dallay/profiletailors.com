@@ -5,7 +5,6 @@ import { dirname, resolve } from 'node:path'
 import { CURRENT_CONSENT_VERSION, CURRENT_POLICY_VERSION, PT_CONSENT_KEY } from '../../constants/consent'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const testWindow = window as Window & Record<string, unknown>
 
 /**
  * ConsentBanner.astro's client `<script>` block uses a TypeScript value
@@ -90,12 +89,14 @@ describe('ConsentBanner client script', () => {
 
   beforeEach(() => {
     localStorage.clear()
-    delete testWindow.__PT_DNT
+    // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only globals
+    delete (window as any).__PT_DNT
     // The extracted script calls window.__consentReload() instead of
     // window.location.reload() because jsdom's location.reload is
     // non-configurable and can't be mocked.
     reloadSpy = { called: false, callCount: 0 }
-    testWindow.__consentReload = () => {
+    // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only globals
+    ;(window as any).__consentReload = () => {
       reloadSpy.called = true
       reloadSpy.callCount++
     }
@@ -107,7 +108,7 @@ describe('ConsentBanner client script', () => {
 
   it('shows the banner and defaults the analytics toggle ON when there is no stored consent and no DNT signal', () => {
     renderBannerFixture()
-    ;testWindow.__PT_DNT = false
+    ;(window as any).__PT_DNT = false
 
     runConsentBannerScript()
 
@@ -121,7 +122,7 @@ describe('ConsentBanner client script', () => {
 
   it('shows the banner and defaults the analytics toggle OFF when a DNT/GPC signal is present', () => {
     renderBannerFixture()
-    ;testWindow.__PT_DNT = true
+    ;(window as any).__PT_DNT = true
 
     runConsentBannerScript()
 
@@ -148,7 +149,7 @@ describe('ConsentBanner client script', () => {
 
   it('toggles aria-checked and the "on" class when the analytics switch is clicked', () => {
     renderBannerFixture()
-    ;testWindow.__PT_DNT = false
+    ;(window as any).__PT_DNT = false
 
     runConsentBannerScript()
 
@@ -166,7 +167,7 @@ describe('ConsentBanner client script', () => {
 
   it('saves a receipt reflecting the current toggle state, reloads, and hides the banner when "Save preferences" is clicked', () => {
     renderBannerFixture()
-    ;testWindow.__PT_DNT = false
+    ;(window as any).__PT_DNT = false
 
     runConsentBannerScript()
 
@@ -196,7 +197,7 @@ describe('ConsentBanner client script', () => {
 
   it('records dnt=true on the saved receipt when a privacy signal was detected', () => {
     renderBannerFixture()
-    ;testWindow.__PT_DNT = true
+    ;(window as any).__PT_DNT = true
 
     runConsentBannerScript()
 
@@ -210,7 +211,7 @@ describe('ConsentBanner client script', () => {
     // The template renders `data-consent-accept-all` / `data-consent-reject-all`
     // and the script queries those exact same selectors.
     renderBannerFixture()
-    ;testWindow.__PT_DNT = false
+    ;(window as any).__PT_DNT = false
 
     runConsentBannerScript()
 

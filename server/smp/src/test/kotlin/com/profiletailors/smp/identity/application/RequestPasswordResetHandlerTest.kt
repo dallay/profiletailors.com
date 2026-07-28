@@ -77,6 +77,35 @@ class RequestPasswordResetHandlerTest {
     }
 
     @Test
+    fun `existing and unknown identities complete post-work timing equalization`() = runTest {
+        val unknownOrder = mutableListOf<String>()
+        val existingOrder = mutableListOf<String>()
+        val unknownHandler = newHandlerForTiming(
+            principalFacts = null,
+            credential = null,
+            timingEqualizer = RecordingPasswordRecoveryTimingEqualizer(unknownOrder),
+            order = unknownOrder,
+        )
+        val existingHandler = newHandlerForTiming(
+            principalFacts = principalFacts("user-1"),
+            credential = LocalPasswordCredentialRecord(
+                principalId = "user-1",
+                email = "user@example.com",
+                username = "user",
+                passwordHash = "hashed",
+            ),
+            timingEqualizer = RecordingPasswordRecoveryTimingEqualizer(existingOrder),
+            order = existingOrder,
+        )
+
+        unknownHandler.handle(RequestPasswordResetCommand("missing@example.com"))
+        existingHandler.handle(RequestPasswordResetCommand("user@example.com"))
+
+        assertEquals(listOf("start", "equalize"), unknownOrder)
+        assertEquals(listOf("start", "invalidate", "create", "publish", "equalize"), existingOrder)
+    }
+
+    @Test
     fun `normalizes the email before lookup`() = runTest {
         val tokenRepository = FakePasswordResetTokenRepository(mutableListOf())
         val identityLookup = FakePrincipalIdentityLookup(
@@ -395,6 +424,23 @@ class RequestPasswordResetHandlerTest {
         )
     }
 
+    private fun newHandlerForTiming(
+        principalFacts: PrincipalIdentityFacts?,
+        credential: LocalPasswordCredentialRecord?,
+        timingEqualizer: PasswordRecoveryTimingEqualizer,
+        order: MutableList<String>,
+    ) = RequestPasswordResetHandler(
+        principalIdentityLookup = FakePrincipalIdentityLookup(principalFacts),
+        localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(credential),
+        passwordResetTokenRepository = OrderRecordingTokenRepository(order),
+        transactionRunner = NoopAtomicTransactionRunner,
+        eventPublisher = RecordingEventPublisher(order),
+        rateLimitPort = FakeRateLimitPort(),
+        clock = fixedClock,
+        passwordRecoveryEnabled = { true },
+        timingEqualizer = timingEqualizer,
+    )
+
     private fun principalFacts(principalId: String) = PrincipalIdentityFacts(
         principalId = principalId,
         principalType = PrincipalType.USER,
@@ -527,6 +573,18 @@ class RequestPasswordResetHandlerTest {
             now: Instant,
             newPasswordHash: String,
         ): Boolean = false
+    }
+
+    private class RecordingPasswordRecoveryTimingEqualizer(private val order: MutableList<String>) :
+        PasswordRecoveryTimingEqualizer {
+        override fun markStart(): Long {
+            order += "start"
+            return 0L
+        }
+
+        override suspend fun equalize(startedAtNanos: Long) {
+            order += "equalize"
+        }
     }
 
     private class FakeRateLimitPort(var admit: Boolean = true) : RateLimitPort {

@@ -38,7 +38,7 @@ class InMemoryRateLimitAdapter(
         return result?.lastAttempt == adjustedNow && result.count <= maxRequests
     }
 
-    internal fun clear() = store.clear()
+    fun clear() = store.clear()
 
     private data class Window(val lastAttempt: Instant, val count: Int)
 

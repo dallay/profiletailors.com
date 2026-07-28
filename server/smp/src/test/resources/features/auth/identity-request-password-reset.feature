@@ -1,4 +1,4 @@
-@identity @password-recovery @fast @postgres
+@identity @password-recovery @smoke @fast
 Feature: Request password reset
   As a user who cannot remember the account password
   I want to request a secure password reset link
@@ -128,6 +128,18 @@ Feature: Request password reset
     And the email should not contain the current password
     And the email should not contain a temporary password
 
+  @notification @i18n
+  Scenario Outline: Send the password reset email using the supported locale
+    Given a local account exists with email "user@example.com"
+    And the preferred locale is "<locale>"
+    When the visitor requests a password reset for "user@example.com"
+    Then the password reset email should be rendered in "<locale>"
+
+    Examples:
+      | locale |
+      | en     |
+      | es     |
+
   @security
   Scenario: Never persist the raw password reset token
     Given a local account exists with email "user@example.com"
@@ -147,9 +159,33 @@ Feature: Request password reset
     And the response should not contain token metadata
 
   @rate-limit
+  Scenario: Rate limit repeated requests from the same IP address
+    When the same IP address submits 6 password reset requests within 15 minutes
+    Then the first 5 requests should be accepted
+    And the sixth response status should be 429
+    And the sixth response should use RFC 9457 Problem Details
+    And the sixth response should contain code "AUTH_RATE_LIMIT_EXCEEDED"
+
+  @rate-limit
   Scenario: Rate limit repeated requests for the same normalized email
-    Given the email password reset limit is 3 requests per 30 minutes
     When password reset is requested 4 times for variants of "user@example.com" within 30 minutes
     Then the first 3 requests should be accepted
     And the fourth response status should be 429
     And all email variants should count toward the same normalized email bucket
+
+  @rate-limit @enumeration
+  Scenario: Apply email rate limiting equally to existing and unknown accounts
+    Given a local account exists with email "existing@example.com"
+    And no account exists with email "missing@example.com"
+    When the email request limit is exceeded for both addresses
+    Then both addresses should receive equivalent rate limit responses
+    And the rate limit response should not reveal account existence
+
+  @disabled
+  Scenario: Password recovery is disabled
+    Given password recovery is disabled
+    When the visitor requests a password reset for "user@example.com"
+    Then the password recovery response status should be 503
+    And the response should use RFC 9457 Problem Details
+    And no password reset token should be created
+    And no password reset notification should be scheduled
