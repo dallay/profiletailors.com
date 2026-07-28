@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Check, X } from '@lucide/vue'
-import type { ChannelShape } from '@modules/publishing/infrastructure/publishing.store'
+import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
 
 const props = defineProps<{
-  channels: ChannelShape[]
+  channels: Channel[]
   selectedChannelId: string | null
   isEditMode: boolean
 }>()
