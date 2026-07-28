@@ -59,7 +59,7 @@ function mountAuthView() {
       },
       stubs: {
         Button: {
-          template: '<button><slot /></button>',
+          template: '<button v-bind="$attrs"><slot /></button>',
         },
         RouterLink: {
           template: '<a><slot /></a>',
@@ -81,6 +81,56 @@ describe('AuthView validation', () => {
     loginWithPassword.mockReset()
     registerWithPassword.mockReset()
     publicCapabilitiesLoad.mockReset()
+  })
+
+  it('renders a native sign-in form that supports password managers and Enter submission', async () => {
+    loginWithPassword.mockResolvedValue(undefined)
+    const wrapper = mountAuthView()
+
+    const form = wrapper.find('form')
+    const emailInput = wrapper.find('input#email')
+    const passwordInput = wrapper.find('input#password')
+    const submitButton = wrapper.find('button[type="submit"]')
+    const toggleButton = wrapper.find('button[aria-label="Show password"]')
+
+    expect(form.exists()).toBe(true)
+    expect(wrapper.find('label[for="email"]').exists()).toBe(true)
+    expect(emailInput.attributes('type')).toBe('email')
+    expect(emailInput.attributes('autocomplete')).toBe('username')
+    expect(wrapper.find('label[for="password"]').exists()).toBe(true)
+    expect(passwordInput.attributes('type')).toBe('password')
+    expect(passwordInput.attributes('autocomplete')).toBe('current-password')
+    expect(submitButton.text()).toBe('auth.submitLogin')
+    expect(toggleButton.attributes('type')).toBe('button')
+
+    await emailInput.setValue('user@example.com')
+    await passwordInput.setValue('Str0ng!Pass')
+    await form.trigger('submit')
+
+    expect(loginWithPassword).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      password: 'Str0ng!Pass',
+    })
+  })
+
+  it('places federated sign-in buttons above the sign-in method divider', () => {
+    const wrapper = mountAuthView()
+    const text = wrapper.find('form').text()
+
+    expect(text.indexOf('Continue with Google')).toBeLessThan(text.indexOf('or'))
+    expect(text.indexOf('Continue with Apple')).toBeLessThan(text.indexOf('or'))
+    expect(wrapper.find('[data-testid="sign-in-method-divider"]').text()).toBe('or')
+  })
+
+  it('toggles password visibility without submitting the form', async () => {
+    const wrapper = mountAuthView()
+    const toggleButton = wrapper.find('button[aria-label="Show password"]')
+
+    await toggleButton.trigger('click')
+
+    expect(wrapper.find('input#password').attributes('type')).toBe('text')
+    expect(toggleButton.attributes('aria-pressed')).toBe('true')
+    expect(loginWithPassword).not.toHaveBeenCalled()
   })
 
   it('does not submit login when client-side auth validation fails', async () => {
