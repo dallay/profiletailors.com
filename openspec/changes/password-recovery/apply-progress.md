@@ -266,3 +266,83 @@ Renamed the misleading PR 1 notification `telemetry` scenario to notification-co
 - Existing commit `3b452dd0` contains unrelated marketing test changes in three files; this continuation did not touch them.
 - The original PR 1 implementation is far above the 400-line review budget; this apply respected the selected stacked-to-main PR 1 boundary.
 - PR 3 audit, metrics, notification retry/final-failure, cleanup, and operational telemetry remain intentionally excluded per `spec.md` and `design.md`.
+
+## PR 2 Critical Runtime-Evidence Closure: PR-2.11
+
+### Scope
+
+Closed the three critical PR 2 runtime evidence gaps identified by the latest frontend verification report. This batch stayed within the stacked-to-main PR 2 frontend slice: test/POM changes only, no backend, dependency, server/smp/tmp, commit, push, PR, archive, or PR-2.12/state verification changes.
+
+### Completed
+
+- PR-2.11 accessibility evidence now executes real keyboard-only recovery flows for both views with `Tab`, `Shift+Tab`, and `Enter`; asserts visible focus, programmatic `label[for]` associations, `aria-invalid`, `aria-describedby`, `role="alert"`, `aria-live="polite"`, and 44 CSS-pixel Pixel 5 submit targets.
+- PR-2.11 privacy evidence now observes analytics-like network requests, browser console messages, and storage during forgot/reset success and reset-token error flows. It asserts no analytics emissions on standalone recovery even with valid analytics consent, no token/password sentinel in requests/logs/storage, and disables screenshot/trace/video diagnostics for the consent-enabled privacy test. Existing storage/backend-detail assertions remain.
+- PR-2.11 reset error evidence now executes reset `429/AUTH_RATE_LIMIT_EXCEEDED`, `503/PASSWORD_RECOVERY_DISABLED`, and network/unknown branches in both component and Playwright tests, asserting safe localized role-alert UI, form state, and absence of backend detail.
+
+### Exact Test Traceability
+
+#### Component tests — `apps/web/app/src/modules/auth/presentation/ResetPasswordView.spec.ts`
+
+- `ResetPasswordView > reset unavailable / throttled error branches > maps reset 429/AUTH_RATE_LIMIT_EXCEEDED to rate-limited message without backend detail`
+- `ResetPasswordView > reset unavailable / throttled error branches > maps reset 503/PASSWORD_RECOVERY_DISABLED to unavailable message without backend detail`
+- `ResetPasswordView > reset unavailable / throttled error branches > maps reset unknown/network error to generic safe message without backend detail`
+
+#### Playwright tests — `apps/web/app/e2e/specs/password-reset-frontend.spec.ts`
+
+Accessibility:
+
+- `Recovery accessibility: keyboard navigation, labels, focus, announcements, and touch targets › ForgotPasswordView: keyboard-only submission reaches success announcement`
+- `Recovery accessibility: keyboard navigation, labels, focus, announcements, and touch targets › ForgotPasswordView: validation shows aria-invalid and associated error with role=alert`
+- `Recovery accessibility: keyboard navigation, labels, focus, announcements, and touch targets › ForgotPasswordView: Tab/Shift+Tab traversal cycles in expected order`
+- `Recovery accessibility: keyboard navigation, labels, focus, announcements, and touch targets › ResetPasswordView: keyboard-only submission reaches success announcement`
+- `Recovery accessibility: keyboard navigation, labels, focus, announcements, and touch targets › ResetPasswordView: validation shows aria-invalid and role=alert error`
+- `Recovery accessibility: keyboard navigation, labels, focus, announcements, and touch targets › ResetPasswordView: token error shows role=alert in invalid state`
+- `Recovery accessibility: keyboard navigation, labels, focus, announcements, and touch targets › Pixel 5: submit button on ForgotPasswordView meets 44px touch target`
+- `Recovery accessibility: keyboard navigation, labels, focus, announcements, and touch targets › Pixel 5: submit button on ResetPasswordView meets 44px touch target`
+
+Privacy:
+
+- `Recovery privacy: no token/password in analytics, console, or storage › forgot-password flow: no analytics network calls emit token or email sentinel`
+- `Recovery privacy: no token/password in analytics, console, or storage › forgot-password flow: console logs do not contain token or password sentinels`
+- `Recovery privacy: no token/password in analytics, console, or storage › reset-password success: no analytics calls emit new password or reset token`
+- `Recovery privacy: no token/password in analytics, console, or storage › reset-password success: console logs do not contain token or password sentinels`
+- `Recovery privacy: no token/password in analytics, console, or storage › reset-password error: console logs do not contain token on failure`
+- `Recovery privacy: no token/password in analytics, console, or storage › standalone recovery emits no analytics calls even when consent is enabled`
+
+Reset error branches:
+
+- `ResetPasswordView error branches: 429, 503, and unknown via route interception › reset 429/AUTH_RATE_LIMIT_EXCEEDED shows rate-limited alert without backend detail`
+- `ResetPasswordView error branches: 429, 503, and unknown via route interception › reset 503/PASSWORD_RECOVERY_DISABLED shows unavailable alert without backend detail`
+- `ResetPasswordView error branches: 429, 503, and unknown via route interception › reset network/unknown error shows generic alert without internal detail`
+
+### RED/GREEN Evidence
+
+- RED: Before the new Playwright assertions existed, the baseline recovery spec passed 21/21 but the new accessibility assertions failed in Chromium: ForgotPasswordView and ResetPasswordView both remained `aria-invalid="false"` because native HTML constraint validation prevented the Vue submit handler. The test was corrected to dispatch the form submit event after keyboard entry, bypassing only browser constraint validation so the component's actual Zod branch executes. Component reset-branch tests were newly added against already-implemented production mappings and passed immediately, proving the previously uncovered branches execute.
+- GREEN: focused component run passed 11/11; focused keyboard/privacy Playwright run passed 4/4 in Chromium; full recovery Playwright passed 68/68 executed across Chromium, Firefox, and Mobile Chrome, with 4 expected skips for Pixel-only tests outside Mobile Chrome. Mobile Chrome executed both 44px target tests.
+- REFACTOR: extracted locale-independent keyboard traversal (`tabTo`, `tabUntil`), visible-focus, and touch-target helpers in `PasswordRecoveryPage`; removed unused helpers; formatted and linted the changed E2E files. Privacy tests inspect in-memory request/console data and intentionally avoid secret-bearing screenshot/trace/video diagnostics.
+
+### Commands Run
+
+- `cd apps/web/app && pnpm exec vitest run --reporter=verbose src/modules/auth/presentation/ResetPasswordView.spec.ts` — initial baseline 8/8; after component tests 11/11 passed.
+- Initial Chromium Playwright RED: `pnpm --filter app exec playwright test -c e2e/playwright.config.ts e2e/specs/password-reset-frontend.spec.ts --project=chromium` — exit 1, 20 passed, 2 failed; new aria-invalid runtime assertions exposed native constraint-validation behavior.
+- Focused Chromium accessibility GREEN: `pnpm exec playwright test -c e2e/playwright.config.ts e2e/specs/password-reset-frontend.spec.ts --project=chromium -g "keyboard-only|Tab/Shift"` — 3/3 passed.
+- Focused Chromium accessibility/privacy GREEN: same command with `-g "keyboard-only|Tab/Shift|standalone recovery"` — 4/4 passed.
+- `pnpm exec vitest run` — 101 files, 1,196 passed, 1 todo; exit 0.
+- `pnpm --filter app test:run -- src/modules/auth/presentation/ResetPasswordView.spec.ts` — full app test script invocation completed with 101 files, 1,196 passed, 1 todo; exit 0.
+- `pnpm exec playwright test -c e2e/playwright.config.ts e2e/specs/password-reset-frontend.spec.ts` — 68 passed, 4 expected skips, exit 0 across Chromium, Firefox, and Mobile Chrome.
+- `pnpm exec playwright test -c e2e/playwright.config.ts e2e/specs/route-guards.spec.ts --grep "authenticated reset links remain accessible"` — 3/3 passed across all configured projects.
+- `pnpm --filter app lint` — exit 0; Biome checked 722 files.
+- `just app-build` — exit 0; Vue type-check and Vite production build passed; existing large-chunk warning remains.
+- `git diff --check` — exit 0.
+
+### Current Task State
+
+- PR-2.01 through PR-2.11 remain complete, with PR-2.11 now carrying runtime evidence for all three prior critical gaps.
+- PR-2.12 remains open and unmarked; sdd-verify owns verification state.
+- PR 2 remains `applied`, next `verify`; no commit, push, PR, archive, or state verification changes performed.
+
+### Risks
+
+- The PR-2.11 evidence closure adds approximately 560 test/POM lines, above the repository's nominal 400-line review budget. It remains one autonomous PR-2 stacked-to-main work-unit slice because the user explicitly assigned all three critical gaps together; no unrelated production scope was added.
+- Existing Vitest warnings and the existing production bundle chunk-size warning remain non-blocking and unrelated.
+- Recovery does not currently mount a real analytics SDK/call path; privacy tests therefore assert zero analytics-like emissions and retain sentinel checks for any future instrumentation.

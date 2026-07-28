@@ -83,4 +83,59 @@ describe('ResetPasswordView', () => {
     expect(wrapper.text()).not.toContain('secret detail')
     expect(wrapper.find('a[href="/forgot-password"]').exists()).toBe(true)
   })
+
+  describe('reset unavailable / throttled error branches', () => {
+    it('maps reset 429/AUTH_RATE_LIMIT_EXCEEDED to rate-limited message without backend detail', async () => {
+      resetPassword.mockRejectedValue({
+        status: 429,
+        code: 'AUTH_RATE_LIMIT_EXCEEDED',
+        detail: 'backend rate detail',
+      })
+      const wrapper = mountView()
+      await fillAndSubmit(wrapper)
+      await flushPromises()
+      // Form remains visible (not invalid-link state)
+      expect(wrapper.find('form').exists()).toBe(true)
+      // Safe UI message shown via role=alert
+      const alert = wrapper.find('[role="alert"]')
+      expect(alert.exists()).toBe(true)
+      expect(alert.text()).toContain('passwordRecovery.rateLimited')
+      // No backend detail leaked
+      expect(wrapper.text()).not.toContain('backend rate detail')
+      expect(wrapper.text()).not.toContain('429')
+    })
+
+    it('maps reset 503/PASSWORD_RECOVERY_DISABLED to unavailable message without backend detail', async () => {
+      resetPassword.mockRejectedValue({
+        status: 503,
+        code: 'PASSWORD_RECOVERY_DISABLED',
+        detail: 'backend disabled detail',
+      })
+      const wrapper = mountView()
+      await fillAndSubmit(wrapper)
+      await flushPromises()
+      // Form remains visible (not invalid-link state)
+      expect(wrapper.find('form').exists()).toBe(true)
+      const alert = wrapper.find('[role="alert"]')
+      expect(alert.exists()).toBe(true)
+      expect(alert.text()).toContain('passwordRecovery.unavailable')
+      // No backend detail leaked
+      expect(wrapper.text()).not.toContain('backend disabled detail')
+      expect(wrapper.text()).not.toContain('503')
+    })
+
+    it('maps reset unknown/network error to generic safe message without backend detail', async () => {
+      resetPassword.mockRejectedValue(new Error('Network request failed'))
+      const wrapper = mountView()
+      await fillAndSubmit(wrapper)
+      await flushPromises()
+      // Form remains visible (not invalid-link state)
+      expect(wrapper.find('form').exists()).toBe(true)
+      const alert = wrapper.find('[role="alert"]')
+      expect(alert.exists()).toBe(true)
+      expect(alert.text()).toContain('passwordRecovery.genericError')
+      // Internal error detail not shown
+      expect(wrapper.text()).not.toContain('Network request failed')
+    })
+  })
 })
