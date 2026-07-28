@@ -216,6 +216,50 @@ Renamed the misleading PR 1 notification `telemetry` scenario to notification-co
 - Sequential broad gates passed after one unrelated transient resend-verification timeout was cleared by the required full rerun: `just backend-check`, `just backend-bdd-fast`, `just backend-test-postgres`, and `just backend-bdd-postgres`.
 - PR-1.21 through PR-1.29 are now complete truthfully. PR-1.30 remains prohibited and incomplete. State remains `current_phase: apply`, `next: verify`.
 
+## PR 2 Frontend Planning State
+
+- PR 1 apply/verify history above remains complete; PR 2 is the next apply slice, beginning at `PR-2.01`, while PR 3 remains planned.
+- Overall `current_phase` is `apply` because one scalar cannot represent verified PR 1 plus pending PR 2/PR 3; `state.yaml.slices` records the additive per-slice lifecycle.
+- No PR 2 implementation or verification command has run yet.
+
+## PR 2 Frontend Apply: PR-2.01 through PR-2.11
+
+### Completed
+
+- Added typed `requestPasswordReset` and `resetPassword` API functions using `requestRaw`, active EN/ES `Accept-Language`, empty 202/204 handling, and retained RFC 9457 status/code.
+- Added normalized recovery-email and matching 8..128 password schemas.
+- Added standalone, accessible forgot/reset views with local state, safe generic error mapping, duplicate locks, terminal reset success, and no auth-store mutation.
+- Added `forgot-password` guest-only and `reset-password` session-agnostic routes; both bypass `AppShell` through `meta.standalone`.
+- Added the login-only forgot link, EN/ES strict parity, safe E2E mocks/data/POM, and core/accessibility/mobile/i18n/authenticated/storage-secrecy Playwright coverage.
+- No dependencies or backend files changed. PR 1 history remains intact.
+
+### RED/GREEN Evidence
+
+- PR-2.01 RED: 5 API tests failed because recovery functions did not exist; GREEN: 53/53 focused API tests passed.
+- PR-2.02 RED: 9 schema tests failed because recovery schemas did not exist; GREEN: 20/20 focused schema tests passed.
+- PR-2.03/04 RED: component imports failed because recovery views did not exist; GREEN: forgot 5/5 and reset 8/8 passed.
+- PR-2.05 RED: three route/guard assertions failed because recovery routes were absent; GREEN: 25/25 router tests passed.
+- PR-2.06 RED: standalone route still rendered `AppShell`; GREEN: 5/5 App tests passed.
+- PR-2.07 RED: login forgot-link assertion failed; GREEN: 16/16 AuthView tests passed.
+- PR-2.08 RED: locale parity failed because namespace was absent; GREEN: parity and referenced-key tests passed.
+- PR-2.10/11 GREEN: targeted recovery Playwright passed 21/21 across Chromium, Firefox, and Pixel 5.
+
+### Commands Run
+
+- Focused Vitest RED/GREEN commands for each PR-2.01..PR-2.08 work unit — final focused batch passed.
+- `pnpm --filter app test:run` — exit 0, 101 files, 1193 passed, 1 todo.
+- `pnpm --filter app lint` — initial exit 1 for formatting only; after Biome write, exit 0 across 722 files.
+- `pnpm --filter app exec playwright test -c e2e/playwright.config.ts e2e/specs/password-reset-frontend.spec.ts` — exit 0, 21/21 passed.
+- Combined recovery + existing route-guards Playwright — recovery/new authenticated-reset scenario passed; two existing credential-backed route-guard tests were blocked by missing `E2E_TEST_USER_PASSWORD`.
+- `just app-build` — exit 0; Vue type-check and Vite production build passed with existing chunk-size warning.
+- `git diff --check` — exit 0.
+
+### Current Task State
+
+- PR-2.01 through PR-2.11 are complete.
+- PR-2.12 remains open because its exact combined route-guards command requires `E2E_TEST_USER_PASSWORD`; sdd-verify owns verified status.
+- PR 2 state is `applied`, next `verify`; no commit, push, PR, archive, or history rewrite performed.
+
 ## Risks
 
 - The first ambient-dev `backend-check` attempt also activated unrelated dev credentials and failed broadly; the required repository-context rerun was used for the final sequential gate. A subsequent first normal `backend-check` hit one transient resend-verification timeout, while the immediate full rerun passed.

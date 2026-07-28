@@ -16,7 +16,9 @@ policies are published at:
 - [Acceptable Use Policy](/acceptable-use)
 - [Cookie Policy](/cookies)
 
-These are maintained in `apps/web/marketing/src/i18n/{en,es}.ts` under the `legal.*` keys.
+These are maintained in `apps/web/marketing/src/i18n/{en,es}.ts` under the `legal.*` keys. The
+leading slash in each link is intentional: these are deployed marketing routes, not files inside
+the repository, so filesystem-only Markdown link checkers may report them as unresolved.
 
 ## When to use these documents
 

@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import i18n from '@shared/i18n'
 import {
   fetchPublicCapabilities,
   login,
   register,
+  requestPasswordReset,
+  resetPassword,
   refreshSession,
   logoutSession,
   getCurrentUserProfile,
@@ -337,6 +340,69 @@ describe('resendVerification', () => {
         body: JSON.stringify({ email: 'user@example.com' }),
       }),
     )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// password recovery
+// ---------------------------------------------------------------------------
+
+describe('password recovery', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('requests a password reset with the selected locale and preserves empty 202', async () => {
+    const fetchMock = mockFetch(new Response(null, { status: 202 }))
+
+    i18n.global.locale.value = 'es'
+
+    await expect(requestPasswordReset('user@example.com')).resolves.toBeUndefined()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:7638/api/auth/forgot-password',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'user@example.com' }),
+        headers: expect.objectContaining({
+          Accept: 'application/vnd.api.v1+json',
+          'Accept-Language': 'es',
+        }),
+      }),
+    )
+  })
+
+  it('resets a password with an exact payload and preserves empty 204', async () => {
+    const fetchMock = mockFetch(new Response(null, { status: 204 }))
+
+    await expect(
+      resetPassword({ token: 'opaque-capability', newPassword: 'NewPassword123!' }),
+    ).resolves.toBeUndefined()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:7638/api/auth/reset-password',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ token: 'opaque-capability', newPassword: 'NewPassword123!' }),
+      }),
+    )
+  })
+
+  it.each([
+    [400, 'INVALID_PASSWORD_RESET_TOKEN'],
+    [429, 'AUTH_RATE_LIMIT_EXCEEDED'],
+    [503, 'PASSWORD_RECOVERY_DISABLED'],
+  ])('preserves Problem Details status and code for %s', async (status, code) => {
+    mockFetch(
+      new Response(JSON.stringify({ title: 'Safe failure', detail: 'Safe detail', status, code }), {
+        status,
+        headers: { 'Content-Type': 'application/problem+json' },
+      }),
+    )
+
+    await expect(
+      resetPassword({ token: 'opaque-capability', newPassword: 'NewPassword123!' }),
+    ).rejects.toMatchObject({ status, code, detail: 'Safe detail' })
   })
 })
 

@@ -1,5 +1,19 @@
 change: password-recovery
-current_phase: verify
+current_phase: apply
 completed: [propose, spec, design, tasks, apply, verify]
-next: archive
+next: apply
 updated: 2026-07-28
+slices:
+  pr-1:
+    status: verified
+    completed_phases: [apply, verify]
+    next: none
+  pr-2:
+    status: applied
+    current_phase: apply
+    completed_tasks: [PR-2.01, PR-2.02, PR-2.03, PR-2.04, PR-2.05, PR-2.06, PR-2.07, PR-2.08, PR-2.09, PR-2.10, PR-2.11]
+    next: verify
+    next_task: PR-2.12
+  pr-3:
+    status: planned
+    next: apply-after-pr-1

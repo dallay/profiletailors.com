@@ -144,3 +144,138 @@ None.
 **PASS WITH WARNINGS**
 
 All previously critical PR 1 findings are resolved in source and covered by fresh runtime execution. `PR-1.01`–`PR-1.29` are truthfully complete; `PR-1.30` remains intentionally excluded and unauthorized. The change may advance to the archive phase when orchestration is ready, but it must not be archived yet because PR 2 and PR 3 remain outstanding.
+
+---
+
+# Verification Report: Password Recovery — PR 2 Frontend
+
+**Change**: `password-recovery`
+
+**Mode**: OpenSpec / strict TDD configured (`rules.apply.tdd: true`)
+
+**Verification date**: 2026-07-28
+
+**Verdict**: **FAIL**
+
+## Scope
+
+This verification covers only the PR 2 Vue frontend slice, independently inspecting PR-2.01 through PR-2.12 and the current source/tests. PR 1 remains verified. PR 3 is excluded and the top-level change remains unarchived. No backend code, `server/smp/tmp`, dependency, commit, push, PR, archive, or broad `just ci` action was performed.
+
+## Completeness
+
+| Metric | Value |
+|---|---:|
+| PR 2 tasks evaluated | 12 (`PR-2.01`–`PR-2.12`) |
+| Implementation tasks complete | 11 (`PR-2.01`–`PR-2.11`) |
+| Verification task truthfully complete | 0 (`PR-2.12` remains open) |
+| PR 2 spec requirements evaluated | 16 (`REQ-UI-01`–`REQ-UI-16`) |
+| Critical runtime-evidence gaps | 3 |
+| PR 1 | Preserved as verified |
+| PR 3 | Excluded/planned |
+
+The unavailable `E2E_TEST_USER_PASSWORD` is **not** a blocker for the changed authenticated-reset guard. The credential-free targeted route-guard test passed in Chromium, Firefox, and Pixel 5. The two credential-backed tests in the combined route-guards file are pre-existing login-flow coverage, not acceptance owners for the changed reset-route contract. PR-2.12 remains incomplete because the PR 2 acceptance gaps below are real, not because a credential should be invented.
+
+## Fresh Command Evidence
+
+| Command | Result | Runtime evidence |
+|---|---|---|
+| Focused recovery Vitest invocation | PASS | The invocation resolved through the app script and executed the full suite: 101 files, 1,193 passed, 1 existing todo. Recovery evidence included API 53, schemas 20, forgot component 5, reset component 8, router contract 18, real guard 7, App 5, AuthView 16, and i18n 2. |
+| `pnpm --filter app lint` | PASS | Biome checked 722 files; no fixes required. |
+| `pnpm --filter app exec playwright test -c e2e/playwright.config.ts e2e/specs/password-reset-frontend.spec.ts` | PASS | 21/21 across Chromium, Firefox, and Mobile Chrome (Pixel 5). Instrumented aggregate coverage: 72.17% statements, 65.51% branches, 32.35% functions, 72.41% lines; no per-recovery-file threshold. |
+| `pnpm --filter app exec playwright test -c e2e/playwright.config.ts e2e/specs/route-guards.spec.ts --grep "9.3 Authenticated reset links remain accessible"` | PASS | 3/3 across Chromium, Firefox, and Mobile Chrome; no credential required. |
+| `just app-build` | PASS | Vue type-check and Vite production build completed; existing large-chunk warning only. |
+| `git diff --check` | PASS | No whitespace errors. |
+| Combined recovery + full route-guards command from apply | BLOCKED, non-critical | Changed recovery scenarios and authenticated-reset guard passed; two existing login-backed tests required unavailable `E2E_TEST_USER_PASSWORD`. Targeted changed-contract evidence supersedes this as a PR 2 blocker assessment. |
+
+## Spec Compliance Matrix
+
+| Requirement / scenario group | Status | Implementation and passing runtime evidence |
+|---|---|---|
+| REQ-UI-01 login forgot link and native semantics | COMPLIANT | `AuthView.vue` uses a login-only `RouterLink`; passing AuthView tests assert native form, labels, email/current-password autocomplete, submit semantics, and the forgot link. |
+| REQ-UI-02 forgot guest-only | COMPLIANT | Route metadata plus real guard unit test and recovery Playwright redirect pass. |
+| REQ-UI-03 validation, pending, duplicate lock | COMPLIANT | Dedicated schema and forgot component tests pass; source uses native email input and pending lock. |
+| REQ-UI-04 generic forgot confirmation | COMPLIANT | Localized generic copy is fixed and account-independent; component and 21-run browser suite pass the same 202 terminal state. |
+| REQ-UI-05 forgot 429/disabled/unknown mapping | COMPLIANT | Component tests pass 429, 503, and unknown/network mapping; Playwright passes 429 and 503 in all three projects. |
+| REQ-UI-06 authenticated and unauthenticated reset access | COMPLIANT | Reset route has neither `guestOnly` nor `requiresAuth`; real guard test, recovery Playwright, and focused route-guard Playwright pass authenticated access. Unauthenticated reset is exercised throughout the recovery browser suite. |
+| REQ-UI-07 missing/blank/array token | COMPLIANT | Reset component tests pass all three forms; browser passes missing-token invalid state. |
+| REQ-UI-08/09 password boundaries, equality, pending lock | COMPLIANT | Schema tests pass 8/128 and reject blank/7/129/mismatch; reset component tests pass pre-submit blocking and duplicate lock. |
+| REQ-UI-10 token error unification/no backend detail | COMPLIANT | Component tests pass invalid/expired/used codes against one state and assert backend detail is absent; browser passes rejected used-token state. |
+| REQ-UI-11 success/no auto-login/login CTA | COMPLIANT | Component and browser tests pass terminal success, unchanged reset URL, explicit login link, and no auth-store path. |
+| REQ-UI-12 EN/ES parity and responsive presentation | COMPLIANT | Strict namespace parity test passes; browser suite runs every scenario in all three projects, with Spanish Pixel 5 success copy and no-overflow assertion. |
+| REQ-UI-13 complete keyboard/accessibility/touch behavior | **UNTESTED** | Source has labels, native forms, autocomplete, live/alert regions, and 44px submit controls, but the test named “keyboard accessible” performs mouse-style locator fills/clicks. It does not execute keyboard-only traversal/submission, assert visible focus, verify recovery labels/associations at browser runtime, or measure practical touch targets. The PR 2 accessibility scenario therefore lacks a passing covering test. |
+| REQ-UI-14 API requests/headers/errors | COMPLIANT | API tests pass exact forgot/reset POST bodies, versioned `Accept`, forgot `Accept-Language: es`, empty 202/204, and retained Problem Details status/code. |
+| REQ-UI-15 storage/analytics/log/error/test-diagnostic secrecy | **UNTESTED** | Production source inspection found no recovery storage, analytics, or logging calls; browser runtime proves token/password absence from local/session storage, and component runtime proves backend detail is not rendered. No passing runtime test observes analytics calls, browser console/log output, or test attachments/diagnostics for secret leakage, so the full privacy scenario is not proven. |
+| REQ-UI-16 standalone metadata shell | COMPLIANT | Metadata-driven routes and `App.vue` pass router and App tests; no route-name allowlist remains. |
+| PR 2 throttled/unavailable/unknown scenario for either recovery view | **UNTESTED** | Forgot maps all required classes. Reset source implements 429/503/unknown mapping, but no reset component or Playwright case executes any of those branches. The updated cross-view scenario and explicit verification scope are not fully covered at runtime. |
+
+## Correctness
+
+| Contract | Status | Notes |
+|---|---|---|
+| Exact API payloads and empty responses | PASS | Typed void functions use `requestRaw`; tests pass. |
+| Active-locale propagation | PASS | Forgot request carries active locale for localized email; versioned Accept remains present. |
+| Client validation boundaries | PASS | Normalized email and exact 8..128/match rules pass. |
+| Generic account-safe forgot UX | PASS | No account-dependent frontend branch or backend detail rendering. |
+| Unified token UX | PASS | Three token codes collapse to one state and clear password fields. |
+| No auto-login after reset | PASS | View-local state only; explicit login CTA. |
+| Independent route capabilities | PASS | Forgot is guest-only; reset is session-agnostic. |
+| Standalone shell | PASS | Driven by `route.meta.standalone`. |
+| Duplicate submissions | PASS | Both component suites execute pending locks. |
+| Reset 429/503/unknown behavior | UNTESTED | Implemented but not executed by a covering test. |
+| Full accessibility behavior | UNTESTED | Semantic source is promising, but required keyboard/focus/touch behavior was not executed. |
+| Full privacy behavior | UNTESTED | Storage and rendered-detail subsets pass; analytics/log/diagnostic subsets lack runtime observation. |
+
+## Design Coherence
+
+| Decision | Status | Notes |
+|---|---|---|
+| Forgot guest-only; reset session-agnostic | FOLLOWED | Independent route metadata and passing guard evidence. |
+| Metadata-driven standalone shell | FOLLOWED | Auth/recovery routes use metadata; `App.vue` consumes it. |
+| View-local recovery state | FOLLOWED | No Pinia/auth mutation or automatic login. |
+| Stable status/code mapping | PARTIAL EVIDENCE | Implementation follows design, but reset rate-limit/disabled/unknown branches lack runtime coverage. |
+| Active locale on recovery request | FOLLOWED | Forgot request propagates locale for email selection. |
+| No secrets in shared state/storage/logs | FOLLOWED IN SOURCE / PARTIAL RUNTIME | No offending source call found; full runtime privacy scenario remains unproven. |
+
+## Strict TDD Audit
+
+| Metric | Status |
+|---|---|
+| Strict TDD configured | Yes |
+| Strict verification module | WARNING — the referenced `strict-tdd-verify.md` file is absent. |
+| PR-2.01..PR-2.11 RED/GREEN evidence | Recorded in `apply-progress.md`; current GREEN independently rerun. |
+| Complete historical provenance | Not independently reconstructable from the working tree alone. |
+| Runtime verification | Broad unit, lint, targeted browser, build, and diff checks executed. |
+
+## Findings
+
+| Finding | Judge A | Judge B | Severity | Status |
+|---|---:|---:|---|---|
+| Accessibility scenario name claims keyboard coverage without keyboard traversal, focus, label-association, or touch-target assertions | ✅ | ✅ | CRITICAL | Confirmed `UNTESTED` |
+| Privacy scenario has storage/detail evidence but no analytics, console/log, or test-diagnostic observation | ✅ | ✅ | CRITICAL | Confirmed `UNTESTED` |
+| Reset 429/503/unknown mapping exists but no test executes those branches | ✅ | ✅ | CRITICAL | Confirmed `UNTESTED` |
+| Missing `E2E_TEST_USER_PASSWORD` blocks two existing credential-backed route-guard tests | ❌ | ✅ | WARNING (environmental, non-blocking for changed guard) | INFO; changed guard passed credential-free 3/3 |
+| Strict TDD verifier reference is absent and complete historical RED→GREEN provenance is not independently reconstructable | ✅ | ✅ | WARNING | Confirmed |
+| Browser coverage is aggregate and has no recovery-file threshold | ✅ | ✅ | SUGGESTION | Confirmed |
+| Existing Vitest/Vite warnings remain noisy | ✅ | ✅ | SUGGESTION | Confirmed; non-blocking |
+
+### CRITICAL
+
+1. Add genuine keyboard-only browser execution for recovery, including traversal/submission, focus visibility, programmatic labels/associated errors, live announcements, and measurable Pixel 5 touch targets.
+2. Add runtime privacy observation for analytics, browser console/log output, and generated Playwright diagnostics/attachments while processing token/password success and failure paths.
+3. Execute reset-view 429, 503/disabled, and unknown failure mapping in component and/or browser tests.
+
+### WARNING
+
+1. The missing login credential prevents the whole pre-existing route-guards file from running together, but it is not a blocker for the changed reset guard because the isolated credential-free acceptance test passed across all configured projects.
+2. Strict TDD is configured, but the referenced strict verifier module is absent and full historical RED→GREEN provenance cannot be independently reconstructed.
+
+### SUGGESTION
+
+1. Inspect per-file Vitest/Playwright coverage for the new recovery files during the documented Codecov follow-up.
+2. Reduce existing test/runtime warning noise so new regressions are easier to spot.
+
+## Verdict
+
+**FAIL**
+
+PR 2 implementation is coherent and all executed gates are green, including credential-free authenticated-reset coverage. However, SDD verification requires a passing covering test for every approved scenario. The accessibility, full privacy, and reset unavailable/error-mapping contracts remain untested at runtime. Therefore `PR-2.12` must remain incomplete, the PR 2 slice must remain `applied` with `next: verify`, and the top-level change must remain unarchived with PR 3 still planned.

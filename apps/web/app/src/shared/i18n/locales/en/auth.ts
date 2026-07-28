@@ -28,6 +28,7 @@ export default {
   confirmPasswordPlaceholder: 'Repeat your password',
   invalidEmail: 'Please enter a valid email address.',
   passwordRequired: 'Please enter your password.',
+  forgotPassword: 'Forgot password?',
   confirmPasswordRequired: 'Please confirm your password.',
   passwordsMustMatch: 'Passwords must match.',
   ageEligibilityLabel: 'I confirm that I am 18 years of age or older',
