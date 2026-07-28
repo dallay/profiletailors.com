@@ -123,6 +123,7 @@ vi.mock('@lucide/vue', () => {
     Image: stub,
     ImageIcon: stub,
     Calendar: stub,
+    CalendarIcon: stub,
     Check: stub,
     ChevronDown: stub,
     FileImage: stub,
