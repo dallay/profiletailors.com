@@ -67,6 +67,20 @@ describe('useComposerTextFormatting', () => {
 
       expect(formatting.normalizeHashtag('!!!')).toBe('')
     })
+
+    it('returns empty string for # alone', () => {
+      const postText = createRef('')
+      const formatting = useComposerTextFormatting({ postText })
+
+      expect(formatting.normalizeHashtag('#')).toBe('')
+    })
+
+    it('returns empty string for # with only invalid characters', () => {
+      const postText = createRef('')
+      const formatting = useComposerTextFormatting({ postText })
+
+      expect(formatting.normalizeHashtag('#!!!')).toBe('')
+    })
   })
 
   // ============================================================================

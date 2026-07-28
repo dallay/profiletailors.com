@@ -1,8 +1,8 @@
 /**
  * Application layer barrel
  *
- * Expone solo la API pública del application layer.
- * Los helpers internos NO se exportan.
+ * Exposes only the public application layer API.
+ * Internal helpers are NOT exported.
  *
  * @example
  * ```ts
