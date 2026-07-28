@@ -43,7 +43,7 @@ export async function authenticateAs(
 ): Promise<{ accessToken: string }> {
   await page.goto(APP_URL.login, { waitUntil: 'domcontentloaded' })
   await page.getByLabel(/email/i).fill(credentials.email)
-  await page.getByLabel(/password/i).fill(credentials.password)
+  await page.getByLabel('Password', { exact: true }).fill(credentials.password)
   const loginResponsePromise = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
