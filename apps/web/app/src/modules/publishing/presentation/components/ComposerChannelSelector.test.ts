@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
+import type { Channel } from '@modules/publishing/application/types'
 import ComposerChannelSelector from './ComposerChannelSelector.vue'
 
 vi.mock('vue-i18n', () => ({
@@ -56,7 +56,7 @@ describe('ComposerChannelSelector.vue', () => {
       makeChannel({ id: 'ch-2', name: 'Channel B', provider: 'twitter' }),
     ]
     const wrapper = mountSelector({ channels })
-    const buttons = wrapper.findAll('button:not([title])')
+    const buttons = wrapper.findAll('[data-testid="channel-button"]')
     expect(buttons.length).toBe(2)
   })
 
@@ -83,7 +83,7 @@ describe('ComposerChannelSelector.vue', () => {
   it('emits select with the channel id when a non-selected channel button is clicked', async (): Promise<void> => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, selectedChannelId: null })
-    const button = wrapper.findAll('button:not([title])')[0]!
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     await button.trigger('click')
     const emissions = wrapper.emitted('select') ?? []
     expect(emissions).toHaveLength(1)
@@ -93,7 +93,7 @@ describe('ComposerChannelSelector.vue', () => {
   it('does not emit select when a selected channel button is clicked', async (): Promise<void> => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, selectedChannelId: 'ch-1' })
-    const button = wrapper.findAll('button:not([title])')[0]!
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     await button.trigger('click')
     expect(wrapper.emitted('select')).toBeUndefined()
   })
@@ -101,7 +101,7 @@ describe('ComposerChannelSelector.vue', () => {
   it('does not emit select when in edit mode', async (): Promise<void> => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, selectedChannelId: null, isEditMode: true })
-    const button = wrapper.findAll('button:not([title])')[0]!
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     await button.trigger('click')
     expect(wrapper.emitted('select')).toBeUndefined()
   })
@@ -109,14 +109,14 @@ describe('ComposerChannelSelector.vue', () => {
   it('disables channel buttons in edit mode', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, isEditMode: true })
-    const button = wrapper.findAll('button:not([title])')[0]!
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     expect(button.attributes('disabled')).toBe('')
   })
 
   it('does not disable channel buttons in create mode', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, isEditMode: false })
-    const button = wrapper.findAll('button:not([title])')[0]!
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     expect(button.attributes('disabled')).toBeUndefined()
   })
 
@@ -140,13 +140,14 @@ describe('ComposerChannelSelector.vue', () => {
     const channels = [makeChannel({ id: 'ch-1', avatarUrl: undefined, provider: 'twitter' })]
     const wrapper = mountSelector({ channels })
     const fallbacks = wrapper.findAll('[data-testid="channel-avatar-fallback"]')
+    expect(fallbacks).toHaveLength(1)
     expect(fallbacks[0]!.text()).toBe('t')
   })
 
   it('applies bold and selected styling to the selected channel', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, selectedChannelId: 'ch-1' })
-    const button = wrapper.findAll('button:not([title])')[0]!
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     expect(button.classes()).toContain('border-text-display')
     expect(button.classes()).toContain('bg-bg-primary')
     expect(button.classes()).toContain('text-text-display')
@@ -156,7 +157,7 @@ describe('ComposerChannelSelector.vue', () => {
   it('applies unselected styling to non-selected channels', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, selectedChannelId: 'ch-2' })
-    const button = wrapper.findAll('button:not([title])')[0]!
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     expect(button.classes()).toContain('border-border-visible')
     expect(button.classes()).toContain('text-text-secondary')
   })
@@ -164,7 +165,7 @@ describe('ComposerChannelSelector.vue', () => {
   it('applies disabled opacity style when in edit mode', (): void => {
     const channels = [makeChannel({ id: 'ch-1' })]
     const wrapper = mountSelector({ channels, isEditMode: true })
-    const button = wrapper.findAll('button:not([title])')[0]!
+    const button = wrapper.findAll('[data-testid="channel-button"]')[0]!
     expect(button.classes()).toContain('opacity-60')
     expect(button.classes()).toContain('cursor-not-allowed')
   })

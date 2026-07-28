@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Check, X } from '@lucide/vue'
-import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
+import type { Channel } from '@modules/publishing/application/types'
 
 const props = defineProps<{
   channels: Channel[]
@@ -47,6 +47,7 @@ function handleSelect(channelId: string) {
         v-for="ch in activeChannels"
         :key="ch.id"
         type="button"
+        data-testid="channel-button"
         :disabled="isEditMode"
         class="relative flex items-center gap-2 border rounded-full px-3 py-1.5 font-mono text-[10px] tracking-wide transition-all"
         :class="[
