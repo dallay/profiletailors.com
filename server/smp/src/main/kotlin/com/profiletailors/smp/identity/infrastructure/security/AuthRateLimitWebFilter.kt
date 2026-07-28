@@ -47,15 +47,16 @@ class AuthRateLimitWebFilter internal constructor(
             return chain.filter(exchange)
         }
 
-        val identifier = clientIdentifier(exchange)
+        val policy = policyFor(path)
+        val identifier = "${policy.bucket}:${clientIdentifier(exchange)}"
         val now = currentTimeMillis()
         if (windows.size >= maxTrackedWindows) {
             evictExpiredEntries(now)
         }
         val window = requireNotNull(
             windows.compute(identifier) { _, existing ->
-                if (existing == null || now - existing.startedAtMs >= WINDOW_MS) {
-                    Window(startedAtMs = now, count = AtomicInteger(1))
+                if (existing == null || now - existing.startedAtMs >= policy.windowMs) {
+                    Window(startedAtMs = now, count = AtomicInteger(1), windowMs = policy.windowMs)
                 } else {
                     existing.count.incrementAndGet()
                     existing
@@ -63,7 +64,7 @@ class AuthRateLimitWebFilter internal constructor(
             },
         ) { "Rate-limit window must be present after compute()." }
 
-        if (window.count.get() > MAX_REQUESTS_PER_WINDOW) {
+        if (window.count.get() > policy.maxRequests) {
             return reject(exchange, window, now)
         }
         return chain.filter(exchange)
@@ -75,14 +76,28 @@ class AuthRateLimitWebFilter internal constructor(
         val remote = exchange.request.remoteAddress?.address?.hostAddress
             ?.replace(IP_SANITIZE_REGEX, "")
             ?.take(MAX_IP_LENGTH)
-        return "auth-ip:${remote ?: "unknown"}"
+        return remote ?: "unknown"
+    }
+
+    private fun policyFor(path: String): Policy = when (path) {
+        "/api/auth/forgot-password" -> Policy(
+            "password-reset-request-ip",
+            PASSWORD_RESET_REQUEST_MAX_REQUESTS,
+            FIFTEEN_MINUTES_MS,
+        )
+        "/api/auth/reset-password" -> Policy(
+            "password-reset-attempt-ip",
+            PASSWORD_RESET_ATTEMPT_MAX_REQUESTS,
+            FIFTEEN_MINUTES_MS,
+        )
+        else -> Policy("auth-ip", MAX_REQUESTS_PER_WINDOW, WINDOW_MS)
     }
 
     private fun evictExpiredEntries(now: Long) {
         val iterator = windows.entries.iterator()
         while (iterator.hasNext()) {
             val entry = iterator.next()
-            if (now - entry.value.startedAtMs >= WINDOW_MS) {
+            if (now - entry.value.startedAtMs >= entry.value.windowMs) {
                 iterator.remove()
             }
         }
@@ -93,24 +108,30 @@ class AuthRateLimitWebFilter internal constructor(
         val response = exchange.response
         response.statusCode = HttpStatus.TOO_MANY_REQUESTS
         response.headers.contentType = MediaType.APPLICATION_PROBLEM_JSON
-        val retryAfterSeconds = ((window.startedAtMs + WINDOW_MS - now) / MILLIS_PER_SECOND)
+        val retryAfterSeconds = ((window.startedAtMs + window.windowMs - now) / MILLIS_PER_SECOND)
             .coerceAtLeast(1L)
         response.headers.set("Retry-After", retryAfterSeconds.toString())
         val body =
-            """{"title":"Too Many Requests","status":429,"detail":"Authentication rate limit exceeded. Try again later."}"""
+            """{"title":"Too Many Requests","status":429,"detail":"Authentication rate limit exceeded. Try again later.","code":"AUTH_RATE_LIMIT_EXCEEDED"}"""
         val buffer = response.bufferFactory().wrap(body.toByteArray(Charsets.UTF_8))
         return response.writeWith(Mono.just(buffer)).then()
     }
 
     internal fun trackedWindowCount(): Int = windows.size
 
+    fun clear() = windows.clear()
+
     private fun currentTimeMillis(): Long = clock.millis()
 
-    private data class Window(val startedAtMs: Long, val count: AtomicInteger)
+    private data class Window(val startedAtMs: Long, val count: AtomicInteger, val windowMs: Long)
+    private data class Policy(val bucket: String, val maxRequests: Int, val windowMs: Long)
 
     private companion object {
         const val MAX_REQUESTS_PER_WINDOW = 20
         const val WINDOW_MS = 60_000L
+        const val FIFTEEN_MINUTES_MS = 15 * 60_000L
+        const val PASSWORD_RESET_REQUEST_MAX_REQUESTS = 5
+        const val PASSWORD_RESET_ATTEMPT_MAX_REQUESTS = 10
         const val MILLIS_PER_SECOND = 1_000L
         const val MAX_IP_LENGTH = 64
         const val MAX_TRACKED_WINDOWS = 4_096
@@ -122,6 +143,8 @@ class AuthRateLimitWebFilter internal constructor(
             "/api/auth/logout",
             "/api/auth/resend-verification",
             "/api/auth/verify-email",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password",
         )
     }
 }

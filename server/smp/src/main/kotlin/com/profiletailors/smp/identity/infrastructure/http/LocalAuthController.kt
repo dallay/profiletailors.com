@@ -12,7 +12,9 @@ import com.profiletailors.smp.identity.application.LoginUserCommand
 import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
 import com.profiletailors.smp.identity.application.RefreshUserSessionCommand
 import com.profiletailors.smp.identity.application.RegisterUserCommand
+import com.profiletailors.smp.identity.application.RequestPasswordResetCommand
 import com.profiletailors.smp.identity.application.ResendVerificationCommand
+import com.profiletailors.smp.identity.application.ResetPasswordCommand
 import com.profiletailors.smp.identity.application.VerifyEmailCommand
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Schema
@@ -21,6 +23,7 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.AssertTrue
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -30,6 +33,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.time.Duration
@@ -118,6 +122,33 @@ class LocalAuthController(
         return ResponseEntity.accepted().build()
     }
 
+    @Operation(summary = "Request a password reset email")
+    @PostMapping("/forgot-password", consumes = ["application/json"], version = "1")
+    suspend fun forgotPassword(
+        @Valid @RequestBody request: ForgotPasswordRequest,
+        @RequestHeader(HttpHeaders.ACCEPT_LANGUAGE, required = false) acceptLanguage: String?,
+    ): ResponseEntity<Unit> {
+        mediator.send(
+            RequestPasswordResetCommand(
+                email = request.email,
+                locale = preferredLocale(acceptLanguage),
+            ),
+        )
+        return ResponseEntity.accepted().build()
+    }
+
+    @Operation(summary = "Reset a password using a recovery token")
+    @PostMapping("/reset-password", consumes = ["application/json"], version = "1")
+    suspend fun resetPassword(@Valid @RequestBody request: ResetPasswordRequest): ResponseEntity<Unit> {
+        mediator.send(
+            ResetPasswordCommand(
+                token = request.token,
+                newPassword = request.newPassword,
+            ),
+        )
+        return ResponseEntity.noContent().build()
+    }
+
     private fun sessionResponse(result: LocalAuthSessionResult): ResponseEntity<AuthTokens> = ResponseEntity.ok()
         .header(
             HttpHeaders.SET_COOKIE,
@@ -127,6 +158,9 @@ class LocalAuthController(
 
     private fun readRefreshCookie(request: ServerHttpRequest): String? =
         request.cookies.getFirst(refreshSessionProperties.cookieName)?.value
+
+    private fun preferredLocale(acceptLanguage: String?): String =
+        if (acceptLanguage?.trim()?.lowercase()?.startsWith("es") == true) "es" else "en"
 
     private fun SessionCookie.toResponseCookie(): ResponseCookie = ResponseCookie.from(name, value)
         .httpOnly(httpOnly)
@@ -234,4 +268,31 @@ data class VerifyEmailRequest(
         required = true,
     )
     val token: String,
+)
+
+@Schema(description = "Password reset request")
+data class ForgotPasswordRequest(
+    @field:NotBlank(message = "Email is required")
+    @field:Pattern(
+        regexp = """\s*[^@\s]+@[^@\s]+\.[^@\s]+\s*""",
+        message = "Email must be valid",
+    )
+    @field:Schema(description = "Account email address", example = "user@example.com", required = true)
+    val email: String,
+)
+
+@Schema(description = "Password reset completion request")
+data class ResetPasswordRequest(
+    @field:NotBlank(message = "Reset token is required")
+    @field:Schema(description = "Raw password reset token", required = true)
+    val token: String,
+
+    @field:Schema(
+        description = "New account password",
+        required = true,
+        minLength = 8,
+        maxLength = 128,
+        format = "password",
+    )
+    val newPassword: String,
 )

@@ -8,6 +8,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/identity/004-add-email-verification.yaml
   - include:
+      file: db/changelog/identity/005-create-password-reset-tokens.yaml
+  - include:
       file: db/changelog/credentials/001-create-service-account-credentials.yaml
   - include:
       file: db/changelog/credentials/002-create-api-key-credentials.yaml

@@ -54,9 +54,16 @@ class CommonBddTestConfiguration {
     @Primary
     fun testAuditHook(): CapturingAuditHook = CapturingAuditHook()
 
-    @Bean
+    @Bean("smtpEmailSender")
     @Primary
     fun recordingEmailSender(): RecordingEmailSender = RecordingEmailSender()
+
+    @Bean
+    fun mutablePasswordRecoveryFlag(): MutablePasswordRecoveryFlag = MutablePasswordRecoveryFlag()
+
+    @Bean("bddPasswordRecoveryEnabled")
+    @Primary
+    fun bddPasswordRecoveryEnabled(flag: MutablePasswordRecoveryFlag): () -> Boolean = flag::isEnabled
 
     @Bean
     @Primary
@@ -110,15 +117,36 @@ class CommonBddTestConfiguration {
     }
 }
 
+class MutablePasswordRecoveryFlag {
+    private var enabled: Boolean = true
+
+    fun isEnabled(): Boolean = enabled
+    fun enable() {
+        enabled = true
+    }
+    fun disable() {
+        enabled = false
+    }
+}
+
 class RecordingEmailSender : EmailSender {
     data class Message(val to: String, val subject: String, val content: EmailMessage)
 
-    val messages = mutableListOf<Message>()
+    private val recordedMessages = java.util.concurrent.CopyOnWriteArrayList<Message>()
+    private val deliverySignal = java.util.concurrent.Semaphore(0)
+    val messages: List<Message>
+        get() = recordedMessages.toList()
 
     override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
-        messages += Message(to, subject, message)
+        recordedMessages += Message(to, subject, message)
+        deliverySignal.release()
         return EmailSendResult(success = true)
     }
 
-    fun reset() = messages.clear()
+    fun awaitDelivery(): Boolean = deliverySignal.tryAcquire(5, java.util.concurrent.TimeUnit.SECONDS)
+
+    fun reset() {
+        recordedMessages.clear()
+        deliverySignal.drainPermits()
+    }
 }
