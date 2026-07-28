@@ -181,7 +181,10 @@ describe('useComposerScheduling', () => {
 
     it('returns "23:59" when selecting today near midnight rollover', () => {
       // 23:57 → now+5min sería 00:02 del día siguiente
-      const almostMidnight = new Date('2026-07-28T21:57:00.000Z') // 21:57 UTC en zona que es 23:57 local
+      // Usamos constructor local (new Date(year, monthIndex, day, hours, minutes))
+      // para que 23:57 sea SIEMPRE 23:57 local, sin importar el timezone del runner.
+      // Con UTC ISO string (21:57Z) solo funcionaba en timezones UTC+2.
+      const almostMidnight = new Date(2026, 6, 28, 23, 57)
       vi.setSystemTime(almostMidnight)
 
       const { selectedCalendarDate, minTimeForDate } = useComposerScheduling()
