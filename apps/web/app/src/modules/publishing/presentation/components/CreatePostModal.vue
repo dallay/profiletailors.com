@@ -5,7 +5,7 @@ import type { DateValue } from 'reka-ui'
 import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { useComposerMediaPicker } from '@modules/publishing/application/useComposerMediaPicker'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
-import { ImageIcon, Check, ChevronDown, Hash, Smile, Sparkles, X } from '@lucide/vue'
+import { ImageIcon, ChevronDown, Hash, Smile, Sparkles, X } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import {
   isSocialProvider,
@@ -13,7 +13,7 @@ import {
   type Publication,
 } from '@modules/publishing/infrastructure/publishing.store'
 import { useMediaStore } from '@modules/media'
-import { proxyImageUrl, resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
+import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import PostPreviewPanel from '@modules/publishing/presentation/components/composer/PostPreviewPanel.vue'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@modules/publishing/presentation/components/composer/post-preview.types'
 import { Button } from '@/components/ui/button'
@@ -23,6 +23,7 @@ import Spinner from '@/components/ui/spinner/Spinner.vue'
 import ComposerMediaPickerShell from '@modules/publishing/presentation/components/composer/ComposerMediaPickerShell.vue'
 import MediaProviderPanel from '@modules/publishing/presentation/components/composer/MediaProviderPanel.vue'
 import ComposerSchedulePanel from '@modules/publishing/presentation/components/composer/ComposerSchedulePanel.vue'
+import ComposerChannelSelector from './ComposerChannelSelector.vue'
 
 type ComposerScheduleMode = 'now' | 'next' | 'custom'
 const COMPOSER_SUPPORTED_MEDIA_TYPES = new Set([
@@ -99,7 +100,6 @@ const picker = useComposerMediaPicker({
     assetsTouched.value = true
   },
 })
-const avatarLoadFailed = ref<Record<string, boolean>>({})
 const submitError = ref('')
 const firstComment = ref('')
 const createAnother = ref(false)
@@ -245,7 +245,6 @@ function initCreateMode() {
 async function initializeComposerForOpen() {
   submitError.value = ''
   isDatePickerOpen.value = false
-  avatarLoadFailed.value = {}
   clearUploadPreviewBlob()
   selectedUploadFile.value = null
   uploadTempKey.value = null
@@ -679,14 +678,6 @@ function selectChannel(channelId: string) {
   selectedChannelId.value = channelId
 }
 
-function onChannelAvatarError(channelId: string) {
-  avatarLoadFailed.value[channelId] = true
-}
-
-function shouldShowChannelAvatar(channelId: string, avatarUrl?: string): boolean {
-  return !!(avatarUrl && !avatarLoadFailed.value[channelId])
-}
-
 // Format hashtags helper
 function appendHashtag() {
   const tag = prompt('Enter tag (e.g. #socialmedia):')
@@ -923,55 +914,12 @@ async function handleCreateSubmit(
             </button>
           </div>
 
-          <div class="space-y-2">
-            <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
-              {{ $t('dashboard.selectChannels') }}
-            </span>
-            <div class="flex flex-wrap gap-2 items-center">
-              <button type="button"
-                v-for="ch in publishingStore.channels.filter(ch => ch.status === 'ACTIVE')"
-                :key="ch.id"
-                @click="isEditMode ? undefined : selectChannel(ch.id)"
-                :disabled="isEditMode"
-                class="relative flex items-center gap-2 border rounded-full px-3 py-1.5 font-mono text-[10px] tracking-wide transition-all"
-                :class="[
-                  selectedChannelId === ch.id
-                    ? 'border-text-display bg-bg-primary text-text-display font-bold'
-                    : 'border-border-visible text-text-secondary hover:text-text-display bg-bg-primary/50',
-                  isEditMode ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
-                ]"
-                :data-edit-disabled="isEditMode ? 'true' : 'false'"
-              >
-                <img
-                  v-if="shouldShowChannelAvatar(ch.id, ch.avatarUrl)"
-                  :src="proxyImageUrl(ch.avatarUrl ?? '')"
-                  :alt="`${ch.name} avatar`"
-                  class="size-4.5 rounded-full object-cover border border-border-subtle"
-                  @error="onChannelAvatarError(ch.id)"
-                />
-                <span
-                  v-else
-                  class="flex size-4.5 shrink-0 items-center justify-center rounded-full border border-border-visible bg-bg-primary font-mono text-[7px] font-bold uppercase text-text-display"
-                >
-                  {{ ch.provider === 'linkedin' ? 'in' : ch.provider.charAt(0) }}
-                </span>
-                <span class="max-w-[120px] truncate">{{ ch.name }}</span>
-                <span
-                  class="flex size-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-bg-primary"
-                  :class="selectedChannelId === ch.id ? 'bg-text-display' : 'bg-border-visible text-text-secondary'"
-                >
-                  <component :is="selectedChannelId === ch.id ? Check : X" class="size-2" />
-                </span>
-              </button>
-
-              <button type="button"
-                class="flex size-8 items-center justify-center rounded-full border border-dashed border-border-visible text-text-secondary hover:text-text-display hover:border-text-display bg-transparent transition-colors cursor-pointer"
-                title="Connect another channel"
-              >
-                <span class="text-base font-light">+</span>
-              </button>
-            </div>
-          </div>
+          <ComposerChannelSelector
+            :channels="publishingStore.channels"
+            :selected-channel-id="selectedChannelId"
+            :is-edit-mode="isEditMode"
+            @select="selectChannel"
+          />
 
           <div class="flex flex-1 flex-col rounded-[24px] border border-border-visible bg-bg-primary/70 min-h-[420px]">
             <label for="create-post-text" class="sr-only">Post content</label>
