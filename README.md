@@ -26,46 +26,6 @@ Public-facing marketing site for the Profile Tailors social media management pla
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![codecov](https://codecov.io/gh/dallay/profiletailors.com/graph/badge.svg?token=B70EGR3KBD)](https://codecov.io/gh/dallay/profiletailors.com)
 
-```text
-profiletailors.com/
-├── apps/
-│   └── web/
-│       └── app/                  # Vue 3 dashboard application
-│           ├── e2e/              # Playwright E2E tests
-│           ├── public/           # Static files
-│           ├── src/              # Vue source (Pinia, Vue Router, Shadcn)
-│           ├── index.html
-│           ├── package.json
-│           └── vite.config.ts
-│       └── marketing/            # Active Astro marketing site
-│           ├── public/           # Static files served as-is
-│           ├── src/
-│           │   ├── components/   # UI building blocks
-│           │   ├── i18n/         # EN/ES locale content
-│           │   ├── layouts/      # Shared page shells
-│           │   ├── pages/        # Routes (`/` and `/es/`)
-│           │   ├── scripts/      # Client-side behavior
-│           │   └── styles/       # Global styles and tokens
-│           ├── astro.config.mjs
-│           └── package.json
-├── server/
-│   └── smp/                     # Backend service (Spring Boot, Kotlin, work in progress)
-│       ├── src/                 # Kotlin source
-│       ├── build.gradle.kts
-│       └── compose.yaml
-├── shared/
-│   └── assets/                  # Shared logos, icons, and web assets
-├── .agents/                      # Agent tooling config and skills
-├── .github/workflows/            # CI and automation
-├── docs/security/               # Security documentation
-├── tmp/                          # Research notes and temporary planning docs
-├── openspec/                    # SDD (Spec-Driven Development) artifacts
-├── CONTRIBUTING.md
-├── CLA.md
-├── LICENSE
-└── README.md
-```
-
 ---
 
 ## Getting Started
@@ -265,6 +225,34 @@ Contact: **security@profiletailors.com**
 - **Discussions:** https://github.com/dallay/profiletailors.com/discussions
 - **Issues:** https://github.com/dallay/profiletailors.com/issues
 - **Email:** **dev@profiletailors.com**
+
+---
+
+## Project Structure
+
+```text
+profiletailors.com/
+├── apps/
+│   └── web/
+│       ├── app/                  # Vue 3 dashboard application
+│       └── marketing/            # Astro marketing site
+├── server/
+│   └── smp/                     # Spring Boot 4 backend (Kotlin)
+├── shared/                      # Kotlin libraries + shared web assets
+│   ├── assets/                  # Shared logos, icons, and web assets
+│   ├── common/                  # Domain primitives, value objects, shared kernel
+│   ├── bus/                     # Event bus abstractions
+│   ├── security/                # Security primitives
+│   └── ...                      # Additional shared libraries
+├── .agents/                      # Agent tooling config and skills
+├── .github/workflows/            # CI and automation
+├── docs/                        # Architecture and security docs
+├── openspec/                    # SDD artifacts
+├── CONTRIBUTING.md
+├── CLA.md
+├── LICENSE
+└── README.md
+```
 
 ---
 
