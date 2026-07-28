@@ -26,9 +26,16 @@ import org.springframework.security.oauth2.jwt.JwtEncoder
 import java.time.Clock
 
 @Configuration
-@EnableConfigurationProperties(RegistrationConfigurationProperties::class)
+@EnableConfigurationProperties(
+    RegistrationConfigurationProperties::class,
+    PasswordRecoveryConfigurationProperties::class,
+)
 @Suppress("TooManyFunctions")
 class IdentityBootstrapConfiguration {
+
+    @Bean
+    fun passwordRecoveryEnabled(properties: PasswordRecoveryConfigurationProperties): () -> Boolean =
+        { properties.enabled }
 
     @Bean
     @Profile("!dev")

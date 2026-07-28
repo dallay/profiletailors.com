@@ -1,0 +1,9 @@
+change: password-recovery
+current_phase: tasks
+completed:
+  - propose
+  - spec
+  - design
+  - tasks
+next: apply
+updated: 2026-07-27
