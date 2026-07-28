@@ -17,4 +17,9 @@ fun interface RateLimitPort {
      * @return true if the permit was acquired (within the window), false if rate-limited.
      */
     fun tryAcquire(key: String, window: Duration, now: Instant): Boolean
+
+    fun tryAcquire(key: String, window: Duration, now: Instant, maxRequests: Int): Boolean {
+        require(maxRequests > 0)
+        return tryAcquire(key, window, now)
+    }
 }

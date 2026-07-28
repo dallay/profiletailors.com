@@ -25,6 +25,16 @@ class WaitlistApplicationConfiguration {
         )
     }
 
+    /**
+     * Creates the handler for joining a waitlist.
+     *
+     * @param waitlistRepository Repository for waitlist data.
+     * @param entryRepository Repository for waitlist entry data.
+     * @param idGenerator Generator for waitlist entry identifiers.
+     * @param consentRecorder Records waitlist consent.
+     * @param notifier Notifies subscribers when an entry joins a waitlist.
+     * @return A configured waitlist join handler.
+     */
     @Bean
     fun joinWaitlistHandler(
         waitlistRepository: WaitlistRepository,

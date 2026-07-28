@@ -64,14 +64,14 @@ describe('consent-storage', () => {
         region: 'EU',
         categories: { necessary: true, analytics: false },
         dnt: true,
-        source: 'settings',
+        source: 'settings-panel',
       }
 
       saveConsent(receipt)
 
       const stored = localStorage.getItem('pt-consent')
       expect(stored).not.toBeNull()
-      expect(JSON.parse(stored!)).toEqual(receipt)
+      expect(JSON.parse(stored ?? 'null')).toEqual(receipt)
     })
 
     it('overwrites existing consent', () => {

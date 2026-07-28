@@ -5,9 +5,11 @@ describe('privacy-signals', () => {
   let originalNavigator: Navigator
   let originalDNT: PropertyDescriptor | undefined
   let originalGPC: PropertyDescriptor | undefined
+  let originalWindow: Window & typeof globalThis
 
   beforeEach(() => {
     originalNavigator = global.navigator
+    originalWindow = global.window
     if (global.navigator) {
       originalDNT = Object.getOwnPropertyDescriptor(global.navigator, 'doNotTrack')
       originalGPC = Object.getOwnPropertyDescriptor(global.navigator, 'globalPrivacyControl')
@@ -15,12 +17,13 @@ describe('privacy-signals', () => {
   })
 
   afterEach(() => {
-    // Restore navigator first if it was set to undefined
     if (!global.navigator && originalNavigator) {
       global.navigator = originalNavigator
     }
+    if (!global.window && originalWindow) {
+      global.window = originalWindow
+    }
 
-    // Then restore properties
     if (global.navigator) {
       if (originalDNT) {
         Object.defineProperty(global.navigator, 'doNotTrack', originalDNT)
@@ -73,19 +76,32 @@ describe('privacy-signals', () => {
       global.navigator = savedNavigator
     })
 
+    it('returns false without throwing when a navigator-like global exists without window', () => {
+      const savedWindow = global.window
+      Object.defineProperty(global.navigator, 'doNotTrack', {
+        value: null,
+        writable: true,
+        configurable: true,
+      })
+      Reflect.deleteProperty(global, 'window')
+
+      expect(() => isDNTEnabled()).not.toThrow()
+      expect(isDNTEnabled()).toBe(false)
+
+      global.window = savedWindow
+    })
+
     it('returns true via the legacy window.doNotTrack fallback even when navigator.doNotTrack is unset', () => {
       Object.defineProperty(global.navigator, 'doNotTrack', {
         value: null,
         writable: true,
         configurable: true,
       })
-      // biome-ignore lint/suspicious/noExplicitAny: exercising the legacy window fallback
-      ;(window as any).doNotTrack = '1'
+      ;(window as Window & { doNotTrack?: string }).doNotTrack = '1'
 
       expect(isDNTEnabled()).toBe(true)
 
-      // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only global
-      delete (window as any).doNotTrack
+      delete (window as Window & { doNotTrack?: string }).doNotTrack
     })
   })
 

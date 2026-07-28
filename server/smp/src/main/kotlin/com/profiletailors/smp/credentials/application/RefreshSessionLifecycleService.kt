@@ -3,7 +3,7 @@ package com.profiletailors.smp.credentials.application
 import java.time.Clock
 import java.time.Instant
 
-class RefreshSessionLifecycleService(
+open class RefreshSessionLifecycleService(
     private val refreshSessionGateway: RefreshSessionGateway,
     private val refreshSessionTokenService: RefreshSessionTokenService,
     private val properties: RefreshSessionProperties,
@@ -39,6 +39,10 @@ class RefreshSessionLifecycleService(
         val parsedToken = refreshSessionTokenService.parse(rawRefreshToken)
         val activeSession = refreshSessionGateway.requireActive(parsedToken, clock.instant())
         refreshSessionGateway.revoke(activeSession.id, clock.instant())
+    }
+
+    open suspend fun revokeAllForPrincipal(principalId: String) {
+        refreshSessionGateway.revokeAllForPrincipal(principalId, clock.instant())
     }
 
     private fun expiresAt(): Instant = clock.instant().plusSeconds(properties.ttlSeconds)
