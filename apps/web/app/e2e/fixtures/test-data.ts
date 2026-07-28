@@ -13,6 +13,8 @@ export const APP_URL = {
   login: '/login',
   register: '/register',
   verifyEmail: '/verify-email',
+  forgotPassword: '/forgot-password',
+  resetPassword: '/reset-password',
   dashboard: '/',
   scheduler: '/scheduler',
   analytics: '/analytics',
@@ -102,7 +104,14 @@ export const PROTECTED_ROUTES = [
 export const GUEST_ROUTES = [
   { path: APP_URL.login, name: 'login' },
   { path: APP_URL.register, name: 'register' },
+  { path: APP_URL.forgotPassword, name: 'forgot-password' },
 ] as const
+
+export const PASSWORD_RECOVERY_TEST_DATA = {
+  email: 'recovery@example.com',
+  password: 'RecoveryPassword123!',
+  token: 'e2e-recovery-capability',
+} as const
 
 export const I18N_TEXT = {
   en: {

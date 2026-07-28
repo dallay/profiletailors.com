@@ -73,6 +73,27 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
     expect(router.currentRoute.value.path).toBe('/')
   })
 
+  it('redirects an authenticated user away from guest-only forgot password', async () => {
+    mockRefreshSession.mockResolvedValue(fakeTokens)
+    const { default: router } = await import('./index')
+
+    await router.push('/forgot-password')
+    await router.isReady()
+
+    expect(router.currentRoute.value.path).toBe('/')
+  })
+
+  it('allows an authenticated user to open reset password with its capability', async () => {
+    mockRefreshSession.mockResolvedValue(fakeTokens)
+    const { default: router } = await import('./index')
+
+    await router.push('/reset-password?token=opaque-capability')
+    await router.isReady()
+
+    expect(router.currentRoute.value.path).toBe('/reset-password')
+    expect(router.currentRoute.value.query.token).toBe('opaque-capability')
+  })
+
   it('redirects unauthenticated user from the relocated /media route to /login', async () => {
     mockRefreshSession.mockResolvedValue(null)
     const { default: router } = await import('./index')

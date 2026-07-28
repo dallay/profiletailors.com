@@ -1,6 +1,7 @@
 import common from './common'
 import nav from './nav'
 import auth from './auth'
+import passwordRecovery from './passwordRecovery'
 import emailVerification from './emailVerification'
 import verifyEmail from './verifyEmail'
 import dashboard from './dashboard'
@@ -20,6 +21,7 @@ export default {
   common,
   nav,
   auth,
+  passwordRecovery,
   emailVerification,
   verifyEmail,
   dashboard,

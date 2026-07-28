@@ -253,6 +253,34 @@ export async function mockRegisterResponse(
  * Mock the resend verification email API.
  * Always returns 202 Accepted (even for non-existent emails to prevent enumeration).
  */
+export async function mockForgotPasswordResponse(
+  page: Page,
+  overrides: { status?: number; code?: string } = {},
+): Promise<void> {
+  const { status = 202, code } = overrides
+  await page.route('**/api/auth/forgot-password', async (route) => {
+    await route.fulfill({
+      status,
+      contentType: status < 400 ? 'application/vnd.api.v1+json' : 'application/problem+json',
+      body: status < 400 ? '' : JSON.stringify({ title: 'Recovery unavailable', status, code }),
+    })
+  })
+}
+
+export async function mockResetPasswordResponse(
+  page: Page,
+  overrides: { status?: number; code?: string } = {},
+): Promise<void> {
+  const { status = 204, code } = overrides
+  await page.route('**/api/auth/reset-password', async (route) => {
+    await route.fulfill({
+      status,
+      contentType: status < 400 ? 'application/vnd.api.v1+json' : 'application/problem+json',
+      body: status < 400 ? '' : JSON.stringify({ title: 'Reset failed', status, code }),
+    })
+  })
+}
+
 export async function mockResendVerificationResponse(
   page: Page,
   overrides: { status?: number } = {},

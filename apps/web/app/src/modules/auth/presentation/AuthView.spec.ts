@@ -62,7 +62,8 @@ function mountAuthView() {
           template: '<button v-bind="$attrs"><slot /></button>',
         },
         RouterLink: {
-          template: '<a><slot /></a>',
+          props: ['to'],
+          template: '<a :href="to"><slot /></a>',
         },
       },
     },
@@ -111,6 +112,15 @@ describe('AuthView validation', () => {
       email: 'user@example.com',
       password: 'Str0ng!Pass',
     })
+  })
+
+  it('shows a keyboard-reachable forgot password link only in login mode', () => {
+    const login = mountAuthView()
+    expect(login.find('a[href="/forgot-password"]').text()).toBe('auth.forgotPassword')
+
+    routeState.name = 'register'
+    const register = mountAuthView()
+    expect(register.find('a[href="/forgot-password"]').exists()).toBe(false)
   })
 
   it('places federated sign-in buttons above the sign-in method divider', (): void => {

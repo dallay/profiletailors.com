@@ -235,6 +235,24 @@ describe('scheduler route contract', { timeout: 15000 }, () => {
   })
 })
 
+describe('password recovery route contract', { timeout: 15000 }, () => {
+  it('defines forgot password as guest-only and standalone', async () => {
+    const { default: router } = await import('./index')
+    const route = router.resolve('/forgot-password')
+    expect(route.name).toBe('forgot-password')
+    expect(route.meta).toMatchObject({ guestOnly: true, standalone: true })
+  })
+
+  it('defines reset password as standalone and session-agnostic', async () => {
+    const { default: router } = await import('./index')
+    const route = router.resolve('/reset-password?token=opaque-capability')
+    expect(route.name).toBe('reset-password')
+    expect(route.meta.standalone).toBe(true)
+    expect(route.meta.guestOnly).toBeUndefined()
+    expect(route.meta.requiresAuth).toBeUndefined()
+  })
+})
+
 describe('media route contract', { timeout: 15000 }, () => {
   it('resolves the /media route to the "media" named route requiring auth', async () => {
     const { default: router } = await import('./index')

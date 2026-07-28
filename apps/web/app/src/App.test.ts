@@ -10,6 +10,7 @@ import AppComponent from './App.vue'
 // ---------------------------------------------------------------------------
 
 const mockT = (key: string) => key
+const routeState = { name: 'dashboard', path: '/', query: {}, meta: {} as Record<string, boolean> }
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: mockT, locale: { value: 'en' } }),
@@ -23,7 +24,7 @@ vi.mock('@shared/i18n', () => ({
 vi.mock('vue-router', () => ({
   RouterLink: { template: '<a><slot /></a>' },
   RouterView: { template: '<div class="router-view"><slot /></div>' },
-  useRoute: () => ({ name: 'dashboard', path: '/', query: {} }),
+  useRoute: () => routeState,
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))
 
@@ -123,6 +124,7 @@ function mountApp(channels: TestChannel[]) {
   return mount(AppComponent, {
     global: {
       mocks: { $t: mockT },
+      stubs: { RouterView: { template: '<div class="router-view" />' } },
     },
   })
 }
@@ -134,6 +136,23 @@ function mountApp(channels: TestChannel[]) {
 describe('App.vue — avatar rendering', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    routeState.name = 'dashboard'
+    routeState.meta = {}
+  })
+
+  it('bypasses AppShell when route metadata marks a standalone view', () => {
+    routeState.name = 'reset-password'
+    routeState.meta = { standalone: true }
+    const wrapper = mountApp([])
+
+    expect(wrapper.find('.router-view').exists()).toBe(true)
+    expect(wrapper.find('.sidebar-provider').exists()).toBe(false)
+  })
+
+  it('renders AppShell for routes without standalone metadata', () => {
+    const wrapper = mountApp([])
+
+    expect(wrapper.find('.sidebar-provider').exists()).toBe(true)
   })
 
   it('renders <img> when channel has a valid avatarUrl', () => {

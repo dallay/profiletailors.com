@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Estimate | ~2800 lines; High risk |
+| Estimate | Overall ~2800 lines; PR 2 ~650–950 lines; High risk |
 | Chained PRs | Yes |
 | Split | PR 1 backend → PR 2 frontend → PR 3 hardening |
 | Strategy | ask-on-risk; stacked-to-main |
@@ -51,12 +51,22 @@ Bases: PR 1 `main`; PR 2 after PR 1; PR 3 after PR 1, independent of PR 2.
 
 ## PR 2 — Frontend after PR 1
 
-- [ ] [PR-2.01] RED/GREEN: Test/add recovery API in `auth/api/auth.ts`.
-- [ ] [PR-2.02] RED/GREEN: Test/add forgot view.
-- [ ] [PR-2.03] RED/GREEN: Test/add reset view.
-- [ ] [PR-2.04] Add login link and guest routes under `apps/web/app/src/modules/auth/`.
-- [ ] [PR-2.05] Add EN/ES copy under `apps/web/app/src/locales/`.
-- [ ] [PR-2.06] Run frontend tests; open PR after PR 1.
+Route contract: `/forgot-password` is `guestOnly`; `/reset-password` is public/session-agnostic. Both are `standalone` and render outside `AppShell`.
+
+- [x] [PR-2.01] RED: cover POST bodies, `Accept-Language`, empty 202/204, and RFC 9457 status/code in `apps/web/app/src/modules/auth/infrastructure/auth-api.test.ts`; GREEN/REFACTOR `auth-api.ts` with typed void recovery calls.
+- [x] [PR-2.02] RED: cover normalized email, password 8/128 boundaries, blank and mismatch in `apps/web/app/src/shared/lib/validation/schemas.test.ts`; GREEN/REFACTOR dedicated schemas in `schemas.ts`.
+- [x] [PR-2.03] RED: cover validation, duplicate lock, generic confirmation, 429/503/fallback states in `apps/web/app/src/modules/auth/presentation/ForgotPasswordView.spec.ts`; GREEN/REFACTOR `ForgotPasswordView.vue`.
+- [x] [PR-2.04] RED: cover missing/blank/array token, policy/mismatch, duplicate lock, generic token errors, and no auto-login in `ResetPasswordView.spec.ts`; GREEN/REFACTOR `ResetPasswordView.vue`.
+- [x] [PR-2.05] RED: extend `apps/web/app/src/router/index.spec.ts` and `index.guard.test.ts`; GREEN routes in `index.ts`: forgot `guestOnly`, reset public/session-agnostic, protected behavior unchanged.
+- [x] [PR-2.06] RED: cover metadata shell bypass in `apps/web/app/src/App.test.ts`; GREEN/REFACTOR `App.vue` and auth/recovery route metadata to use `standalone` instead of a route-name allowlist.
+- [x] [PR-2.07] RED: assert a keyboard-reachable login-only forgot link in `apps/web/app/src/modules/auth/presentation/AuthView.spec.ts`; GREEN/REFACTOR `AuthView.vue` without regressing native form semantics.
+- [x] [PR-2.08] Add parity-tested EN/ES recovery copy in `apps/web/app/src/shared/i18n/locales/{en,es}/passwordRecovery.ts`, locale `index.ts` files, and `shared/i18n/i18n-keys.test.ts`; verify wrapping-safe copy.
+- [x] [PR-2.09] Add safe Problem Details mocks/constants in `apps/web/app/e2e/fixtures/{auth-helpers,test-data}.ts` and a locale-independent `e2e/pages/password-recovery-page.ts`; never log/snapshot secrets.
+- [x] [PR-2.10] RED/GREEN core scenarios in `apps/web/app/e2e/specs/password-reset-frontend.spec.ts`: generic forgot success, 429/503, missing/invalid token, valid reset 204, success-to-login, and no auto-authentication.
+- [x] [PR-2.11] RED/GREEN Playwright coverage for keyboard/announcements/labels, Pixel 5 overflow/touch targets, EN/ES, authenticated forgot redirect, authenticated reset access, and token/password absence from storage/analytics/errors.
+- [ ] [PR-2.12] Run focused `pnpm --filter app test:run -- <files>`, full `pnpm --filter app test:run`, `pnpm --filter app lint`, targeted `pnpm --filter app exec playwright test -c e2e/playwright.config.ts e2e/specs/password-reset-frontend.spec.ts e2e/specs/route-guards.spec.ts`, then `just app-build`; run full `just ci` before an authorized PR. Do not use `just frontend-*` (marketing).
+
+Codecov follow-up: after PR 2, inspect focused app coverage/reporting and open a separate frontend-only follow-up if recovery files miss expected coverage; do not import backend coverage debt into this slice.
 
 ## PR 3 — Hardening after PR 1
 

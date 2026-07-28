@@ -1,0 +1,35 @@
+export default {
+  forgotTitle: '¿Olvidaste tu contraseña?',
+  forgotDescription:
+    'Escribe tu correo y enviaremos instrucciones de recuperación si existe una cuenta.',
+  emailLabel: 'Correo electrónico',
+  invalidEmail: 'Escribe un correo electrónico válido.',
+  sendLink: 'Enviar enlace de recuperación',
+  sending: 'Enviando…',
+  forgotSuccessMessage:
+    'Si existe una cuenta con este correo, recibirás pronto un enlace para restablecer la contraseña.',
+  backToLogin: 'Volver a iniciar sesión',
+  resetTitle: 'Elige una contraseña nueva',
+  resetDescription: 'Usa el enlace seguro de recuperación para establecer una contraseña nueva.',
+  newPasswordLabel: 'Contraseña nueva',
+  confirmPasswordLabel: 'Confirmar contraseña nueva',
+  passwordPolicy: 'Usa entre 8 y 128 caracteres.',
+  passwordRequired: 'Escribe una contraseña nueva.',
+  passwordTooShort: 'La contraseña debe tener al menos 8 caracteres.',
+  passwordTooLong: 'La contraseña no puede superar los 128 caracteres.',
+  confirmPasswordRequired: 'Confirma tu contraseña nueva.',
+  passwordsMustMatch: 'Las contraseñas deben coincidir.',
+  resetPassword: 'Restablecer contraseña',
+  resetting: 'Restableciendo…',
+  invalidLinkTitle: 'Enlace de recuperación no disponible',
+  invalidLinkMessage:
+    'Este enlace para restablecer la contraseña no es válido o ha caducado. Solicita uno nuevo.',
+  requestNewLink: 'Solicitar un enlace nuevo',
+  resetSuccessTitle: 'Contraseña cambiada',
+  resetSuccessMessage: 'Tu contraseña ha cambiado. Inicia sesión de nuevo con la contraseña nueva.',
+  signIn: 'Iniciar sesión',
+  rateLimited: 'Demasiados intentos. Espera antes de volver a intentarlo.',
+  unavailable:
+    'La recuperación de contraseña no está disponible temporalmente. Inténtalo más tarde.',
+  genericError: 'No pudimos completar la solicitud. Inténtalo de nuevo.',
+} as const

@@ -232,6 +232,14 @@ async function handleSubmit() {
               <p v-if="fieldErrors.password" role="alert" class="text-sm text-error">
                 {{ t(`auth.${fieldErrors.password}`) }}
               </p>
+              <div v-if="!isRegisterMode" class="flex justify-end">
+                <RouterLink
+                  to="/forgot-password"
+                  class="min-h-11 py-3 text-sm text-text-display underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-display"
+                >
+                  {{ t('auth.forgotPassword') }}
+                </RouterLink>
+              </div>
             </div>
 
             <div v-if="isRegisterMode" class="space-y-2">
