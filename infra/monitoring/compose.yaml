@@ -37,6 +37,30 @@ services:
     depends_on:
       - prometheus
 
+  loki:
+    image: grafana/loki:3.5.1@sha256:a74594532eec4cc313401beedc4dd2708c43674c032084b1aeb87c14a5be1745
+    command: -config.file=/etc/loki/loki.yml
+    volumes:
+      - ./configs/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    networks:
+      - profiletailors
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.9.1@sha256:b5fc87ff9a8941d6ed3ae5f099d9cb8598b3cd42fef9a8af128ed782258b4017
+    command: run --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    volumes:
+      - ./configs/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    networks:
+      - profiletailors
+    restart: unless-stopped
+
 volumes:
   prometheus_data:
   grafana_data:
+  loki_data:
+  alloy_data:
