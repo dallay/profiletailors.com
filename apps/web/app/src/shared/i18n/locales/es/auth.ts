@@ -30,6 +30,7 @@ export default {
   confirmPasswordPlaceholder: 'Repite tu contraseña',
   invalidEmail: 'Por favor, introduce un correo electrónico válido.',
   passwordRequired: 'Por favor, introduce tu contraseña.',
+  forgotPassword: '¿Olvidaste tu contraseña?',
   confirmPasswordRequired: 'Por favor, confirma tu contraseña.',
   passwordsMustMatch: 'Las contraseñas deben coincidir.',
   ageEligibilityLabel: 'Confirmo que soy mayor de 18 años',

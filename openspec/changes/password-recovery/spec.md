@@ -227,56 +227,83 @@ REQ-NOT-06, retries, and terminal-failure recording are PR 3 hardening.**
 
 ### REQ-UI — Frontend Flows
 
-**Delivery: PR 2 frontend.**
+**Delivery: PR 2 frontend. All REQ-UI requirements and scenarios are classified `@pr-2`.**
 
-- **REQ-UI-01** A "Forgot password?" link MUST be present and visible on
-  the login page. The link MUST be reachable by keyboard and MUST
-  navigate to `/forgot-password`.
-- **REQ-UI-02** `/forgot-password` MUST be a guest-only route (the same
-  guard rule applied to `/login` and `/register`).
-- **REQ-UI-03** `ForgotPasswordView` MUST render an email input and a
-  submit button. Submit MUST trigger client-side validation before
-  calling the API. Required field: email; format: RFC 5322.
-- **REQ-UI-04** `ForgotPasswordView` MUST show a loading state during
-  the API call and MUST prevent duplicate submissions.
-- **REQ-UI-05** `ForgotPasswordView` MUST display the same generic
-  confirmation message on success, regardless of account existence:
-  "If an account exists for this email, you'll receive a password reset
-  link shortly."
-- **REQ-UI-06** `ForgotPasswordView` MUST display the API rate-limit
-  error (mapped to a localized message) when the server returns 429.
-- **REQ-UI-07** `/reset-password?token=...` MUST be a guest-only route.
-- **REQ-UI-08** `ResetPasswordView` MUST read the `token` query
-  parameter. If the token is missing or blank, the view MUST display an
-  invalid-link state with a link to `/forgot-password` and MUST NOT
-  render the password form.
-- **REQ-UI-09** `ResetPasswordView` MUST render two password fields
-  (new password, confirm password) and a submit button. Client-side
-  validation MUST enforce: required, minimum length 8, maximum length
-  128, both fields equal.
-- **REQ-UI-10** `ResetPasswordView` MUST NOT submit when validation
-  fails and MUST display a localized mismatch / policy message.
-- **REQ-UI-11** On a `400` response with the generic token error, the
-  view MUST display: "This password reset link is invalid or has
-  expired. Request a new one." with a link to `/forgot-password`. The
-  view MUST NOT distinguish between invalid, expired, and used tokens.
-- **REQ-UI-12** On a `204` response, the view MUST display a success
-  state that says the password was changed and offers a link to
-  `/login`. The view MUST NOT auto-authenticate the visitor.
-- **REQ-UI-13** `ResetPasswordView` MUST prevent duplicate submissions.
-- **REQ-UI-14** All user-visible strings in both views MUST be present
-  in both the EN and ES locale files.
-- **REQ-UI-15** API client functions MUST be added to the existing auth
-  client module:
+- **REQ-UI-01** A "Forgot password?" link MUST be present and keyboard-reachable on the login page and MUST navigate to `/forgot-password`.
+- **REQ-UI-02** `/forgot-password` MUST remain guest-only under the same guard rule as `/login` and `/register`.
+- **REQ-UI-03** `ForgotPasswordView` MUST render an RFC 5322 email field and submit control, validate before API submission, expose pending state, and prevent duplicate submissions.
+- **REQ-UI-04** A successful forgot-password request MUST show the same localized generic confirmation regardless of account existence: "If an account exists for this email, you'll receive a password reset link shortly."
+- **REQ-UI-05** A forgot-password `429` response MUST show a localized rate-limit error; a disabled or unknown failure MUST show a localized unavailable or generic error without account disclosure.
+- **REQ-UI-06** `/reset-password?token=...` MUST be accessible to authenticated and unauthenticated visitors. The recovery token is the authorization capability; an existing session MUST NOT redirect away from or block the reset form.
+- **REQ-UI-07** `ResetPasswordView` MUST read the `token` query parameter. A missing or blank token MUST show an invalid-link state linking to `/forgot-password` and MUST NOT render the form.
+- **REQ-UI-08** The reset form MUST provide new-password and confirmation fields and enforce required, 8..128 characters, and equality before submission.
+- **REQ-UI-09** Invalid client input MUST NOT be submitted and MUST show localized policy or mismatch feedback. Pending submission MUST disable repeat submission.
+- **REQ-UI-10** Invalid, expired, and used token responses MUST produce one identical localized generic invalid-link state linking to `/forgot-password`; backend detail MUST NOT distinguish token state.
+- **REQ-UI-11** After backend `204`, the frontend MUST show that the password changed and MUST direct the visitor to `/login` to authenticate again. It MUST NOT preserve, restore, or create an authenticated frontend session, because the backend revokes refresh sessions and issues no replacement session.
+- **REQ-UI-12** All recovery strings MUST have EN and ES parity, wrap without truncation, and remain usable at supported responsive widths without horizontal overflow.
+- **REQ-UI-13** Both forms MUST use native submission, programmatic labels, suitable autocomplete values, associated validation errors, announced async/error states, visible keyboard focus, and practical touch targets.
+- **REQ-UI-14** API functions MUST reside in `apps/web/app/src/modules/auth/infrastructure/auth-api.ts` and preserve empty `202`/`204` responses and RFC 9457 error status/code:
   ```ts
-  export async function requestPasswordReset(email: string): Promise<void>
-  export async function resetPassword(payload: {
-    token: string
-    newPassword: string
-  }): Promise<void>
+  requestPasswordReset(email: string): Promise<void>
+  resetPassword(payload: { token: string; newPassword: string }): Promise<void>
   ```
-- **REQ-UI-16** The token query parameter MUST NOT be persisted to
-  localStorage, sessionStorage, or analytics events.
+- **REQ-UI-15** The raw token and new password MUST NOT enter localStorage, sessionStorage, analytics, logs, rendered error text, or test diagnostics.
+- **REQ-UI-16** Recovery routes MUST render outside the authenticated application shell.
+
+#### PR 2 Scenarios
+
+```gherkin
+@pr-2 @route-guard
+Scenario: Guest-only forgot-password route redirects an authenticated visitor
+  Given the visitor has an authenticated session
+  When the visitor opens "/forgot-password"
+  Then the guest-only guard should redirect the visitor away from the recovery request form
+
+@pr-2 @route-guard @happy-path
+Scenario: Authenticated visitor opens a valid reset link
+  Given the visitor has an authenticated session
+  And the URL contains a valid password recovery token
+  When the visitor opens "/reset-password?token=valid-token"
+  Then the visitor should reach the reset password form
+  And the existing session should not block or redirect the visitor
+
+@pr-2 @happy-path
+Scenario: Successful reset directs the visitor to login again
+  Given an authenticated or unauthenticated visitor submits a valid token and matching valid passwords
+  When the backend accepts the reset with status 204 and revokes refresh sessions
+  Then the frontend should show the password-changed success state
+  And the visitor should be directed to "/login" without automatic authentication
+
+@pr-2 @token-error
+Scenario: Reset link is missing, invalid, expired, or used
+  Given the reset link has no usable token or the backend returns a token error
+  When the reset view handles the link or response
+  Then one localized generic invalid-link state should be shown
+  And no token-state distinction or password submission should be exposed
+
+@pr-2 @rate-limit @disabled
+Scenario: Recovery API is throttled or unavailable
+  Given the backend returns 429, 503, or an unknown failure
+  When either recovery view handles the response
+  Then the view should show the corresponding localized safe error
+  And pending controls should prevent duplicate submission
+
+@pr-2 @i18n @accessibility @responsive
+Scenario Outline: Recovery views remain usable across supported presentation contexts
+  Given the recovery flow uses locale "<locale>" and viewport "<viewport>"
+  When the visitor completes the flow using only the keyboard
+  Then labels, focus, announcements, touch targets, wrapping, and overflow should satisfy REQ-UI-12 and REQ-UI-13
+  Examples:
+    | locale | viewport |
+    | en     | desktop  |
+    | es     | mobile   |
+
+@pr-2 @privacy
+Scenario: Recovery secrets are not retained or observed
+  Given the visitor opens a reset URL and submits a new password
+  When the frontend processes success or failure
+  Then the raw token and password should not enter storage, analytics, logs, errors, or test diagnostics
+```
 
 ### REQ-HARD — Operational Hardening
 

@@ -1,3 +1,4 @@
+import i18n from '@shared/i18n'
 import { authCredentialsSchema, workspaceNameSchema } from '@shared/lib/validation/schemas'
 
 // ---------------------------------------------------------------------------
@@ -199,6 +200,24 @@ export async function resendVerification(email: string): Promise<void> {
   await requestRaw('/api/auth/resend-verification', {
     method: 'POST',
     body: JSON.stringify({ email }),
+  })
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await requestRaw('/api/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Accept-Language': i18n.global.locale.value },
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function resetPassword(payload: {
+  token: string
+  newPassword: string
+}): Promise<void> {
+  await requestRaw('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   })
 }
 

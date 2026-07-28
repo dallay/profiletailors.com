@@ -28,6 +28,31 @@ export const registerSchema = authCredentialsSchema
 
 export type RegisterCredentials = z.infer<typeof registerSchema>
 
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .transform((value) => value.toLowerCase())
+    .pipe(z.email('invalidEmail')),
+})
+
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(1, 'passwordRequired')
+      .min(8, 'passwordTooShort')
+      .max(128, 'passwordTooLong'),
+    confirmPassword: z.string().min(1, 'confirmPasswordRequired'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'passwordsMustMatch',
+    path: ['confirmPassword'],
+  })
+
+export type ForgotPasswordCredentials = z.infer<typeof forgotPasswordSchema>
+export type ResetPasswordCredentials = z.infer<typeof resetPasswordSchema>
+
 // ---------------------------------------------------------------------------
 // Workspace rename
 // ---------------------------------------------------------------------------

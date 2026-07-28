@@ -5,12 +5,10 @@ import AppShell from '@layouts/AppShell.vue'
 
 const route = useRoute()
 
-const isAuthRoute = computed(
-  () => route.name === 'login' || route.name === 'register' || route.name === 'verify-email',
-)
+const isStandaloneRoute = computed(() => route.meta.standalone === true)
 </script>
 
 <template>
-  <RouterView v-if="isAuthRoute" />
+  <RouterView v-if="isStandaloneRoute" />
   <AppShell v-else />
 </template>

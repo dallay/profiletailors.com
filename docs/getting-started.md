@@ -1,6 +1,6 @@
 # Getting Started — Local Development Environment
 
-**Last Updated:** 2026-06-21
+**Last Updated:** 2026-07-28
 **Status:** Active
 
 ## Overview
@@ -18,7 +18,7 @@ Run `just -l` to see every available recipe.
 |-------------|--------------|------------------------------------------------------------------------|
 | Java        | `>= 21`      | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
 | Node.js     | `>= 22.12.0` | [nodejs.org](https://nodejs.org)                                       |
-| pnpm        | `>= 10`      | `npm install -g pnpm`                                                  |
+| pnpm        | `11.11.0`    | `npm install -g pnpm@11.11.0`                                          |
 | just        | `>= 1.30`    | See below                                                              |
 | Docker      | latest       | [docs.docker.com](https://docs.docker.com)                             |
 
