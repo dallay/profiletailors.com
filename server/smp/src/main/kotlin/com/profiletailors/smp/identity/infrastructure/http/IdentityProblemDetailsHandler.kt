@@ -19,7 +19,13 @@ import java.net.URI
 @RestControllerAdvice
 class IdentityProblemDetailsHandler {
 
-    @ExceptionHandler(InvalidEmailPasswordException::class)
+    /**
+         * Creates a problem detail for invalid email or password credentials.
+         *
+         * @param exception The invalid credentials exception being handled.
+         * @return An unauthorized problem detail describing the invalid credentials.
+         */
+        @ExceptionHandler(InvalidEmailPasswordException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: InvalidEmailPasswordException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, INVALID_CREDENTIALS_DETAIL).apply {
@@ -80,14 +86,26 @@ class IdentityProblemDetailsHandler {
             title = "Registration validation failed"
         }
 
-    @ExceptionHandler(InvalidVerificationTokenException::class)
+    /**
+         * Creates a problem detail response for an invalid verification token.
+         *
+         * @param exception The invalid verification token exception being handled.
+         * @return A bad-request problem detail describing the invalid verification token.
+         */
+        @ExceptionHandler(InvalidVerificationTokenException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: InvalidVerificationTokenException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_VERIFICATION_TOKEN_DETAIL).apply {
             title = "Invalid verification token"
         }
 
-    @ExceptionHandler(CloseAccountConfirmationException::class)
+    /**
+         * Maps an invalid account closure confirmation exception to a bad-request problem detail.
+         *
+         * @param exception The exception indicating that account closure confirmation is invalid.
+         * @return A problem detail describing the invalid account closure confirmation.
+         */
+        @ExceptionHandler(CloseAccountConfirmationException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: CloseAccountConfirmationException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, CLOSE_ACCOUNT_CONFIRMATION_DETAIL).apply {

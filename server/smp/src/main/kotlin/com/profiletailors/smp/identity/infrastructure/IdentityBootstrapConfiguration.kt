@@ -30,6 +30,11 @@ import java.time.Clock
 @Suppress("TooManyFunctions")
 class IdentityBootstrapConfiguration {
 
+    /**
+     * Provides the default email verification policy outside the `dev` profile.
+     *
+     * @return The default email verification policy.
+     */
     @Bean
     @Profile("!dev")
     fun emailVerificationPolicy(): EmailVerificationPolicy = emailVerificationPolicyOf()

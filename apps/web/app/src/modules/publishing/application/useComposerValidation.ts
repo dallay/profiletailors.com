@@ -82,26 +82,21 @@ export type ComposerValidationResult = {
 }
 
 /**
- * Composable that handles all composer validation:
- * - Character limits
- * - Required fields
- * - Per-channel attachment limits
- * - Full submit-readiness check
+ * Creates reactive validation state for composer content, scheduling, channels, and attachments.
+ *
+ * @param options - Reactive composer inputs used to calculate validation results.
+ * @returns Computed validation results and the character limit.
  *
  * @example
  * ```ts
  * const validation = useComposerValidation({
  *   postText,
- *   selectedChannel: computed(() => channels.find(...)),
- *   attachmentCount: computed(() => attachments.length),
- *   isScheduleValid: scheduling.isScheduleValid,
- *   isEditMode: computed(() => !!editingPublication),
- *   isSubmitting: ref(false),
+ *   selectedChannel,
+ *   attachmentCount,
+ *   isScheduleValid,
+ *   isEditMode,
+ *   isSubmitting,
  * })
- *
- * // In template
- * :disabled="!validation.canSubmit.value"
- * {{ validation.charsRemaining.value }} / {{ validation.charLimit }}
  * ```
  */
 export function useComposerValidation(
@@ -250,7 +245,11 @@ export function useComposerValidation(
 }
 
 /**
- * Formats the character counter display string.
+ * Formats the character count relative to its limit.
+ *
+ * @param remaining - The number of characters remaining.
+ * @param limit - The maximum character limit.
+ * @returns A formatted character count string.
  */
 export function formatCharCount(remaining: number, limit: number): string {
   if (remaining < 0) {

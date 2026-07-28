@@ -60,6 +60,13 @@ object EmailTemplates {
         )
     }
 
+    /**
+     * Builds the HTML body for a verification email.
+     *
+     * @param username The escaped recipient name shown in the greeting.
+     * @param verificationUrl The escaped URL used for the verification link and fallback text.
+     * @return A complete HTML document for the verification email.
+     */
     private fun verificationHtml(username: String, verificationUrl: String): String = """
         <!doctype html>
         <html lang="en">
@@ -89,6 +96,12 @@ object EmailTemplates {
         </html>
     """.trimIndent()
 
+    /**
+     * Escapes HTML-sensitive characters in a string.
+     *
+     * @param value The string to escape.
+     * @return The escaped string.
+     */
     private fun escapeHtml(value: String): String = buildString(value.length) {
         value.forEach { character ->
             append(

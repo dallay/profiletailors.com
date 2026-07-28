@@ -41,6 +41,13 @@ class AuthRateLimitWebFilter internal constructor(
 
     private val windows = ConcurrentHashMap<String, Window>()
 
+    /**
+     * Applies authentication request rate limiting and delegates non-authentication requests unchanged.
+     *
+     * @param exchange The current web exchange.
+     * @param chain The filter chain for continuing request processing.
+     * @return Completion signal for the request processing.
+     */
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val path = exchange.request.path.pathWithinApplication().value().trimEnd('/')
         if (!isAuthEndpoint(path)) {
@@ -71,6 +78,12 @@ class AuthRateLimitWebFilter internal constructor(
 
     private fun isAuthEndpoint(path: String): Boolean = AUTH_ENDPOINTS.any { path == it || path.startsWith("$it/") }
 
+    /**
+     * Creates a sanitized, length-limited identifier for the client's remote address.
+     *
+     * @param exchange The web exchange containing the client's remote address.
+     * @return An identifier prefixed with `auth-ip:`, using `unknown` when the address is unavailable.
+     */
     private fun clientIdentifier(exchange: ServerWebExchange): String {
         val remote = exchange.request.remoteAddress?.address?.hostAddress
             ?.replace(IP_SANITIZE_REGEX, "")
@@ -78,6 +91,11 @@ class AuthRateLimitWebFilter internal constructor(
         return "auth-ip:${remote ?: "unknown"}"
     }
 
+    /**
+     * Removes tracked rate-limit windows that have reached the configured window duration.
+     *
+     * @param now The current time in milliseconds.
+     */
     private fun evictExpiredEntries(now: Long) {
         val iterator = windows.entries.iterator()
         while (iterator.hasNext()) {
@@ -88,6 +106,14 @@ class AuthRateLimitWebFilter internal constructor(
         }
     }
 
+    /**
+     * Configures and writes the authentication rate-limit response.
+     *
+     * @param exchange The current server exchange.
+     * @param window The active rate-limit window.
+     * @param now The current time in milliseconds.
+     * @return Completion after the response body has been written.
+     */
     @Suppress("S6508") // Mono<Void> is correct Reactor idiom for completion-without-value
     private fun reject(exchange: ServerWebExchange, window: Window, now: Long): Mono<Void> {
         val response = exchange.response
@@ -102,9 +128,19 @@ class AuthRateLimitWebFilter internal constructor(
         return response.writeWith(Mono.just(buffer)).then()
     }
 
-    internal fun trackedWindowCount(): Int = windows.size
+    /**
+ * Reports the number of currently tracked client windows.
+ *
+ * @return The number of tracked windows.
+ */
+internal fun trackedWindowCount(): Int = windows.size
 
-    private fun currentTimeMillis(): Long = clock.millis()
+    /**
+ * Gets the current time in milliseconds from the configured clock.
+ *
+ * @return The current time in milliseconds.
+ */
+private fun currentTimeMillis(): Long = clock.millis()
 
     private data class Window(val startedAtMs: Long, val count: AtomicInteger)
 

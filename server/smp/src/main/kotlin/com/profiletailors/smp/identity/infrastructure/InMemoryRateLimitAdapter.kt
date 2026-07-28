@@ -19,6 +19,14 @@ class InMemoryRateLimitAdapter(
     /** Keyed by principal ID → most recent attempt timestamp. */
     private val store: MutableMap<String, Instant> = ConcurrentHashMap()
 
+    /**
+     * Attempts to acquire a rate-limit permit for a key within the specified window.
+     *
+     * @param key The key identifying the rate-limited subject.
+     * @param window The minimum duration between accepted attempts.
+     * @param now The current timestamp used to evaluate the rate limit.
+     * @return `true` if the attempt is accepted, `false` if the key has an attempt within the window.
+     */
     override fun tryAcquire(key: String, window: Duration, now: Instant): Boolean {
         val adjustedNow = now.plus(clockSkewLeeway)
         val deadline = adjustedNow.minus(window)

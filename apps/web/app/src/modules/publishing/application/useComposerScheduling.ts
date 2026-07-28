@@ -37,21 +37,17 @@ export type UseComposerSchedulingResult = {
 }
 
 /**
- * Composable that manages all composer scheduling logic:
- * - Modes: now, next, custom
- * - Date/time validation
- * - Label formatting
- * - Real-time clock for "today" validation
+ * Manages composer scheduling state, validation, formatting, and clock updates.
+ *
+ * @param options - Initial scheduling mode and optional scheduled date.
+ * @returns Reactive scheduling state, derived values, and scheduling actions.
  *
  * @example
  * ```ts
  * const scheduling = useComposerScheduling({
- *   initialDate: props.editingPublication?.scheduledAt,
- *   initialMode: 'custom'
+ *   initialDate: publication.scheduledAt,
+ *   initialMode: 'custom',
  * })
- *
- * v-model="scheduling.scheduleMode.value"
- * :min-time-for-date="scheduling.minTimeForDate.value"
  * ```
  */
 export function useComposerScheduling(
@@ -74,6 +70,9 @@ export function useComposerScheduling(
 
   let ticker: ReturnType<typeof setInterval> | null = null
 
+  /**
+   * Stops the scheduling clock updates.
+   */
   function stopTicker(): void {
     if (ticker !== null) {
       clearInterval(ticker)
@@ -227,8 +226,9 @@ export function useComposerScheduling(
   // ============================================================================
 
   /**
-   * Hoisted helper to apply a valid date to the scheduling state.
-   * Leaves existing state unchanged when the date is invalid.
+   * Applies a parsed date to the custom scheduling state.
+   *
+   * @param raw - The date string to parse.
    */
   function applyDate(raw: string): void {
     const parsed = new Date(raw)
@@ -259,12 +259,17 @@ export function useComposerScheduling(
     selectedCalendarDate.value = date
   }
 
+  /**
+   * Updates the selected scheduling time.
+   *
+   * @param time - The scheduling time in `HH:MM` format
+   */
   function setScheduleTime(time: string) {
     scheduleTime.value = time
   }
 
   /**
-   * Reset to initial state (now mode, no date/time).
+   * Resets scheduling state to its initial mode and default date-picker settings.
    */
   function resetSchedule() {
     scheduleMode.value = options.initialMode ?? 'now'
@@ -274,7 +279,9 @@ export function useComposerScheduling(
   }
 
   /**
-   * Load scheduling from an existing publication (edit mode).
+   * Loads scheduling settings from an existing publication for editing.
+   *
+   * @param publication - The publication's scheduling mode and optional scheduled date.
    */
   function loadFromPublication(publication: {
     scheduleMode?: 'NOW' | 'NEXT_SLOT' | 'SCHEDULED_AT' | null

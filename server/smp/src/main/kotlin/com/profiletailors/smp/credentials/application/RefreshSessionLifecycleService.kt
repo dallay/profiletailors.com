@@ -35,11 +35,21 @@ class RefreshSessionLifecycleService(
         )
     }
 
+    /**
+     * Revokes the active refresh session associated with a raw refresh token.
+     *
+     * @param rawRefreshToken The raw refresh token identifying the session to revoke.
+     */
     suspend fun revoke(rawRefreshToken: String) {
         val parsedToken = refreshSessionTokenService.parse(rawRefreshToken)
         val activeSession = refreshSessionGateway.requireActive(parsedToken, clock.instant())
         refreshSessionGateway.revoke(activeSession.id, clock.instant())
     }
 
-    private fun expiresAt(): Instant = clock.instant().plusSeconds(properties.ttlSeconds)
+    /**
+ * Calculates the refresh session expiration time.
+ *
+ * @return The current time plus the configured session lifetime.
+ */
+private fun expiresAt(): Instant = clock.instant().plusSeconds(properties.ttlSeconds)
 }

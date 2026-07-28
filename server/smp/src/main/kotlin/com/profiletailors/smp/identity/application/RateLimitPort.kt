@@ -16,5 +16,13 @@ fun interface RateLimitPort {
      *
      * @return true if the permit was acquired (within the window), false if rate-limited.
      */
-    fun tryAcquire(key: String, window: Duration, now: Instant): Boolean
+    /**
+ * Attempts to acquire a permit for a rate-limit bucket.
+ *
+ * @param key The identifier of the rate-limit bucket.
+ * @param window The duration of the rate-limit window.
+ * @param now The current timestamp used to evaluate the window.
+ * @return `true` if a permit is acquired, `false` if the operation is rate-limited.
+ */
+fun tryAcquire(key: String, window: Duration, now: Instant): Boolean
 }

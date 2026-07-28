@@ -50,14 +50,29 @@ class CommonBddTestConfiguration {
         liquibasePassword = environment.getProperty("bdd.liquibase.password") ?: "",
     )
 
+    /**
+     * Provides the primary audit hook used by BDD test scenarios.
+     *
+     * @return A new audit hook that captures audit events.
+     */
     @Bean
     @Primary
     fun testAuditHook(): CapturingAuditHook = CapturingAuditHook()
 
+    /**
+     * Provides an email sender that records outgoing messages for BDD test scenarios.
+     *
+     * @return The recording email sender.
+     */
     @Bean
     @Primary
     fun recordingEmailSender(): RecordingEmailSender = RecordingEmailSender()
 
+    /**
+     * Provides a media rate-limit repository that permits all upload and creation requests.
+     *
+     * @return A media rate-limit repository with no enforced limits.
+     */
     @Bean
     @Primary
     fun bddMediaRateLimitRepository(): MediaRateLimitRepository = object : MediaRateLimitRepository {
@@ -72,6 +87,11 @@ class CommonBddTestConfiguration {
             MediaRateLimitRepository.RateLimitIncrementResult(1, true)
     }
 
+    /**
+     * Creates a JWT decoder for BDD user tokens and the service-account token.
+     *
+     * @return A decoder that produces test JWT claims for recognized tokens and an error for invalid tokens.
+     */
     @Bean
     @Primary
     fun reactiveJwtDecoder(): ReactiveJwtDecoder = ReactiveJwtDecoder { token ->
@@ -115,10 +135,21 @@ class RecordingEmailSender : EmailSender {
 
     val messages = mutableListOf<Message>()
 
+    /**
+     * Records an outgoing email message.
+     *
+     * @param to The recipient's email address.
+     * @param subject The email subject.
+     * @param message The email content.
+     * @return A successful email send result.
+     */
     override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
         messages += Message(to, subject, message)
         return EmailSendResult(success = true)
     }
 
-    fun reset() = messages.clear()
+    /**
+ * Removes all recorded messages.
+ */
+fun reset() = messages.clear()
 }

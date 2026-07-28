@@ -145,6 +145,12 @@ class R2dbcRefreshSessionGateway(
         return replacement
     }
 
+    /**
+     * Revokes a refresh session.
+     *
+     * @param currentSessionId The identifier of the session to revoke.
+     * @param now The timestamp to record for the revocation and last use.
+     */
     override suspend fun revoke(currentSessionId: String, now: Instant) {
         databaseClient.sql(
             """
@@ -164,7 +170,15 @@ class R2dbcRefreshSessionGateway(
             .awaitSingle()
     }
 
-    private suspend fun resolvePrincipalId(sessionId: String): String = databaseClient.sql(
+    /**
+         * Resolves the principal associated with a refresh session.
+         *
+         * @param sessionId The refresh session identifier.
+         * @return The identifier of the associated principal.
+         * @throws IllegalStateException If the refresh session does not exist.
+         * @throws NullPointerException If the stored principal identifier is null.
+         */
+        private suspend fun resolvePrincipalId(sessionId: String): String = databaseClient.sql(
         "SELECT principal_id FROM refresh_sessions WHERE id = :id",
     )
         .bind("id", sessionId)

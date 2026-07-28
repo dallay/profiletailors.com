@@ -16,9 +16,22 @@ import org.springframework.context.annotation.Import
 @Import(EventConfiguration::class)
 class IdentityEventConfiguration {
 
+    /**
+     * Creates an event emitter for domain events.
+     *
+     * @return An event emitter configured for domain events.
+     */
     @Bean
     fun domainEventEmitter(): EventEmitter<DomainEvent> = EventEmitter()
 
+    /**
+     * Creates the email configuration used by identity-related services.
+     *
+     * @param sender The email address used as the sender.
+     * @param verificationSubjectPrefix The prefix applied to verification email subjects.
+     * @param publicAppUrl The public application URL included in email content.
+     * @return The configured email properties.
+     */
     @Bean
     fun emailProperties(
         @Value("\${app.email.sender:noreply@profiletailors.com}") sender: String,

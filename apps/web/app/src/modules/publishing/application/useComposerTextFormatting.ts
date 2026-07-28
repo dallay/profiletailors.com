@@ -27,18 +27,14 @@ export type UseComposerTextFormattingResult = {
 }
 
 /**
- * Composable that handles text formatting in the composer:
- * - Hashtag insertion
- * - Emoji insertion
- * - AI assist (placeholder for future integration)
- * - Text normalisation before sending to the backend
+ * Provides composer text formatting utilities for hashtags, emojis, AI assistance, and backend preparation.
+ *
+ * @param options - Composer text state and optional callbacks for formatting events
+ * @returns Formatting utilities and the current AI processing state
  *
  * @example
  * ```ts
- * const formatting = useComposerTextFormatting({
- *   postText,
- *   onAiAssistApplied: (text) => console.log('AI generated:', text),
- * })
+ * const formatting = useComposerTextFormatting({ postText })
  *
  * formatting.appendHashtag('socialmedia')
  * formatting.insertEmoji('🚀')
@@ -56,7 +52,12 @@ export function useComposerTextFormatting(
 
   // ============================================================================
   // HASHTAGS
-  // ============================================================================
+  /**
+   * Normalizes a hashtag to lowercase and removes unsupported characters.
+   *
+   * @param tag - The hashtag to normalize, with or without a leading `#`
+   * @returns The normalized hashtag prefixed with `#`, or an empty string when no valid characters remain
+   */
 
   function normalizeHashtag(tag: string): string {
     const body = tag.startsWith('#') ? tag.slice(1) : tag
@@ -64,7 +65,12 @@ export function useComposerTextFormatting(
     return cleaned ? `#${cleaned}` : ''
   }
 
-  /** Appends a normalised hashtag to the post text. */
+  /**
+   * Appends a normalized hashtag to the post text.
+   *
+   * @param tag - The hashtag to normalize and append.
+   * @returns `true` if the hashtag was appended, `false` if it was empty or invalid.
+   */
   function appendHashtag(tag: string): boolean {
     if (!tag || tag.trim() === '') return false
 
@@ -80,7 +86,11 @@ export function useComposerTextFormatting(
     return true
   }
 
-  /** Prompts the user for a hashtag via the browser prompt API. */
+  /**
+   * Prompts the user for a hashtag and appends the valid normalized value to the post.
+   *
+   * @returns `true` if a hashtag was appended, `false` if no value was provided or the hashtag was invalid.
+   */
   function appendHashtagFromPrompt(): boolean {
     const tag = prompt('Enter tag (e.g. #socialmedia):')
     if (!tag) return false
@@ -103,6 +113,9 @@ export function useComposerTextFormatting(
     options.onEmojiInserted?.(emoji)
   }
 
+  /**
+   * Inserts the default smiling face emoji into the post text.
+   */
   function insertDefaultEmoji(): void {
     insertEmoji('🙂')
   }
@@ -112,9 +125,10 @@ export function useComposerTextFormatting(
   // ============================================================================
 
   /**
-   * Applies AI assist to the post text.
-   * NOTE: Placeholder implementation — in production this would call an AI endpoint.
-   * Empty text generates a sample post; existing text appends a brand signature.
+   * Applies AI-assisted content to the post text.
+   *
+   * Generates sample content when the post is empty; otherwise appends the
+   * Profile Tailors signature. Concurrent requests are ignored while processing.
    */
   async function applyAiAssist(): Promise<void> {
     if (isAiProcessing.value) return
@@ -147,8 +161,16 @@ export function useComposerTextFormatting(
   // ============================================================================
 
   /**
-   * Normalises all hashtags in text: lowercase, strips special chars,
-   * normalises multiple spaces while preserving line breaks.
+   * Normalizes hashtags and whitespace while preserving line breaks.
+   *
+   * @param text - The text whose hashtags and whitespace should be normalized.
+   * @returns The normalized text with lowercase hashtags, standardized spacing, and preserved line breaks.
+   *
+   * @example
+   * ```ts
+   * normalizeAllHashtags('Hello   #Post!')
+   * // 'Hello #post'
+   * ```
    */
   function normalizeAllHashtags(text: string): string {
     return text
@@ -172,8 +194,10 @@ export function useComposerTextFormatting(
   }
 
   /**
-   * Formats the full text for backend submission:
-   * normalises hashtags, trims, collapses excessive line breaks.
+   * Formats text for backend submission by normalizing hashtags, trimming surrounding whitespace, and limiting consecutive blank lines.
+   *
+   * @param text - The text to format.
+   * @returns The normalized and trimmed text with no more than two consecutive line breaks.
    */
   function formatForBackend(text: string): string {
     return normalizeAllHashtags(text)

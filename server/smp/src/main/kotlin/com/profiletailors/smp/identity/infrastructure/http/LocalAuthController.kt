@@ -107,6 +107,12 @@ class LocalAuthController(
             mediator.send(VerifyEmailCommand(token = request.token)),
         )
 
+    /**
+     * Requests that a verification email be sent to the specified address.
+     *
+     * @param request The request containing the email address.
+     * @return An accepted response with no body.
+     */
     @Operation(summary = "Resend verification email")
     @PostMapping("/resend-verification", consumes = ["application/json"], version = "1")
     suspend fun resendVerification(@Valid @RequestBody request: ResendVerificationRequest): ResponseEntity<Unit> {
@@ -118,17 +124,34 @@ class LocalAuthController(
         return ResponseEntity.accepted().build()
     }
 
-    private fun sessionResponse(result: LocalAuthSessionResult): ResponseEntity<AuthTokens> = ResponseEntity.ok()
+    /**
+         * Builds a successful authentication response with the session cookie and tokens.
+         *
+         * @param result The authenticated session result containing the refresh token and access tokens.
+         * @return An HTTP 200 response containing the authentication tokens.
+         */
+        private fun sessionResponse(result: LocalAuthSessionResult): ResponseEntity<AuthTokens> = ResponseEntity.ok()
         .header(
             HttpHeaders.SET_COOKIE,
             refreshSessionCookieFactory.buildSetCookie(result.refreshToken).toResponseCookie().toString(),
         )
         .body(result.tokens)
 
-    private fun readRefreshCookie(request: ServerHttpRequest): String? =
+    /**
+         * Retrieves the refresh-session cookie value from the request.
+         *
+         * @param request The incoming HTTP request.
+         * @return The refresh-session cookie value, or `null` if the cookie is absent.
+         */
+        private fun readRefreshCookie(request: ServerHttpRequest): String? =
         request.cookies.getFirst(refreshSessionProperties.cookieName)?.value
 
-    private fun SessionCookie.toResponseCookie(): ResponseCookie = ResponseCookie.from(name, value)
+    /**
+         * Converts this session cookie into an HTTP response cookie.
+         *
+         * @return A response cookie containing the session cookie's attributes.
+         */
+        private fun SessionCookie.toResponseCookie(): ResponseCookie = ResponseCookie.from(name, value)
         .httpOnly(httpOnly)
         .secure(secure)
         .sameSite(sameSite)

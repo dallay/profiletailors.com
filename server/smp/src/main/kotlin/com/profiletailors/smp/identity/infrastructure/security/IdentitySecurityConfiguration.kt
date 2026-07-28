@@ -125,7 +125,17 @@ class IdentitySecurityConfiguration {
         authenticationEntryPoint: ServerAuthenticationEntryPoint,
     ): WebFilter = ApiKeyAuthenticationWebFilter(apiKeyPrincipalAuthenticationConverter, authenticationEntryPoint)
 
-    @Bean
+    /**
+         * Configures the reactive security filter chain, including CORS, authentication,
+         * authorization rules, OAuth2 JWT support, and security filters.
+         *
+         * @param http The HTTP security configuration.
+         * @param jwtPrincipalAuthenticationConverter The converter for authenticated JWT principals.
+         * @param filters The security web filters used by the application.
+         * @param authenticationEntryPoint The handler for authentication failures.
+         * @return The configured security web filter chain.
+         */
+        @Bean
     fun securityWebFilterChain(
         http: ServerHttpSecurity,
         jwtPrincipalAuthenticationConverter: JwtPrincipalAuthenticationConverter,

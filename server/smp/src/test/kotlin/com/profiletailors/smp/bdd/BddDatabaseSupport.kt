@@ -1057,6 +1057,12 @@ class BddDatabaseSupport(
         }
     }
 
+    /**
+     * Seeds a permission and associates it with the default role.
+     *
+     * @param permissionId The identifier for the permission.
+     * @param permissionKey The key that identifies the permission.
+     */
     private suspend fun seedRolePermission(permissionId: String, permissionKey: String) {
         databaseClient.sql(
             "INSERT INTO permissions (id, permission_key) VALUES (:id, :permissionKey)",
