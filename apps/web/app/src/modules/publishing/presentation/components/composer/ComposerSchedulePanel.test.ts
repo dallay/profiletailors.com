@@ -44,31 +44,34 @@ describe('ComposerSchedulePanel.vue', () => {
   it('emits update:scheduleMode when Now is clicked', async (): Promise<void> => {
     const wrapper = mountPanel({ scheduleMode: 'next' as ScheduleMode })
 
-    await wrapper.get('[data-testid="schedule-mode-now"]').trigger('click')
+    const input = wrapper.get('[data-testid="schedule-mode-now"]').find('input[type="radio"]')
+    await input.setValue(true)
 
-    const emissions = wrapper.emitted('update:scheduleMode') ?? []
-    expect(emissions).toHaveLength(1)
-    expect(emissions[0]).toEqual(['now'])
+    const emissions = wrapper.emitted('update:scheduleMode')
+    expect(emissions).toBeDefined()
+    expect(emissions![0]).toEqual(['now'])
   })
 
   it('emits update:scheduleMode when Next Schedule is clicked', async (): Promise<void> => {
     const wrapper = mountPanel({ scheduleMode: 'now' as ScheduleMode })
 
-    await wrapper.get('[data-testid="schedule-mode-next"]').trigger('click')
+    const input = wrapper.get('[data-testid="schedule-mode-next"]').find('input[type="radio"]')
+    await input.setValue(true)
 
-    const emissions = wrapper.emitted('update:scheduleMode') ?? []
-    expect(emissions).toHaveLength(1)
-    expect(emissions[0]).toEqual(['next'])
+    const emissions = wrapper.emitted('update:scheduleMode')
+    expect(emissions).toBeDefined()
+    expect(emissions![0]).toEqual(['next'])
   })
 
   it('emits update:scheduleMode when Pick Date is clicked', async (): Promise<void> => {
     const wrapper = mountPanel({ scheduleMode: 'now' as ScheduleMode })
 
-    await wrapper.get('[data-testid="schedule-mode-custom"]').trigger('click')
+    const input = wrapper.get('[data-testid="schedule-mode-custom"]').find('input[type="radio"]')
+    await input.setValue(true)
 
-    const emissions = wrapper.emitted('update:scheduleMode') ?? []
-    expect(emissions).toHaveLength(1)
-    expect(emissions[0]).toEqual(['custom'])
+    const emissions = wrapper.emitted('update:scheduleMode')
+    expect(emissions).toBeDefined()
+    expect(emissions![0]).toEqual(['custom'])
   })
 
   it('does not show date picker or time input in now mode', (): void => {
@@ -144,6 +147,41 @@ describe('ComposerSchedulePanel.vue', () => {
   it('radio group has correct aria-label for accessibility', (): void => {
     const wrapper = mountPanel()
     expect(wrapper.find('[role="radiogroup"]').attributes('aria-label')).toBe('Schedule mode')
+  })
+
+  it('each schedule mode label contains an <input type="radio">', (): void => {
+    const wrapper = mountPanel()
+
+    const nowLabel = wrapper.get('[data-testid="schedule-mode-now"]')
+    const nextLabel = wrapper.get('[data-testid="schedule-mode-next"]')
+    const customLabel = wrapper.get('[data-testid="schedule-mode-custom"]')
+
+    expect(nowLabel.find('input[type="radio"]').exists()).toBe(true)
+    expect(nextLabel.find('input[type="radio"]').exists()).toBe(true)
+    expect(customLabel.find('input[type="radio"]').exists()).toBe(true)
+  })
+
+  it('checks the radio input matching the active schedule mode', (): void => {
+    const wrapper = mountPanel({ scheduleMode: 'next' as ScheduleMode })
+
+    const nowInput = wrapper.get('[data-testid="schedule-mode-now"]').find('input[type="radio"]')
+    const nextInput = wrapper.get('[data-testid="schedule-mode-next"]').find('input[type="radio"]')
+    const customInput = wrapper
+      .get('[data-testid="schedule-mode-custom"]')
+      .find('input[type="radio"]')
+
+    expect((nowInput.element as HTMLInputElement).checked).toBe(false)
+    expect((nextInput.element as HTMLInputElement).checked).toBe(true)
+    expect((customInput.element as HTMLInputElement).checked).toBe(false)
+  })
+
+  it('updates checked state when a non-active radio is toggled', async (): Promise<void> => {
+    const wrapper = mountPanel({ scheduleMode: 'now' as ScheduleMode })
+
+    const nextInput = wrapper.get('[data-testid="schedule-mode-next"]').find('input[type="radio"]')
+    await nextInput.setValue(true)
+
+    expect(wrapper.emitted('update:scheduleMode')?.[0]).toEqual(['next'])
   })
 
   it('applies bold styling to the active schedule mode option', (): void => {

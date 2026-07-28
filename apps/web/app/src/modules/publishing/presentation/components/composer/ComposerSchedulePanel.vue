@@ -54,45 +54,60 @@ function onTimeInput(event: Event) {
           role="radiogroup"
           aria-label="Schedule mode"
         >
-          <button
+          <label
             data-testid="schedule-mode-now"
-            type="button"
-            class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all"
+            class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
             :class="
               scheduleMode === 'now'
                 ? 'bg-text-display text-bg-primary'
                 : 'bg-transparent text-text-secondary hover:text-text-display'
             "
-            @click="setMode('now')"
           >
-            Now
-          </button>
-          <button
+            <input
+              type="radio"
+              name="schedule-mode"
+              class="sr-only"
+              :checked="scheduleMode === 'now'"
+              @change="setMode('now')"
+            />
+            <span>Now</span>
+          </label>
+          <label
             data-testid="schedule-mode-next"
-            type="button"
-            class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all"
+            class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
             :class="
               scheduleMode === 'next'
                 ? 'bg-text-display text-bg-primary'
                 : 'bg-transparent text-text-secondary hover:text-text-display'
             "
-            @click="setMode('next')"
           >
-            Next Schedule
-          </button>
-          <button
+            <input
+              type="radio"
+              name="schedule-mode"
+              class="sr-only"
+              :checked="scheduleMode === 'next'"
+              @change="setMode('next')"
+            />
+            <span>Next Schedule</span>
+          </label>
+          <label
             data-testid="schedule-mode-custom"
-            type="button"
-            class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all"
+            class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
             :class="
               scheduleMode === 'custom'
                 ? 'bg-text-display text-bg-primary'
                 : 'bg-transparent text-text-secondary hover:text-text-display'
             "
-            @click="setMode('custom')"
           >
-            Pick Date
-          </button>
+            <input
+              type="radio"
+              name="schedule-mode"
+              class="sr-only"
+              :checked="scheduleMode === 'custom'"
+              @change="setMode('custom')"
+            />
+            <span>Pick Date</span>
+          </label>
         </div>
         <p class="text-[10px] leading-4 text-text-secondary">
           {{ scheduleHelperText }}
