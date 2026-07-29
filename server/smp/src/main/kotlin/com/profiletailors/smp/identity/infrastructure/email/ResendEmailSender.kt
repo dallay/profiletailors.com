@@ -26,6 +26,14 @@ class ResendEmailSender(private val emailProperties: EmailProperties, private va
 
     private val log = LoggerFactory.getLogger(ResendEmailSender::class.java)
 
+    /**
+     * Sends an email through the Resend service.
+     *
+     * @param to The recipient's email address.
+     * @param subject The email subject.
+     * @param message The plain-text and optional HTML email content.
+     * @return The result of the email delivery attempt.
+     */
     override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
         val builder = CreateEmailOptions.builder()
             .from(emailProperties.sender)

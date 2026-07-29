@@ -10,6 +10,12 @@ import org.springframework.stereotype.Component
 
 @Component
 class AuditHookPasswordResetAuditAdapter(private val auditHook: AuditHook) : PasswordResetAuditPort {
+    /**
+     * Records a completed password reset in the mutation audit stream.
+     *
+     * @param event The completed password reset event to audit.
+     * @throws kotlinx.coroutines.CancellationException If the coroutine is cancelled while recording the audit.
+     */
     override suspend fun recordCompleted(event: PasswordResetAuditEvent) {
         try {
             auditHook.onMutation(

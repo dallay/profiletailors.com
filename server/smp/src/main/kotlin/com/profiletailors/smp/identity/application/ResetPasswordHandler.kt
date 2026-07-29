@@ -18,6 +18,17 @@ internal class ResetPasswordHandler(
     private val passwordResetAuditPort: PasswordResetAuditPort,
 ) : CommandWithResultHandler<ResetPasswordCommand, ResetPasswordResult> {
 
+    /**
+     * Resets a user's password using a valid password-reset token.
+     *
+     * @param command The password-reset command containing the token and new password.
+     * @return The result of the completed password reset.
+     * @throws PasswordRecoveryDisabledException If password recovery is disabled.
+     * @throws PasswordRecoveryPasswordException If the new password length is invalid.
+     * @throws InvalidPasswordResetTokenException If the token is missing or cannot be consumed.
+     * @throws UsedPasswordResetTokenException If the token has already been used.
+     * @throws ExpiredPasswordResetTokenException If the token has expired.
+     */
     override suspend fun handle(command: ResetPasswordCommand): ResetPasswordResult {
         if (!passwordRecoveryEnabled()) {
             throw PasswordRecoveryDisabledException()
@@ -69,6 +80,12 @@ internal class ResetPasswordHandler(
         return ResetPasswordResult()
     }
 
+    /**
+     * Validates that the password length is within the permitted range.
+     *
+     * @param password The password to validate.
+     * @throws PasswordRecoveryPasswordException If the password length is outside the permitted range.
+     */
     private fun validatePassword(password: String) {
         if (password.length !in MIN_PASSWORD_LENGTH..MAX_PASSWORD_LENGTH) {
             throw PasswordRecoveryPasswordException(password)

@@ -18,6 +18,11 @@ class PasswordRecoveryObservabilityAdapter(
     private val observationRegistry: ObservationRegistry,
 ) : PasswordResetNotificationTelemetryPort {
 
+    /**
+     * Records the outcome of a password reset notification delivery.
+     *
+     * @param event The notification telemetry event to record.
+     */
     override fun record(event: PasswordResetNotificationTelemetry) {
         record(
             outcome = PasswordRecoveryOutcome(
@@ -30,14 +35,27 @@ class PasswordRecoveryObservabilityAdapter(
         )
     }
 
+    /**
+     * Records a completed password recovery reset outcome.
+     */
     fun recordResetCompleted() {
         record(resetOutcome(status = "completed"))
     }
 
+    /**
+     * Records a failed password recovery reset with the specified failure category.
+     *
+     * @param category The category describing why the password recovery reset failed.
+     */
     fun recordResetFailed(category: PasswordResetFailureCategory) {
         record(resetOutcome(status = "failed", failureCategory = category.value))
     }
 
+    /**
+     * Records a password recovery outcome as a metric and observation.
+     *
+     * @param outcome The password recovery outcome to record.
+     */
     private fun record(outcome: PasswordRecoveryOutcome) {
         val tags = outcome.tags()
         Counter.builder(METRIC_NAME)
@@ -54,6 +72,13 @@ class PasswordRecoveryObservabilityAdapter(
         observation.stop()
     }
 
+    /**
+     * Creates a telemetry outcome for a password reset operation.
+     *
+     * @param status The reset outcome status.
+     * @param failureCategory The failure category, or `"none"` when no failure occurred.
+     * @return The password recovery outcome for the reset operation.
+     */
     private fun resetOutcome(status: String, failureCategory: String = "none") = PasswordRecoveryOutcome(
         operation = "reset",
         notificationType = "none",
@@ -62,17 +87,32 @@ class PasswordRecoveryObservabilityAdapter(
         attemptBucket = "none",
     )
 
+    /**
+     * Maps a notification type to its standardized telemetry value.
+     *
+     * @return `password_reset` for the password reset type, or `unknown` for other values.
+     */
     private fun String.safeNotificationType(): String = when (this) {
         "PASSWORD_RESET" -> "password_reset"
         else -> "unknown"
     }
 
+    /**
+     * Maps a password reset notification status to its telemetry label.
+     *
+     * @return The standardized status label.
+     */
     private fun PasswordResetNotificationStatus.safeStatus(): String = when (this) {
         PasswordResetNotificationStatus.SENT -> "success"
         PasswordResetNotificationStatus.RETRYING -> "retry"
         PasswordResetNotificationStatus.FAILED -> "terminal_failure"
     }
 
+    /**
+     * Categorizes the notification attempt based on its status and attempt count.
+     *
+     * @return The attempt bucket: `"first"`, `"retry"`, or `"exhausted"`.
+     */
     private fun PasswordResetNotificationTelemetry.attemptBucket(): String = when (status) {
         PasswordResetNotificationStatus.SENT -> if (attempts == 1) "first" else "retry"
         PasswordResetNotificationStatus.RETRYING -> "retry"
@@ -86,6 +126,11 @@ class PasswordRecoveryObservabilityAdapter(
         val failureCategory: String,
         val attemptBucket: String,
     ) {
+        /**
+         * Builds metric tags describing the password recovery outcome.
+         *
+         * @return The outcome's operation, notification type, status, failure category, and attempt bucket tags.
+         */
         fun tags(): List<Tag> = listOf(
             Tag.of("operation", operation),
             Tag.of("notification.type", notificationType),

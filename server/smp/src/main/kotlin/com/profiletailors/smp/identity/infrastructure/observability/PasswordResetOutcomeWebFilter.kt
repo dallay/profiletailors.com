@@ -13,6 +13,13 @@ import reactor.core.publisher.Mono
 @Order(Ordered.LOWEST_PRECEDENCE)
 class PasswordResetOutcomeWebFilter(private val observability: PasswordRecoveryObservabilityAdapter) : WebFilter {
 
+    /**
+     * Filters password reset requests and records their completion status or internal failure.
+     *
+     * @param exchange The current server exchange.
+     * @param chain The filter chain to continue processing.
+     * @return A reactive completion signal for the filter chain.
+     */
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         if (exchange.request.path.value() != RESET_PATH) {
             return chain.filter(exchange)
@@ -22,6 +29,11 @@ class PasswordResetOutcomeWebFilter(private val observability: PasswordRecoveryO
             .doOnError { observability.recordResetFailed(PasswordResetFailureCategory.INTERNAL) }
     }
 
+    /**
+     * Records the password reset outcome represented by the response status.
+     *
+     * @param status The HTTP response status used to determine the reset outcome.
+     */
     private fun PasswordRecoveryObservabilityAdapter.recordResetStatus(status: HttpStatusCode?) {
         when {
             status?.value() == NO_CONTENT -> recordResetCompleted()

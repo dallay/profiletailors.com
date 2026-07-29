@@ -16,7 +16,13 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
     PasswordResetTokenRepository,
     PasswordResetTokenCleanupPort {
 
-    override suspend fun deleteExpiredBefore(cutoff: Instant): Long = databaseClient.sql(
+    /**
+         * Deletes password reset tokens that expired before the specified cutoff.
+         *
+         * @param cutoff The expiration threshold for eligible tokens.
+         * @return The number of deleted tokens.
+         */
+        override suspend fun deleteExpiredBefore(cutoff: Instant): Long = databaseClient.sql(
         "DELETE FROM password_reset_tokens WHERE expires_at < :cutoff AND (used_at IS NULL OR used_at < :cutoff)",
     )
         .bind("cutoff", cutoff)
@@ -24,6 +30,14 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
         .rowsUpdated()
         .awaitSingle()
 
+    /**
+     * Creates a password reset token record.
+     *
+     * @param principalId The identifier of the principal associated with the token.
+     * @param tokenHash The hashed password reset token.
+     * @param requestedAt The time the reset token was requested.
+     * @param expiresAt The time the reset token expires.
+     */
     override suspend fun create(principalId: String, tokenHash: String, requestedAt: Instant, expiresAt: Instant) {
         databaseClient.sql(
             """
