@@ -3,6 +3,14 @@ package com.profiletailors.smp.identity.application
 import com.profiletailors.smp.identity.domain.PasswordResetToken
 import java.time.Instant
 
+/**
+ * Signals the password credential row was not found during a password reset
+ * consume operation. Callers MUST NOT catch this exception; re-throw it so
+ * the surrounding transaction rolls back.
+ */
+class PasswordResetCredentialMissingException :
+    RuntimeException("Password credential row not found for password reset token.")
+
 interface PasswordResetTokenRepository {
 
     /**
@@ -22,9 +30,11 @@ interface PasswordResetTokenRepository {
 
     /**
      * Atomically consumes the matching token and updates the principal's
-     * password credential in a single database transaction. Returns true iff
-     * exactly one row was consumed AND the password credential was updated.
-     * On any failure the entire transaction rolls back.
+     * password credential in a single database transaction. Returns without
+     * exception iff exactly one row was consumed AND the password credential
+     * was updated. Throws [PasswordResetCredentialMissingException] when the
+     * credential row does not exist — callers MUST NOT catch this exception;
+     * it signals that the surrounding transaction should roll back.
      */
-    suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String): Boolean
+    suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String)
 }

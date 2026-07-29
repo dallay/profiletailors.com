@@ -12,7 +12,13 @@ data class EmailMessage(val text: String, val html: String? = null)
 
 fun interface EmailSender {
     /** Send an email. Returns [EmailSendResult] indicating success or failure. */
+    /**
+     * Sends an email message to the specified recipient.
+     *
+     * @param to The recipient's email address.
+     * @param subject The email subject.
+     * @param message The email content.
+     * @return The result of the email-sending operation.
+     */
     suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult
 }
-
-data class EmailSendResult(val success: Boolean, val error: String? = null)
