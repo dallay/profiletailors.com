@@ -153,18 +153,11 @@ Rollback procedure:
 
 ### Validation commands
 
-Run from the repository root. These recipes are present in the `justfile`:
+Run from the repository root using `just` recipes:
 
 ```bash
 just backend-test-fast
 just backend-lint
-git diff --check
-```
-
-For this runbook's focused contract during development, use:
-
-```bash
-./gradlew :server:smp:test --tests com.profiletailors.smp.identity.infrastructure.PasswordRecoveryRunbookTest --no-daemon
 ```
 
 Do not run broad BDD or CI suites during incident containment unless the incident owner explicitly

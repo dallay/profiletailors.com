@@ -31,14 +31,7 @@ class AuditHookPasswordResetAuditAdapterTest {
         fact.actorPrincipalId shouldBe "principal-123"
         fact.workspaceId.shouldBeNull()
         fact.details shouldContainExactly mapOf("occurredAt" to "2026-07-29T12:34:56Z")
-
-        fact.action shouldBe "PASSWORD_RESET_COMPLETED"
-        fact.targetType shouldBe "IDENTITY_PRINCIPAL"
-        fact.targetId shouldBe "principal-123"
-        fact.actorPrincipalId shouldBe "principal-123"
-        fact.workspaceId.shouldBeNull()
         fact.outcome.name shouldBe "SUCCESS"
-        fact.details shouldContainExactly mapOf("occurredAt" to "2026-07-29T12:34:56Z")
     }
 
     private class CapturingAuditHook : AuditHook {

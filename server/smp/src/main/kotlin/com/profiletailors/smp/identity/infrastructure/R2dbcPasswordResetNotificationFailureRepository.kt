@@ -30,10 +30,10 @@ class R2dbcPasswordResetNotificationFailureRepository(private val databaseClient
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()
-        } catch (failure: DataAccessException) {
+        } catch (cause: DataAccessException) {
             throw org.springframework.dao.DataAccessResourceFailureException(
                 "Password reset notification failure persistence failed.",
-                failure,
+                cause,
             )
         }
     }
