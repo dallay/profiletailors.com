@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.3.3](https://github.com/dallay/profiletailors.com/compare/smp@v0.3.2...smp@v0.3.3) (2026-07-29)
+
+
+### Features
+
+* **app:** add password recovery frontend flow ([#506](https://github.com/dallay/profiletailors.com/issues/506)) ([15d26f7](https://github.com/dallay/profiletailors.com/commit/15d26f77ee1b2a0b3ec749c93bcce5dc4faf94da))
+* dallay 433 media asset deduplication content addressed storage ([#463](https://github.com/dallay/profiletailors.com/issues/463)) ([a99cc59](https://github.com/dallay/profiletailors.com/commit/a99cc590e694b97b891d8d5e2f8ec0941b2f0f4c))
+* **identity:** harden password recovery with retry, telemetry, cleanup, and audit ([#509](https://github.com/dallay/profiletailors.com/issues/509)) ([8ff6f71](https://github.com/dallay/profiletailors.com/commit/8ff6f71f2a226d0949b06ca46d669b3793a3aa7c))
+* **identity:** implement secure password recovery backend ([#499](https://github.com/dallay/profiletailors.com/issues/499)) ([4b4b6a6](https://github.com/dallay/profiletailors.com/commit/4b4b6a65020800815f83e6bd91f51ec62eac5cc0))
+* **lead-capture:** complete welcome email notifier wiring ([#487](https://github.com/dallay/profiletailors.com/issues/487)) ([97da228](https://github.com/dallay/profiletailors.com/commit/97da228b72f0cf7717a11c5c60d5d23a3c7a20d5))
+* **publishing:** add resolved provider catalog ([#464](https://github.com/dallay/profiletailors.com/issues/464)) ([e5e7fc1](https://github.com/dallay/profiletailors.com/commit/e5e7fc18a06666e68848fd1aeb0919a8978dd2a6))
+* **publishing:** enhance provider catalog response with lowercase provider names ([07219d5](https://github.com/dallay/profiletailors.com/commit/07219d5a7f5b06b051722154e8ab960f52d2a35e))
+
+
+### Bug Fixes
+
+* **smp:** align infra/scripts with PUBLISHING_CREDENTIALS_ENCRYPTION_KEY rename ([3fce115](https://github.com/dallay/profiletailors.com/commit/3fce115f5f18803d4c40b3346240a5d98b2ad550))
+* **smp:** align publishing credentials env var name across all layers ([e54456b](https://github.com/dallay/profiletailors.com/commit/e54456b499ccf74bd0642729697010adde83af94))
+
+
+### Refactoring
+
+* harden auth/media error handling and csrf-origin checks ([#456](https://github.com/dallay/profiletailors.com/issues/456)) ([108ca27](https://github.com/dallay/profiletailors.com/commit/108ca27cca6f0c76b021b7d46cf909abd4a24b34))
+* **smp:** extract shared SpringJwtClaimsMapper, remove identity duplication ([#462](https://github.com/dallay/profiletailors.com/issues/462)) ([af7c08a](https://github.com/dallay/profiletailors.com/commit/af7c08a55cda50e483aa17ad84a214b4bc3d784e))
+
 ## [0.3.2](https://github.com/dallay/profiletailors.com/compare/smp@v0.3.1...smp@v0.3.2) (2026-07-23)
 
 

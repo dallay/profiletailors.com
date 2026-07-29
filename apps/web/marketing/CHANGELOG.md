@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.2](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.1...landing@v0.2.2) (2026-07-29)
+
+
+### Features
+
+* **app:** add password recovery frontend flow ([#506](https://github.com/dallay/profiletailors.com/issues/506)) ([15d26f7](https://github.com/dallay/profiletailors.com/commit/15d26f77ee1b2a0b3ec749c93bcce5dc4faf94da))
+* **consent:** implement consent management for marketing site (PR 1/2) ([#457](https://github.com/dallay/profiletailors.com/issues/457)) ([58534b9](https://github.com/dallay/profiletailors.com/commit/58534b990a01e8bad5cba1905f650958d65fab98))
+* **consent:** implement frontend consent management system ([#480](https://github.com/dallay/profiletailors.com/issues/480)) ([8d71ba7](https://github.com/dallay/profiletailors.com/commit/8d71ba7bf4c0a123a956d9bea56645d2623e1c62))
+
+
+### Bug Fixes
+
+* CodeRabbit auto-fixes for PR [#498](https://github.com/dallay/profiletailors.com/issues/498) ([#501](https://github.com/dallay/profiletailors.com/issues/501)) ([be36730](https://github.com/dallay/profiletailors.com/commit/be36730cf2ea666abe710c8f0bba127109f1bd22))
+* security vuln remediation ([#512](https://github.com/dallay/profiletailors.com/issues/512)) ([ec10d26](https://github.com/dallay/profiletailors.com/commit/ec10d26ba5820bb11eb4e8c9f40167f5401af48e))
+
+
+### Refactoring
+
+* **publishing:** extract composer composables for testability ([#498](https://github.com/dallay/profiletailors.com/issues/498)) ([60e74fb](https://github.com/dallay/profiletailors.com/commit/60e74fb7ce7275a99319bdde35962397781bd4ea))
+
 ## [0.2.1](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.0...landing@v0.2.1) (2026-07-22)
 
 
