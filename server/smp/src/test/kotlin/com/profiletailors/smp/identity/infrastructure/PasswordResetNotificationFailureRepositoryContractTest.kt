@@ -34,10 +34,13 @@ class PasswordResetNotificationFailureRepositoryContractTest {
         migration shouldContain "onDelete: CASCADE"
     }
 
-    private fun repositoryRoot(): Path = generateSequence(Path.of(System.getProperty("user.dir")).toAbsolutePath()) {
-        it.parent
-    }.firstOrNull { Files.isRegularFile(it.resolve("justfile")) }
-        ?: error("Repository root containing justfile was not found")
+    private fun repositoryRoot(): Path =
+        System.getProperty("project.root")
+            ?.let { Path.of(it) }
+            ?: generateSequence(Path.of(System.getProperty("user.dir")).toAbsolutePath()) {
+                it.parent
+            }.firstOrNull { Files.isRegularFile(it.resolve("justfile")) }
+            ?: error("Repository root containing justfile was not found")
 
     private companion object {
         val REQUIRED_COLUMNS = listOf(

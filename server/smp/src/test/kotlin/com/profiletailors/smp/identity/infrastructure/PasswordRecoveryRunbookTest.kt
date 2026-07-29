@@ -45,10 +45,13 @@ class PasswordRecoveryRunbookTest {
         diagnosticSql shouldContain "password_reset_tokens"
     }
 
-    private fun repositoryRoot(): Path = generateSequence(Path.of(System.getProperty("user.dir")).toAbsolutePath()) {
-        it.parent
-    }.firstOrNull { Files.isRegularFile(it.resolve("justfile")) }
-        ?: error("Repository root containing justfile was not found")
+    private fun repositoryRoot(): Path =
+        System.getProperty("project.root")
+            ?.let { Path.of(it) }
+            ?: generateSequence(Path.of(System.getProperty("user.dir")).toAbsolutePath()) {
+                it.parent
+            }.firstOrNull { Files.isRegularFile(it.resolve("justfile")) }
+            ?: error("Repository root containing justfile was not found")
 
     private fun topLevelSections(markdown: String): List<String> = markdown.lineSequence()
         .filter { it.startsWith("## ") }

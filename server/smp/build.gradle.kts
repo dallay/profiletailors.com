@@ -63,6 +63,9 @@ tasks.withType<Test>().configureEach {
     // Default 512m is insufficient for tests like PublishingWorkerTransactionPostgresIntegrationTest.
     maxHeapSize = "2g"
     jvmArgs("-XX:MaxMetaspaceSize=512m")
+    // Expose the monorepo root so file-system tests (runbook, migration contract) find
+    // project artefacts reliably in both local and CI environments.
+    systemProperty("project.root", rootProject.projectDir.absolutePath)
     postgresTestPassword.orNull?.takeIf { it.isNotBlank() }?.let { password ->
         environment("SMP_DB_TEST_PASSWORD", password)
     }
