@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.2.1](https://github.com/dallay/profiletailors.com/compare/app@v0.2.0...app@v0.2.1) (2026-07-29)
+
+
+### Features
+
+* **app:** add password recovery frontend flow ([#506](https://github.com/dallay/profiletailors.com/issues/506)) ([15d26f7](https://github.com/dallay/profiletailors.com/commit/15d26f77ee1b2a0b3ec749c93bcce5dc4faf94da))
+* **consent:** implement frontend consent management system ([#480](https://github.com/dallay/profiletailors.com/issues/480)) ([8d71ba7](https://github.com/dallay/profiletailors.com/commit/8d71ba7bf4c0a123a956d9bea56645d2623e1c62))
+* dallay 433 media asset deduplication content addressed storage ([#463](https://github.com/dallay/profiletailors.com/issues/463)) ([a99cc59](https://github.com/dallay/profiletailors.com/commit/a99cc590e694b97b891d8d5e2f8ec0941b2f0f4c))
+* **publishing:** add resolved provider catalog ([#464](https://github.com/dallay/profiletailors.com/issues/464)) ([e5e7fc1](https://github.com/dallay/profiletailors.com/commit/e5e7fc18a06666e68848fd1aeb0919a8978dd2a6))
+* **publishing:** enhance provider catalog response with lowercase provider names ([07219d5](https://github.com/dallay/profiletailors.com/commit/07219d5a7f5b06b051722154e8ab960f52d2a35e))
+
+
+### Bug Fixes
+
+* **auth:** improve sign-in form semantics ([#494](https://github.com/dallay/profiletailors.com/issues/494)) ([c090a43](https://github.com/dallay/profiletailors.com/commit/c090a43b7186afcaae11ff5acc562719d892ce95))
+* CodeRabbit auto-fixes for PR [#498](https://github.com/dallay/profiletailors.com/issues/498) ([#501](https://github.com/dallay/profiletailors.com/issues/501)) ([be36730](https://github.com/dallay/profiletailors.com/commit/be36730cf2ea666abe710c8f0bba127109f1bd22))
+* CodeRabbit auto-fixes for PR [#504](https://github.com/dallay/profiletailors.com/issues/504) ([#505](https://github.com/dallay/profiletailors.com/issues/505)) ([7a28f62](https://github.com/dallay/profiletailors.com/commit/7a28f621406e6fa5ddd4a16d61e99a610252da76))
+* security vuln remediation ([#512](https://github.com/dallay/profiletailors.com/issues/512)) ([ec10d26](https://github.com/dallay/profiletailors.com/commit/ec10d26ba5820bb11eb4e8c9f40167f5401af48e))
+
+
+### Refactoring
+
+* **publishing:** extract composer composables for testability ([#498](https://github.com/dallay/profiletailors.com/issues/498)) ([60e74fb](https://github.com/dallay/profiletailors.com/commit/60e74fb7ce7275a99319bdde35962397781bd4ea))
+* **publishing:** extract ComposerSchedulePanel and ComposerChannelSelector ([#504](https://github.com/dallay/profiletailors.com/issues/504)) ([dc7cab4](https://github.com/dallay/profiletailors.com/commit/dc7cab4e6ee9e364bb49c347c84024c847a73774))
+
 ## [0.2.0](https://github.com/dallay/profiletailors.com/compare/app@v0.1.0...app@v0.2.0) (2026-07-23)
 
 
