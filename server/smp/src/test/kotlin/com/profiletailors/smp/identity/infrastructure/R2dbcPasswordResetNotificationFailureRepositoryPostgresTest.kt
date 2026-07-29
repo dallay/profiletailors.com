@@ -4,9 +4,9 @@ import com.profiletailors.smp.identity.application.EmailFailureCategory
 import com.profiletailors.smp.identity.application.PasswordResetNotificationFailure
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import io.kotest.matchers.collections.shouldContainExactly
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -46,11 +46,18 @@ class R2dbcPasswordResetNotificationFailureRepositoryPostgresTest : PostgresData
                 result.get("principal_id", String::class.java),
                 result.get("notification_type", String::class.java),
                 result.get("attempts", Int::class.javaObjectType)?.toString(),
+                result.get("failed_at", java.time.OffsetDateTime::class.java)?.toInstant().toString(),
                 result.get("failure_category", String::class.java),
             )
         }.one().awaitSingle()
 
-        assertThat(row).containsExactly(PRINCIPAL_ID, "PASSWORD_RESET", "3", "PROVIDER_REJECTED")
+        row shouldContainExactly listOf(
+            PRINCIPAL_ID,
+            "PASSWORD_RESET",
+            "3",
+            "2026-07-29T12:00:00Z",
+            "PROVIDER_REJECTED",
+        )
     }
 
     private suspend fun seedPrincipal() {

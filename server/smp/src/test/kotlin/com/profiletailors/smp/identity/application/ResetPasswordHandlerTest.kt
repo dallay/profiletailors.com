@@ -9,12 +9,14 @@ import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleSer
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
+import com.profiletailors.smp.identity.application.INVALID_RESET_TOKEN_DETAIL
+import com.profiletailors.smp.identity.application.PasswordResetCredentialMissingException
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PasswordResetToken
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
@@ -40,11 +42,11 @@ class ResetPasswordHandlerTest {
             handler.handle(ResetPasswordCommand(token = "missing-token", newPassword = "NewPassword123!"))
             throw AssertionError("Expected InvalidPasswordResetTokenException")
         } catch (e: InvalidPasswordResetTokenException) {
-            assertEquals(INVALID_RESET_TOKEN_DETAIL, e.message)
+            e.message shouldBe INVALID_RESET_TOKEN_DETAIL
         }
 
-        assertEquals(0, refreshSvc.revokeAllCalls)
-        assertEquals(0, tokenRepository.consumeCalls)
+        refreshSvc.revokeAllCalls shouldBe 0
+        tokenRepository.consumeCalls shouldBe 0
     }
 
     @Test
@@ -64,11 +66,11 @@ class ResetPasswordHandlerTest {
             handler.handle(ResetPasswordCommand(token = "raw-token", newPassword = "NewPassword123!"))
             throw AssertionError("Expected ExpiredPasswordResetTokenException")
         } catch (e: ExpiredPasswordResetTokenException) {
-            assertTrue(e is InvalidPasswordResetTokenException)
-            assertEquals(INVALID_RESET_TOKEN_DETAIL, e.message)
+            e.shouldBeInstanceOf<InvalidPasswordResetTokenException>()
+            e.message shouldBe INVALID_RESET_TOKEN_DETAIL
         }
 
-        assertEquals(0, refreshSvc.revokeAllCalls)
+        refreshSvc.revokeAllCalls shouldBe 0
     }
 
     @Test
@@ -89,11 +91,11 @@ class ResetPasswordHandlerTest {
             handler.handle(ResetPasswordCommand(token = "raw-token", newPassword = "NewPassword123!"))
             throw AssertionError("Expected UsedPasswordResetTokenException")
         } catch (e: UsedPasswordResetTokenException) {
-            assertTrue(e is InvalidPasswordResetTokenException)
-            assertEquals(INVALID_RESET_TOKEN_DETAIL, e.message)
+            e.shouldBeInstanceOf<InvalidPasswordResetTokenException>()
+            e.message shouldBe INVALID_RESET_TOKEN_DETAIL
         }
 
-        assertEquals(0, refreshSvc.revokeAllCalls)
+        refreshSvc.revokeAllCalls shouldBe 0
     }
 
     @Test
@@ -107,7 +109,7 @@ class ResetPasswordHandlerTest {
         )
         val tokenRepository = FakePasswordResetTokenRepository(
             stored = stored,
-            consumeResult = false,
+            consumeFailsWithCredentialMissing = true,
         )
         val refreshSvc = RecordingRefreshSessionLifecycleService()
         val handler = newHandler(tokenRepository, refreshSvc)
@@ -116,11 +118,11 @@ class ResetPasswordHandlerTest {
             handler.handle(ResetPasswordCommand(token = "raw-token", newPassword = "NewPassword123!"))
             throw AssertionError("Expected InvalidPasswordResetTokenException")
         } catch (e: InvalidPasswordResetTokenException) {
-            assertEquals(INVALID_RESET_TOKEN_DETAIL, e.message)
+            e.message shouldBe INVALID_RESET_TOKEN_DETAIL
         }
 
-        assertEquals(1, tokenRepository.consumeCalls)
-        assertEquals(0, refreshSvc.revokeAllCalls)
+        tokenRepository.consumeCalls shouldBe 1
+        refreshSvc.revokeAllCalls shouldBe 0
     }
 
     @Test
@@ -134,7 +136,7 @@ class ResetPasswordHandlerTest {
         )
         val tokenRepository = FakePasswordResetTokenRepository(
             stored = stored,
-            consumeResult = true,
+            consumeSucceeds = true,
         )
         val refreshSvc = RecordingRefreshSessionLifecycleService()
         val handler = newHandler(tokenRepository, refreshSvc)
@@ -143,18 +145,18 @@ class ResetPasswordHandlerTest {
             ResetPasswordCommand(token = "raw-token", newPassword = "NewPassword123!"),
         )
 
-        assertTrue(result.passwordChanged)
-        assertEquals(1, tokenRepository.consumeCalls)
-        assertEquals(PasswordResetTokenHasher.hash("raw-token"), tokenRepository.lastConsumedToken)
-        assertEquals(1, refreshSvc.revokeAllCalls)
-        assertEquals("user-1", refreshSvc.lastRevokedPrincipalId)
-        assertEquals("hashed:NewPassword123!", tokenRepository.lastConsumedNewHash)
+        result.passwordChanged shouldBe true
+        tokenRepository.consumeCalls shouldBe 1
+        tokenRepository.lastConsumedToken shouldBe PasswordResetTokenHasher.hash("raw-token")
+        refreshSvc.revokeAllCalls shouldBe 1
+        refreshSvc.lastRevokedPrincipalId shouldBe "user-1"
+        tokenRepository.lastConsumedNewHash shouldBe "hashed:NewPassword123!"
     }
 
     @Test
     fun `successful reset emits a completed audit event only after the atomic mutation`() = runTest {
         val stored = validStoredToken()
-        val tokenRepository = FakePasswordResetTokenRepository(stored = stored, consumeResult = true)
+        val tokenRepository = FakePasswordResetTokenRepository(stored = stored, consumeSucceeds = true)
         val refreshSvc = RecordingRefreshSessionLifecycleService()
         val calls = mutableListOf<String>()
         val transactionRunner = object : AtomicTransactionRunner {
@@ -165,8 +167,8 @@ class ResetPasswordHandlerTest {
         }
         val auditPort = PasswordResetAuditPort { event ->
             calls += "audit"
-            assertEquals("user-1", event.principalId)
-            assertEquals(fixedClock.instant(), event.occurredAt)
+            event.principalId shouldBe "user-1"
+            event.occurredAt shouldBe fixedClock.instant()
         }
         val handler = newHandler(
             tokenRepository = tokenRepository,
@@ -179,13 +181,13 @@ class ResetPasswordHandlerTest {
             ResetPasswordCommand(token = RAW_TOKEN, newPassword = NEW_PASSWORD),
         )
 
-        assertTrue(result.passwordChanged)
-        assertEquals(listOf("transaction-started", "transaction-committed", "audit"), calls)
+        result.passwordChanged shouldBe true
+        calls shouldBe listOf("transaction-started", "transaction-committed", "audit")
     }
 
     @Test
     fun `audit sink failure cannot turn a committed reset into a failure`() = runTest {
-        val tokenRepository = FakePasswordResetTokenRepository(stored = validStoredToken(), consumeResult = true)
+        val tokenRepository = FakePasswordResetTokenRepository(stored = validStoredToken(), consumeSucceeds = true)
         val refreshSvc = RecordingRefreshSessionLifecycleService()
         var committed = false
         val transactionRunner = object : AtomicTransactionRunner {
@@ -202,10 +204,10 @@ class ResetPasswordHandlerTest {
             ResetPasswordCommand(token = RAW_TOKEN, newPassword = NEW_PASSWORD),
         )
 
-        assertTrue(result.passwordChanged)
-        assertTrue(committed)
-        assertEquals(1, tokenRepository.consumeCalls)
-        assertEquals(1, refreshSvc.revokeAllCalls)
+        result.passwordChanged shouldBe true
+        committed shouldBe true
+        tokenRepository.consumeCalls shouldBe 1
+        refreshSvc.revokeAllCalls shouldBe 1
     }
 
     @Test
@@ -220,7 +222,7 @@ class ResetPasswordHandlerTest {
             // expected
         }
 
-        assertEquals(PasswordResetTokenHasher.hash("raw-token"), tokenRepository.lastLookedUpHash)
+        tokenRepository.lastLookedUpHash shouldBe PasswordResetTokenHasher.hash("raw-token")
     }
 
     @Test
@@ -233,10 +235,10 @@ class ResetPasswordHandlerTest {
             handler.handle(ResetPasswordCommand(token = "raw-token", newPassword = "short"))
             throw AssertionError("Expected PasswordRecoveryPasswordException")
         } catch (e: PasswordRecoveryPasswordException) {
-            assertEquals("Password does not meet policy requirements.", e.message)
+            e.message shouldBe "Password does not meet policy requirements."
         }
 
-        assertEquals(0, tokenRepository.consumeCalls)
+        tokenRepository.consumeCalls shouldBe 0
     }
 
     @Test
@@ -250,10 +252,10 @@ class ResetPasswordHandlerTest {
             handler.handle(ResetPasswordCommand(token = "raw-token", newPassword = tooLong))
             throw AssertionError("Expected PasswordRecoveryPasswordException")
         } catch (e: PasswordRecoveryPasswordException) {
-            assertEquals("Password does not meet policy requirements.", e.message)
+            e.message shouldBe "Password does not meet policy requirements."
         }
 
-        assertEquals(0, tokenRepository.consumeCalls)
+        tokenRepository.consumeCalls shouldBe 0
     }
 
     @Test
@@ -267,7 +269,7 @@ class ResetPasswordHandlerTest {
         )
         val tokenRepository = FakePasswordResetTokenRepository(
             stored = stored,
-            consumeResult = true,
+            consumeSucceeds = true,
         )
         val refreshSvc = RecordingRefreshSessionLifecycleService()
         val handler = newHandler(tokenRepository, refreshSvc)
@@ -275,8 +277,8 @@ class ResetPasswordHandlerTest {
         val maxPassword = "x".repeat(128)
         val result = handler.handle(ResetPasswordCommand(token = "raw-token", newPassword = maxPassword))
 
-        assertTrue(result.passwordChanged)
-        assertEquals(1, tokenRepository.consumeCalls)
+        result.passwordChanged shouldBe true
+        tokenRepository.consumeCalls shouldBe 1
     }
 
     @Test
@@ -293,11 +295,11 @@ class ResetPasswordHandlerTest {
             handler.handle(ResetPasswordCommand(token = "raw-token", newPassword = "NewPassword123!"))
             throw AssertionError("Expected PasswordRecoveryDisabledException")
         } catch (e: PasswordRecoveryDisabledException) {
-            assertEquals("Password recovery is disabled.", e.message)
+            e.message shouldBe "Password recovery is disabled."
         }
 
-        assertEquals(0, tokenRepository.consumeCalls)
-        assertEquals(0, refreshSvc.revokeAllCalls)
+        tokenRepository.consumeCalls shouldBe 0
+        refreshSvc.revokeAllCalls shouldBe 0
     }
 
     @Test
@@ -311,16 +313,16 @@ class ResetPasswordHandlerTest {
         )
         val tokenRepository = FakePasswordResetTokenRepository(
             stored = stored,
-            consumeResult = true,
+            consumeSucceeds = true,
         )
         val refreshSvc = RecordingRefreshSessionLifecycleService()
         val handler = newHandler(tokenRepository, refreshSvc)
 
         val result = handler.handle(ResetPasswordCommand(token = "raw-token", newPassword = "NewPassword123!"))
 
-        assertTrue(result.passwordChanged)
-        assertEquals(false, hasField(result, "accessToken"))
-        assertEquals(false, hasField(result, "refreshToken"))
+        result.passwordChanged shouldBe true
+        hasField(result, "accessToken") shouldBe false
+        hasField(result, "refreshToken") shouldBe false
     }
 
     private fun hasField(instance: Any, fieldName: String): Boolean = try {
@@ -360,7 +362,8 @@ class ResetPasswordHandlerTest {
 
     private class FakePasswordResetTokenRepository(
         private val stored: PasswordResetToken? = null,
-        private val consumeResult: Boolean = false,
+        private val consumeSucceeds: Boolean = false,
+        private val consumeFailsWithCredentialMissing: Boolean = false,
     ) : PasswordResetTokenRepository {
         var consumeCalls: Int = 0
         var lastConsumedToken: String? = null
@@ -377,25 +380,18 @@ class ResetPasswordHandlerTest {
             return stored
         }
 
-        override suspend fun consumeAndUpdatePassword(
-            tokenHash: String,
-            now: Instant,
-            newPasswordHash: String,
-        ): Boolean {
+        override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) {
             consumeCalls += 1
             lastConsumedToken = tokenHash
             lastConsumedNewHash = newPasswordHash
-            return consumeResult
+            when {
+                consumeFailsWithCredentialMissing ->
+                    throw PasswordResetCredentialMissingException()
+                !consumeSucceeds -> throw PasswordResetCredentialMissingException()
+            }
         }
     }
 
-    /**
-     * Wraps the real [RefreshSessionLifecycleService] so we can observe
-     * invocations of `revokeAllForPrincipal` while still letting the existing
-     * gateway contract flow through. The wrapping subclass is `open` is not
-     * an option because the service is `final`, so we instead forward through
-     * a recording gateway that captures the call.
-     */
     private class RecordingRefreshSessionLifecycleService :
         RefreshSessionLifecycleService(
             refreshSessionGateway = RecordingRefreshSessionGateway(),

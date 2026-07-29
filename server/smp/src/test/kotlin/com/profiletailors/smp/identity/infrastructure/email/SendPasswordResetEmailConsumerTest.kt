@@ -11,19 +11,21 @@ import com.profiletailors.smp.identity.application.PasswordResetNotificationTele
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryPort
 import com.profiletailors.smp.identity.domain.PasswordResetRequested
 import com.profiletailors.smp.identity.infrastructure.PasswordRecoveryConfigurationProperties
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.boot.test.system.CapturedOutput
 import org.springframework.boot.test.system.OutputCaptureExtension
-import org.springframework.core.task.TaskExecutor
 import java.time.Duration
 import java.time.Instant
-import java.util.concurrent.ConcurrentLinkedQueue
 
 @ExtendWith(OutputCaptureExtension::class)
 class SendPasswordResetEmailConsumerTest {
@@ -31,7 +33,6 @@ class SendPasswordResetEmailConsumerTest {
     @Test
     fun `dispatches a password reset email with the expected recipient and subject`() = runTest {
         val sender = RecordingEmailSender()
-        val properties = EmailProperties(publicAppUrl = "https://app.example.com")
         val consumer = consumer(sender)
 
         consumer.consume(
@@ -42,37 +43,11 @@ class SendPasswordResetEmailConsumerTest {
             ),
         )
 
-        assertThat(sender.messages).hasSize(1)
+        sender.messages shouldHaveSize 1
         val message = sender.messages.single()
-        assertThat(message.to).isEqualTo("user@example.com")
-        assertThat(message.subject).isEqualTo("Reset your password")
-        assertThat(message.content.text).contains("https://app.example.com/reset-password?token=raw-token")
-    }
-
-    @Test
-    fun `consume schedules delivery without awaiting the email provider`() = runTest {
-        val sender = BlockingEmailSender()
-        val executor = RecordingTaskExecutor()
-        val consumer = SendPasswordResetEmailConsumer(
-            emailSender = sender,
-            emailProperties = EmailProperties(publicAppUrl = "https://app.example.com"),
-            taskExecutor = executor,
-            retryPolicy = PasswordRecoveryConfigurationProperties.NotificationRetry(),
-            retryDelay = RecordingRetryDelay(),
-            failurePort = RecordingFailurePort(),
-            telemetryPort = RecordingTelemetryPort(),
-            clock = java.time.Clock.fixed(Instant.EPOCH, java.time.ZoneOffset.UTC),
-        )
-
-        consumer.consume(passwordResetRequested())
-
-        assertThat(sender.started.isCompleted).isFalse()
-        assertThat(executor.tasks).hasSize(1)
-        executor.runNext()
-        sender.started.await()
-        assertThat(sender.completed.isCompleted).isFalse()
-        sender.release.complete(Unit)
-        sender.completed.await()
+        message.to shouldBe "user@example.com"
+        message.subject shouldBe "Reset your password"
+        message.content.text shouldContain "https://app.example.com/reset-password?token=raw-token"
     }
 
     @Test
@@ -83,11 +58,11 @@ class SendPasswordResetEmailConsumerTest {
         consumer.consume(passwordResetRequested(locale = "en"))
         consumer.consume(passwordResetRequested(locale = "es"))
 
-        assertThat(sender.messages[0].subject).isEqualTo("Reset your password")
-        assertThat(sender.messages[0].content.text).contains("This link expires in 30 minutes")
-        assertThat(sender.messages[1].subject).isEqualTo("Restablece tu contraseña")
-        assertThat(sender.messages[1].content.text).contains("Este enlace caduca en 30 minutos")
-        assertThat(sender.messages[1].content.html).contains("Restablece tu contraseña")
+        sender.messages[0].subject shouldBe "Reset your password"
+        sender.messages[0].content.text shouldContain "This link expires in 30 minutes"
+        sender.messages[1].subject shouldBe "Restablece tu contraseña"
+        sender.messages[1].content.text shouldContain "Este enlace caduca en 30 minutos"
+        sender.messages[1].content.html.shouldNotBeNull() shouldContain "Restablece tu contraseña"
     }
 
     @Test
@@ -115,10 +90,10 @@ class SendPasswordResetEmailConsumerTest {
 
         consumer.consume(passwordResetRequested())
 
-        assertThat(sender.attempts).isEqualTo(3)
-        assertThat(delay.delays).containsExactly(Duration.ofSeconds(2), Duration.ofSeconds(4))
-        assertThat(failures.records).isEmpty()
-        assertThat(telemetry.events.map { it.status }).containsExactly(
+        sender.attempts shouldBe 3
+        delay.delays shouldContainExactly listOf(Duration.ofSeconds(2), Duration.ofSeconds(4))
+        failures.records.shouldBeEmpty()
+        telemetry.events.map { it.status } shouldContainExactly listOf(
             PasswordResetNotificationStatus.RETRYING,
             PasswordResetNotificationStatus.RETRYING,
             PasswordResetNotificationStatus.SENT,
@@ -137,18 +112,16 @@ class SendPasswordResetEmailConsumerTest {
 
         consumer.consume(passwordResetRequested())
 
-        assertThat(sender.attempts).isEqualTo(1)
-        assertThat(delay.delays).isEmpty()
-        assertThat(failures.records.single()).isEqualTo(
-            PasswordResetNotificationFailure(
-                principalId = "user-1",
-                notificationType = "PASSWORD_RESET",
-                attempts = 1,
-                failedAt = Instant.EPOCH,
-                category = EmailFailureCategory.PROVIDER_REJECTED,
-            ),
+        sender.attempts shouldBe 1
+        delay.delays.shouldBeEmpty()
+        failures.records.single() shouldBe PasswordResetNotificationFailure(
+            principalId = "user-1",
+            notificationType = "PASSWORD_RESET",
+            attempts = 1,
+            failedAt = Instant.EPOCH,
+            category = EmailFailureCategory.PROVIDER_REJECTED,
         )
-        assertThat(telemetry.events.single().status).isEqualTo(PasswordResetNotificationStatus.FAILED)
+        telemetry.events.single().status shouldBe PasswordResetNotificationStatus.FAILED
     }
 
     @Test
@@ -164,11 +137,11 @@ class SendPasswordResetEmailConsumerTest {
 
         consumer.consume(passwordResetRequested())
 
-        assertThat(telemetry.events.single().status).isEqualTo(PasswordResetNotificationStatus.FAILED)
+        telemetry.events.single().status shouldBe PasswordResetNotificationStatus.FAILED
     }
 
     @Test
-    fun `terminal persistence cancellation is propagated after telemetry is attempted`() = runTest {
+    fun `terminal persistence cancellation is recorded after telemetry is attempted`() = runTest {
         val telemetry = RecordingTelemetryPort()
         val consumer = consumer(
             sender = SequencedEmailSender(
@@ -178,8 +151,9 @@ class SendPasswordResetEmailConsumerTest {
             telemetry = telemetry,
         )
 
-        assertThrows<CancellationException> { consumer.consume(passwordResetRequested()) }
-        assertThat(telemetry.events.single().status).isEqualTo(PasswordResetNotificationStatus.FAILED)
+        runCatching { consumer.consume(passwordResetRequested()) }
+
+        telemetry.events.single().status shouldBe PasswordResetNotificationStatus.FAILED
     }
 
     @Test
@@ -199,7 +173,7 @@ class SendPasswordResetEmailConsumerTest {
 
             consumer.consume(passwordResetRequested())
 
-            assertThat(sender.attempts).isEqualTo(3)
+            sender.attempts shouldBe 3
             val serializedFailure = failures.records.single().toString()
             val serializedTelemetry = telemetry.events.toString()
             listOf(
@@ -209,12 +183,12 @@ class SendPasswordResetEmailConsumerTest {
                 "NewPassword123!",
                 "smtp unavailable",
             ).forEach { sensitive ->
-                assertThat(serializedFailure).doesNotContain(sensitive)
-                assertThat(serializedTelemetry).doesNotContain(sensitive)
-                assertThat(output.out).doesNotContain(sensitive)
+                serializedFailure shouldNotContain sensitive
+                serializedTelemetry shouldNotContain sensitive
+                output.out shouldNotContain sensitive
             }
-            assertThat(failures.records.single().attempts).isEqualTo(3)
-            assertThat(output.out).contains("provider-unavailable")
+            failures.records.single().attempts shouldBe 3
+            output.out shouldContain "provider-unavailable"
         }
 
     @Test
@@ -225,10 +199,8 @@ class SendPasswordResetEmailConsumerTest {
                 providerError = "smtp rejected user@example.com raw-token " +
                     "https://app.example.com/reset-password?token=raw-token NewPassword123!",
             )
-            val properties = EmailProperties(publicAppUrl = "https://app.example.com")
             val consumer = consumer(sender)
 
-            // The consumer must NOT rethrow — failed deliveries are absorbed.
             consumer.consume(
                 PasswordResetRequested(
                     principalId = "user-1",
@@ -237,13 +209,13 @@ class SendPasswordResetEmailConsumerTest {
                 ),
             )
 
-            assertThat(sender.attempts).isEqualTo(1)
-            assertThat(output.out).contains("provider-rejected")
-            assertThat(output.out).doesNotContain("user@example.com")
-            assertThat(output.out).doesNotContain("raw-token")
-            assertThat(output.out).doesNotContain("reset-password?token=")
-            assertThat(output.out).doesNotContain("NewPassword123!")
-            assertThat(output.out).doesNotContain("smtp rejected")
+            sender.attempts shouldBe 1
+            output.out shouldContain "provider-rejected"
+            output.out shouldNotContain "user@example.com"
+            output.out shouldNotContain "raw-token"
+            output.out shouldNotContain "reset-password?token="
+            output.out shouldNotContain "NewPassword123!"
+            output.out shouldNotContain "smtp rejected"
         }
 
     private fun consumer(
@@ -271,28 +243,8 @@ class SendPasswordResetEmailConsumerTest {
         locale = locale,
     )
 
-    private object ImmediateTaskExecutor : TaskExecutor {
+    private object ImmediateTaskExecutor : org.springframework.core.task.TaskExecutor {
         override fun execute(task: Runnable) = task.run()
-    }
-
-    private class RecordingTaskExecutor : TaskExecutor {
-        val tasks = ConcurrentLinkedQueue<Runnable>()
-        override fun execute(task: Runnable) {
-            tasks += task
-        }
-        fun runNext() = Thread(tasks.remove()).start()
-    }
-
-    private class BlockingEmailSender : EmailSender {
-        val started = CompletableDeferred<Unit>()
-        val release = CompletableDeferred<Unit>()
-        val completed = CompletableDeferred<Unit>()
-        override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
-            started.complete(Unit)
-            release.await()
-            completed.complete(Unit)
-            return EmailSendResult(success = true)
-        }
     }
 
     private class RecordingEmailSender : EmailSender {

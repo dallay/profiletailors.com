@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
+import org.slf4j.LoggerFactory
 import java.time.Clock
 
 @Service
@@ -17,6 +18,8 @@ internal class ResetPasswordHandler(
     private val passwordRecoveryEnabled: () -> Boolean,
     private val passwordResetAuditPort: PasswordResetAuditPort,
 ) : CommandWithResultHandler<ResetPasswordCommand, ResetPasswordResult> {
+
+    private val log = LoggerFactory.getLogger(ResetPasswordHandler::class.java)
 
     override suspend fun handle(command: ResetPasswordCommand): ResetPasswordResult {
         if (!passwordRecoveryEnabled()) {
@@ -38,16 +41,13 @@ internal class ResetPasswordHandler(
 
         val principalId = stored.principalId
         transactionRunner.runAtomically {
-            val ok = try {
+            try {
                 passwordResetTokenRepository.consumeAndUpdatePassword(
                     tokenHash = tokenHash,
                     now = now,
                     newPasswordHash = newPasswordHash,
                 )
-            } catch (_: com.profiletailors.smp.identity.infrastructure.PasswordResetCredentialMissingException) {
-                throw InvalidPasswordResetTokenException()
-            }
-            if (!ok) {
+            } catch (_: PasswordResetCredentialMissingException) {
                 throw InvalidPasswordResetTokenException()
             }
             refreshSessionLifecycleService.revokeAllForPrincipal(principalId)
@@ -63,8 +63,15 @@ internal class ResetPasswordHandler(
             )
         } catch (cancellation: kotlinx.coroutines.CancellationException) {
             throw cancellation
-        } catch (_: Exception) {
+        } catch (failure: Exception) {
             // The reset is already committed; audit is additive and cannot change its outcome.
+            // We MUST NOT swallow without a trace — emit an error log so the audit gap is
+            // observable to operators even when the persistence/transport layer is unavailable.
+            log.error(
+                "Audit recording failed for completed password reset of principal '{}'; reset outcome is unaffected",
+                principalId,
+                failure,
+            )
         }
         return ResetPasswordResult()
     }

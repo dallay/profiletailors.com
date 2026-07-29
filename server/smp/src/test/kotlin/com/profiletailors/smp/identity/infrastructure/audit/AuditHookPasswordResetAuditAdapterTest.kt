@@ -4,9 +4,11 @@ import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.identity.application.PasswordResetAuditEvent
+import io.kotest.matchers.maps.shouldContainExactly
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotContain
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import java.time.Instant
 
@@ -24,12 +26,12 @@ class AuditHookPasswordResetAuditAdapterTest {
         adapter.recordCompleted(event)
 
         val fact = hook.mutationFacts.single()
-        assertEquals("PASSWORD_RESET_COMPLETED", fact.action)
-        assertEquals("IDENTITY_PRINCIPAL", fact.targetType)
-        assertEquals("principal-123", fact.targetId)
-        assertEquals("principal-123", fact.actorPrincipalId)
-        assertEquals(null, fact.workspaceId)
-        assertEquals(mapOf("occurredAt" to "2026-07-29T12:34:56Z"), fact.details)
+        fact.action shouldBe "PASSWORD_RESET_COMPLETED"
+        fact.targetType shouldBe "IDENTITY_PRINCIPAL"
+        fact.targetId shouldBe "principal-123"
+        fact.actorPrincipalId shouldBe "principal-123"
+        fact.workspaceId.shouldBeNull()
+        fact.details shouldContainExactly mapOf("occurredAt" to "2026-07-29T12:34:56Z")
 
         val serialized = fact.toString().lowercase()
         listOf(
@@ -38,7 +40,7 @@ class AuditHookPasswordResetAuditAdapterTest {
             "password-hash-sensitive",
             "person@example.com",
             "203.0.113.42",
-        ).forEach { secret -> assertFalse(serialized.contains(secret.lowercase())) }
+        ).forEach { secret -> serialized shouldNotContain secret.lowercase() }
     }
 
     private class CapturingAuditHook : AuditHook {

@@ -1,35 +1,43 @@
 package com.profiletailors.smp.identity.infrastructure
 
-import org.assertj.core.api.Assertions.assertThat
+import io.kotest.matchers.paths.shouldExist
+import io.kotest.matchers.string.shouldContain
 import org.junit.jupiter.api.Test
-import java.io.File
+import java.nio.file.Files
+import java.nio.file.Path
 
 class PasswordResetNotificationFailureRepositoryContractTest {
 
     @Test
     fun `adapter SQL and migration use the same terminal failure schema`() {
-        val adapter = repositoryFile(
+        val adapterPath = repositoryRoot().resolve(
             "server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/" +
                 "R2dbcPasswordResetNotificationFailureRepository.kt",
-        ).readText()
-        val migration = repositoryFile(
+        )
+        val migrationPath = repositoryRoot().resolve(
             "server/smp/src/main/resources/db/changelog/identity/" +
                 "006-create-password-reset-notification-failures.yaml",
-        ).readText()
+        )
+        adapterPath.shouldExist()
+        migrationPath.shouldExist()
+
+        val adapter = Files.readString(adapterPath)
+        val migration = Files.readString(migrationPath)
 
         REQUIRED_COLUMNS.forEach { column ->
-            assertThat(adapter).contains(column)
-            assertThat(migration).contains("name: $column")
+            adapter shouldContain column
+            migration shouldContain "name: $column"
         }
-        assertThat(adapter).contains("INSERT INTO password_reset_notification_failures")
-        assertThat(migration).contains("tableName: password_reset_notification_failures")
-        assertThat(migration).contains("referencedTableName: user_identities")
-        assertThat(migration).contains("onDelete: CASCADE")
+        adapter shouldContain "INSERT INTO password_reset_notification_failures"
+        migration shouldContain "tableName: password_reset_notification_failures"
+        migration shouldContain "referencedTableName: user_identities"
+        migration shouldContain "onDelete: CASCADE"
     }
 
-    private fun repositoryFile(relativePath: String): File = generateSequence(
-        File(System.getProperty("user.dir")).absoluteFile,
-    ) { it.parentFile }.map { File(it, relativePath) }.first { it.isFile }
+    private fun repositoryRoot(): Path = generateSequence(Path.of(System.getProperty("user.dir")).toAbsolutePath()) {
+        it.parent
+    }.firstOrNull { Files.isRegularFile(it.resolve("justfile")) }
+        ?: error("Repository root containing justfile was not found")
 
     private companion object {
         val REQUIRED_COLUMNS = listOf(

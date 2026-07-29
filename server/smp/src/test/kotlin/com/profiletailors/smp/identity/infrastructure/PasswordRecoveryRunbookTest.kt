@@ -1,6 +1,10 @@
 package com.profiletailors.smp.identity.infrastructure
 
-import org.assertj.core.api.Assertions.assertThat
+import io.kotest.matchers.ints.shouldBeGreaterThan
+import io.kotest.matchers.paths.shouldExist
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import java.nio.file.Path
@@ -11,12 +15,12 @@ class PasswordRecoveryRunbookTest {
     @Test
     fun `runbook is actionable safe and uses repository commands`() {
         val runbookPath = repositoryRoot().resolve("docs/runbooks/password-recovery.md")
-        assertThat(runbookPath).exists()
+        runbookPath.shouldExist()
 
         val runbook = runbookPath.readText()
         val justfile = repositoryRoot().resolve("justfile").readText()
 
-        assertThat(topLevelSections(runbook)).containsExactly(
+        topLevelSections(runbook) shouldBe listOf(
             "Overview",
             "Changes",
             "Usage",
@@ -24,21 +28,21 @@ class PasswordRecoveryRunbookTest {
             "References",
         )
         REQUIRED_OPERATIONAL_CONTRACT.forEach { required ->
-            assertThat(runbook).containsIgnoringCase(required)
+            runbook.lowercase() shouldContain required.lowercase()
         }
         REQUIRED_JUST_RECIPES.forEach { recipe ->
-            assertThat(justfile).contains("$recipe:")
-            assertThat(runbook).contains("just $recipe")
+            justfile shouldContain "$recipe:"
+            runbook shouldContain "just $recipe"
         }
 
         val diagnosticSql = fencedBlock(runbook, "sql")
         FORBIDDEN_SQL_FIELDS.forEach { field ->
-            assertThat(diagnosticSql).doesNotContainIgnoringCase(field)
+            diagnosticSql.lowercase() shouldNotContain field.lowercase()
         }
-        assertThat(diagnosticSql).contains("password_reset_notification_failures")
-        assertThat(diagnosticSql).contains("failure_category")
-        assertThat(diagnosticSql).doesNotContain("       category AS safe_category")
-        assertThat(diagnosticSql).contains("password_reset_tokens")
+        diagnosticSql shouldContain "password_reset_notification_failures"
+        diagnosticSql shouldContain "failure_category"
+        diagnosticSql shouldNotContain "       category AS safe_category"
+        diagnosticSql shouldContain "password_reset_tokens"
     }
 
     private fun repositoryRoot(): Path = generateSequence(Path.of(System.getProperty("user.dir")).toAbsolutePath()) {
@@ -54,10 +58,10 @@ class PasswordRecoveryRunbookTest {
     private fun fencedBlock(markdown: String, language: String): String {
         val marker = "```$language"
         val start = markdown.indexOf(marker)
-        assertThat(start).isGreaterThanOrEqualTo(0)
+        start shouldBeGreaterThan -1
         val contentStart = start + marker.length
         val end = markdown.indexOf("```", contentStart)
-        assertThat(end).isGreaterThan(contentStart)
+        end shouldBeGreaterThan contentStart
         return markdown.substring(contentStart, end)
     }
 

@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.smp.identity.application.PasswordResetCredentialMissingException
 import com.profiletailors.smp.identity.application.PasswordResetTokenCleanupPort
 import com.profiletailors.smp.identity.application.PasswordResetTokenRepository
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
@@ -10,9 +11,9 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
@@ -164,20 +165,19 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
             expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
         )
 
-        val ok = repository.consumeAndUpdatePassword(
+        repository.consumeAndUpdatePassword(
             tokenHash = tokenHash,
             now = Instant.parse("2026-07-27T12:10:00Z"),
             newPasswordHash = "new-hash",
         )
 
-        assertTrue(ok)
         val stored = repository.findByTokenHash(tokenHash)
         assertEquals(Instant.parse("2026-07-27T12:10:00Z"), stored?.usedAt)
         assertEquals("new-hash", lookupPasswordHash("user-1"))
     }
 
     @Test
-    fun `consumeAndUpdatePassword returns false for expired token`() = runTest {
+    fun `consumeAndUpdatePassword throws for expired token`() = runTest {
         seedPrincipal()
         seedLocalPasswordCredential("user-1", "old-hash")
 
@@ -189,19 +189,21 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
             expiresAt = Instant.parse("2026-07-27T11:30:00Z"),
         )
 
-        val ok = repository.consumeAndUpdatePassword(
-            tokenHash = tokenHash,
-            now = Instant.parse("2026-07-27T12:00:00Z"),
-            newPasswordHash = "new-hash",
-        )
-
-        assertFalse(ok)
+        assertThrows(PasswordResetCredentialMissingException::class.java) {
+            runBlocking {
+                repository.consumeAndUpdatePassword(
+                    tokenHash = tokenHash,
+                    now = Instant.parse("2026-07-27T12:00:00Z"),
+                    newPasswordHash = "new-hash",
+                )
+            }
+        }
         assertNull(repository.findByTokenHash(tokenHash)?.usedAt)
         assertEquals("old-hash", lookupPasswordHash("user-1"))
     }
 
     @Test
-    fun `consumeAndUpdatePassword returns false for already-used token`() = runTest {
+    fun `consumeAndUpdatePassword throws for already-used token`() = runTest {
         seedPrincipal()
         seedLocalPasswordCredential("user-1", "old-hash")
 
@@ -214,28 +216,32 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         )
         markTokenUsed(tokenHash, Instant.parse("2026-07-27T12:05:00Z"))
 
-        val ok = repository.consumeAndUpdatePassword(
-            tokenHash = tokenHash,
-            now = Instant.parse("2026-07-27T12:10:00Z"),
-            newPasswordHash = "new-hash",
-        )
-
-        assertFalse(ok)
+        assertThrows(PasswordResetCredentialMissingException::class.java) {
+            runBlocking {
+                repository.consumeAndUpdatePassword(
+                    tokenHash = tokenHash,
+                    now = Instant.parse("2026-07-27T12:10:00Z"),
+                    newPasswordHash = "new-hash",
+                )
+            }
+        }
         assertEquals("old-hash", lookupPasswordHash("user-1"))
     }
 
     @Test
-    fun `consumeAndUpdatePassword returns false for unknown hash`() = runTest {
+    fun `consumeAndUpdatePassword throws for unknown hash`() = runTest {
         seedPrincipal()
         seedLocalPasswordCredential("user-1", "old-hash")
 
-        val ok = repository.consumeAndUpdatePassword(
-            tokenHash = "unknown-hash",
-            now = Instant.parse("2026-07-27T12:10:00Z"),
-            newPasswordHash = "new-hash",
-        )
-
-        assertFalse(ok)
+        assertThrows(PasswordResetCredentialMissingException::class.java) {
+            runBlocking {
+                repository.consumeAndUpdatePassword(
+                    tokenHash = "unknown-hash",
+                    now = Instant.parse("2026-07-27T12:10:00Z"),
+                    newPasswordHash = "new-hash",
+                )
+            }
+        }
         assertEquals("old-hash", lookupPasswordHash("user-1"))
     }
 
@@ -253,17 +259,21 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         )
 
         val now = Instant.parse("2026-07-27T12:10:00Z")
-        val results = runBlocking {
+        val outcomes = runBlocking {
             val first = async {
-                repository.consumeAndUpdatePassword(tokenHash, now, "first-new-hash")
+                runCatching {
+                    repository.consumeAndUpdatePassword(tokenHash, now, "first-new-hash")
+                }
             }
             val second = async {
-                repository.consumeAndUpdatePassword(tokenHash, now, "second-new-hash")
+                runCatching {
+                    repository.consumeAndUpdatePassword(tokenHash, now, "second-new-hash")
+                }
             }
             awaitAll(first, second)
         }
 
-        val successes = results.count { it }
+        val successes = outcomes.count { it.isSuccess }
         assertEquals(1, successes, "Exactly one concurrent call should succeed")
 
         val storedHash = lookupPasswordHash("user-1")
@@ -272,15 +282,6 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
             "Stored hash must match one of the call sites, got $storedHash",
         )
         assertNotNull(repository.findByTokenHash(tokenHash)?.usedAt)
-    }
-
-    @Test
-    fun `cleanup SQL preserves tokens used at or after the retention cutoff`() {
-        val source = repositoryFile(
-            "src/main/kotlin/com/profiletailors/smp/identity/infrastructure/R2dbcPasswordResetTokenRepository.kt",
-        ).readText()
-
-        assertTrue(source.contains("expires_at < :cutoff AND (used_at IS NULL OR used_at < :cutoff)"))
     }
 
     @Test
@@ -347,10 +348,6 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         assertNull(repository.findByTokenHash(rawToken))
         assertNotNull(repository.findByTokenHash(hash))
     }
-
-    private fun repositoryFile(relativePath: String): java.io.File = generateSequence(
-        java.io.File(System.getProperty("user.dir")).absoluteFile,
-    ) { it.parentFile }.map { java.io.File(it, relativePath) }.first { it.isFile }
 
     private suspend fun seedPrincipal() {
         databaseClient.sql(

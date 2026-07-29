@@ -1,13 +1,16 @@
 package com.profiletailors.smp.identity.infrastructure.observability
 
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContainOnly
+import io.kotest.matchers.string.shouldNotContain
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.micrometer.observation.ObservationRegistry
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import org.springframework.mock.web.server.MockServerWebExchange
 import org.springframework.web.server.WebFilterChain
+import reactor.core.publisher.Mono
 
 class PasswordResetOutcomeWebFilterTest {
 
@@ -24,18 +27,14 @@ class PasswordResetOutcomeWebFilterTest {
             chain(HttpStatus.INTERNAL_SERVER_ERROR),
         ).block()
 
-        assertThat(
-            meters.meters.map {
-                it.id.tags.associate { tag -> tag.key to tag.value }
-            },
-        ).containsExactlyInAnyOrder(
+        val tags = meters.meters.map { it.id.tags.associate { tag -> tag.key to tag.value } }
+        tags shouldContainOnly setOf(
             resetTags("completed", "none"),
             resetTags("failed", "invalid_request"),
             resetTags("failed", "internal"),
         )
-        assertThat(meters.meters.toString())
-            .doesNotContain("raw-token-sensitive")
-            .doesNotContain("NewPassword123!")
+        meters.meters.toString() shouldNotContain "raw-token-sensitive"
+        meters.meters.toString() shouldNotContain "NewPassword123!"
     }
 
     @Test
@@ -48,7 +47,23 @@ class PasswordResetOutcomeWebFilterTest {
 
         filter.filter(exchange, chain(HttpStatus.NO_CONTENT)).block()
 
-        assertThat(meters.meters).isEmpty()
+        meters.meters.shouldBeEmpty()
+    }
+
+    @Test
+    fun `records internal failure outcome when the chain emits an error`() {
+        val meters = SimpleMeterRegistry()
+        val adapter = PasswordRecoveryObservabilityAdapter(meters, ObservationRegistry.NOOP)
+        val filter = PasswordResetOutcomeWebFilter(adapter)
+        val exchange = exchange("raw-token-sensitive", "NewPassword123!")
+        val failingChain = WebFilterChain {
+            Mono.error(IllegalStateException("upstream failure"))
+        }
+
+        runCatching { filter.filter(exchange, failingChain).block() }
+
+        val tags = meters.meters.map { it.id.tags.associate { tag -> tag.key to tag.value } }
+        tags shouldContainOnly setOf(resetTags("failed", "internal"))
     }
 
     private fun exchange(token: String, password: String): MockServerWebExchange = MockServerWebExchange.from(

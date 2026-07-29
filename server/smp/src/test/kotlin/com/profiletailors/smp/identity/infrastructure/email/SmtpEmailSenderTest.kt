@@ -2,11 +2,14 @@ package com.profiletailors.smp.identity.infrastructure.email
 
 import com.profiletailors.smp.identity.application.EmailFailureCategory
 import com.profiletailors.smp.identity.application.EmailMessage
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import jakarta.mail.Message
 import jakarta.mail.Session
 import jakarta.mail.internet.MimeMessage
 import kotlinx.coroutines.test.runTest
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.mail.MailAuthenticationException
 import org.springframework.mail.MailSendException
@@ -34,13 +37,14 @@ class SmtpEmailSenderTest {
             EmailMessage("Plain fallback", "<strong>Verify</strong>"),
         )
 
-        assertThat(result.success).isTrue()
-        assertThat(mailSender.simpleMessage).isNull()
-        val mime = mailSender.mimeMessage!!
-        assertThat(mime.subject).isEqualTo("[Profile Tailors] Verify your email")
-        assertThat(mime.getRecipients(Message.RecipientType.TO).single().toString()).isEqualTo("user@example.com")
+        result.success shouldBe true
+        mailSender.simpleMessage.shouldBeNull()
+        val mime = mailSender.mimeMessage.shouldNotBeNull()
+        mime.subject shouldBe "[Profile Tailors] Verify your email"
+        mime.getRecipients(Message.RecipientType.TO).single().toString() shouldBe "user@example.com"
         val rawMessage = ByteArrayOutputStream().also(mime::writeTo).toString(Charsets.UTF_8)
-        assertThat(rawMessage).contains("Plain fallback", "<strong>Verify</strong>")
+        rawMessage shouldContain "Plain fallback"
+        rawMessage shouldContain "<strong>Verify</strong>"
     }
 
     @Test
@@ -50,10 +54,10 @@ class SmtpEmailSenderTest {
 
         val result = sender.send("user@example.com", "Hello", EmailMessage("Plain only"))
 
-        assertThat(result.success).isTrue()
-        assertThat(mailSender.mimeMessage).isNull()
-        assertThat(mailSender.simpleMessage?.text).isEqualTo("Plain only")
-        assertThat(mailSender.simpleMessage?.subject).isEqualTo("[Profile Tailors] Hello")
+        result.success shouldBe true
+        mailSender.mimeMessage.shouldBeNull()
+        mailSender.simpleMessage.shouldNotBeNull().text shouldBe "Plain only"
+        mailSender.simpleMessage.shouldNotBeNull().subject shouldBe "[Profile Tailors] Hello"
     }
 
     @Test
@@ -65,21 +69,38 @@ class SmtpEmailSenderTest {
 
         val result = sender.send("user@example.com", "Hello", EmailMessage("Plain only"))
 
-        assertThat(result.failureCategory).isEqualTo(EmailFailureCategory.PROVIDER_REJECTED)
-        assertThat(result.retryable).isFalse()
+        result.failureCategory shouldBe EmailFailureCategory.PROVIDER_REJECTED
+        result.retryable shouldBe false
     }
 
     @Test
-    fun `send failure is temporary and retryable`() = runTest {
+    fun `transient connection failure is temporary and retryable`() = runTest {
         val sender = SmtpEmailSender(
-            RecordingJavaMailSender(failure = MailSendException("connection unavailable")),
+            RecordingJavaMailSender(
+                failure = MailSendException("connection refused: smtp.example.com"),
+            ),
             properties,
         )
 
         val result = sender.send("user@example.com", "Hello", EmailMessage("Plain only"))
 
-        assertThat(result.failureCategory).isEqualTo(EmailFailureCategory.PROVIDER_UNAVAILABLE)
-        assertThat(result.retryable).isTrue()
+        result.failureCategory shouldBe EmailFailureCategory.PROVIDER_UNAVAILABLE
+        result.retryable shouldBe true
+    }
+
+    @Test
+    fun `recipient rejection is permanent and not retryable`() = runTest {
+        val sender = SmtpEmailSender(
+            RecordingJavaMailSender(
+                failure = MailSendException("recipient rejected: mailbox unavailable"),
+            ),
+            properties,
+        )
+
+        val result = sender.send("user@example.com", "Hello", EmailMessage("Plain only"))
+
+        result.failureCategory shouldBe EmailFailureCategory.PROVIDER_REJECTED
+        result.retryable shouldBe false
     }
 
     private class RecordingJavaMailSender(private val failure: RuntimeException? = null) : JavaMailSender {

@@ -4,6 +4,7 @@ import com.profiletailors.smp.identity.application.EmailFailureCategory
 import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
+import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Primary
 import org.springframework.mail.MailAuthenticationException
@@ -26,6 +27,8 @@ import java.nio.charset.StandardCharsets
 @ConditionalOnProperty(name = ["spring.mail.host"])
 class SmtpEmailSender(private val mailSender: JavaMailSender, private val emailProperties: EmailProperties) :
     EmailSender {
+
+    private val log = LoggerFactory.getLogger(SmtpEmailSender::class.java)
 
     override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult = try {
         if (message.html == null) {
@@ -52,11 +55,60 @@ class SmtpEmailSender(private val mailSender: JavaMailSender, private val emailP
             mailSender.send(mimeMessage)
         }
         EmailSendResult(success = true)
-    } catch (_: MailAuthenticationException) {
+    } catch (e: MailAuthenticationException) {
+        log.debug("SMTP authentication failed", e)
         EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED)
-    } catch (_: MailSendException) {
-        EmailSendResult.temporaryFailure(EmailFailureCategory.PROVIDER_UNAVAILABLE)
-    } catch (_: MailException) {
+    } catch (e: MailSendException) {
+        log.debug("SMTP send failed: {}", e.message)
+        when (categorizeMailSendException(e)) {
+            EmailFailureCategory.PROVIDER_UNAVAILABLE ->
+                EmailSendResult.temporaryFailure(EmailFailureCategory.PROVIDER_UNAVAILABLE)
+            EmailFailureCategory.PROVIDER_REJECTED ->
+                EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED)
+            else -> EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED)
+        }
+    } catch (e: MailException) {
+        log.debug("Mail exception", e)
         EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED)
     }
+}
+
+private fun categorizeMailSendException(e: MailSendException): EmailFailureCategory {
+    val message = e.message?.lowercase() ?: ""
+    val causeMessage = (e.cause as? Exception)?.message?.lowercase() ?: ""
+    return when {
+        isTransientSmtpCondition(message, causeMessage) -> EmailFailureCategory.PROVIDER_UNAVAILABLE
+        isPermanentRejection(message, causeMessage) -> EmailFailureCategory.PROVIDER_REJECTED
+        else -> EmailFailureCategory.PROVIDER_UNAVAILABLE
+    }
+}
+
+private fun isTransientSmtpCondition(message: String, causeMessage: String): Boolean {
+    val indicators = listOf(
+        "connection refused",
+        "connection timed out",
+        "connection reset",
+        "timeout",
+        "network",
+        "unreachable",
+        "temporary failure",
+        "service unavailable",
+        "try again later",
+    )
+    return indicators.any { message.contains(it) || causeMessage.contains(it) }
+}
+
+private fun isPermanentRejection(message: String, causeMessage: String): Boolean {
+    val indicators = listOf(
+        "authentication",
+        "invalid credentials",
+        "not authorized",
+        "user unknown",
+        "recipient rejected",
+        "invalid address",
+        "mailbox unavailable",
+        "user not found",
+        "no such user",
+    )
+    return indicators.any { message.contains(it) || causeMessage.contains(it) }
 }

@@ -38,6 +38,14 @@ class PasswordRecoveryObservabilityAdapter(
         record(resetOutcome(status = "failed", failureCategory = category.value))
     }
 
+    fun recordCleanupDeleted(deleted: Long) {
+        if (deleted <= 0) return
+        Counter.builder(CLEANUP_METRIC_NAME)
+            .description("Password reset token cleanup aggregate counts")
+            .register(meterRegistry)
+            .increment(deleted.toDouble())
+    }
+
     private fun record(outcome: PasswordRecoveryOutcome) {
         val tags = outcome.tags()
         Counter.builder(METRIC_NAME)
@@ -98,6 +106,7 @@ class PasswordRecoveryObservabilityAdapter(
     private companion object {
         const val METRIC_NAME = "identity.password.recovery.outcomes"
         const val OBSERVATION_NAME = "identity.password.recovery"
+        const val CLEANUP_METRIC_NAME = "identity.password.recovery.cleanup.deleted"
     }
 }
 

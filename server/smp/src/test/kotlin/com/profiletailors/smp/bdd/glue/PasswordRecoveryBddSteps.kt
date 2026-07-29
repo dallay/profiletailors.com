@@ -1,5 +1,8 @@
 package com.profiletailors.smp.bdd.glue
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.cucumber.java.Before
 import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
@@ -12,6 +15,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.security.crypto.bcrypt.BCrypt
@@ -77,6 +81,16 @@ class PasswordRecoveryBddSteps {
     private var previousRawToken: String = ""
     private var preferredLocale: String = "en"
     private var pendingConcurrentPassword: String? = null
+
+    private val logAppender: ListAppender<ILoggingEvent> = ListAppender<ILoggingEvent>().apply {
+        start()
+    }
+
+    init {
+        val root = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) as Logger
+        logAppender.context = root.loggerContext
+        root.addAppender(logAppender)
+    }
 
     @Before
     fun resetPasswordRecoveryState() {
@@ -225,12 +239,12 @@ class PasswordRecoveryBddSteps {
 
     @When("the expired-token cleanup job runs")
     fun theExpiredTokenCleanupJobRuns() = runBlocking {
-        passwordResetTokenCleanupScheduler.runCleanup()
+        passwordResetTokenCleanupScheduler.runCleanup(CLEANUP_FIXED_CLOCK)
     }
 
     @When("the expired-token cleanup job runs again")
     fun theExpiredTokenCleanupJobRunsAgain() = runBlocking {
-        passwordResetTokenCleanupScheduler.runCleanup()
+        passwordResetTokenCleanupScheduler.runCleanup(CLEANUP_FIXED_CLOCK)
     }
 
     @Then("expired tokens older than the retention threshold should be deleted")
@@ -1384,13 +1398,20 @@ class PasswordRecoveryBddSteps {
     }
 
     private fun assertSafeNotificationOperations() {
-        val serialized = passwordResetFailurePort.records.toString() + passwordResetTelemetryPort.events.toString()
-        listOf(
+        val failureSerialized = passwordResetFailurePort.records.toString()
+        val telemetrySerialized = passwordResetTelemetryPort.events.toString()
+        val logSerialized = logAppender.list.joinToString("\n") { it.formattedMessage }
+        val sentinels = listOf(
             "bdd-sensitive-raw-token",
             "user@example.com",
             "reset-password?token=",
             "NewPassword123!",
-        ).forEach { sensitive -> assertTrue(!serialized.contains(sensitive)) }
+        )
+        sentinels.forEach { sensitive ->
+            assertTrue(!failureSerialized.contains(sensitive), "Leaked $sensitive into failure records")
+            assertTrue(!telemetrySerialized.contains(sensitive), "Leaked $sensitive into telemetry")
+            assertTrue(!logSerialized.contains(sensitive), "Leaked $sensitive into logs")
+        }
     }
 
     private fun awaitPasswordResetEmail() {
@@ -1483,6 +1504,7 @@ class PasswordRecoveryBddSteps {
 
     private companion object {
         private val CLEANUP_NOW = java.time.Instant.parse("2026-07-29T12:00:00Z")
+        private val CLEANUP_FIXED_CLOCK = java.time.Clock.fixed(CLEANUP_NOW, java.time.ZoneOffset.UTC)
         private const val CLEANUP_EXPIRED_OLD = "cleanup-expired-old"
         private const val CLEANUP_EXPIRED_RECENT = "cleanup-expired-recent"
         private const val CLEANUP_ACTIVE = "cleanup-active"

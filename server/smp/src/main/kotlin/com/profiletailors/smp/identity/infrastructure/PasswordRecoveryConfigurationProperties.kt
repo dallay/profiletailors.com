@@ -23,7 +23,13 @@ data class PasswordRecoveryConfigurationProperties(
         val retention: Duration = Duration.ofDays(DEFAULT_RETENTION_DAYS),
         val interval: Duration = Duration.ofHours(DEFAULT_CLEANUP_INTERVAL_HOURS),
         val initialDelay: Duration = Duration.ofMinutes(DEFAULT_CLEANUP_INITIAL_DELAY_MINUTES),
-    )
+    ) {
+        init {
+            require(!retention.isNegative) { "retention must not be negative" }
+            require(!interval.isZero && !interval.isNegative) { "interval must be strictly positive" }
+            require(!initialDelay.isNegative) { "initialDelay must not be negative" }
+        }
+    }
 
     data class NotificationRetry(
         val maxAttempts: Int = DEFAULT_NOTIFICATION_MAX_ATTEMPTS,

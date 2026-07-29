@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.smp.identity.application.PasswordResetCredentialMissingException
 import com.profiletailors.smp.identity.application.PasswordResetTokenCleanupPort
 import com.profiletailors.smp.identity.application.PasswordResetTokenRepository
 import com.profiletailors.smp.identity.domain.PasswordResetToken
@@ -95,10 +96,11 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
      * UPDATE and the caller-supplied session revocation) execute only when the
      * first UPDATE consumed exactly one row. If the surrounding transaction
      * rolls back, no state changes persist. The password UPDATE MUST also
-     * affect exactly one row; otherwise the call returns false and the caller
-     * rolls back the transaction.
+     * affect exactly one row; otherwise the call throws
+     * [PasswordResetTokenRepository.PasswordResetCredentialMissingException]
+     * to force the transaction to roll back.
      */
-    override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String): Boolean {
+    override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) {
         val consumed: Long = databaseClient.sql(
             """
             UPDATE password_reset_tokens
@@ -114,7 +116,9 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
             .rowsUpdated()
             .awaitSingle()
 
-        if (consumed != 1L) return false
+        if (consumed != 1L) {
+            throw PasswordResetCredentialMissingException()
+        }
 
         val passwordUpdated: Long = databaseClient.sql(
             """
@@ -134,19 +138,9 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
             .awaitSingle()
 
         if (passwordUpdated != 1L) {
-            // Force the surrounding transaction to roll back by throwing here.
             throw PasswordResetCredentialMissingException()
         }
-
-        return true
     }
 }
 
 private const val TOKEN_HASH_BIND = "tokenHash"
-
-/**
- * Marker exception used to force the surrounding [com.profiletailors.common.domain.persistence.AtomicTransactionRunner]
- * transaction to roll back when the password credential update affected zero rows.
- */
-class PasswordResetCredentialMissingException :
-    RuntimeException("Password credential row not found for password reset token.")
