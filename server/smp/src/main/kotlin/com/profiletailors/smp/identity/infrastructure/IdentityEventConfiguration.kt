@@ -12,6 +12,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
+import org.springframework.core.task.TaskExecutor
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 
 /**
@@ -36,7 +37,7 @@ class IdentityEventConfiguration {
      * @return The configured password reset email task executor.
      */
     @Bean
-    @ConditionalOnMissingBean(name = ["passwordResetEmailTaskExecutor"])
+    @ConditionalOnMissingBean(TaskExecutor::class)
     fun passwordResetEmailTaskExecutor(): ThreadPoolTaskExecutor = ThreadPoolTaskExecutor().apply {
         corePoolSize = PASSWORD_RESET_EMAIL_CORE_POOL_SIZE
         maxPoolSize = PASSWORD_RESET_EMAIL_MAX_POOL_SIZE

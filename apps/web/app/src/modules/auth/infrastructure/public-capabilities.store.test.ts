@@ -127,24 +127,24 @@ describe('usePublicCapabilitiesStore', () => {
     })
   })
 
-  describe('capabilityChecked', () => {
+  describe('capabilitiesLoaded', () => {
     it('is false before any load', () => {
       const store = setupStore()
-      expect(store.capabilityChecked).toBe(false)
+      expect(store.capabilitiesLoaded).toBe(false)
     })
 
     it('is true after successful load', async () => {
       fetchPublicCapabilities.mockResolvedValueOnce({ registrationEnabled: true })
       const store = setupStore()
       await store.load()
-      expect(store.capabilityChecked).toBe(true)
+      expect(store.capabilitiesLoaded).toBe(true)
     })
 
     it('is true after failed load (fail-closed)', async () => {
       fetchPublicCapabilities.mockRejectedValueOnce(new Error('error'))
       const store = setupStore()
       await store.load()
-      expect(store.capabilityChecked).toBe(true)
+      expect(store.capabilitiesLoaded).toBe(true)
     })
   })
 })

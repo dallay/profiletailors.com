@@ -16,27 +16,62 @@ class PublicCapabilitiesControllerTest {
 
     @Test
     fun `returns only disabled registration capability`() = runTest {
-        val response = controller(registrationEnabled = false).publicCapabilities()
+        val response = controller(registrationEnabled = false, passwordRecoveryEnabled = true).publicCapabilities()
 
-        response shouldBe PublicCapabilitiesResponse(false)
+        response shouldBe PublicCapabilitiesResponse(
+            registrationEnabled = false,
+            passwordRecoveryEnabled = true,
+            ssoProviders = emptyList(),
+        )
     }
 
     @Test
     fun `returns only enabled registration capability`() = runTest {
-        val response = controller(registrationEnabled = true).publicCapabilities()
+        val response = controller(registrationEnabled = true, passwordRecoveryEnabled = true).publicCapabilities()
 
-        response shouldBe PublicCapabilitiesResponse(true)
+        response shouldBe PublicCapabilitiesResponse(
+            registrationEnabled = true,
+            passwordRecoveryEnabled = true,
+            ssoProviders = emptyList(),
+        )
     }
 
-    private fun controller(registrationEnabled: Boolean) = PublicCapabilitiesController(
-        mediator = FakeMediator(registrationEnabled),
-    )
+    @Test
+    fun `returns passwordRecoveryEnabled true when configured`() = runTest {
+        val response = controller(registrationEnabled = true, passwordRecoveryEnabled = true).publicCapabilities()
 
-    private class FakeMediator(private val registrationEnabled: Boolean) : Mediator {
+        response.passwordRecoveryEnabled shouldBe true
+    }
+
+    @Test
+    fun `returns passwordRecoveryEnabled false when disabled`() = runTest {
+        val response = controller(registrationEnabled = true, passwordRecoveryEnabled = false).publicCapabilities()
+
+        response.passwordRecoveryEnabled shouldBe false
+    }
+
+    @Test
+    fun `returns empty ssoProviders array`() = runTest {
+        val response = controller(registrationEnabled = true, passwordRecoveryEnabled = true).publicCapabilities()
+
+        response.ssoProviders shouldBe emptyList()
+    }
+
+    private fun controller(registrationEnabled: Boolean, passwordRecoveryEnabled: Boolean) =
+        PublicCapabilitiesController(
+            mediator = FakeMediator(registrationEnabled, passwordRecoveryEnabled),
+        )
+
+    private class FakeMediator(
+        private val registrationEnabled: Boolean,
+        private val passwordRecoveryEnabled: Boolean,
+    ) : Mediator {
         @Suppress("UNCHECKED_CAST")
         override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = when (query) {
             is GetPublicCapabilitiesQuery -> PublicCapabilities(
                 registrationEnabled = registrationEnabled,
+                passwordRecoveryEnabled = passwordRecoveryEnabled,
+                ssoProviders = emptyList(),
             ) as TResponse
             else -> error("Unexpected query: $query")
         }

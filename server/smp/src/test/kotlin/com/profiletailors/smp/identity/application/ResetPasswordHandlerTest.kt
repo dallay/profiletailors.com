@@ -197,7 +197,9 @@ class ResetPasswordHandlerTest {
             tokenRepository = tokenRepository,
             refreshSessionLifecycleService = refreshSvc,
             transactionRunner = transactionRunner,
-            auditPort = PasswordResetAuditPort { throw IllegalStateException("audit sink unavailable") },
+            auditPort = PasswordResetAuditPort {
+                throw org.springframework.dao.DataAccessResourceFailureException("audit sink unavailable")
+            },
         )
 
         val result = handler.handle(

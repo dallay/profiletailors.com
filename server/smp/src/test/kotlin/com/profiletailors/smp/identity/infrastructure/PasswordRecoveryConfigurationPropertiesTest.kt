@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.types.shouldBeInstanceOf
 import org.junit.jupiter.api.Test
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
@@ -62,29 +62,23 @@ class PasswordRecoveryConfigurationPropertiesTest {
 
     @Test
     fun `cleanup rejects negative retention at construction`() {
-        val failure = runCatching {
+        shouldThrow<IllegalArgumentException> {
             PasswordRecoveryConfigurationProperties.Cleanup(retention = Duration.ofDays(-1))
-        }.exceptionOrNull()
-        kotlin.requireNotNull(failure) { "expected IllegalArgumentException for negative retention" }
-        failure.shouldBeInstanceOf<IllegalArgumentException>()
+        }
     }
 
     @Test
     fun `cleanup requires a strictly positive interval at construction`() {
-        val failure = runCatching {
+        shouldThrow<IllegalArgumentException> {
             PasswordRecoveryConfigurationProperties.Cleanup(interval = Duration.ZERO)
-        }.exceptionOrNull()
-        kotlin.requireNotNull(failure) { "expected IllegalArgumentException for zero interval" }
-        failure.shouldBeInstanceOf<IllegalArgumentException>()
+        }
     }
 
     @Test
     fun `cleanup rejects negative initial delay at construction`() {
-        val failure = runCatching {
+        shouldThrow<IllegalArgumentException> {
             PasswordRecoveryConfigurationProperties.Cleanup(initialDelay = Duration.ofMinutes(-1))
-        }.exceptionOrNull()
-        kotlin.requireNotNull(failure) { "expected IllegalArgumentException for negative initial delay" }
-        failure.shouldBeInstanceOf<IllegalArgumentException>()
+        }
     }
 
     @Configuration(proxyBeanMethods = false)

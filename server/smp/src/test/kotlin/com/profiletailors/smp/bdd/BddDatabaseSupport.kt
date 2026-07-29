@@ -937,6 +937,8 @@ class BddDatabaseSupport(
         "DELETE FROM workspace_ownerships",
         "DELETE FROM workspaces",
         // Identity
+        "DELETE FROM password_reset_notification_failures",
+        "DELETE FROM password_reset_tokens",
         "DELETE FROM user_identities",
         "DELETE FROM principals",
     )

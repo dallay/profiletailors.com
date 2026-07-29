@@ -4,6 +4,7 @@ import com.profiletailors.smp.identity.application.EmailFailureCategory
 import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
+import jakarta.mail.SendFailedException
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Primary
@@ -14,6 +15,10 @@ import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.stereotype.Component
+import java.net.ConnectException
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.nio.charset.StandardCharsets
 
 /**
@@ -63,60 +68,43 @@ class SmtpEmailSender(private val mailSender: JavaMailSender, private val emailP
             mailSender.send(mimeMessage)
         }
         EmailSendResult(success = true)
-    } catch (e: MailAuthenticationException) {
-        log.debug("SMTP authentication failed", e)
+    } catch (_: MailAuthenticationException) {
+        log.debug("SMTP authentication failed")
         EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED)
     } catch (e: MailSendException) {
-        log.debug("SMTP send failed: {}", e.message)
-        when (categorizeMailSendException(e)) {
+        val category = categorizeMailSendException(e)
+        log.debug("SMTP send failed with category {}", category.name.lowercase())
+        when (category) {
             EmailFailureCategory.PROVIDER_UNAVAILABLE ->
                 EmailSendResult.temporaryFailure(EmailFailureCategory.PROVIDER_UNAVAILABLE)
+            EmailFailureCategory.PROVIDER_TIMEOUT ->
+                EmailSendResult.temporaryFailure(EmailFailureCategory.PROVIDER_TIMEOUT)
             EmailFailureCategory.PROVIDER_REJECTED ->
                 EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED)
             else -> EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED)
         }
-    } catch (e: MailException) {
-        log.debug("Mail exception", e)
+    } catch (_: MailException) {
+        log.debug("SMTP mail failure classified as provider-rejected")
         EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED)
     }
 }
 
-private fun categorizeMailSendException(e: MailSendException): EmailFailureCategory {
-    val message = e.message?.lowercase() ?: ""
-    val causeMessage = (e.cause as? Exception)?.message?.lowercase() ?: ""
+private fun Throwable.causeChain(): Sequence<Throwable> = generateSequence(this) { it.cause }
+
+private fun categorizeMailSendException(exception: MailSendException): EmailFailureCategory {
+    val causes = sequenceOf(exception)
+        .plus(exception.messageExceptions.asSequence())
+        .plus(exception.failedMessages.values.asSequence())
+        .filterNotNull()
+        .flatMap { it.causeChain() }
+        .toList()
+
     return when {
-        isTransientSmtpCondition(message, causeMessage) -> EmailFailureCategory.PROVIDER_UNAVAILABLE
-        isPermanentRejection(message, causeMessage) -> EmailFailureCategory.PROVIDER_REJECTED
-        else -> EmailFailureCategory.PROVIDER_UNAVAILABLE
+        causes.any { it is SocketTimeoutException } -> EmailFailureCategory.PROVIDER_TIMEOUT
+        causes.any {
+            it is ConnectException || it is SocketException || it is UnknownHostException
+        } -> EmailFailureCategory.PROVIDER_UNAVAILABLE
+        causes.any { it is SendFailedException } -> EmailFailureCategory.PROVIDER_REJECTED
+        else -> EmailFailureCategory.PROVIDER_REJECTED
     }
-}
-
-private fun isTransientSmtpCondition(message: String, causeMessage: String): Boolean {
-    val indicators = listOf(
-        "connection refused",
-        "connection timed out",
-        "connection reset",
-        "timeout",
-        "network",
-        "unreachable",
-        "temporary failure",
-        "service unavailable",
-        "try again later",
-    )
-    return indicators.any { message.contains(it) || causeMessage.contains(it) }
-}
-
-private fun isPermanentRejection(message: String, causeMessage: String): Boolean {
-    val indicators = listOf(
-        "authentication",
-        "invalid credentials",
-        "not authorized",
-        "user unknown",
-        "recipient rejected",
-        "invalid address",
-        "mailbox unavailable",
-        "user not found",
-        "no such user",
-    )
-    return indicators.any { message.contains(it) || causeMessage.contains(it) }
 }

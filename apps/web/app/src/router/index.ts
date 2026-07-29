@@ -46,6 +46,18 @@ const router = createRouter({
       meta: { standalone: true },
     },
     {
+      path: '/registration-unavailable',
+      name: 'registration-unavailable',
+      component: () => import('@modules/auth/presentation/RegistrationUnavailable.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/password-recovery-unavailable',
+      name: 'password-recovery-unavailable',
+      component: () => import('@modules/auth/presentation/PasswordRecoveryUnavailable.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/',
       name: 'dashboard',
       component: HomeView,
@@ -134,11 +146,23 @@ router.beforeEach(async (to) => {
     return '/'
   }
 
-  if (to.name === 'register') {
+  // Check capability-gated routes
+  if (to.name === 'register' || to.name === 'forgot-password') {
     const capabilities = usePublicCapabilitiesStore()
-    await capabilities.load()
-    if (!capabilities.registrationEnabled) {
-      return '/login'
+
+    // Load capabilities if not already loaded
+    if (!capabilities.capabilitiesLoaded) {
+      await capabilities.load()
+    }
+
+    // Guard register route
+    if (to.name === 'register' && !capabilities.registrationEnabled) {
+      return { name: 'registration-unavailable' }
+    }
+
+    // Guard forgot-password route
+    if (to.name === 'forgot-password' && !capabilities.passwordRecoveryEnabled) {
+      return { name: 'password-recovery-unavailable' }
     }
   }
 

@@ -74,10 +74,7 @@ internal class ResetPasswordHandler(
             )
         } catch (cancellation: kotlinx.coroutines.CancellationException) {
             throw cancellation
-        } catch (failure: Exception) {
-            // The reset is already committed; audit is additive and cannot change its outcome.
-            // We MUST NOT swallow without a trace — emit an error log so the audit gap is
-            // observable to operators even when the persistence/transport layer is unavailable.
+        } catch (failure: org.springframework.dao.DataAccessException) {
             log.error(
                 "Audit recording failed for completed password reset of principal '{}'; reset outcome is unaffected",
                 principalId,

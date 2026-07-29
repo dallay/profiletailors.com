@@ -21,10 +21,10 @@ onMounted(() => {
 const isRegisterMode = computed(() => route.name === 'register')
 const alternateRoute = computed(() => isRegisterMode.value ? '/login' : '/register')
 const showRegistrationLink = computed(
-  () => !isRegisterMode.value && capabilities.capabilityChecked && capabilities.registrationEnabled,
+  () => !isRegisterMode.value && capabilities.capabilitiesLoaded && capabilities.registrationEnabled,
 )
 const registrationClosed = computed(
-  () => isRegisterMode.value && capabilities.capabilityChecked && !capabilities.registrationEnabled,
+  () => isRegisterMode.value && capabilities.capabilitiesLoaded && !capabilities.registrationEnabled,
 )
 
 const email = ref('')

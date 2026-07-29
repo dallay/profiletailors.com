@@ -59,6 +59,11 @@ app:
         - "https://pt-app.localhost:1355"
         - "https://pt-app.localhost"
 
+profile-tailors:
+  features:
+    password-recovery:
+      enabled: true  # Set to false if email/tokens not operational
+
 platform:
   storage:
     default: attachments

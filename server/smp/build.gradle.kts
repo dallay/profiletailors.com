@@ -63,8 +63,18 @@ tasks.withType<Test>().configureEach {
     // Default 512m is insufficient for tests like PublishingWorkerTransactionPostgresIntegrationTest.
     maxHeapSize = "2g"
     jvmArgs("-XX:MaxMetaspaceSize=512m")
+    // Expose the monorepo root so file-system tests (runbook, migration contract) find
+    // project artefacts reliably in both local and CI environments.
+    systemProperty("project.root", rootProject.projectDir.absolutePath)
+}
+
+// SMP_DB_TEST_PASSWORD is needed only by PostgreSQL tests (registered via build-logic's afterEvaluate);
+// keep it off unit-test JVMs. These task names are not known until after project evaluation.
+afterEvaluate {
     postgresTestPassword.orNull?.takeIf { it.isNotBlank() }?.let { password ->
-        environment("SMP_DB_TEST_PASSWORD", password)
+        listOf("postgresIntegrationTest", "bddPostgresTest").forEach { name ->
+            tasks.named<Test>(name) { environment("SMP_DB_TEST_PASSWORD", password) }
+        }
     }
 }
 
