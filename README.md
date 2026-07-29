@@ -144,7 +144,9 @@ Docker commands separately. Run `just -l` to list everything.
 
 ---
 
-## Development Notes
+## Overview
+
+### Development Notes
 
 - **Frontend Apps**:
     - `apps/web/marketing/`: Astro-based marketing site.
@@ -156,6 +158,36 @@ Docker commands separately. Run `just -l` to list everything.
 - Code quality: **Biome** for linting and formatting in the frontend, **Detekt** for the backend.
 - The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (reactive).
 - SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
+
+### Project Structure
+
+```text
+profiletailors.com/
+├── apps/
+│   └── web/
+│       ├── app/                  # Vue 3 dashboard application
+│       └── marketing/            # Astro marketing site
+├── server/
+│   └── smp/                     # Spring Boot 4 backend (Kotlin)
+├── shared/                      # Kotlin libraries + shared web assets
+│   ├── assets/                  # Shared logos, icons, and web assets
+│   ├── web/                     # Shared web workspace
+│   ├── common/                  # Domain primitives, value objects, shared kernel
+│   ├── bus/                     # Event bus abstractions
+│   ├── security/                # Security primitives
+│   └── ...                      # Additional shared libraries
+├── tools/
+│   └── compliance/              # Compliance tooling workspace
+├── .agents/                     # Agent tooling config and skills
+├── .devcontainer/               # VS Code dev container configuration
+├── .github/workflows/           # CI and automation
+├── docs/                        # Architecture and security docs
+├── openspec/                    # SDD artifacts
+├── CONTRIBUTING.md
+├── CLA.md
+├── LICENSE
+└── README.md
+```
 
 ---
 
@@ -225,35 +257,6 @@ Contact: **security@profiletailors.com**
 - **Discussions:** https://github.com/dallay/profiletailors.com/discussions
 - **Issues:** https://github.com/dallay/profiletailors.com/issues
 - **Email:** **dev@profiletailors.com**
-
----
-
-## Project Structure
-
-```text
-profiletailors.com/
-├── apps/
-│   └── web/
-│       ├── app/                  # Vue 3 dashboard application
-│       └── marketing/            # Astro marketing site
-├── server/
-│   └── smp/                     # Spring Boot 4 backend (Kotlin)
-├── shared/                      # Kotlin libraries + shared web assets
-│   ├── assets/                  # Shared logos, icons, and web assets
-│   ├── common/                  # Domain primitives, value objects, shared kernel
-│   ├── bus/                     # Event bus abstractions
-│   ├── security/                # Security primitives
-│   └── ...                      # Additional shared libraries
-├── .agents/                      # Agent tooling config and skills
-├── .devcontainer/                # VS Code dev container configuration
-├── .github/workflows/            # CI and automation
-├── docs/                        # Architecture and security docs
-├── openspec/                    # SDD artifacts
-├── CONTRIBUTING.md
-├── CLA.md
-├── LICENSE
-└── README.md
-```
 
 ---
 

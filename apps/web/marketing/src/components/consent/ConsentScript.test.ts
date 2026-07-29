@@ -23,8 +23,16 @@ function runConsentScript(): void {
   new Function(match[1])()
 }
 
+declare global {
+  interface Window {
+    __PT_CONSENT_ANALYTICS?: boolean
+    __PT_DNT?: boolean
+    /** Legacy DNT property set by some browsers directly on window. */
+    doNotTrack?: string
+  }
+}
+
 const CONSENT_KEY = 'pt-consent'
-const ANALYTICS_FLAG = '__PT_CONSENT_ANALYTICS'
 
 describe('ConsentScript inline consent check', () => {
   let originalNavigator: Navigator
@@ -32,12 +40,9 @@ describe('ConsentScript inline consent check', () => {
   beforeEach(() => {
     originalNavigator = global.navigator
     localStorage.clear()
-    // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only globals
-    delete (window as any)[ANALYTICS_FLAG]
-    // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only globals
-    delete (window as any).__PT_DNT
-    // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only globals
-    delete (window as any).doNotTrack
+    delete window.__PT_CONSENT_ANALYTICS
+    delete window.__PT_DNT
+    delete window.doNotTrack
 
     Object.defineProperty(global.navigator, 'doNotTrack', {
       value: null,
@@ -59,8 +64,8 @@ describe('ConsentScript inline consent check', () => {
   it('blocks analytics by default when no consent receipt is stored', () => {
     runConsentScript()
 
-    expect((window as any)[ANALYTICS_FLAG]).toBe(false)
-    expect((window as any).__PT_DNT).toBe(false)
+    expect(window.__PT_CONSENT_ANALYTICS).toBe(false)
+    expect(window.__PT_DNT).toBe(false)
   })
 
   it('allows analytics when a valid receipt with analytics=true is stored', () => {
@@ -79,7 +84,7 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any)[ANALYTICS_FLAG]).toBe(true)
+    expect(window.__PT_CONSENT_ANALYTICS).toBe(true)
   })
 
   it('blocks analytics when a valid receipt has analytics=false', () => {
@@ -98,7 +103,7 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any)[ANALYTICS_FLAG]).toBe(false)
+    expect(window.__PT_CONSENT_ANALYTICS).toBe(false)
   })
 
   it('blocks analytics when the stored receipt has an outdated consentVersion', () => {
@@ -117,7 +122,7 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any)[ANALYTICS_FLAG]).toBe(false)
+    expect(window.__PT_CONSENT_ANALYTICS).toBe(false)
   })
 
   it('blocks analytics and does not throw when the stored value is invalid JSON', () => {
@@ -125,7 +130,7 @@ describe('ConsentScript inline consent check', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
     expect(() => runConsentScript()).not.toThrow()
-    expect((window as any)[ANALYTICS_FLAG]).toBe(false)
+    expect(window.__PT_CONSENT_ANALYTICS).toBe(false)
     expect(warnSpy).toHaveBeenCalled()
   })
 
@@ -145,7 +150,7 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any)[ANALYTICS_FLAG]).toBe(false)
+    expect(window.__PT_CONSENT_ANALYTICS).toBe(false)
   })
 
   it('blocks analytics when region is not a 2-character code', () => {
@@ -164,7 +169,7 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any)[ANALYTICS_FLAG]).toBe(false)
+    expect(window.__PT_CONSENT_ANALYTICS).toBe(false)
   })
 
   it('blocks analytics when policyVersion is not in YYYY-MM-DD format', () => {
@@ -183,7 +188,7 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any)[ANALYTICS_FLAG]).toBe(false)
+    expect(window.__PT_CONSENT_ANALYTICS).toBe(false)
   })
 
   it('blocks analytics when source is not "banner" or "settings"', () => {
@@ -202,7 +207,7 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any)[ANALYTICS_FLAG]).toBe(false)
+    expect(window.__PT_CONSENT_ANALYTICS).toBe(false)
   })
 
   it('detects Do Not Track via navigator.doNotTrack === "1"', () => {
@@ -214,7 +219,7 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any).__PT_DNT).toBe(true)
+    expect(window.__PT_DNT).toBe(true)
   })
 
   it('detects Do Not Track via navigator.doNotTrack === "yes"', () => {
@@ -226,15 +231,15 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any).__PT_DNT).toBe(true)
+    expect(window.__PT_DNT).toBe(true)
   })
 
   it('detects Do Not Track via the legacy window.doNotTrack fallback', () => {
-    ;(window as any).doNotTrack = '1'
+    ;window.doNotTrack = '1'
 
     runConsentScript()
 
-    expect((window as any).__PT_DNT).toBe(true)
+    expect(window.__PT_DNT).toBe(true)
   })
 
   it('detects Global Privacy Control via navigator.globalPrivacyControl', () => {
@@ -246,7 +251,7 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any).__PT_DNT).toBe(true)
+    expect(window.__PT_DNT).toBe(true)
   })
 
   it('a privacy signal does not override an explicit stored consent choice', () => {
@@ -270,8 +275,8 @@ describe('ConsentScript inline consent check', () => {
 
     runConsentScript()
 
-    expect((window as any).__PT_DNT).toBe(true)
-    expect((window as any)[ANALYTICS_FLAG]).toBe(true)
+    expect(window.__PT_DNT).toBe(true)
+    expect(window.__PT_CONSENT_ANALYTICS).toBe(true)
   })
 
   it('dispatches a "consentReady" event with the resolved analytics and dnt state', () => {
