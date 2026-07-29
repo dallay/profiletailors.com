@@ -15,6 +15,7 @@ internal class ResetPasswordHandler(
     private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val passwordRecoveryEnabled: () -> Boolean,
+    private val passwordResetAuditPort: PasswordResetAuditPort,
 ) : CommandWithResultHandler<ResetPasswordCommand, ResetPasswordResult> {
 
     override suspend fun handle(command: ResetPasswordCommand): ResetPasswordResult {
@@ -36,7 +37,7 @@ internal class ResetPasswordHandler(
         }
 
         val principalId = stored.principalId
-        val consumed = transactionRunner.runAtomically {
+        transactionRunner.runAtomically {
             val ok = try {
                 passwordResetTokenRepository.consumeAndUpdatePassword(
                     tokenHash = tokenHash,
@@ -53,7 +54,19 @@ internal class ResetPasswordHandler(
             true
         }
 
-        return if (consumed) ResetPasswordResult() else ResetPasswordResult(passwordChanged = false)
+        try {
+            passwordResetAuditPort.recordCompleted(
+                PasswordResetAuditEvent(
+                    principalId = principalId,
+                    occurredAt = now,
+                ),
+            )
+        } catch (cancellation: kotlinx.coroutines.CancellationException) {
+            throw cancellation
+        } catch (_: Exception) {
+            // The reset is already committed; audit is additive and cannot change its outcome.
+        }
+        return ResetPasswordResult()
     }
 
     private fun validatePassword(password: String) {

@@ -1,10 +1,14 @@
 package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.smp.identity.infrastructure.email.CoroutinePasswordResetRetryDelay
 import com.profiletailors.smp.identity.infrastructure.email.EmailProperties
+import com.profiletailors.smp.identity.infrastructure.email.PasswordResetRetryDelay
 import com.profiletailors.spring.boot.bus.event.EventConfiguration
 import com.profiletailors.spring.boot.bus.event.EventEmitter
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
@@ -15,12 +19,14 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
  */
 @Configuration
 @Import(EventConfiguration::class)
+@EnableConfigurationProperties(PasswordRecoveryConfigurationProperties::class)
 class IdentityEventConfiguration {
 
     @Bean
     fun domainEventEmitter(): EventEmitter<DomainEvent> = EventEmitter()
 
     @Bean
+    @ConditionalOnMissingBean(name = ["passwordResetEmailTaskExecutor"])
     fun passwordResetEmailTaskExecutor(): ThreadPoolTaskExecutor = ThreadPoolTaskExecutor().apply {
         corePoolSize = PASSWORD_RESET_EMAIL_CORE_POOL_SIZE
         maxPoolSize = PASSWORD_RESET_EMAIL_MAX_POOL_SIZE
@@ -30,6 +36,14 @@ class IdentityEventConfiguration {
         setAwaitTerminationSeconds(PASSWORD_RESET_EMAIL_SHUTDOWN_SECONDS)
         initialize()
     }
+
+    @Bean
+    fun passwordResetRetryPolicy(
+        properties: PasswordRecoveryConfigurationProperties,
+    ): PasswordRecoveryConfigurationProperties.NotificationRetry = properties.notificationRetry
+
+    @Bean
+    fun passwordResetRetryDelay(): PasswordResetRetryDelay = CoroutinePasswordResetRetryDelay
 
     @Bean
     fun emailProperties(

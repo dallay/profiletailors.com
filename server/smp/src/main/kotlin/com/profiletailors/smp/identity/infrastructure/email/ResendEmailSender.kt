@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.email
 
+import com.profiletailors.smp.identity.application.EmailFailureCategory
 import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
@@ -38,9 +39,9 @@ class ResendEmailSender(private val emailProperties: EmailProperties, private va
             val response = emailGateway.send(params)
             log.debug("Email sent via Resend — id={}", response.id)
             EmailSendResult(success = true)
-        } catch (e: ResendException) {
-            log.error("Failed to send email via Resend — to={} error={}", to, e.message)
-            EmailSendResult(success = false, error = e.message)
+        } catch (_: ResendException) {
+            log.error("Email delivery failed via Resend with category provider-rejected")
+            EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED)
         }
     }
 }

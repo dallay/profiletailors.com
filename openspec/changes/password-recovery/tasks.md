@@ -70,14 +70,14 @@ Codecov follow-up: after PR 2, inspect focused app coverage/reporting and open a
 
 ## PR 3 — Hardening after PR 1
 
-- [ ] [PR-3.01] RED: Test cleanup retention/idempotency and `@pr-3` glue.
-- [ ] [PR-3.02] GREEN/REFACTOR: Add cleanup port, scheduler, config, PostgreSQL adapter under `identity/`.
-- [ ] [PR-3.03] RED: Test successful/suspicious audit redaction.
-- [ ] [PR-3.04] GREEN/REFACTOR: Add post-commit audit; failures cannot roll back reset.
-- [ ] [PR-3.05] RED: Test retry, terminal failure, telemetry.
-- [ ] [PR-3.06] GREEN/REFACTOR: Add email retries, safe failure store, redaction.
-- [ ] [PR-3.07] RED: Test PII-free metric labels and span attributes.
-- [ ] [PR-3.08] GREEN: Add metrics/spans under `identity/infrastructure/observability/`.
-- [ ] [PR-3.09] RED: Add runbook acceptance checks.
-- [ ] [PR-3.10] GREEN: Create `docs/runbooks/password-recovery.md` for incidents, retries, cleanup, metrics, and rollback.
+- [x] [PR-3.01] RED: Test cleanup retention/idempotency and `@pr-3` glue.
+- [x] [PR-3.02] GREEN/REFACTOR: Add cleanup port, scheduler, config, PostgreSQL adapter under `identity/`.
+- [x] [PR-3.03] RED: Test successful/suspicious audit redaction.
+- [x] [PR-3.04] GREEN/REFACTOR: Add post-commit audit; failures cannot roll back reset.
+- [x] [PR-3.05] RED: Test retry, terminal failure, telemetry.
+- [x] [PR-3.06] GREEN/REFACTOR: Add email retries, safe failure store, redaction.
+- [x] [PR-3.07] RED: Test PII-free metric labels and span attributes.
+- [x] [PR-3.08] GREEN: Add metrics/spans under `identity/infrastructure/observability/`.
+- [x] [PR-3.09] RED: Add runbook acceptance checks.
+- [x] [PR-3.10] GREEN: Create `docs/runbooks/password-recovery.md` for incidents, retries, cleanup, metrics, and rollback.
 - [ ] [PR-3.11] Run backend checks and all `@pr-3` scenarios; open PR after PR 1.

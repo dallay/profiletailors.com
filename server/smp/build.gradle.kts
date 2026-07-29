@@ -46,11 +46,26 @@ tasks.bootRun {
     }
 }
 
+val postgresTestPassword =
+    providers.environmentVariable("SMP_DB_TEST_PASSWORD").orElse(
+        providers.fileContents(rootProject.layout.projectDirectory.file(".env")).asText.map { contents ->
+            contents
+                .lineSequence()
+                .firstOrNull { it.startsWith("SMP_DB_TEST_PASSWORD=") }
+                ?.substringAfter('=')
+                ?.trim()
+                .orEmpty()
+        },
+    )
+
 tasks.withType<Test>().configureEach {
     // Increase heap for integration tests that load full Spring contexts with Testcontainers.
     // Default 512m is insufficient for tests like PublishingWorkerTransactionPostgresIntegrationTest.
     maxHeapSize = "2g"
     jvmArgs("-XX:MaxMetaspaceSize=512m")
+    postgresTestPassword.orNull?.takeIf { it.isNotBlank() }?.let { password ->
+        environment("SMP_DB_TEST_PASSWORD", password)
+    }
 }
 
 dependencies {

@@ -1,8 +1,13 @@
 package com.profiletailors.smp.bdd.glue
 
+import com.profiletailors.smp.identity.application.EmailFailureCategory
 import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
+import com.profiletailors.smp.identity.application.PasswordResetNotificationFailure
+import com.profiletailors.smp.identity.application.PasswordResetNotificationFailurePort
+import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetry
+import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryPort
 import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
@@ -10,6 +15,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
+import org.springframework.core.task.SyncTaskExecutor
+import org.springframework.core.task.TaskExecutor
 import org.springframework.security.oauth2.jwt.BadJwtException
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
@@ -57,6 +64,32 @@ class CommonBddTestConfiguration {
     @Bean("smtpEmailSender")
     @Primary
     fun recordingEmailSender(): RecordingEmailSender = RecordingEmailSender()
+
+    @Bean("passwordResetEmailTaskExecutor")
+    @Primary
+    fun passwordResetEmailTaskExecutor(): TaskExecutor = SyncTaskExecutor()
+
+    @Bean
+    @Primary
+    fun passwordResetRetryDelay(): com.profiletailors.smp.identity.infrastructure.email.PasswordResetRetryDelay =
+        com.profiletailors.smp.identity.infrastructure.email.PasswordResetRetryDelay { }
+
+    @Bean
+    @Primary
+    fun recordingPasswordResetFailurePort(): RecordingPasswordResetFailurePort = RecordingPasswordResetFailurePort()
+
+    @Bean
+    @Primary
+    fun passwordResetRetryPolicy():
+        com.profiletailors.smp.identity.infrastructure.PasswordRecoveryConfigurationProperties.NotificationRetry =
+        com.profiletailors.smp.identity.infrastructure.PasswordRecoveryConfigurationProperties.NotificationRetry(
+            initialBackoff = java.time.Duration.ZERO,
+        )
+
+    @Bean
+    @Primary
+    fun recordingPasswordResetTelemetryPort(): RecordingPasswordResetTelemetryPort =
+        RecordingPasswordResetTelemetryPort()
 
     @Bean
     fun mutablePasswordRecoveryFlag(): MutablePasswordRecoveryFlag = MutablePasswordRecoveryFlag()
@@ -129,24 +162,60 @@ class MutablePasswordRecoveryFlag {
     }
 }
 
+class RecordingPasswordResetFailurePort : PasswordResetNotificationFailurePort {
+    private val recorded = java.util.concurrent.CopyOnWriteArrayList<PasswordResetNotificationFailure>()
+    val records: List<PasswordResetNotificationFailure>
+        get() = recorded.toList()
+
+    override suspend fun record(failure: PasswordResetNotificationFailure) {
+        recorded += failure
+    }
+
+    fun reset() = recorded.clear()
+}
+
+class RecordingPasswordResetTelemetryPort : PasswordResetNotificationTelemetryPort {
+    private val recorded = java.util.concurrent.CopyOnWriteArrayList<PasswordResetNotificationTelemetry>()
+    val events: List<PasswordResetNotificationTelemetry>
+        get() = recorded.toList()
+
+    override fun record(event: PasswordResetNotificationTelemetry) {
+        recorded += event
+    }
+
+    fun reset() = recorded.clear()
+}
+
 class RecordingEmailSender : EmailSender {
     data class Message(val to: String, val subject: String, val content: EmailMessage)
 
     private val recordedMessages = java.util.concurrent.CopyOnWriteArrayList<Message>()
+    private val configuredResults = java.util.concurrent.ConcurrentLinkedQueue<EmailSendResult>()
     private val deliverySignal = java.util.concurrent.Semaphore(0)
+    var attempts: Int = 0
+        private set
     val messages: List<Message>
         get() = recordedMessages.toList()
 
     override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
+        attempts += 1
         recordedMessages += Message(to, subject, message)
         deliverySignal.release()
-        return EmailSendResult(success = true)
+        return configuredResults.poll() ?: EmailSendResult.sent()
+    }
+
+    fun failTemporarily(attempts: Int) {
+        repeat(attempts) {
+            configuredResults += EmailSendResult.temporaryFailure(EmailFailureCategory.PROVIDER_UNAVAILABLE)
+        }
     }
 
     fun awaitDelivery(): Boolean = deliverySignal.tryAcquire(5, java.util.concurrent.TimeUnit.SECONDS)
 
     fun reset() {
         recordedMessages.clear()
+        configuredResults.clear()
         deliverySignal.drainPermits()
+        attempts = 0
     }
 }

@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.smp.identity.application.PasswordResetTokenCleanupPort
 import com.profiletailors.smp.identity.application.PasswordResetTokenRepository
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
@@ -274,6 +275,38 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `cleanup SQL preserves tokens used at or after the retention cutoff`() {
+        val source = repositoryFile(
+            "src/main/kotlin/com/profiletailors/smp/identity/infrastructure/R2dbcPasswordResetTokenRepository.kt",
+        ).readText()
+
+        assertTrue(source.contains("expires_at < :cutoff AND (used_at IS NULL OR used_at < :cutoff)"))
+    }
+
+    @Test
+    fun `cleanup deletes only tokens expired before the retention cutoff and is idempotent`() = runTest {
+        seedPrincipal()
+        val cleanupPort: PasswordResetTokenCleanupPort = R2dbcPasswordResetTokenRepository(databaseClient)
+        val cutoff = Instant.parse("2026-07-20T12:00:00Z")
+
+        repository.create("user-1", "expired-old", cutoff.minusSeconds(3600), cutoff.minusSeconds(1))
+        repository.create("user-1", "expired-at-cutoff", cutoff.minusSeconds(3600), cutoff)
+        repository.create("user-1", "expired-recent", cutoff.minusSeconds(1800), cutoff.plusSeconds(1))
+        repository.create("user-1", "active", cutoff, cutoff.plusSeconds(86_400))
+        repository.create("user-1", "recently-used", cutoff.minusSeconds(7200), cutoff.minusSeconds(1))
+        markTokenUsed("recently-used", cutoff)
+
+        assertEquals(1L, cleanupPort.deleteExpiredBefore(cutoff))
+        assertNull(repository.findByTokenHash("expired-old"))
+        assertNotNull(repository.findByTokenHash("expired-at-cutoff"))
+        assertNotNull(repository.findByTokenHash("expired-recent"))
+        assertNotNull(repository.findByTokenHash("active"))
+        assertNotNull(repository.findByTokenHash("recently-used"))
+
+        assertEquals(0L, cleanupPort.deleteExpiredBefore(cutoff))
+    }
+
+    @Test
     fun `deleting principal cascades to password_reset_tokens`() = runTest {
         seedPrincipal()
         repository.create(
@@ -314,6 +347,10 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         assertNull(repository.findByTokenHash(rawToken))
         assertNotNull(repository.findByTokenHash(hash))
     }
+
+    private fun repositoryFile(relativePath: String): java.io.File = generateSequence(
+        java.io.File(System.getProperty("user.dir")).absoluteFile,
+    ) { it.parentFile }.map { java.io.File(it, relativePath) }.first { it.isFile }
 
     private suspend fun seedPrincipal() {
         databaseClient.sql(

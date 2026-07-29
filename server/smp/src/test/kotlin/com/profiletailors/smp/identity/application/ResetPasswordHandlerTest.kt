@@ -152,6 +152,63 @@ class ResetPasswordHandlerTest {
     }
 
     @Test
+    fun `successful reset emits a completed audit event only after the atomic mutation`() = runTest {
+        val stored = validStoredToken()
+        val tokenRepository = FakePasswordResetTokenRepository(stored = stored, consumeResult = true)
+        val refreshSvc = RecordingRefreshSessionLifecycleService()
+        val calls = mutableListOf<String>()
+        val transactionRunner = object : AtomicTransactionRunner {
+            override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+                calls += "transaction-started"
+                return block().also { calls += "transaction-committed" }
+            }
+        }
+        val auditPort = PasswordResetAuditPort { event ->
+            calls += "audit"
+            assertEquals("user-1", event.principalId)
+            assertEquals(fixedClock.instant(), event.occurredAt)
+        }
+        val handler = newHandler(
+            tokenRepository = tokenRepository,
+            refreshSessionLifecycleService = refreshSvc,
+            transactionRunner = transactionRunner,
+            auditPort = auditPort,
+        )
+
+        val result = handler.handle(
+            ResetPasswordCommand(token = RAW_TOKEN, newPassword = NEW_PASSWORD),
+        )
+
+        assertTrue(result.passwordChanged)
+        assertEquals(listOf("transaction-started", "transaction-committed", "audit"), calls)
+    }
+
+    @Test
+    fun `audit sink failure cannot turn a committed reset into a failure`() = runTest {
+        val tokenRepository = FakePasswordResetTokenRepository(stored = validStoredToken(), consumeResult = true)
+        val refreshSvc = RecordingRefreshSessionLifecycleService()
+        var committed = false
+        val transactionRunner = object : AtomicTransactionRunner {
+            override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block().also { committed = true }
+        }
+        val handler = newHandler(
+            tokenRepository = tokenRepository,
+            refreshSessionLifecycleService = refreshSvc,
+            transactionRunner = transactionRunner,
+            auditPort = PasswordResetAuditPort { throw IllegalStateException("audit sink unavailable") },
+        )
+
+        val result = handler.handle(
+            ResetPasswordCommand(token = RAW_TOKEN, newPassword = NEW_PASSWORD),
+        )
+
+        assertTrue(result.passwordChanged)
+        assertTrue(committed)
+        assertEquals(1, tokenRepository.consumeCalls)
+        assertEquals(1, refreshSvc.revokeAllCalls)
+    }
+
+    @Test
     fun `hashes the raw token before the lookup`() = runTest {
         val tokenRepository = FakePasswordResetTokenRepository(stored = null)
         val refreshSvc = RecordingRefreshSessionLifecycleService()
@@ -277,13 +334,24 @@ class ResetPasswordHandlerTest {
         tokenRepository: PasswordResetTokenRepository,
         refreshSessionLifecycleService: RefreshSessionLifecycleService,
         enabled: Boolean = true,
+        transactionRunner: AtomicTransactionRunner = NoopAtomicTransactionRunner,
+        auditPort: PasswordResetAuditPort = PasswordResetAuditPort { },
     ): ResetPasswordHandler = ResetPasswordHandler(
         passwordResetTokenRepository = tokenRepository,
         passwordHasher = passwordHasher,
         refreshSessionLifecycleService = refreshSessionLifecycleService,
-        transactionRunner = NoopAtomicTransactionRunner,
+        transactionRunner = transactionRunner,
         clock = fixedClock,
         passwordRecoveryEnabled = { enabled },
+        passwordResetAuditPort = auditPort,
+    )
+
+    private fun validStoredToken() = PasswordResetToken(
+        id = UUID.fromString("00000000-0000-0000-0000-000000000001"),
+        principalId = "user-1",
+        tokenHash = PasswordResetTokenHasher.hash(RAW_TOKEN),
+        requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
+        expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
     )
 
     private object NoopAtomicTransactionRunner : AtomicTransactionRunner {
@@ -384,4 +452,9 @@ class ResetPasswordHandlerTest {
         username = "user",
         emailStatus = EmailStatus.VERIFIED,
     )
+
+    private companion object {
+        const val RAW_TOKEN = "raw-token-sensitive"
+        const val NEW_PASSWORD = "NewPassword123!"
+    }
 }

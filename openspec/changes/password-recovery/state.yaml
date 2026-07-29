@@ -1,19 +1,24 @@
 change: password-recovery
-current_phase: apply
+current_phase: verify
 completed: [propose, spec, design, tasks, apply, verify]
-next: apply
-updated: 2026-07-28
+next: preparation-and-pr
+updated: 2026-07-29
 slices:
   pr-1:
-    status: verified
+    status: merged
     completed_phases: [apply, verify]
     next: none
   pr-2:
-    status: verified
+    status: merged
     completed_phases: [apply, verify]
     completed_tasks: [PR-2.01, PR-2.02, PR-2.03, PR-2.04, PR-2.05, PR-2.06, PR-2.07, PR-2.08, PR-2.09, PR-2.10, PR-2.11]
-    next: preparation-and-pr
-    next_task: PR-2.12
+    next: none
   pr-3:
-    status: planned
-    next: apply-after-pr-1
+    status: verified
+    branch: feat/dallay-523-password-recovery-hardening
+    completed_phases: [apply, verify]
+    completed_tasks: [PR-3.01, PR-3.02, PR-3.03, PR-3.04, PR-3.05, PR-3.06, PR-3.07, PR-3.08, PR-3.09, PR-3.10, PR-3.11]
+    blocked_tasks: []
+    failed_verification: false
+    verdict: pass
+    next: preparation-and-pr

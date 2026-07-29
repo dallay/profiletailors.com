@@ -1225,6 +1225,33 @@ class BddDatabaseSupport(
         "SELECT COUNT(*) AS total FROM password_reset_tokens",
     ).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
 
+    suspend fun seedPasswordResetToken(tokenHash: String, expiresAt: Instant, usedAt: Instant? = null) {
+        seedLocalAccountWithPassword("cleanup@example.com")
+        databaseClient.sql(
+            """
+            INSERT INTO password_reset_tokens (id, principal_id, token_hash, requested_at, expires_at, used_at)
+            VALUES (gen_random_uuid(), 'principal-cleanup', :tokenHash, :requestedAt, :expiresAt, :usedAt)
+            """.trimIndent(),
+        )
+            .bind("tokenHash", tokenHash)
+            .bind("requestedAt", expiresAt.minusSeconds(1800))
+            .bind("expiresAt", expiresAt)
+            .let { statement ->
+                if (usedAt == null) {
+                    statement.bindNull("usedAt", Instant::class.java)
+                } else {
+                    statement.bind("usedAt", usedAt)
+                }
+            }
+            .fetch().rowsUpdated().awaitSingle()
+    }
+
+    suspend fun passwordResetTokenExists(tokenHash: String): Boolean = databaseClient.sql(
+        "SELECT COUNT(*) AS total FROM password_reset_tokens WHERE token_hash = :tokenHash",
+    ).bind("tokenHash", tokenHash)
+        .map { row, _ -> (row.get("total") as Number).toLong() > 0 }
+        .one().awaitSingle()
+
     suspend fun countActiveRefreshSessions(principalId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM refresh_sessions WHERE principal_id = :id AND status = 'ACTIVE'",
     ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()

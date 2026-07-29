@@ -39,6 +39,23 @@ class PasswordRecoveryBddSteps {
     @Autowired
     private lateinit var passwordRecoveryFlag: MutablePasswordRecoveryFlag
 
+    @Autowired
+    private lateinit var auditHook: com.profiletailors.smp.integration.support.CapturingAuditHook
+
+    @Autowired
+    private lateinit var passwordResetTokenCleanupScheduler:
+        com.profiletailors.smp.identity.infrastructure.PasswordResetTokenCleanupScheduler
+
+    @Autowired
+    private lateinit var passwordResetFailurePort: RecordingPasswordResetFailurePort
+
+    @Autowired
+    private lateinit var passwordResetTelemetryPort: RecordingPasswordResetTelemetryPort
+
+    @Autowired
+    private lateinit var passwordResetEmailConsumer:
+        com.profiletailors.smp.identity.infrastructure.email.SendPasswordResetEmailConsumer
+
     private var latestResult: EntityExchangeResult<ByteArray>? = null
     private var latestStatusCode: Int? = null
     private var lastForgotPasswordBody: String = ""
@@ -85,9 +102,12 @@ class PasswordRecoveryBddSteps {
         forgotPasswordStatuses.clear()
         resetPasswordStatuses.clear()
         recordingEmailSender.reset()
+        passwordResetFailurePort.reset()
+        passwordResetTelemetryPort.reset()
         (rateLimitPort as? com.profiletailors.smp.identity.infrastructure.InMemoryRateLimitAdapter)?.clear()
         authRateLimitWebFilter.clear()
         passwordRecoveryFlag.enable()
+        auditHook.reset()
     }
 
     @Given("password recovery is enabled")
@@ -184,6 +204,53 @@ class PasswordRecoveryBddSteps {
             principalId = "principal-1",
             email = "user@example.com",
         )
+    }
+
+    @Given("expired and active password reset tokens exist")
+    fun expiredAndActivePasswordResetTokensExist() = runBlocking {
+        bddDatabaseSupport.seedPasswordResetToken(
+            tokenHash = CLEANUP_EXPIRED_OLD,
+            expiresAt = CLEANUP_NOW.minus(java.time.Duration.ofDays(31)),
+        )
+        bddDatabaseSupport.seedPasswordResetToken(
+            tokenHash = CLEANUP_EXPIRED_RECENT,
+            expiresAt = CLEANUP_NOW.minus(java.time.Duration.ofDays(29)),
+            usedAt = CLEANUP_NOW.minus(java.time.Duration.ofDays(1)),
+        )
+        bddDatabaseSupport.seedPasswordResetToken(
+            tokenHash = CLEANUP_ACTIVE,
+            expiresAt = CLEANUP_NOW.plus(java.time.Duration.ofMinutes(30)),
+        )
+    }
+
+    @When("the expired-token cleanup job runs")
+    fun theExpiredTokenCleanupJobRuns() = runBlocking {
+        passwordResetTokenCleanupScheduler.runCleanup()
+    }
+
+    @When("the expired-token cleanup job runs again")
+    fun theExpiredTokenCleanupJobRunsAgain() = runBlocking {
+        passwordResetTokenCleanupScheduler.runCleanup()
+    }
+
+    @Then("expired tokens older than the retention threshold should be deleted")
+    fun expiredTokensOlderThanTheRetentionThresholdShouldBeDeleted() = runBlocking {
+        assertTrue(!bddDatabaseSupport.passwordResetTokenExists(CLEANUP_EXPIRED_OLD))
+    }
+
+    @And("active unexpired tokens should remain")
+    fun activeUnexpiredTokensShouldRemain() = runBlocking {
+        assertTrue(bddDatabaseSupport.passwordResetTokenExists(CLEANUP_ACTIVE))
+    }
+
+    @And("recently used tokens within the audit retention period should remain")
+    fun recentlyUsedTokensWithinTheAuditRetentionPeriodShouldRemain() = runBlocking {
+        assertTrue(bddDatabaseSupport.passwordResetTokenExists(CLEANUP_EXPIRED_RECENT))
+    }
+
+    @Then("the cleanup should be idempotent")
+    fun theCleanupShouldBeIdempotent() = runBlocking {
+        assertEquals(2L, bddDatabaseSupport.countAllPasswordResetTokens())
     }
 
     @Given("the account has a current password {string}")
@@ -394,6 +461,47 @@ class PasswordRecoveryBddSteps {
     fun theResponseStatusShouldBe(status: Int) {
         val actual = latestStatusCode ?: (latestResult?.status?.value() ?: -1)
         assertEquals(status, actual, "Expected status $status but got $actual")
+    }
+
+    @And("an audit event should record the principal identifier")
+    fun anAuditEventShouldRecordThePrincipalIdentifier() {
+        val fact = completedPasswordResetAuditFact()
+        assertEquals("principal-1", fact.targetId)
+        assertEquals("principal-1", fact.actorPrincipalId)
+        assertEquals(null, fact.workspaceId)
+    }
+
+    @And("the event should record the occurrence timestamp")
+    fun theEventShouldRecordTheOccurrenceTimestamp() {
+        val occurredAt = completedPasswordResetAuditFact().details["occurredAt"]
+        assertNotNull(occurredAt)
+        java.time.Instant.parse(requireNotNull(occurredAt))
+    }
+
+    @And("the event should record the action {string}")
+    fun theEventShouldRecordTheAction(action: String) {
+        assertEquals(action, completedPasswordResetAuditFact().action)
+    }
+
+    @And("the event should not contain the raw token")
+    fun theEventShouldNotContainTheRawToken() {
+        assertAuditExcludes(bddDatabaseSupport.lastRawToken())
+    }
+
+    @And("the event should not contain the password")
+    fun theEventShouldNotContainThePassword() {
+        assertAuditExcludes("NewPassword123!")
+    }
+
+    @And("the event should not contain the password hash")
+    fun theEventShouldNotContainThePasswordHash() = runBlocking {
+        assertAuditExcludes(requireNotNull(bddDatabaseSupport.lookupPasswordHash("principal-1")))
+    }
+
+    @And("the event should not contain the email or raw IP")
+    fun theEventShouldNotContainTheEmailOrRawIp() {
+        assertAuditExcludes("user@example.com")
+        assertAuditExcludes("127.0.0.1")
     }
 
     @And("the response should not indicate whether the account exists")
@@ -797,6 +905,90 @@ class PasswordRecoveryBddSteps {
         preferredLocale = locale
     }
 
+    @Given("the password reset email provider is temporarily unavailable")
+    fun thePasswordResetEmailProviderIsTemporarilyUnavailable() {
+        recordingEmailSender.failTemporarily(1)
+    }
+
+    @Given("all configured delivery retries are exhausted")
+    fun allConfiguredDeliveryRetriesAreExhausted() {
+        recordingEmailSender.failTemporarily(3)
+    }
+
+    @Given("a password reset notification is dispatched")
+    fun aPasswordResetNotificationIsDispatched() {
+        recordingEmailSender.failTemporarily(1)
+        publishPasswordResetNotification()
+    }
+
+    @When("the notification dispatcher attempts delivery")
+    fun theNotificationDispatcherAttemptsDelivery() {
+        publishPasswordResetNotification()
+    }
+
+    @When("the password reset email cannot be delivered")
+    fun thePasswordResetEmailCannotBeDelivered() {
+        publishPasswordResetNotification()
+    }
+
+    @Then("the delivery should be retried according to notification policy")
+    fun theDeliveryShouldBeRetriedAccordingToNotificationPolicy() {
+        awaitPasswordResetEmail()
+        assertEquals(2, recordingEmailSender.attempts)
+    }
+
+    @And("the raw token should not appear in retry logs")
+    fun theRawTokenShouldNotAppearInRetryLogs() {
+        assertSafeNotificationOperations()
+    }
+
+    @Then("the notification should be marked as failed")
+    fun theNotificationShouldBeMarkedAsFailed() {
+        awaitPasswordResetEmail()
+        assertEquals(3, recordingEmailSender.attempts)
+        assertEquals(3, passwordResetFailurePort.records.single().attempts)
+    }
+
+    @And("operational telemetry should record the failure")
+    fun operationalTelemetryShouldRecordTheFailure() {
+        assertTrue(
+            passwordResetTelemetryPort.events.any {
+                it.status == com.profiletailors.smp.identity.application.PasswordResetNotificationStatus.FAILED
+            },
+        )
+    }
+
+    @And("the raw token should not be included in the failure record")
+    fun theRawTokenShouldNotBeIncludedInTheFailureRecord() {
+        assertSafeNotificationOperations()
+    }
+
+    @Then("telemetry may include the notification type")
+    fun telemetryMayIncludeTheNotificationType() {
+        awaitPasswordResetEmail()
+        assertTrue(passwordResetTelemetryPort.events.all { it.notificationType == "PASSWORD_RESET" })
+    }
+
+    @And("telemetry may include delivery status")
+    fun telemetryMayIncludeDeliveryStatus() {
+        assertTrue(passwordResetTelemetryPort.events.isNotEmpty())
+    }
+
+    @And("telemetry should not include the raw token")
+    fun telemetryShouldNotIncludeTheRawToken() {
+        assertSafeNotificationOperations()
+    }
+
+    @And("telemetry should not include the new password")
+    fun telemetryShouldNotIncludeTheNewPassword() {
+        assertSafeNotificationOperations()
+    }
+
+    @And("telemetry should not include the reset URL query string")
+    fun telemetryShouldNotIncludeTheResetUrlQueryString() {
+        assertSafeNotificationOperations()
+    }
+
     @And("the password reset email should be rendered in {string}")
     fun thePasswordResetEmailShouldBeRenderedIn(locale: String) {
         awaitPasswordResetEmail()
@@ -1179,6 +1371,28 @@ class PasswordRecoveryBddSteps {
         )
     }
 
+    private fun publishPasswordResetNotification() {
+        runBlocking {
+            passwordResetEmailConsumer.consume(
+                com.profiletailors.smp.identity.domain.PasswordResetRequested(
+                    principalId = "principal-1",
+                    email = "user@example.com",
+                    rawResetToken = "bdd-sensitive-raw-token",
+                ),
+            )
+        }
+    }
+
+    private fun assertSafeNotificationOperations() {
+        val serialized = passwordResetFailurePort.records.toString() + passwordResetTelemetryPort.events.toString()
+        listOf(
+            "bdd-sensitive-raw-token",
+            "user@example.com",
+            "reset-password?token=",
+            "NewPassword123!",
+        ).forEach { sensitive -> assertTrue(!serialized.contains(sensitive)) }
+    }
+
     private fun awaitPasswordResetEmail() {
         if (recordingEmailSender.messages.none { it.subject.contains("password", ignoreCase = true) }) {
             assertTrue(recordingEmailSender.awaitDelivery(), "Expected password reset email delivery to complete")
@@ -1258,5 +1472,19 @@ class PasswordRecoveryBddSteps {
             .expectBody()
             .returnResult()
         lastRefreshStatus = latestResult?.status?.value() ?: -1
+    }
+
+    private fun completedPasswordResetAuditFact(): com.profiletailors.smp.audit.domain.MutationAuditFact =
+        auditHook.mutations.single { it.action == "PASSWORD_RESET_COMPLETED" }
+
+    private fun assertAuditExcludes(value: String) {
+        assertTrue(!completedPasswordResetAuditFact().toString().contains(value, ignoreCase = true))
+    }
+
+    private companion object {
+        private val CLEANUP_NOW = java.time.Instant.parse("2026-07-29T12:00:00Z")
+        private const val CLEANUP_EXPIRED_OLD = "cleanup-expired-old"
+        private const val CLEANUP_EXPIRED_RECENT = "cleanup-expired-recent"
+        private const val CLEANUP_ACTIVE = "cleanup-active"
     }
 }

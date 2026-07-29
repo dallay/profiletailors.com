@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.smp.identity.application.PasswordResetTokenCleanupPort
 import com.profiletailors.smp.identity.application.PasswordResetTokenRepository
 import com.profiletailors.smp.identity.domain.PasswordResetToken
 import kotlinx.coroutines.reactor.awaitSingle
@@ -11,7 +12,17 @@ import java.time.OffsetDateTime
 import java.util.UUID
 
 @Repository
-class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClient) : PasswordResetTokenRepository {
+class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClient) :
+    PasswordResetTokenRepository,
+    PasswordResetTokenCleanupPort {
+
+    override suspend fun deleteExpiredBefore(cutoff: Instant): Long = databaseClient.sql(
+        "DELETE FROM password_reset_tokens WHERE expires_at < :cutoff AND (used_at IS NULL OR used_at < :cutoff)",
+    )
+        .bind("cutoff", cutoff)
+        .fetch()
+        .rowsUpdated()
+        .awaitSingle()
 
     override suspend fun create(principalId: String, tokenHash: String, requestedAt: Instant, expiresAt: Instant) {
         databaseClient.sql(

@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.email
 
+import com.profiletailors.smp.identity.application.EmailFailureCategory
 import com.profiletailors.smp.identity.application.EmailMessage
 import com.resend.core.exception.ResendException
 import com.resend.services.emails.model.CreateEmailOptions
@@ -57,7 +58,9 @@ class ResendEmailSenderTest {
         )
 
         assertFalse(result.success)
-        assertEquals("Invalid API key", result.error)
+        assertNull(result.error)
+        assertEquals(EmailFailureCategory.PROVIDER_REJECTED, result.failureCategory)
+        assertFalse(result.retryable)
     }
 
     @Test

@@ -178,6 +178,7 @@ class PasswordResetTransactionPostgresIntegrationTest : PostgresDatabaseTestBase
         transactionRunner = transactionRunner,
         clock = clock,
         passwordRecoveryEnabled = { true },
+        passwordResetAuditPort = com.profiletailors.smp.identity.application.PasswordResetAuditPort { },
     )
 
     private fun realRefreshLifecycle() = RefreshSessionLifecycleService(
