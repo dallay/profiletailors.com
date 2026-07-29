@@ -22,9 +22,19 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 @EnableConfigurationProperties(PasswordRecoveryConfigurationProperties::class)
 class IdentityEventConfiguration {
 
+    /**
+     * Provides an event emitter for domain events.
+     *
+     * @return The domain event emitter.
+     */
     @Bean
     fun domainEventEmitter(): EventEmitter<DomainEvent> = EventEmitter()
 
+    /**
+     * Creates the task executor used for password reset email processing.
+     *
+     * @return The configured password reset email task executor.
+     */
     @Bean
     @ConditionalOnMissingBean(name = ["passwordResetEmailTaskExecutor"])
     fun passwordResetEmailTaskExecutor(): ThreadPoolTaskExecutor = ThreadPoolTaskExecutor().apply {
@@ -37,14 +47,33 @@ class IdentityEventConfiguration {
         initialize()
     }
 
+    /**
+     * Provides the password recovery notification retry policy.
+     *
+     * @param properties Password recovery configuration properties.
+     * @return The configured notification retry policy.
+     */
     @Bean
     fun passwordResetRetryPolicy(
         properties: PasswordRecoveryConfigurationProperties,
     ): PasswordRecoveryConfigurationProperties.NotificationRetry = properties.notificationRetry
 
+    /**
+     * Provides the delay strategy used between password reset notification retries.
+     *
+     * @return The password reset retry delay.
+     */
     @Bean
     fun passwordResetRetryDelay(): PasswordResetRetryDelay = CoroutinePasswordResetRetryDelay
 
+    /**
+     * Creates email configuration properties for identity-related notifications.
+     *
+     * @param sender The email address used as the sender.
+     * @param verificationSubjectPrefix The prefix applied to verification email subjects.
+     * @param publicAppUrl The public application URL included in email content.
+     * @return The configured email properties.
+     */
     @Bean
     fun emailProperties(
         @Value("\${app.email.sender:noreply@profiletailors.com}") sender: String,

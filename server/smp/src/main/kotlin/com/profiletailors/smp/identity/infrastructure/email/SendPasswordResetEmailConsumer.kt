@@ -49,6 +49,11 @@ class SendPasswordResetEmailConsumer(
         }
     }
 
+    /**
+     * Delivers a password reset email, retrying retryable failures until delivery succeeds or attempts are exhausted.
+     *
+     * @param event The password reset request containing the recipient, token, locale, and principal identifier.
+     */
     private suspend fun deliver(event: PasswordResetRequested) {
         val message = EmailTemplates.passwordResetEmail(
             username = event.email.substringBefore('@'),
@@ -92,6 +97,14 @@ class SendPasswordResetEmailConsumer(
         }
     }
 
+    /**
+     * Records a terminal password reset email delivery failure and its telemetry.
+     *
+     * @param event The password reset request associated with the failure.
+     * @param attempts The number of delivery attempts made.
+     * @param category The category of the delivery failure.
+     * @throws CancellationException If recording the failure is cancelled.
+     */
     private suspend fun recordTerminalFailure(
         event: PasswordResetRequested,
         attempts: Int,
@@ -125,6 +138,14 @@ class SendPasswordResetEmailConsumer(
         )
     }
 
+    /**
+     * Creates telemetry data for a password reset email notification.
+     *
+     * @param status The notification status.
+     * @param attempts The number of delivery attempts.
+     * @param category The email failure category, when applicable.
+     * @return The notification telemetry data.
+     */
     private fun telemetry(
         status: PasswordResetNotificationStatus,
         attempts: Int,
@@ -136,12 +157,23 @@ class SendPasswordResetEmailConsumer(
         category = category,
     )
 
+    /**
+     * Calculates the retry delay for a failed delivery attempt.
+     *
+     * @param failedAttempt The number of the failed attempt.
+     * @return The exponential retry delay capped at the configured maximum backoff.
+     */
     private fun backoffFor(failedAttempt: Int): Duration {
         val multiplier = retryPolicy.multiplier.pow((failedAttempt - 1).toDouble())
         val millis = (retryPolicy.initialBackoff.toMillis() * multiplier).toLong()
         return Duration.ofMillis(minOf(millis, retryPolicy.maxBackoff.toMillis()))
     }
 
+    /**
+     * Formats the failure category name for safe display.
+     *
+     * @return The lowercase category name with underscores replaced by hyphens.
+     */
     private fun EmailFailureCategory.safeName(): String = name.lowercase().replace('_', '-')
 
     private companion object {

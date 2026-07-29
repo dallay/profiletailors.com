@@ -12,6 +12,11 @@ import java.util.UUID
 @Repository
 class R2dbcPasswordResetNotificationFailureRepository(private val databaseClient: DatabaseClient) :
     PasswordResetNotificationFailurePort {
+    /**
+     * Records a password reset notification failure.
+     *
+     * @param failure The password reset notification failure to record.
+     */
     override suspend fun record(failure: PasswordResetNotificationFailure) {
         databaseClient.sql(INSERT_SQL)
             .bind("id", UUID.randomUUID())

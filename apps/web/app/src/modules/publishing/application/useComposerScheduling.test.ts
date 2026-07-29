@@ -4,9 +4,7 @@ import { useComposerScheduling } from './useComposerScheduling'
 
 describe('useComposerScheduling', () => {
   beforeEach(() => {
-    // Set fake timers BEFORE any test runs
     vi.useFakeTimers()
-    // Set a default system time for all tests
     vi.setSystemTime(new Date('2026-07-28T10:00:00.000Z'))
   })
 
@@ -43,7 +41,6 @@ describe('useComposerScheduling', () => {
       expect(selectedCalendarDate.value?.month).toBe(8)
       expect(selectedCalendarDate.value?.day).toBe(15)
 
-      // La hora será convertida a timezone local, así que solo verificamos que existe
       expect(scheduleTime.value).toBeDefined()
       expect(scheduleTime.value).toMatch(/^\d{2}:\d{2}$/)
     })
@@ -60,7 +57,6 @@ describe('useComposerScheduling', () => {
         initialMode: 'now',
       })
 
-      // initialDate tiene prioridad
       expect(scheduleMode.value).toBe('custom')
     })
   })
@@ -97,15 +93,13 @@ describe('useComposerScheduling', () => {
       selectedCalendarDate.value = new CalendarDate(2026, 8, 15)
       scheduleTime.value = '14:30'
 
-      // Verificar que genera ISO string válido con la fecha correcta
       expect(effectiveScheduledAt.value).toBeTruthy()
       expect(effectiveScheduledAt.value).toContain('2026-08-15')
       expect(backendScheduleMode.value).toBe('SCHEDULED_AT')
 
-      // Verificar que es ISO string válido
       const parsed = new Date(effectiveScheduledAt.value!)
       expect(parsed.getFullYear()).toBe(2026)
-      expect(parsed.getMonth()).toBe(7) // Agosto es mes 7 en JS (0-indexed)
+      expect(parsed.getMonth()).toBe(7)
       expect(parsed.getDate()).toBe(15)
     })
 
@@ -113,7 +107,6 @@ describe('useComposerScheduling', () => {
       const { scheduleMode, effectiveScheduledAt } = useComposerScheduling()
 
       scheduleMode.value = 'custom'
-      // No date selected
 
       expect(effectiveScheduledAt.value).toBeNull()
     })
@@ -142,18 +135,14 @@ describe('useComposerScheduling', () => {
 
       scheduleMode.value = 'custom'
 
-      // Sin fecha ni hora
       expect(isScheduleValid.value).toBe(false)
 
-      // Solo fecha
       selectedCalendarDate.value = new CalendarDate(2026, 8, 15)
-      expect(isScheduleValid.value).toBe(true) // scheduleTime tiene default '10:00'
+      expect(isScheduleValid.value).toBe(true)
 
-      // Reset time
       scheduleTime.value = ''
       expect(isScheduleValid.value).toBe(false)
 
-      // Con ambos
       scheduleTime.value = '14:30'
       expect(isScheduleValid.value).toBe(true)
     })
@@ -167,60 +156,42 @@ describe('useComposerScheduling', () => {
     })
 
     it('enforces minimum time of now+5min for today', () => {
-      // Ya está seteado en beforeEach a 10:00 UTC
       const { selectedCalendarDate, minTimeForDate, now } = useComposerScheduling()
 
-      // Seleccionar hoy (en UTC sería 2026-07-28)
       selectedCalendarDate.value = new CalendarDate(2026, 7, 28)
 
-      // Debería ser now + 5min
       const expectedHour = String(now.value.getHours()).padStart(2, '0')
       const expectedMin = String(now.value.getMinutes() + 5).padStart(2, '0')
       expect(minTimeForDate.value).toBe(`${expectedHour}:${expectedMin}`)
     })
 
     it('returns "23:59" when selecting today near midnight rollover', () => {
-      // 23:57 → now+5min sería 00:02 del día siguiente
-      // Usamos constructor local (new Date(year, monthIndex, day, hours, minutes))
-      // para que 23:57 sea SIEMPRE 23:57 local, sin importar el timezone del runner.
-      // Con UTC ISO string (21:57Z) solo funcionaba en timezones UTC+2.
       const almostMidnight = new Date(2026, 6, 28, 23, 57)
       vi.setSystemTime(almostMidnight)
 
       const { selectedCalendarDate, minTimeForDate } = useComposerScheduling()
 
-      // Necesitamos esperar a que el composable inicialice con el nuevo tiempo
       selectedCalendarDate.value = new CalendarDate(2026, 7, 28)
 
-      // No hay tiempo válido hoy, retorna imposible
       expect(minTimeForDate.value).toBe('23:59')
     })
 
     it('allows any time for future dates', () => {
       const { selectedCalendarDate, minTimeForDate } = useComposerScheduling()
 
-      // Seleccionar mañana
       selectedCalendarDate.value = new CalendarDate(2026, 7, 29)
 
       expect(minTimeForDate.value).toBe('00:00')
     })
 
     it('updates minTimeForDate when time advances', () => {
-      // NOTA: En tests unitarios puros (sin componente Vue mounted),
-      // el onMounted() no se ejecuta correctamente con fake timers,
-      // por lo que el ticker no avanza el valor de now.
-      // Este comportamiento está garantizado en tests de integración
-      // con componentes Vue reales.
-
       const { selectedCalendarDate, minTimeForDate, now } = useComposerScheduling()
 
       selectedCalendarDate.value = new CalendarDate(2026, 7, 28)
 
-      // Verificar que minTimeForDate existe y tiene formato correcto
       expect(minTimeForDate.value).toBeDefined()
       expect(minTimeForDate.value).toMatch(/^\d{2}:\d{2}$/)
 
-      // Verificar que now existe y es una fecha válida
       expect(now.value).toBeInstanceOf(Date)
       expect(now.value.getTime()).toBeGreaterThan(0)
     })
@@ -382,7 +353,6 @@ describe('useComposerScheduling', () => {
       expect(selectedCalendarDate.value?.month).toBe(8)
       expect(selectedCalendarDate.value?.day).toBe(15)
 
-      // La hora se convierte a timezone local, así que solo verificamos que existe
       expect(scheduleTime.value).toBeDefined()
       expect(scheduleTime.value).toMatch(/^\d{2}:\d{2}$/)
     })
@@ -403,7 +373,7 @@ describe('useComposerScheduling', () => {
 
       loadFromPublication({
         scheduleMode: 'NOW',
-        scheduledAt: '2026-08-15T14:30:00.000Z', // Ignorado
+        scheduledAt: '2026-08-15T14:30:00.000Z',
       })
 
       expect(selectedCalendarDate.value).toBeUndefined()
@@ -412,31 +382,28 @@ describe('useComposerScheduling', () => {
   })
 
   describe('clock ticker', () => {
-    it('updates now value every minute', async () => {
-      // Este test verifica que el ticker actualiza el valor de now
-      // pero en el contexto de tests sin un componente real montado,
-      // el onMounted no se ejecuta correctamente con fake timers.
-      // En producción funciona correctamente dentro de un componente Vue.
-
-      const { now } = useComposerScheduling()
+    it('updates now value every minute', () => {
+      const { now, minTimeForDate, selectedCalendarDate } = useComposerScheduling()
 
       const startTime = now.value.getTime()
+      selectedCalendarDate.value = new CalendarDate(2026, 7, 28)
+      const initialMinTime = minTimeForDate.value
 
-      // Verificar que el valor inicial existe
-      expect(startTime).toBeGreaterThan(0)
+      vi.advanceTimersByTime(60_000)
 
-      // En un entorno real de Vue, el ticker actualizaría now.value cada minuto
-      // pero en tests unitarios sin componente, verificamos que la estructura existe
-      expect(now.value).toBeInstanceOf(Date)
+      const newTime = now.value.getTime()
+      expect(newTime).toBeGreaterThan(startTime)
+      expect(minTimeForDate.value).not.toBe(initialMinTime)
     })
 
     it('cleans up ticker on unmount', () => {
       const clearIntervalSpy = vi.spyOn(global, 'clearInterval')
 
-      useComposerScheduling()
+      const { stopTicker } = useComposerScheduling()
 
-      // Verificamos que el timer se está usando (no se ha limpiado aún)
-      expect(clearIntervalSpy).not.toHaveBeenCalled()
+      stopTicker()
+
+      expect(clearIntervalSpy).toHaveBeenCalled()
     })
   })
 
@@ -449,8 +416,6 @@ describe('useComposerScheduling', () => {
       selectedCalendarDate.value = new CalendarDate(2026, 8, 15)
       scheduleTime.value = 'invalid'
 
-      // split(':') va a retornar ['invalid'], map(Number) → [NaN]
-      // Ahora retorna null en vez de fecha inválida
       const result = effectiveScheduledAt.value
 
       expect(result).toBeNull()
@@ -468,13 +433,10 @@ describe('useComposerScheduling', () => {
 
       expect(result).toBeTruthy()
 
-      // Verificar que genera ISO string válido
       const parsed = new Date(result!)
       expect(parsed).toBeInstanceOf(Date)
       expect(parsed.getTime()).toBeGreaterThan(0)
 
-      // La fecha en local timezone debe ser 2026-08-15 00:00
-      // (en UTC puede ser 2026-08-14 o 2026-08-15 dependiendo del offset)
       const localDateStr = result!.split('T')[0]
       expect(['2026-08-14', '2026-08-15']).toContain(localDateStr)
     })
@@ -491,13 +453,10 @@ describe('useComposerScheduling', () => {
 
       expect(result).toBeTruthy()
 
-      // Verificar que genera ISO string válido
       const parsed = new Date(result!)
       expect(parsed).toBeInstanceOf(Date)
       expect(parsed.getTime()).toBeGreaterThan(0)
 
-      // La fecha en local timezone debe ser 2026-08-15 23:59
-      // (en UTC puede ser 2026-08-15 o 2026-08-16 dependiendo del offset)
       const localDateStr = result!.split('T')[0]
       expect(['2026-08-15', '2026-08-16']).toContain(localDateStr)
     })
@@ -507,7 +466,6 @@ describe('useComposerScheduling', () => {
         useComposerScheduling()
 
       scheduleMode.value = 'custom'
-      // 2024 es leap year
       selectedCalendarDate.value = new CalendarDate(2024, 2, 29)
       scheduleTime.value = '12:00'
 
@@ -523,13 +481,10 @@ describe('useComposerScheduling', () => {
       const { scheduleMode, isScheduleValid, effectiveScheduledAt, backendScheduleMode } =
         useComposerScheduling()
 
-      // Usuario selecciona "now"
       scheduleMode.value = 'now'
 
-      // Validación pasa
       expect(isScheduleValid.value).toBe(true)
 
-      // Payload para backend
       expect(backendScheduleMode.value).toBe('NOW')
       expect(effectiveScheduledAt.value).toBeNull()
     })
@@ -544,30 +499,23 @@ describe('useComposerScheduling', () => {
         setScheduleTime,
       } = useComposerScheduling()
 
-      // Usuario selecciona "custom"
       setScheduleMode('custom')
 
-      // Aún no válido (falta fecha)
       expect(isScheduleValid.value).toBe(false)
 
-      // Usuario elige fecha
       setScheduleDate(new CalendarDate(2026, 8, 15))
 
-      // Ahora válido (scheduleTime tiene default)
       expect(isScheduleValid.value).toBe(true)
 
-      // Usuario elige hora
       setScheduleTime('14:30')
 
-      // Payload para backend
       expect(backendScheduleMode.value).toBe('SCHEDULED_AT')
       expect(effectiveScheduledAt.value).toBeTruthy()
       expect(effectiveScheduledAt.value).toContain('2026-08-15')
 
-      // Verificar que genera ISO string válido con la fecha correcta
       const parsed = new Date(effectiveScheduledAt.value!)
       expect(parsed.getFullYear()).toBe(2026)
-      expect(parsed.getMonth()).toBe(7) // Agosto es mes 7 (0-indexed)
+      expect(parsed.getMonth()).toBe(7)
       expect(parsed.getDate()).toBe(15)
     })
 
@@ -580,7 +528,6 @@ describe('useComposerScheduling', () => {
         setScheduleTime,
       } = useComposerScheduling()
 
-      // Cargar publicación existente
       loadFromPublication({
         scheduleMode: 'SCHEDULED_AT',
         scheduledAt: '2026-08-15T10:00:00.000Z',
@@ -589,11 +536,9 @@ describe('useComposerScheduling', () => {
       expect(scheduleMode.value).toBe('custom')
       expect(selectedCalendarDate.value?.day).toBe(15)
 
-      // La hora se convierte a timezone local, así que solo verificamos que existe y es válida
       expect(scheduleTime.value).toBeDefined()
       expect(scheduleTime.value).toMatch(/^\d{2}:\d{2}$/)
 
-      // Usuario modifica la hora
       setScheduleTime('14:30')
 
       expect(scheduleTime.value).toBe('14:30')
@@ -610,15 +555,12 @@ describe('useComposerScheduling', () => {
         resetSchedule,
       } = useComposerScheduling()
 
-      // Usuario crea un post con custom scheduling
       setScheduleMode('custom')
       setScheduleDate(new CalendarDate(2026, 8, 15))
       setScheduleTime('14:30')
 
-      // Submit exitoso, "create another" activado
       resetSchedule()
 
-      // State limpio para siguiente post
       expect(scheduleMode.value).toBe('now')
       expect(selectedCalendarDate.value).toBeUndefined()
       expect(scheduleTime.value).toBe('10:00')

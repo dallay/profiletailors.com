@@ -61,23 +61,48 @@ class CommonBddTestConfiguration {
     @Primary
     fun testAuditHook(): CapturingAuditHook = CapturingAuditHook()
 
+    /**
+     * Provides a primary email sender that records messages sent during tests.
+     *
+     * @return The recording email sender.
+     */
     @Bean("smtpEmailSender")
     @Primary
     fun recordingEmailSender(): RecordingEmailSender = RecordingEmailSender()
 
+    /**
+     * Provides a task executor that runs password-reset tasks synchronously.
+     *
+     * @return The synchronous task executor.
+     */
     @Bean("passwordResetEmailTaskExecutor")
     @Primary
     fun passwordResetEmailTaskExecutor(): TaskExecutor = SyncTaskExecutor()
 
+    /**
+     * Provides a password reset retry delay with no waiting for BDD tests.
+     *
+     * @return The configured password reset retry delay.
+     */
     @Bean
     @Primary
     fun passwordResetRetryDelay(): com.profiletailors.smp.identity.infrastructure.email.PasswordResetRetryDelay =
         com.profiletailors.smp.identity.infrastructure.email.PasswordResetRetryDelay { }
 
+    /**
+     * Provides a recording port for capturing password reset notification failures.
+     *
+     * @return The recording password reset failure port.
+     */
     @Bean
     @Primary
     fun recordingPasswordResetFailurePort(): RecordingPasswordResetFailurePort = RecordingPasswordResetFailurePort()
 
+    /**
+     * Provides the password reset notification retry policy for BDD tests.
+     *
+     * @return A retry policy with no initial backoff.
+     */
     @Bean
     @Primary
     fun passwordResetRetryPolicy():
@@ -86,11 +111,21 @@ class CommonBddTestConfiguration {
             initialBackoff = java.time.Duration.ZERO,
         )
 
+    /**
+     * Provides a telemetry port that records password reset notification events.
+     *
+     * @return The recording password reset telemetry port.
+     */
     @Bean
     @Primary
     fun recordingPasswordResetTelemetryPort(): RecordingPasswordResetTelemetryPort =
         RecordingPasswordResetTelemetryPort()
 
+    /**
+     * Provides a mutable flag for controlling password recovery in BDD tests.
+     *
+     * @return An enabled password recovery flag.
+     */
     @Bean
     fun mutablePasswordRecoveryFlag(): MutablePasswordRecoveryFlag = MutablePasswordRecoveryFlag()
 
@@ -157,6 +192,10 @@ class MutablePasswordRecoveryFlag {
     fun enable() {
         enabled = true
     }
+
+    /**
+     * Disables password recovery.
+     */
     fun disable() {
         enabled = false
     }
@@ -167,10 +206,18 @@ class RecordingPasswordResetFailurePort : PasswordResetNotificationFailurePort {
     val records: List<PasswordResetNotificationFailure>
         get() = recorded.toList()
 
+    /**
+     * Records a password reset notification failure.
+     *
+     * @param failure The failure to record.
+     */
     override suspend fun record(failure: PasswordResetNotificationFailure) {
         recorded += failure
     }
 
+    /**
+     * Clears all recorded events.
+     */
     fun reset() = recorded.clear()
 }
 
@@ -179,10 +226,18 @@ class RecordingPasswordResetTelemetryPort : PasswordResetNotificationTelemetryPo
     val events: List<PasswordResetNotificationTelemetry>
         get() = recorded.toList()
 
+    /**
+     * Records a password reset notification telemetry event.
+     *
+     * @param event The telemetry event to record.
+     */
     override fun record(event: PasswordResetNotificationTelemetry) {
         recorded += event
     }
 
+    /**
+     * Clears all recorded events.
+     */
     fun reset() = recorded.clear()
 }
 
@@ -197,6 +252,14 @@ class RecordingEmailSender : EmailSender {
     val messages: List<Message>
         get() = recordedMessages.toList()
 
+    /**
+     * Records an email delivery attempt and provides its configured result.
+     *
+     * @param to The recipient email address.
+     * @param subject The email subject.
+     * @param message The email content.
+     * @return The next configured send result, or a successful result when none is configured.
+     */
     override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
         attempts += 1
         recordedMessages += Message(to, subject, message)
@@ -204,14 +267,27 @@ class RecordingEmailSender : EmailSender {
         return configuredResults.poll() ?: EmailSendResult.sent()
     }
 
+    /**
+     * Queues temporary provider-unavailable failures for future email send attempts.
+     *
+     * @param attempts The number of temporary failures to queue.
+     */
     fun failTemporarily(attempts: Int) {
         repeat(attempts) {
             configuredResults += EmailSendResult.temporaryFailure(EmailFailureCategory.PROVIDER_UNAVAILABLE)
         }
     }
 
+    /**
+     * Waits for an email delivery signal for up to five seconds.
+     *
+     * @return `true` if a delivery signal is acquired, `false` otherwise.
+     */
     fun awaitDelivery(): Boolean = deliverySignal.tryAcquire(5, java.util.concurrent.TimeUnit.SECONDS)
 
+    /**
+     * Clears recorded messages, configured results, delivery signals, and the attempt count.
+     */
     fun reset() {
         recordedMessages.clear()
         configuredResults.clear()

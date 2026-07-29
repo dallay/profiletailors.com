@@ -18,13 +18,34 @@ data class EmailSendResult(
         get() = !success && failureCategory?.retryable == true
 
     companion object {
+        /**
+         * Creates a successful email send result.
+         *
+         * @return A successful email send result.
+         */
         fun sent(): EmailSendResult = EmailSendResult(success = true)
 
+        /**
+         * Creates an email send result for a retryable failure.
+         *
+         * @param category The retryable failure category.
+         * @param error An optional error description.
+         * @return An unsuccessful email send result with the specified failure details.
+         * @throws IllegalArgumentException If [category] is not retryable.
+         */
         fun temporaryFailure(category: EmailFailureCategory, error: String? = null): EmailSendResult {
             require(category.retryable)
             return EmailSendResult(success = false, error = error, failureCategory = category)
         }
 
+        /**
+         * Creates a result representing a permanent email delivery failure.
+         *
+         * @param category The non-retryable category of the failure.
+         * @param error An optional error description.
+         * @return An unsuccessful email send result with the specified failure details.
+         * @throws IllegalArgumentException If [category] is retryable.
+         */
         fun permanentFailure(category: EmailFailureCategory, error: String? = null): EmailSendResult {
             require(!category.retryable)
             return EmailSendResult(success = false, error = error, failureCategory = category)
@@ -41,6 +62,11 @@ data class PasswordResetNotificationFailure(
 )
 
 fun interface PasswordResetNotificationFailurePort {
+    /**
+     * Records a failed password reset notification.
+     *
+     * @param failure The details of the failed notification.
+     */
     suspend fun record(failure: PasswordResetNotificationFailure)
 }
 
@@ -58,5 +84,10 @@ data class PasswordResetNotificationTelemetry(
 )
 
 fun interface PasswordResetNotificationTelemetryPort {
+    /**
+     * Records telemetry for a password reset notification event.
+     *
+     * @param event The telemetry event to record.
+     */
     fun record(event: PasswordResetNotificationTelemetry)
 }

@@ -30,6 +30,14 @@ class SmtpEmailSender(private val mailSender: JavaMailSender, private val emailP
 
     private val log = LoggerFactory.getLogger(SmtpEmailSender::class.java)
 
+    /**
+     * Sends an email using plain text or HTML content.
+     *
+     * @param to The recipient email address.
+     * @param subject The email subject.
+     * @param message The email content, including optional HTML markup.
+     * @return The result of the send operation, including its success or failure category.
+     */
     override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult = try {
         if (message.html == null) {
             mailSender.send(

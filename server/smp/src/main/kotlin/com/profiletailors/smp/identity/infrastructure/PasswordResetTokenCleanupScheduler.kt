@@ -13,6 +13,9 @@ class PasswordResetTokenCleanupScheduler(
     private val clock: Clock,
     private val observability: PasswordRecoveryObservabilityAdapter,
 ) {
+    /**
+     * Deletes password reset tokens that have expired beyond the configured retention period.
+     */
     @Scheduled(
         fixedDelayString = "\${app.identity.password-recovery.cleanup.interval:24h}",
         initialDelayString = "\${app.identity.password-recovery.cleanup.initial-delay:5m}",
