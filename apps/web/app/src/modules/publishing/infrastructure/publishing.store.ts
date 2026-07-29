@@ -3,10 +3,10 @@ import { defineStore } from 'pinia'
 import { consumeSseStream } from '@shared/lib/sse'
 import type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 import { resolveApiUrl, useAuthStore } from '@modules/auth'
-import type { Channel } from '@modules/publishing/application/types'
+import type { Channel } from '@modules/publishing/domain/channel'
 
 export type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
-export type { Channel } from '@modules/publishing/application/types'
+export type { Channel } from '@modules/publishing/domain/channel'
 
 // ---------------------------------------------------------------------------
 // Types — Channel & Publication (frontend model)

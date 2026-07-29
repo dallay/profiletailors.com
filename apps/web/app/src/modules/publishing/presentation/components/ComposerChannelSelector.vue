@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Check, X } from '@lucide/vue'
-import type { Channel } from '@modules/publishing/application/types'
+import type { Channel } from '@modules/publishing/domain/channel'
 
 const props = defineProps<{
   channels: Channel[]

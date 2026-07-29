@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import type { Channel } from '@modules/publishing/application/types'
+import type { Channel } from '@modules/publishing/domain/channel'
 import ComposerChannelSelector from './ComposerChannelSelector.vue'
 
 vi.mock('vue-i18n', () => ({
