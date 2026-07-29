@@ -20,6 +20,22 @@ ecosystem.
 - Implementing form validation with Vee-Validate + Zod
 - Working with the `@profiletailors/ui` component library
 
+## Project Standard: Component Maintainability
+
+This project follows a **component maintainability standard** that defines layering, composable
+extraction, component decomposition, type contracts, and code quality checks.
+
+**Read the full guide at:**
+`.agents/skills/frontend-platform/vue/references/vue-component-maintainability.md`
+
+Key rules enforced by this standard:
+- **Single responsibility:** template describes WHAT, composable describes HOW, store describes
+  global state
+- **Composable extraction** when `<script setup>` exceeds ~80 lines or contains computed/watch logic
+- **Explicit contracts:** typed props/emits, no `any`, `withDefaults` for optional props
+- **Parent-orchestrator pattern:** decompose components when they exceed ~200 lines
+- **Pre-merge checklist** before every Vue PR
+
 ## Critical Patterns
 
 ### 1. Component Structure
