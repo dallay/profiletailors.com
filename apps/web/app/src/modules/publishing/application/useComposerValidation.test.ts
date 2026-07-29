@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { ref, type Ref } from 'vue'
-import { useComposerValidation, formatCharCount, getCharCountState } from './useComposerValidation'
+import { ref, isRef, type Ref } from 'vue'
+import {
+  useComposerValidation,
+  formatCharCount,
+  getCharCountState,
+  type UseComposerValidationOptions,
+} from './useComposerValidation'
 
-// Helper para crear refs de forma más fácil
+type ChannelType = NonNullable<UseComposerValidationOptions['selectedChannel']['value']>
+
 function createRef<T>(value: T): Ref<T> {
   return ref(value) as Ref<T>
 }
@@ -62,7 +68,6 @@ describe('useComposerValidation', () => {
     })
 
     it('detects when text is near limit', () => {
-      // 2700 chars = 300 remaining, which is 10% of 3000
       const postText = createRef('a'.repeat(2700))
       const options = createMockOptions({
         postText,
@@ -77,6 +82,29 @@ describe('useComposerValidation', () => {
 
       expect(validation.charsRemaining.value).toBe(300)
       expect(validation.isTextTooLong.value).toBe(false)
+      expect(getCharCountState(validation.charsRemaining.value, validation.charLimit)).toBe(
+        'normal',
+      )
+    })
+
+    it('detects boundary at exactly 0 remaining', () => {
+      const postText = createRef('a'.repeat(3000))
+      const options = createMockOptions({
+        postText,
+        selectedChannel: undefined,
+        attachmentCount: 0,
+        isScheduleValid: true,
+        isEditMode: false,
+        isSubmitting: false,
+      })
+
+      const validation = useComposerValidation(options)
+
+      expect(validation.charsRemaining.value).toBe(0)
+      expect(validation.isTextTooLong.value).toBe(false)
+      expect(getCharCountState(validation.charsRemaining.value, validation.charLimit)).toBe(
+        'warning',
+      )
     })
 
     it('hasText is false for empty text', () => {
@@ -235,10 +263,29 @@ describe('useComposerValidation', () => {
 
       const validation = useComposerValidation(options)
 
-      expect(validation.isAttachmentCountValid.value).toBe(true) // 8 <= 9
+      expect(validation.isAttachmentCountValid.value).toBe(true)
 
       attachmentCount.value = 10
-      expect(validation.isAttachmentCountValid.value).toBe(false) // 10 > 9
+      expect(validation.isAttachmentCountValid.value).toBe(false)
+    })
+
+    it('validates boundary at exactly 9 attachments for LinkedIn', () => {
+      const attachmentCount = createRef(9)
+      const selectedChannel = createRef({
+        id: 'ch1',
+        provider: 'linkedin',
+        name: 'Test',
+        status: 'ACTIVE',
+      })
+      const options = createMockOptions({
+        postText: createRef('Hello'),
+        selectedChannel,
+        attachmentCount,
+      })
+
+      const validation = useComposerValidation(options)
+
+      expect(validation.isAttachmentCountValid.value).toBe(true)
     })
   })
 
@@ -590,7 +637,7 @@ describe('useComposerValidation', () => {
 
 type MockOptions = {
   postText: Ref<string> | string
-  selectedChannel: Ref<any> | any
+  selectedChannel: Ref<ChannelType | undefined> | ChannelType | undefined
   attachmentCount: Ref<number> | number
   isScheduleValid: Ref<boolean> | boolean
   isEditMode: Ref<boolean> | boolean
@@ -599,14 +646,21 @@ type MockOptions = {
 
 function normalizeRef<T>(value: Ref<T> | T | undefined): Ref<T | undefined> {
   if (value === undefined) return ref(undefined) as Ref<T | undefined>
-  if (value && typeof value === 'object' && 'value' in value) return value as Ref<T | undefined>
+  if (isRef(value)) return value as Ref<T | undefined>
   return ref(value) as Ref<T | undefined>
 }
 
-function createMockOptions(overrides: Partial<MockOptions>) {
+function createMockOptions(overrides: Partial<MockOptions>): {
+  postText: Ref<string>
+  selectedChannel: Ref<ChannelType | undefined>
+  attachmentCount: Ref<number>
+  isScheduleValid: Ref<boolean>
+  isEditMode: Ref<boolean>
+  isSubmitting: Ref<boolean>
+} {
   return {
     postText: normalizeRef(overrides.postText ?? '') as Ref<string>,
-    selectedChannel: normalizeRef(overrides.selectedChannel),
+    selectedChannel: normalizeRef(overrides.selectedChannel) as Ref<ChannelType | undefined>,
     attachmentCount: normalizeRef(overrides.attachmentCount ?? 0) as Ref<number>,
     isScheduleValid: normalizeRef(overrides.isScheduleValid ?? true) as Ref<boolean>,
     isEditMode: normalizeRef(overrides.isEditMode ?? false) as Ref<boolean>,
