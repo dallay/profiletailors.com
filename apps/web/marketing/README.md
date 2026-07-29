@@ -1,60 +1,75 @@
-# Astro Starter Kit: Minimal
+# Profile Tailors Marketing Site
 
-```sh
-pnpm create astro@latest -- --template minimal
+## Overview
+
+The marketing site is the static-first Astro 6 application at `apps/web/marketing/`. It serves the
+public Profile Tailors website, including English and Spanish locale routes, legal pages, consent
+UI, and the client-side waitlist flow.
+
+The app is part of the workspace. Use the root `just` command hub for normal development and
+validation.
+
+## Usage
+
+### Start development
+
+```bash
+just dev-frontend
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+This starts the marketing site at `http://localhost:4321` and the dashboard through Portless. To
+start only the marketing site from the repository root:
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```bash
+pnpm --filter marketing dev
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+### Build and check
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro components.
+```bash
+just frontend-check
+just frontend-build
+just frontend-lint
+just frontend-test
+```
 
-Any static assets, like images, can be placed in the `public/` directory.
+Preview the production build with:
 
-## 🧞 Commands
+```bash
+just frontend-preview
+```
 
-All commands are run from the root of the project, from a terminal:
+### End-to-end tests
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm test`            | Run tests in watch mode                          |
-| `pnpm test:ui`         | Open Vitest UI for interactive testing           |
-| `pnpm test:coverage`   | Generate coverage report                         |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
+```bash
+just frontend-test-e2e
+```
 
-## 🧪 Testing
+Marketing Playwright specs are under `e2e/`. Consent behavior is covered by
+`e2e/consent.spec.ts`.
 
-This project uses Vitest for unit and component testing.
+## Structure
 
-### Coverage
+- `src/pages/` — localized routes and public pages.
+- `src/components/` — Astro components and interactive islands.
+- `src/i18n/` — English and Spanish marketing/legal copy.
+- `src/styles/` — site-level styling and design tokens.
+- `e2e/` — Playwright configuration and browser scenarios.
 
-Coverage reports are generated in the `coverage/` directory and uploaded to Codecov on every CI run.
+Shared web assets and consent primitives live under `shared/` and are consumed through workspace
+aliases. See [consent-management.md](../../../docs/consent-management.md) for the cross-surface
+consent contract.
 
-**Target coverage:** 70% (lines, functions, branches, statements)
+## Troubleshooting
 
-### Bundle Analysis
+- Spanish copy is often longer than English; avoid fixed-width containers when changing layouts.
+- If the named dashboard URL is unavailable while running both apps, install/start Portless; the
+  marketing server itself remains available on port 4321.
+- If dependencies are missing, run `just install` from the repository root.
 
-Bundle size is tracked via Codecov's bundle analysis. The build will fail if the bundle grows by more than 5% without justification.
+## References
 
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- [Repository onboarding](../../../docs/getting-started.md)
+- [Astro/Vue split decision](../../../docs/architecture/adr/0007-astro-and-vue-frontend-split.md)
+- [Consent management](../../../docs/consent-management.md)
+- [Root documentation index](../../../docs/README.md)

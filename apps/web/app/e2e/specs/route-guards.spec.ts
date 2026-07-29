@@ -10,7 +10,12 @@ import { test, expect } from '../fixtures/base-test'
 import { LoginPage } from '../pages/login-page'
 import { DashboardPage } from '../pages/dashboard-page'
 import { APP_URL, GUEST_ROUTES, PROTECTED_ROUTES, VALID_CREDENTIALS } from '../fixtures/test-data'
-import { authenticateAs, keepSessionAlive, useReplayAuthDefaults } from '../fixtures/auth-helpers'
+import {
+  authenticateAs,
+  keepSessionAlive,
+  mockAuthenticatedSession,
+  useReplayAuthDefaults,
+} from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 
 test.describe('Route Guards', { tag: '@integration' }, () => {
@@ -52,7 +57,15 @@ test.describe('Route Guards', { tag: '@integration' }, () => {
     }
   })
 
-  test('9.3 Redirect parameter propagates correctly through login flow', async ({ page }) => {
+  test('9.3 Authenticated reset links remain accessible', async ({ page }) => {
+    await mockAuthenticatedSession(page)
+    await safeGoto(page, `${APP_URL.resetPassword}?token=e2e-capability`)
+
+    await expect(page).toHaveURL(/reset-password\?token=/)
+    await expect(page.locator('#new-password')).toBeVisible()
+  })
+
+  test('9.4 Redirect parameter propagates correctly through login flow', async ({ page }) => {
     const loginPage = new LoginPage(page)
 
     // Navigate to settings (protected) — should be redirected

@@ -1,20 +1,31 @@
 # Profile Tailors Documentation
 
-**Last Updated:** 2026-05-27
+**Last Updated:** 2026-07-28
 
 ## 📖 Table of Contents
 
 ### Architecture & Design
 
 - [API Versioning](./api-versioning.md) - Spring Boot 4 media-type versioning implementation
+- [API Versioning Frontend Migration](./api-versioning-frontend-migration.md) - Frontend migration
+  notes and media-type requirements
+- [API Versioning Implementation Summary](./api-versioning-implementation-summary.md) - Backend
+  implementation and test evidence
 - [Architecture Overview](./architecture/) - System architecture and design patterns
 - [Media Library CAS Dedup](./architecture/media-library-cas-dedup.md) - Content-Addressed Storage
   for workspace-scoped asset deduplication
 - [Scheduler URL State Standard](./architecture/scheduler-url-state-standard.md) - Route-owned
   scheduler state, filters, and deep-linkable post details
 
-### Infrastructure
+### Product Contracts & Release Evidence
 
+- [OpenSpec](../openspec/README.md) - Product specifications, change artifacts, and verification
+  evidence
+- [Consent Management](./consent-management.md) - Shared consent model and frontend/backend flow
+- [Publishing Failure Modes](./publishing-failure-modes.md) - User-facing publishing error taxonomy
+- [Release Verification](./release-verification.md) - Evidence required before release readiness
+
+### Infrastructure
 - [Modular Docker Compose](./infrastructure/modular-docker-compose.md) - Reusable infrastructure
   services
 - [PostgreSQL Setup](../infra/postgres/) - Database configuration
@@ -36,6 +47,7 @@
 - [SonarQube Coverage](./sonarqube-coverage.md) - Technical guide for SonarQube coverage
 - [SonarQube Setup](./sonarqube-setup.md) - Step-by-step SonarQube configuration guide
 - [Coverage Summary](./coverage-setup-summary.md) - Summary of the test coverage implementation
+- [Production Secrets](./production-secrets.md) - Secret inventory and production handling rules
 - [Root README](../README.md) - High-level project overview and quick-start
 
 ### Security
@@ -70,6 +82,10 @@ All documentation in this repository MUST follow these standards:
     - **References**: Links to related documentation or external resources.
 5. **Location**: Centralized in the `docs/` directory. Avoid scattering documentation in
    service-specific directories unless it's a `README.md` for that specific module.
+
+OpenSpec artifacts remain under `openspec/` because they are product-contract and change records,
+not general operational documentation. See the [OpenSpec guide](../openspec/README.md) for how to
+navigate active and archived changes.
 
 ## 🔄 Contributing
 

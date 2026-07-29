@@ -95,6 +95,16 @@ for (const file of allFiles) {
 // ---------------------------------------------------------------------------
 
 describe('i18n key validation', () => {
+  it('keeps English and Spanish password recovery keys in strict parity', () => {
+    const enKeys = flattenTranslations(
+      messages_en.passwordRecovery as Record<string, unknown>,
+    ).sort()
+    const esKeys = flattenTranslations(
+      messages_es.passwordRecovery as Record<string, unknown>,
+    ).sort()
+    expect(esKeys).toEqual(enKeys)
+  })
+
   it('every referenced i18n key exists in both en and es locales', () => {
     if (results.length > 0) {
       const report = results.map((r) => `  ❌ ${r.file} → "${r.key}"`).join('\n')

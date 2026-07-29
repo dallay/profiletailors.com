@@ -1,42 +1,75 @@
-# app
+# Profile Tailors Dashboard
 
-This template should help get you started developing with Vue 3 in Vite.
+## Overview
 
-## Recommended IDE Setup
+The dashboard is the Profile Tailors Vue 3 single-page application. It uses Vue Router for
+navigation, Pinia for client state, shadcn-vue/Reka UI for primitives, Vue I18n for English and
+Spanish copy, and Vitest plus Playwright for verification.
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+The app is part of the workspace at `apps/web/app/`. Run commands from the repository root through
+the `just` command hub rather than invoking package-manager or Gradle commands manually.
 
-## Recommended Browser Setup
+## Usage
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+### Start development
 
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
+```bash
+just app
 ```
 
-### Compile and Hot-Reload for Development
+The app is served through Portless at `https://pt-app.localhost`. To start both web surfaces:
 
-```sh
-npm run dev
+```bash
+just dev-frontend
 ```
 
-### Type-Check, Compile and Minify for Production
+### Build and check
 
-```sh
-npm run build
+```bash
+just app-build
+just frontend-lint
+just frontend-test
 ```
+
+For the local CI subset, use:
+
+```bash
+just ci-local
+```
+
+### End-to-end tests
+
+Available app lanes are documented in [e2e/README.md](e2e/README.md). The command hub exposes the
+main lanes:
+
+```bash
+just app-test-e2e-media-mocked
+just app-test-e2e-media-real
+```
+
+Additional Playwright projects and fixtures live under `e2e/`.
+
+## Structure
+
+- `src/modules/` — feature slices and presentation components.
+- `src/router/` — route definitions, metadata, and guards.
+- `src/shared/` — shared UI, validation, i18n, and utilities.
+- `e2e/` — Playwright configurations, fixtures, page objects, and specs.
+
+Follow the repository architecture rules in [AGENTS.md](../../../AGENTS.md) and the relevant
+frontend skills under `.agents/skills/`.
+
+## Troubleshooting
+
+- If the `.localhost` URL does not resolve, install/start Portless and run `portless proxy start`.
+- If Node 22 tests fail because `localStorage.clear` is unavailable, use the repository's documented
+  Node 22 local-storage file workaround before `just ci-local`.
+- If an E2E lane needs backend data, start the required services with `just infra-up` and
+  `just backend-run`.
+
+## References
+
+- [Repository onboarding](../../../docs/getting-started.md)
+- [Frontend architecture decision](../../../docs/architecture/adr/0007-astro-and-vue-frontend-split.md)
+- [E2E guide](e2e/README.md)
+- [Root documentation index](../../../docs/README.md)

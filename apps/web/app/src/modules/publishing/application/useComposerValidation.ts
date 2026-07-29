@@ -1,16 +1,18 @@
-import { computed, type Ref } from 'vue'
+import { computed, type Ref, type ComputedRef } from 'vue'
+
+const WARNING_THRESHOLD = 0.1
 
 /**
- * Options para el composable de validación
+ * Options for the validation composable
  */
-export interface UseComposerValidationOptions {
+export type UseComposerValidationOptions = {
   /**
-   * Texto del post
+   * Post text
    */
   postText: Ref<string>
 
   /**
-   * Canal seleccionado (undefined si no hay ninguno)
+   * Selected channel (undefined if none)
    */
   selectedChannel: Ref<
     | {
@@ -24,87 +26,87 @@ export interface UseComposerValidationOptions {
   >
 
   /**
-   * Número actual de attachments
+   * Current number of attachments
    */
   attachmentCount: Ref<number>
 
   /**
-   * Si el schedule es válido
+   * Whether the schedule is valid
    */
   isScheduleValid: Ref<boolean>
 
   /**
-   * Si está en modo edición (no requiere canal obligatorio)
+   * Whether in edit mode (channel not required)
    */
   isEditMode: Ref<boolean>
 
   /**
-   * Si está actualmente enviando/submitiendo
+   * Whether currently submitting
    */
   isSubmitting: Ref<boolean>
 }
 
 /**
- * Resultados de validación del composer
+ * Composer validation results
  */
-export interface ComposerValidationResult {
+export type ComposerValidationResult = {
   /**
-   * Límite de caracteres (3000 para LinkedIn)
+   * Character limit (3000 for LinkedIn)
    */
   charLimit: number
 
   /**
-   * Caracteres restantes
+   * Remaining characters
    */
-  charsRemaining: Ref<number>
+  charsRemaining: ComputedRef<number>
 
   /**
-   * Si el texto excede el límite
+   * Whether text exceeds the limit
    */
-  isTextTooLong: Ref<boolean>
+  isTextTooLong: ComputedRef<boolean>
 
   /**
-   * Si hay texto (no vacío)
+   * Whether there is text (not empty)
    */
-  hasText: Ref<boolean>
+  hasText: ComputedRef<boolean>
 
   /**
-   * Límite de attachments efectivo según el canal
+   * Effective attachment limit based on channel
    */
-  effectiveAttachmentLimit: Ref<number>
+  effectiveAttachmentLimit: ComputedRef<number>
 
   /**
-   * Si la cantidad de attachments es válida
+   * Whether attachment count is valid
    */
-  isAttachmentCountValid: Ref<boolean>
+  isAttachmentCountValid: ComputedRef<boolean>
 
   /**
-   * Número de attachments actuales
+   * Current number of attachments
    */
-  attachmentCount: Ref<number>
+  attachmentCount: ComputedRef<number>
 
   /**
-   * Si puede hacer submit (todas las validaciones pasan)
+   * Whether submit is allowed (all validations pass)
    */
-  canSubmit: Ref<boolean>
+  canSubmit: ComputedRef<boolean>
 
   /**
-   * Errores de validación como array de strings
+   * Validation errors as array of strings
    */
-  validationErrors: Ref<string[]>
+  validationErrors: ComputedRef<string[]>
 
   /**
-   * Número de warnings (para UI)
+   * Number of warnings (for UI)
    */
-  warningCount: Ref<number>
+  warningCount: ComputedRef<number>
 }
 
 /**
- * Composable que maneja toda la validación del composer:
- * - Límite de caracteres
- * - Campos requeridos
- * - Límite de attachments por canal
- * - Validación completa para submit
+ * Composable that handles all composer validation:
+ * - Character limit
+ * - Required fields
+ * - Attachment limit per channel
+ * - Complete validation for submit
  *
  * @example
  * ```ts
@@ -117,7 +119,6 @@ export interface ComposerValidationResult {
  *   isSubmitting: ref(false),
  * })
  *
- * // En template
  * :disabled="!validation.canSubmit.value"
  * {{ validation.charsRemaining.value }} / {{ validation.charLimit }}
  * ```
@@ -130,9 +131,7 @@ export function useComposerValidation(
   // ============================================================================
 
   const CHAR_LIMIT = 3000
-  const WARNING_THRESHOLD = 0.1 // 10% del límite = warning
 
-  // Límites por proveedor (platform)
   const PLATFORM_ATTACHMENT_LIMITS: Record<string, number> = {
     linkedin: 9,
     twitter: 4,
@@ -231,9 +230,7 @@ export function useComposerValidation(
     }
 
     if (!isAttachmentCountValid.value) {
-      const limit = Number.isFinite(effectiveAttachmentLimit.value)
-        ? `${options.attachmentCount.value}/${effectiveAttachmentLimit.value}`
-        : `${options.attachmentCount.value} (no limit)`
+      const limit = `${options.attachmentCount.value}/${effectiveAttachmentLimit.value}`
       errors.push(`Too many attachments (${limit})`)
     }
 
@@ -300,6 +297,6 @@ export type CharCountState = 'normal' | 'warning' | 'error'
 
 export function getCharCountState(remaining: number, limit: number): CharCountState {
   if (remaining < 0) return 'error'
-  if (remaining < limit * 0.1) return 'warning'
+  if (remaining < limit * WARNING_THRESHOLD) return 'warning'
   return 'normal'
 }
