@@ -1,11 +1,4 @@
-import {
-  ref,
-  computed,
-  onUnmounted,
-  getCurrentInstance,
-  type Ref,
-  type ComputedRef,
-} from 'vue'
+import { ref, computed, onUnmounted, getCurrentInstance, type Ref, type ComputedRef } from 'vue'
 import type { DateValue } from 'reka-ui'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 
@@ -272,6 +265,8 @@ export function useComposerScheduling(
         scheduleMode.value = 'custom'
       } else {
         scheduleMode.value = targetMode
+        selectedCalendarDate.value = undefined
+        scheduleTime.value = '10:00'
       }
     } else {
       scheduleMode.value = targetMode

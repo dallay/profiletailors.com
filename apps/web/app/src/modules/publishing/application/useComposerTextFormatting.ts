@@ -143,7 +143,7 @@ export function useComposerTextFormatting(
           .split(/\s+/)
           .map((word) => {
             if (word.startsWith('#')) {
-              return word.toLowerCase().replace(/[^a-z0-9#_]/g, '')
+              return normalizeHashtag(word)
             }
             return word
           })
