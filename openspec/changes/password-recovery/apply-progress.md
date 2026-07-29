@@ -346,3 +346,235 @@ Reset error branches:
 - The PR-2.11 evidence closure adds approximately 560 test/POM lines, above the repository's nominal 400-line review budget. It remains one autonomous PR-2 stacked-to-main work-unit slice because the user explicitly assigned all three critical gaps together; no unrelated production scope was added.
 - Existing Vitest warnings and the existing production bundle chunk-size warning remain non-blocking and unrelated.
 - Recovery does not currently mount a real analytics SDK/call path; privacy tests therefore assert zero analytics-like emissions and retain sentinel checks for any future instrumentation.
+
+## PR 3 Cleanup Apply: PR-3.01 and PR-3.02
+
+### Implemented
+
+- Added RED coverage for retention boundaries, active-token preservation, recent-record preservation, and idempotency in a focused repository test and executable `@pr-3 @cleanup @postgres` BDD glue.
+- Added the application cleanup port, configurable retention/interval/initial delay, Clock-driven infrastructure scheduler, and PostgreSQL/R2DBC deletion in the existing identity adapter.
+- The SQL predicate is `expires_at < :cutoff`, not `<=`: a token exactly at the retention boundary remains inside the configured window until it becomes strictly older.
+
+### TDD Evidence
+
+- RED: focused `R2dbcPasswordResetTokenRepositoryTest` compilation failed because `PasswordResetTokenCleanupPort`, `deleteExpiredBefore`, and `PasswordResetTokenCleanupScheduler` did not exist.
+- GREEN: focused repository, scheduler, and configuration tests passed after the minimum implementation.
+- REFACTOR: the scheduler uses the shared UTC `Clock`, durations use Spring-bound `Duration`, and focused Spotless/Detekt checks pass.
+- PostgreSQL BDD attempt: `./gradlew :server:smp:bddPostgresTest -Dcucumber.filter.tags='@pr-3 and @cleanup'` could not initialize Testcontainers because no Docker environment was available (`DockerClientProviderStrategy`). The task did not forward the Cucumber filter and attempted the full Postgres suite; the cleanup scenario was discovered but could not execute.
+
+### Current Task State
+
+- PR-3.01 and PR-3.02 remain unchecked until the PostgreSQL BDD scenario executes successfully in a Docker/PostgreSQL-capable environment.
+- PR-3.03 and later remain untouched. No commit, push, or PR was created.
+
+## PR 3 Audit Apply: PR-3.03 and PR-3.04
+
+### Implemented
+
+- Added an identity-owned `PasswordResetAuditPort` and event carrying only principal ID and occurrence time; domain/application remain Spring-free.
+- Added an `AuditHook` adapter that maps successful resets to a workspace-less `MutationAuditFact` action `PASSWORD_RESET_COMPLETED` with a single `occurredAt` detail.
+- Emission runs only after `AtomicTransactionRunner.runAtomically` returns. Handler and adapter both isolate non-cancellation sink failures, so a committed reset still returns the existing success result/HTTP 204.
+- Added executable `@audit @pr-3` BDD for the successful reset, with assertions excluding raw token, password, persisted hash, email, and raw IP.
+- REQ-HARD-02 uses optional `MAY` behavior and defines no detection threshold/event action, so suspicious repeated-attempt emission was not implemented or fabricated in this slice.
+
+### TDD Evidence
+
+- RED compile: focused tests failed because `PasswordResetAuditPort`, `PasswordResetAuditEvent`, `AuditHookPasswordResetAuditAdapter`, and the handler dependency did not exist.
+- Intermediate RED: after the seam/adapter existed, `audit sink failure cannot turn a committed reset into a failure` failed with `IllegalStateException`, proving sink failure still escaped after commit.
+- GREEN: focused `ResetPasswordHandlerTest` plus `AuditHookPasswordResetAuditAdapterTest` passed 14/14 after post-commit best-effort isolation.
+- REFACTOR: `./gradlew :server:smp:spotlessCheck :server:smp:detekt` passed.
+- BDD fast compiled and discovered `[PR 3] Audit a successful password change`, but all 120 scenarios were blocked at Spring context startup because Testcontainers could not find Docker (`DockerClientProviderStrategy`); Docker was not started per user constraint.
+
+### Current Task State
+
+- PR-3.03 and PR-3.04 are complete and checked.
+- PR-3.01/02 local changes were preserved unchanged and remain unchecked pending their PostgreSQL BDD verification.
+- PR-3.05+ remain untouched. No commit, push, PR, or archive was created.
+
+## PR 3 Notification Hardening Apply: PR-3.05 and PR-3.06
+
+### Implemented
+
+- Extended `EmailSendResult` with stable `EmailFailureCategory` classification; retry eligibility derives from category, never provider-message parsing.
+- Added configurable bounded exponential retry policy (`maxAttempts`, initial/max backoff, multiplier) and a coroutine-delay seam. No `Thread.sleep`; event reception remains post-commit and delivery remains on the existing Spring task executor.
+- Added identity application ports for safe terminal failure records and bounded notification telemetry. Records contain only principal ID, notification type, attempts, timestamp, and sanitized category.
+- Added a dedicated R2DBC failure store and Liquibase table. Existing `NotificationRepository` was rejected because it persists recipient and arbitrary payload JSON and could retain the rendered reset URL/raw token.
+- Hardened SMTP/Resend failures so arbitrary provider text and recipient email are not returned or logged. Added executable `@retry`, `@failure`, and `@privacy` `@pr-3` feature scenarios with real glue.
+
+### TDD Evidence
+
+- RED: focused compilation failed with unresolved retry policy, failure/telemetry ports, stable failure categories, delay seam, and consumer dependencies.
+- GREEN: focused retry/config/provider/dispatcher suite passed 25/25 after the minimum implementation.
+- REFACTOR: `spotlessApply`, `detekt`, and `git diff --check` passed; retry and terminal tests assert records, telemetry, and captured logs exclude email, raw token, reset URL/query, password, and arbitrary provider text.
+- BDD: `just backend-bdd-fast` discovered all three PR-3 notification scenarios, but Spring context startup failed for all scenarios because Testcontainers could not find Docker (`DockerClientProviderStrategy`). Docker was not started per explicit constraint.
+
+### Current Task State
+
+- PR-3.05 and PR-3.06 are complete and checked.
+- PR-3.01/02 local changes remain preserved and unchecked pending Docker/PostgreSQL BDD verification.
+- PR-3.07+ remain untouched. No commit, push, PR, or archive was created.
+
+## PR 3 Observability Apply: PR-3.07 and PR-3.08
+
+### Implemented
+
+- Replaced the PR-3.06 no-op notification telemetry bean with `PasswordRecoveryObservabilityAdapter`, an infrastructure-only Micrometer adapter backed by the existing `MeterRegistry` and `ObservationRegistry`; no dependency was added.
+- Added one bounded counter, `identity.password.recovery.outcomes`, and one observation/span name, `identity.password.recovery`, for notification success/retry/terminal-failure and reset completed/failed outcomes.
+- Added an infrastructure `PasswordResetOutcomeWebFilter` scoped exactly to `/api/auth/reset-password`, after the existing HTTP/security chain, so reset outcome instrumentation does not change application ports, handler atomicity, response contracts, or cancellation behavior.
+- Reused the PR-3.05/06 `PasswordResetNotificationTelemetryPort` seam for notification outcomes. The adapter maps arbitrary/unknown notification type to `unknown` rather than using it as a tag.
+
+### Cardinality and Privacy Decisions
+
+- Exactly five low-cardinality dimensions are emitted on both metric and observation: `operation`, `notification.type`, `status`, `failure.category`, and `attempt.bucket`.
+- Stable values only: operation `reset|notification_delivery`; type `password_reset|none|unknown`; status `completed|failed|success|retry|terminal_failure`; failure category from fixed enums plus `none`; attempt bucket `none|first|retry|exhausted`.
+- Exact attempt counts are not emitted. Principal ID, email, raw IP, raw token/hash, password/hash, reset URL/query, exception text, and provider text are never accepted by the adapter and cannot become names, tags, or attributes.
+
+### TDD Evidence
+
+- RED 1: focused observability test compilation failed with unresolved `PasswordRecoveryObservabilityAdapter` and `PasswordResetFailureCategory`.
+- GREEN 1: adapter tests passed after adding bounded counter/observation mapping.
+- RED 2: reset-outcome filter test compilation failed with unresolved `PasswordResetOutcomeWebFilter`.
+- GREEN 2: adapter + filter tests passed after adding the endpoint-scoped infrastructure filter.
+- REFACTOR: avoided a Detekt parser crash caused by the fluent Observation chain, applied Spotless, fixed one test `LongMethod` finding, then focused tests, Spotless, Detekt, and `git diff --check` passed.
+
+### Commands Run
+
+- `./gradlew :server:smp:test --tests ...PasswordRecoveryObservabilityAdapterTest` — RED compile failure, then GREEN exit 0.
+- `./gradlew :server:smp:test --tests ...PasswordResetOutcomeWebFilterTest` — RED compile failure, then GREEN exit 0.
+- Focused observability + `SendPasswordResetEmailConsumerTest` — exit 0 (11 tests across the selected classes).
+- `./gradlew :server:smp:spotlessCheck :server:smp:detekt` — exit 0.
+- `git diff --check` — exit 0.
+- Relevant `@pr-3` BDD remains prepared/discoverable from PR-3.05/06. It was not run because its Spring contexts require Docker/Testcontainers and the user explicitly prohibited starting Docker; the previous attempts already documented that blocker.
+
+### Current Task State
+
+- PR-3.07 and PR-3.08 are complete and checked.
+- PR-3.01/02 remain preserved and unchecked pending Docker/PostgreSQL BDD verification.
+- PR-3.09+ remain untouched. No commit, push, PR, Docker startup, or unrelated-file cleanup was performed.
+
+## PR 3 Runbook Apply: PR-3.09 and PR-3.10
+
+### Implemented
+
+- Added a focused Kotlin documentation contract that requires the runbook, the prescribed top-level documentation structure, implemented metric/span names and bounded dimensions, retry and cleanup configuration keys, safe terminal-failure fields, feature-flag rollback, escalation, and real `justfile` recipes.
+- Added an operational English runbook covering symptoms, incident triage, retries and terminal failures, cleanup/retention, safe PromQL and aggregate SQL, feature-flag rollback, focused validation, and escalation.
+- The runbook explicitly prohibits searching for or recording raw tokens, email, raw IP, reset URLs/query strings, passwords, hashes, provider text, or exception messages. SQL selects only safe categories, time buckets, and aggregate counts.
+
+### TDD Evidence
+
+- RED: `./gradlew :server:smp:test --tests com.profiletailors.smp.identity.infrastructure.PasswordRecoveryRunbookTest --no-daemon` failed 1/1 at `PasswordRecoveryRunbookTest.kt:14` because `docs/runbooks/password-recovery.md` did not exist.
+- Intermediate RED: after creating the runbook, the same test failed at line 27 because the required phrase `raw token` was split across a Markdown line wrap; the document was corrected without weakening the contract.
+- GREEN: the same focused test passed 1/1.
+- REFACTOR/static checks: `./gradlew :server:smp:spotlessCheck :server:smp:detekt --no-daemon` passed, followed by `git diff --check` exit 0.
+
+### Current Task State
+
+- PR-3.09 and PR-3.10 are complete and checked.
+- PR-3.01/02 remain preserved, blocked, and unchecked pending Docker/PostgreSQL BDD verification.
+- PR-3.11 remains explicitly out of scope and unchecked. No broad suites, commit, push, PR, Docker startup, or unrelated-file cleanup was performed.
+
+## PR 3 Identity Event Configuration Regression Fix
+
+### Root Cause
+
+- PR-3.05/06 added `passwordResetRetryPolicy` to `IdentityEventConfiguration`, making that configuration depend on `PasswordRecoveryConfigurationProperties`.
+- The full application happened to register those properties through `IdentityBootstrapConfiguration`, but the focused `ApplicationContextRunner` intentionally loaded `IdentityEventConfiguration` in isolation. The new dependency was therefore absent, context refresh failed, and both tests failed before their intended assertions: one surfaced the missing bean directly and the publisher test surfaced the failed context as an assertion error.
+
+### Minimal Fix
+
+- Made `IdentityEventConfiguration` self-contained by adding `@EnableConfigurationProperties(PasswordRecoveryConfigurationProperties::class)` next to its existing event import.
+- Preserved the PR-3 retry-policy and retry-delay beans unchanged. No test changes or additional functional behavior were needed because the existing focused test already provided exact regression coverage.
+
+### Evidence
+
+- RED: `./gradlew :server:smp:test --tests 'com.profiletailors.smp.identity.infrastructure.IdentityEventConfigurationTest' --no-daemon` — exit 1, 2/2 failed with the reported missing-bean/context assertion failures.
+- GREEN: the exact focused command — exit 0, 2/2 passed; repeated after static checks with `BUILD SUCCESSFUL`.
+- `./gradlew :server:smp:spotlessCheck :server:smp:detekt --no-daemon` — exit 0.
+- `git diff --check` — exit 0.
+- Focused Semgrep scan of `IdentityEventConfiguration.kt` — 0 findings.
+
+### Scope
+
+- Existing PR-3.01..10 local work was preserved. Task status is unchanged: PR-3.01/02 remain blocked/unverified, PR-3.03..10 remain complete, and PR-3.11 remains open.
+- No commit, push, PR, Docker, broad suite, dependency, schema, API, or unrelated functional change was performed.
+
+## PR 3 Verification-Finding Closure
+
+### Completed findings
+
+- Cleanup now deletes only rows where `expires_at < cutoff` and `used_at` is null or also `< cutoff`; a cross-boundary regression preserves a token whose expiry is old but whose `used_at` equals the audit-retention cutoff.
+- Cleanup BDD fixtures consistently use `principal-cleanup`, satisfying the declared FK.
+- Resend defaults opaque `ResendException` failures to safe non-retryable `PROVIDER_REJECTED`; SMTP retries only the concrete `MailSendException`, treats `MailAuthenticationException` as permanent, and defaults other `MailException` types to permanent. This may under-retry ambiguous provider failures, deliberately preferring bounded retries over retrying invalid credentials/requests.
+- Runbook SQL and its schema-drift contract now use `failure_category`.
+- Added a non-Docker adapter/migration contract plus `R2dbcPasswordResetNotificationFailureRepositoryPostgresTest`, which is compiled and prepared but skipped because Docker is unavailable. PostgreSQL runtime is not claimed green.
+- Terminal persistence and telemetry are isolated: telemetry is attempted in `finally`; ordinary persistence failures are safely logged/absorbed, while `CancellationException` is rethrown after telemetry.
+- PR 3 BDD now autowires the production `SendPasswordResetEmailConsumer`; test-only beans replace only executor, delay, sender, failure sink, and telemetry sink. Production R2DBC/Micrometer remain covered by focused adapter contracts/tests and still require Docker-capable PostgreSQL/real-metrics acceptance.
+- Corrected stale consumer KDoc. The unrelated JPG under `server/smp/tmp/` remains untouched and untracked.
+
+### Strict TDD evidence
+
+- RED: focused Gradle command selecting cleanup repository, Resend, SMTP, consumer, and runbook tests — exit 1, 31 tests, 5 failures, 13 Docker skips. Failures proved the old cleanup predicate, retry-all provider classification, telemetry suppression, and runbook schema drift.
+- GREEN: the expanded focused command including the non-Docker terminal-store contract and prepared PostgreSQL test — `BUILD SUCCESSFUL`; Docker-backed classes were skipped rather than reported green.
+- STATIC RED: first `just backend-check` failed Spotless and Detekt (`TooGenericExceptionCaught`); GREEN after focused formatting/refactor.
+- FINAL GREEN: `./gradlew :server:smp:spotlessCheck :server:smp:detekt --no-daemon`, `just backend-check`, and `git diff --check` all exited 0.
+- Docker probe: focused PostgreSQL terminal repository test reported no `/var/run/docker.sock` and was `SKIPPED`; no PostgreSQL runtime success is claimed.
+
+### Current task state
+
+- PR-3.01 through PR-3.10 are complete with non-Docker evidence and prepared PostgreSQL/BDD coverage.
+- PR-3.11 remains incomplete because all `@pr-3` PostgreSQL/Cucumber scenarios still require a Docker-capable environment.
+- PR 3 returns to `verify`; no commit, push, PR, verify-report edit, Docker startup, dependency, HTTP, reset-secret, or atomicity change was made in this continuation.
+
+## PR 3 PostgreSQL Test Initialization Fix
+
+### Diagnosis and confirmed root cause
+
+- OrbStack was healthy and Testcontainers 2.0.5 connected successfully through `unix:///var/run/docker.sock` to Docker server 29.4.0, so Docker discovery and the persisted `UnixSocketClientProviderStrategy` were not the failure.
+- The complete stack trace showed `PostgresTestContainerSupport.resolvePassword()` throwing before Testcontainers could start the PostgreSQL container because the direct Gradle invocation did not export `SMP_DB_TEST_PASSWORD` to the test worker JVM.
+- The repository already stores the local test credential in ignored root `.env`, and every `just backend-*` test recipe explicitly exports it. Direct `./gradlew` did not share that setup; `bootRun` alone had an `.env` loader.
+- The same direct-command initialization failure reproduced in the existing working `R2dbcPasswordResetTokenRepositoryTest`, ruling out the new test's companion-object pattern.
+- The candidate database name `password_reset_terminal_failure` is 31 UTF-8 bytes, below PostgreSQL's 63-byte identifier limit. Running with the environment sourced started PostgreSQL, applied Liquibase, and passed, ruling out the database name and OrbStack compatibility.
+
+### Minimal fix
+
+- Added a lazy Gradle provider in `server/smp/build.gradle.kts` that prefers the process environment and otherwise reads `SMP_DB_TEST_PASSWORD` from the ignored root `.env`, then forwards only a non-blank value to every forked `Test` JVM.
+- Kept `PostgresTestContainerSupport.resolvePassword()` fail-fast behavior unchanged when neither source provides a credential. No credential, username, Docker socket, context, or user-specific path is hardcoded; CI environment variables retain precedence.
+- No production Kotlin, repository adapter, migration, or PostgreSQL test pattern changed.
+
+### RED/GREEN evidence
+
+- RED: exact fresh focused command with Docker available failed 1/1 during class initialization: `IllegalStateException: SMP_DB_TEST_PASSWORD must be set to run PostgreSQL-backed tests` at `PostgresTestContainerSupport.kt:37`.
+- Diagnostic control: `set -a && source .env && set +a` plus the same focused command passed, proving the repository test, database name, migration, R2DBC adapter, Testcontainers, and OrbStack path were sound once the established credential reached the JVM.
+- GREEN: `env -u SMP_DB_TEST_PASSWORD ./gradlew :server:smp:test --tests 'com.profiletailors.smp.identity.infrastructure.R2dbcPasswordResetNotificationFailureRepositoryPostgresTest' --rerun-tasks --no-daemon` passed fresh with all 35 tasks executed.
+- REFACTOR/static: `env -u SMP_DB_TEST_PASSWORD ./gradlew :server:smp:spotlessCheck :server:smp:detekt --no-daemon` passed; `git diff --check` passed.
+
+### Current task state and scope
+
+- The focused PostgreSQL terminal-failure repository runtime is now green and no longer skipped.
+- Existing local changes and the untracked JPG remain preserved. `verify-report.md` was not edited. No broad BDD suite, commit, push, or PR was performed.
+- PR-3.11 remains unchecked because this batch intentionally ran only the requested focused PostgreSQL test and static checks, not all PR 3 scenarios.
+
+## PR 3 Fast BDD Notification Wiring Fix
+
+### Confirmed root cause
+
+- The fast BDD Spring context registered the test `SyncTaskExecutor` bean named `passwordResetEmailTaskExecutor` first, then `IdentityEventConfiguration.passwordResetEmailTaskExecutor()` replaced it by the same name. The Spring startup evidence explicitly reported that production replaced the primary test bean.
+- The production `ThreadPoolTaskExecutor` made `consume()` return after scheduling. The glue's first `awaitDelivery()` semaphore permit observed only attempt 1, so retry expected 2 but saw 1, terminal failure expected 3 but saw 1, and telemetry was still empty. Suite logs later showed attempts 2/3 and terminal telemetry completing after the failed assertions.
+- The production consumer, retry policy, failure store, telemetry ports, and BDD assertions were correct. The defect was bean replacement order in real Spring wiring, not retry logic or assertion weakness.
+
+### Minimal fix
+
+- Added `@ConditionalOnMissingBean(name = ["passwordResetEmailTaskExecutor"])` to the production executor bean. Production still creates the bounded managed executor when no replacement exists; BDD keeps its named synchronous executor and continues to autowire the real `SendPasswordResetEmailConsumer`.
+- No consumer was manually instantiated. No assertion, glue behavior, sensitive payload, logging, telemetry schema, or provider text handling changed.
+
+### RED/GREEN evidence
+
+- Focus-filter investigation: `CUCUMBER_FILTER_TAGS='@pr-3 and @notifications'` with `:server:smp:bddFastTest --rerun-tasks` still executed all 123 scenarios, confirming the current recipe/Gradle suite does not forward that environment filter as a real focused lane.
+- RED: the fresh 123-scenario run failed exactly 3 tests: retry `expected 2 but was 1` at line 937; terminal failure `expected 3 but was 1` at line 948; telemetry `expected true but was false` at line 974.
+- GREEN: after the one-bean conditional, the attempted filtered command (still full suite) passed fresh, followed by an explicit fresh full `:server:smp:bddFastTest --rerun-tasks` pass with all 123 scenarios.
+- REFACTOR/static: `:server:smp:spotlessCheck :server:smp:detekt` passed; `git diff --check` passed.
+
+### Scope and remaining work
+
+- PR-3.01 through PR-3.10 remain complete. PR-3.11 remains unchecked because PostgreSQL BDD and final verification were explicitly excluded from this batch.
+- No `bdd-postgres`, verify-report edit, commit, push, or PR was performed. Existing local PR 3 changes and the unrelated untracked JPG remain untouched.

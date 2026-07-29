@@ -1,14 +1,14 @@
 package com.profiletailors.smp.identity.infrastructure.email
 
+import com.profiletailors.smp.identity.application.EmailFailureCategory
 import com.profiletailors.smp.identity.application.EmailMessage
 import com.resend.core.exception.ResendException
 import com.resend.services.emails.model.CreateEmailOptions
 import com.resend.services.emails.model.CreateEmailResponse
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class ResendEmailSenderTest {
@@ -17,8 +17,6 @@ class ResendEmailSenderTest {
         sender = "noreply@profiletailors.com",
         verificationSubjectPrefix = "[Profile Tailors]",
     )
-
-    // ── Tests ───────────────────────────────────────────────────────────────
 
     @Test
     fun `send returns success when gateway responds`() = runTest {
@@ -34,13 +32,13 @@ class ResendEmailSenderTest {
             ),
         )
 
-        assertTrue(result.success)
-        assertNull(result.error)
-        assertEquals("noreply@profiletailors.com", capture.lastOptions?.from)
-        assertEquals("user@example.com", capture.lastOptions?.to?.firstOrNull())
-        assertEquals("[Profile Tailors] Verify your email", capture.lastOptions?.subject)
-        assertEquals("Click the link to verify.", capture.lastOptions?.text)
-        assertEquals("<p>Click the link to verify.</p>", capture.lastOptions?.html)
+        result.success shouldBe true
+        result.error.shouldBeNull()
+        capture.lastOptions.shouldNotBeNull().from shouldBe "noreply@profiletailors.com"
+        capture.lastOptions.shouldNotBeNull().to?.firstOrNull() shouldBe "user@example.com"
+        capture.lastOptions.shouldNotBeNull().subject shouldBe "[Profile Tailors] Verify your email"
+        capture.lastOptions.shouldNotBeNull().text shouldBe "Click the link to verify."
+        capture.lastOptions.shouldNotBeNull().html shouldBe "<p>Click the link to verify.</p>"
     }
 
     @Test
@@ -56,8 +54,10 @@ class ResendEmailSenderTest {
             message = EmailMessage(text = "Body"),
         )
 
-        assertFalse(result.success)
-        assertEquals("Invalid API key", result.error)
+        result.success shouldBe false
+        result.error.shouldBeNull()
+        result.failureCategory shouldBe EmailFailureCategory.PROVIDER_REJECTED
+        result.retryable shouldBe false
     }
 
     @Test
@@ -67,7 +67,7 @@ class ResendEmailSenderTest {
 
         sender.send(to = "a@b.com", subject = "Password Reset", message = EmailMessage(text = "Reset link here."))
 
-        assertEquals("[Profile Tailors] Password Reset", capture.lastOptions?.subject)
+        capture.lastOptions.shouldNotBeNull().subject shouldBe "[Profile Tailors] Password Reset"
     }
 
     @Test
@@ -81,11 +81,9 @@ class ResendEmailSenderTest {
 
         sender.send(to = "user@example.com", subject = "Hello", message = EmailMessage(text = "Body"))
 
-        assertEquals("custom@profiletailors.com", capture.lastOptions?.from)
-        assertEquals("[PT] Hello", capture.lastOptions?.subject)
+        capture.lastOptions.shouldNotBeNull().from shouldBe "custom@profiletailors.com"
+        capture.lastOptions.shouldNotBeNull().subject shouldBe "[PT] Hello"
     }
-
-    // ── Fakes ───────────────────────────────────────────────────────────────
 
     class SentCapture {
         var lastOptions: CreateEmailOptions? = null

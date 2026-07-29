@@ -90,11 +90,7 @@ class PasswordResetTransactionPostgresIntegrationTest : PostgresDatabaseTestBase
     fun `password update failure rolls back persisted token consumption`() = runTest {
         seedToken("password-failure", now.plusSeconds(60))
         val failingRepository = object : PasswordResetTokenRepository by repository {
-            override suspend fun consumeAndUpdatePassword(
-                tokenHash: String,
-                now: Instant,
-                newPasswordHash: String,
-            ): Boolean {
+            override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) {
                 repository.consumeAndUpdatePassword(tokenHash, now, newPasswordHash)
                 throw InjectedPasswordUpdateFailure()
             }
@@ -117,11 +113,7 @@ class PasswordResetTransactionPostgresIntegrationTest : PostgresDatabaseTestBase
     fun `token consumption failure rolls back persisted password update`() = runTest {
         seedToken("consume-failure", now.plusSeconds(60))
         val failingRepository = object : PasswordResetTokenRepository by repository {
-            override suspend fun consumeAndUpdatePassword(
-                tokenHash: String,
-                now: Instant,
-                newPasswordHash: String,
-            ): Boolean {
+            override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) {
                 repository.consumeAndUpdatePassword(tokenHash, now, newPasswordHash)
                 throw InjectedTokenConsumptionFailure()
             }
@@ -178,6 +170,7 @@ class PasswordResetTransactionPostgresIntegrationTest : PostgresDatabaseTestBase
         transactionRunner = transactionRunner,
         clock = clock,
         passwordRecoveryEnabled = { true },
+        passwordResetAuditPort = com.profiletailors.smp.identity.application.PasswordResetAuditPort { },
     )
 
     private fun realRefreshLifecycle() = RefreshSessionLifecycleService(

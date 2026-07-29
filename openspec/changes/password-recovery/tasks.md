@@ -1,6 +1,12 @@
 # Tasks: Password Recovery
 
-## Review Workload Forecast
+## Overview
+
+This document tracks implementation tasks across three stacked PRs for the Password Recovery feature. Each task represents a unit of work with RED (test) / GREEN (implement) / REFACTOR phases.
+
+## Changes
+
+### Review Workload Forecast
 
 | Field | Value |
 |---|---|
@@ -16,7 +22,7 @@ Chain strategy: stacked-to-main
 
 Bases: PR 1 `main`; PR 2 after PR 1; PR 3 after PR 1, independent of PR 2.
 
-## PR 1 — Core backend
+### PR 1 — Core backend
 
 - [x] [PR-1.01] Add Liquibase schema.
 - [x] [PR-1.02] Add rollback.
@@ -49,7 +55,7 @@ Bases: PR 1 `main`; PR 2 after PR 1; PR 3 after PR 1, independent of PR 2.
 - [x] [PR-1.29] Run `just backend-test-postgres` and `just backend-bdd-postgres`.
 - [ ] [PR-1.30] Open backend PR when authorized.
 
-## PR 2 — Frontend after PR 1
+### PR 2 — Frontend after PR 1
 
 Route contract: `/forgot-password` is `guestOnly`; `/reset-password` is public/session-agnostic. Both are `standalone` and render outside `AppShell`.
 
@@ -68,16 +74,26 @@ Route contract: `/forgot-password` is `guestOnly`; `/reset-password` is public/s
 
 Codecov follow-up: after PR 2, inspect focused app coverage/reporting and open a separate frontend-only follow-up if recovery files miss expected coverage; do not import backend coverage debt into this slice.
 
-## PR 3 — Hardening after PR 1
+### PR 3 — Hardening after PR 1
 
-- [ ] [PR-3.01] RED: Test cleanup retention/idempotency and `@pr-3` glue.
-- [ ] [PR-3.02] GREEN/REFACTOR: Add cleanup port, scheduler, config, PostgreSQL adapter under `identity/`.
-- [ ] [PR-3.03] RED: Test successful/suspicious audit redaction.
-- [ ] [PR-3.04] GREEN/REFACTOR: Add post-commit audit; failures cannot roll back reset.
-- [ ] [PR-3.05] RED: Test retry, terminal failure, telemetry.
-- [ ] [PR-3.06] GREEN/REFACTOR: Add email retries, safe failure store, redaction.
-- [ ] [PR-3.07] RED: Test PII-free metric labels and span attributes.
-- [ ] [PR-3.08] GREEN: Add metrics/spans under `identity/infrastructure/observability/`.
-- [ ] [PR-3.09] RED: Add runbook acceptance checks.
-- [ ] [PR-3.10] GREEN: Create `docs/runbooks/password-recovery.md` for incidents, retries, cleanup, metrics, and rollback.
-- [ ] [PR-3.11] Run backend checks and all `@pr-3` scenarios; open PR after PR 1.
+- [x] [PR-3.01] RED: Test cleanup retention/idempotency and `@pr-3` glue.
+- [x] [PR-3.02] GREEN/REFACTOR: Add cleanup port, scheduler, config, PostgreSQL adapter under `identity/`.
+- [x] [PR-3.03] RED: Test successful/suspicious audit redaction.
+- [x] [PR-3.04] GREEN/REFACTOR: Add post-commit audit; failures cannot roll back reset.
+- [x] [PR-3.05] RED: Test retry, terminal failure, telemetry.
+- [x] [PR-3.06] GREEN/REFACTOR: Add email retries, safe failure store, redaction.
+- [x] [PR-3.07] RED: Test PII-free metric labels and span attributes.
+- [x] [PR-3.08] GREEN: Add metrics/spans under `identity/infrastructure/observability/`.
+- [x] [PR-3.09] RED: Add runbook acceptance checks.
+- [x] [PR-3.10] GREEN: Create `docs/runbooks/password-recovery.md` for incidents, retries, cleanup, metrics, and rollback.
+- [x] [PR-3.11] Run backend checks and all `@pr-3` scenarios; open PR after PR 1.
+
+## Usage
+
+Each task follows the RED/GREEN/REFACTOR cycle: write a failing test first (RED), implement the minimum code to pass (GREEN), then refactor safely. Run verification via `just` recipes.
+
+## References
+
+- [Specification](../password-recovery/spec.md)
+- [Design](../password-recovery/design.md)
+- [Verify Report](../password-recovery/verify-report.md)

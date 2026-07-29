@@ -937,6 +937,8 @@ class BddDatabaseSupport(
         "DELETE FROM workspace_ownerships",
         "DELETE FROM workspaces",
         // Identity
+        "DELETE FROM password_reset_notification_failures",
+        "DELETE FROM password_reset_tokens",
         "DELETE FROM user_identities",
         "DELETE FROM principals",
     )
@@ -1221,10 +1223,61 @@ class BddDatabaseSupport(
         "SELECT COUNT(*) AS total FROM password_reset_tokens WHERE principal_id = :id AND used_at IS NOT NULL",
     ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
 
+    /**
+     * Counts all password reset tokens in the database.
+     *
+     * @return The total number of password reset tokens.
+     */
     suspend fun countAllPasswordResetTokens(): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM password_reset_tokens",
     ).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
 
+    /**
+     * Seeds a password reset token for the cleanup account.
+     *
+     * @param tokenHash The hashed password reset token.
+     * @param expiresAt The token expiration timestamp.
+     * @param usedAt The timestamp when the token was used, or `null` for an unused token.
+     */
+    suspend fun seedPasswordResetToken(tokenHash: String, expiresAt: Instant, usedAt: Instant? = null) {
+        seedLocalAccountWithPassword("cleanup@example.com")
+        databaseClient.sql(
+            """
+            INSERT INTO password_reset_tokens (id, principal_id, token_hash, requested_at, expires_at, used_at)
+            VALUES (gen_random_uuid(), 'principal-cleanup', :tokenHash, :requestedAt, :expiresAt, :usedAt)
+            """.trimIndent(),
+        )
+            .bind("tokenHash", tokenHash)
+            .bind("requestedAt", expiresAt.minusSeconds(1800))
+            .bind("expiresAt", expiresAt)
+            .let { statement ->
+                if (usedAt == null) {
+                    statement.bindNull("usedAt", Instant::class.java)
+                } else {
+                    statement.bind("usedAt", usedAt)
+                }
+            }
+            .fetch().rowsUpdated().awaitSingle()
+    }
+
+    /**
+     * Checks whether a password reset token exists for the specified hash.
+     *
+     * @param tokenHash The hashed password reset token to search for.
+     * @return `true` if a matching token exists, `false` otherwise.
+     */
+    suspend fun passwordResetTokenExists(tokenHash: String): Boolean = databaseClient.sql(
+        "SELECT COUNT(*) AS total FROM password_reset_tokens WHERE token_hash = :tokenHash",
+    ).bind("tokenHash", tokenHash)
+        .map { row, _ -> (row.get("total") as Number).toLong() > 0 }
+        .one().awaitSingle()
+
+    /**
+     * Counts active refresh sessions for a principal.
+     *
+     * @param principalId The principal whose active refresh sessions are counted.
+     * @return The number of active refresh sessions.
+     */
     suspend fun countActiveRefreshSessions(principalId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM refresh_sessions WHERE principal_id = :id AND status = 'ACTIVE'",
     ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()

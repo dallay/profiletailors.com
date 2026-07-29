@@ -29,3 +29,13 @@ Feature: Persist password reset tokens securely
     And the account has an active password reset token
     When the visitor requests a password reset for "user@example.com"
     Then the account should have exactly one active password reset token
+
+  @cleanup @postgres @pr-3
+  Scenario: [PR 3] Remove expired password reset tokens
+    Given expired and active password reset tokens exist
+    When the expired-token cleanup job runs
+    Then expired tokens older than the retention threshold should be deleted
+    And active unexpired tokens should remain
+    And recently used tokens within the audit retention period should remain
+    When the expired-token cleanup job runs again
+    Then the cleanup should be idempotent
