@@ -3,8 +3,10 @@ import { defineStore } from 'pinia'
 import { consumeSseStream } from '@shared/lib/sse'
 import type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 import { resolveApiUrl, useAuthStore } from '@modules/auth'
+import type { Channel } from '@modules/publishing/domain/channel'
 
 export type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
+export type { Channel } from '@modules/publishing/domain/channel'
 
 // ---------------------------------------------------------------------------
 // Types — Channel & Publication (frontend model)
@@ -33,27 +35,6 @@ export type SocialAccountSummary = {
   displayName: string
   kind: string
   profileUrn: string | null
-}
-
-export type Channel = {
-  id: string
-  name: string
-  provider: ChannelProvider
-  avatar: string
-  avatarUrl?: string
-  handle: string
-  status:
-    | 'ACTIVE'
-    | 'INACTIVE'
-    | 'PENDING'
-    | 'DISABLED'
-    | 'REQUIRES_RECONNECT'
-    | 'DELETED'
-    | 'ERROR'
-    | 'REVOKED'
-    | 'EXPIRED'
-  accountId: string // Maps to backend socialAccountId if available
-  maxAttachments?: number
 }
 
 export type Publication = {
