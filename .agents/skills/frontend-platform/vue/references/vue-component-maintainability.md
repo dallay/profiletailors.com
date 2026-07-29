@@ -104,13 +104,15 @@ defineEmits<{
 When a component grows, decompose it into children with single responsibilities.
 
 **Before:**
-```
+
+```text
 CreatePostModal.vue  ← 989 lines, 5 mixed responsibilities
 ```
 
 **After:**
-```
-CreatePostModal.vue  ← 420 lines, orchestrator only
+
+```text
+CreatePostModal.vue  ← 180 lines, orchestrator only
 ├── ComposerTextArea.vue         ← textarea + character count
 ├── ComposerAttachmentsArea.vue  ← attachments + dropzone
 ├── ComposerScheduleFooter.vue   ← scheduling options
@@ -216,7 +218,7 @@ it('formats file size correctly', () => {
 })
 ```
 
-If a composable depends on DOM or the store, it is doing too much — keep extracting.
+If a composable depends on DOM or the store, evaluate whether it has mixed responsibilities or excessive scope — continue extracting if needed.
 
 ---
 
@@ -252,7 +254,7 @@ import type { MediaAsset } from '@/types'
 
 ## Pre-Merge Checklist
 
-- [ ] `<script setup>` under 100 effective lines
+- [ ] `<script setup>` under ~80 effective lines (extract composable if exceeded)
 - [ ] No `any`, no `as unknown as X` without a type guard
 - [ ] Props and emits typed with explicit interfaces
 - [ ] Calculation / filtering logic in composable, not inline in template
@@ -265,7 +267,7 @@ import type { MediaAsset } from '@/types'
 
 ## Reference Module Structure
 
-```
+```text
 modules/media/
 ├── infrastructure/
 │   ├── media.store.ts         ← global Pinia state
