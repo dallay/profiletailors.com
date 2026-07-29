@@ -18,7 +18,7 @@ class PasswordRecoveryRunbookTest {
         runbookPath.shouldExist()
 
         val runbook = runbookPath.readText()
-        val justfile = repositoryRoot().resolve("justfile").readText()
+        val justfile = repositoryRoot().resolve("Justfile").readText()
 
         topLevelSections(runbook) shouldBe listOf(
             "Overview",
