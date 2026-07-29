@@ -1,7 +1,9 @@
 ---
-import { useTranslations } from '../../i18n/utils'
+import { useTranslations, locales, defaultLocale, type Locale } from '../../i18n/utils'
 
-const t = useTranslations(Astro.currentLocale || 'en')
+const currentLocale = Astro.currentLocale
+const locale = (currentLocale && locales.includes(currentLocale as Locale)) ? (currentLocale as Locale) : defaultLocale
+const t = useTranslations(locale)
 ---
 
 <div id="consent-banner" role="dialog" aria-labelledby="consent-heading" aria-modal="true" hidden>

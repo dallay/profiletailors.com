@@ -1,6 +1,6 @@
 schemaVersion: 1
 task: dependency-maintenance
-lastExecution: 2026-03-05T18:00:00Z
+lastExecution: 2026-03-05T18:30:00Z
 outcome: CHANGES_APPLIED
 findings:
   - id: detekt-kotlin-mismatch
@@ -17,10 +17,37 @@ findings:
     resolvedVersion: 2.5.5
     status: resolved
     evidence: "Biome upgraded from 2.5.4 to 2.5.5 as a conservative dependency maintenance patch."
+  - id: marketing-deps-patch
+    dependency: "@iconify-json/lucide, @tailwindcss/vite, tailwindcss"
+    type: patch-drift
+    currentVersion: "1.2.116, 4.3.0, 4.3.0"
+    resolvedVersion: "1.2.120, 4.3.3, 4.3.3"
+    status: resolved
+    evidence: "Upgraded marketing dependencies in package.json and verified lockfile integrity."
+  - id: app-deps-patch
+    dependency: "@tailwindcss/vite, tailwindcss, vue-i18n, vue-tsc"
+    type: patch-drift
+    currentVersion: "4.3.1, 4.3.1, 11.4.7, 3.3.7"
+    resolvedVersion: "4.3.3, 4.3.3, 11.4.8, 3.3.8"
+    status: resolved
+    evidence: "Upgraded app dependencies in package.json and verified lockfile integrity."
+  - id: marketing-astro-locale-typecheck
+    dependency: "astro / typescript"
+    type: version-drift
+    currentVersion: "Astro.currentLocale as string"
+    resolvedVersion: "Guarded Locale cast"
+    status: resolved
+    evidence: "Fixed type mismatch in useTranslations input where Astro.currentLocale was typed as string | undefined."
 checks:
   - name: backend-build-check
     status: Passed
   - name: backend-detekt-check
     status: Passed
   - name: frontend-biome-check
+    status: Passed
+  - name: frontend-check-astro
+    status: Passed
+  - name: frontend-test-marketing
+    status: Passed
+  - name: frontend-test-app
     status: Passed

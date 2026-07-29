@@ -47,7 +47,7 @@
     "vaul-vue": "^0.4.1",
     "vee-validate": "^4.15.1",
     "vue": "3.5.40",
-    "vue-i18n": "11.4.7",
+    "vue-i18n": "11.4.8",
     "vue-input-otp": "^0.3.2",
     "vue-router": "5.2.0",
     "vue-sonner": "^2.0.9",
@@ -56,7 +56,7 @@
   "devDependencies": {
     "@bgotink/playwright-coverage": "^0.3.2",
     "@playwright/test": "^1.61.1",
-    "@tailwindcss/vite": "4.3.1",
+    "@tailwindcss/vite": "4.3.3",
     "@tsconfig/node24": "24.0.4",
     "@types/node": "25.9.3",
     "@vitejs/plugin-vue": "6.0.8",
@@ -66,12 +66,12 @@
     "@vue/tsconfig": "0.9.1",
     "jsdom": "^29.1.1",
     "npm-run-all2": "9.0.2",
-    "tailwindcss": "4.3.1",
+    "tailwindcss": "4.3.3",
     "typescript": "~6.0.3",
     "vite": "7.3.6",
     "vite-plugin-vue-devtools": "8.1.5",
     "vitest": "^3.2.6",
-    "vue-tsc": "3.3.7"
+    "vue-tsc": "3.3.8"
   },
   "engines": {
     "node": "20.19.0 || >=22.12.0"
