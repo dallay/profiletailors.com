@@ -31,9 +31,15 @@
     "@dallay/astro-icon": "^1.3.3",
     "@iconify-json/lucide": "^1.2.120",
     "@profiletailors/shared-web": "workspace:*",
+<<<<<<< HEAD
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^6.4.8",
     "tailwindcss": "^4.3.3",
+=======
+    "@tailwindcss/vite": "^4.3.0",
+    "astro": "^7.1.0",
+    "tailwindcss": "^4.3.0",
+>>>>>>> origin/main
     "yaml": "^2.8.3"
   },
   "devDependencies": {
