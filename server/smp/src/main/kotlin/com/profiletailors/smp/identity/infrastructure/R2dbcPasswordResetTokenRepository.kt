@@ -111,7 +111,7 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
      * first UPDATE consumed exactly one row. If the surrounding transaction
      * rolls back, no state changes persist. The password UPDATE MUST also
      * affect exactly one row; otherwise the call throws
-     * [PasswordResetTokenRepository.PasswordResetCredentialMissingException]
+     * [com.profiletailors.smp.identity.application.PasswordResetCredentialMissingException]
      * to force the transaction to roll back.
      */
     override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) {

@@ -11,7 +11,6 @@ import com.profiletailors.smp.identity.application.PasswordResetNotificationTele
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryPort
 import com.profiletailors.smp.identity.domain.PasswordResetRequested
 import com.profiletailors.smp.identity.infrastructure.PasswordRecoveryConfigurationProperties
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
@@ -103,14 +102,14 @@ class SendPasswordResetEmailConsumer(
      * @param event The password reset request associated with the failure.
      * @param attempts The number of delivery attempts made.
      * @param category The category of the delivery failure.
-     * @throws CancellationException If recording the failure is cancelled.
+     * Persistence failures are logged after telemetry is recorded; programming errors propagate.
      */
     private suspend fun recordTerminalFailure(
         event: PasswordResetRequested,
         attempts: Int,
         category: EmailFailureCategory,
     ) {
-        var persistenceFailure: RuntimeException? = null
+        var persistenceFailure: org.springframework.dao.DataAccessException? = null
         try {
             failurePort.record(
                 PasswordResetNotificationFailure(
@@ -121,12 +120,11 @@ class SendPasswordResetEmailConsumer(
                     category = category,
                 ),
             )
-        } catch (@Suppress("TooGenericExceptionCaught") failure: RuntimeException) {
+        } catch (failure: org.springframework.dao.DataAccessException) {
             persistenceFailure = failure
         } finally {
             telemetryPort.record(telemetry(PasswordResetNotificationStatus.FAILED, attempts, category))
         }
-        if (persistenceFailure is CancellationException) throw persistenceFailure
         if (persistenceFailure != null) {
             log.error("Password reset terminal failure persistence failed for principal '{}'", event.principalId)
         }

@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.smp.integration.support.RepositoryRoot
 import io.kotest.matchers.paths.shouldExist
 import io.kotest.matchers.string.shouldContain
 import org.junit.jupiter.api.Test
@@ -34,13 +35,7 @@ class PasswordResetNotificationFailureRepositoryContractTest {
         migration shouldContain "onDelete: CASCADE"
     }
 
-    private fun repositoryRoot(): Path =
-        System.getProperty("project.root")
-            ?.let { Path.of(it) }
-            ?: generateSequence(Path.of(System.getProperty("user.dir")).toAbsolutePath()) {
-                it.parent
-            }.firstOrNull { Files.isRegularFile(it.resolve("justfile")) }
-            ?: error("Repository root containing justfile was not found")
+    private fun repositoryRoot(): Path = RepositoryRoot.path()
 
     private companion object {
         val REQUIRED_COLUMNS = listOf(

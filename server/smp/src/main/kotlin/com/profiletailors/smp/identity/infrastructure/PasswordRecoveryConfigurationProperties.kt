@@ -29,6 +29,11 @@ data class PasswordRecoveryConfigurationProperties(
             require(!interval.isZero && !interval.isNegative) { "interval must be strictly positive" }
             require(!initialDelay.isNegative) { "initialDelay must not be negative" }
         }
+
+        companion object {
+            const val DEFAULT_INTERVAL = "24h"
+            const val DEFAULT_INITIAL_DELAY = "5m"
+        }
     }
 
     data class NotificationRetry(
@@ -38,10 +43,18 @@ data class PasswordRecoveryConfigurationProperties(
         val maxBackoff: Duration = Duration.ofSeconds(DEFAULT_NOTIFICATION_MAX_BACKOFF_SECONDS),
     ) {
         init {
-            require(maxAttempts > 0)
-            require(!initialBackoff.isNegative)
-            require(multiplier >= 1.0)
-            require(!maxBackoff.isNegative)
+            require(maxAttempts > 0) {
+                "maxAttempts must be greater than 0"
+            }
+            require(!initialBackoff.isNegative) {
+                "initialBackoff must not be negative"
+            }
+            require(multiplier >= 1.0) {
+                "multiplier must be at least 1.0"
+            }
+            require(!maxBackoff.isNegative) {
+                "maxBackoff must not be negative"
+            }
         }
     }
 }

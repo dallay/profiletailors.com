@@ -1,12 +1,12 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.smp.integration.support.RepositoryRoot
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.paths.shouldExist
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import org.junit.jupiter.api.Test
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.readText
 
@@ -41,17 +41,11 @@ class PasswordRecoveryRunbookTest {
         }
         diagnosticSql shouldContain "password_reset_notification_failures"
         diagnosticSql shouldContain "failure_category"
-        diagnosticSql shouldNotContain "       category AS safe_category"
+        diagnosticSql.replace(Regex("\\s+"), " ").lowercase() shouldNotContain " category as safe_category"
         diagnosticSql shouldContain "password_reset_tokens"
     }
 
-    private fun repositoryRoot(): Path =
-        System.getProperty("project.root")
-            ?.let { Path.of(it) }
-            ?: generateSequence(Path.of(System.getProperty("user.dir")).toAbsolutePath()) {
-                it.parent
-            }.firstOrNull { Files.isRegularFile(it.resolve("justfile")) }
-            ?: error("Repository root containing justfile was not found")
+    private fun repositoryRoot(): Path = RepositoryRoot.path()
 
     private fun topLevelSections(markdown: String): List<String> = markdown.lineSequence()
         .filter { it.startsWith("## ") }

@@ -11,6 +11,7 @@ import com.profiletailors.smp.identity.application.PasswordResetNotificationTele
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryPort
 import com.profiletailors.smp.identity.domain.PasswordResetRequested
 import com.profiletailors.smp.identity.infrastructure.PasswordRecoveryConfigurationProperties
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
@@ -131,13 +132,27 @@ class SendPasswordResetEmailConsumerTest {
             sender = SequencedEmailSender(
                 EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED),
             ),
-            failures = ThrowingFailurePort(IllegalStateException("store unavailable")),
+            failures = ThrowingFailurePort(
+                org.springframework.dao.DataAccessResourceFailureException("store unavailable"),
+            ),
             telemetry = telemetry,
         )
 
         consumer.consume(passwordResetRequested())
 
         telemetry.events.single().status shouldBe PasswordResetNotificationStatus.FAILED
+    }
+
+    @Test
+    fun `unexpected persistence programming errors propagate`() = runTest {
+        val consumer = consumer(
+            sender = SequencedEmailSender(
+                EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED),
+            ),
+            failures = ThrowingFailurePort(IllegalStateException("programming error")),
+        )
+
+        shouldThrow<IllegalStateException> { consumer.consume(passwordResetRequested()) }
     }
 
     @Test

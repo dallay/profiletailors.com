@@ -17,8 +17,12 @@ class PasswordResetTokenCleanupScheduler(
      * Deletes password reset tokens that have expired beyond the configured retention period.
      */
     @Scheduled(
-        fixedDelayString = "\${app.identity.password-recovery.cleanup.interval:24h}",
-        initialDelayString = "\${app.identity.password-recovery.cleanup.initial-delay:5m}",
+        fixedDelayString = "\${app.identity.password-recovery.cleanup.interval:" +
+            "#{T(com.profiletailors.smp.identity.infrastructure.PasswordRecoveryConfigurationProperties.Cleanup)." +
+            "DEFAULT_INTERVAL}}",
+        initialDelayString = "\${app.identity.password-recovery.cleanup.initial-delay:" +
+            "#{T(com.profiletailors.smp.identity.infrastructure.PasswordRecoveryConfigurationProperties.Cleanup)." +
+            "DEFAULT_INITIAL_DELAY}}",
     )
     suspend fun runCleanup() {
         runCleanup(clock)

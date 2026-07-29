@@ -7,7 +7,6 @@ import com.profiletailors.smp.identity.application.PasswordResetAuditEvent
 import io.kotest.matchers.maps.shouldContainExactly
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldNotContain
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -33,14 +32,13 @@ class AuditHookPasswordResetAuditAdapterTest {
         fact.workspaceId.shouldBeNull()
         fact.details shouldContainExactly mapOf("occurredAt" to "2026-07-29T12:34:56Z")
 
-        val serialized = fact.toString().lowercase()
-        listOf(
-            "raw-token-sensitive",
-            "newpassword123!",
-            "password-hash-sensitive",
-            "person@example.com",
-            "203.0.113.42",
-        ).forEach { secret -> serialized shouldNotContain secret.lowercase() }
+        fact.action shouldBe "PASSWORD_RESET_COMPLETED"
+        fact.targetType shouldBe "IDENTITY_PRINCIPAL"
+        fact.targetId shouldBe "principal-123"
+        fact.actorPrincipalId shouldBe "principal-123"
+        fact.workspaceId.shouldBeNull()
+        fact.outcome.name shouldBe "SUCCESS"
+        fact.details shouldContainExactly mapOf("occurredAt" to "2026-07-29T12:34:56Z")
     }
 
     private class CapturingAuditHook : AuditHook {

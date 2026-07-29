@@ -5,15 +5,14 @@ import com.profiletailors.smp.identity.application.PasswordResetTokenCleanupPort
 import com.profiletailors.smp.identity.application.PasswordResetTokenRepository
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import io.kotest.assertions.throwables.shouldThrow
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
@@ -153,7 +152,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
     }
 
     @Test
-    fun `consumeAndUpdatePassword returns true and updates password hash on success`() = runTest {
+    fun `consumeAndUpdatePassword updates the password hash and marks the token as used on success`() = runTest {
         seedPrincipal()
         seedLocalPasswordCredential("user-1", "old-hash")
 
@@ -189,14 +188,12 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
             expiresAt = Instant.parse("2026-07-27T11:30:00Z"),
         )
 
-        assertThrows(PasswordResetCredentialMissingException::class.java) {
-            runBlocking {
-                repository.consumeAndUpdatePassword(
-                    tokenHash = tokenHash,
-                    now = Instant.parse("2026-07-27T12:00:00Z"),
-                    newPasswordHash = "new-hash",
-                )
-            }
+        shouldThrow<PasswordResetCredentialMissingException> {
+            repository.consumeAndUpdatePassword(
+                tokenHash = tokenHash,
+                now = Instant.parse("2026-07-27T12:00:00Z"),
+                newPasswordHash = "new-hash",
+            )
         }
         assertNull(repository.findByTokenHash(tokenHash)?.usedAt)
         assertEquals("old-hash", lookupPasswordHash("user-1"))
@@ -216,14 +213,12 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         )
         markTokenUsed(tokenHash, Instant.parse("2026-07-27T12:05:00Z"))
 
-        assertThrows(PasswordResetCredentialMissingException::class.java) {
-            runBlocking {
-                repository.consumeAndUpdatePassword(
-                    tokenHash = tokenHash,
-                    now = Instant.parse("2026-07-27T12:10:00Z"),
-                    newPasswordHash = "new-hash",
-                )
-            }
+        shouldThrow<PasswordResetCredentialMissingException> {
+            repository.consumeAndUpdatePassword(
+                tokenHash = tokenHash,
+                now = Instant.parse("2026-07-27T12:10:00Z"),
+                newPasswordHash = "new-hash",
+            )
         }
         assertEquals("old-hash", lookupPasswordHash("user-1"))
     }
@@ -233,14 +228,12 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         seedPrincipal()
         seedLocalPasswordCredential("user-1", "old-hash")
 
-        assertThrows(PasswordResetCredentialMissingException::class.java) {
-            runBlocking {
-                repository.consumeAndUpdatePassword(
-                    tokenHash = "unknown-hash",
-                    now = Instant.parse("2026-07-27T12:10:00Z"),
-                    newPasswordHash = "new-hash",
-                )
-            }
+        shouldThrow<PasswordResetCredentialMissingException> {
+            repository.consumeAndUpdatePassword(
+                tokenHash = "unknown-hash",
+                now = Instant.parse("2026-07-27T12:10:00Z"),
+                newPasswordHash = "new-hash",
+            )
         }
         assertEquals("old-hash", lookupPasswordHash("user-1"))
     }
@@ -259,7 +252,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         )
 
         val now = Instant.parse("2026-07-27T12:10:00Z")
-        val outcomes = runBlocking {
+        val outcomes = run {
             val first = async {
                 runCatching {
                     repository.consumeAndUpdatePassword(tokenHash, now, "first-new-hash")

@@ -8,6 +8,7 @@ import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
+import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -57,6 +58,9 @@ class PasswordRecoveryBddSteps {
     private lateinit var passwordResetTelemetryPort: RecordingPasswordResetTelemetryPort
 
     @Autowired
+    private lateinit var meterRegistry: MeterRegistry
+
+    @Autowired
     private lateinit var passwordResetEmailConsumer:
         com.profiletailors.smp.identity.infrastructure.email.SendPasswordResetEmailConsumer
 
@@ -97,6 +101,7 @@ class PasswordRecoveryBddSteps {
      */
     @Before
     fun resetPasswordRecoveryState() {
+        logAppender.list.clear()
         latestResult = null
         latestStatusCode = null
         lastForgotPasswordBody = ""
@@ -889,25 +894,28 @@ class PasswordRecoveryBddSteps {
 
     @And("application logs should not contain the raw reset token")
     fun applicationLogsShouldNotContainTheRawResetToken() {
-        // No assertion here — the application never logs the raw token. Covered
-        // by inspection of the consumer code.
+        assertTrue(
+            !logAppender.list.joinToString("\n") { it.formattedMessage }
+                .contains(bddDatabaseSupport.lastRawToken()),
+        )
     }
 
     @And("application logs should not contain the new password")
     fun applicationLogsShouldNotContainTheNewPassword() {
-        // No assertion here — the application never logs the password. Covered
-        // by inspection of the handler code.
+        assertTrue(
+            !logAppender.list.joinToString("\n") { it.formattedMessage }
+                .contains("NewPassword123!"),
+        )
     }
 
     @And("audit records should not contain the raw reset token")
     fun auditRecordsShouldNotContainTheRawResetToken() {
-        // No assertion here — there is no audit recording for password reset
-        // in PR 1. The deferred audit work is tracked in PR 3.
+        assertAuditExcludes(bddDatabaseSupport.lastRawToken())
     }
 
     @And("metrics should not contain the raw reset token")
     fun metricsShouldNotContainTheRawResetToken() {
-        // No assertion here — PR 1 does not emit metric labels for password reset.
+        assertTrue(!meterRegistry.meters.toString().contains(bddDatabaseSupport.lastRawToken()))
     }
 
     @And("the reset operation should fail")
@@ -1157,17 +1165,20 @@ class PasswordRecoveryBddSteps {
 
     @And("the raw token should not be present in audit records")
     fun theRawTokenShouldNotBePresentInAuditRecords() {
-        // PR 1 does not introduce audit records for password reset.
+        assertAuditExcludes(bddDatabaseSupport.lastRawToken())
     }
 
     @And("the raw token should not be present in application logs")
     fun theRawTokenShouldNotBePresentInApplicationLogs() {
-        // PR 1 handlers never log the raw token.
+        assertTrue(
+            !logAppender.list.joinToString("\n") { it.formattedMessage }
+                .contains(bddDatabaseSupport.lastRawToken()),
+        )
     }
 
     @And("the raw token should not be present in metrics")
     fun theRawTokenShouldNotBePresentInMetrics() {
-        // PR 1 does not emit metric labels containing the raw token.
+        assertTrue(!meterRegistry.meters.toString().contains(bddDatabaseSupport.lastRawToken()))
     }
 
     @And("the current user has the refresh token {string}")

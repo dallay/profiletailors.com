@@ -7,6 +7,7 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import jakarta.mail.Message
+import jakarta.mail.SendFailedException
 import jakarta.mail.Session
 import jakarta.mail.internet.MimeMessage
 import kotlinx.coroutines.test.runTest
@@ -17,6 +18,7 @@ import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.net.ConnectException
 import java.util.Properties
 
 class SmtpEmailSenderTest {
@@ -74,10 +76,11 @@ class SmtpEmailSenderTest {
     }
 
     @Test
-    fun `transient connection failure is temporary and retryable`() = runTest {
+    fun `transient connection exception is temporary and retryable`() = runTest {
+        val smtpFailure = ConnectException("connection refused")
         val sender = SmtpEmailSender(
             RecordingJavaMailSender(
-                failure = MailSendException("connection refused: smtp.example.com"),
+                failure = MailSendException("SMTP send failed", smtpFailure),
             ),
             properties,
         )
@@ -89,10 +92,11 @@ class SmtpEmailSenderTest {
     }
 
     @Test
-    fun `recipient rejection is permanent and not retryable`() = runTest {
+    fun `recipient rejection exception type is permanent and not retryable`() = runTest {
+        val smtpFailure = SendFailedException("opaque SMTP failure")
         val sender = SmtpEmailSender(
             RecordingJavaMailSender(
-                failure = MailSendException("recipient rejected: mailbox unavailable"),
+                failure = MailSendException("SMTP send failed", smtpFailure),
             ),
             properties,
         )
