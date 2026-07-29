@@ -1,0 +1,27 @@
+change: password-recovery
+current_phase: archive
+completed: [propose, spec, design, tasks, apply, verify, archive]
+next: none
+updated: 2026-07-29
+archived: 2026-07-29
+archived_to: openspec/changes/archive/2026-07-29-password-recovery/
+slices:
+  pr-1:
+    status: merged
+    completed_phases: [apply, verify]
+    next: none
+  pr-2:
+    status: merged
+    completed_phases: [apply, verify]
+    completed_tasks: [PR-2.01, PR-2.02, PR-2.03, PR-2.04, PR-2.05, PR-2.06, PR-2.07, PR-2.08, PR-2.09, PR-2.10, PR-2.11]
+    next: none
+  pr-3:
+    status: merged
+    pr_url: https://github.com/dallay/profiletailors.com/pull/509
+    branch: feat/dallay-523-password-recovery-hardening
+    completed_phases: [apply, verify]
+    completed_tasks: [PR-3.01, PR-3.02, PR-3.03, PR-3.04, PR-3.05, PR-3.06, PR-3.07, PR-3.08, PR-3.09, PR-3.10, PR-3.11]
+    blocked_tasks: []
+    failed_verification: false
+    verdict: pass
+    next: none

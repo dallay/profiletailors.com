@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.email
 
+import com.profiletailors.smp.identity.application.EmailFailureCategory
 import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
@@ -25,6 +26,14 @@ class ResendEmailSender(private val emailProperties: EmailProperties, private va
 
     private val log = LoggerFactory.getLogger(ResendEmailSender::class.java)
 
+    /**
+     * Sends an email through the Resend service.
+     *
+     * @param to The recipient's email address.
+     * @param subject The email subject.
+     * @param message The plain-text and optional HTML email content.
+     * @return The result of the email delivery attempt.
+     */
     override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
         val builder = CreateEmailOptions.builder()
             .from(emailProperties.sender)
@@ -38,9 +47,9 @@ class ResendEmailSender(private val emailProperties: EmailProperties, private va
             val response = emailGateway.send(params)
             log.debug("Email sent via Resend — id={}", response.id)
             EmailSendResult(success = true)
-        } catch (e: ResendException) {
-            log.error("Failed to send email via Resend — to={} error={}", to, e.message)
-            EmailSendResult(success = false, error = e.message)
+        } catch (_: ResendException) {
+            log.error("Email delivery failed via Resend with category provider-rejected")
+            EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED)
         }
     }
 }

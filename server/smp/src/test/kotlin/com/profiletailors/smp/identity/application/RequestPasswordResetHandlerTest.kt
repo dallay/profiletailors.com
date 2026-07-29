@@ -538,11 +538,7 @@ class RequestPasswordResetHandlerTest {
 
         override suspend fun findByTokenHash(tokenHash: String) = null
 
-        override suspend fun consumeAndUpdatePassword(
-            tokenHash: String,
-            now: Instant,
-            newPasswordHash: String,
-        ): Boolean = false
+        override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) = Unit
     }
 
     private class FakePasswordResetTokenRepository(private val order: MutableList<String> = mutableListOf()) :
@@ -568,11 +564,7 @@ class RequestPasswordResetHandlerTest {
 
         override suspend fun findByTokenHash(tokenHash: String) = null
 
-        override suspend fun consumeAndUpdatePassword(
-            tokenHash: String,
-            now: Instant,
-            newPasswordHash: String,
-        ): Boolean = false
+        override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) = Unit
     }
 
     private class RecordingPasswordRecoveryTimingEqualizer(private val order: MutableList<String>) :

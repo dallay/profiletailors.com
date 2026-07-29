@@ -61,3 +61,17 @@ Feature: Password recovery security controls
     When the user submits the modified token with a valid new password
     Then the password recovery response status should be 400
     And the password should remain unchanged
+
+  @audit @pr-3
+  Scenario: [PR 3] Audit a successful password change
+    Given a local account exists with email "user@example.com"
+    And a valid unused password reset token exists for the account
+    When the user resets the password using the token and a valid new password
+    Then the password recovery response status should be 204
+    And an audit event should record the principal identifier
+    And the event should record the occurrence timestamp
+    And the event should record the action "PASSWORD_RESET_COMPLETED"
+    And the event should not contain the raw token
+    And the event should not contain the password
+    And the event should not contain the password hash
+    And the event should not contain the email or raw IP

@@ -1,5 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.smp.identity.application.PasswordResetCredentialMissingException
+import com.profiletailors.smp.identity.application.PasswordResetTokenCleanupPort
 import com.profiletailors.smp.identity.application.PasswordResetTokenRepository
 import com.profiletailors.smp.identity.domain.PasswordResetToken
 import kotlinx.coroutines.reactor.awaitSingle
@@ -11,8 +13,32 @@ import java.time.OffsetDateTime
 import java.util.UUID
 
 @Repository
-class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClient) : PasswordResetTokenRepository {
+class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClient) :
+    PasswordResetTokenRepository,
+    PasswordResetTokenCleanupPort {
 
+    /**
+     * Deletes password reset tokens that expired before the specified cutoff.
+     *
+     * @param cutoff The expiration threshold for eligible tokens.
+     * @return The number of deleted tokens.
+     */
+    override suspend fun deleteExpiredBefore(cutoff: Instant): Long = databaseClient.sql(
+        "DELETE FROM password_reset_tokens WHERE expires_at < :cutoff AND (used_at IS NULL OR used_at < :cutoff)",
+    )
+        .bind("cutoff", cutoff)
+        .fetch()
+        .rowsUpdated()
+        .awaitSingle()
+
+    /**
+     * Creates a password reset token record.
+     *
+     * @param principalId The identifier of the principal associated with the token.
+     * @param tokenHash The hashed password reset token.
+     * @param requestedAt The time the reset token was requested.
+     * @param expiresAt The time the reset token expires.
+     */
     override suspend fun create(principalId: String, tokenHash: String, requestedAt: Instant, expiresAt: Instant) {
         databaseClient.sql(
             """
@@ -84,10 +110,11 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
      * UPDATE and the caller-supplied session revocation) execute only when the
      * first UPDATE consumed exactly one row. If the surrounding transaction
      * rolls back, no state changes persist. The password UPDATE MUST also
-     * affect exactly one row; otherwise the call returns false and the caller
-     * rolls back the transaction.
+     * affect exactly one row; otherwise the call throws
+     * [com.profiletailors.smp.identity.application.PasswordResetCredentialMissingException]
+     * to force the transaction to roll back.
      */
-    override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String): Boolean {
+    override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) {
         val consumed: Long = databaseClient.sql(
             """
             UPDATE password_reset_tokens
@@ -103,7 +130,9 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
             .rowsUpdated()
             .awaitSingle()
 
-        if (consumed != 1L) return false
+        if (consumed != 1L) {
+            throw PasswordResetCredentialMissingException()
+        }
 
         val passwordUpdated: Long = databaseClient.sql(
             """
@@ -123,19 +152,9 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
             .awaitSingle()
 
         if (passwordUpdated != 1L) {
-            // Force the surrounding transaction to roll back by throwing here.
             throw PasswordResetCredentialMissingException()
         }
-
-        return true
     }
 }
 
 private const val TOKEN_HASH_BIND = "tokenHash"
-
-/**
- * Marker exception used to force the surrounding [com.profiletailors.common.domain.persistence.AtomicTransactionRunner]
- * transaction to roll back when the password credential update affected zero rows.
- */
-class PasswordResetCredentialMissingException :
-    RuntimeException("Password credential row not found for password reset token.")
