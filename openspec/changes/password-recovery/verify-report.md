@@ -10,7 +10,7 @@
 | **Verification date** | 2026-07-29 |
 | **Verdict** | **PASS** |
 
-Scope: Final formal verification of PR-3.01 through PR-3.11 against `proposal.md`, `spec.md`, `design.md`, `tasks.md`, `apply-progress.md`, the current implementation, Liquibase migration, executable tests, and prior findings. Production code, tests, and tasks were not modified. Only this report and `state.yaml` were updated.
+Scope: Final formal verification of PR-3.01 through PR-3.11 against `proposal.md`, `spec.md`, `design.md`, `tasks.md`, `apply-progress.md`, the current implementation, Liquibase migration, executable tests, and prior findings. Production code and tests were not modified. This report, `state.yaml`, and `tasks.md` were updated.
 
 ## Changes
 
