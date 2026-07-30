@@ -48,6 +48,8 @@ jobs:
     needs: release-please
     if: ${{ needs.release-please.outputs['smp--release_created'] == 'true' }}
     uses: ./.github/workflows/release-image.yml
+    with:
+      release-tag: ${{ needs.release-please.outputs['smp--tag_name'] }}
     secrets: inherit
     permissions:
       contents: read
