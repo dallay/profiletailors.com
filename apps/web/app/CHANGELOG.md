@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/dallay/profiletailors.com/compare/app@v0.2.2...app@v0.2.3) (2026-07-30)
+
+
+### Bug Fixes
+
+* **deps:** update dependency shadcn-vue to v2.8.0 ([#522](https://github.com/dallay/profiletailors.com/issues/522)) ([17ff4e6](https://github.com/dallay/profiletailors.com/commit/17ff4e6fdad3cb0756eb9893245bf9426c5e1732))
+
 ## [0.2.2](https://github.com/dallay/profiletailors.com/compare/app@v0.2.1...app@v0.2.2) (2026-07-30)
 
 
