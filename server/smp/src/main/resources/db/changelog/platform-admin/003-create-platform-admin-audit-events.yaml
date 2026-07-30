@@ -24,7 +24,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: operator_platform_roles
-                  type: varchar(255)
+                  type: text[]
                   constraints:
                     nullable: false
               - column:

@@ -44,6 +44,24 @@ databaseChangeLog:
                   defaultValueNumeric: 0
                   constraints:
                     nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: platform_role_assignments
+            baseColumnNames: principal_id
+            referencedTableName: principals
+            referencedColumnNames: id
+            constraintName: fk_platform_role_assignments_principal
+        - addForeignKeyConstraint:
+            baseTableName: platform_role_assignments
+            baseColumnNames: assigned_by
+            referencedTableName: principals
+            referencedColumnNames: id
+            constraintName: fk_platform_role_assignments_assigned_by
+        - addForeignKeyConstraint:
+            baseTableName: platform_role_assignments
+            baseColumnNames: revoked_by
+            referencedTableName: principals
+            referencedColumnNames: id
+            constraintName: fk_platform_role_assignments_revoked_by
         - createIndex:
             tableName: platform_role_assignments
             indexName: idx_platform_role_assignments_principal_active
@@ -52,3 +70,8 @@ databaseChangeLog:
                   name: principal_id
               - column:
                   name: revoked_at
+        - sql:
+            sql: |
+              CREATE UNIQUE INDEX idx_platform_role_assignments_active_unique
+              ON platform_role_assignments (principal_id, role)
+              WHERE revoked_at IS NULL

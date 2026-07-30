@@ -4,6 +4,7 @@ import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminOperatorSummary
+import com.profiletailors.smp.platformadmin.application.ports.AdminOperatorQuery
 import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
@@ -24,33 +25,21 @@ import java.util.UUID
 @RequestMapping("/api/admin/operators")
 class AdminOperatorController(
     private val roleAssignmentRepository: PlatformRoleAssignmentRepository,
+    private val operatorQuery: AdminOperatorQuery,
     private val assignRoleHandler: AssignPlatformRoleHandler,
     private val revokeRoleHandler: RevokePlatformRoleHandler,
     private val requestContextStore: RequestContextStore,
 ) {
     @GetMapping
     suspend fun listOperators(): ResponseEntity<List<AdminOperatorSummary>> {
-        val ctx = requestContextStore.currentPrincipalContext()
+        val (_, operatorRoles) = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        val operatorId = UUID.fromString(ctx.principalId)
-        val activeAssignments = roleAssignmentRepository.findActiveByPrincipalId(operatorId)
-        val operatorRoles = activeAssignments.map { it.role }.toSet()
 
         if (PlatformPermission.OPERATORS_READ !in operatorRoles.effectivePermissions()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         }
 
-        val allAssignments = roleAssignmentRepository.findAllActive()
-        val grouped = allAssignments.groupBy { it.principalId }
-        val result = grouped.map { (principalId, assignments) ->
-            AdminOperatorSummary(
-                principalId = principalId,
-                email = "",
-                displayName = null,
-                platformRoles = assignments.map { it.role.name },
-                assignedAt = assignments.minOf { it.assignedAt },
-            )
-        }
+        val result = operatorQuery.listAll()
         return ResponseEntity.ok(result)
     }
 

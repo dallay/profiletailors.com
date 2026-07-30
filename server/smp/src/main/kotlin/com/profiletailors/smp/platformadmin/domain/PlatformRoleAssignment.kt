@@ -16,7 +16,7 @@ data class PlatformRoleAssignment(
     val isActive: Boolean get() = revokedAt == null
 
     fun revoke(at: Instant, by: UUID): PlatformRoleAssignment {
-        check(isActive) { "Role assignment is already revoked." }
+        if (!isActive) throw PlatformRoleAlreadyRevokedException(id.value.toString())
         return copy(revokedAt = at, revokedBy = by)
     }
 }

@@ -1,9 +1,17 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
+import com.profiletailors.leadcapture.common.CaptureLocale
+import com.profiletailors.leadcapture.common.CaptureSource
 import com.profiletailors.leadcapture.common.EmailAddress
+import com.profiletailors.leadcapture.common.LeadMetadata
 import com.profiletailors.leadcapture.common.NormalizedEmail
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
+import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
@@ -39,36 +47,36 @@ class R2dbcWaitlistEntryAdminAdapter(private val databaseClient: DatabaseClient)
         return requireNotNull(findById(entry.id.value))
     }
 
-    private fun io.r2dbc.spi.Readable.toWaitlistEntry(): WaitlistEntry {
-        val id = com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId(
+    private fun Readable.toWaitlistEntry(): WaitlistEntry {
+        val id = WaitlistEntryId(
             requireNotNull(get("id", String::class.java)),
         )
-        val waitlistId = com.profiletailors.leadcapture.waitlist.domain.WaitlistId(
+        val waitlistId = WaitlistId(
             requireNotNull(get("waitlist_id", String::class.java)),
         )
         return WaitlistEntry(
             id = id,
             waitlistId = waitlistId,
-            email = com.profiletailors.leadcapture.common.EmailAddress(
+            email = EmailAddress(
                 requireNotNull(get("email_original", String::class.java)),
             ),
             normalizedEmail = NormalizedEmail.fromPersisted(
                 requireNotNull(get("normalized_email", String::class.java)),
             ),
-            source = com.profiletailors.leadcapture.common.CaptureSource(
+            source = CaptureSource(
                 requireNotNull(get("source", String::class.java)),
             ),
             formId = get("form_id", String::class.java),
             locale = get("locale", String::class.java)
-                ?.let { com.profiletailors.leadcapture.common.CaptureLocale(it) },
-            metadata = com.profiletailors.leadcapture.common.LeadMetadata(),
-            consent = com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent(
+                ?.let { CaptureLocale(it) },
+            metadata = LeadMetadata(),
+            consent = WaitlistConsent(
                 earlyAccess = requireNotNull(get("consent_early_access", Boolean::class.java)),
                 marketing = requireNotNull(get("consent_marketing", Boolean::class.java)),
                 version = requireNotNull(get("consent_version", String::class.java)),
             ),
             joinedAt = requireNotNull(get("joined_at", OffsetDateTime::class.java)).toInstant(),
-            status = com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus.valueOf(
+            status = WaitlistEntryStatus.valueOf(
                 requireNotNull(get("status", String::class.java)),
             ),
             invitedAt = get("invited_at", OffsetDateTime::class.java)?.toInstant(),
@@ -91,9 +99,3 @@ class R2dbcWaitlistEntryAdminAdapter(private val databaseClient: DatabaseClient)
         """
     }
 }
-
-private fun <T> DatabaseClient.GenericExecuteSpec.bindNullable(
-    name: String,
-    value: T?,
-    type: Class<T>,
-): DatabaseClient.GenericExecuteSpec = if (value != null) bind(name, value) else bindNull(name, type)

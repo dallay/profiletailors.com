@@ -51,11 +51,16 @@ databaseChangeLog:
               - column:
                   name: revoked_by
                   type: uuid
+                  constraints:
+                    foreignKeyName: fk_waitlist_invitations_revoked_by
+                    references: principals(id)
               - column:
                   name: created_by
                   type: uuid
                   constraints:
                     nullable: false
+                    foreignKeyName: fk_waitlist_invitations_created_by
+                    references: principals(id)
               - column:
                   name: delivery_status
                   type: varchar(32)

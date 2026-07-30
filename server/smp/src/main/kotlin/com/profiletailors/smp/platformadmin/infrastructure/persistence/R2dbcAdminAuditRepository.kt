@@ -25,7 +25,7 @@ class R2dbcAdminAuditRepository(private val databaseClient: DatabaseClient) :
             .bind("eventId", event.eventId)
             .bind("occurredAt", OffsetDateTime.ofInstant(event.occurredAt, ZoneOffset.UTC))
             .bind("operatorPrincipalId", event.operatorPrincipalId)
-            .bind("operatorPlatformRoles", event.operatorPlatformRoles.joinToString(",") { it.name })
+            .bind("operatorPlatformRoles", event.operatorPlatformRoles.map { it.name }.toTypedArray())
             .bind("action", event.action.name)
             .bind("targetType", event.targetType)
             .bind("targetId", event.targetId)
@@ -40,8 +40,7 @@ class R2dbcAdminAuditRepository(private val databaseClient: DatabaseClient) :
     }
 
     override suspend fun list(query: ListAdminAuditEventsQuery): PagedResult<AdminAuditEventSummary> {
-        require(query.page >= 0) { "Page must be non-negative" }
-        require(query.size in 1..MAX_PAGE_SIZE) { "Page size must be between 1 and $MAX_PAGE_SIZE" }
+        validatePagination(query.page, query.size)
 
         val conditions = mutableListOf<String>()
         val params = mutableMapOf<String, Any?>()
@@ -90,14 +89,13 @@ class R2dbcAdminAuditRepository(private val databaseClient: DatabaseClient) :
             ORDER BY occurred_at DESC LIMIT :size OFFSET :offset
         """.trimIndent()
 
-        var countSpec = databaseClient.sql(countSql)
-        var dataSpec = databaseClient.sql(dataSql).bind("size", query.size).bind("offset", offset)
-
-        params.forEach { (k, v) ->
-            if (v != null) {
-                countSpec = countSpec.bind(k, v)
-                dataSpec = dataSpec.bind(k, v)
-            }
+        val countSpec = params.entries.fold(databaseClient.sql(countSql)) { spec, (k, v) ->
+            if (v != null) spec.bind(k, v) else spec
+        }
+        val dataSpec = params.entries.fold(
+            databaseClient.sql(dataSql).bind("size", query.size).bind("offset", offset)
+        ) { spec, (k, v) ->
+            if (v != null) spec.bind(k, v) else spec
         }
 
         val total = countSpec.map { row, _ -> requireNotNull(row.get(0, Long::class.java)) }
@@ -117,8 +115,7 @@ class R2dbcAdminAuditRepository(private val databaseClient: DatabaseClient) :
         eventId = requireNotNull(get("event_id", UUID::class.java)),
         occurredAt = requireNotNull(get("occurred_at", OffsetDateTime::class.java)).toInstant(),
         operatorPrincipalId = requireNotNull(get("operator_principal_id", UUID::class.java)),
-        operatorPlatformRoles = requireNotNull(get("operator_platform_roles", String::class.java))
-            .split(",").filter { it.isNotBlank() },
+        operatorPlatformRoles = requireNotNull(get("operator_platform_roles", Array<String>::class.java)).toList(),
         action = requireNotNull(get("action", String::class.java)),
         targetType = requireNotNull(get("target_type", String::class.java)),
         targetId = requireNotNull(get("target_id", String::class.java)),
@@ -129,7 +126,6 @@ class R2dbcAdminAuditRepository(private val databaseClient: DatabaseClient) :
     )
 
     companion object {
-        private const val MAX_PAGE_SIZE = 100
         private const val INSERT_EVENT = """
             INSERT INTO platform_admin_audit_events
               (event_id, occurred_at, operator_principal_id, operator_platform_roles,
@@ -147,9 +143,3 @@ class R2dbcAdminAuditRepository(private val databaseClient: DatabaseClient) :
         """
     }
 }
-
-private fun <T> DatabaseClient.GenericExecuteSpec.bindNullable(
-    name: String,
-    value: T?,
-    type: Class<T>,
-): DatabaseClient.GenericExecuteSpec = if (value != null) bind(name, value) else bindNull(name, type)

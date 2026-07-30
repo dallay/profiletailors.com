@@ -48,7 +48,7 @@ class R2dbcPlatformRoleAssignmentRepository(private val databaseClient: Database
 
     override suspend fun update(assignment: PlatformRoleAssignment): PlatformRoleAssignment {
         val revokedAt = assignment.revokedAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
-        databaseClient.sql(UPDATE)
+        val rowsUpdated = databaseClient.sql(UPDATE)
             .bindNullable("revokedAt", revokedAt, OffsetDateTime::class.java)
             .bindNullable("revokedBy", assignment.revokedBy, UUID::class.java)
             .bind("version", assignment.version + 1)
@@ -57,6 +57,9 @@ class R2dbcPlatformRoleAssignmentRepository(private val databaseClient: Database
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+        if (rowsUpdated == 0L) {
+            throw PlatformRoleVersionConflictException(assignment.id.value.toString())
+        }
         return requireNotNull(findById(assignment.id))
     }
 
@@ -113,9 +116,3 @@ class R2dbcPlatformRoleAssignmentRepository(private val databaseClient: Database
         """
     }
 }
-
-private fun <T> DatabaseClient.GenericExecuteSpec.bindNullable(
-    name: String,
-    value: T?,
-    type: Class<T>,
-): DatabaseClient.GenericExecuteSpec = if (value != null) bind(name, value) else bindNull(name, type)

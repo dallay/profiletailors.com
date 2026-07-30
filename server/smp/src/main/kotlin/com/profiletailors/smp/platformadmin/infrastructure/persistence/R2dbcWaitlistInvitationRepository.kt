@@ -60,7 +60,7 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
         val lastDeliveryAttemptAt = invitation.lastDeliveryAttemptAt?.let {
             OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
         }
-        databaseClient.sql(UPDATE)
+        val rowsUpdated = databaseClient.sql(UPDATE)
             .bind("status", invitation.status.name)
             .bindNullable("acceptedAt", acceptedAt, OffsetDateTime::class.java)
             .bindNullable("revokedAt", revokedAt, OffsetDateTime::class.java)
@@ -74,6 +74,9 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+        if (rowsUpdated == 0L) {
+            throw InvitationVersionConflictException(invitation.id.value.toString())
+        }
         return requireNotNull(findById(invitation.id))
     }
 
@@ -180,9 +183,3 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
         """
     }
 }
-
-private fun <T> DatabaseClient.GenericExecuteSpec.bindNullable(
-    name: String,
-    value: T?,
-    type: Class<T>,
-): DatabaseClient.GenericExecuteSpec = if (value != null) bind(name, value) else bindNull(name, type)

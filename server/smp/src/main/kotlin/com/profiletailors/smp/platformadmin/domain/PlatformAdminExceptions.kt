@@ -31,4 +31,13 @@ class InvitationNotRevocableException(id: String) : RuntimeException("Invitation
 class InvitationRateLimitExceededException(waitlistEntryId: String) :
     RuntimeException("Invitation resend rate limit exceeded for entry: $waitlistEntryId")
 
+class InvitationVersionConflictException(invitationId: String) :
+    RuntimeException("Concurrent modification detected for invitation: $invitationId")
+
 class UserNotFoundException(principalId: String) : RuntimeException("User not found: $principalId")
+
+class PlatformRoleAlreadyRevokedException(assignmentId: String) :
+    RuntimeException("Platform role assignment is already revoked: $assignmentId")
+
+class PlatformRoleVersionConflictException(assignmentId: String) :
+    RuntimeException("Concurrent modification detected for platform role assignment: $assignmentId")
