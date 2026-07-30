@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import type { LucideIcon } from '@lucide/vue'
 import { defineComponent, h, markRaw } from 'vue'
-import { mount } from '@vue/test-utils'
+import { mount, type DOMWrapper } from '@vue/test-utils'
 import SidebarNavSection, { type NavGroup } from './SidebarNavSection.vue'
 
 const RouterLinkStub = defineComponent({
@@ -97,7 +97,7 @@ describe('SidebarNavSection', () => {
     const links = wrapper.findAll('a')
     expect(links.length).toBe(5)
 
-    const schedulerLink = links.find((l) => l.text().includes('nav.scheduler'))
+    const schedulerLink = links.find((l: DOMWrapper<Element>) => l.text().includes('nav.scheduler'))
     expect(schedulerLink).toBeTruthy()
     expect(schedulerLink?.attributes('href')).toBe('/scheduler')
   })

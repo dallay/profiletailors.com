@@ -476,16 +476,16 @@ function addFiles(filesList: File[]) {
     const isSupported = COMPOSER_SUPPORTED_MEDIA_TYPES.has(file.type)
     const isUnderLimit = file.size <= 10 * 1024 * 1024 // 10MB
     if (!isSupported) {
-      rejected.push('Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.')
+      rejected.push(t('composer.media.unsupportedFormat'))
     } else if (!isUnderLimit) {
-      rejected.push('File size exceeds 10MB limit.')
+      rejected.push(t('composer.media.fileSizeExceeded'))
     } else {
       valid.push(file)
     }
   }
 
   if (rejected.length > 0 && valid.length === 0) {
-    mediaError.value = rejected[0]
+    mediaError.value = rejected[0] ?? null
     return
   }
 

@@ -202,12 +202,12 @@ describe('SidebarAccountSection', () => {
     expect(allMenuitems.length).toBeGreaterThanOrEqual(2)
 
     // Focus last item then ArrowDown → wraps to first
-    allMenuitems[allMenuitems.length - 1].focus()
+    allMenuitems[allMenuitems.length - 1]?.focus()
     panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
     expect(document.activeElement).toBe(allMenuitems[0])
 
     // ArrowUp on first item → wraps to last
-    allMenuitems[0].focus()
+    allMenuitems[0]?.focus()
     panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }))
     expect(document.activeElement).toBe(allMenuitems[allMenuitems.length - 1])
   })
