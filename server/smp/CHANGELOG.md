@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.5](https://github.com/dallay/profiletailors.com/compare/smp@v0.3.4...smp@v0.3.5) (2026-07-30)
+
+
+### Features
+
+* dallay 433 media asset deduplication content addressed storage ([#463](https://github.com/dallay/profiletailors.com/issues/463)) ([a99cc59](https://github.com/dallay/profiletailors.com/commit/a99cc590e694b97b891d8d5e2f8ec0941b2f0f4c))
+* **identity:** harden password recovery with retry, telemetry, cleanup, and audit ([#509](https://github.com/dallay/profiletailors.com/issues/509)) ([8ff6f71](https://github.com/dallay/profiletailors.com/commit/8ff6f71f2a226d0949b06ca46d669b3793a3aa7c))
+* **identity:** implement secure password recovery backend ([#499](https://github.com/dallay/profiletailors.com/issues/499)) ([4b4b6a6](https://github.com/dallay/profiletailors.com/commit/4b4b6a65020800815f83e6bd91f51ec62eac5cc0))
+* **lead-capture:** complete welcome email notifier wiring ([#487](https://github.com/dallay/profiletailors.com/issues/487)) ([97da228](https://github.com/dallay/profiletailors.com/commit/97da228b72f0cf7717a11c5c60d5d23a3c7a20d5))
+* **platform:** add health check endpoint ([#528](https://github.com/dallay/profiletailors.com/issues/528)) ([cf3a1f1](https://github.com/dallay/profiletailors.com/commit/cf3a1f1f93ad428add97bf2752e316f08c2e9337))
+* **publishing:** add resolved provider catalog ([#464](https://github.com/dallay/profiletailors.com/issues/464)) ([e5e7fc1](https://github.com/dallay/profiletailors.com/commit/e5e7fc18a06666e68848fd1aeb0919a8978dd2a6))
+* **publishing:** enhance provider catalog response with lowercase provider names ([07219d5](https://github.com/dallay/profiletailors.com/commit/07219d5a7f5b06b051722154e8ab960f52d2a35e))
+
+
+### Refactoring
+
+* harden auth/media error handling and csrf-origin checks ([#456](https://github.com/dallay/profiletailors.com/issues/456)) ([108ca27](https://github.com/dallay/profiletailors.com/commit/108ca27cca6f0c76b021b7d46cf909abd4a24b34))
+* **smp:** extract shared SpringJwtClaimsMapper, remove identity duplication ([#462](https://github.com/dallay/profiletailors.com/issues/462)) ([af7c08a](https://github.com/dallay/profiletailors.com/commit/af7c08a55cda50e483aa17ad84a214b4bc3d784e))
+
 ## [0.3.4](https://github.com/dallay/profiletailors.com/compare/smp@v0.3.3...smp@v0.3.4) (2026-07-30)
 
 
