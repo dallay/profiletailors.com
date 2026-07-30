@@ -24,7 +24,7 @@ okio = "3.17.0"
 bouncycastle = "1.85"
 
 # Testing
-reactor = "3.7.5"
+reactor = "3.8.6"
 junit = "6.1.2"
 assertj = "3.27.7"
 mockk = "1.14.11"
