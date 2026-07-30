@@ -32,7 +32,8 @@ test.describe('Login API — Error Paths', { tag: '@integration' }, () => {
     await loginPage.login(INVALID_CREDENTIALS.email, INVALID_CREDENTIALS.password)
 
     // Should see error
-    await loginPage.expectErrorVisible('Invalid email or password')
+    await loginPage.expectErrorVisible(/could not sign you in/i)
+    await expect(loginPage.errorBanner).toBeFocused()
 
     // URL should remain /login
     await expect(page).toHaveURL(/\/login$/)
@@ -132,7 +133,7 @@ test.describe('Login API — Error Paths', { tag: '@integration' }, () => {
     await loginPage.login(INVALID_CREDENTIALS.email, INVALID_CREDENTIALS.password)
 
     // Should show a rate-limit error
-    await loginPage.expectErrorVisible(/too many|try again/i)
+    await loginPage.expectErrorVisible(/could not sign you in|try again/i)
     await expect(page).toHaveURL(/\/login$/)
   })
 })

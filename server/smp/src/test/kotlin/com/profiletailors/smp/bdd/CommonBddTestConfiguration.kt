@@ -8,6 +8,7 @@ import com.profiletailors.smp.identity.application.PasswordResetNotificationFail
 import com.profiletailors.smp.identity.application.PasswordResetNotificationFailurePort
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetry
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryPort
+import com.profiletailors.smp.identity.application.RegistrationAvailabilityPort
 import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
@@ -129,6 +130,14 @@ class CommonBddTestConfiguration {
     @Bean
     fun mutablePasswordRecoveryFlag(): MutablePasswordRecoveryFlag = MutablePasswordRecoveryFlag()
 
+    @Bean
+    fun mutableRegistrationFlag(): MutableRegistrationFlag = MutableRegistrationFlag()
+
+    @Bean
+    @Primary
+    fun bddRegistrationAvailability(flag: MutableRegistrationFlag): RegistrationAvailabilityPort =
+        RegistrationAvailabilityPort(flag::isEnabled)
+
     @Bean("bddPasswordRecoveryEnabled")
     @Primary
     fun bddPasswordRecoveryEnabled(flag: MutablePasswordRecoveryFlag): () -> Boolean = flag::isEnabled
@@ -182,6 +191,19 @@ class CommonBddTestConfiguration {
 
             else -> Mono.error(BadJwtException("Invalid token"))
         }
+    }
+}
+
+class MutableRegistrationFlag {
+    private var enabled: Boolean = true
+
+    fun isEnabled(): Boolean = enabled
+    fun enable() {
+        enabled = true
+    }
+
+    fun disable() {
+        enabled = false
     }
 }
 

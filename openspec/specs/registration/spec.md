@@ -178,17 +178,13 @@ MUST describe the setting without secrets.
 
 ### Requirement: Backend-Authoritative Registration Gate
 
-When registration is disabled, `POST /api/auth/register` MUST be rejected before command dispatch or
-mutation with `403 application/problem+json`. The body MUST contain
-`type: "/problems/registration-disabled"`, `title: "Registration disabled"`, `status: 403`,
-non-sensitive `detail`, and `code: "registration_disabled"`. When enabled, existing registration
-behavior and atomicity MUST remain unchanged.
+When registration is disabled, `POST /api/auth/register` MUST be rejected before command dispatch or mutation with exact HTTP 503 Problem Details and `code: "REGISTRATION_DISABLED"`. No command, persistence, event, or session mutation MUST occur. When enabled, existing registration behavior and atomicity MUST remain unchanged.
 
 #### Scenario: Direct registration is denied without side effects
 
 - GIVEN registration is disabled
 - WHEN a client posts valid registration data directly
-- THEN the response MUST match the specified Problem Details contract
+- THEN the response MUST be exact HTTP 503 with `code: "REGISTRATION_DISABLED"`
 - AND no command, persistence, event, or session mutation MUST occur
 
 #### Scenario: Enabled registration remains functional
@@ -200,22 +196,27 @@ behavior and atomicity MUST remain unchanged.
 
 ### Requirement: Registration UI Fails Closed
 
-The SPA MUST show registration entry points only when the public capability reports enabled.
-Capability-read failure MUST close registration UI and direct access, MUST NOT be treated as
-security enforcement, and MUST NOT block login.
+The SPA MUST show registration entry points only after the public capability resolves enabled. Capability-read failure or malformed data MUST close registration UI and direct access, MUST NOT be treated as security enforcement, and MUST NOT block login. Direct `/register` access while unavailable MUST preserve the requested route, render “Registration is currently unavailable” with named-route navigation to login, omit the form, and MUST NOT call registration.
 
 #### Scenario: Registration UI follows enabled capability
 
-- GIVEN the capability reports registration enabled
-- WHEN a guest views authentication UI
-- THEN registration controls and the registration route MUST be available
+- GIVEN the capability resolves with registration enabled
+- WHEN a guest views login or requests `/register`
+- THEN the named registration entry and registration form MUST be available
 
 #### Scenario: Capability failure closes registration only
 
-- GIVEN the capability request fails
-- WHEN a guest opens login or registration directly
-- THEN registration MUST be unavailable
+- GIVEN the capability request fails or returns a malformed value
+- WHEN a guest opens login or `/register`
+- THEN registration MUST be unavailable without redirecting `/register`
 - AND login MUST remain usable
+
+#### Scenario: Disabled route suppresses registration
+
+- GIVEN registration resolves disabled
+- WHEN a guest directly requests `/register`
+- THEN the unavailable state and named login navigation MUST render instead of the form
+- AND no registration request MUST be sent
 
 ## Acceptance Criteria
 

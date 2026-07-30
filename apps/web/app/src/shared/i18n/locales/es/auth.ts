@@ -42,4 +42,13 @@ export default {
   registrationClosed: 'Registro cerrado',
   registrationClosedMessage:
     'El registro público está actualmente deshabilitado. Contacta al administrador para solicitar acceso.',
+  registrationUnavailableTitle: 'El registro no está disponible actualmente',
+  registrationUnavailableMessage: 'Ahora mismo no aceptamos cuentas nuevas. Inténtalo más tarde.',
+  showPassword: 'Mostrar contraseña',
+  hidePassword: 'Ocultar contraseña',
+  show: 'Mostrar',
+  hide: 'Ocultar',
+  signingIn: 'Iniciando sesión…',
+  creatingAccount: 'Creando cuenta…',
+  genericError: 'No pudimos iniciar la sesión. Revisa tus datos e inténtalo de nuevo.',
 }

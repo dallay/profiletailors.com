@@ -32,4 +32,7 @@ export default {
   unavailable:
     'La recuperación de contraseña no está disponible temporalmente. Inténtalo más tarde.',
   genericError: 'No pudimos completar la solicitud. Inténtalo de nuevo.',
+  checkingAvailability: 'Comprobando la disponibilidad de recuperación…',
+  unavailableTitle: 'La recuperación de contraseña no está disponible actualmente',
+  unavailableMessage: 'Ahora mismo no podemos restablecer contraseñas. Inténtalo más tarde.',
 } as const

@@ -8,8 +8,9 @@ import com.profiletailors.common.domain.bus.query.QueryHandler
  * Public projection of the unauthenticated capabilities advertised by the platform.
  *
  * @property registrationEnabled whether [RegisterUserCommand] is accepted by the application.
+ * @property passwordRecoveryEnabled whether password recovery flows are operational.
  */
-data class PublicCapabilities(val registrationEnabled: Boolean)
+data class PublicCapabilities(val registrationEnabled: Boolean, val passwordRecoveryEnabled: Boolean)
 
 /**
  * Query requesting the current public capabilities. Routed by the [Mediator] to
@@ -19,8 +20,12 @@ data class PublicCapabilities(val registrationEnabled: Boolean)
 class GetPublicCapabilitiesQuery : Query<PublicCapabilities>
 
 @Service
-internal class GetPublicCapabilitiesHandler(private val registrationAvailability: RegistrationAvailabilityPort) :
-    QueryHandler<GetPublicCapabilitiesQuery, PublicCapabilities> {
-    override suspend fun handle(query: GetPublicCapabilitiesQuery): PublicCapabilities =
-        PublicCapabilities(registrationEnabled = registrationAvailability.isRegistrationEnabled())
+internal class GetPublicCapabilitiesHandler(
+    private val registrationAvailability: RegistrationAvailabilityPort,
+    private val passwordRecoveryEnabled: () -> Boolean,
+) : QueryHandler<GetPublicCapabilitiesQuery, PublicCapabilities> {
+    override suspend fun handle(query: GetPublicCapabilitiesQuery): PublicCapabilities = PublicCapabilities(
+        registrationEnabled = registrationAvailability.isRegistrationEnabled(),
+        passwordRecoveryEnabled = passwordRecoveryEnabled(),
+    )
 }

@@ -3,7 +3,7 @@
 > Last updated: 2026-06-17
 > Stack: Playwright + Vitest (or standalone)
 > Base URL: `http://localhost:5173` (Vite dev server)
-> Auth: `dev@profiletailors.com` / `S3cr3tP@ssw0rd*123`
+> Auth: `dev@profiletailors.com` / `TEST_PASSWORD_S3cr3tP@ssw0rd*123`
 > Backend: Spring Boot on `localhost:8080`
 
 ---
@@ -53,7 +53,7 @@ pnpm --filter app dev
 | 1    | Navigate to `http://localhost:5173`                                     | Login page renders                      |
 | 2    | Verify heading: "Build your publishing system without dashboard chaos." | Heading visible                         |
 | 3    | Fill email: `dev@profiletailors.com`                                    | Input accepts text                      |
-| 4    | Fill password: `S3cr3tP@ssw0rd*123`                                     | Input accepts text                      |
+| 4    | Fill password: `TEST_PASSWORD_S3cr3tP@ssw0rd*123`                                     | Input accepts text                      |
 | 5    | Click "Sign in" button                                                  | Redirects to `/` (Dashboard)            |
 | 6    | Verify heading: "Welcome back, Dev User"                                | User is logged in                       |
 | 7    | Refresh the page                                                        | User stays logged in (session persists) |
@@ -470,7 +470,7 @@ pnpm --filter app dev
 | Item             | Value                      | Notes                    |
 |------------------|----------------------------|--------------------------|
 | User             | `dev@profiletailors.com`   | Pre-seeded via Liquibase |
-| Password         | `S3cr3tP@ssw0rd*123`       | Dev seed user            |
+| Password         | `TEST_PASSWORD_S3cr3tP@ssw0rd*123`       | Dev seed user            |
 | Workspace        | `dev-workspace-001`        | Pre-seeded               |
 | LinkedIn account | Connected via mock         | Pre-seeded in dev DB     |
 | Test images      | `test/fixtures/sample.jpg` | < 10MB JPEG              |

@@ -216,12 +216,15 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
     )
 
     @Test
-    fun `public capabilities is unauthenticated and exposes only registration availability`() {
+    fun `public capabilities is unauthenticated and exposes exactly authoritative auth availability`() {
         webTestClient.get()
             .uri("/api/capabilities/public")
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("""{"registrationEnabled":true}""", true)
+            .expectBody().json(
+                """{"registrationEnabled":true,"passwordRecoveryEnabled":true}""",
+                true,
+            )
     }
 
     @Test

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink, useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { resetPassword, type ApiError } from '@modules/auth/infrastructure/auth-api'
+import { usePublicCapabilitiesStore } from '@modules/auth/infrastructure/public-capabilities.store'
 import { resetPasswordSchema } from '@shared/lib/validation/schemas'
+import AuthShell from './AuthShell.vue'
+import PasswordRecoveryUnavailable from './PasswordRecoveryUnavailable.vue'
 
 const TOKEN_ERROR_CODES = new Set([
   'INVALID_PASSWORD_RESET_TOKEN',
@@ -18,6 +21,8 @@ const TOKEN_ERROR_CODES = new Set([
 
 const route = useRoute()
 const { t } = useI18n()
+const capabilities = usePublicCapabilitiesStore()
+onMounted(() => { void capabilities.load() })
 const password = ref('')
 const confirmPassword = ref('')
 const pending = ref(false)
@@ -70,8 +75,10 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <main class="flex min-h-screen items-center justify-center bg-bg-primary px-4 py-10 text-text-body dot-grid">
-    <Card class="w-full max-w-lg border-border-subtle bg-bg-surface">
+  <AuthShell>
+    <div v-if="!capabilities.resolved" role="status" class="text-center text-sm text-text-secondary">{{ t('passwordRecovery.checkingAvailability') }}</div>
+    <PasswordRecoveryUnavailable v-else-if="!capabilities.passwordRecoveryEnabled" />
+    <Card v-else class="border-0 bg-transparent shadow-none">
       <CardHeader>
         <CardTitle>{{ t(status === 'success' ? 'passwordRecovery.resetSuccessTitle' : status === 'invalid' ? 'passwordRecovery.invalidLinkTitle' : 'passwordRecovery.resetTitle') }}</CardTitle>
         <CardDescription v-if="status === 'form'">{{ t('passwordRecovery.resetDescription') }}</CardDescription>
@@ -105,5 +112,5 @@ async function submit(): Promise<void> {
         </form>
       </CardContent>
     </Card>
-  </main>
+  </AuthShell>
 </template>

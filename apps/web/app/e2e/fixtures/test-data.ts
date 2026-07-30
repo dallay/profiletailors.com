@@ -23,12 +23,12 @@ export const APP_URL = {
 } as const
 
 /**
- * E2E credentials — sourced from environment variables.
- * Email falls back to a default dev account; password is validated lazily
- * so that files importing credential-free constants (APP_URL, I18N_TEXT, …)
- * never need E2E_TEST_USER_PASSWORD set.
+ * Public test-only credentials shared by HAR replay and recording.
+ * Email may target another seeded test account; the password is intentionally
+ * versioned and must never be reused outside local or automated test data.
  */
 const E2E_EMAIL = process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com'
+const E2E_PASSWORD = 'TEST_PASSWORD_S3cr3tP@ssw0rd*123'
 
 export const E2E_TEST_USER: {
   readonly email: string
@@ -38,16 +38,7 @@ export const E2E_TEST_USER: {
   email: E2E_EMAIL,
   /** Must match the HAR payload in replay mode */
   username: 'dev',
-  get password(): string {
-    const pw = process.env.E2E_TEST_USER_PASSWORD
-    if (!pw) {
-      throw new Error(
-        'E2E_TEST_USER_PASSWORD environment variable is required. ' +
-          'Set it in your shell or CI pipeline before running E2E tests.',
-      )
-    }
-    return pw
-  },
+  password: E2E_PASSWORD,
 }
 
 export const VALID_CREDENTIALS: {
@@ -55,9 +46,7 @@ export const VALID_CREDENTIALS: {
   readonly password: string
 } = {
   email: E2E_TEST_USER.email,
-  get password(): string {
-    return E2E_TEST_USER.password
-  },
+  password: E2E_TEST_USER.password,
 }
 
 export const INVALID_CREDENTIALS = {

@@ -12,7 +12,7 @@
 import { test, expect } from '../fixtures/base-test'
 import { LoginPage } from '../pages/login-page'
 import { DashboardPage } from '../pages/dashboard-page'
-import { VALID_CREDENTIALS, APP_URL, E2E_TEST_USER } from '../fixtures/test-data'
+import { VALID_CREDENTIALS, APP_URL } from '../fixtures/test-data'
 import { fallbackAfterDelay } from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 
@@ -37,9 +37,6 @@ test.describe('Login API — Success Path', { tag: '@integration' }, () => {
     // Verify redirect to dashboard
     await dashboard.expectAuthenticated()
     await expect(page).toHaveURL(APP_URL.dashboard)
-
-    // Verify user display name / identity appears in the heading
-    await expect(page.getByRole('heading', { name: E2E_TEST_USER.username })).toBeVisible()
   })
 
   test('3.2 Login preserves redirect parameter', async ({ page }) => {

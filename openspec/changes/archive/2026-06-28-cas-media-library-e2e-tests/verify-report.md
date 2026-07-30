@@ -78,7 +78,7 @@ Real-CAS tests require running services but are structurally complete:
 3. Vite dev server at `http://localhost:5173`
 4. Portless proxy at `https://media-library.pt-app.localhost:1355`
 5. Test workspace `dev-workspace-001` seeded with credentials `dev@profiletailors.com` /
-   `S3cr3tP@ssw0rd*123`
+   `TEST_PASSWORD_S3cr3tP@ssw0rd*123`
 6. Object storage configured and reachable from backend
 
 ---
@@ -235,7 +235,7 @@ The CAS Media Library E2E test infrastructure is **structurally complete and beh
 3. Frontend: Vite dev server on `http://localhost:5173` (auto-started by Playwright webServer)
 4. Proxy: Portless at `https://media-library.pt-app.localhost:1355` (requires valid TLS cert)
 5. Test data: Workspace `dev-workspace-001`, user `dev@profiletailors.com` with password
-   `S3cr3tP@ssw0rd*123`
+   `TEST_PASSWORD_S3cr3tP@ssw0rd*123`
 6. Storage: Configured S3-compatible or local object storage reachable from backend
 
 **Recommendation**: Proceed to `sdd-archive` phase. Real-CAS smoke lane can be integrated into CI

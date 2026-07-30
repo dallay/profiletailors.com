@@ -6,9 +6,8 @@
  * Usage: node scripts/record-har.mjs
  * Prereq: target API/backend running + Vite dev server on :5173
  *
- * In replay mode, tests use the credentials already captured in the HAR.
- * In record mode, you can override them with E2E_TEST_USER_EMAIL and
- * E2E_TEST_USER_PASSWORD before regenerating the archive.
+ * Replay and record modes use the public test-only credentials below.
+ * The email may be overridden when recording against a different test user.
  */
 
 import { chromium } from '@playwright/test'
@@ -20,14 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const HAR_PATH = path.resolve(__dirname, '../hars/auth-flow.har')
 const BASE_URL = 'http://localhost:5173'
 const E2E_EMAIL = process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com'
-const E2E_PASSWORD = process.env.E2E_TEST_USER_PASSWORD
-
-if (!E2E_PASSWORD) {
-  throw new Error(
-    'E2E_TEST_USER_PASSWORD environment variable is required. ' +
-      'Set it in your shell or CI pipeline before running HAR recording.',
-  )
-}
+const E2E_PASSWORD = 'TEST_PASSWORD_S3cr3tP@ssw0rd*123'
 
 async function main() {
   const browser = await chromium.launch({ headless: true })

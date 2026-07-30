@@ -9,8 +9,8 @@
 # Prerequisites:
 #   1. Backend / API running
 #   2. Frontend dev server can start (pnpm dev)
-#   3. Optional: E2E_TEST_USER_EMAIL / E2E_TEST_USER_PASSWORD to record
-#      with a different account than the HAR defaults
+#   3. Optional: E2E_TEST_USER_EMAIL to record with a different test account
+#      that uses the public test-only password from fixtures/test-data.ts
 #
 # What it does:
 #   - Starts the frontend dev server (if not already running)

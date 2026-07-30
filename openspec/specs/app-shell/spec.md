@@ -640,24 +640,28 @@ focus.
 
 ### Requirement: Auth Route Gate
 
-`App.vue` (post-refactor) computes `isAuthRoute` and renders `<AuthView />` (existing,
-unchanged) when on `/login` or `/register`. Otherwise it renders `<AppShell />`. This is the
-only logic `App.vue` retains.
+`App.vue` MUST render standalone route content without the authenticated shell for named routes `login`, `register`, `forgot-password`, `reset-password`, and `verify-email`. All other routes MUST retain the authenticated shell. Reset-password MUST be classified standalone without requiring a guest session.
 
-#### Scenario: Auth route renders the auth view
+#### Scenario: Authentication and recovery routes are standalone
 
-- GIVEN `route.name` is `"login"` or `"register"`
+- GIVEN the active route is login, register, forgot-password, reset-password, or verify-email
 - WHEN `App.vue` renders
-- THEN `<AuthView />` is rendered
-- AND `<AppShell />` is not in the DOM
-- AND `TooltipProvider` / `SidebarProvider` are not mounted
+- THEN the route content MUST render without `AppShell`
+- AND authenticated-shell providers MUST NOT mount
+
+#### Scenario: Reset remains standalone for authenticated user
+
+- GIVEN an authenticated user opens the named reset-password route
+- WHEN `App.vue` renders
+- THEN reset content MUST render outside `AppShell`
+- AND session state MUST NOT redirect the user away
 
 #### Scenario: Non-auth route renders the shell
 
-- GIVEN `route.name` is anything other than `"login"` or `"register"`
+- GIVEN the active route is outside the standalone auth/recovery set
 - WHEN `App.vue` renders
-- THEN `<AppShell />` is rendered
-- AND `<AuthView />` is not in the DOM
+- THEN `AppShell` MUST render
+- AND standalone authentication content MUST NOT replace it
 
 ---
 
