@@ -45,6 +45,8 @@ minimumReleaseAgeExclude:
   - 'vue-i18n@11.4.7'
   # Renovate security update: js-yaml@4.3.0
   - js-yaml@4.3.0
+  # Renovate security update: vitest@4.0.0
+  - vitest@4.0.0
 
 overrides:
   esbuild: ">=0.28.1"
