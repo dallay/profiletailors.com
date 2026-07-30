@@ -6,8 +6,7 @@
     ":combinePatchMinorUpdates",
     ":enableVulnerabilityAlerts",
     ":labels(dependencies)",
-    ":prNotPending",
-    "schedule:weekdays"
+    ":prNotPending"
   ],
   "labels": ["dependencies"],
   "osvVulnerabilityAlerts": true,
@@ -15,9 +14,12 @@
   "prHourlyLimit": 3,
   "prConcurrentLimit": 10,
   "configMigration": true,
+  "schedule": ["before 7am on every weekday"],
+  "timezone": "Europe/Madrid",
+  "minimumReleaseAge": "3 days",
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["before 9am on monday"]
+      "schedule": ["before 7am on monday"]
   },
   "packageRules": [
     {
@@ -168,7 +170,7 @@
       "matchUpdateTypes": ["major"],
       "labels": ["dependencies", "major-update"],
       "addLabels": ["major-update"],
-      "schedule": ["on monday"],
+      "schedule": ["before 7am on monday"],
       "assignees": ["yacosta738"],
       "reviewers": ["yacosta738"]
     }
