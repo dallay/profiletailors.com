@@ -182,3 +182,100 @@ Consent management spans both frontend surfaces (marketing + app) using a shared
 ### E2E Tests
 - Marketing: `apps/web/marketing/e2e/consent.spec.ts` (4 scenarios)
 - App: `apps/web/app/e2e/specs/consent.spec.ts` (3 scenarios)
+
+## Available Skills
+
+Skills provide specialized instructions and workflows for specific tasks. Load with the `skill` tool when a task matches its description.
+
+### Backend Platform
+
+| Skill | Description |
+|-------|-------------|
+| `gradle` | Gradle build configuration and performance optimization |
+| `hexagonal-architecture` | Hexagonal Architecture (Ports and Adapters) with CQRS patterns |
+| `spring-boot` | Spring Boot 4 infrastructure layer patterns (Kotlin, WebFlux, R2DBC) |
+| `spring-boot/actuator` | Production-grade monitoring and health probes with Actuator |
+| `spring-boot/ai-mcp-server-patterns` | MCP servers with Spring AI for tool calling and function execution |
+| `spring-boot/api-standards` | RESTful API design standards for reactive Spring Boot |
+| `spring-boot/cache` | Caching strategies with Spring Cache abstraction |
+| `spring-boot/data-neo4j-reactive` | Reactive Neo4j graph database integration |
+| `spring-boot/messaging` | Event-driven patterns with reactive messaging |
+| `spring-boot/openapi` | OpenAPI documentation with SpringDoc |
+| `spring-boot/project-bootstrap` | Bootstrap new Spring Boot backend services |
+| `spring-boot/resilience` | Fault-tolerance patterns: retries, circuit breakers, rate limiting |
+| `spring-boot/saga-pattern` | Distributed transaction coordination with Saga pattern |
+| `spring-boot/security` | Reactive authentication and authorization with Spring Security |
+| `spring-boot/testing-core` | Fast unit tests for services and domain logic |
+| `spring-boot/testing-integrations` | Integration tests with external dependencies |
+| `spring-boot/testing-webflux` | Testing reactive HTTP endpoints and controllers |
+| `docker-expert` | Docker containerization, multi-stage builds, image optimization |
+
+### Design Patterns
+
+| Pattern | Intent |
+|---------|--------|
+| `abstract-factory` | Create families of related objects without coupling to concrete classes |
+| `adapter` | Translate one interface into another expected by the client |
+| `bridge` | Separate abstraction from implementation for independent evolution |
+| `builder` | Construct complex objects step by step |
+| `chain-of-responsibility` | Pass requests through a chain of handlers |
+| `command` | Encapsulate requests as objects for queuing, logging, undo |
+| `composite` | Represent part-whole hierarchies as trees |
+| `decorator` | Add responsibilities dynamically by wrapping objects |
+| `facade` | Simplified interface over a complex subsystem |
+| `factory-method` | Define creation operations through abstraction |
+| `flyweight` | Share immutable state to reduce memory usage |
+| `iterator` | Traverse collections without exposing internal structure |
+| `mediator` | Centralize complex communications between objects |
+| `memento` | Capture and restore object state for undo operations |
+| `observer` | Subscribe to and receive notifications of state changes |
+| `prototype` | Clone objects without coupling to their classes |
+| `proxy` | Control access to an object through a surrogate |
+| `singleton` | Ensure a class has only one instance |
+| `state` | Change behavior when internal state changes |
+| `strategy` | Define a family of interchangeable algorithms |
+| `template-method` | Define algorithm skeleton, defer steps to subclasses |
+| `visitor` | Add operations to object structures without modifying them |
+
+### Frontend Platform
+
+| Skill | Description |
+|-------|-------------|
+| `accessibility` | Web accessibility audits following WCAG 2.1 guidelines |
+| `animate-text` | Text animation effects catalog (typewriter, blur, reveal, stagger) |
+| `astrolicious-astro` | Astro 6 static site generation and islands architecture |
+| `best-practices` | Modern web security, compatibility, and code quality |
+| `chrome-extensions` | Chrome Extension development with Manifest V3 |
+| `core-web-vitals` | Optimize LCP, CLS, INP, and page experience metrics |
+| `frontend-design` | High-quality web components avoiding generic AI aesthetics |
+| `modern-web-guidance` | Modern web APIs: View Transitions, Container Queries, Popover API |
+| `nothing-design` | Nothing-inspired design system with intentional minimalism |
+| `performance` | Web performance optimization and load time reduction |
+| `pinia` | Pinia state management for Vue 3 applications |
+| `seo` | Search engine optimization and structured data |
+| `shadcn-vue` | shadcn-vue component library integration and composition |
+| `vue` | Vue 3 Composition API, composables, and reactive patterns |
+
+### Languages & Typing
+
+| Skill | Description |
+|-------|-------------|
+| `kotlin` | Kotlin language patterns, coroutines, and idioms |
+| `typescript` | TypeScript best practices and type-safe patterns |
+| `zod-4` | Zod 4 schema validation with breaking changes from v3 |
+
+### Testing
+
+| Skill | Description |
+|-------|-------------|
+| `playwright` | Comprehensive E2E testing with Playwright: planning, generation, healing |
+| `playwright-best-practices` | Advanced Playwright patterns: POM, CI/CD, flaky test fixes, accessibility |
+| `vitest` | Fast unit testing with Vitest, mocking, coverage, and fixtures |
+
+### Tools
+
+| Skill | Description |
+|-------|-------------|
+| `open-pencil` | Work with Figma .fig files: inspect, query, export, modify designs |
+| `pinned-tag` | Fix unpinned GitHub Actions tags and pin dependencies to git versions |
+| `pnpm` | pnpm package manager: workspaces, catalogs, patches, strict resolution |
