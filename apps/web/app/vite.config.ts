@@ -8,6 +8,10 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwind from '@tailwindcss/vite'
 
+const isE2eOrCi = Boolean(
+  process.env.PLAYWRIGHT_BASE_URL || process.env.CI || process.env.NODE_ENV === 'test',
+)
+
 // https://vite.dev/config/
 const config = {
   envDir: '../../..',
@@ -22,11 +26,12 @@ const config = {
       },
     },
   },
-  plugins: [vue(), vueDevTools(), tailwind()],
+  plugins: [vue(), !isE2eOrCi && vueDevTools(), tailwind()].filter(Boolean),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@modules': fileURLToPath(new URL('./src/modules', import.meta.url)),
+      '@shared/assets': fileURLToPath(new URL('../../../shared/assets', import.meta.url)),
       '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
       '@layouts': fileURLToPath(new URL('./src/layouts', import.meta.url)),
     },

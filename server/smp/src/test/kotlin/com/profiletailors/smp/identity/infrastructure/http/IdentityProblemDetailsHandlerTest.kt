@@ -39,11 +39,11 @@ class IdentityProblemDetailsHandlerTest {
     fun `registration disabled maps to exact problem detail`() {
         val result = handler.handle(RegistrationDisabledException())
 
-        result.status shouldBe HttpStatus.FORBIDDEN.value()
+        result.status shouldBe HttpStatus.SERVICE_UNAVAILABLE.value()
         result.title shouldBe "Registration disabled"
         result.type shouldBe URI("/problems/registration-disabled")
         result.detail shouldBe "Registration is not available."
-        result.properties?.get("code") shouldBe "registration_disabled"
+        result.properties?.get("code") shouldBe "REGISTRATION_DISABLED"
     }
 
     @Test

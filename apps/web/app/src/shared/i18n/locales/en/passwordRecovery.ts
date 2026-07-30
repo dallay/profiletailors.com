@@ -30,4 +30,7 @@ export default {
   rateLimited: 'Too many attempts. Please wait before trying again.',
   unavailable: 'Password recovery is temporarily unavailable. Please try again later.',
   genericError: 'We could not complete the request. Please try again.',
+  checkingAvailability: 'Checking password recovery availability…',
+  unavailableTitle: 'Password recovery is currently unavailable',
+  unavailableMessage: 'We cannot reset passwords right now. Please try again later.',
 } as const

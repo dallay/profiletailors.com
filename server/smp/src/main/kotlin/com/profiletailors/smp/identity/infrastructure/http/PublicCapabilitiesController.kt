@@ -13,8 +13,11 @@ class PublicCapabilitiesController(private val mediator: Mediator) {
     @GetMapping("/public", version = "1")
     suspend fun publicCapabilities(): PublicCapabilitiesResponse {
         val capabilities = mediator.send(GetPublicCapabilitiesQuery())
-        return PublicCapabilitiesResponse(registrationEnabled = capabilities.registrationEnabled)
+        return PublicCapabilitiesResponse(
+            registrationEnabled = capabilities.registrationEnabled,
+            passwordRecoveryEnabled = capabilities.passwordRecoveryEnabled,
+        )
     }
 }
 
-data class PublicCapabilitiesResponse(val registrationEnabled: Boolean)
+data class PublicCapabilitiesResponse(val registrationEnabled: Boolean, val passwordRecoveryEnabled: Boolean)

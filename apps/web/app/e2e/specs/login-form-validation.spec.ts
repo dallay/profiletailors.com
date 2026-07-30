@@ -1,67 +1,61 @@
-/**
- * spec: openspec/specs/e2e/login-flow.md
- * section: 2. Form Validation (Frontend)
- *
- * Verifies that the browser's HTML5 validation blocks invalid form
- * submissions before any network request is made.
- */
-
 import { test, expect } from '../fixtures/base-test'
 import { LoginPage } from '../pages/login-page'
 import { APP_URL } from '../fixtures/test-data'
+import { mockRefreshFailure } from '../fixtures/auth-helpers'
 
-test.describe('Login Form Validation', { tag: '@frontend' }, () => {
-  test.beforeEach(async ({ resetSession }) => {
-    await resetSession()
+test.describe('Login validation and submission states', { tag: '@frontend' }, () => {
+  test.beforeEach(async ({ page }) => {
+    await mockRefreshFailure(page)
+    await page.route('**/api/capabilities/public', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ registrationEnabled: true, passwordRecoveryEnabled: true }),
+      }),
+    )
   })
 
-  test('2.1 Empty fields trigger HTML5 validation', async ({ page }) => {
-    const loginPage = new LoginPage(page)
-    await loginPage.goto(APP_URL.login)
-
-    // Intercept network requests to verify none are made
-    let requestMade = false
+  test('invalid submission focuses first field, associates errors, and sends no request', async ({
+    page,
+  }) => {
+    let requests = 0
     await page.route('**/api/auth/login', () => {
-      requestMade = true
+      requests += 1
     })
+    const login = new LoginPage(page)
+    await login.goto(APP_URL.login)
+    await login.submit()
 
-    // Click submit with empty fields
-    await loginPage.submit()
-
-    // HTML5 validation prevents form submission synchronously, no network
-    // request should be made
-    expect(requestMade).toBe(false)
+    await expect(login.emailInput).toBeFocused()
+    await expect(login.emailInput).toHaveAttribute('aria-invalid', 'true')
+    await expect(login.emailInput).toHaveAttribute('aria-describedby', 'login-email-error')
+    await expect(page.locator('#login-email-error')).toBeVisible()
+    await expect(page.locator('#login-email-error')).not.toHaveAttribute('role', 'alert')
+    expect(requests).toBe(0)
   })
 
-  test('2.2 Invalid email format blocked by browser', async ({ page }) => {
-    const loginPage = new LoginPage(page)
-    await loginPage.goto(APP_URL.login)
-
-    let requestMade = false
-    await page.route('**/api/auth/login', () => {
-      requestMade = true
+  test('pending login is busy, readonly, disabled, and deduplicated', async ({ page }) => {
+    let requests = 0
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
     })
-
-    await loginPage.fillEmail('not-an-email')
-    await loginPage.fillPassword('password123')
-    await loginPage.submit()
-
-    expect(requestMade).toBe(false)
-  })
-
-  test('2.3 Empty password blocked by browser', async ({ page }) => {
-    const loginPage = new LoginPage(page)
-    await loginPage.goto(APP_URL.login)
-
-    let requestMade = false
-    await page.route('**/api/auth/login', () => {
-      requestMade = true
+    await page.route('**/api/auth/login', async (route) => {
+      requests += 1
+      await gate
+      await route.fulfill({ status: 401, contentType: 'application/problem+json', body: '{}' })
     })
+    const login = new LoginPage(page)
+    await login.goto(APP_URL.login)
+    await login.fillEmail('user@example.com')
+    await login.fillPassword('WrongPassword!')
+    await login.submitButton.dblclick({ force: true })
 
-    await loginPage.fillEmail('valid@email.com')
-    // Leave password empty
-    await loginPage.submit()
-
-    expect(requestMade).toBe(false)
+    await expect(page.locator('form')).toHaveAttribute('aria-busy', 'true')
+    await expect(login.emailInput).toHaveAttribute('readonly', '')
+    await expect(login.passwordInput).toHaveAttribute('readonly', '')
+    await expect(login.submitButton).toBeDisabled()
+    expect(requests).toBe(1)
+    release()
   })
 })

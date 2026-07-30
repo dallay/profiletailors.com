@@ -2,8 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    ":separateMajorMinor",
-    ":combinePatchMinorUpdates",
+    ":separateMajorReleases",
+    ":combinePatchMinorReleases",
     ":enableVulnerabilityAlerts",
     ":labels(dependencies)",
     ":prNotPending"

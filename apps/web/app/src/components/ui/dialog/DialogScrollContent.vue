@@ -6,8 +6,8 @@ import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
 import {
   DialogClose,
-  DialogContent,
-  DialogOverlay,
+  DialogContent as RekaDialogContent,
+  DialogOverlay as RekaDialogOverlay,
   DialogPortal,
   useForwardPropsEmits,
 } from "reka-ui"
@@ -27,10 +27,10 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
 
 <template>
   <DialogPortal>
-    <DialogOverlay
+    <RekaDialogOverlay
       class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
     >
-      <DialogContent
+      <RekaDialogContent
         :class="
           cn(
             'relative z-50 grid w-full max-w-lg my-8 gap-4 border border-border bg-background p-6 shadow-lg duration-200 sm:rounded-lg md:w-full',
@@ -54,7 +54,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
           <XIcon class="w-4 h-4" />
           <span class="sr-only">Close</span>
         </DialogClose>
-      </DialogContent>
-    </DialogOverlay>
+      </RekaDialogContent>
+    </RekaDialogOverlay>
   </DialogPortal>
 </template>

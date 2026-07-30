@@ -17,7 +17,6 @@ import {
   verifyEmail,
   type AuthTokens,
   type CurrentUserProfile,
-  type PublicCapabilitiesResponse,
 } from './auth-api'
 
 // ---------------------------------------------------------------------------
@@ -1033,7 +1032,7 @@ describe('fetchPublicCapabilities', () => {
   })
 
   it('returns PublicCapabilitiesResponse when server returns 200 with registration enabled', async () => {
-    const capabilities: PublicCapabilitiesResponse = { registrationEnabled: true }
+    const capabilities = { registrationEnabled: true, passwordRecoveryEnabled: true }
     const fetchMock = mockFetch(
       new Response(JSON.stringify(capabilities), {
         status: 200,
@@ -1057,7 +1056,7 @@ describe('fetchPublicCapabilities', () => {
   })
 
   it('returns PublicCapabilitiesResponse when server returns 200 with registration disabled', async () => {
-    const capabilities: PublicCapabilitiesResponse = { registrationEnabled: false }
+    const capabilities = { registrationEnabled: false, passwordRecoveryEnabled: false }
     mockFetch(
       new Response(JSON.stringify(capabilities), {
         status: 200,
