@@ -32,7 +32,7 @@
     "@profiletailors/shared-web": "workspace:*",
     "@atlaskit/pragmatic-drag-and-drop": "^1.8.1",
     "@internationalized/date": "3.12.2",
-    "@lucide/vue": "1.25.0",
+    "@lucide/vue": "1.27.0",
     "@tanstack/vue-table": "^8.21.3",
     "@unovis/vue": "^1.6.7",
     "@vueuse/core": "^14.3.0",
