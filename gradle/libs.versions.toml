@@ -3,6 +3,7 @@ kotlin = "2.3.21"
 springBoot = "4.0.7"
 springManagement = "1.1.7"
 springModulith = "2.1.0"
+springAi = "2.0.0"
 springdoc = "3.0.2"
 detekt = "2.0.0-alpha.3"
 spotless = "8.7.0"
@@ -60,6 +61,10 @@ spring-boot-docker-compose = { module = "org.springframework.boot:spring-boot-do
 spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "springModulith" }
 spring-modulith-starter-core = { module = "org.springframework.modulith:spring-modulith-starter-core" }
 spring-modulith-starter-test = { module = "org.springframework.modulith:spring-modulith-starter-test" }
+
+# Spring AI — MCP server (PR 1)
+spring-ai-bom = { module = "org.springframework.ai:spring-ai-bom", version.ref = "springAi" }
+spring-ai-starter-mcp-server-webflux = { module = "org.springframework.ai:spring-ai-starter-mcp-server-webflux" }
 
 # Jackson 3
 jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin", version.ref = "jackson" }

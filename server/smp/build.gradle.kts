@@ -103,6 +103,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.reactor)
     implementation(libs.springdoc.openapi.webflux)
     implementation(libs.spring.modulith.starter.core)
+    implementation(libs.spring.ai.starter.mcp.server.webflux)
     implementation(libs.jackson.module.kotlin)
     // Jackson 2.x compat — PlatformBootstrapConfiguration uses kotlinModule() from the 2.x line
     @Suppress("GradleDependency")
@@ -155,6 +156,11 @@ dependencyManagement {
         mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
         mavenBom(
             libs.spring.modulith.bom
+                .get()
+                .toString(),
+        )
+        mavenBom(
+            libs.spring.ai.bom
                 .get()
                 .toString(),
         )
