@@ -158,4 +158,57 @@ describe('SidebarAccountSection', () => {
     expect(trigger.attributes('aria-expanded')).toBe('false')
     expect(trigger.attributes('aria-controls')).toBe('sidebar-account-menu')
   })
+
+  it('ArrowDown focuses a menuitem and sets roving tabindex', async () => {
+    const wrapper = mount(SidebarAccountSection, {
+      props: { user },
+      attachTo: document.body,
+    })
+    await wrapper.find('button[aria-haspopup="menu"]').trigger('click')
+    await nextTick()
+
+    const panel = wrapper.find('#sidebar-account-menu')
+    expect(panel.exists()).toBe(true)
+
+    // Nothing inside the menu has focus yet — ArrowDown should activate roving
+    await panel.trigger('keydown', { key: 'ArrowDown' })
+    await nextTick()
+
+    const allMenuitems = document.querySelectorAll<HTMLElement>(
+      '#sidebar-account-menu [role="menuitem"]',
+    )
+    expect(allMenuitems.length).toBeGreaterThanOrEqual(2)
+
+    // Exactly one menuitem has tabindex="0" and it matches document.activeElement
+    const focused = Array.from(allMenuitems).filter((el) => el.getAttribute('tabindex') === '0')
+    expect(focused).toHaveLength(1)
+    expect(focused[0]).toBe(document.activeElement)
+
+    // All others are -1
+    const others = Array.from(allMenuitems).filter((el) => el !== focused[0])
+    others.forEach((el) => expect(el.getAttribute('tabindex')).toBe('-1'))
+  })
+
+  it('ArrowDown and ArrowUp cycle through menuitems with wrapping', async () => {
+    const wrapper = mount(SidebarAccountSection, {
+      props: { user },
+      attachTo: document.body,
+    })
+    await wrapper.find('button[aria-haspopup="menu"]').trigger('click')
+    await nextTick()
+
+    const panel = wrapper.find('#sidebar-account-menu').element
+    const allMenuitems = panel.querySelectorAll<HTMLElement>('[role="menuitem"]')
+    expect(allMenuitems.length).toBeGreaterThanOrEqual(2)
+
+    // Focus last item then ArrowDown → wraps to first
+    allMenuitems[allMenuitems.length - 1].focus()
+    panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+    expect(document.activeElement).toBe(allMenuitems[0])
+
+    // ArrowUp on first item → wraps to last
+    allMenuitems[0].focus()
+    panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }))
+    expect(document.activeElement).toBe(allMenuitems[allMenuitems.length - 1])
+  })
 })

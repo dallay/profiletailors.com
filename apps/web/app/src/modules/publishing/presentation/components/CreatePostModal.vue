@@ -245,6 +245,7 @@ function initCreateMode() {
 
 async function initializeComposerForOpen() {
   submitError.value = ''
+  mediaError.value = null
   isDatePickerOpen.value = false
   clearUploadPreviewBlob()
   selectedUploadFile.value = null
@@ -468,20 +469,27 @@ function handleDropzoneDrop(event: DragEvent) {
 function addFiles(filesList: File[]) {
   if (isEditMode.value) assetsTouched.value = true
   mediaError.value = null
-  const file = filesList.find((file) => {
+
+  const valid: File[] = []
+  const rejected: string[] = []
+  for (const file of filesList) {
     const isSupported = COMPOSER_SUPPORTED_MEDIA_TYPES.has(file.type)
     const isUnderLimit = file.size <= 10 * 1024 * 1024 // 10MB
     if (!isSupported) {
-      mediaError.value = 'Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.'
-      return false
+      rejected.push('Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.')
+    } else if (!isUnderLimit) {
+      rejected.push('File size exceeds 10MB limit.')
+    } else {
+      valid.push(file)
     }
-    if (!isUnderLimit) {
-      mediaError.value = 'File size exceeds 10MB limit.'
-      return false
-    }
-    return true
-  })
+  }
 
+  if (rejected.length > 0 && valid.length === 0) {
+    mediaError.value = rejected[0]
+    return
+  }
+
+  const file = valid[0]
   if (!file) return
 
   clearUploadPreviewBlob()

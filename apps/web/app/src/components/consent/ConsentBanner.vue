@@ -79,7 +79,7 @@ function save(): void {
             {{ t('consent.categories.necessaryDesc') }}
           </p>
         </div>
-        <Switch :model-value="true" disabled aria-label="Necessary cookies — always enabled" />
+        <Switch :model-value="true" disabled :aria-labelledby="'consent-label-necessary'" />
       </div>
 
       <!-- Analytics cookies (user choice) -->
@@ -92,7 +92,7 @@ function save(): void {
             {{ t('consent.categories.analyticsDesc') }}
           </p>
         </div>
-        <Switch v-model="analyticsEnabled" aria-label="Analytics cookies" />
+        <Switch v-model="analyticsEnabled" :aria-labelledby="'consent-label-analytics'" />
       </div>
 
       <!-- Actions: equal-prominence buttons -->

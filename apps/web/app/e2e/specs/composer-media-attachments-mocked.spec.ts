@@ -183,6 +183,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
     await expect(page.getByTitle(mediaFiles.base.name)).toBeVisible()
     await expect(page.getByTitle(mediaFiles.invalidTxt.name)).toBeHidden()
+    await expect(page.getByRole('alert')).toBeVisible()
     await expect(page.getByRole('alert')).toContainText(/unsupported media format/i)
   })
 

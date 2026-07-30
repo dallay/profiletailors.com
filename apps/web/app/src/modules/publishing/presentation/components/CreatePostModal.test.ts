@@ -1232,4 +1232,40 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
     const inlineCard = getByTestId('inline-local-upload')
     expect(inlineCard.getAttribute('title')).toBe('dropped.png')
   })
+
+  it('rejects an unsupported dropped file over the composer surface via addFiles path', async () => {
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea')
+    const svgFile = new File(['<svg></svg>'], 'diagram.svg', { type: 'image/svg+xml' })
+    const dropEvent = new Event('drop', { bubbles: true, cancelable: true }) as Event & {
+      dataTransfer: { files: File[] }
+    }
+    dropEvent.dataTransfer = { files: [svgFile] }
+    textarea.dispatchEvent(dropEvent)
+    await flushModal(wrapper)
+
+    const errorEl = document.querySelector('[role="alert"]')
+    expect(errorEl).toBeTruthy()
+    expect(errorEl?.textContent).toContain('Unsupported media format')
+  })
+
+  it('accepts a valid file when dropped alongside an unsupported one', async () => {
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea')
+    const svgFile = new File(['<svg></svg>'], 'diagram.svg', { type: 'image/svg+xml' })
+    const pngFile = new File(['png'], 'photo.png', { type: 'image/png' })
+    const dropEvent = new Event('drop', { bubbles: true, cancelable: true }) as Event & {
+      dataTransfer: { files: File[] }
+    }
+    dropEvent.dataTransfer = { files: [svgFile, pngFile] }
+    textarea.dispatchEvent(dropEvent)
+    await flushModal(wrapper)
+
+    const inlineCard = getByTestId('inline-local-upload')
+    expect(inlineCard.getAttribute('title')).toBe('photo.png')
+  })
 })

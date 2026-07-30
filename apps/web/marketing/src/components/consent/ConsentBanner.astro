@@ -369,21 +369,18 @@ const t = useTranslations(Astro.currentLocale || 'en')
 
     // Accept all
     acceptBtn?.addEventListener('click', () => {
-      deactivateFocusTrap()
       saveConsentChoice(true)
       closeBanner()
     })
 
     // Reject all
     rejectBtn?.addEventListener('click', () => {
-      deactivateFocusTrap()
       saveConsentChoice(false)
       closeBanner()
     })
 
     // Save preferences
     saveBtn?.addEventListener('click', () => {
-      deactivateFocusTrap()
       const analytics = analyticsToggle.getAttribute('aria-checked') === 'true'
       saveConsentChoice(analytics)
       closeBanner()
@@ -426,6 +423,7 @@ const t = useTranslations(Astro.currentLocale || 'en')
   }
 
   function closeBanner() {
+    deactivateFocusTrap()
     const banner = document.getElementById('consent-banner')
     banner?.setAttribute('hidden', '')
   }
