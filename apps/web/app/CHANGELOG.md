@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2](https://github.com/dallay/profiletailors.com/compare/app@v0.2.1...app@v0.2.2) (2026-07-30)
+
+
+### Features
+
+* **app:** redesign login/register with responsive UI, capability gates, and accessibility ([#524](https://github.com/dallay/profiletailors.com/issues/524)) ([dfb500f](https://github.com/dallay/profiletailors.com/commit/dfb500f25cbe660578198f00cf0453b9bd11990e))
+
+
+### Bug Fixes
+
+* **dialog:** resolve Vue 3 self-recursion in Dialog components and clean E2E consent test suite ([#520](https://github.com/dallay/profiletailors.com/issues/520)) ([e8d09ee](https://github.com/dallay/profiletailors.com/commit/e8d09ee392a09d368daa52064f913c650b392757))
+
 ## [0.2.1](https://github.com/dallay/profiletailors.com/compare/app@v0.2.0...app@v0.2.1) (2026-07-29)
 
 
