@@ -13,6 +13,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
     pnpm install --frozen-lockfile --filter app...
 
+COPY shared shared
 COPY apps/web/app apps/web/app
 
 ARG VITE_API_BASE_URL=""
