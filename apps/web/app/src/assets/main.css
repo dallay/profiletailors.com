@@ -110,7 +110,7 @@
 
   --success-color: #4A9E5C;
   --warning-color: #D4A843;
-  --error-color: #D71921;
+  --error-color: #FF6B70;
   --info-color: #a3a3a3;
 
   /* shadcn variables mapped to theme custom properties (HSL syntax) */
@@ -168,6 +168,7 @@
   --border-color: #D4D4CE;
   --border-visible-color: #CCCCCC;
   --accent-color: #000000;
+  --error-color: #B42318;
 
   /* shadcn light variables mapped to theme custom properties */
   --background: 60 9.1% 95.1%;
