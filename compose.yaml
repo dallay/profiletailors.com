@@ -10,7 +10,7 @@ services:
       file: ./infra/mailpit/compose.yaml
 
   linkedin-wiremock:
-    image: wiremock/wiremock:3.10.0
+    image: wiremock/wiremock:3.13.2
     ports:
       - "${WIREMOCK_HOST_PORT:-8089}:8080"
     volumes:
