@@ -1,71 +1,69 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { PublicCapabilities } from '@modules/auth/domain/public-capabilities'
+import type {
+  PublicCapabilities,
+  PublicCapabilitiesDto,
+} from '@modules/auth/domain/public-capabilities'
 import { fetchPublicCapabilities } from '@modules/auth/infrastructure/auth-api'
 
+const CLOSED_CAPABILITIES: PublicCapabilities = {
+  registrationEnabled: false,
+  passwordRecoveryEnabled: false,
+}
+
+function normalizeCapabilities(response: PublicCapabilitiesDto): PublicCapabilities {
+  return {
+    registrationEnabled: response.registrationEnabled === true,
+    passwordRecoveryEnabled: response.passwordRecoveryEnabled === true,
+  }
+}
+
 export const usePublicCapabilitiesStore = defineStore('public-capabilities', () => {
-  const _capabilities = ref<PublicCapabilities>({
-    registrationEnabled: false,
-    passwordRecoveryEnabled: false,
-    ssoProviders: [],
-  })
+  const capabilities = ref<PublicCapabilities>({ ...CLOSED_CAPABILITIES })
   const isLoading = ref(false)
   const error = ref<string | null>(null)
-  const capabilitiesLoaded = ref(false)
+  const resolved = ref(false)
+  let loadPromise: Promise<void> | null = null
 
-  let _loadPromise: Promise<void> | null = null
+  const registrationEnabled = computed(() => capabilities.value.registrationEnabled)
+  const passwordRecoveryEnabled = computed(() => capabilities.value.passwordRecoveryEnabled)
 
-  const registrationEnabled = computed(() => _capabilities.value.registrationEnabled)
-  const passwordRecoveryEnabled = computed(() => _capabilities.value.passwordRecoveryEnabled)
-  const ssoProviders = computed(() => _capabilities.value.ssoProviders)
-
-  async function load(): Promise<void> {
-    if (_loadPromise) return _loadPromise
-    if (capabilitiesLoaded.value) return
-
-    _loadPromise = _load()
-    return _loadPromise
-  }
-
-  async function _load(): Promise<void> {
-    if (isLoading.value) return
+  function load(): Promise<void> {
+    if (loadPromise) return loadPromise
+    if (resolved.value) return Promise.resolve()
 
     isLoading.value = true
     error.value = null
+    loadPromise = fetchPublicCapabilities()
+      .then((response) => {
+        capabilities.value = normalizeCapabilities(response)
+      })
+      .catch((cause: unknown) => {
+        capabilities.value = { ...CLOSED_CAPABILITIES }
+        error.value = cause instanceof Error ? cause.message : 'Failed to load capabilities'
+      })
+      .finally(() => {
+        resolved.value = true
+        isLoading.value = false
+        loadPromise = null
+      })
 
-    try {
-      const response = await fetchPublicCapabilities()
+    return loadPromise
+  }
 
-      // Defensive normalization (backend may be old or incomplete)
-      _capabilities.value = {
-        registrationEnabled: response.registrationEnabled ?? false,
-        passwordRecoveryEnabled: response.passwordRecoveryEnabled ?? false,
-        ssoProviders: Array.isArray(response.ssoProviders) ? response.ssoProviders : [],
-      }
-
-      capabilitiesLoaded.value = true
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to load capabilities'
-      // Fail-closed: deny by default
-      _capabilities.value = {
-        registrationEnabled: false,
-        passwordRecoveryEnabled: false,
-        ssoProviders: [],
-      }
-      capabilitiesLoaded.value = true
-    } finally {
-      isLoading.value = false
-      _loadPromise = null
-    }
+  function retry(): Promise<void> {
+    resolved.value = false
+    return load()
   }
 
   return {
-    capabilitiesLoaded,
+    capabilitiesLoaded: resolved,
     error,
     isLoading,
     load,
-    registrationEnabled,
     passwordRecoveryEnabled,
-    ssoProviders,
+    registrationEnabled,
+    resolved,
+    retry,
   }
 })

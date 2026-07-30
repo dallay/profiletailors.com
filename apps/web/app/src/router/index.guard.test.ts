@@ -105,15 +105,16 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
     expect(router.currentRoute.value.query.redirect).toBe('/media')
   })
 
-  it('redirects from /register to /registration-unavailable when registration is disabled', async () => {
+  it('preserves /register so the route can render its fail-closed state in place', async () => {
     mockRefreshSession.mockResolvedValue(null)
-    mockPublicCapabilitiesLoad.mockResolvedValue(undefined)
     const { default: router } = await import('./index')
 
-    await router.push('/register')
+    await router.push('/register?email=user@example.com')
     await router.isReady()
 
-    expect(router.currentRoute.value.path).toBe('/registration-unavailable')
+    expect(router.currentRoute.value.path).toBe('/register')
+    expect(router.currentRoute.value.query.email).toBe('user@example.com')
+    expect(mockPublicCapabilitiesLoad).not.toHaveBeenCalled()
   })
 
   it('allows navigation to /register when registration is enabled', async () => {

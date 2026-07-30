@@ -74,12 +74,12 @@ class IdentityProblemDetailsHandler {
 
     @ExceptionHandler(RegistrationDisabledException::class)
     fun handle(exception: RegistrationDisabledException): ProblemDetail = ProblemDetail.forStatusAndDetail(
-        HttpStatus.FORBIDDEN,
+        HttpStatus.SERVICE_UNAVAILABLE,
         exception.message ?: "Registration is not available.",
     ).apply {
         title = "Registration disabled"
         type = URI("/problems/registration-disabled")
-        setProperty("code", "registration_disabled")
+        setProperty("code", "REGISTRATION_DISABLED")
     }
 
     @ExceptionHandler(RegistrationValidationException::class)

@@ -3,6 +3,40 @@ Feature: Local authentication session lifecycle
   Local user authentication should issue in-memory access tokens and manage
   refresh-backed browser sessions through dedicated auth endpoints.
 
+  Scenario: Public capabilities expose exactly authoritative authentication availability
+    Given public registration and password recovery are enabled
+    When the visitor requests public application capabilities
+    Then the public capabilities response status should be 200
+    And the public capabilities response should equal the exact allow-listed contract
+
+  Scenario: Public capabilities expose disabled authoritative authentication availability
+    Given public registration and password recovery are disabled
+    When the visitor requests public application capabilities
+    Then the public capabilities response status should be 200
+    And the public capabilities response should equal the exact disabled allow-listed contract
+
+  Scenario: Disabled registration rejects before mutation
+    Given public registration is disabled
+    When the visitor submits valid disabled registration details
+    Then the disabled registration response status should be 503
+    And the disabled registration response code should be "REGISTRATION_DISABLED"
+    And no local account, credential, workspace, consent, event, or session should be created
+
+  Scenario: Disabled password recovery request rejects before token creation
+    Given password recovery is disabled
+    When the visitor requests a password reset for "user@example.com"
+    Then the password recovery response status should be 503
+    And no password reset token should be created
+    And no password reset notification should be scheduled
+
+  Scenario: Disabled password reset rejects without consuming token or changing credentials
+    Given password recovery is disabled
+    And a previously issued reset token exists
+    When the user submits the reset token
+    Then the password recovery response status should be 503
+    And the password should remain unchanged
+    And the reset token should remain unused
+
   Scenario: Registration creates an unverified user with session tokens
     Given a browser submits valid local registration details
     When the client registers a local user

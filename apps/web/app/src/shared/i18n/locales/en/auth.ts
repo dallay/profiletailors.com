@@ -40,4 +40,14 @@ export default {
   registrationClosed: 'Registration closed',
   registrationClosedMessage:
     'Public registration is currently disabled. Contact your administrator to request access.',
+  registrationUnavailableTitle: 'Registration is currently unavailable',
+  registrationUnavailableMessage:
+    'We are not accepting new accounts right now. Please try again later.',
+  showPassword: 'Show password',
+  hidePassword: 'Hide password',
+  show: 'Show',
+  hide: 'Hide',
+  signingIn: 'Signing in…',
+  creatingAccount: 'Creating account…',
+  genericError: 'We could not sign you in. Check your details and try again.',
 }

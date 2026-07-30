@@ -8,8 +8,20 @@ import {
 import { APP_URL, PASSWORD_RECOVERY_TEST_DATA } from '../fixtures/test-data'
 import { PasswordRecoveryPage } from '../pages/password-recovery-page'
 
-const privacyTest = test.extend({})
-privacyTest.use({ screenshot: 'off', trace: 'off', video: 'off' })
+async function mockRecoveryCapabilities(
+  page: import('@playwright/test').Page,
+  enabled = true,
+  delay = 0,
+) {
+  await page.route('**/api/capabilities/public', async (route) => {
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay))
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ registrationEnabled: true, passwordRecoveryEnabled: enabled }),
+    })
+  })
+}
 
 async function setLocale(page: import('@playwright/test').Page, locale: 'en' | 'es') {
   await page.addInitScript((selectedLocale) => {
@@ -27,6 +39,23 @@ async function setLocale(page: import('@playwright/test').Page, locale: 'en' | '
 test.describe('Password recovery frontend', { tag: '@integration' }, () => {
   test.beforeEach(async ({ page }) => {
     await mockRefreshFailure(page)
+    await mockRecoveryCapabilities(page)
+  })
+
+  test('disabled recovery fails closed in place without sending requests', async ({ page }) => {
+    await page.unroute('**/api/capabilities/public')
+    await mockRecoveryCapabilities(page, false)
+    let requests = 0
+    await page.route('**/api/auth/forgot-password', () => {
+      requests += 1
+    })
+    await page.goto(APP_URL.forgotPassword)
+    await expect(page).toHaveURL(/\/forgot-password$/)
+    await expect(
+      page.getByRole('heading', { name: /password recovery is currently unavailable/i }),
+    ).toBeVisible()
+    await expect(page.locator('form')).toHaveCount(0)
+    expect(requests).toBe(0)
   })
 
   test('shows generic forgot success', async ({ page }) => {
@@ -115,6 +144,7 @@ test.describe('Recovery accessibility: keyboard navigation, labels, focus, annou
 }, () => {
   test.beforeEach(async ({ page }) => {
     await mockRefreshFailure(page)
+    await mockRecoveryCapabilities(page)
   })
 
   test('ForgotPasswordView: keyboard-only submission reaches success announcement', async ({
@@ -177,8 +207,8 @@ test.describe('Recovery accessibility: keyboard navigation, labels, focus, annou
     expect(describedBy).toBe('recovery-email-error')
     const errorEl = page.locator('#recovery-email-error')
     await expect(errorEl).toBeVisible()
-    // Error element must carry role=alert for immediate announcement
-    await expect(errorEl).toHaveAttribute('role', 'alert')
+    // Field-level errors are associated descriptions, not interruptive alerts.
+    await expect(errorEl).not.toHaveAttribute('role', 'alert')
   })
 
   test('ForgotPasswordView: Tab/Shift+Tab traversal cycles in expected order', async ({ page }) => {
@@ -309,6 +339,7 @@ test.describe('Recovery privacy: no token/password in analytics, console, or sto
 }, () => {
   test.beforeEach(async ({ page }) => {
     await mockRefreshFailure(page)
+    await mockRecoveryCapabilities(page)
   })
 
   test('forgot-password flow: no analytics network calls emit token or email sentinel', async ({
@@ -447,35 +478,36 @@ test.describe('Recovery privacy: no token/password in analytics, console, or sto
     )
   })
 
-  privacyTest(
-    'standalone recovery emits no analytics calls even when consent is enabled',
-    async ({ page }) => {
-      await page.addInitScript(() => {
-        localStorage.setItem(
-          'pt-consent',
-          JSON.stringify({
-            consentVersion: 1,
-            policyVersion: '2026-07-23',
-            timestamp: new Date().toISOString(),
-            region: 'EU',
-            categories: { necessary: true, analytics: true },
-            dnt: false,
-            source: 'banner',
-          }),
-        )
-      })
-      await mockForgotPasswordResponse(page)
-      await page.goto(APP_URL.forgotPassword)
-
-      // Existing consent is analytics-enabled, so the assertion proves the
-      // standalone recovery route itself emits no analytics activity rather
-      // than merely inheriting an unset consent flag.
-      const analyticsEnabled = await page.evaluate(
-        () => (window as unknown as { __PT_CONSENT_ANALYTICS?: boolean }).__PT_CONSENT_ANALYTICS,
+  test('standalone recovery emits no analytics calls even when consent is enabled', {
+    screenshot: 'off',
+    trace: 'off',
+    video: 'off',
+  }, async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'pt-consent',
+        JSON.stringify({
+          consentVersion: 1,
+          policyVersion: '2026-07-23',
+          timestamp: new Date().toISOString(),
+          region: 'EU',
+          categories: { necessary: true, analytics: true },
+          dnt: false,
+          source: 'banner',
+        }),
       )
-      expect(analyticsEnabled).not.toBe(true)
-    },
-  )
+    })
+    await mockForgotPasswordResponse(page)
+    await page.goto(APP_URL.forgotPassword)
+
+    // Existing consent is analytics-enabled, so the assertion proves the
+    // standalone recovery route itself emits no analytics activity rather
+    // than merely inheriting an unset consent flag.
+    const analyticsEnabled = await page.evaluate(
+      () => (window as unknown as { __PT_CONSENT_ANALYTICS?: boolean }).__PT_CONSENT_ANALYTICS,
+    )
+    expect(analyticsEnabled).not.toBe(true)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -487,6 +519,7 @@ test.describe('ResetPasswordView error branches: 429, 503, and unknown via route
 }, () => {
   test.beforeEach(async ({ page }) => {
     await mockRefreshFailure(page)
+    await mockRecoveryCapabilities(page)
   })
 
   test('reset 429/AUTH_RATE_LIMIT_EXCEEDED shows rate-limited alert without backend detail', async ({

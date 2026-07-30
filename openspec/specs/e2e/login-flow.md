@@ -780,7 +780,7 @@ DELETE FROM identity WHERE email LIKE 'e2e-test-%';
 
 - **Trigger**: On PR creation and push to main
 - **Environment**: Requires running SPA dev server + backend + database
-- **Secrets**: `E2E_TEST_USER_EMAIL`, `E2E_TEST_USER_PASSWORD`, `API_BASE_URL`
+- **Configuration**: optional `E2E_TEST_USER_EMAIL`, plus `API_BASE_URL`; the test-only password is public fixture data and is never reused outside test environments
 - **Parallelism**: Playwright projects can run in parallel by browser
 - **Artifacts**: Playwright HTML report, screenshots on failure, trace on retry
 

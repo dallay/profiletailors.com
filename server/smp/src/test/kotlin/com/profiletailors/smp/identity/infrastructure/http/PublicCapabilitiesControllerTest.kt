@@ -21,7 +21,6 @@ class PublicCapabilitiesControllerTest {
         response shouldBe PublicCapabilitiesResponse(
             registrationEnabled = false,
             passwordRecoveryEnabled = true,
-            ssoProviders = emptyList(),
         )
     }
 
@@ -32,7 +31,6 @@ class PublicCapabilitiesControllerTest {
         response shouldBe PublicCapabilitiesResponse(
             registrationEnabled = true,
             passwordRecoveryEnabled = true,
-            ssoProviders = emptyList(),
         )
     }
 
@@ -50,13 +48,6 @@ class PublicCapabilitiesControllerTest {
         response.passwordRecoveryEnabled shouldBe false
     }
 
-    @Test
-    fun `returns empty ssoProviders array`() = runTest {
-        val response = controller(registrationEnabled = true, passwordRecoveryEnabled = true).publicCapabilities()
-
-        response.ssoProviders shouldBe emptyList()
-    }
-
     private fun controller(registrationEnabled: Boolean, passwordRecoveryEnabled: Boolean) =
         PublicCapabilitiesController(
             mediator = FakeMediator(registrationEnabled, passwordRecoveryEnabled),
@@ -71,7 +62,6 @@ class PublicCapabilitiesControllerTest {
             is GetPublicCapabilitiesQuery -> PublicCapabilities(
                 registrationEnabled = registrationEnabled,
                 passwordRecoveryEnabled = passwordRecoveryEnabled,
-                ssoProviders = emptyList(),
             ) as TResponse
             else -> error("Unexpected query: $query")
         }

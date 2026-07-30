@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationNormalized } from 'vue-router'
 import HomeView from '@modules/dashboard/presentation/views/HomeView.vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import { usePublicCapabilitiesStore } from '@modules/auth/infrastructure/public-capabilities.store'
 
 function requiresAuth(route: RouteLocationNormalized) {
   return route.meta.requiresAuth === true
@@ -44,18 +43,6 @@ const router = createRouter({
       name: 'verify-email',
       component: () => import('@modules/auth/presentation/VerifyEmailView.vue'),
       meta: { standalone: true },
-    },
-    {
-      path: '/registration-unavailable',
-      name: 'registration-unavailable',
-      component: () => import('@modules/auth/presentation/RegistrationUnavailable.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
-      path: '/password-recovery-unavailable',
-      name: 'password-recovery-unavailable',
-      component: () => import('@modules/auth/presentation/PasswordRecoveryUnavailable.vue'),
-      meta: { requiresAuth: false },
     },
     {
       path: '/',
@@ -144,26 +131,6 @@ router.beforeEach(async (to) => {
 
   if (isGuestOnly(to) && auth.isAuthenticated) {
     return '/'
-  }
-
-  // Check capability-gated routes
-  if (to.name === 'register' || to.name === 'forgot-password') {
-    const capabilities = usePublicCapabilitiesStore()
-
-    // Load capabilities if not already loaded
-    if (!capabilities.capabilitiesLoaded) {
-      await capabilities.load()
-    }
-
-    // Guard register route
-    if (to.name === 'register' && !capabilities.registrationEnabled) {
-      return { name: 'registration-unavailable' }
-    }
-
-    // Guard forgot-password route
-    if (to.name === 'forgot-password' && !capabilities.passwordRecoveryEnabled) {
-      return { name: 'password-recovery-unavailable' }
-    }
   }
 
   return true

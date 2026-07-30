@@ -1,6 +1,6 @@
 import i18n from '@shared/i18n'
 import { authCredentialsSchema, workspaceNameSchema } from '@shared/lib/validation/schemas'
-import type { PublicCapabilities } from '@modules/auth/domain/public-capabilities'
+import type { PublicCapabilitiesDto } from '@modules/auth/domain/public-capabilities'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -222,8 +222,8 @@ export async function resetPassword(payload: {
   })
 }
 
-export async function fetchPublicCapabilities(): Promise<PublicCapabilities> {
-  return request<PublicCapabilities>('/api/capabilities/public', { method: 'GET' })
+export async function fetchPublicCapabilities(): Promise<PublicCapabilitiesDto> {
+  return request<PublicCapabilitiesDto>('/api/capabilities/public', { method: 'GET' })
 }
 
 export type RenameWorkspaceResult = {
