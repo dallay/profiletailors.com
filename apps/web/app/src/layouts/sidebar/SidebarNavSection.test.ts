@@ -4,6 +4,12 @@ import { defineComponent, h, markRaw } from 'vue'
 import { mount } from '@vue/test-utils'
 import SidebarNavSection, { type NavGroup } from './SidebarNavSection.vue'
 
+const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  template: '<a :href="to"><slot /></a>',
+})
+
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }))
@@ -30,9 +36,16 @@ function makeGroups(): NavGroup[] {
   ]
 }
 
+const mountOptions = {
+  global: {
+    stubs: { RouterLink: RouterLinkStub },
+  },
+}
+
 describe('SidebarNavSection', () => {
   it('renders both group labels and all items', () => {
     const wrapper = mount(SidebarNavSection, {
+      ...mountOptions,
       props: { groups: makeGroups(), totalQueuedCount: 0 },
     })
 
@@ -50,17 +63,23 @@ describe('SidebarNavSection', () => {
   it('zero-pads the Dashboard badge for counts 1–9 and renders raw counts for 10+', () => {
     const groups = makeGroups()
 
-    const w7 = mount(SidebarNavSection, { props: { groups, totalQueuedCount: 7 } })
+    const w7 = mount(SidebarNavSection, { ...mountOptions, props: { groups, totalQueuedCount: 7 } })
     expect(w7.text()).toContain('07')
 
-    const w12 = mount(SidebarNavSection, { props: { groups, totalQueuedCount: 12 } })
+    const w12 = mount(SidebarNavSection, {
+      ...mountOptions,
+      props: { groups, totalQueuedCount: 12 },
+    })
     expect(w12.text()).toContain('12')
     expect(w12.text()).not.toContain('012')
   })
 
   it('omits the Dashboard badge entirely when totalQueuedCount is 0 (no zero-state badge)', () => {
     const groups = makeGroups()
-    const wrapper = mount(SidebarNavSection, { props: { groups, totalQueuedCount: 0 } })
+    const wrapper = mount(SidebarNavSection, {
+      ...mountOptions,
+      props: { groups, totalQueuedCount: 0 },
+    })
 
     // The text should not contain a zero-padded "00" badge for Dashboard
     // (other items like Analytics with badge="Live" still render).
@@ -69,17 +88,17 @@ describe('SidebarNavSection', () => {
     expect(wrapper.text()).toContain('Live')
   })
 
-  it('emits navigate with the item `to` on click', async () => {
+  it('renders RouterLink with correct `to` prop for each navigation item', () => {
     const wrapper = mount(SidebarNavSection, {
+      ...mountOptions,
       props: { groups: makeGroups(), totalQueuedCount: 0 },
     })
 
-    // The second item is scheduler — find the button with that label
-    const schedulerBtn = wrapper.findAll('button').find((b) => b.text().includes('nav.scheduler'))
-    expect(schedulerBtn).toBeTruthy()
-    await schedulerBtn?.trigger('click')
+    const links = wrapper.findAll('a')
+    expect(links.length).toBe(5)
 
-    expect(wrapper.emitted('navigate')).toBeTruthy()
-    expect(wrapper.emitted('navigate')?.[0]).toEqual(['/scheduler'])
+    const schedulerLink = links.find((l) => l.text().includes('nav.scheduler'))
+    expect(schedulerLink).toBeTruthy()
+    expect(schedulerLink?.attributes('href')).toBe('/scheduler')
   })
 })

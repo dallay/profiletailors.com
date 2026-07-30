@@ -64,7 +64,7 @@ function save() {
             {{ t('consent.categories.necessaryDesc') }}
           </p>
         </div>
-        <Switch :model-value="true" disabled />
+        <Switch :model-value="true" disabled aria-label="Necessary cookies — always enabled" />
       </div>
 
       <div class="flex items-center justify-between rounded-2xl border border-border-subtle bg-bg-primary px-4 py-3">
@@ -76,7 +76,7 @@ function save() {
             {{ t('consent.categories.analyticsDesc') }}
           </p>
         </div>
-        <Switch v-model="analyticsEnabled" />
+        <Switch v-model="analyticsEnabled" aria-label="Analytics cookies" />
       </div>
 
       <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-end">

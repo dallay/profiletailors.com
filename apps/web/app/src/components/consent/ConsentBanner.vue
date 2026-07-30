@@ -72,27 +72,27 @@ function save(): void {
       <!-- Necessary cookies (always on, disabled) -->
       <div class="flex items-center justify-between rounded-2xl border border-border-subtle bg-bg-primary px-4 py-3">
         <div>
-          <p class="text-sm font-medium text-text-display">
+          <p id="consent-label-necessary" class="text-sm font-medium text-text-display">
             {{ t('consent.categories.necessary') }}
           </p>
           <p class="text-xs leading-5 text-text-secondary">
             {{ t('consent.categories.necessaryDesc') }}
           </p>
         </div>
-        <Switch :model-value="true" disabled />
+        <Switch :model-value="true" disabled aria-label="Necessary cookies — always enabled" />
       </div>
 
       <!-- Analytics cookies (user choice) -->
       <div class="flex items-center justify-between rounded-2xl border border-border-subtle bg-bg-primary px-4 py-3">
         <div>
-          <p class="text-sm font-medium text-text-display">
+          <p id="consent-label-analytics" class="text-sm font-medium text-text-display">
             {{ t('consent.categories.analytics') }}
           </p>
           <p class="text-xs leading-5 text-text-secondary">
             {{ t('consent.categories.analyticsDesc') }}
           </p>
         </div>
-        <Switch v-model="analyticsEnabled" />
+        <Switch v-model="analyticsEnabled" aria-label="Analytics cookies" />
       </div>
 
       <!-- Actions: equal-prominence buttons -->

@@ -125,6 +125,7 @@ const isLocalUploadInFlight = ref(false)
 const pickerSessionUploadInput = ref<HTMLInputElement | null>(null)
 const isMediaSourcesOpen = ref(false)
 const isDropzoneActive = ref(false)
+const mediaError = ref<string | null>(null)
 
 function clearUploadPreviewBlob() {
   if (uploadPreviewBlob.value) {
@@ -466,12 +467,19 @@ function handleDropzoneDrop(event: DragEvent) {
 
 function addFiles(filesList: File[]) {
   if (isEditMode.value) assetsTouched.value = true
+  mediaError.value = null
   const file = filesList.find((file) => {
     const isSupported = COMPOSER_SUPPORTED_MEDIA_TYPES.has(file.type)
     const isUnderLimit = file.size <= 10 * 1024 * 1024 // 10MB
-    if (!isSupported) alert('Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.')
-    if (!isUnderLimit) alert('File size exceeds 10MB limit.')
-    return isSupported && isUnderLimit
+    if (!isSupported) {
+      mediaError.value = 'Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.'
+      return false
+    }
+    if (!isUnderLimit) {
+      mediaError.value = 'File size exceeds 10MB limit.'
+      return false
+    }
+    return true
   })
 
   if (!file) return
@@ -1012,6 +1020,15 @@ async function handleCreateSubmit(
                   </p>
                 </button>
               </div>
+
+              <p
+                v-if="mediaError"
+                role="alert"
+                aria-live="polite"
+                class="mt-2 rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
+              >
+                {{ mediaError }}
+              </p>
 
               <div class="mt-4 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-1 text-text-secondary">

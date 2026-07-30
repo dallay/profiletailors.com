@@ -1173,7 +1173,6 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
   })
 
   it('rejects unsupported dragged media types like svg before upload starts', async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
     const mediaStore = useMediaStore()
     const createAndUploadSpy = vi.spyOn(mediaStore, 'createAndUpload')
 
@@ -1189,9 +1188,9 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
     pickerUploadInput.dispatchEvent(new Event('change'))
     await flushModal(wrapper)
 
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.',
-    )
+    const errorEl = document.querySelector('[role="alert"]')
+    expect(errorEl).toBeTruthy()
+    expect(errorEl?.textContent).toContain('Unsupported media format')
     expect(document.querySelector('[data-testid="inline-local-upload"]')).toBeNull()
     expect(createAndUploadSpy).not.toHaveBeenCalled()
   })
