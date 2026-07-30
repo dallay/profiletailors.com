@@ -893,6 +893,13 @@ class BddDatabaseSupport(
     }
 
     private fun cleanupStatements(): List<String> = listOf(
+        // Platform admin
+        "DELETE FROM platform_admin_audit_events",
+        "DELETE FROM waitlist_invitations",
+        "DELETE FROM platform_role_assignments",
+        // Lead capture
+        "DELETE FROM waitlist_entries",
+        "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
         // Governance / Compliance (seeded in baseline, must clear for NOT_APPLICABLE gate tests)
         "DELETE FROM compliance_risk_acceptances",
         "DELETE FROM compliance_control_evidences",

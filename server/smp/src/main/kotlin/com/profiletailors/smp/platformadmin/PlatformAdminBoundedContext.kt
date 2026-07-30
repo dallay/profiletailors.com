@@ -1,0 +1,3 @@
+package com.profiletailors.smp.platformadmin
+
+object PlatformAdminBoundedContext
