@@ -5,8 +5,6 @@
 
 ### Features
 
-* **app:** add password recovery frontend flow ([#506](https://github.com/dallay/profiletailors.com/issues/506)) ([15d26f7](https://github.com/dallay/profiletailors.com/commit/15d26f77ee1b2a0b3ec749c93bcce5dc4faf94da))
-* **app:** redesign login/register with responsive UI, capability gates, and accessibility ([#524](https://github.com/dallay/profiletailors.com/issues/524)) ([dfb500f](https://github.com/dallay/profiletailors.com/commit/dfb500f25cbe660578198f00cf0453b9bd11990e))
 * dallay 433 media asset deduplication content addressed storage ([#463](https://github.com/dallay/profiletailors.com/issues/463)) ([a99cc59](https://github.com/dallay/profiletailors.com/commit/a99cc590e694b97b891d8d5e2f8ec0941b2f0f4c))
 * **identity:** harden password recovery with retry, telemetry, cleanup, and audit ([#509](https://github.com/dallay/profiletailors.com/issues/509)) ([8ff6f71](https://github.com/dallay/profiletailors.com/commit/8ff6f71f2a226d0949b06ca46d669b3793a3aa7c))
 * **identity:** implement secure password recovery backend ([#499](https://github.com/dallay/profiletailors.com/issues/499)) ([4b4b6a6](https://github.com/dallay/profiletailors.com/commit/4b4b6a65020800815f83e6bd91f51ec62eac5cc0))
