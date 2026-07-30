@@ -47,6 +47,8 @@ minimumReleaseAgeExclude:
   - js-yaml@4.3.0
   # Renovate security update: vitest@4.0.0
   - vitest@4.0.0
+  # Renovate security update: shell-quote@1.10.0
+  - shell-quote@1.10.0
 
 overrides:
   esbuild: ">=0.28.1"
