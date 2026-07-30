@@ -39,7 +39,7 @@ async function main() {
     console.log('1. Logging in with valid credentials...')
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
     await page.getByLabel(/email/i).fill(E2E_EMAIL)
-    await page.getByLabel(/password/i).fill(E2E_PASSWORD)
+    await page.getByLabel(/^(password|contraseña)$/i).fill(E2E_PASSWORD)
     await page.getByRole('button', { name: /sign in/i }).click()
     await page.waitForURL('**/')
     await page.waitForTimeout(1000)
@@ -65,7 +65,7 @@ async function main() {
     console.log('4. Trying failed login...')
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
     await page.getByLabel(/email/i).fill('wrong@email.com')
-    await page.getByLabel(/password/i).fill('badpassword')
+    await page.getByLabel(/^(password|contraseña)$/i).fill('badpassword')
     await page.getByRole('button', { name: /sign in/i }).click()
     await page.waitForTimeout(2000)
 
