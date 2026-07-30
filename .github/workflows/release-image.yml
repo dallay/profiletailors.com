@@ -5,6 +5,11 @@ on:
     tags:
       - 'smp@*'
   workflow_call:
+    inputs:
+      release-tag:
+        description: 'Release tag from Release Please (e.g. smp@v0.x.x)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -35,14 +40,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Determine release version
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag || '' }}
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            ref_name="$RELEASE_TAG"
+          else
+            ref_name="${GITHUB_REF_NAME}"
+          fi
+          echo "RELEASE_VERSION=${ref_name#smp@}" >> "$GITHUB_ENV"
+
       - name: Build and push backend image (multi-arch)
         run: |
-          release_version="${GITHUB_REF_NAME#smp@}"
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             -f server/smp/backend.Dockerfile \
-            --build-arg SMP_VERSION="$release_version" \
-            -t "ghcr.io/dallay/profiletailors-smp:$release_version" \
+            --build-arg SMP_VERSION="$RELEASE_VERSION" \
+            -t "ghcr.io/dallay/profiletailors-smp:$RELEASE_VERSION" \
             -t "ghcr.io/dallay/profiletailors-smp:latest" \
             --push \
             .
@@ -64,18 +79,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Determine release version
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag || '' }}
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            ref_name="$RELEASE_TAG"
+          else
+            ref_name="${GITHUB_REF_NAME}"
+          fi
+          echo "RELEASE_VERSION=${ref_name#smp@}" >> "$GITHUB_ENV"
+
       - name: Build and push dashboard image
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: |
-          release_version="${GITHUB_REF_NAME#smp@}"
           docker build \
             -f infra/apps/smp/production/dashboard.Dockerfile \
-            -t "ghcr.io/dallay/profiletailors-dashboard:$release_version" \
+            -t "ghcr.io/dallay/profiletailors-dashboard:$RELEASE_VERSION" \
             -t "ghcr.io/dallay/profiletailors-dashboard:latest" \
             --build-arg VITE_API_BASE_URL="${VITE_API_BASE_URL}" \
             .
-          docker push "ghcr.io/dallay/profiletailors-dashboard:$release_version"
+          docker push "ghcr.io/dallay/profiletailors-dashboard:$RELEASE_VERSION"
           docker push "ghcr.io/dallay/profiletailors-dashboard:latest"
 
   publish-dockerhub:
@@ -88,6 +113,17 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+
+      - name: Determine release version
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag || '' }}
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            ref_name="$RELEASE_TAG"
+          else
+            ref_name="${GITHUB_REF_NAME}"
+          fi
+          echo "RELEASE_VERSION=${ref_name#smp@}" >> "$GITHUB_ENV"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
@@ -104,22 +140,20 @@ jobs:
 
       - name: Mirror backend image to Docker Hub (multi-arch)
         run: |
-          release_version="${GITHUB_REF_NAME#smp@}"
           # crane copies the full multi-arch manifest without pulling layers
           # (docker pull only fetches the native architecture)
           curl -sL "https://github.com/google/go-containerregistry/releases/latest/download/go-containerregistry_$(uname -s)_$(uname -m).tar.gz" | tar xz crane
           # crane reads auth from ~/.docker/config.json (already populated by login-action steps)
-          ./crane copy "ghcr.io/dallay/profiletailors-smp:${release_version}" "dallay/profiletailors-smp:${release_version}"
+          ./crane copy "ghcr.io/dallay/profiletailors-smp:${RELEASE_VERSION}" "dallay/profiletailors-smp:${RELEASE_VERSION}"
           ./crane copy "ghcr.io/dallay/profiletailors-smp:latest" "dallay/profiletailors-smp:latest"
 
       - name: Mirror dashboard image to Docker Hub
         run: |
-          release_version="${GITHUB_REF_NAME#smp@}"
-          docker pull "ghcr.io/dallay/profiletailors-dashboard:${release_version}"
+          docker pull "ghcr.io/dallay/profiletailors-dashboard:${RELEASE_VERSION}"
           docker pull "ghcr.io/dallay/profiletailors-dashboard:latest"
-          docker tag "ghcr.io/dallay/profiletailors-dashboard:${release_version}" "dallay/profiletailors-dashboard:${release_version}"
+          docker tag "ghcr.io/dallay/profiletailors-dashboard:${RELEASE_VERSION}" "dallay/profiletailors-dashboard:${RELEASE_VERSION}"
           docker tag "ghcr.io/dallay/profiletailors-dashboard:latest" "dallay/profiletailors-dashboard:latest"
-          docker push "dallay/profiletailors-dashboard:${release_version}"
+          docker push "dallay/profiletailors-dashboard:${RELEASE_VERSION}"
           docker push "dallay/profiletailors-dashboard:latest"
 
   smoke-test:
@@ -135,6 +169,17 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Determine release version
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag || '' }}
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            ref_name="$RELEASE_TAG"
+          else
+            ref_name="${GITHUB_REF_NAME}"
+          fi
+          echo "RELEASE_VERSION=${ref_name#smp@}" >> "$GITHUB_ENV"
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
         with:
@@ -146,12 +191,11 @@ jobs:
         run: |
           production_dir="infra/apps/smp/production"
           secrets_dir="${production_dir}/secrets"
-          release_version="${GITHUB_REF_NAME#smp@}"
           mkdir -p "$secrets_dir"
           umask 077
           cat > "${production_dir}/.env" <<EOF
-          SMP_IMAGE=ghcr.io/dallay/profiletailors-smp:${release_version}
-          DASHBOARD_IMAGE=ghcr.io/dallay/profiletailors-dashboard:${release_version}
+          SMP_IMAGE=ghcr.io/dallay/profiletailors-smp:${RELEASE_VERSION}
+          DASHBOARD_IMAGE=ghcr.io/dallay/profiletailors-dashboard:${RELEASE_VERSION}
           HTTP_BIND_ADDRESS=127.0.0.1
           HTTP_PORT=8080
           PUBLIC_ORIGIN=https://app.example.com
