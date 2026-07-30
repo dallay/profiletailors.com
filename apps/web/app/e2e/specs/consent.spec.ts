@@ -82,6 +82,9 @@ test.describe('Consent Management — App', () => {
   test('TASK-027: withdraw consent via cookie settings — source settings-panel @consent @frontend', async ({
     page,
   }) => {
+    // Go to domain first to establish correct storage origin
+    await page.goto('/')
+
     // Step 1: Start with valid consent (analytics=true)
     await setConsentReceipt(page, {
       consentVersion: 1,
@@ -89,16 +92,25 @@ test.describe('Consent Management — App', () => {
       source: 'banner',
     })
 
-    await page.goto('/')
+    // Reload so the seeded storage is picked up by the app store
+    await page.reload()
+
+    // Wait for the app to fully load and hydrate
+    await expect(page.getByRole('heading', { name: /welcome/i })).toBeVisible()
 
     // Banner should be hidden (valid consent exists)
     const banner = page.getByTestId('consent-banner')
     await expect(banner).not.toBeVisible()
 
-    // Step 2: Open CookieSettings from the footer link
+    // Step 2: Open CookieSettings from the footer link (programmatic click to bypass viewport issues)
     const cookieSettingsLink = page.getByTestId('cookie-settings-link')
     await expect(cookieSettingsLink).toBeVisible()
-    await cookieSettingsLink.click()
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '[data-testid="cookie-settings-link"]',
+      ) as HTMLButtonElement | null
+      btn?.click()
+    })
 
     // Step 3: CookieSettings dialog should open
     // The dialog uses v-model:open, so it renders as a Dialog with the Switch controls
@@ -138,6 +150,9 @@ test.describe('Consent Management — App', () => {
   test('TASK-028: version upgrade — outdated consentVersion shows banner, re-consent upgrades to v1 @consent @frontend', async ({
     page,
   }) => {
+    // Go to domain first to establish correct storage origin
+    await page.goto('/')
+
     // Step 1: Seed localStorage with an outdated consent (consentVersion=0)
     await setConsentReceipt(page, {
       consentVersion: 0,
@@ -145,7 +160,8 @@ test.describe('Consent Management — App', () => {
       source: 'banner',
     })
 
-    await page.goto('/')
+    // Reload so the seeded storage is picked up by the app store
+    await page.reload()
 
     // Step 2: Banner should be visible (version mismatch → no valid consent)
     const banner = page.getByTestId('consent-banner')

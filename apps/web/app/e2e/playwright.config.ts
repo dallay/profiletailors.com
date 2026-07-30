@@ -66,7 +66,7 @@ export default defineConfig({
 
   /* ── Frontend dev server only (no backend) ────────────── */
   webServer: {
-    command: 'pnpm run dev:app',
+    command: 'PLAYWRIGHT=true pnpm run dev:app',
     port: 5173,
     reuseExistingServer: !process.env.CI,
     cwd: path.resolve(__dirname, '..'),

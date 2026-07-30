@@ -70,7 +70,11 @@ export async function setConsentReceipt(
  * Clear consent state from localStorage.
  */
 export async function clearConsent(page: Page): Promise<void> {
-  await page.evaluate((key: string) => localStorage.removeItem(key), CONSENT_STORAGE_KEY)
+  try {
+    await page.evaluate((key: string) => localStorage.removeItem(key), CONSENT_STORAGE_KEY)
+  } catch {
+    // Ignore gracefully if the page is still on about:blank or cross-origin
+  }
 }
 
 /**
