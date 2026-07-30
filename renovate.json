@@ -14,7 +14,7 @@
   "prHourlyLimit": 3,
   "prConcurrentLimit": 10,
   "configMigration": true,
-  "schedule": ["before 7am on every weekday"],
+  "schedule": ["before 7am every weekday"],
   "timezone": "Europe/Madrid",
   "minimumReleaseAge": "3 days",
   "lockFileMaintenance": {
@@ -24,45 +24,57 @@
   "packageRules": [
     {
       "description": "Group Kotlin language updates",
-      "matchPackagePrefixes": ["org.jetbrains.kotlin"],
       "matchManagers": ["gradle"],
       "groupName": "Kotlin",
-      "groupSlug": "kotlin"
+      "groupSlug": "kotlin",
+      "matchPackageNames": [
+        "org.jetbrains.kotlin{/,}**"
+      ]
     },
     {
       "description": "Group KotlinX coroutines & related",
-      "matchPackagePrefixes": ["org.jetbrains.kotlinx"],
       "matchManagers": ["gradle"],
       "groupName": "KotlinX",
-      "groupSlug": "kotlinx"
+      "groupSlug": "kotlinx",
+      "matchPackageNames": [
+        "org.jetbrains.kotlinx{/,}**"
+      ]
     },
     {
       "description": "Group Cucumber BDD",
-      "matchPackagePrefixes": ["io.cucumber"],
       "matchManagers": ["gradle"],
       "groupName": "Cucumber",
-      "groupSlug": "cucumber"
+      "groupSlug": "cucumber",
+      "matchPackageNames": [
+        "io.cucumber{/,}**"
+      ]
     },
     {
       "description": "Group Testcontainers",
-      "matchPackagePrefixes": ["org.testcontainers"],
       "matchManagers": ["gradle"],
       "groupName": "Testcontainers",
-      "groupSlug": "testcontainers"
+      "groupSlug": "testcontainers",
+      "matchPackageNames": [
+        "org.testcontainers{/,}**"
+      ]
     },
     {
       "description": "Group Jackson (3.x line)",
-      "matchPackagePrefixes": ["tools.jackson"],
       "matchManagers": ["gradle"],
       "groupName": "Jackson",
-      "groupSlug": "jackson"
+      "groupSlug": "jackson",
+      "matchPackageNames": [
+        "tools.jackson{/,}**"
+      ]
     },
     {
       "description": "Group Spring Modulith",
-      "matchPackagePrefixes": ["org.springframework.modulith"],
       "matchManagers": ["gradle"],
       "groupName": "Spring Modulith",
-      "groupSlug": "spring-modulith"
+      "groupSlug": "spring-modulith",
+      "matchPackageNames": [
+        "org.springframework.modulith{/,}**"
+      ]
     },
     {
       "description": "Group Bucket4j + Caffeine (caching)",
@@ -73,10 +85,12 @@
     },
     {
       "description": "Group Spring Boot starters (managed by BOM, single PR)",
-      "matchPackagePrefixes": ["org.springframework.boot"],
       "matchManagers": ["gradle"],
       "groupName": "Spring Boot",
-      "groupSlug": "spring-boot"
+      "groupSlug": "spring-boot",
+      "matchPackageNames": [
+        "org.springframework.boot{/,}**"
+      ]
     },
     {
       "description": "Group Vue core ecosystem",
@@ -101,21 +115,29 @@
     },
     {
       "description": "Group Tailwind CSS packages",
-      "matchPackagePrefixes": ["tailwindcss", "@tailwindcss"],
       "groupName": "Tailwind CSS",
-      "groupSlug": "tailwindcss"
+      "groupSlug": "tailwindcss",
+      "matchPackageNames": [
+        "tailwindcss{/,}**",
+        "@tailwindcss{/,}**"
+      ]
     },
     {
       "description": "Group Playwright packages",
-      "matchPackagePrefixes": ["@playwright", "playwright"],
       "groupName": "Playwright",
-      "groupSlug": "playwright"
+      "groupSlug": "playwright",
+      "matchPackageNames": [
+        "@playwright{/,}**",
+        "playwright{/,}**"
+      ]
     },
     {
       "description": "Group Biome tooling",
-      "matchPackagePrefixes": ["@biomejs"],
       "groupName": "Biome",
-      "groupSlug": "biome"
+      "groupSlug": "biome",
+      "matchPackageNames": [
+        "@biomejs{/,}**"
+      ]
     },
     {
       "description": "Group Zod (shared + app use pinned versions)",
