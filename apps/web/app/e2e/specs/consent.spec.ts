@@ -82,65 +82,65 @@ test.describe('Consent Management — App', () => {
   test('TASK-027: withdraw consent via cookie settings — source settings-panel @consent @frontend', async ({
     page,
   }) => {
-    // Go to domain first to establish correct storage origin
-    await page.goto('/')
+    await test.step('Origin setup and consent seeding', async () => {
+      // Go to domain first to establish correct storage origin
+      await page.goto('/')
 
-    // Step 1: Start with valid consent (analytics=true)
-    await setConsentReceipt(page, {
-      consentVersion: 1,
-      categories: { necessary: true, analytics: true },
-      source: 'banner',
+      // Step 1: Start with valid consent (analytics=true)
+      await setConsentReceipt(page, {
+        categories: { necessary: true, analytics: true },
+        source: 'banner',
+      })
+
+      // Reload so the seeded storage is picked up by the app store
+      await page.reload()
     })
 
-    // Reload so the seeded storage is picked up by the app store
-    await page.reload()
+    await test.step('App hydration and consent verification', async () => {
+      // Wait for the app to fully load and hydrate
+      await expect(page.getByRole('heading', { name: /welcome/i })).toBeVisible()
 
-    // Wait for the app to fully load and hydrate
-    await expect(page.getByRole('heading', { name: /welcome/i })).toBeVisible()
-
-    // Banner should be hidden (valid consent exists)
-    const banner = page.getByTestId('consent-banner')
-    await expect(banner).not.toBeVisible()
-
-    // Step 2: Open CookieSettings from the footer link (programmatic click to bypass viewport issues)
-    const cookieSettingsLink = page.getByTestId('cookie-settings-link')
-    await expect(cookieSettingsLink).toBeVisible()
-    await page.evaluate(() => {
-      const btn = document.querySelector(
-        '[data-testid="cookie-settings-link"]',
-      ) as HTMLButtonElement | null
-      btn?.click()
+      // Banner should be hidden (valid consent exists)
+      const banner = page.getByTestId('consent-banner')
+      await expect(banner).not.toBeVisible()
     })
 
-    // Step 3: CookieSettings dialog should open
-    // The dialog uses v-model:open, so it renders as a Dialog with the Switch controls
-    // Toggle analytics OFF — find the Switch inside the CookieSettings dialog
-    // CookieSettings has `v-model="analyticsEnabled"` on its Switch
-    // We click the Save button after toggling
-    const saveButton = page.getByRole('button', { name: /save preferences|save/i })
-    await expect(saveButton).toBeVisible()
+    await test.step('CookieSettings interaction and withdrawal', async () => {
+      // Step 2: Open CookieSettings from the footer link
+      const cookieSettingsLink = page.getByRole('button', { name: /cookie settings/i })
+      await expect(cookieSettingsLink).toBeVisible()
+      await cookieSettingsLink.click()
 
-    // Toggle analytics OFF — click the Switch component
-    // CookieSettings.vue renders Switch v-model="analyticsEnabled",
-    // which creates a button[role="switch"]. The dialog shows two switches:
-    // one disabled (necessary) and one toggleable (analytics).
-    // The second switch in the dialog is the analytics toggle.
-    const switches = page.getByRole('switch')
-    const analyticsSwitch = switches.nth(1) // 0=necessary(disabled), 1=analytics
-    await analyticsSwitch.click()
+      // Step 3: CookieSettings dialog should open
+      // The dialog uses v-model:open, so it renders as a Dialog with the Switch controls
+      // Toggle analytics OFF — find the Switch inside the CookieSettings dialog
+      // CookieSettings has `v-model="analyticsEnabled"` on its Switch
+      // We click the Save button after toggling
+      const saveButton = page.getByRole('button', { name: /save preferences|save/i })
+      await expect(saveButton).toBeVisible()
 
-    // Verify the switch is now off
-    await expect(analyticsSwitch).toHaveAttribute('data-state', 'unchecked')
+      // Toggle analytics OFF — click the Switch component
+      // CookieSettings.vue renders Switch v-model="analyticsEnabled",
+      // which creates a button[role="switch"]. The dialog shows two switches:
+      // one disabled (necessary) and one toggleable (analytics).
+      // The second switch in the dialog is the analytics toggle.
+      const switches = page.getByRole('switch')
+      const analyticsSwitch = switches.nth(1) // 0=necessary(disabled), 1=analytics
+      await analyticsSwitch.click()
 
-    // Step 4: Click Save
-    await saveButton.click()
+      // Verify the switch is now off
+      await expect(analyticsSwitch).toHaveAttribute('data-state', 'unchecked')
 
-    // Step 5: Verify localStorage
-    const receipt = await readReceipt(page)
-    expect(receipt).not.toBeNull()
-    expect(receipt.categories.analytics).toBe(false)
-    expect(receipt.source).toBe('settings-panel')
-    expect(receipt.consentVersion).toBe(1)
+      // Step 4: Click Save
+      await saveButton.click()
+
+      // Step 5: Verify localStorage
+      const receipt = await readReceipt(page)
+      expect(receipt).not.toBeNull()
+      expect(receipt.categories.analytics).toBe(false)
+      expect(receipt.source).toBe('settings-panel')
+      expect(receipt.consentVersion).toBe(1)
+    })
   })
 
   // -----------------------------------------------------------------------

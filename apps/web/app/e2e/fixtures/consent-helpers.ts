@@ -68,13 +68,18 @@ export async function setConsentReceipt(
 
 /**
  * Clear consent state from localStorage.
+ *
+ * Navigates to the application home origin first to ensure localStorage
+ * is accessible. If already under /auth/..., preserves cleanup for those flows.
  */
 export async function clearConsent(page: Page): Promise<void> {
-  try {
-    await page.evaluate((key: string) => localStorage.removeItem(key), CONSENT_STORAGE_KEY)
-  } catch {
-    // Ignore gracefully if the page is still on about:blank or cross-origin
+  // If the page is on about:blank or hasn't navigated yet, go to the base URL first
+  const currentUrl = page.url()
+  if (currentUrl === 'about:blank' || !currentUrl.includes('localhost')) {
+    await page.goto('/')
   }
+
+  await page.evaluate((key: string): void => localStorage.removeItem(key), CONSENT_STORAGE_KEY)
 }
 
 /**
