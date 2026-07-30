@@ -76,6 +76,18 @@ interface ContentVisitor<R> {
     fun visit(node: TextNode): R
     fun visit(node: ImageNode): R
 }
+
+class HtmlRenderer : ContentVisitor<String> {
+    override fun visit(node: TextNode): String = "<p>${node.text}</p>"
+    override fun visit(node: ImageNode): String = """<img src="${node.url}" />"""
+}
+
+class MarkdownRenderer : ContentVisitor<String> {
+    override fun visit(node: TextNode): String = node.text
+    override fun visit(node: ImageNode): String = """![image](${node.url})"""
+}
+
+// Usage: contentNode.accept(HtmlRenderer())
 ```
 
 The example is intentionally minimal. Adapt naming and boundaries to the domain;

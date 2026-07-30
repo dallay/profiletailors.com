@@ -67,11 +67,10 @@ interface ProfileRepository {
 class CachedProfileRepository(
     private val target: ProfileRepository
 ) : ProfileRepository {
-    private val cache = mutableMapOf<String, Profile?>()
+    private val cache = ConcurrentHashMap<String, Profile?>()
 
     override suspend fun find(id: String): Profile? =
-        if (cache.containsKey(id)) cache[id]
-        else target.find(id).also { cache[id] = it }
+        cache.getOrPut(id) { target.find(id) }
 }
 ```
 

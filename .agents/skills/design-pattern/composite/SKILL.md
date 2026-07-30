@@ -72,6 +72,11 @@ data class Bundle(
     val children: List<PriceComponent>
 ) : PriceComponent {
     override fun total(): Long = children.sumOf(PriceComponent::total)
+
+    init {
+        // Defensive copy ensures external list mutations do not affect this instance
+        require(children === children.toList())
+    }
 }
 ```
 

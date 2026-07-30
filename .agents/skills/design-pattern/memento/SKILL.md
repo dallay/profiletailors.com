@@ -65,9 +65,12 @@ data class DraftSnapshot internal constructor(
     internal val body: String
 )
 
-class Draft {
-    var title: String = ""
-    var body: String = ""
+class Draft(initialTitle: String = "", initialBody: String = "") {
+    private var title: String = initialTitle
+    private var body: String = initialBody
+
+    fun updateTitle(value: String) { title = value }
+    fun updateBody(value: String) { body = value }
 
     fun snapshot() = DraftSnapshot(title, body)
 

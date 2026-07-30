@@ -19,7 +19,7 @@
   "minimumReleaseAge": "3 days",
   "lockFileMaintenance": {
     "enabled": true,
-      "schedule": ["before 7am on monday"]
+    "schedule": ["before 7am on monday"]
   },
   "packageRules": [
     {

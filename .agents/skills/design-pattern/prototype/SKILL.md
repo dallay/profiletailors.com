@@ -60,6 +60,11 @@ Prototype, ConcretePrototype, Client.
 ## Reference implementation
 
 ```kotlin
+/**
+ * Kotlin's data class [copy] IS the Prototype pattern built into the language.
+ * Prefer [copy] over a custom prototype abstraction unless the cloning logic
+ * requires domain-specific transformations (e.g. resetting IDs, timestamps).
+ */
 data class CampaignTemplate(
     val name: String,
     val channels: List<String>,

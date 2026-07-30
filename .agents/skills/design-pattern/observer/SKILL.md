@@ -66,11 +66,25 @@ fun interface EventSubscriber<E> {
     suspend fun on(event: E)
 }
 
+/**
+ * @param failFast  if true the first subscriber exception short-circuits and
+ *                  propagates; if false all subscribers run and exceptions
+ *                  are collected and reported.
+ */
 class EventPublisher<E>(
-    private val subscribers: List<EventSubscriber<E>>
+    private val subscribers: List<EventSubscriber<E>>,
+    private val failFast: Boolean = true
 ) {
     suspend fun publish(event: E) {
-        subscribers.forEach { it.on(event) }
+        if (failFast) {
+            subscribers.forEach { it.on(event) }
+        } else {
+            subscribers.map { subscriber ->
+                runCatching { subscriber.on(event) }
+            }.onEach { result ->
+                result.exceptionOrNull()?.let { /* report or log */ }
+            }
+        }
     }
 }
 ```

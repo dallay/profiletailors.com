@@ -64,12 +64,17 @@ fun interface RequestHandler {
     suspend fun handle(request: Request, next: suspend (Request) -> Response): Response
 }
 
+data class Response(
+    val status: Int,
+    val body: String?
+)
+
 class AuthenticationHandler : RequestHandler {
     override suspend fun handle(
         request: Request,
         next: suspend (Request) -> Response
     ): Response {
-        require(request.userId != null) { "Unauthenticated" }
+        if (request.userId == null) return Response(status = 401, body = "Unauthenticated")
         return next(request)
     }
 }

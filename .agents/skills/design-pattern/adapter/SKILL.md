@@ -66,10 +66,13 @@ interface PaymentGateway {
 
 class VendorPaymentClient {
     suspend fun createPayment(amount: Long): VendorPayment =
-        VendorPayment(reference = "vendor-ref")
+        VendorPayment(reference = "vendor-ref", amount = amount)
 }
 
-data class VendorPayment(val reference: String)
+data class VendorPayment(
+    val reference: String,
+    val amount: Long
+)
 
 class VendorPaymentAdapter(
     private val client: VendorPaymentClient

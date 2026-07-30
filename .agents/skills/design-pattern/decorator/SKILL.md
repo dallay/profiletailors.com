@@ -69,10 +69,11 @@ class DatabaseDocumentStore : DocumentStore {
 }
 
 class AuditedDocumentStore(
-    private val delegate: DocumentStore
+    private val delegate: DocumentStore,
+    private val log: (String) -> Unit = { println(it) }
 ) : DocumentStore {
     override suspend fun save(id: String, content: ByteArray) {
-        println("saving $id")
+        log("saving $id")
         delegate.save(id, content)
     }
 }

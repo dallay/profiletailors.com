@@ -80,6 +80,7 @@ class HttpRequestBuilder {
 
     fun build(): HttpRequest {
         require(url.isNotBlank()) { "url is required" }
+        require(method.isNotBlank()) { "method is required" }
         return HttpRequest(method, url, headers.toMap(), body)
     }
 }

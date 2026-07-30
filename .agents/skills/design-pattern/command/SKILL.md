@@ -60,19 +60,33 @@ Command, ConcreteCommand, Invoker, Receiver, Client.
 ## Reference implementation
 
 ```kotlin
-data class PublishPost(
-    val publicationId: String,
-    val idempotencyKey: String
-)
+// Command interface
+fun interface Command {
+    suspend fun execute()
+}
 
-class PublishPostHandler(
+// Receiver — knows how to perform domain work
+class Publisher {
+    suspend fun publish(publicationId: String, idempotencyKey: String) {
+        // domain logic
+    }
+}
+
+// Concrete Command — binds receiver to action
+class PublishPost(
+    private val publicationId: String,
+    private val idempotencyKey: String,
     private val publisher: Publisher
-) {
-    suspend fun handle(command: PublishPost) {
-        publisher.publish(
-            publicationId = command.publicationId,
-            idempotencyKey = command.idempotencyKey
-        )
+) : Command {
+    override suspend fun execute() {
+        publisher.publish(publicationId, idempotencyKey)
+    }
+}
+
+// Invoker — schedules and executes commands
+class CommandExecutor {
+    suspend fun execute(command: Command) {
+        command.execute()
     }
 }
 ```

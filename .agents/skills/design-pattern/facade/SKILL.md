@@ -68,6 +68,8 @@ class MediaFacade(
     suspend fun upload(command: UploadMedia): MediaId {
         validator.validate(command.bytes, command.contentType)
         val stored = storage.store(command.bytes)
+        // NOTE: if metadata.save fails, the stored blob is orphaned.
+        // Production code should add compensation or transactional guarantees.
         metadata.save(stored.id, command.contentType)
         return stored.id
     }

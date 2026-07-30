@@ -69,6 +69,17 @@ class LowercaseSlugStrategy : SlugStrategy {
         value.lowercase().replace(" ", "-")
 }
 
+class TruncatingSlugStrategy(
+    private val maxLength: Int = 50
+) : SlugStrategy {
+    override fun create(value: String): String =
+        value.lowercase()
+            .replace(Regex("[^a-z0-9-]"), "-")
+            .trim('-')
+            .take(maxLength)
+            .trimEnd('-')
+}
+
 class SlugService(
     private val strategy: SlugStrategy
 ) {

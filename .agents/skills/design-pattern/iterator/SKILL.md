@@ -61,13 +61,14 @@ Iterator, ConcreteIterator, IterableCollection, ConcreteCollection.
 
 ```kotlin
 class PublicationBatch(
-    private val publications: List<Publication>
-) : Iterable<Publication> {
-    override fun iterator(): Iterator<Publication> =
+    publications: List<Publication>
+) {
+    private val publications: List<Publication> = publications.toList()
+
+    fun asSequence(): Sequence<Publication> =
         publications
             .asSequence()
             .filter { it.status == Status.READY }
-            .iterator()
 }
 ```
 

@@ -66,13 +66,23 @@ data class IconStyle(
 )
 
 object IconStyleFactory {
-    private val cache = mutableMapOf<Pair<String, String>, IconStyle>()
+    private val cache = LinkedHashMap<Pair<String, String>, IconStyle>(
+        initialCapacity = 16, loadFactor = 0.75f, accessOrder = true
+    )
 
     @Synchronized
     fun get(glyph: String, fontFamily: String): IconStyle =
         cache.getOrPut(glyph to fontFamily) {
             IconStyle(glyph, fontFamily)
         }
+
+    @Synchronized
+    fun evictLeastRecentlyUsed(maxSize: Int) {
+        while (cache.size > maxSize) {
+            val eldest = cache.entries.firstOrNull() ?: break
+            cache.remove(eldest.key)
+        }
+    }
 }
 
 data class PositionedIcon(

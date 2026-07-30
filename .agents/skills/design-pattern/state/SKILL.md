@@ -74,8 +74,10 @@ data object PublishedState : PublicationState {
 }
 
 class Publication(
-    var state: PublicationState = DraftState
+    initialState: PublicationState = DraftState
 ) {
+    private var state: PublicationState = initialState
+
     fun publish() {
         state = state.publish()
     }
