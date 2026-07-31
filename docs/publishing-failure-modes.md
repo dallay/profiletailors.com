@@ -243,7 +243,7 @@ sanitization, extend the sanitizer to cover it.
   Copy and Actions
 - [DALLAY-484 / PR #335](https://github.com/dallay/profiletailors.com/pull/335)
   — implementation that introduced the taxonomy
-- [Production Secrets](production-secrets.md) — `PUBLISHING_CREDENTIALS_KEY`
+- [Production Secrets](production-secrets.md) — `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY`
   and related credential encryption
 - [Getting Started](getting-started.md) — publishing worker configuration
   variables

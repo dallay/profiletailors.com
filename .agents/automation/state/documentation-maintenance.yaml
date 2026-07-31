@@ -1,5 +1,17 @@
 schemaVersion: 1
 task: documentation-maintainer
-lastExecution: null
-findings: [ ]
-checks: [ ]
+lastExecution: "2026-07-28T12:00:00Z"
+outcome: CHANGES_APPLIED
+findings:
+  - id: DOC-publishing-credentials-key-drift
+    title: "Obsolete environment variable name in secrets documentation"
+    status: resolved
+    classification: OUTDATED
+    evidence: "docs/production-secrets.md, docs/release-verification.md, and docs/publishing-failure-modes.md referenced PUBLISHING_CREDENTIALS_KEY instead of the canonical name PUBLISHING_CREDENTIALS_ENCRYPTION_KEY used in server configurations."
+    risk: LOW
+    message: "Reconciled PUBLISHING_CREDENTIALS_KEY with PUBLISHING_CREDENTIALS_ENCRYPTION_KEY in documentation."
+checks:
+  - name: "Documentation Link Verification"
+    status: Passed
+  - name: "Secrets Variable Alignment Verification"
+    status: Passed
