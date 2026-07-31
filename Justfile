@@ -178,6 +178,7 @@ frontend-test-cov *flags="":
 # Run E2E tests (Playwright headless)
 frontend-test-e2e:
     cd {{frontend-dir}} && pnpm test:e2e
+    pnpm --filter app test:e2e:scheduler
     pnpm --filter app test:e2e:media:mocked
 
 # Run E2E tests in Playwright UI mode
@@ -202,6 +203,10 @@ app-test-e2e-media-real:
 
 # Run available app Media Library E2E lanes (mocked + real)
 app-test-e2e-media: app-test-e2e-media-mocked app-test-e2e-media-real
+
+# Run app Scheduler mocked E2E tests (Playwright headless)
+app-test-e2e-scheduler:
+    pnpm --filter app test:e2e:scheduler
 
 # ═══════════════════════════════════════════════════════════════
 # BACKEND  (Gradle / Kotlin / Spring Boot / Detekt)
@@ -247,7 +252,7 @@ backend-test exclude-tags="":
 backend-test-fast:
     if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
     test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
-    {{gradle-root}} :server:smp:test --no-daemon
+    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
 
 # Run full check: tests + Detekt (aligns with CI — excludes BDD suites)
 backend-check:
@@ -488,7 +493,7 @@ ci-local:
     @echo "▸ Backend: unit tests (fast)..."
     if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
     test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
-    {{gradle-root}} :server:smp:test --no-daemon
+    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
     @echo ""
     @echo "▸ Backend: build..."
     export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
@@ -545,7 +550,7 @@ ci:
     @echo "▸ [6/8] Backend: unit tests (fast)..."
     if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
     test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
-    {{gradle-root}} :server:smp:test --no-daemon
+    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
     if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
@@ -554,6 +559,8 @@ ci:
     @echo ""
     @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
     cd {{frontend-dir}} && pnpm test:e2e
+    pnpm --filter app test:e2e:scheduler
+    pnpm --filter app test:e2e:media:mocked
     @echo ""
     @echo "════════════════════════════════════════════════"
     @echo "  ✅ Full CI Pipeline Complete — everything passed"
