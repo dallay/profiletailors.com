@@ -88,6 +88,6 @@ checks:
   - name: "Archived Changes Reconciliation"
     status: Passed
   - name: "Legal Pages Gate Compliance Check"
-    status: Passed
+    status: Failed
   - name: "Implementation Integrity Audit"
     status: Passed
