@@ -119,7 +119,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
     ) + super.cleanupStatements()
 
     @Test
-    fun `invite creates active invitation and transitions entry to INVITED`() = runTest {
+    fun `should create active invitation and transition entry to INVITED when invited`() = runTest {
         inviteHandler.handle(
             InviteWaitlistEntryCommand(
                 operatorPrincipalId = operatorId,
@@ -141,7 +141,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
     }
 
     @Test
-    fun `audit event is persisted after successful invite`() = runTest {
+    fun `should persist audit event when invite succeeds`() = runTest {
         inviteHandler.handle(
             InviteWaitlistEntryCommand(
                 operatorPrincipalId = operatorId,
@@ -160,7 +160,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
     }
 
     @Test
-    fun `database enforces at most one active invitation per waitlist entry`() = runTest {
+    fun `should enforce at most one active invitation per waitlist entry`() = runTest {
         // First invite — creates active invitation
         inviteHandler.handle(
             InviteWaitlistEntryCommand(
@@ -189,7 +189,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
     }
 
     @Test
-    fun `cancel revokes active invitation and transitions entry to CANCELLED`() = runTest {
+    fun `should revoke active invitation and transition entry to CANCELLED when cancelled`() = runTest {
         inviteHandler.handle(
             InviteWaitlistEntryCommand(
                 operatorPrincipalId = operatorId,

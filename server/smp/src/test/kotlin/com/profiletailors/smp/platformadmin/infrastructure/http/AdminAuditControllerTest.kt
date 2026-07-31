@@ -71,7 +71,7 @@ class AdminAuditControllerTest {
     }
 
     @Test
-    fun `listEvents returns 400 when size exceeds max page size`() {
+    fun `should return 400 when size exceeds max page size`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
 
         webClient()

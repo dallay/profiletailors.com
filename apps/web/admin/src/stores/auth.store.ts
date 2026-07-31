@@ -46,7 +46,7 @@ const ROLE_PERMISSIONS = {
 export type PlatformRole = keyof typeof ROLE_PERMISSIONS
 export type PlatformPermission = (typeof ROLE_PERMISSIONS)[PlatformRole][number]
 
-export interface AdminPrincipal {
+export type AdminPrincipal = {
   principalId: string
   email: string
   displayName: string | null

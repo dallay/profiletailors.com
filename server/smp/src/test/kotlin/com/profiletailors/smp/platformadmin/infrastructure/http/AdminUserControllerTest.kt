@@ -75,7 +75,7 @@ class AdminUserControllerTest {
     }
 
     @Test
-    fun `listUsers returns 400 when size exceeds max page size`() {
+    fun `should return 400 when size exceeds max page size`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
 
         webClient()

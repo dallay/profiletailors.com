@@ -51,7 +51,6 @@ async function signOut() {
     const response = await fetch('/api/auth/logout', { method: 'POST' })
     if (!response.ok) throw new Error()
   } catch {
-    // Session is cleared locally regardless so the user is never stuck signed in.
   }
   authStore.clearSession()
   router.push({ name: 'login' })
