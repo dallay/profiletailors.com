@@ -92,6 +92,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/publishing/015-create-recurring-schedules.yaml
   - include:
+      file: db/changelog/ideas/001-create-ideas.yaml
+  - include:
       file: db/changelog/media/001-create-media-assets.yaml
   - include:
       file: db/changelog/media/002-add-workspace-file-blobs.yaml

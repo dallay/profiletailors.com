@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
-import { Images, LayoutGrid, Shield } from '@lucide/vue'
+import { Images, LayoutGrid, Lightbulb, Shield } from '@lucide/vue'
 import {
   Sidebar,
   SidebarContent,
@@ -120,6 +120,7 @@ const navigationGroups = computed<NavGroup[]>(() => [
       { labelKey: 'nav.scheduler', to: '/scheduler', icon: LayoutGrid },
       { labelKey: 'nav.analytics', to: '/analytics', icon: LayoutGrid, badge: 'Live' },
       { labelKey: 'nav.media', to: '/media', icon: Images },
+      { labelKey: 'nav.ideas', to: '/ideas', icon: Lightbulb },
       { labelKey: 'nav.governance', to: '/governance/takedown', icon: Shield },
     ],
   },
