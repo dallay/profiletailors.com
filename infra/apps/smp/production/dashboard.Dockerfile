@@ -8,6 +8,7 @@ RUN corepack enable && corepack prepare pnpm@11.11.0 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/app/package.json apps/web/app/package.json
+COPY shared/web/package.json shared/web/package.json
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \

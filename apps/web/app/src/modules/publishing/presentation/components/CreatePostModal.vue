@@ -125,6 +125,7 @@ const isLocalUploadInFlight = ref(false)
 const pickerSessionUploadInput = ref<HTMLInputElement | null>(null)
 const isMediaSourcesOpen = ref(false)
 const isDropzoneActive = ref(false)
+const mediaError = ref<string | null>(null)
 
 function clearUploadPreviewBlob() {
   if (uploadPreviewBlob.value) {
@@ -244,6 +245,7 @@ function initCreateMode() {
 
 async function initializeComposerForOpen() {
   submitError.value = ''
+  mediaError.value = null
   isDatePickerOpen.value = false
   clearUploadPreviewBlob()
   selectedUploadFile.value = null
@@ -466,14 +468,28 @@ function handleDropzoneDrop(event: DragEvent) {
 
 function addFiles(filesList: File[]) {
   if (isEditMode.value) assetsTouched.value = true
-  const file = filesList.find((file) => {
+  mediaError.value = null
+
+  const valid: File[] = []
+  const rejected: string[] = []
+  for (const file of filesList) {
     const isSupported = COMPOSER_SUPPORTED_MEDIA_TYPES.has(file.type)
     const isUnderLimit = file.size <= 10 * 1024 * 1024 // 10MB
-    if (!isSupported) alert('Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.')
-    if (!isUnderLimit) alert('File size exceeds 10MB limit.')
-    return isSupported && isUnderLimit
-  })
+    if (!isSupported) {
+      rejected.push(t('composer.media.unsupportedFormat'))
+    } else if (!isUnderLimit) {
+      rejected.push(t('composer.media.fileSizeExceeded'))
+    } else {
+      valid.push(file)
+    }
+  }
 
+  if (rejected.length > 0) {
+    mediaError.value = rejected[0] ?? null
+  }
+  if (valid.length === 0) return
+
+  const file = valid[0]
   if (!file) return
 
   clearUploadPreviewBlob()
@@ -784,6 +800,7 @@ async function uploadDeferredFile(): Promise<boolean> {
 
 function resetPostForm() {
   postText.value = ''
+  mediaError.value = null
   removeFile()
   firstComment.value = ''
   picker.draftAttachmentIds.value = []
@@ -1012,6 +1029,14 @@ async function handleCreateSubmit(
                   </p>
                 </button>
               </div>
+
+              <p
+                v-if="mediaError"
+                role="alert"
+                class="mt-2 rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
+              >
+                {{ mediaError }}
+              </p>
 
               <div class="mt-4 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-1 text-text-secondary">

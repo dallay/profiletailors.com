@@ -46,9 +46,16 @@ function extractConsentBannerScript(): string {
     `const validateConsentReceipt = (receipt) => receipt\n`
   )
 
-  // Strip the small set of TypeScript-only annotations used in this file.
+  // Strip TypeScript annotations from focus trap helpers.
   code = code
+    .replace('let previousActiveElement: HTMLElement | null = null', 'let previousActiveElement = null')
+    .replace('let focusTrapHandler: ((e: KeyboardEvent) => void) | null = null', 'let focusTrapHandler = null')
+    .replace('function getFocusableElements(container: HTMLElement): HTMLElement[] {', 'function getFocusableElements(container) {')
+    .replace('function activateFocusTrap(container: HTMLElement) {', 'function activateFocusTrap(container) {')
+    .replace('document.activeElement as HTMLElement | null', 'document.activeElement')
     .replaceAll(' as HTMLButtonElement', '')
+    .replace('(e: KeyboardEvent) => {', '(e) => {')
+    .replace('querySelectorAll<HTMLElement>', 'querySelectorAll')
     .replace('function saveConsentChoice(analytics: boolean) {', 'function saveConsentChoice(analytics) {')
     .replace('function loadConsent(): ConsentReceipt | null {', 'function loadConsent() {')
     .replace('const receipt: ConsentReceipt = {', 'const receipt = {')
@@ -58,7 +65,7 @@ function extractConsentBannerScript(): string {
   // object.
   code = code.replace('window.location.reload()', 'window.__consentReload()')
 
-  if (/:\s*(HTMLButtonElement|ConsentReceipt|boolean)\b/.test(code) || /\bimport\b/.test(code)) {
+  if (/:\s*(HTMLButtonElement|HTMLElement|ConsentReceipt|boolean|KeyboardEvent)\b/.test(code) || /\bimport\b/.test(code)) {
     throw new Error(
       'ConsentBanner.astro script extraction left unstripped TypeScript syntax — update the stripping rules in ConsentBanner.test.ts to match the current source.'
     )
