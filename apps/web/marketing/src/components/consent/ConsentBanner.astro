@@ -1,7 +1,13 @@
 ---
 import { useTranslations } from '../../i18n/utils'
+import type { Locale } from '../../i18n/utils'
 
-const t = useTranslations(Astro.currentLocale || 'en')
+interface Props {
+  locale?: Locale
+}
+
+const { locale = 'en' } = Astro.props
+const t = useTranslations(locale)
 ---
 
 <div id="consent-banner" role="dialog" aria-labelledby="consent-heading" aria-modal="true" tabindex="-1" hidden>

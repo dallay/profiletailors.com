@@ -108,9 +108,14 @@ async function save(): Promise<void> {
       startsAt: localDateTimeToIso(startsAt.value),
       timezone: timezone.value,
     }
-    const saved = props.schedule
-      ? await publishing.updateRecurringSchedule(props.schedule.id, input)
-      : await publishing.createRecurringSchedule(props.publication!.id, input)
+    let saved: RecurringSchedule
+    if (props.schedule) {
+      saved = await publishing.updateRecurringSchedule(props.schedule.id, input)
+    } else if (props.publication) {
+      saved = await publishing.createRecurringSchedule(props.publication.id, input)
+    } else {
+      return
+    }
     emit('saved', saved)
     emit('close')
   } catch (cause) {
