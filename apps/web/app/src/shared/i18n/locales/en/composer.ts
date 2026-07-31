@@ -62,6 +62,8 @@ export default {
       'Too many attachments for the strictest channel ({current}/{max}). Remove attachments to publish or schedule.',
     limitInfinite: '∞',
     removeAttachment: 'Remove attachment {name}',
+    unsupportedFormat: 'Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.',
+    fileSizeExceeded: 'File size exceeds 10MB limit.',
   },
   picker: {
     header: 'Media Library',

@@ -59,9 +59,8 @@ const wl = t.waitlist
       type="checkbox"
       required
       class="mt-1"
-      aria-label={wl.consentEarly.ariaLabel}
     />
-    <span>{wl.consentEarly.label}</span>
+    <label for="waitlist-consent-early" class="cursor-pointer">{wl.consentEarly.label}</label>
   </div>
 
   <div class="flex items-start gap-2 text-sm text-text-secondary">
@@ -70,9 +69,8 @@ const wl = t.waitlist
       data-waitlist-consent-marketing
       type="checkbox"
       class="mt-1"
-      aria-label={wl.consentMarketing.ariaLabel}
     />
-    <span>{wl.consentMarketing.label}</span>
+    <label for="waitlist-consent-marketing" class="cursor-pointer">{wl.consentMarketing.label}</label>
   </div>
 
   <p

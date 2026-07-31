@@ -20,8 +20,6 @@ const props = defineProps<{
   totalQueuedCount: number
 }>()
 
-const emit = defineEmits<(e: 'navigate', to: string) => void>()
-
 const { t } = useI18n()
 
 function formatBadge(count: number): string {
@@ -65,10 +63,9 @@ const renderedGroups = computed<NavGroup[]>(() =>
           v-for="item in group.items"
           :key="item.to"
         >
-          <button
-            type="button"
-            class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
-            @click="emit('navigate', item.to)"
+          <RouterLink
+            :to="item.to"
+            class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm text-text-secondary transition-colors no-underline hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
           >
             <component
               :is="item.icon"
@@ -82,7 +79,7 @@ const renderedGroups = computed<NavGroup[]>(() =>
             >
               {{ item.badge }}
             </span>
-          </button>
+          </RouterLink>
         </li>
       </ul>
     </div>

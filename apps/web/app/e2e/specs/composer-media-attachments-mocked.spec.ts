@@ -178,17 +178,13 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     page,
   }) => {
     const composePage = await openComposeModal(page)
-    const alerts: string[] = []
-    page.on('dialog', async (dialog) => {
-      alerts.push(dialog.message())
-      await dialog.dismiss()
-    })
 
     await composePage.dropFiles([mediaFiles.invalidTxt.path, mediaFiles.base.path])
 
     await expect(page.getByTitle(mediaFiles.base.name)).toBeVisible()
     await expect(page.getByTitle(mediaFiles.invalidTxt.name)).toBeHidden()
-    expect(alerts.some((message) => /unsupported media format/i.test(message))).toBe(true)
+    await expect(page.getByRole('alert')).toBeVisible()
+    await expect(page.getByRole('alert')).toContainText(/unsupported media format/i)
   })
 
   // -------------------------------------------------------------------------

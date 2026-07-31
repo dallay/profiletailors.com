@@ -29,12 +29,12 @@ const { label, items } = Astro.props
 ---
 
 <section class="px-6 pt-20 pb-24 max-w-4xl mx-auto">
-  <p
+  <h2
     data-animate-scroll
     class="font-mono text-xs tracking-[0.2em] text-text-muted mb-16"
   >
     {label}
-  </p>
+  </h2>
 
   <div class="flex flex-col gap-14">
     {items.map((feature, i) => (
@@ -47,9 +47,9 @@ const { label, items } = Astro.props
           {feature.tag}
         </p>
         <div>
-          <h2 class="font-display text-xl font-semibold text-text-display mb-3">
+          <h3 class="font-display text-xl font-semibold text-text-display mb-3">
             {feature.title}
-          </h2>
+          </h3>
           <p class="font-display text-base text-text-secondary leading-relaxed">
             {feature.desc}
           </p>

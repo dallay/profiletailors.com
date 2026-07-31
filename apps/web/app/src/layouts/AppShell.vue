@@ -184,10 +184,6 @@ async function selectChannel(accountId: string) {
   }
 }
 
-function onNavNavigate(to: string) {
-  router.push(to).catch((e) => console.error('Failed to navigate', e))
-}
-
 function selectWorkspace(ws: { workspaceId: string }) {
   workspace.setActiveWorkspaceId(ws.workspaceId)
 }
@@ -287,7 +283,6 @@ onBeforeUnmount(() => {
                 <SidebarNavSection
                   :groups="navigationGroups"
                   :total-queued-count="totalQueuedCount"
-                  @navigate="onNavNavigate"
                 />
               </SidebarMenuItem>
             </SidebarMenu>
