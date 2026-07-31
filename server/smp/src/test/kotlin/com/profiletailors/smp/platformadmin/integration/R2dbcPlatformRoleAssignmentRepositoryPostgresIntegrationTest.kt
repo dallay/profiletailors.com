@@ -104,15 +104,15 @@ class R2dbcPlatformRoleAssignmentRepositoryPostgresIntegrationTest : PostgresInt
 
     @Test
     fun `findActiveByPrincipalId returns only active assignments`() = runTest {
-        val active = PlatformRoleAssignment(
+        val revokedAssignment = PlatformRoleAssignment(
             id = PlatformRoleAssignmentId.generate(),
             principalId = principalId,
             role = PlatformRole.PLATFORM_OPERATOR,
             assignedAt = assignedAt,
             assignedBy = operatorId,
         )
-        roleRepository.save(active)
-        roleRepository.update(active.revoke(assignedAt.plusSeconds(60), operatorId))
+        roleRepository.save(revokedAssignment)
+        roleRepository.update(revokedAssignment.revoke(assignedAt.plusSeconds(60), operatorId))
 
         val result = roleRepository.findActiveByPrincipalId(principalId)
 
@@ -123,19 +123,19 @@ class R2dbcPlatformRoleAssignmentRepositoryPostgresIntegrationTest : PostgresInt
     @Test
     fun `findAllActive returns only active assignments across principals`() = runTest {
         val otherPrincipal = UUID.fromString("99999999-8888-7777-6666-555555555555")
-        val revoked = PlatformRoleAssignment(
+        val revokedAssignment = PlatformRoleAssignment(
             id = PlatformRoleAssignmentId.generate(),
             principalId = otherPrincipal,
             role = PlatformRole.PLATFORM_OPERATOR,
             assignedAt = assignedAt,
             assignedBy = operatorId,
         )
-        roleRepository.save(revoked)
-        roleRepository.update(revoked.revoke(assignedAt.plusSeconds(60), operatorId))
+        roleRepository.save(revokedAssignment)
+        roleRepository.update(revokedAssignment.revoke(assignedAt.plusSeconds(60), operatorId))
 
         val result = roleRepository.findAllActive()
 
-        assertTrue(result.none { it.id == revoked.id })
+        assertTrue(result.none { it.id == revokedAssignment.id })
         assertTrue(result.any { it.role == PlatformRole.SUPPORT_AGENT })
     }
 

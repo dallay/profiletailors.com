@@ -108,10 +108,16 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
         assertEquals(2, firstPage.items.size)
         assertEquals(3L, firstPage.totalElements)
         assertTrue(firstPage.hasNext)
+        val firstEmails = firstPage.items.mapNotNull { it.email }
+        assertEquals(firstEmails.sorted(), firstEmails)
 
-        val secondPage = userQuery.list(ListAdminUsersQuery(page = 1, size = 2))
+        val secondPage = userQuery.list(
+            ListAdminUsersQuery(page = 1, size = 2, sortField = "email", sortDirection = "asc"),
+        )
         assertEquals(1, secondPage.items.size)
         assertTrue(secondPage.hasPrevious)
+        val allEmails = firstPage.items.mapNotNull { it.email } + secondPage.items.mapNotNull { it.email }
+        assertEquals(allEmails.sorted(), allEmails)
     }
 
     @Test

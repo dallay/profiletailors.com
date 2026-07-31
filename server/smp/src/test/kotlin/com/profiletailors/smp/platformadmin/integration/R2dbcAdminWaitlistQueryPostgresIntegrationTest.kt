@@ -24,8 +24,11 @@ import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import java.sql.Timestamp
 import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.util.UUID
+import kotlin.test.assertFailsWith
 
 @AutoConfigureWebTestClient
 @SpringBootTest(
@@ -54,6 +57,8 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
     private val waitlistId = "waitlist-a"
     private val entryId = "entry-1"
     private val joinedAt: Instant = Instant.parse("2026-07-01T10:00:00Z")
+    private val invitationId: UUID = UUID.fromString("00000000-0000-0000-0000-0000000000a1")
+    private val operatorId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
 
     override suspend fun seedScenario() {
         databaseClient.sql(
@@ -63,7 +68,7 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
             """.trimIndent(),
         )
             .bind("id", waitlistId)
-            .bind("joinedAt", Timestamp.from(joinedAt))
+            .bind("joinedAt", OffsetDateTime.ofInstant(joinedAt, ZoneOffset.UTC))
             .fetch().rowsUpdated().awaitSingle()
 
         databaseClient.sql(
@@ -79,7 +84,7 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
         )
             .bind("id", entryId)
             .bind("waitlistId", waitlistId)
-            .bind("joinedAt", Timestamp.from(joinedAt))
+            .bind("joinedAt", OffsetDateTime.ofInstant(joinedAt, ZoneOffset.UTC))
             .fetch().rowsUpdated().awaitSingle()
 
         databaseClient.sql(
@@ -95,8 +100,25 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
         )
             .bind("id", "entry-2")
             .bind("waitlistId", waitlistId)
-            .bind("joinedAt", Timestamp.from(joinedAt.plusSeconds(3600)))
-            .bind("invitedAt", Timestamp.from(joinedAt.plusSeconds(7200)))
+            .bind("joinedAt", OffsetDateTime.ofInstant(joinedAt.plusSeconds(3600), ZoneOffset.UTC))
+            .bind("invitedAt", OffsetDateTime.ofInstant(joinedAt.plusSeconds(7200), ZoneOffset.UTC))
+            .fetch().rowsUpdated().awaitSingle()
+
+        databaseClient.sql(
+            """
+            INSERT INTO waitlist_invitations
+              (id, waitlist_entry_id, token_hash, status, issued_at, expires_at,
+               created_by, delivery_status, delivery_attempt_count, version)
+            VALUES
+              (:id, :entryId, 'hash-1', 'ACTIVE', :issuedAt, :expiresAt,
+               :operatorId, 'PENDING', 0, 0)
+            """.trimIndent(),
+        )
+            .bind("id", invitationId)
+            .bind("entryId", entryId)
+            .bind("issuedAt", OffsetDateTime.ofInstant(joinedAt.plusSeconds(3600), ZoneOffset.UTC))
+            .bind("expiresAt", OffsetDateTime.ofInstant(joinedAt.plusSeconds(604_800), ZoneOffset.UTC))
+            .bind("operatorId", operatorId)
             .fetch().rowsUpdated().awaitSingle()
     }
 
@@ -147,12 +169,9 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
 
     @Test
     fun `list rejects invalid page size`() = runTest {
-        val thrown = runCatching {
+        assertFailsWith<IllegalArgumentException> {
             adminWaitlistQuery.list(ListAdminWaitlistEntriesQuery(page = 0, size = 0))
-        }.exceptionOrNull()
-
-        assertNotNull(thrown)
-        assertTrue(thrown!!.message.orEmpty().contains("Page size"))
+        }
     }
 
     @Test
@@ -171,7 +190,12 @@ class R2dbcAdminWaitlistQueryPostgresIntegrationTest : PostgresIntegrationTestBa
         assertTrue(detail.marketingConsent)
         assertEquals("1", detail.consentVersion)
         assertEquals("marketing", detail.source)
-        assertTrue(detail.invitationHistory.isEmpty())
+        assertEquals(1, detail.invitationHistory.size)
+        assertEquals(invitationId, detail.invitationHistory.single().id)
+        assertEquals(entryId, detail.invitationHistory.single().waitlistEntryId)
+        assertEquals("ACTIVE", detail.invitationHistory.single().status)
+        assertEquals(joinedAt.plusSeconds(3600), detail.invitationHistory.single().issuedAt)
+        assertEquals("PENDING", detail.invitationHistory.single().deliveryStatus)
     }
 
     @Test

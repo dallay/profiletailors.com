@@ -79,7 +79,7 @@ class R2dbcAdminAuditRepository(private val databaseClient: DatabaseClient) :
         }
 
         val where = if (conditions.isEmpty()) "" else "WHERE ${conditions.joinToString(" AND ")}"
-        val offset = query.page * query.size
+        val offset = query.page.toLong() * query.size
 
         val countSql = "SELECT COUNT(*) FROM platform_admin_audit_events $where"
         val dataSql = """

@@ -48,6 +48,8 @@ class AdminUserControllerTest {
             .uri("/api/admin/users")
             .exchange()
             .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
     }
 
     @Test
@@ -108,6 +110,8 @@ class AdminUserControllerTest {
             .uri("/api/admin/users/$userId")
             .exchange()
             .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
     }
 
     @Test
@@ -134,6 +138,8 @@ class AdminUserControllerTest {
             .uri("/api/admin/users/$userId/workspaces")
             .exchange()
             .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
     }
 
     private fun webClient(principal: PrincipalContext? = operatorPrincipal()): WebTestClient = WebTestClient

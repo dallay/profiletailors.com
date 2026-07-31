@@ -8,6 +8,7 @@ import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.ports.AdminUserQuery
 import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.query.ListAdminUsersQuery
+import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
@@ -42,7 +43,7 @@ class AdminUserController(
     ): ResponseEntity<PagedResult<AdminUserSummary>> {
         val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         if (PlatformPermission.USERS_READ !in operatorRoles.effectivePermissions()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+            throw PlatformAccessDeniedException(PlatformPermission.USERS_READ)
         }
         val result = userQuery.list(
             ListAdminUsersQuery(
@@ -64,7 +65,7 @@ class AdminUserController(
     suspend fun getUser(@PathVariable principalId: String): ResponseEntity<AdminUserDetail> {
         val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         if (PlatformPermission.USERS_READ !in operatorRoles.effectivePermissions()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+            throw PlatformAccessDeniedException(PlatformPermission.USERS_READ)
         }
         val user = userQuery.findById(principalId) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(user)
@@ -76,7 +77,7 @@ class AdminUserController(
     ): ResponseEntity<List<AdminWorkspaceMembershipSummary>> {
         val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         if (PlatformPermission.USERS_WORKSPACES_READ !in operatorRoles.effectivePermissions()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+            throw PlatformAccessDeniedException(PlatformPermission.USERS_WORKSPACES_READ)
         }
         return ResponseEntity.ok(userQuery.findWorkspacesByPrincipalId(principalId))
     }

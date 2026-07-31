@@ -5,6 +5,7 @@ import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
+import com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitation
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationStatus
@@ -29,6 +30,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
+import kotlin.test.assertFailsWith
 
 @AutoConfigureWebTestClient
 @SpringBootTest(
@@ -178,6 +180,16 @@ class R2dbcWaitlistInvitationRepositoryPostgresIntegrationTest : PostgresIntegra
         assertEquals(WaitlistInvitationStatus.REVOKED, revoked.status)
         assertEquals(issuedAt.plusSeconds(60), revoked.revokedAt)
         assertEquals(operatorId, revoked.revokedBy)
+    }
+
+    @Test
+    fun `update with stale version throws version conflict`() = runTest {
+        val saved = invitationRepository.save(invitation())
+        invitationRepository.update(saved.revoke(issuedAt.plusSeconds(60), operatorId))
+
+        assertFailsWith<InvitationVersionConflictException> {
+            invitationRepository.update(saved)
+        }
     }
 
     @Test

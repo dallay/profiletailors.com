@@ -62,7 +62,7 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
         val where = if (conditions.isEmpty()) "" else "WHERE ${conditions.joinToString(" AND ")}"
         val orderCol = ALLOWED_SORT_FIELDS[query.sortField] ?: "we.joined_at"
         val orderDir = if (query.sortDirection.uppercase() == "ASC") "ASC" else "DESC"
-        val offset = query.page * query.size
+        val offset = query.page.toLong() * query.size
 
         val countSql = "SELECT COUNT(*) FROM waitlist_entries we JOIN waitlists w ON w.id = we.waitlist_id $where"
         val dataSql = """

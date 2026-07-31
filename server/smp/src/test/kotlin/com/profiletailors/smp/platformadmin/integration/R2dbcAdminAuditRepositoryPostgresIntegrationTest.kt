@@ -15,7 +15,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -30,6 +29,7 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.util.UUID
+import kotlin.test.assertFailsWith
 
 @AutoConfigureWebTestClient
 @SpringBootTest(
@@ -177,12 +177,9 @@ class R2dbcAdminAuditRepositoryPostgresIntegrationTest : PostgresIntegrationTest
 
     @Test
     fun `list rejects invalid page size`() = runTest {
-        val thrown = runCatching {
+        assertFailsWith<IllegalArgumentException> {
             adminAuditQuery.list(ListAdminAuditEventsQuery(page = 0, size = 0))
-        }.exceptionOrNull()
-
-        assertNotNull(thrown)
-        assertTrue(thrown!!.message.orEmpty().contains("Page size"))
+        }
     }
 
     companion object {

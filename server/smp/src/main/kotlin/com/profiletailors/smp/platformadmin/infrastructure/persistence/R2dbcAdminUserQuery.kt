@@ -24,6 +24,8 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
         val params = mutableMapOf<String, Any?>()
 
         query.status?.let {
+            // HTTP `status` param maps to principal_type: principals have no lifecycle status today,
+            // so the only meaningful discriminator is their type. See AdminUserController#listUsers.
             conditions += "p.principal_type = :status"
             params["status"] = it
         }
@@ -43,7 +45,7 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
         val where = if (conditions.isEmpty()) "" else "WHERE ${conditions.joinToString(" AND ")}"
         val orderCol = ALLOWED_SORT_FIELDS[query.sortField] ?: "p.created_at"
         val orderDir = if (query.sortDirection.uppercase() == "ASC") "ASC" else "DESC"
-        val offset = query.page * query.size
+        val offset = query.page.toLong() * query.size
 
         val countSql = "SELECT COUNT(*) FROM principals p LEFT JOIN user_identities ui ON ui.principal_id = p.id $where"
         val dataSql = """
@@ -96,7 +98,7 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
 
     private fun Readable.toSummary() = AdminUserSummary(
         principalId = requireNotNull(get("id", String::class.java)),
-        email = requireNotNull(get("email", String::class.java)),
+        email = get("email", String::class.java),
         displayIdentity = get("display_identity", String::class.java),
         principalType = requireNotNull(get("principal_type", String::class.java)),
         createdAt = requireNotNull(get("created_at", OffsetDateTime::class.java)).toInstant(),
@@ -108,7 +110,7 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
 
     private fun Readable.toDetail() = AdminUserDetail(
         principalId = requireNotNull(get("id", String::class.java)),
-        email = requireNotNull(get("email", String::class.java)),
+        email = get("email", String::class.java),
         displayIdentity = get("display_identity", String::class.java),
         principalType = requireNotNull(get("principal_type", String::class.java)),
         createdAt = requireNotNull(get("created_at", OffsetDateTime::class.java)).toInstant(),

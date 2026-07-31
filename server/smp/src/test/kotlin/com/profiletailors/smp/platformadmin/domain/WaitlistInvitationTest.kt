@@ -97,4 +97,10 @@ class WaitlistInvitationTest {
         val revoked = activeInvitation().revoke(now, operatorId)
         assertThrows<InvitationNotAcceptableException> { revoked.accept(now) }
     }
+
+    @Test
+    fun `accepting expired invitation throws`() {
+        val expired = activeInvitation()
+        assertThrows<InvitationNotAcceptableException> { expired.accept(expired.expiresAt.plusSeconds(1)) }
+    }
 }
