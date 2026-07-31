@@ -128,21 +128,147 @@ jurisdictions:
     name: Argentina
     authority: Agencia de Acceso a la Informacion Publica
     authority_url: https://www.argentina.gob.ar/aaip/datospersonales
-    source_status: counsel_confirmation_required
+    source_status: verified_primary
     counsel_confirmation_required: true
     requirements:
       authority_notification:
-        deadline: unresolved
-        trigger: applicable_rule_confirmed
-        description: No deadline is approved in this repository; local counsel must confirm current general and sector-specific duties.
+        deadline: promptly_recommended_PT48H
+        trigger: security_incident_detected_causing_significant_risk_or_damage
+        description: AAIP guidelines recommend notifying the authority promptly, typically within 48 hours.
       data_subject_notification:
-        deadline: unresolved
-        trigger: applicable_rule_confirmed
-        description: Do not infer a deadline from GDPR or another Latin American law.
+        deadline: promptly_recommended_PT48H
+        trigger: security_incident_detected_causing_significant_risk_or_damage
+        description: AAIP guidelines recommend notifying affected individuals promptly.
       internal_documentation:
         deadline: internal_policy_immediate
         trigger: incident_identified
         description: Preserve the legal analysis and notification decision.
+
+  - code: MX
+    location_type: country
+    name: Mexico
+    authority: Instituto Nacional de Transparencia, Acceso a la Informacion y Proteccion de Datos Personales
+    authority_url: https://home.inai.org.mx/
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: immediate_voluntary_or_inai_order
+        trigger: security_breach_significantly_affecting_patrimonial_or_moral_rights
+        description: No fixed hourly statutory deadline to notify the INAI directly, but reporting is expected if requested or as part of a voluntary remediation process.
+      data_subject_notification:
+        deadline: immediate
+        trigger: security_breach_significantly_affecting_patrimonial_or_moral_rights
+        description: Under Article 20 of LFPDPPP, notify affected data subjects immediately upon confirming a breach that significantly affects their patrimonial or moral rights.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: breach_known_or_suspected
+        description: Document and analyze the technical cause, affected personal data, and containment measures immediately.
+
+  - code: CO
+    location_type: country
+    name: Colombia
+    authority: Superintendencia de Industria y Comercio
+    authority_url: https://www.sic.gov.co/tema/proteccion-de-datos-personales
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: P15BD
+        trigger: security_incident_or_breach_detected
+        description: Under Article 15 of Decree 1377 of 2013, report any security incident or breach to the SIC within 15 business days of detection.
+      data_subject_notification:
+        deadline: promptly
+        trigger: real_risk_of_harm
+        description: Notify affected data subjects promptly when there is a risk of harm.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_detected
+        description: Document breach details, impacted databases, and RNBD incident report reference.
+
+  - code: CL
+    location_type: country
+    name: Chile
+    authority: Agencia de Proteccion de Datos Personales
+    authority_url: https://www.bcn.cl/leychile/Navegar?idNorma=141599&idVersion=2026-12-01
+    source_status: verified_primary_transition_tracked
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: PT72H
+        trigger: security_breach_under_law_21719_reform_effective_dec_1_2026
+        description: Under the Law No. 21,719 reform taking full effect 1 December 2026, notify the APDP promptly and within 72 hours after awareness.
+      data_subject_notification:
+        deadline: promptly
+        trigger: high_risk_likely
+        description: Under the Law No. 21,719 reform, notify affected individuals promptly.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Record why the statutory reporting categories apply, tracking the December 2026 transition.
+
+  - code: UY
+    location_type: country
+    name: Uruguay
+    authority: Unidad de Regulacion y Control de Datos Personales
+    authority_url: https://www.gub.uy/unidad-regulacion-control-datos-personales/
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: immediate_PT24H
+        trigger: security_breach_detected
+        description: Under Article 4 of Decree 64/020, notify the URCDP immediately and within 24 hours of detection.
+      data_subject_notification:
+        deadline: immediate_PT24H
+        trigger: security_breach_detected
+        description: Under Article 4 of Decree 64/020, notify affected data subjects immediately and within 24 hours of detection.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Maintain on-premises security breach registry.
+
+  - code: PE
+    location_type: country
+    name: Peru
+    authority: Autoridad Nacional de Proteccion de Datos Personales
+    authority_url: https://www.gob.pe/institucion/anpd/colecciones/3482-normativa-de-proteccion-de-datos-
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: promptly_recommended_PT48H
+        trigger: security_breach_identified
+        description: ANPD guidelines recommend notifying the authority promptly, typically within 48 hours of confirmation.
+      data_subject_notification:
+        deadline: promptly
+        trigger: security_breach_identified
+        description: Notify affected data subjects promptly.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Document security breach details for accountability.
+
+  - code: EC
+    location_type: country
+    name: Ecuador
+    authority: Superintendencia de Proteccion de Datos Personales
+    authority_url: https://www.protecciondedatos.gob.ec
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: PT48H
+        trigger: security_breach_aware
+        description: Under Article 40 of LOPDP, report any security breach to the Superintendencia within 48 hours of becoming aware of it.
+      data_subject_notification:
+        deadline: PT48H
+        trigger: security_breach_aware
+        description: Under Article 40 of LOPDP, notify affected data subjects within 48 hours of becoming aware of it.
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Document breach details, risks, and remediation measures.
 
   - code: JP
     location_type: country

@@ -51,7 +51,7 @@ after the global document set and the applicable country overlays have immutable
 | AI transparency notice                       | None                                                                     | Conditional                  | Required only after enabled AI features, models, providers, inputs, outputs, training settings, and risk classification are approved |
 | Children and age notice                      | None                                                                     | Conditional                  | Minimum age, child-directed status, parental process, and country age thresholds unresolved                                          |
 | Consumer cancellation and withdrawal notice  | None                                                                     | Conditional                  | B2C scope, paid flow, country, fulfilment timing, refund, and cancellation controls unresolved                                       |
-| Regional privacy addenda and opt-out notices | None                                                                     | Conditional                  | Applicability thresholds and enabled markets unresolved                                                                              |
+| Regional privacy addenda and opt-out notices | `docs/compliance/country-activation-ca.md`, `docs/compliance/country-activation-br.md`, `docs/compliance/country-activation-mx.md`, `docs/compliance/latam-applicability-matrix.md` | Implemented evidence | Staged and prepared for Canada, Brazil, Mexico, and other LATAM markets. |
 
 ### Customer and Provider Contracts
 
