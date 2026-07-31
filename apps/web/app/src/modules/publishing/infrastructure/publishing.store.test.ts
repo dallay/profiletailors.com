@@ -201,10 +201,13 @@ describe('publishing store', () => {
         timezone: 'UTC',
       })
 
-      expect(apiFetch).toHaveBeenCalledWith('/api/v1/workspaces/workspace-1/recurring', expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('"templatePostId":"pub-1"'),
-      }))
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/v1/workspaces/workspace-1/recurring',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"templatePostId":"pub-1"'),
+        }),
+      )
       expect(store.recurringSchedules).toEqual([schedule])
     })
 
@@ -213,18 +216,32 @@ describe('publishing store', () => {
       const auth = useAuthStore()
       const workspace = useWorkspaceStore()
       workspace.setActiveWorkspaceId('workspace-1')
-      store.recurringSchedules = [{
-        id: 'recur-1', workspaceId: 'workspace-1', createdBy: 'principal-1', templatePostId: 'pub-1',
-        frequency: 'daily', interval: 1, daysOfWeek: [], dayOfMonth: null, endDate: null,
-        maxOccurrences: null, timezone: 'UTC', nextScheduledAt: null, status: 'ACTIVE',
-        createdAt: null, updatedAt: null,
-      }]
+      store.recurringSchedules = [
+        {
+          id: 'recur-1',
+          workspaceId: 'workspace-1',
+          createdBy: 'principal-1',
+          templatePostId: 'pub-1',
+          frequency: 'daily',
+          interval: 1,
+          daysOfWeek: [],
+          dayOfMonth: null,
+          endDate: null,
+          maxOccurrences: null,
+          timezone: 'UTC',
+          nextScheduledAt: null,
+          status: 'ACTIVE',
+          createdAt: null,
+          updatedAt: null,
+        },
+      ]
       const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue(undefined as never)
 
       await store.cancelRecurringSchedule('recur-1')
 
       expect(apiFetch).toHaveBeenCalledWith('/api/v1/workspaces/workspace-1/recurring/recur-1', {
-        method: 'DELETE', workspaceScoped: true,
+        method: 'DELETE',
+        workspaceScoped: true,
       })
       expect(store.recurringSchedules[0]?.status).toBe('CANCELLED')
     })

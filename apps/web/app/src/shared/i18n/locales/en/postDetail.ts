@@ -121,6 +121,14 @@ export default {
       weekdayRequired: 'Choose at least one weekday.',
       saveFailed: 'Could not save the recurring schedule.',
     },
-    days: { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' },
+    days: {
+      monday: 'Mon',
+      tuesday: 'Tue',
+      wednesday: 'Wed',
+      thursday: 'Thu',
+      friday: 'Fri',
+      saturday: 'Sat',
+      sunday: 'Sun',
+    },
   },
 }

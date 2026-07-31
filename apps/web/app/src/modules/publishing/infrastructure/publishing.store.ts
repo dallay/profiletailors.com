@@ -604,7 +604,8 @@ export const usePublishingStore = defineStore('publishing', () => {
       recurringSchedules.value = data.schedules
       return data.schedules
     } catch (error) {
-      recurringSchedulesError.value = error instanceof Error ? error.message : 'Unable to load recurring schedules.'
+      recurringSchedulesError.value =
+        error instanceof Error ? error.message : 'Unable to load recurring schedules.'
       throw error
     } finally {
       recurringSchedulesLoading.value = false
@@ -628,11 +629,14 @@ export const usePublishingStore = defineStore('publishing', () => {
     id: string,
     input: RecurringScheduleUpdate,
   ): Promise<RecurringSchedule> {
-    const data = await auth.apiFetch<RecurringSchedule>(`${recurringPath()}/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      body: JSON.stringify(input),
-      workspaceScoped: true,
-    })
+    const data = await auth.apiFetch<RecurringSchedule>(
+      `${recurringPath()}/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+        workspaceScoped: true,
+      },
+    )
     const index = recurringSchedules.value.findIndex((schedule) => schedule.id === id)
     if (index >= 0) recurringSchedules.value[index] = data
     return data

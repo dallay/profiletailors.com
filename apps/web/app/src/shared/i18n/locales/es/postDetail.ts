@@ -121,6 +121,14 @@ export default {
       weekdayRequired: 'Elige al menos un día.',
       saveFailed: 'No se pudo guardar la programación recurrente.',
     },
-    days: { monday: 'Lun', tuesday: 'Mar', wednesday: 'Mié', thursday: 'Jue', friday: 'Vie', saturday: 'Sáb', sunday: 'Dom' },
+    days: {
+      monday: 'Lun',
+      tuesday: 'Mar',
+      wednesday: 'Mié',
+      thursday: 'Jue',
+      friday: 'Vie',
+      saturday: 'Sáb',
+      sunday: 'Dom',
+    },
   },
 }

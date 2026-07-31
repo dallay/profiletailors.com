@@ -123,8 +123,9 @@ async function save(): Promise<void> {
 
 <template>
   <Teleport to="body">
-    <div v-if="isOpen" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" @click.self="emit('close')">
-      <dialog ref="container" open class="m-0 w-full max-w-xl rounded-2xl border border-border-subtle bg-bg-surface p-0 text-text-body shadow-2xl" aria-modal="true" aria-labelledby="recurring-title">
+    <div v-if="isOpen" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4">
+      <button type="button" class="absolute inset-0 cursor-default" :aria-label="t('common.close')" @click="emit('close')" />
+      <dialog ref="container" open class="relative m-0 w-full max-w-xl rounded-2xl border border-border-subtle bg-bg-surface p-0 text-text-body shadow-2xl" aria-modal="true" aria-labelledby="recurring-title">
         <form class="space-y-5 p-6" @submit.prevent="save">
           <header>
             <h2 id="recurring-title" class="font-mono text-sm font-bold uppercase tracking-widest text-text-display">
