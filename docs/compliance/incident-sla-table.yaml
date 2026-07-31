@@ -79,6 +79,69 @@ jurisdictions:
         description: Record the statutory data-definition and encryption analysis.
     notes: Other state, federal, contractual, and sector rules may impose earlier or additional duties.
 
+  - code: US-VA
+    location_type: subdivision
+    name: Virginia, United States
+    authority: Virginia Attorney General
+    authority_url: https://www.oag.state.va.us/
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: without_unreasonable_delay
+        trigger: virginia_breach_statute_applies
+        description: Notify the Attorney General without unreasonable delay.
+      data_subject_notification:
+        deadline: without_unreasonable_delay
+        trigger: virginia_breach_statute_applies
+        description: Notify affected consumers without unreasonable delay (Va. Code § 18.2-186.6).
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Record data classification, risk of identity theft, and harm analysis.
+
+  - code: US-CO
+    location_type: subdivision
+    name: Colorado, United States
+    authority: Colorado Attorney General
+    authority_url: https://coag.gov/
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: P30D
+        trigger: notice_to_more_than_500_colorado_residents
+        description: Notify the Attorney General within 30 days when more than 500 Colorado residents are affected.
+      data_subject_notification:
+        deadline: P30D
+        trigger: colorado_breach_statute_applies
+        description: Notify affected Colorado residents within 30 days after determination of breach (Colo. Rev. Stat. § 6-1-716).
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Record investigation, security analysis, and notifications sent.
+
+  - code: US-TX
+    location_type: subdivision
+    name: Texas, United States
+    authority: Texas Attorney General
+    authority_url: https://www.texasattorneygeneral.gov/
+    source_status: verified_primary
+    counsel_confirmation_required: true
+    requirements:
+      authority_notification:
+        deadline: P14D
+        trigger: notice_to_more_than_250_texas_residents
+        description: Notify the Attorney General electronically within 14 days when more than 250 Texas residents are affected.
+      data_subject_notification:
+        deadline: P60D
+        trigger: texas_breach_statute_applies
+        description: Notify affected Texas residents within 60 days after determination of breach (Tex. Bus. & Com. Code § 521.053).
+      internal_documentation:
+        deadline: internal_policy_immediate
+        trigger: incident_identified
+        description: Record the scope of affected residents and remediation actions.
+
   - code: CA
     location_type: country
     name: Canada
