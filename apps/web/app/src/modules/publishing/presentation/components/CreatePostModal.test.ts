@@ -44,6 +44,9 @@ const translations: Record<string, string> = {
     'Too many attachments for the strictest channel ({current}/{max}). Remove attachments to publish or schedule.',
   'composer.media.limitInfinite': '∞',
   'composer.media.removeAttachment': 'Remove attachment {name}',
+  'composer.media.unsupportedFormat':
+    'Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.',
+  'composer.media.fileSizeExceeded': 'File size exceeds 10MB limit.',
 }
 
 const mockT = (key: string, params?: Record<string, string | number>): string => {

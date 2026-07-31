@@ -61,7 +61,8 @@ export default {
       'Demasiados adjuntos para el canal más restrictivo ({current}/{max}). Elimina adjuntos para publicar o programar.',
     limitInfinite: '∞',
     removeAttachment: 'Eliminar adjunto {name}',
-    unsupportedFormat: 'Formato de medio no soportado. Formatos soportados: JPEG, PNG, WEBP, GIF, MP4.',
+    unsupportedFormat:
+      'Formato de medio no soportado. Formatos soportados: JPEG, PNG, WEBP, GIF, MP4.',
     fileSizeExceeded: 'El tamaño del archivo excede el límite de 10MB.',
   },
   picker: {
