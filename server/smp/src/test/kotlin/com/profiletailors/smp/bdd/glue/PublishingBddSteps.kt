@@ -34,6 +34,7 @@ class PublishingBddSteps {
     private var currentSocialConnectionId: String? = null
     private var currentSocialAccountId: String? = null
     private var currentPublicationId: String? = null
+    private var currentRecurringScheduleId: String? = null
     private val objectMapper: ObjectMapper = jacksonObjectMapper()
 
     @Before
@@ -43,6 +44,7 @@ class PublishingBddSteps {
         currentSocialConnectionId = null
         currentSocialAccountId = null
         currentPublicationId = null
+        currentRecurringScheduleId = null
         providerCatalogPolicyControl.reset()
     }
 
@@ -252,6 +254,89 @@ class PublishingBddSteps {
             .expectBody()
             .returnResult()
     }
+
+    @When("the client creates a daily recurring schedule")
+    fun whenClientCreatesDailyRecurringSchedule() {
+        val templatePostId = requireNotNull(currentPublicationId)
+        val now = java.time.Instant.now()
+        val startsAt = now.plus(java.time.Duration.ofHours(1))
+        val endDate = java.time.LocalDate.now().plusDays(3)
+        val body = objectMapper.writeValueAsString(
+            mapOf(
+                "templatePostId" to templatePostId,
+                "frequency" to "daily",
+                "interval" to 1,
+                "startsAt" to startsAt.toString(),
+                "endDate" to endDate.toString(),
+                "timezone" to "UTC",
+            ),
+        )
+        latestPublishingResponse = webTestClient.post()
+            .uri(bddDatabaseSupport.recurringSchedulesPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(body)
+            .exchange()
+            .expectBody()
+            .returnResult()
+        currentRecurringScheduleId = extractJsonString("id")
+    }
+
+    @When("the client pauses the recurring schedule")
+    fun whenClientPausesRecurringSchedule() {
+        val scheduleId = requireNotNull(currentRecurringScheduleId)
+        val body = objectMapper.writeValueAsString(mapOf("status" to "paused"))
+        latestPublishingResponse = webTestClient.patch()
+            .uri("${bddDatabaseSupport.recurringSchedulesPath()}/$scheduleId")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(body)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client lists recurring schedules")
+    fun whenClientListsRecurringSchedules() {
+        latestPublishingResponse = webTestClient.get()
+            .uri(bddDatabaseSupport.recurringSchedulesPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @Then("the recurring response should contain a schedule id")
+    fun thenRecurringResponseShouldContainScheduleId() {
+        assertNotNull(currentRecurringScheduleId)
+        assertTrue(publishingResponseBodyText().contains("\"id\":"))
+    }
+
+    @Then("the recurring response status should be {string}")
+    fun thenRecurringResponseStatusShouldBe(status: String) {
+        val actualStatus: String = parseRecurringResponseStatus()
+        assertEquals(status.uppercase(), actualStatus)
+    }
+
+    private fun parseRecurringResponseStatus(): String {
+        val body = publishingResponseBodyText()
+        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val status = when (val schedules = map["schedules"]) {
+            is List<*> -> schedules.firstOrNull()?.let { (it as? Map<*, *>)?.get("status") }
+            else -> map["status"]
+        }
+        return requireNotNull(status as? String) { "Field 'status' is null in response: $body" }
+    }
+
+    @Then("at least {int} recurring publications should be scheduled")
+    fun thenAtLeastRecurringPublicationsShouldBeScheduled(expected: Int) = runBlocking {
+        assertTrue(bddDatabaseSupport.countScheduledPublications() >= expected)
+    }
+
+    private fun extractJsonString(field: String): String? = parsePublishingResponseField<String?>(field)
 
     @When("the client lists connected channels")
     fun whenClientListsConnectedChannels() {

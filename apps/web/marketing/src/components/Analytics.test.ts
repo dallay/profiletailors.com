@@ -3,6 +3,12 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 
+declare global {
+  interface Window {
+    __PT_CONSENT_ANALYTICS?: boolean
+  }
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /**
@@ -23,18 +29,16 @@ function runAnalyticsScript(ahrefsAnalyticsKey: string | undefined): void {
   new Function('AHREFS_ANALYTICS_KEY', match[1])(ahrefsAnalyticsKey)
 }
 
-const ANALYTICS_FLAG = '__PT_CONSENT_ANALYTICS'
 const AHREFS_URL = 'https://analytics.ahrefs.com/analytics.js'
 
 describe('Analytics conditional loader', () => {
   beforeEach(() => {
     document.head.innerHTML = ''
-    // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only globals
-    delete (window as any)[ANALYTICS_FLAG]
+    delete window.__PT_CONSENT_ANALYTICS
   })
 
   it('injects the Ahrefs script into <head> when analytics consent is granted and a key is configured', () => {
-    ;(window as any)[ANALYTICS_FLAG] = true
+    window.__PT_CONSENT_ANALYTICS = true
 
     runAnalyticsScript('test-key-123')
 
@@ -48,7 +52,7 @@ describe('Analytics conditional loader', () => {
   })
 
   it('does not inject the Ahrefs script when analytics consent is not granted', () => {
-    ;(window as any)[ANALYTICS_FLAG] = false
+    window.__PT_CONSENT_ANALYTICS = false
 
     runAnalyticsScript('test-key-123')
 
@@ -62,7 +66,7 @@ describe('Analytics conditional loader', () => {
   })
 
   it('does not inject the Ahrefs script when no analytics key is configured, even with consent', () => {
-    ;(window as any)[ANALYTICS_FLAG] = true
+    window.__PT_CONSENT_ANALYTICS = true
 
     runAnalyticsScript(undefined)
 
@@ -70,7 +74,7 @@ describe('Analytics conditional loader', () => {
   })
 
   it('does not inject the Ahrefs script when the analytics key is an empty string', () => {
-    ;(window as any)[ANALYTICS_FLAG] = true
+    window.__PT_CONSENT_ANALYTICS = true
 
     runAnalyticsScript('')
 

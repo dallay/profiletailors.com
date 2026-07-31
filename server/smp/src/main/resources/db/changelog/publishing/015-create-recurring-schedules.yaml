@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-015-create-recurring-schedules
+      author: profiletailors
+      changes:
+        - createTable:
+            tableName: recurring_schedules
+            columns:
+              - column: { name: id, type: varchar(64), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: workspace_id, type: varchar(64), constraints: { nullable: false, foreignKeyName: fk_recurring_workspace, references: workspaces(id) } }
+              - column: { name: created_by, type: varchar(64), constraints: { nullable: false, foreignKeyName: fk_recurring_creator, references: principals(id) } }
+              - column: { name: template_post_id, type: varchar(64), constraints: { nullable: false, foreignKeyName: fk_recurring_template, references: publications(id) } }
+              - column: { name: frequency, type: varchar(16), constraints: { nullable: false } }
+              - column: { name: recurrence_interval, type: int, constraints: { nullable: false } }
+              - column: { name: days_of_week, type: varchar(64) }
+              - column: { name: day_of_month, type: int }
+              - column: { name: end_date, type: date }
+              - column: { name: max_occurrences, type: int }
+              - column: { name: timezone, type: varchar(64), defaultValue: UTC, constraints: { nullable: false } }
+              - column: { name: next_scheduled_at, type: timestamp with time zone }
+              - column: { name: status, type: varchar(16), constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamp with time zone, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, defaultValueComputed: CURRENT_TIMESTAMP, constraints: { nullable: false } }
+        - createIndex:
+            tableName: recurring_schedules
+            indexName: idx_recurring_workspace_status_next
+            columns:
+              - column: { name: workspace_id }
+              - column: { name: status }
+              - column: { name: next_scheduled_at }
