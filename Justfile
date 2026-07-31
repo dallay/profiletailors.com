@@ -64,6 +64,7 @@ set positional-arguments := true
 # ——— Paths ———————————————————————————————————————————————————
 frontend-dir   := "apps/web/marketing"
 app-dir        := "apps/web/app"
+admin-dir      := "apps/web/admin"
 # Auto-detect Gradle wrapper: `gradlew.bat` on Windows (CMD/PowerShell), `./gradlew` otherwise
 gradle-root    := `if [ -n "${COMSPEC:-}" ] && [ -z "${MSYSTEM:-}" ]; then echo "gradlew.bat"; else echo "./gradlew"; fi`
 docker-compose := "docker compose"
@@ -122,6 +123,10 @@ dev-frontend $force="":
 app:
     cd {{app-dir}} && pnpm dev
 
+# Start the platform admin SPA
+admin:
+    cd {{admin-dir}} && pnpm dev
+
 # Build frontend for production
 frontend-build:
     cd {{frontend-dir}} && pnpm build
@@ -129,6 +134,10 @@ frontend-build:
 # Build the dashboard SPA for production
 app-build:
     cd {{app-dir}} && pnpm build
+
+# Build the platform admin SPA for production
+admin-build:
+    cd {{admin-dir}} && pnpm build
 
 # Build the dashboard SPA against a deployed API
 release-dashboard-build api_base_url:
@@ -153,6 +162,14 @@ frontend-check:
 # Run frontend unit tests (Vitest)
 frontend-test:
     cd {{frontend-dir}} && pnpm test
+
+# Run platform admin unit tests (Vitest)
+admin-test:
+    cd {{admin-dir}} && pnpm test:run
+
+# Run platform admin type check
+admin-check:
+    cd {{admin-dir}} && pnpm type-check
 
 # Run frontend unit tests with coverage (--coverage)
 frontend-test-cov *flags="":
@@ -450,6 +467,15 @@ ci-local:
     @echo "▸ App: production build..."
     cd {{app-dir}} && pnpm build
     @echo ""
+    @echo "▸ Admin: Biome lint..."
+    cd {{admin-dir}} && pnpm lint
+    @echo ""
+    @echo "▸ Admin: unit tests..."
+    cd {{admin-dir}} && pnpm test:run
+    @echo ""
+    @echo "▸ Admin: production build..."
+    cd {{admin-dir}} && pnpm build
+    @echo ""
     @echo "▸ Frontend: unit tests + coverage..."
     cd {{frontend-dir}} && pnpm test:coverage
     @echo ""
@@ -504,6 +530,11 @@ ci:
     cd {{app-dir}} && pnpm lint
     cd {{app-dir}} && pnpm test:run
     cd {{app-dir}} && pnpm build
+    @echo ""
+    @echo "▸ [3b/8] Admin: Biome lint + unit tests..."
+    cd {{admin-dir}} && pnpm lint
+    cd {{admin-dir}} && pnpm test:run
+    cd {{admin-dir}} && pnpm build
     @echo ""
     @echo "▸ [4/8] Frontend: unit tests + coverage..."
     cd {{frontend-dir}} && pnpm test:coverage

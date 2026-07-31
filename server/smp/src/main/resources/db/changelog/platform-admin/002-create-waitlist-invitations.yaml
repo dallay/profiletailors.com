@@ -1,0 +1,92 @@
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-002-create-waitlist-invitations
+      author: platform-admin
+      changes:
+        - createTable:
+            tableName: waitlist_invitations
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: waitlist_entry_id
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_waitlist_invitations_entry
+                    references: waitlist_entries(id)
+                    deleteCascade: false
+              - column:
+                  name: token_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_waitlist_invitations_token_hash
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: issued_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: accepted_at
+                  type: timestamp with time zone
+              - column:
+                  name: revoked_at
+                  type: timestamp with time zone
+              - column:
+                  name: revoked_by
+                  type: uuid
+              - column:
+                  name: created_by
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: delivery_status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_delivery_attempt_at
+                  type: timestamp with time zone
+              - column:
+                  name: delivery_attempt_count
+                  type: integer
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: waitlist_invitations
+            indexName: idx_waitlist_invitations_entry_status
+            columns:
+              - column:
+                  name: waitlist_entry_id
+              - column:
+                  name: status
+        - sql:
+            sql: >
+              CREATE UNIQUE INDEX uq_waitlist_invitations_one_active
+              ON waitlist_invitations (waitlist_entry_id)
+              WHERE status = 'ACTIVE';
+            comment: Enforce at most one active invitation per waitlist entry at the database level
