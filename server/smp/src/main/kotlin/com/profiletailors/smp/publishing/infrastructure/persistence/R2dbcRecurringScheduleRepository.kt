@@ -89,7 +89,7 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
         spec: DatabaseClient.GenericExecuteSpec,
         name: String,
         value: T?,
-        type: Class<T>,
+        type: Class<*>,
     ): DatabaseClient.GenericExecuteSpec = value?.let { spec.bind(name, it) } ?: spec.bindNull(name, type)
 
     private fun query(where: String, params: Map<String, Any>): Flux<RecurringSchedule> {
@@ -107,7 +107,7 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
                 templatePostId = requireNotNull(row.get("template_post_id", String::class.java)),
                 recurrenceRule = RecurrenceRule(
                     frequency = RecurrenceFrequency.valueOf(requireNotNull(row.get("frequency", String::class.java))),
-                    interval = requireNotNull(row.get("recurrence_interval", java.lang.Integer::class.java)),
+                    interval = requireNotNull(row.get("recurrence_interval", java.lang.Integer::class.java)).toInt(),
                     daysOfWeek = row.get("days_of_week", String::class.java).orEmpty().split(",").filter {
                         it.isNotBlank()
                     }.map { it.toInt() }.toSet(),
