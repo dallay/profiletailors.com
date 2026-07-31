@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Plus,
   Trash2,
 } from '@lucide/vue'
-import { usePublishingStore, type Publication, type ActivityEntry, type RecurringSchedule } from '@modules/publishing/infrastructure/publishing.store'
+import { usePublishingStore, type Publication, type ActivityEntry } from '@modules/publishing/infrastructure/publishing.store'
 import { useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
 import CreatePostModal from '@modules/publishing/presentation/components/CreatePostModal.vue'
 import PostDetailModal from '@modules/publishing/presentation/components/PostDetailModal.vue'
-import RecurringScheduleModal from '@modules/publishing/presentation/components/RecurringScheduleModal.vue'
 import CalendarHeader from '@modules/publishing/presentation/components/CalendarHeader.vue'
 import CalendarCell from '@modules/publishing/presentation/components/CalendarCell.vue'
 import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
@@ -41,36 +40,6 @@ const currentBaseDate = computed(() => {
 const isModalOpen = ref(false)
 const selectedCellDate = ref<string | undefined>(undefined)
 const editingPublication = ref<Publication | null>(null)
-const editingRecurringSchedule = ref<RecurringSchedule | null>(null)
-const recurringPublication = ref<Publication | null>(null)
-
-onMounted(() => {
-  publishingStore.fetchRecurringSchedules().catch(() => undefined)
-})
-
-async function toggleRecurringSchedule(schedule: RecurringSchedule): Promise<void> {
-  try {
-    await publishingStore.updateRecurringSchedule(schedule.id, {
-      status: schedule.status === 'PAUSED' ? 'ACTIVE' : 'PAUSED',
-    })
-  } catch (err: unknown) {
-    console.error('Failed to toggle recurring schedule', err)
-  }
-}
-
-async function cancelRecurringSchedule(schedule: RecurringSchedule): Promise<void> {
-  try {
-    await publishingStore.cancelRecurringSchedule(schedule.id)
-  } catch (err: unknown) {
-    console.error('Failed to cancel recurring schedule', err)
-  }
-}
-
-function openRecurringEditor(schedule: RecurringSchedule): void {
-  const publication = publishingStore.publications.find((item) => item.id === schedule.templatePostId)
-  recurringPublication.value = publication ?? null
-  editingRecurringSchedule.value = schedule
-}
 
 
 const dragData = ref<{ id: string; previousScheduledAt: string } | null>(null)
@@ -588,24 +557,6 @@ watch(
       </Button>
     </div>
 
-    <Card v-if="publishingStore.recurringSchedules.length" class="shrink-0 border border-border-subtle bg-bg-surface p-4">
-      <div class="mb-3 flex items-center justify-between">
-        <h2 class="font-mono text-xs font-bold uppercase tracking-widest text-text-display">{{ t('scheduler.recurringSchedules') }}</h2>
-        <span class="text-[10px] text-text-secondary">{{ publishingStore.recurringSchedules.length }}</span>
-      </div>
-      <div class="grid gap-2 md:grid-cols-2">
-        <div v-for="schedule in publishingStore.recurringSchedules" :key="schedule.id" class="flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-primary/30 px-3 py-2">
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-xs font-semibold text-text-display">{{ t(`postDetail.recurring.${schedule.frequency}`) }} · {{ schedule.interval }}</p>
-            <p class="text-[10px] text-text-secondary">{{ t(`scheduler.status.${schedule.status.toLowerCase()}`) }} · {{ schedule.nextScheduledAt ? new Date(schedule.nextScheduledAt).toLocaleString(i18nLocale) : '—' }}</p>
-          </div>
-          <button type="button" class="rounded-lg border border-border-visible px-2 py-1 text-[10px] font-mono uppercase" @click="openRecurringEditor(schedule)">{{ t('scheduler.edit') }}</button>
-          <button v-if="schedule.status !== 'CANCELLED'" type="button" class="rounded-lg border border-border-visible px-2 py-1 text-[10px] font-mono uppercase" @click="toggleRecurringSchedule(schedule)">{{ schedule.status === 'PAUSED' ? t('scheduler.resume') : t('scheduler.pause') }}</button>
-          <button v-if="schedule.status !== 'CANCELLED'" type="button" class="rounded-lg border border-error/50 px-2 py-1 text-[10px] font-mono uppercase text-error" @click="cancelRecurringSchedule(schedule)">{{ t('scheduler.cancel') }}</button>
-        </div>
-      </div>
-    </Card>
-
     <div data-testid="scheduler-workspace" class="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden">
         <div v-if="url.state.value.surface !== 'list'" data-testid="calendar-mode" class="flex min-h-0 flex-1 flex-col gap-4">
           <div v-if="calendarView === 'month'" class="flex h-full min-h-0 flex-col">
@@ -912,14 +863,6 @@ watch(
       @reschedule="onReschedule"
       @retried="onReschedule"
       @edit="handleEditPublication"
-    />
-
-    <RecurringScheduleModal
-      :is-open="Boolean(editingRecurringSchedule)"
-      :publication="recurringPublication"
-      :schedule="editingRecurringSchedule"
-      @close="editingRecurringSchedule = null; recurringPublication = null"
-      @saved="editingRecurringSchedule = null; recurringPublication = null"
     />
   </div>
 </template>

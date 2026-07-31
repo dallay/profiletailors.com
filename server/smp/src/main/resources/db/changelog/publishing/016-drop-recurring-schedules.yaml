@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-016-drop-recurring-schedules
+      author: profiletailors
+      preConditions:
+        - onFail: MARK_RAN
+          tableExists:
+            tableName: recurring_schedules
+      changes:
+        - dropTable:
+            tableName: recurring_schedules

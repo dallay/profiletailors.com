@@ -153,7 +153,6 @@ class NotificationEventTest {
             "RECONNECT_REQUIRED",
             "CAPABILITY_DENIED",
             "MEDIA_PROCESSING_FAILED",
-            "RECURRENCE_PAUSED",
             "AMBIGUOUS_OUTCOME",
         )
         assertEquals(expected, NotificationCategory.entries.map { it.name }.toSet())

@@ -96,14 +96,3 @@ interface NotificationEventRepository {
         limit: Int = 50,
     ): List<NotificationEvent>
 }
-
-object NoOpNotificationEventRepository : NotificationEventRepository {
-    override suspend fun record(event: NotificationEvent): NotificationEvent = event
-    override suspend fun findByWorkspace(
-        workspaceId: String,
-        socialAccountId: String?,
-        publicationId: String?,
-        categories: Set<NotificationCategory>?,
-        limit: Int,
-    ): List<NotificationEvent> = emptyList()
-}

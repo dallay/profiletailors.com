@@ -6,7 +6,6 @@ import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
 import { usePublishingErrors } from '@modules/publishing/presentation/composables/usePublishingErrors'
 import { getProviderBadge } from '@shared/lib/provider-styles'
-import RecurringScheduleModal from './RecurringScheduleModal.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -127,7 +126,6 @@ const newScheduledAt = ref('')
 const rescheduleError = ref('')
 const isRetrying = ref(false)
 const retryError = ref('')
-const showRecurring = ref(false)
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, closeModal)
@@ -427,14 +425,6 @@ function cancelReschedule() {
           </div>
         </div>
           <div class="flex items-center gap-2">
-          <button type="button"
-            v-if="publication && (publication.status === 'PUBLISHED' || publication.status === 'SCHEDULED')"
-            @click="showRecurring = true"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
-          >
-            <CalendarClock class="size-3.5" />
-            {{ t('postDetail.makeRecurring') }}
-          </button>
             <button type="button"
               @click="closeModal"
               class="px-3 py-2 rounded-xl border border-border-visible text-text-body hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
@@ -465,11 +455,5 @@ function cancelReschedule() {
         </footer>
       </dialog>
     </div>
-    <RecurringScheduleModal
-      :is-open="showRecurring"
-      :publication="publication"
-      @close="showRecurring = false"
-      @saved="showRecurring = false"
-    />
   </Teleport>
 </template>
