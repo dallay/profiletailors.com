@@ -128,5 +128,4 @@ class AdminWaitlistController(
     }
 
     data class CancelRequest(val reason: String)
-
 }
