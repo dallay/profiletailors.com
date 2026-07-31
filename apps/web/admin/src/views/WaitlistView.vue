@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import { messages } from '@/i18n'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const authStore = useAdminAuthStore()
 
@@ -174,9 +174,9 @@ onMounted(fetchEntries)
             <td class="py-2 pr-4">
               <StatusBadge :status="entry.status" />
             </td>
-            <td class="py-2 pr-4 text-slate-400">{{ new Date(entry.joinedAt).toLocaleDateString() }}</td>
+            <td class="py-2 pr-4 text-slate-400">{{ new Date(entry.joinedAt).toLocaleDateString(locale) }}</td>
             <td class="py-2 pr-4 text-slate-400">
-              {{ entry.invitedAt ? new Date(entry.invitedAt).toLocaleDateString() : '—' }}
+              {{ entry.invitedAt ? new Date(entry.invitedAt).toLocaleDateString(locale) : '—' }}
             </td>
             <td class="py-2 flex gap-2">
               <button
@@ -284,7 +284,7 @@ const STATUS_CLASSES: Record<string, string> = {
 const StatusBadge = defineComponent({
   props: { status: { type: String, required: true } },
   setup(props) {
-    const { t } = useI18n()
+const { t, locale } = useI18n()
     return () => {
       const cls = STATUS_CLASSES[props.status] ?? 'bg-slate-700 text-slate-300'
       const statusKey = props.status.toLowerCase()

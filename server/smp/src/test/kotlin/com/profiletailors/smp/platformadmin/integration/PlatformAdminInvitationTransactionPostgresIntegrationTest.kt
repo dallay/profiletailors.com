@@ -14,7 +14,6 @@ import com.profiletailors.smp.test.TestStorageConfiguration
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -129,12 +128,13 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
             ),
         )
 
-        val invitation = invitationRepository.findActiveByWaitlistEntryId("entry-test-1")
-        assertNotNull(invitation)
-        assertEquals(WaitlistInvitationStatus.ACTIVE, invitation!!.status)
+        val invitation = requireNotNull(invitationRepository.findActiveByWaitlistEntryId("entry-test-1")) {
+            "Expected an active invitation for entry-test-1"
+        }
+        assertEquals(WaitlistInvitationStatus.ACTIVE, invitation.status)
 
         val entryStatus = databaseClient.sql("SELECT status FROM waitlist_entries WHERE id = 'entry-test-1'")
-            .map { row, _ -> row.get("status", String::class.java) as String }
+            .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
             .one()
             .awaitSingle()
         assertEquals("INVITED", entryStatus)
@@ -210,7 +210,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
         assertNull(invitationRepository.findActiveByWaitlistEntryId("entry-test-1"))
 
         val entryStatus = databaseClient.sql("SELECT status FROM waitlist_entries WHERE id = 'entry-test-1'")
-            .map { row, _ -> row.get("status", String::class.java) as String }
+            .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
             .one()
             .awaitSingle()
         assertEquals("CANCELLED", entryStatus)

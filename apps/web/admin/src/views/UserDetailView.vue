@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -72,8 +72,8 @@ onMounted(fetchUser)
       <div class="grid grid-cols-2 gap-4 mb-8">
         <Field :label="t('users.displayName')" :value="user.displayIdentity ?? '—'" />
         <Field :label="t('users.principalType')" :value="user.principalType" />
-        <Field :label="t('common.createdAt')" :value="new Date(user.createdAt).toLocaleString()" />
-        <Field :label="t('users.lastAuthenticated')" :value="user.lastAuthenticatedAt ? new Date(user.lastAuthenticatedAt).toLocaleString() : '—'" />
+        <Field :label="t('common.createdAt')" :value="new Date(user.createdAt).toLocaleString(locale)" />
+        <Field :label="t('users.lastAuthenticated')" :value="user.lastAuthenticatedAt ? new Date(user.lastAuthenticatedAt).toLocaleString(locale) : '—'" />
         <Field :label="t('users.platformRoles')" :value="user.platformRoles?.join(', ') || '—'" />
       </div>
 
@@ -93,7 +93,7 @@ onMounted(fetchUser)
             <td class="py-2 pr-4 text-slate-200">{{ ws.workspaceName }}</td>
             <td class="py-2 pr-4 text-slate-400">{{ ws.membershipStatus }}</td>
             <td class="py-2 pr-4 text-slate-400">{{ ws.workspaceRoles?.join(', ') || '—' }}</td>
-            <td class="py-2 text-slate-400">{{ new Date(ws.joinedAt).toLocaleDateString() }}</td>
+            <td class="py-2 text-slate-400">{{ new Date(ws.joinedAt).toLocaleDateString(locale) }}</td>
           </tr>
         </tbody>
       </table>

@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const authStore = useAdminAuthStore()
@@ -33,6 +33,7 @@ interface WaitlistEntryDetail {
 const entry = ref<WaitlistEntryDetail | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+const actionError = ref<string | null>(null)
 const inviting = ref(false)
 const revoking = ref(false)
 const showRevokeDialog = ref(false)
@@ -56,8 +57,13 @@ async function fetchEntry() {
 
 async function invite() {
   inviting.value = true
+  actionError.value = null
   try {
-    await fetch(`/api/admin/waitlist-entries/${entryId}/invitations`, { method: 'POST' })
+    const res = await fetch(`/api/admin/waitlist-entries/${entryId}/invitations`, { method: 'POST' })
+    if (!res.ok) {
+      actionError.value = await errorMessage(res)
+      return
+    }
     await fetchEntry()
   } finally {
     inviting.value = false
@@ -73,12 +79,29 @@ async function confirmRevoke() {
   if (!revokeTargetId.value) return
   revoking.value = true
   showRevokeDialog.value = false
+  actionError.value = null
   try {
-    await fetch(`/api/admin/invitations/${revokeTargetId.value}/revoke`, { method: 'POST' })
+    const res = await fetch(`/api/admin/invitations/${revokeTargetId.value}/revoke`, { method: 'POST' })
+    if (!res.ok) {
+      actionError.value = await errorMessage(res)
+      return
+    }
     await fetchEntry()
   } finally {
     revoking.value = false
   }
+}
+
+async function errorMessage(res: Response): Promise<string> {
+  try {
+    const body = await res.json()
+    if (body?.properties?.code && t(`errors.${body.properties.code}`) !== `errors.${body.properties.code}`) {
+      return t(`errors.${body.properties.code}`)
+    }
+  } catch {
+    // Non-JSON error bodies fall through to the generic message.
+  }
+  return t('common.error')
 }
 
 onMounted(fetchEntry)
@@ -101,11 +124,11 @@ onMounted(fetchEntry)
 
       <div class="grid grid-cols-2 gap-4 mb-8">
         <Field :label="t('common.status')" :value="entry.status" />
-        <Field :label="t('waitlist.joinedAt')" :value="new Date(entry.joinedAt).toLocaleString()" />
-        <Field :label="t('waitlist.invitedAt')" :value="entry.invitedAt ? new Date(entry.invitedAt).toLocaleString() : '—'" />
+        <Field :label="t('waitlist.joinedAt')" :value="new Date(entry.joinedAt).toLocaleString(locale)" />
+        <Field :label="t('waitlist.invitedAt')" :value="entry.invitedAt ? new Date(entry.invitedAt).toLocaleString(locale) : '—'" />
         <Field :label="t('waitlist.source')" :value="entry.source" />
         <Field :label="t('waitlist.locale')" :value="entry.preferredLocale ?? '—'" />
-        <Field :label="t('waitlist.cancelledAt')" :value="entry.cancelledAt ? new Date(entry.cancelledAt).toLocaleString() : '—'" />
+        <Field :label="t('waitlist.cancelledAt')" :value="entry.cancelledAt ? new Date(entry.cancelledAt).toLocaleString(locale) : '—'" />
       </div>
 
       <!-- Actions -->
@@ -119,6 +142,8 @@ onMounted(fetchEntry)
           {{ inviting ? t('common.loading') : t('waitlist.invite') }}
         </button>
       </div>
+
+      <div v-if="actionError" role="alert" class="text-red-400 text-sm mb-4">{{ actionError }}</div>
 
       <!-- Invitation history -->
       <h2 class="text-lg font-semibold text-slate-100 mb-3">Invitation History</h2>
@@ -136,8 +161,8 @@ onMounted(fetchEntry)
         <tbody>
           <tr v-for="inv in entry.invitationHistory" :key="inv.id" class="border-b border-slate-800/50">
             <td class="py-2 pr-4">{{ inv.status }}</td>
-            <td class="py-2 pr-4 text-slate-400">{{ new Date(inv.issuedAt).toLocaleString() }}</td>
-            <td class="py-2 pr-4 text-slate-400">{{ new Date(inv.expiresAt).toLocaleString() }}</td>
+            <td class="py-2 pr-4 text-slate-400">{{ new Date(inv.issuedAt).toLocaleString(locale) }}</td>
+            <td class="py-2 pr-4 text-slate-400">{{ new Date(inv.expiresAt).toLocaleString(locale) }}</td>
             <td class="py-2 pr-4 text-slate-400">{{ inv.deliveryStatus }}</td>
             <td class="py-2">
               <button

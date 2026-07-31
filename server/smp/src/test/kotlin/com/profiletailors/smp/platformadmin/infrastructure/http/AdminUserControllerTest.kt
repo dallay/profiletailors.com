@@ -75,6 +75,17 @@ class AdminUserControllerTest {
     }
 
     @Test
+    fun `listUsers returns 400 when size exceeds max page size`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        webClient()
+            .get()
+            .uri("/api/admin/users?size=101")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
     fun `getUser returns detail for existing user`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
         coEvery { userQuery.findById(userId) } returns detail()

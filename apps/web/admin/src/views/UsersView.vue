@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 
 const result = ref<PagedResult<AdminUserSummary> | null>(null)
@@ -11,6 +11,9 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const search = ref('')
 const page = ref(0)
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+let activeRequest: AbortController | null = null
 
 interface AdminUserSummary {
   principalId: string
@@ -33,23 +36,35 @@ interface PagedResult<T> {
 }
 
 async function fetchUsers() {
+  activeRequest?.abort()
+  const controller = new AbortController()
+  activeRequest = controller
   loading.value = true
   error.value = null
   try {
     const params = new URLSearchParams({ page: String(page.value), size: '25' })
     if (search.value.trim()) params.set('email', search.value.trim())
-    const res = await fetch(`/api/admin/users?${params}`)
+    const res = await fetch(`/api/admin/users?${params}`, { signal: controller.signal })
     if (!res.ok) throw new Error()
     result.value = await res.json()
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return
     error.value = t('common.error')
   } finally {
     loading.value = false
   }
 }
 
-watch(search, () => { page.value = 0; fetchUsers() })
+watch(search, () => {
+  page.value = 0
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(fetchUsers, 300)
+})
 onMounted(fetchUsers)
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+  activeRequest?.abort()
+})
 </script>
 
 <template>
@@ -88,7 +103,7 @@ onMounted(fetchUsers)
             <td class="py-2 pr-4 text-amber-400">{{ user.email }}</td>
             <td class="py-2 pr-4 text-slate-300">{{ user.displayIdentity ?? '—' }}</td>
             <td class="py-2 pr-4 text-slate-300">{{ user.principalType }}</td>
-            <td class="py-2 pr-4 text-slate-400">{{ new Date(user.createdAt).toLocaleDateString() }}</td>
+            <td class="py-2 pr-4 text-slate-400">{{ new Date(user.createdAt).toLocaleDateString(locale) }}</td>
           </tr>
         </tbody>
       </table>

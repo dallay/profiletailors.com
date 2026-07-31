@@ -12,6 +12,7 @@ import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
+import com.profiletailors.smp.platformadmin.infrastructure.persistence.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -37,7 +38,6 @@ class AdminUserController(
         @RequestParam(defaultValue = "desc") direction: String,
         @RequestParam status: String? = null,
         @RequestParam email: String? = null,
-        @RequestParam authenticationMethod: String? = null,
         @RequestParam createdFrom: Instant? = null,
         @RequestParam createdTo: Instant? = null,
     ): ResponseEntity<PagedResult<AdminUserSummary>> {
@@ -45,6 +45,7 @@ class AdminUserController(
         if (PlatformPermission.USERS_READ !in operatorRoles.effectivePermissions()) {
             throw PlatformAccessDeniedException(PlatformPermission.USERS_READ)
         }
+        if (size > ADMIN_PAGE_MAX_SIZE) return ResponseEntity.badRequest().build()
         val result = userQuery.list(
             ListAdminUsersQuery(
                 page = page,
@@ -53,7 +54,6 @@ class AdminUserController(
                 sortDirection = direction,
                 status = status,
                 email = email,
-                authenticationMethod = authenticationMethod,
                 createdFrom = createdFrom,
                 createdTo = createdTo,
             ),

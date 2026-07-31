@@ -71,6 +71,17 @@ class AdminAuditControllerTest {
     }
 
     @Test
+    fun `listEvents returns 400 when size exceeds max page size`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        webClient()
+            .get()
+            .uri("/api/admin/audit-events?size=101")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
     fun `getEvent returns detail for existing event`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
         coEvery { auditQuery.findById(eventId) } returns event()

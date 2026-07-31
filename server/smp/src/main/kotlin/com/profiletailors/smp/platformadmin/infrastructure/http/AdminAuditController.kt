@@ -9,6 +9,7 @@ import com.profiletailors.smp.platformadmin.application.query.ListAdminAuditEven
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
+import com.profiletailors.smp.platformadmin.infrastructure.persistence.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -43,6 +44,7 @@ class AdminAuditController(
         if (PlatformPermission.AUDIT_READ !in operatorRoles.effectivePermissions()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         }
+        if (size > ADMIN_PAGE_MAX_SIZE) return ResponseEntity.badRequest().build()
         val query = ListAdminAuditEventsQuery(
             page = page,
             size = size,

@@ -14,6 +14,7 @@ import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
+import com.profiletailors.smp.platformadmin.infrastructure.persistence.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
@@ -56,7 +57,7 @@ class AdminWaitlistController(
         if (PlatformPermission.WAITLIST_READ !in operatorRoles.effectivePermissions()) {
             throw PlatformAccessDeniedException(PlatformPermission.WAITLIST_READ)
         }
-        if (size > MAX_PAGE_SIZE) return ResponseEntity.badRequest().build()
+        if (size > ADMIN_PAGE_MAX_SIZE) return ResponseEntity.badRequest().build()
 
         val query = ListAdminWaitlistEntriesQuery(
             page = page,
@@ -128,7 +129,4 @@ class AdminWaitlistController(
 
     data class CancelRequest(val reason: String)
 
-    companion object {
-        private const val MAX_PAGE_SIZE = 100
-    }
 }

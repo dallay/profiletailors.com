@@ -1,5 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAdminAuthStore } from '@/stores/auth.store'
+import type { PlatformPermission } from '@/stores/auth.store'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    public?: boolean
+    requiresAuth?: boolean
+    permission?: PlatformPermission
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -75,7 +84,7 @@ router.beforeEach(async (to) => {
     return { name: 'access-denied' }
   }
 
-  if (to.meta.permission && !authStore.hasPermission(to.meta.permission as string)) {
+  if (to.meta.permission && !authStore.hasPermission(to.meta.permission)) {
     return { name: 'access-denied' }
   }
 

@@ -2,41 +2,57 @@
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useAdminAuthStore } from '@/stores/auth.store'
+import { useAdminAuthStore, type PlatformPermission } from '@/stores/auth.store'
 
 const { t } = useI18n()
 const router = useRouter()
 const authStore = useAdminAuthStore()
 
-const navItems = computed(() => [
-  {
-    name: 'dashboard',
-    label: t('nav.dashboard'),
-    permission: 'platform.dashboard.read',
-    icon: '⊞',
-  },
-  {
-    name: 'waitlist',
-    label: t('nav.waitlist'),
-    permission: 'platform.waitlist.read',
-    icon: '☰',
-  },
-  {
-    name: 'users',
-    label: t('nav.users'),
-    permission: 'platform.users.read',
-    icon: '👥',
-  },
-  {
-    name: 'audit',
-    label: t('nav.audit'),
-    permission: 'platform.audit.read',
-    icon: '📋',
-  },
-].filter(item => authStore.hasPermission(item.permission)))
+interface NavItem {
+  name: string
+  label: string
+  permission: PlatformPermission
+  icon: string
+}
+
+const navItems = computed<NavItem[]>(() =>
+  (
+    [
+      {
+        name: 'dashboard',
+        label: t('nav.dashboard'),
+        permission: 'platform.dashboard.read',
+        icon: '⊞',
+      },
+      {
+        name: 'waitlist',
+        label: t('nav.waitlist'),
+        permission: 'platform.waitlist.read',
+        icon: '☰',
+      },
+      {
+        name: 'users',
+        label: t('nav.users'),
+        permission: 'platform.users.read',
+        icon: '👥',
+      },
+      {
+        name: 'audit',
+        label: t('nav.audit'),
+        permission: 'platform.audit.read',
+        icon: '📋',
+      },
+    ] as NavItem[]
+  ).filter(item => authStore.hasPermission(item.permission)),
+)
 
 async function signOut() {
-  await fetch('/api/auth/logout', { method: 'POST' })
+  try {
+    const response = await fetch('/api/auth/logout', { method: 'POST' })
+    if (!response.ok) throw new Error()
+  } catch {
+    // Session is cleared locally regardless so the user is never stuck signed in.
+  }
   authStore.clearSession()
   router.push({ name: 'login' })
 }

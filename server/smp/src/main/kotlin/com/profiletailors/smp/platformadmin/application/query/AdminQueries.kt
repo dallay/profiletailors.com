@@ -25,7 +25,6 @@ data class ListAdminUsersQuery(
     val sortDirection: String = "desc",
     val status: String? = null,
     val email: String? = null,
-    val authenticationMethod: String? = null,
     val createdFrom: Instant? = null,
     val createdTo: Instant? = null,
 )

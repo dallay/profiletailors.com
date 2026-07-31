@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 interface AuditEvent {
   eventId: string
@@ -30,17 +30,23 @@ const page = ref(0)
 const actionFilter = ref('')
 const resultFilter = ref('')
 
+let activeRequest: AbortController | null = null
+
 async function fetchEvents() {
+  activeRequest?.abort()
+  const controller = new AbortController()
+  activeRequest = controller
   loading.value = true
   error.value = null
   try {
     const params = new URLSearchParams({ page: String(page.value), size: '25' })
     if (actionFilter.value) params.set('action', actionFilter.value)
     if (resultFilter.value) params.set('result', resultFilter.value)
-    const res = await fetch(`/api/admin/audit-events?${params}`)
+    const res = await fetch(`/api/admin/audit-events?${params}`, { signal: controller.signal })
     if (!res.ok) throw new Error()
     result.value = await res.json()
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return
     error.value = t('common.error')
   } finally {
     loading.value = false
@@ -49,6 +55,7 @@ async function fetchEvents() {
 
 watch([actionFilter, resultFilter], () => { page.value = 0; fetchEvents() })
 onMounted(fetchEvents)
+onBeforeUnmount(() => activeRequest?.abort())
 </script>
 
 <template>
@@ -94,7 +101,7 @@ onMounted(fetchEvents)
             :key="event.eventId"
             class="border-b border-slate-800/50 hover:bg-slate-900/50"
           >
-            <td class="py-2 pr-4 text-slate-400">{{ new Date(event.occurredAt).toLocaleString() }}</td>
+            <td class="py-2 pr-4 text-slate-400">{{ new Date(event.occurredAt).toLocaleString(locale) }}</td>
             <td class="py-2 pr-4 text-slate-200 font-mono text-xs">{{ event.action }}</td>
             <td class="py-2 pr-4 text-slate-400">{{ event.targetType }}</td>
             <td class="py-2 pr-4 text-slate-500 text-xs font-mono truncate max-w-32">{{ event.targetId }}</td>
