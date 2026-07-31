@@ -65,6 +65,8 @@ async function invite() {
       return
     }
     await fetchEntry()
+  } catch {
+    actionError.value = t('common.error')
   } finally {
     inviting.value = false
   }
@@ -87,6 +89,8 @@ async function confirmRevoke() {
       return
     }
     await fetchEntry()
+  } catch {
+    actionError.value = t('common.error')
   } finally {
     revoking.value = false
   }

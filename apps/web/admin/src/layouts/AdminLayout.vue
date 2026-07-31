@@ -47,11 +47,7 @@ const navItems = computed<NavItem[]>(() =>
 )
 
 async function signOut() {
-  try {
-    const response = await fetch('/api/auth/logout', { method: 'POST' })
-    if (!response.ok) throw new Error()
-  } catch {
-  }
+  await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined)
   authStore.clearSession()
   router.push({ name: 'login' })
 }

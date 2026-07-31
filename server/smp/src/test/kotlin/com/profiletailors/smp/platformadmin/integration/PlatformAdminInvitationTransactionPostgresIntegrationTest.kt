@@ -14,7 +14,9 @@ import com.profiletailors.smp.test.TestStorageConfiguration
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -160,24 +162,20 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
     }
 
     @Test
-    fun `should enforce at most one active invitation per waitlist entry`() = runTest {
-        // First invite — creates active invitation
-        inviteHandler.handle(
-            InviteWaitlistEntryCommand(
-                operatorPrincipalId = operatorId,
-                operatorRoles = operatorRoles,
-                waitlistEntryId = "entry-test-2",
-            ),
-        )
+    fun `should reject a second active invitation at the database level`() = runTest {
+        insertActiveInvitation(entryId = "entry-test-2", tokenHash = "token-hash-1")
 
-        // The entry is now INVITED — a second invite supersedes the first
-        inviteHandler.handle(
-            InviteWaitlistEntryCommand(
-                operatorPrincipalId = operatorId,
-                operatorRoles = operatorRoles,
-                waitlistEntryId = "entry-test-2",
-            ),
-        )
+        val error = try {
+            insertActiveInvitation(entryId = "entry-test-2", tokenHash = "token-hash-2")
+            null
+        } catch (e: Exception) {
+            e
+        }
+
+        assertNotNull(error, "Expected the second active invitation insert to fail")
+        val mentionsIndex = generateSequence(error as Throwable) { it.cause }
+            .any { it.message?.contains("uq_waitlist_invitations_one_active") == true }
+        assertTrue(mentionsIndex, "Expected unique index violation, got: ${error.message}")
 
         val activeCount = databaseClient.sql(
             "SELECT COUNT(*) FROM waitlist_invitations WHERE waitlist_entry_id = 'entry-test-2' AND status = 'ACTIVE'",
@@ -186,6 +184,22 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
             .one()
             .awaitSingle()
         assertEquals(1L, activeCount, "Only one active invitation should exist per entry")
+    }
+
+    private suspend fun insertActiveInvitation(entryId: String, tokenHash: String) {
+        databaseClient.sql(
+            """
+            INSERT INTO waitlist_invitations
+              (id, waitlist_entry_id, token_hash, status, issued_at, expires_at, created_by, delivery_status)
+            VALUES
+              (:id, :entryId, :tokenHash, 'ACTIVE', NOW(), NOW() + INTERVAL '7 days', :createdBy, 'PENDING')
+            """.trimIndent(),
+        )
+            .bind("id", UUID.randomUUID())
+            .bind("entryId", entryId)
+            .bind("tokenHash", tokenHash)
+            .bind("createdBy", operatorId)
+            .fetch().rowsUpdated().awaitSingle()
     }
 
     @Test
