@@ -2,6 +2,7 @@ package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
 import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
+import com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitation
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationStatus
@@ -60,7 +61,7 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
         val lastDeliveryAttemptAt = invitation.lastDeliveryAttemptAt?.let {
             OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
         }
-        databaseClient.sql(UPDATE)
+        val rowsUpdated = databaseClient.sql(UPDATE)
             .bind("status", invitation.status.name)
             .bindNullable("acceptedAt", acceptedAt, OffsetDateTime::class.java)
             .bindNullable("revokedAt", revokedAt, OffsetDateTime::class.java)
@@ -74,6 +75,9 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+        if (rowsUpdated == 0L) {
+            throw InvitationVersionConflictException(invitation.id.value.toString())
+        }
         return requireNotNull(findById(invitation.id))
     }
 

@@ -40,7 +40,10 @@ class ResendWaitlistInvitationHandlerTest {
     private val invitationRepository = mockk<WaitlistInvitationRepository>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
 
-    private val tokenHasher = TokenHasher { "hashed-" + it }
+    private val tokenHasher = object : TokenHasher {
+        override fun hash(rawToken: String): String = "hashed-$rawToken"
+        override fun matches(rawToken: String, storedHash: String): Boolean = false
+    }
 
     private val handler = ResendWaitlistInvitationHandler(
         invitationRepository = invitationRepository,

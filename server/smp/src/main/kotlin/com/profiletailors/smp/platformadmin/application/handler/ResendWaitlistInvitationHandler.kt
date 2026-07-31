@@ -44,9 +44,9 @@ open class ResendWaitlistInvitationHandler(
         val existing = invitationRepository.findById(WaitlistInvitationId(command.invitationId))
             ?: throw InvitationNotFoundException(command.invitationId.toString())
 
-        if (!existing.isActive) throw InvitationNotResendableException(command.invitationId.toString())
-
         val now = clock.instant()
+        if (!existing.isActive(now)) throw InvitationNotResendableException(command.invitationId.toString())
+
         val windowStart = now.minus(resendWindowHours.toLong(), ChronoUnit.HOURS)
         val recentResends = invitationRepository.countResendsSince(
             existing.waitlistEntryId,

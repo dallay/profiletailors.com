@@ -4,6 +4,7 @@ import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssign
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
+import com.profiletailors.smp.platformadmin.domain.PlatformRoleVersionConflictException
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -48,7 +49,7 @@ class R2dbcPlatformRoleAssignmentRepository(private val databaseClient: Database
 
     override suspend fun update(assignment: PlatformRoleAssignment): PlatformRoleAssignment {
         val revokedAt = assignment.revokedAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
-        databaseClient.sql(UPDATE)
+        val rowsUpdated = databaseClient.sql(UPDATE)
             .bindNullable("revokedAt", revokedAt, OffsetDateTime::class.java)
             .bindNullable("revokedBy", assignment.revokedBy, UUID::class.java)
             .bind("version", assignment.version + 1)
@@ -57,6 +58,9 @@ class R2dbcPlatformRoleAssignmentRepository(private val databaseClient: Database
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+        if (rowsUpdated == 0L) {
+            throw PlatformRoleVersionConflictException(assignment.id.value.toString())
+        }
         return requireNotNull(findById(assignment.id))
     }
 

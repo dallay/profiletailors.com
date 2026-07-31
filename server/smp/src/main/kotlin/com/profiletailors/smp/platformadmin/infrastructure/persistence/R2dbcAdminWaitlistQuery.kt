@@ -21,8 +21,7 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
 
     @Suppress("LongMethod")
     override suspend fun list(query: ListAdminWaitlistEntriesQuery): PagedResult<AdminWaitlistEntrySummary> {
-        require(query.page >= 0) { "Page must be non-negative" }
-        require(query.size in 1..MAX_PAGE_SIZE) { "Page size must be between 1 and $MAX_PAGE_SIZE" }
+        validatePagination(query.page, query.size)
 
         val conditions = mutableListOf<String>()
         val params = mutableMapOf<String, Any?>()
@@ -76,16 +75,13 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
             LIMIT :size OFFSET :offset
         """.trimIndent()
 
-        var countSpec = databaseClient.sql(countSql)
-        var dataSpec = databaseClient.sql(dataSql)
-            .bind("size", query.size)
-            .bind("offset", offset)
-
-        params.forEach { (k, v) ->
-            if (v != null) {
-                countSpec = countSpec.bind(k, v)
-                dataSpec = dataSpec.bind(k, v)
-            }
+        val countSpec = params.entries.fold(databaseClient.sql(countSql)) { spec, (k, v) ->
+            if (v != null) spec.bind(k, v) else spec
+        }
+        val dataSpec = params.entries.fold(
+            databaseClient.sql(dataSql).bind("size", query.size).bind("offset", offset),
+        ) { spec, (k, v) ->
+            if (v != null) spec.bind(k, v) else spec
         }
 
         val total = countSpec.map { row, _ -> requireNotNull(row.get(0, Long::class.java)) }
@@ -209,7 +205,6 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
     )
 
     companion object {
-        private const val MAX_PAGE_SIZE = 100
         private val ALLOWED_SORT_FIELDS = mapOf(
             "joinedAt" to "we.joined_at",
             "invitedAt" to "we.invited_at",

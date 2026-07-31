@@ -29,9 +29,9 @@ open class RevokeWaitlistInvitationHandler(
         val invitation = invitationRepository.findById(WaitlistInvitationId(command.invitationId))
             ?: throw InvitationNotFoundException(command.invitationId.toString())
 
-        if (!invitation.isActive) throw InvitationNotRevocableException(command.invitationId.toString())
-
         val now = clock.instant()
+        if (!invitation.isActive(now)) throw InvitationNotRevocableException(command.invitationId.toString())
+
         invitationRepository.update(invitation.revoke(now, command.operatorPrincipalId))
 
         auditPublisher.publish(

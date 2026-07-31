@@ -19,22 +19,28 @@ data class WaitlistInvitation(
     val deliveryAttemptCount: Int = 0,
     val version: Long = 0,
 ) {
-    val isActive: Boolean get() = status == WaitlistInvitationStatus.ACTIVE
+    fun isActive(now: Instant): Boolean = status == WaitlistInvitationStatus.ACTIVE && !isExpired(now)
 
     fun isExpired(now: Instant): Boolean = now >= expiresAt
 
     fun revoke(at: Instant, by: UUID): WaitlistInvitation {
-        check(status == WaitlistInvitationStatus.ACTIVE) { "Only active invitations can be revoked." }
+        if (status != WaitlistInvitationStatus.ACTIVE) {
+            throw InvitationNotRevocableException(id.value.toString())
+        }
         return copy(status = WaitlistInvitationStatus.REVOKED, revokedAt = at, revokedBy = by)
     }
 
     fun supersede(): WaitlistInvitation {
-        check(status == WaitlistInvitationStatus.ACTIVE) { "Only active invitations can be superseded." }
+        if (status != WaitlistInvitationStatus.ACTIVE) {
+            throw InvitationNotResendableException(id.value.toString())
+        }
         return copy(status = WaitlistInvitationStatus.SUPERSEDED)
     }
 
     fun accept(at: Instant): WaitlistInvitation {
-        check(status == WaitlistInvitationStatus.ACTIVE) { "Only active invitations can be accepted." }
+        if (status != WaitlistInvitationStatus.ACTIVE) {
+            throw InvitationNotAcceptableException(id.value.toString())
+        }
         return copy(status = WaitlistInvitationStatus.ACCEPTED, acceptedAt = at)
     }
 }

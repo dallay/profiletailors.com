@@ -27,12 +27,17 @@ class WaitlistInvitationTest {
 
     @Test
     fun `active invitation isActive true`() {
-        assertTrue(activeInvitation().isActive)
+        assertTrue(activeInvitation().isActive(now))
     }
 
     @Test
     fun `revoked invitation isActive false`() {
-        assertFalse(activeInvitation().revoke(now, operatorId).isActive)
+        assertFalse(activeInvitation().revoke(now, operatorId).isActive(now))
+    }
+
+    @Test
+    fun `expired active invitation isActive false`() {
+        assertFalse(activeInvitation().isActive(activeInvitation().expiresAt.plusSeconds(1)))
     }
 
     @Test
@@ -64,7 +69,7 @@ class WaitlistInvitationTest {
     @Test
     fun `revoking non-active invitation throws`() {
         val revoked = activeInvitation().revoke(now, operatorId)
-        assertThrows<IllegalStateException> { revoked.revoke(now, operatorId) }
+        assertThrows<InvitationNotRevocableException> { revoked.revoke(now, operatorId) }
     }
 
     @Test
@@ -76,7 +81,7 @@ class WaitlistInvitationTest {
     @Test
     fun `superseding non-active invitation throws`() {
         val superseded = activeInvitation().supersede()
-        assertThrows<IllegalStateException> { superseded.supersede() }
+        assertThrows<InvitationNotResendableException> { superseded.supersede() }
     }
 
     @Test
@@ -90,6 +95,6 @@ class WaitlistInvitationTest {
     @Test
     fun `accepting non-active invitation throws`() {
         val revoked = activeInvitation().revoke(now, operatorId)
-        assertThrows<IllegalStateException> { revoked.accept(now) }
+        assertThrows<InvitationNotAcceptableException> { revoked.accept(now) }
     }
 }

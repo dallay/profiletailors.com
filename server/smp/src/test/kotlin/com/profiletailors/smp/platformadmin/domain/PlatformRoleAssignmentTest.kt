@@ -44,6 +44,6 @@ class PlatformRoleAssignmentTest {
     @Test
     fun `revoking an already-revoked assignment throws`() {
         val revoked = assignment().revoke(now.plusSeconds(1), operatorId)
-        assertThrows<IllegalStateException> { revoked.revoke(now.plusSeconds(2), operatorId) }
+        assertThrows<PlatformRoleAlreadyRevokedException> { revoked.revoke(now.plusSeconds(2), operatorId) }
     }
 }

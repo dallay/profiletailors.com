@@ -18,8 +18,7 @@ import java.time.ZoneOffset
 class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUserQuery {
 
     override suspend fun list(query: ListAdminUsersQuery): PagedResult<AdminUserSummary> {
-        require(query.page >= 0) { "Page must be non-negative" }
-        require(query.size in 1..MAX_PAGE_SIZE) { "Page size must be between 1 and $MAX_PAGE_SIZE" }
+        validatePagination(query.page, query.size)
 
         val conditions = mutableListOf<String>()
         val params = mutableMapOf<String, Any?>()
@@ -57,16 +56,13 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
             LIMIT :size OFFSET :offset
         """.trimIndent()
 
-        var countSpec = databaseClient.sql(countSql)
-        var dataSpec = databaseClient.sql(dataSql)
-            .bind("size", query.size)
-            .bind("offset", offset)
-
-        params.forEach { (k, v) ->
-            if (v != null) {
-                countSpec = countSpec.bind(k, v)
-                dataSpec = dataSpec.bind(k, v)
-            }
+        val countSpec = params.entries.fold(databaseClient.sql(countSql)) { spec, (k, v) ->
+            if (v != null) spec.bind(k, v) else spec
+        }
+        val dataSpec = params.entries.fold(
+            databaseClient.sql(dataSql).bind("size", query.size).bind("offset", offset),
+        ) { spec, (k, v) ->
+            if (v != null) spec.bind(k, v) else spec
         }
 
         val total = countSpec.map { row, _ -> requireNotNull(row.get(0, Long::class.java)) }
@@ -123,7 +119,6 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
     )
 
     companion object {
-        private const val MAX_PAGE_SIZE = 100
         private val ALLOWED_SORT_FIELDS = mapOf(
             "createdAt" to "p.created_at",
             "email" to "ui.email",

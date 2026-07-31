@@ -36,6 +36,7 @@ class AdminUserController(
         @RequestParam(defaultValue = "desc") direction: String,
         @RequestParam status: String? = null,
         @RequestParam email: String? = null,
+        @RequestParam authenticationMethod: String? = null,
         @RequestParam createdFrom: Instant? = null,
         @RequestParam createdTo: Instant? = null,
     ): ResponseEntity<PagedResult<AdminUserSummary>> {
@@ -51,6 +52,7 @@ class AdminUserController(
                 sortDirection = direction,
                 status = status,
                 email = email,
+                authenticationMethod = authenticationMethod,
                 createdFrom = createdFrom,
                 createdTo = createdTo,
             ),
