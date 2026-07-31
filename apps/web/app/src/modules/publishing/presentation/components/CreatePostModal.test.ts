@@ -6,6 +6,11 @@ import {
   usePublishingStore,
   type Publication,
 } from '@modules/publishing/infrastructure/publishing.store'
+import {
+  generateAiPostContent,
+  optimizeAiPostContent,
+  regenerateAiPostContent,
+} from '@modules/publishing/services/ai-content-api'
 import { useMediaStore } from '@modules/media'
 import type { MediaAssetSummary, UnsplashPhotoSummary } from '@modules/media/services/media-api'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
@@ -50,6 +55,49 @@ const translations: Record<string, string> = {
   'composer.media.unsupportedFormat':
     'Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.',
   'composer.media.fileSizeExceeded': 'File size exceeds 10MB limit.',
+  'composer.ai.button': 'AI Assistant',
+  'composer.ai.title': 'AI content generator',
+  'composer.ai.description':
+    'Generate, refine and compare LinkedIn-ready post drafts from a prompt.',
+  'composer.ai.prompt': 'Prompt',
+  'composer.ai.promptPlaceholder': 'e.g. importance of clean code in software projects',
+  'composer.ai.industry': 'Industry',
+  'composer.ai.industryPlaceholder': 'e.g. SaaS, healthcare, education',
+  'composer.ai.targetAudience': 'Target audience',
+  'composer.ai.targetAudiencePlaceholder': 'e.g. engineering leaders',
+  'composer.ai.format': 'Format',
+  'composer.ai.formats.standard': 'Standard',
+  'composer.ai.formats.thread': 'Thread',
+  'composer.ai.formats.tips': 'Tips',
+  'composer.ai.formats.question': 'Question',
+  'composer.ai.formats.story': 'Story',
+  'composer.ai.tone': 'Tone',
+  'composer.ai.tones.professional': 'Professional',
+  'composer.ai.tones.casual': 'Casual',
+  'composer.ai.tones.inspirational': 'Inspirational',
+  'composer.ai.tones.educational': 'Educational',
+  'composer.ai.length': 'Length',
+  'composer.ai.lengths.short': 'Short',
+  'composer.ai.lengths.medium': 'Medium',
+  'composer.ai.lengths.long': 'Long',
+  'composer.ai.keywords': 'Keywords',
+  'composer.ai.keywordsPlaceholder': 'Kotlin, microservices, cloud-native',
+  'composer.ai.generate': 'Generate',
+  'composer.ai.optimize': 'Optimize draft',
+  'composer.ai.regenerate': 'Regenerate alternative',
+  'composer.ai.generating': 'Generating…',
+  'composer.ai.reviewTitle': 'Generated draft',
+  'composer.ai.reviewHint': 'Pick the version you want to insert into the editor.',
+  'composer.ai.accept': 'Use selected version',
+  'composer.ai.close': 'Close',
+  'composer.ai.version': 'Version',
+  'composer.ai.errors.promptRequired': 'Enter a prompt to generate content.',
+  'composer.ai.errors.currentDraftRequired': 'Write a draft to optimize.',
+  'composer.ai.errors.previousVersionRequired': 'Generate content before regenerating.',
+  'composer.ai.errors.monthlyLimitReached': 'Monthly limit reached',
+  'composer.ai.errors.emptyResponse': 'AI service returned empty content.',
+  'composer.ai.errors.generic': 'Unable to generate content right now.',
+  'composer.ai.resetDate': 'Resets on {date}',
 }
 
 const mockT = (key: string, params?: Record<string, string | number>): string => {
@@ -83,6 +131,13 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   logoutSession: vi.fn(),
   proxyImageUrl: (url: string) => url,
   resolveApiUrl: (url: string) => url,
+}))
+
+vi.mock('@modules/publishing/services/ai-content-api', () => ({
+  generateAiPostContent: vi.fn(),
+  optimizeAiPostContent: vi.fn(),
+  regenerateAiPostContent: vi.fn(),
+  fetchAiSuggestions: vi.fn(),
 }))
 
 vi.mock('@modules/media/services/media-api', async (importOriginal) => {
@@ -1110,6 +1165,106 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
       (btn as HTMLButtonElement).hasAttribute('disabled'),
     )
     expect(disabledSubmit).toBeDefined()
+
+    await wrapper.unmount()
+  })
+})
+
+describe('CreatePostModal.vue — AI assistant', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:mock-preview'),
+      revokeObjectURL: vi.fn(),
+    })
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+    vi.unstubAllGlobals()
+  })
+
+  it('generates content, compares alternatives, and inserts the selected version into the editor', async () => {
+    vi.mocked(generateAiPostContent).mockResolvedValueOnce({
+      content: 'Clean code keeps software projects readable, testable, and easier to evolve.',
+    })
+    vi.mocked(regenerateAiPostContent).mockResolvedValueOnce({
+      content:
+        'Clean code turns software projects into systems teams can trust, extend, and ship faster.',
+    })
+
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+
+    const promptInput = getByTestId('composer-ai-prompt') as HTMLTextAreaElement
+    promptInput.value = 'importance of clean code in software projects'
+    promptInput.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-generate').click()
+    await flushModal(wrapper)
+
+    expect(generateAiPostContent).toHaveBeenCalledTimes(1)
+    expect(generateAiPostContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'importance of clean code in software projects',
+      }),
+    )
+    expect(document.body.innerHTML).toContain('Clean code keeps software projects readable')
+
+    getByTestId('composer-ai-regenerate').click()
+    await flushModal(wrapper)
+
+    expect(regenerateAiPostContent).toHaveBeenCalledTimes(1)
+    expect(document.body.innerHTML).toContain('Compare versions')
+    expect(document.body.innerHTML).toContain(
+      'Clean code turns software projects into systems teams can trust',
+    )
+
+    getByTestId('composer-ai-version-1').click()
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-accept').click()
+    await flushModal(wrapper)
+
+    const composerTextarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    expect(composerTextarea.value).toBe(
+      'Clean code keeps software projects readable, testable, and easier to evolve.',
+    )
+  })
+
+  it('shows the monthly limit message, reset date, and upgrade options when generation is rate limited', async () => {
+    vi.mocked(generateAiPostContent).mockRejectedValueOnce(
+      Object.assign(new Error('Rate limited'), {
+        status: 429,
+        resetAt: '2026-08-31T00:00:00.000Z',
+      }),
+    )
+
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+
+    const promptInput = getByTestId('composer-ai-prompt') as HTMLTextAreaElement
+    promptInput.value = 'best programming languages to learn in 2026'
+    promptInput.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-generate').click()
+    await flushModal(wrapper)
+
+    expect(document.body.innerHTML).toContain('Monthly limit reached')
+    expect(document.body.innerHTML).toContain('Resets on')
+    expect(document.body.innerHTML).toContain('Free 10/mo')
+    expect(document.body.innerHTML).toContain('Pro 100/mo')
+    expect(document.body.innerHTML).toContain('Team 500/mo')
 
     await wrapper.unmount()
   })

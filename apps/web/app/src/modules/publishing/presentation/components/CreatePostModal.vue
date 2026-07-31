@@ -8,6 +8,14 @@ import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import { ImageIcon, ChevronDown, Hash, Smile, Sparkles, X } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import {
+  generateAiPostContent,
+  optimizeAiPostContent,
+  regenerateAiPostContent,
+  type AiGenerationFormat,
+  type AiGenerationLength,
+  type AiGenerationTone,
+} from '@modules/publishing/services/ai-content-api'
+import {
   isSocialProvider,
   usePublishingStore,
   type Publication,
@@ -15,6 +23,8 @@ import {
 import { useMediaStore } from '@modules/media'
 import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import PostPreviewPanel from '@modules/publishing/presentation/components/composer/PostPreviewPanel.vue'
+import HashtagSuggestionPanel from '@modules/publishing/presentation/components/composer/HashtagSuggestionPanel.vue'
+import { useHashtagSuggestions } from '@modules/publishing/presentation/composables/useHashtagSuggestions'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@modules/publishing/presentation/components/composer/post-preview.types'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -85,6 +95,11 @@ const auth = useAuthStore()
 const publishingStore = usePublishingStore()
 const mediaStore = useMediaStore()
 
+type AiVersion = {
+  id: string
+  content: string
+}
+
 
 const postText = ref('')
 const selectedChannelId = ref<string | null>(null)
@@ -106,6 +121,22 @@ const createAnother = ref(false)
 const priorityMode = ref(false)
 const scheduleMode = ref<ComposerScheduleMode>('now')
 const isDatePickerOpen = ref(false)
+const isAiPanelOpen = ref(false)
+const isHashtagPanelOpen = ref(false)
+
+const hashtags = useHashtagSuggestions()
+const isAiGenerating = ref(false)
+const aiPrompt = ref('')
+const aiIndustry = ref('')
+const aiTargetAudience = ref('')
+const aiFormat = ref<AiGenerationFormat>('standard')
+const aiTone = ref<AiGenerationTone>('professional')
+const aiLength = ref<AiGenerationLength>('medium')
+const aiKeywordsRaw = ref('')
+const aiReviewError = ref('')
+const aiResetAt = ref<string | null>(null)
+const aiVersions = ref<AiVersion[]>([])
+const aiSelectedVersionId = ref<string | null>(null)
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
@@ -247,6 +278,8 @@ async function initializeComposerForOpen() {
   submitError.value = ''
   mediaError.value = null
   isDatePickerOpen.value = false
+  resetAiAssistantState()
+  resetHashtagPanelState()
   clearUploadPreviewBlob()
   selectedUploadFile.value = null
   uploadTempKey.value = null
@@ -305,6 +338,18 @@ watch(
     }
   },
   { deep: true },
+)
+
+let analyzeDebounceTimer: ReturnType<typeof setTimeout> | undefined
+watch(
+  () => postText.value,
+  (text) => {
+    if (!isHashtagPanelOpen.value) return
+    clearTimeout(analyzeDebounceTimer)
+    analyzeDebounceTimer = setTimeout(() => {
+      hashtags.analyze(text)
+    }, 600)
+  },
 )
 
 watch(
@@ -690,34 +735,242 @@ const hiddenInlineAttachmentCount = computed(() =>
   Math.max(0, composerInlineAttachments.value.length - visibleInlineAttachments.value.length),
 )
 
+const selectedAiVersion = computed(() =>
+  aiVersions.value.find((version) => version.id === aiSelectedVersionId.value) ?? aiVersions.value[0] ?? null,
+)
+
+const aiSelectedContent = computed(() => selectedAiVersion.value?.content ?? '')
+const aiHasMultipleVersions = computed(() => aiVersions.value.length > 1)
+
+const aiResetLabel = computed(() => {
+  if (!aiResetAt.value) return ''
+  return new Date(aiResetAt.value).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+})
+
 function selectChannel(channelId: string) {
   selectedChannelId.value = channelId
 }
 
-// Format hashtags helper
-function appendHashtag() {
-  const tag = prompt('Enter tag (e.g. #socialmedia):')
-  if (tag) {
-    const formatted = tag.startsWith('#') ? tag : `#${tag}`
-    postText.value = postText.value ? `${postText.value} ${formatted}` : formatted
+function toggleHashtagPanel(): void {
+  isHashtagPanelOpen.value = !isHashtagPanelOpen.value
+  if (isHashtagPanelOpen.value) {
+    hashtags.loadTrending()
+    hashtags.loadSavedSets()
+    if (postText.value.length >= 50) {
+      hashtags.analyze(postText.value)
+    }
   }
+}
+
+function handleAddHashtag(tag: string): void {
+  if (hashtags.addHashtag(tag)) {
+    const block = hashtags.buildHashtagBlock()
+    const stripped = postText.value.replace(/\n\n#[\w\s#]+$/, '').trimEnd()
+    postText.value = block ? `${stripped}${block}` : stripped
+  }
+}
+
+function handleRemoveHashtag(tag: string): void {
+  hashtags.removeHashtag(tag)
+  const block = hashtags.buildHashtagBlock()
+  const stripped = postText.value.replace(/\n\n#[\w\s#]+$/, '').trimEnd()
+  postText.value = block ? `${stripped}${block}` : stripped
+}
+
+function handleApplySet(set: import('@modules/publishing/services/hashtag-api').HashtagSavedSet): void {
+  hashtags.applySet(set)
+  const block = hashtags.buildHashtagBlock()
+  const stripped = postText.value.replace(/\n\n#[\w\s#]+$/, '').trimEnd()
+  postText.value = block ? `${stripped}${block}` : stripped
+}
+
+async function handleSaveCurrentAsSet(tagList: string[]): Promise<void> {
+  const name = prompt(t('composer.hashtags.setNamePrompt'))
+  if (name?.trim()) {
+    await hashtags.saveSet(name.trim(), tagList)
+  }
+}
+
+async function handleDeleteSet(setId: string): Promise<void> {
+  await hashtags.deleteSet(setId)
 }
 
 function handleEmojiPicker() {
   postText.value = `${postText.value}${postText.value ? ' ' : ''}🙂`
 }
 
-// AI Assist helper
-function handleAiAssist() {
-  if (!postText.value.trim()) {
-    postText.value = 'Profile Tailors is officially launching! Minimalist scheduling, analytics, and multichannel delivery designed for creators. 🚀'
+function openAiAssistant(): void {
+  isAiPanelOpen.value = true
+  aiReviewError.value = ''
+}
+
+function closeAiAssistant(): void {
+  isAiPanelOpen.value = false
+  aiReviewError.value = ''
+}
+
+function resetHashtagPanelState(): void {
+  isHashtagPanelOpen.value = false
+  hashtags.addedHashtags.value = new Set()
+}
+
+function resetAiAssistantState(): void {
+  isAiPanelOpen.value = false
+  isAiGenerating.value = false
+  aiPrompt.value = ''
+  aiIndustry.value = ''
+  aiTargetAudience.value = ''
+  aiFormat.value = 'standard'
+  aiTone.value = 'professional'
+  aiLength.value = 'medium'
+  aiKeywordsRaw.value = ''
+  aiReviewError.value = ''
+  aiResetAt.value = null
+  aiVersions.value = []
+  aiSelectedVersionId.value = null
+}
+
+function parseKeywords(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((keyword) => keyword.trim())
+    .filter((keyword) => keyword.length > 0)
+}
+
+function buildAiRequest(prompt: string) {
+  return {
+    prompt,
+    context: {
+      user_profile: auth.user
+        ? {
+            display_name: auth.displayName,
+            email: auth.user.email,
+            username: auth.user.username,
+          }
+        : undefined,
+      industry: aiIndustry.value.trim() || undefined,
+      target_audience: aiTargetAudience.value.trim() || undefined,
+    },
+    options: {
+      format: aiFormat.value,
+      tone: aiTone.value,
+      length: aiLength.value,
+      keywords: parseKeywords(aiKeywordsRaw.value),
+    },
+  }
+}
+
+function isAiQuotaError(error: unknown): error is Error & { status?: number; resetAt?: string; upgradeOptions?: string[] } {
+  return Boolean(
+    error &&
+    typeof error === 'object' &&
+    'status' in error &&
+    (error as { status?: number }).status === 429,
+  )
+}
+
+function resolveAiResetAt(resetAt: string | null): string {
+  if (!resetAt) {
+    const fallback = new Date()
+    fallback.setMonth(fallback.getMonth() + 1, 1)
+    fallback.setHours(0, 0, 0, 0)
+    return fallback.toISOString()
+  }
+
+  return resetAt
+}
+
+function setAiVersions(content: string, keepExisting = false): void {
+  const nextVersion: AiVersion = {
+    id: crypto.randomUUID(),
+    content,
+  }
+
+  if (keepExisting && aiVersions.value.length > 0) {
+    aiVersions.value = [...aiVersions.value, nextVersion].slice(-2)
+    aiSelectedVersionId.value = nextVersion.id
     return
   }
-  isAiProcessing.value = true
-  setTimeout(() => {
-    postText.value = `${postText.value}\n\nProgramado vía @ProfileTailors`
-    isAiProcessing.value = false
-  }, 800)
+
+  aiVersions.value = [nextVersion]
+  aiSelectedVersionId.value = nextVersion.id
+}
+
+async function runAiGeneration(mode: 'generate' | 'optimize' | 'regenerate'): Promise<void> {
+  const prompt = aiPrompt.value.trim()
+  const draft = postText.value.trim()
+
+  if (mode === 'generate' && !prompt) {
+    aiReviewError.value = t('composer.ai.errors.promptRequired')
+    return
+  }
+
+  if (mode === 'optimize' && !draft) {
+    aiReviewError.value = t('composer.ai.errors.currentDraftRequired')
+    return
+  }
+
+  if (mode === 'regenerate' && !aiSelectedContent.value.trim()) {
+    aiReviewError.value = t('composer.ai.errors.previousVersionRequired')
+    return
+  }
+
+  isAiGenerating.value = true
+  aiReviewError.value = ''
+  aiResetAt.value = null
+
+  try {
+    const request = buildAiRequest(prompt || draft)
+    const response = mode === 'optimize'
+      ? await optimizeAiPostContent({
+          ...request,
+          content: draft,
+        })
+      : mode === 'regenerate'
+        ? await regenerateAiPostContent({
+            ...request,
+            previous_content: aiSelectedContent.value,
+          })
+        : await generateAiPostContent(request)
+
+    const nextContent = response.content.trim()
+    if (!nextContent) {
+      throw new Error(t('composer.ai.errors.emptyResponse'))
+    }
+
+    setAiVersions(nextContent, mode === 'regenerate')
+    isAiPanelOpen.value = true
+  } catch (error) {
+    if (isAiQuotaError(error)) {
+      aiResetAt.value = resolveAiResetAt(error.resetAt ?? null)
+      aiReviewError.value = t('composer.ai.errors.monthlyLimitReached')
+      return
+    }
+
+    aiReviewError.value = error instanceof Error ? error.message : t('composer.ai.errors.generic')
+  } finally {
+    isAiGenerating.value = false
+  }
+}
+
+async function handleAiAssist(): Promise<void> {
+  openAiAssistant()
+  if (postText.value.trim()) {
+    aiPrompt.value = postText.value.trim()
+  }
+}
+
+function acceptAiVersion(): void {
+  if (!aiSelectedContent.value.trim()) {
+    return
+  }
+
+  postText.value = aiSelectedContent.value.trim()
+  closeAiAssistant()
 }
 
 /**
@@ -806,6 +1059,7 @@ function resetPostForm() {
   picker.draftAttachmentIds.value = []
   picker.pickerSelectionIds.value = []
   picker.resetPickerSessionTracking()
+  resetAiAssistantState()
 }
 
 function finalizeAfterCreate(shouldCreateAnother: boolean) {
@@ -938,13 +1192,13 @@ async function handleCreateSubmit(
             @select="selectChannel"
           />
 
-          <div class="flex flex-1 flex-col rounded-[24px] border border-border-visible bg-bg-primary/70 min-h-[420px]">
+          <div class="flex flex-1 flex-col rounded-3xl border border-border-visible bg-bg-primary/70 min-h-105">
             <label for="create-post-text" class="sr-only">Post content</label>
             <textarea
               id="create-post-text"
               v-model="postText"
               :placeholder="$t('composer.placeholder')"
-              class="min-h-[260px] w-full flex-1 resize-none bg-transparent p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
+              class="min-h-65 w-full flex-1 resize-none bg-transparent p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
               data-testid="composer-textarea"
               @dragover="handleComposerSurfaceDragOver"
               @dragleave="handleComposerSurfaceDragLeave"
@@ -958,7 +1212,7 @@ async function handleCreateSubmit(
                   v-for="asset in visibleInlineAttachments"
                   :key="asset.key"
                   :title="asset.name"
-                  class="group relative h-[118px] w-[118px] overflow-hidden rounded-[18px] border border-border-visible bg-bg-primary/50"
+                  class="group relative h-29.5 w-29.5 overflow-hidden rounded-[18px] border border-border-visible bg-bg-primary/50"
                   :data-testid="asset.kind === 'draft' ? `inline-attachment-${asset.assetId}` : 'inline-local-upload'"
                 >
                   <img
@@ -980,13 +1234,13 @@ async function handleCreateSubmit(
                     class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55 px-3 text-center backdrop-blur-sm"
                     data-testid="inline-upload-overlay"
                   >
-                    <Spinner class="size-5 text-[var(--upload-accent)]" />
+                    <Spinner class="size-5 text-(--upload-accent)" />
                     <p class="text-xs font-medium leading-tight text-white">
                       {{ asset.kind === 'local-upload' ? (currentUploadStateLabel ?? asset.uploadStateLabel ?? t('composer.media.uploadingProgress', { progress: Math.round(normalizedUploadProgress ?? 0) })) : asset.uploadStateLabel }}
                     </p>
                     <Progress
                       :model-value="asset.kind === 'local-upload' ? (normalizedUploadProgress ?? 0) : (asset.uploadProgress ?? 0)"
-                      class="h-1 w-full bg-white/15 [&_[data-slot=progress-indicator]]:bg-[var(--upload-accent)]"
+                      class="h-1 w-full bg-white/15 **:data-[slot=progress-indicator]:bg-(--upload-accent)"
                     />
                     <p class="text-[10px] leading-tight text-white/70">
                       {{ t('composer.media.keepEditingWhileUploading') }}
@@ -1006,7 +1260,7 @@ async function handleCreateSubmit(
 
                 <div
                   v-if="hiddenInlineAttachmentCount > 0"
-                  class="flex h-[118px] w-[118px] items-center justify-center rounded-[18px] border border-dashed border-border-visible bg-bg-primary/30 font-mono text-xs tracking-[0.2em] text-text-secondary"
+                  class="flex h-29.5 w-29.5 items-center justify-center rounded-[18px] border border-dashed border-border-visible bg-bg-primary/30 font-mono text-xs tracking-[0.2em] text-text-secondary"
                   data-testid="inline-attachment-overflow"
                 >
                   +{{ hiddenInlineAttachmentCount }}
@@ -1014,8 +1268,8 @@ async function handleCreateSubmit(
 
                 <button
                   type="button"
-                  class="flex h-[118px] w-[118px] cursor-pointer flex-col items-center justify-center rounded-[18px] border border-dashed px-4 text-center transition"
-                  :class="isDropzoneActive ? 'border-[var(--upload-accent)] bg-[var(--upload-accent)]/10' : 'border-border-visible bg-bg-primary/30 hover:border-text-display/40'"
+                  class="flex h-29.5 w-29.5 cursor-pointer flex-col items-center justify-center rounded-[18px] border border-dashed px-4 text-center transition"
+                  :class="isDropzoneActive ? 'border-(--upload-accent) bg-(--upload-accent)/10' : 'border-border-visible bg-bg-primary/30 hover:border-text-display/40'"
                   data-testid="composer-inline-dropzone"
                   @click="openUploadPicker"
                   @dragover="handleDropzoneDragOver"
@@ -1025,7 +1279,7 @@ async function handleCreateSubmit(
                   <ImageIcon class="mb-3 size-6 text-text-secondary" />
                   <p class="text-[12px] leading-5 text-text-secondary">
                     {{ t('composer.media.dropzoneTitle') }}
-                    <span class="block font-medium text-[var(--upload-accent)]">{{ t('composer.media.dropzoneBody') }}</span>
+                    <span class="block font-medium text-(--upload-accent)">{{ t('composer.media.dropzoneBody') }}</span>
                   </p>
                 </button>
               </div>
@@ -1098,19 +1352,23 @@ async function handleCreateSubmit(
                     <Smile class="size-4" />
                   </button>
                   <button type="button"
-                    @click="appendHashtag"
+                    @click="toggleHashtagPanel"
+                    :aria-pressed="isHashtagPanelOpen"
+                    :aria-label="t('composer.hashtags.togglePanel')"
                     class="flex h-10 w-10 items-center justify-center rounded-xl text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
-                    title="Insert tag"
+                    :class="isHashtagPanelOpen ? 'bg-bg-surface text-text-display' : ''"
                   >
                     <Hash class="size-4" />
                   </button>
                   <button type="button"
                     @click="handleAiAssist"
+                    :disabled="isAiGenerating"
                     class="flex h-10 items-center gap-1 rounded-xl px-2 text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
-                    title="AI Assist"
+                    :title="t('composer.ai.button')"
+                    data-testid="composer-ai-assist"
                   >
                     <Sparkles class="size-4" />
-                    <span class="font-mono text-[8px] uppercase tracking-wider font-bold">AI</span>
+                    <span class="font-mono text-[8px] font-bold uppercase tracking-wider">AI</span>
                   </button>
                 </div>
 
@@ -1132,6 +1390,229 @@ async function handleCreateSubmit(
                 aria-label="Upload media file"
                 @change="handleFileSelect"
               >
+
+              <div v-if="isAiPanelOpen" class="mt-4 rounded-[22px] border border-border-visible bg-bg-surface p-4 shadow-lg shadow-black/5">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="space-y-1">
+                    <p class="font-mono text-[9px] font-bold uppercase tracking-[0.24em] text-text-secondary">
+                      {{ t('composer.ai.title') }}
+                    </p>
+                    <p class="text-sm text-text-secondary">
+                      {{ t('composer.ai.description') }}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary transition hover:text-text-display"
+                    :aria-label="t('composer.ai.close')"
+                    @click="closeAiAssistant"
+                  >
+                    <X class="size-3.5" />
+                  </button>
+                </div>
+
+                <div class="mt-4 grid gap-3 lg:grid-cols-2">
+                  <div class="space-y-2 lg:col-span-2">
+                    <label class="font-mono text-[9px] font-bold uppercase tracking-widest text-text-secondary" for="ai-prompt-input">
+                      {{ t('composer.ai.prompt') }}
+                    </label>
+                    <textarea
+                      id="ai-prompt-input"
+                      v-model="aiPrompt"
+                      rows="3"
+                      class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
+                      :placeholder="t('composer.ai.promptPlaceholder')"
+                      data-testid="composer-ai-prompt"
+                    />
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="font-mono text-[9px] font-bold uppercase tracking-widest text-text-secondary" for="ai-industry-input">
+                      {{ t('composer.ai.industry') }}
+                    </label>
+                    <input
+                      id="ai-industry-input"
+                      v-model="aiIndustry"
+                      type="text"
+                      class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
+                      :placeholder="t('composer.ai.industryPlaceholder')"
+                    >
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="font-mono text-[9px] font-bold uppercase tracking-widest text-text-secondary" for="ai-audience-input">
+                      {{ t('composer.ai.targetAudience') }}
+                    </label>
+                    <input
+                      id="ai-audience-input"
+                      v-model="aiTargetAudience"
+                      type="text"
+                      class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
+                      :placeholder="t('composer.ai.targetAudiencePlaceholder')"
+                    >
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="font-mono text-[9px] font-bold uppercase tracking-widest text-text-secondary" for="ai-format-select">
+                      {{ t('composer.ai.format') }}
+                    </label>
+                    <select
+                      id="ai-format-select"
+                      v-model="aiFormat"
+                      class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body focus:border-text-display focus:outline-none"
+                    >
+                      <option value="standard">{{ t('composer.ai.formats.standard') }}</option>
+                      <option value="thread">{{ t('composer.ai.formats.thread') }}</option>
+                      <option value="tips">{{ t('composer.ai.formats.tips') }}</option>
+                      <option value="question">{{ t('composer.ai.formats.question') }}</option>
+                      <option value="story">{{ t('composer.ai.formats.story') }}</option>
+                    </select>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="font-mono text-[9px] font-bold uppercase tracking-widest text-text-secondary" for="ai-tone-select">
+                      {{ t('composer.ai.tone') }}
+                    </label>
+                    <select
+                      id="ai-tone-select"
+                      v-model="aiTone"
+                      class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body focus:border-text-display focus:outline-none"
+                    >
+                      <option value="professional">{{ t('composer.ai.tones.professional') }}</option>
+                      <option value="casual">{{ t('composer.ai.tones.casual') }}</option>
+                      <option value="inspirational">{{ t('composer.ai.tones.inspirational') }}</option>
+                      <option value="educational">{{ t('composer.ai.tones.educational') }}</option>
+                    </select>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="font-mono text-[9px] font-bold uppercase tracking-widest text-text-secondary" for="ai-length-select">
+                      {{ t('composer.ai.length') }}
+                    </label>
+                    <select
+                      id="ai-length-select"
+                      v-model="aiLength"
+                      class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body focus:border-text-display focus:outline-none"
+                    >
+                      <option value="short">{{ t('composer.ai.lengths.short') }}</option>
+                      <option value="medium">{{ t('composer.ai.lengths.medium') }}</option>
+                      <option value="long">{{ t('composer.ai.lengths.long') }}</option>
+                    </select>
+                  </div>
+
+                  <div class="space-y-2 lg:col-span-2">
+                    <label class="font-mono text-[9px] font-bold uppercase tracking-widest text-text-secondary" for="ai-keywords-input">
+                      {{ t('composer.ai.keywords') }}
+                    </label>
+                    <input
+                      id="ai-keywords-input"
+                      v-model="aiKeywordsRaw"
+                      type="text"
+                      class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
+                      :placeholder="t('composer.ai.keywordsPlaceholder')"
+                    >
+                  </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    class="rounded-full bg-(--upload-accent) px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    :disabled="isAiGenerating"
+                    @click="runAiGeneration('generate')"
+                    data-testid="composer-ai-generate"
+                  >
+                    {{ isAiGenerating ? t('composer.ai.generating') : t('composer.ai.generate') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded-full border border-border-visible bg-bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-text-body transition hover:border-text-display hover:text-text-display disabled:cursor-not-allowed disabled:opacity-60"
+                    :disabled="isAiGenerating || !postText.trim()"
+                    @click="runAiGeneration('optimize')"
+                    data-testid="composer-ai-optimize"
+                  >
+                    {{ t('composer.ai.optimize') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded-full border border-border-visible bg-bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-text-body transition hover:border-text-display hover:text-text-display disabled:cursor-not-allowed disabled:opacity-60"
+                    :disabled="isAiGenerating || !aiSelectedContent.trim()"
+                    @click="runAiGeneration('regenerate')"
+                    data-testid="composer-ai-regenerate"
+                  >
+                    {{ t('composer.ai.regenerate') }}
+                  </button>
+                </div>
+
+                <p
+                  v-if="aiReviewError"
+                  role="alert"
+                  class="mt-3 rounded-2xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
+                >
+                  {{ aiReviewError }}
+                </p>
+
+                <div v-if="aiResetAt" class="mt-4 rounded-2xl border border-warning/30 bg-warning/10 p-4 text-xs text-text-body">
+                  <p class="font-semibold text-text-display">
+                    {{ t('composer.ai.errors.monthlyLimitReached') }}
+                  </p>
+                  <p class="mt-1 text-text-secondary">
+                    {{ t('composer.ai.resetDate', { date: aiResetLabel }) }}
+                  </p>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <span class="rounded-full border border-border-visible bg-bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-text-body">Free 10/mo</span>
+                    <span class="rounded-full border border-border-visible bg-bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-text-body">Pro 100/mo</span>
+                    <span class="rounded-full border border-border-visible bg-bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-text-body">Team 500/mo</span>
+                  </div>
+                </div>
+
+                <div v-if="aiVersions.length > 0" class="mt-4 space-y-3">
+                  <div v-if="aiHasMultipleVersions" class="grid gap-3 lg:grid-cols-2">
+                    <button
+                      v-for="version in aiVersions"
+                      :key="version.id"
+                      type="button"
+                      class="rounded-2xl border p-4 text-left transition"
+                      :class="version.id === aiSelectedVersionId ? 'border-(--upload-accent) bg-(--upload-accent)/5' : 'border-border-visible bg-bg-primary hover:border-text-display/50'"
+                      :data-testid="`composer-ai-version-${aiVersions.indexOf(version) + 1}`"
+                      @click="aiSelectedVersionId = version.id"
+                    >
+                      <p class="mb-2 text-[9px] font-bold uppercase tracking-[0.24em] text-text-secondary">
+                        {{ t('composer.ai.version') }} {{ aiVersions.indexOf(version) + 1 }}
+                      </p>
+                      <p class="whitespace-pre-wrap text-sm leading-6 text-text-body">
+                        {{ version.content }}
+                      </p>
+                    </button>
+                  </div>
+
+                  <div v-else class="rounded-2xl border border-border-visible bg-bg-primary p-4">
+                    <p class="mb-2 text-[9px] font-bold uppercase tracking-[0.24em] text-text-secondary">
+                      {{ t('composer.ai.reviewTitle') }}
+                    </p>
+                    <p class="whitespace-pre-wrap text-sm leading-6 text-text-body">
+                      {{ aiSelectedContent }}
+                    </p>
+                  </div>
+
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-xs text-text-secondary">
+                      {{ t('composer.ai.reviewHint') }}
+                    </p>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        class="rounded-full border border-border-visible bg-bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-text-body transition hover:border-text-display hover:text-text-display"
+                        @click="acceptAiVersion"
+                        data-testid="composer-ai-accept"
+                      >
+                        {{ t('composer.ai.accept') }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <p
@@ -1185,6 +1666,24 @@ async function handleCreateSubmit(
             />
           </div>
         </div>
+
+        <HashtagSuggestionPanel
+          v-if="isHashtagPanelOpen"
+          :suggestions="hashtags.suggestions.value"
+          :trending="hashtags.trending.value"
+          :saved-sets="hashtags.savedSets.value"
+          :added-hashtags="hashtags.addedHashtags.value"
+          :hashtag-count="hashtags.hashtagCount.value"
+          :is-at-limit="hashtags.isAtLimit.value"
+          :is-approaching-limit="hashtags.isApproachingLimit.value"
+          :is-analyzing="hashtags.isAnalyzing.value"
+          :is-saving="hashtags.isSaving.value"
+          @add="handleAddHashtag"
+          @remove="handleRemoveHashtag"
+          @apply-set="handleApplySet"
+          @save-current-as-set="handleSaveCurrentAsSet"
+          @delete-set="handleDeleteSet"
+        />
 
         <PostPreviewPanel
           provider="linkedin"

@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: hashtags-001-create-hashtag-saved-sets
+      author: profiletailors
+      changes:
+        - createTable:
+            tableName: hashtag_saved_sets
+            columns:
+              - column:
+                  name: id
+                  type: varchar(128)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_hashtag_saved_sets_workspace
+                    references: workspaces(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hashtags_json
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            tableName: hashtag_saved_sets
+            indexName: idx_hashtag_saved_sets_workspace
+            columns:
+              - column:
+                  name: workspace_id
