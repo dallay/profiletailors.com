@@ -317,8 +317,18 @@ class PublishingBddSteps {
 
     @Then("the recurring response status should be {string}")
     fun thenRecurringResponseStatusShouldBe(status: String) {
-        val actualStatus: String = parsePublishingResponseField("status")
+        val actualStatus: String = parseRecurringResponseStatus()
         assertEquals(status.uppercase(), actualStatus)
+    }
+
+    private fun parseRecurringResponseStatus(): String {
+        val body = publishingResponseBodyText()
+        val map: Map<String, Any?> = objectMapper.readValue(body)
+        val status = when (val schedules = map["schedules"]) {
+            is List<*> -> schedules.firstOrNull()?.let { (it as? Map<*, *>)?.get("status") }
+            else -> map["status"]
+        }
+        return requireNotNull(status as? String) { "Field 'status' is null in response: $body" }
     }
 
     @Then("at least {int} recurring publications should be scheduled")
