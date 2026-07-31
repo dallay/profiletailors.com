@@ -2964,6 +2964,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = recordingTransactionRunner(),
             clock = fixedClock,
         )
 
@@ -2987,6 +2988,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = recordingTransactionRunner(),
             clock = fixedClock,
         )
 
@@ -3018,6 +3020,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = InMemoryPublicationJobRepository(),
+            transactionRunner = recordingTransactionRunner(),
             clock = fixedClock,
         )
 
@@ -3046,6 +3049,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = InMemoryPublicationRepository(publication),
             publicationJobRepository = InMemoryPublicationJobRepository(),
+            transactionRunner = recordingTransactionRunner(),
             clock = fixedClock,
             principalIdentityLookup = PendingEmailIdentityLookup(),
             emailVerificationPolicy = strictEmailVerificationPolicy,
