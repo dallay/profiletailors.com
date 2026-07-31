@@ -97,7 +97,6 @@ interface NotificationEventRepository {
     ): List<NotificationEvent>
 }
 
-
 object NoOpNotificationEventRepository : NotificationEventRepository {
     override suspend fun record(event: NotificationEvent): NotificationEvent = event
     override suspend fun findByWorkspace(

@@ -7,7 +7,9 @@ import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
+import com.profiletailors.smp.publishing.application.CreateRecurringScheduleCommand
 import com.profiletailors.smp.publishing.application.DeletePublicationCommand
+import com.profiletailors.smp.publishing.application.DeleteRecurringScheduleCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
@@ -16,24 +18,22 @@ import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
 import com.profiletailors.smp.publishing.application.ListProviderCatalogQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsResponse
+import com.profiletailors.smp.publishing.application.ListRecurringSchedulesQuery
 import com.profiletailors.smp.publishing.application.ProviderCatalogResponse
 import com.profiletailors.smp.publishing.application.PublicationResult
-import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
-import com.profiletailors.smp.publishing.application.RetryPublicationCommand
-import com.profiletailors.smp.publishing.application.CreateRecurringScheduleCommand
-import com.profiletailors.smp.publishing.application.DeleteRecurringScheduleCommand
-import com.profiletailors.smp.publishing.application.ListRecurringSchedulesQuery
 import com.profiletailors.smp.publishing.application.RecurringScheduleResult
 import com.profiletailors.smp.publishing.application.RecurringSchedulesResponse
-import com.profiletailors.smp.publishing.application.UpdateRecurringScheduleCommand
-import com.profiletailors.smp.publishing.domain.RecurrenceFrequency
-import com.profiletailors.smp.publishing.domain.RecurrenceRule
-import com.profiletailors.smp.publishing.domain.RecurringScheduleStatus
+import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
+import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
+import com.profiletailors.smp.publishing.application.UpdateRecurringScheduleCommand
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.ProviderCatalogItem
 import com.profiletailors.smp.publishing.domain.PublicationStatus
+import com.profiletailors.smp.publishing.domain.RecurrenceFrequency
+import com.profiletailors.smp.publishing.domain.RecurrenceRule
+import com.profiletailors.smp.publishing.domain.RecurringScheduleStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
@@ -410,7 +410,10 @@ class RecurringScheduleController(
     private val resourceContextProvider: ResourceContextProvider,
 ) {
     @PostMapping(consumes = ["application/json"])
-    suspend fun create(@PathVariable workspaceId: String, @Valid @RequestBody request: RecurringScheduleRequest): RecurringScheduleResult {
+    suspend fun create(
+        @PathVariable workspaceId: String,
+        @Valid @RequestBody request: RecurringScheduleRequest,
+    ): RecurringScheduleResult {
         requireWorkspacePath(workspaceId)
         return mediator.send(request.toCreateCommand())
     }
@@ -422,7 +425,11 @@ class RecurringScheduleController(
     }
 
     @PatchMapping("/{id}", consumes = ["application/json"])
-    suspend fun update(@PathVariable workspaceId: String, @PathVariable id: String, @Valid @RequestBody request: RecurringSchedulePatchRequest): RecurringScheduleResult {
+    suspend fun update(
+        @PathVariable workspaceId: String,
+        @PathVariable id: String,
+        @Valid @RequestBody request: RecurringSchedulePatchRequest,
+    ): RecurringScheduleResult {
         requireWorkspacePath(workspaceId)
         return mediator.send(request.toCommand(id))
     }
@@ -451,7 +458,17 @@ data class RecurringScheduleRequest(
     val timezone: String = "UTC",
 ) {
     fun toCreateCommand() = CreateRecurringScheduleCommand(
-        templatePostId, RecurrenceRule(RecurrenceFrequency.valueOf(frequency.uppercase()), interval, daysOfWeek, dayOfMonth, endDate, maxOccurrences), startsAt, timezone,
+        templatePostId,
+        RecurrenceRule(
+            RecurrenceFrequency.valueOf(frequency.uppercase()),
+            interval,
+            daysOfWeek,
+            dayOfMonth,
+            endDate,
+            maxOccurrences,
+        ),
+        startsAt,
+        timezone,
     )
 }
 
@@ -468,7 +485,18 @@ data class RecurringSchedulePatchRequest(
 ) {
     fun toCommand(id: String) = UpdateRecurringScheduleCommand(
         id,
-        frequency?.let { RecurrenceRule(RecurrenceFrequency.valueOf(it.uppercase()), interval ?: 1, daysOfWeek ?: emptySet(), dayOfMonth, endDate, maxOccurrences) },
-        startsAt, timezone, status?.let { RecurringScheduleStatus.valueOf(it.uppercase()) },
+        frequency?.let {
+            RecurrenceRule(
+                RecurrenceFrequency.valueOf(it.uppercase()),
+                interval ?: 1,
+                daysOfWeek ?: emptySet(),
+                dayOfMonth,
+                endDate,
+                maxOccurrences,
+            )
+        },
+        startsAt,
+        timezone,
+        status?.let { RecurringScheduleStatus.valueOf(it.uppercase()) },
     )
 }

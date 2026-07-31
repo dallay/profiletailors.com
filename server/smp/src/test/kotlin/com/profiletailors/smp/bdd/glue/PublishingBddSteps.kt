@@ -314,7 +314,7 @@ class PublishingBddSteps {
 
     @Then("the recurring response status should be {string}")
     fun thenRecurringResponseStatusShouldBe(status: String) {
-        assertTrue(requirePublishingResponseBody().contains("\"status\":\"${status.uppercase()}\""))
+        assertTrue(requirePublishingResponseBody().contains(""""status":"${status.uppercase()}"""))
     }
 
     @Then("at least {int} recurring publications should be scheduled")
@@ -324,7 +324,7 @@ class PublishingBddSteps {
 
     private fun extractJsonString(field: String): String? {
         val body = requirePublishingResponseBody()
-        return Regex("\\\"$field\\\":\\\"([^\\\"]+)\\\"").find(body)?.groupValues?.get(1)
+        return Regex(""""$field":"([^"]+)"""").find(body)?.groupValues?.get(1)
     }
 
     private fun requirePublishingResponseBody(): String = String(

@@ -14,6 +14,7 @@ import java.time.LocalDate
 import java.time.OffsetDateTime
 
 @Repository
+@Suppress("StringLiteralDuplication")
 class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClient) : RecurringScheduleRepository {
     override suspend fun create(schedule: RecurringSchedule): RecurringSchedule = write(schedule, insert = true)
     override suspend fun update(schedule: RecurringSchedule): RecurringSchedule = write(schedule, insert = false)
@@ -73,8 +74,10 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
             ?: spec.bindNull("maxOccurrences", Int::class.java)
         spec = schedule.nextScheduledAt?.let { spec.bind("nextScheduledAt", it) }
             ?: spec.bindNull("nextScheduledAt", Instant::class.java)
-        if (insert) spec = spec.bind("createdBy", schedule.createdBy).bind("templatePostId", schedule.templatePostId)
-            .bind("createdAt", schedule.createdAt ?: now)
+        if (insert) {
+            spec = spec.bind("createdBy", schedule.createdBy).bind("templatePostId", schedule.templatePostId)
+                .bind("createdAt", schedule.createdAt ?: now)
+        }
         spec.fetch().rowsUpdated().awaitSingle()
         return schedule.copy(createdAt = schedule.createdAt ?: now, updatedAt = now)
     }
@@ -95,10 +98,12 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
                 recurrenceRule = RecurrenceRule(
                     frequency = RecurrenceFrequency.valueOf(requireNotNull(row.get("frequency", String::class.java))),
                     interval = requireNotNull(row.get("recurrence_interval", Int::class.java)),
-                    daysOfWeek = row.get("days_of_week", String::class.java).orEmpty().split(",").filter { it.isNotBlank() }.map { it.toInt() }.toSet(),
-                    dayOfMonth = row.get("day_of_month", Int::class.java),
+                    daysOfWeek = row.get("days_of_week", String::class.java).orEmpty().split(",").filter {
+                        it.isNotBlank()
+                    }.map { it.toInt() }.toSet(),
+                    dayOfMonth = row.get("day_of_month", java.lang.Integer::class.java)?.toInt(),
                     endDate = row.get("end_date", LocalDate::class.java),
-                    maxOccurrences = row.get("max_occurrences", Int::class.java),
+                    maxOccurrences = row.get("max_occurrences", java.lang.Integer::class.java)?.toInt(),
                 ),
                 timezone = requireNotNull(row.get("timezone", String::class.java)),
                 nextScheduledAt = row.get("next_scheduled_at", OffsetDateTime::class.java)?.toInstant(),
