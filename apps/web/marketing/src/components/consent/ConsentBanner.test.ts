@@ -4,6 +4,13 @@ import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { CURRENT_CONSENT_VERSION, CURRENT_POLICY_VERSION, PT_CONSENT_KEY } from '../../constants/consent'
 
+declare global {
+  interface Window {
+    __PT_DNT?: boolean
+    __consentReload: () => void
+  }
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /**
@@ -46,9 +53,16 @@ function extractConsentBannerScript(): string {
     `const validateConsentReceipt = (receipt) => receipt\n`
   )
 
-  // Strip the small set of TypeScript-only annotations used in this file.
+  // Strip TypeScript annotations from focus trap helpers.
   code = code
+    .replace('let previousActiveElement: HTMLElement | null = null', 'let previousActiveElement = null')
+    .replace('let focusTrapHandler: ((e: KeyboardEvent) => void) | null = null', 'let focusTrapHandler = null')
+    .replace('function getFocusableElements(container: HTMLElement): HTMLElement[] {', 'function getFocusableElements(container) {')
+    .replace('function activateFocusTrap(container: HTMLElement) {', 'function activateFocusTrap(container) {')
+    .replace('document.activeElement as HTMLElement | null', 'document.activeElement')
     .replaceAll(' as HTMLButtonElement', '')
+    .replace('(e: KeyboardEvent) => {', '(e) => {')
+    .replace('querySelectorAll<HTMLElement>', 'querySelectorAll')
     .replace('function saveConsentChoice(analytics: boolean) {', 'function saveConsentChoice(analytics) {')
     .replace('function loadConsent(): ConsentReceipt | null {', 'function loadConsent() {')
     .replace('const receipt: ConsentReceipt = {', 'const receipt = {')
@@ -58,7 +72,7 @@ function extractConsentBannerScript(): string {
   // object.
   code = code.replace('window.location.reload()', 'window.__consentReload()')
 
-  if (/:\s*(HTMLButtonElement|ConsentReceipt|boolean)\b/.test(code) || /\bimport\b/.test(code)) {
+  if (/:\s*(HTMLButtonElement|HTMLElement|ConsentReceipt|boolean|KeyboardEvent)\b/.test(code) || /\bimport\b/.test(code)) {
     throw new Error(
       'ConsentBanner.astro script extraction left unstripped TypeScript syntax — update the stripping rules in ConsentBanner.test.ts to match the current source.'
     )
@@ -89,14 +103,12 @@ describe('ConsentBanner client script', () => {
 
   beforeEach(() => {
     localStorage.clear()
-    // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only globals
-    delete (window as any).__PT_DNT
+    delete window.__PT_DNT
     // The extracted script calls window.__consentReload() instead of
     // window.location.reload() because jsdom's location.reload is
     // non-configurable and can't be mocked.
     reloadSpy = { called: false, callCount: 0 }
-    // biome-ignore lint/suspicious/noExplicitAny: cleaning up test-only globals
-    ;(window as any).__consentReload = () => {
+    window.__consentReload = (): void => {
       reloadSpy.called = true
       reloadSpy.callCount++
     }
@@ -108,7 +120,7 @@ describe('ConsentBanner client script', () => {
 
   it('shows the banner and defaults the analytics toggle ON when there is no stored consent and no DNT signal', () => {
     renderBannerFixture()
-    ;(window as any).__PT_DNT = false
+    window.__PT_DNT = false
 
     runConsentBannerScript()
 
@@ -122,7 +134,7 @@ describe('ConsentBanner client script', () => {
 
   it('shows the banner and defaults the analytics toggle OFF when a DNT/GPC signal is present', () => {
     renderBannerFixture()
-    ;(window as any).__PT_DNT = true
+    window.__PT_DNT = true
 
     runConsentBannerScript()
 
@@ -149,7 +161,7 @@ describe('ConsentBanner client script', () => {
 
   it('toggles aria-checked and the "on" class when the analytics switch is clicked', () => {
     renderBannerFixture()
-    ;(window as any).__PT_DNT = false
+    window.__PT_DNT = false
 
     runConsentBannerScript()
 
@@ -167,7 +179,7 @@ describe('ConsentBanner client script', () => {
 
   it('saves a receipt reflecting the current toggle state, reloads, and hides the banner when "Save preferences" is clicked', () => {
     renderBannerFixture()
-    ;(window as any).__PT_DNT = false
+    window.__PT_DNT = false
 
     runConsentBannerScript()
 
@@ -197,7 +209,7 @@ describe('ConsentBanner client script', () => {
 
   it('records dnt=true on the saved receipt when a privacy signal was detected', () => {
     renderBannerFixture()
-    ;(window as any).__PT_DNT = true
+    window.__PT_DNT = true
 
     runConsentBannerScript()
 
@@ -211,7 +223,7 @@ describe('ConsentBanner client script', () => {
     // The template renders `data-consent-accept-all` / `data-consent-reject-all`
     // and the script queries those exact same selectors.
     renderBannerFixture()
-    ;(window as any).__PT_DNT = false
+    window.__PT_DNT = false
 
     runConsentBannerScript()
 

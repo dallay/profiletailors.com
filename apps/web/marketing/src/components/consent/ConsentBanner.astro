@@ -4,7 +4,7 @@ import { useTranslations } from '../../i18n/utils'
 const t = useTranslations(Astro.currentLocale || 'en')
 ---
 
-<div id="consent-banner" role="dialog" aria-labelledby="consent-heading" aria-modal="true" hidden>
+<div id="consent-banner" role="dialog" aria-labelledby="consent-heading" aria-modal="true" tabindex="-1" hidden>
   <div class="consent-backdrop"></div>
   <div class="consent-container">
     <h2 id="consent-heading">{t.consent.banner.heading}</h2>
@@ -222,6 +222,21 @@ const t = useTranslations(Astro.currentLocale || 'en')
     border-color: var(--color-accent, #0ea5e9);
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .consent-toggle,
+    .consent-toggle-thumb {
+      transition: none;
+    }
+
+    .consent-button {
+      transition: none;
+    }
+
+    #consent-banner {
+      animation: none;
+    }
+  }
+
   @media (max-width: 640px) {
     .consent-container {
       width: 95%;
@@ -243,7 +258,83 @@ const t = useTranslations(Astro.currentLocale || 'en')
   import type { ConsentReceipt } from '@profiletailors/shared-web'
   import { validateConsentReceipt } from '@profiletailors/shared-web'
 
-  // Initialize banner
+  // --- Focus trap helpers ---
+  let previousActiveElement: HTMLElement | null = null
+  let focusTrapHandler: ((e: KeyboardEvent) => void) | null = null
+
+  function getFocusableElements(container: HTMLElement): HTMLElement[] {
+    const selectors = [
+      'a[href]',
+      'button:not([disabled])',
+      'textarea:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ]
+    return Array.from(container.querySelectorAll<HTMLElement>(selectors.join(', '))).filter(
+      (el) => {
+        const style = getComputedStyle(el)
+        return style.display !== 'none' && style.visibility !== 'hidden'
+      },
+    )
+  }
+
+  function activateFocusTrap(container: HTMLElement) {
+    previousActiveElement = document.activeElement as HTMLElement | null
+
+    const focusable = getFocusableElements(container)
+    const firstFocusable = focusable[0]
+    if (firstFocusable) {
+      firstFocusable.focus()
+    } else {
+      container.focus()
+    }
+
+    focusTrapHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        closeBanner()
+        return
+      }
+
+      if (e.key !== 'Tab') return
+
+      const focusableElements = getFocusableElements(container)
+      if (focusableElements.length === 0) {
+        e.preventDefault()
+        return
+      }
+
+      const first = focusableElements[0]
+      const last = focusableElements.at(-1)
+      if (!first || !last) return
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', focusTrapHandler)
+  }
+
+  function deactivateFocusTrap() {
+    if (focusTrapHandler) {
+      document.removeEventListener('keydown', focusTrapHandler)
+      focusTrapHandler = null
+    }
+
+    if (previousActiveElement && document.contains(previousActiveElement)) {
+      previousActiveElement.focus()
+    }
+    previousActiveElement = null
+  }
+
+  // --- Banner logic ---
+
   function initConsentBanner() {
     const banner = document.getElementById('consent-banner')
     if (!banner) return
@@ -265,6 +356,8 @@ const t = useTranslations(Astro.currentLocale || 'en')
         analyticsToggle.classList.add('consent-toggle--on')
       }
       banner.removeAttribute('hidden')
+      // Activate focus trap after banner is visible
+      requestAnimationFrame(() => activateFocusTrap(banner))
     }
 
     // Toggle analytics
@@ -330,6 +423,7 @@ const t = useTranslations(Astro.currentLocale || 'en')
   }
 
   function closeBanner() {
+    deactivateFocusTrap()
     const banner = document.getElementById('consent-banner')
     banner?.setAttribute('hidden', '')
   }
