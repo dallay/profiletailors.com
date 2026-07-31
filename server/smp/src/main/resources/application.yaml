@@ -25,6 +25,15 @@ spring:
 
 application:
   rate-limit:
+    store:
+      # 0.1.0 default: single replica -> local in-process buckets are valid.
+      # Enable distributed mode before any horizontal scaling where multiple SMP replicas
+      # receive the same public traffic.
+      distributed-enabled: ${SMP_RATE_LIMIT_DISTRIBUTED_ENABLED:false}
+      type: ${SMP_RATE_LIMIT_STORE_TYPE:LOCAL}
+      redis:
+        uri: ${SMP_RATE_LIMIT_REDIS_URI:redis://localhost:6379}
+        key-prefix: ${SMP_RATE_LIMIT_REDIS_KEY_PREFIX:smp:ratelimit:}
     auth:
       enabled: false
     business:
@@ -32,9 +41,8 @@ application:
     resume:
       enabled: false
     waitlist:
-      # Default OFF. Two production blockers (DALLAY-512 distributed bucket backend and
-      # DALLAY-513 trusted-proxy / ForwardedHeaderFilter wiring) prevent safe enablement
-      # while SMP runs behind Kubernetes or Cloud Run ingress with multiple replicas.
+      # Default OFF. Trusted-proxy / ForwardedHeaderFilter wiring (DALLAY-513) is still
+      # required before trusting forwarded client IPs behind ingress/load balancers.
       # Operators must set SMP_WAITLIST_RATE_LIMIT_ENABLED=true explicitly to turn it on.
       enabled: ${SMP_WAITLIST_RATE_LIMIT_ENABLED:false}
       endpoints:

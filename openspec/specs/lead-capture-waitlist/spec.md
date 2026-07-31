@@ -179,3 +179,37 @@ Entries matching only the old or only the new email MUST NOT be affected.
 - AND a correction from `old@x.com` to `new@x.com`
 - WHEN propagation runs
 - THEN the entry's email MUST become `"new@x.com"`
+
+---
+
+### ADDED Requirements (Rate Limit Store Topology)
+
+#### Requirement: WAITLIST Rate-Limit Store MUST Support Local and Distributed Bucket State
+
+The shared WAITLIST limiter MUST expose a pluggable bucket-state store abstraction with at least:
+
+- A local in-process implementation for single-instance and development usage.
+- A distributed implementation so multiple SMP replicas share per-IP/per-waitlist buckets.
+
+#### Scenario: Single-replica `0.1.0` uses local store
+
+- GIVEN SMP is deployed as one replica on one VPS
+- WHEN WAITLIST rate limiting is enabled
+- THEN local in-process bucket storage MUST be supported and considered valid
+
+#### Scenario: Multi-replica topology requires distributed store
+
+- GIVEN SMP is deployed with more than one replica receiving the same public traffic
+- WHEN WAITLIST rate limiting is enabled
+- THEN the limiter MUST use distributed bucket state so limits are enforced globally across replicas
+
+#### Requirement: Distributed Store Selection MUST Be Runtime Configurable
+
+SMP MUST allow enabling/disabling distributed bucket storage per environment via configuration
+without code changes.
+
+#### Scenario: Distributed backend can be enabled via configuration
+
+- GIVEN distributed mode is disabled by default
+- WHEN an operator enables distributed mode and configures the backend
+- THEN SMP MUST switch bucket state to the distributed implementation at runtime configuration level

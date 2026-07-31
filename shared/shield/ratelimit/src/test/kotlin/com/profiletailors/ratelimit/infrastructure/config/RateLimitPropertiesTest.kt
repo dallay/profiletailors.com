@@ -14,6 +14,10 @@ class RateLimitPropertiesTest {
         properties.enabled shouldBe true
         properties.cache.maxSize shouldBe 10000
         properties.cache.ttlMinutes shouldBe 60
+        properties.store.distributedEnabled shouldBe false
+        properties.store.type shouldBe RateLimitProperties.StoreType.LOCAL
+        properties.store.redis.uri shouldBe "redis://localhost:6379"
+        properties.store.redis.keyPrefix shouldBe "ratelimit:"
 
         properties.auth.enabled shouldBe true
         properties.business.enabled shouldBe true
@@ -115,5 +119,16 @@ class RateLimitPropertiesTest {
 
         config.maxSize shouldBe 1
         config.ttlMinutes shouldBe 1
+    }
+
+    @Test
+    fun `should reject blank redis uri and key prefix`() {
+        shouldThrow<IllegalArgumentException> {
+            RateLimitProperties.RedisStoreConfig(uri = " ")
+        }
+
+        shouldThrow<IllegalArgumentException> {
+            RateLimitProperties.RedisStoreConfig(keyPrefix = "")
+        }
     }
 }

@@ -6,6 +6,7 @@ import com.profiletailors.ratelimit.infrastructure.adapter.Bucket4jRateLimiter
 import com.profiletailors.ratelimit.infrastructure.config.BucketConfigurationFactory
 import com.profiletailors.ratelimit.infrastructure.config.RateLimitProperties
 import com.profiletailors.ratelimit.infrastructure.metrics.RateLimitMetrics
+import com.profiletailors.ratelimit.infrastructure.store.LocalCaffeineRateLimitStore
 import io.kotest.matchers.longs.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -104,12 +105,13 @@ class Bucket4jRateLimiterTest {
         val apiKeyParser = com.profiletailors.ratelimit.infrastructure.adapter.ApiKeyParser(properties)
         val meterRegistry = SimpleMeterRegistry()
         val metrics = RateLimitMetrics(meterRegistry)
+        val store = LocalCaffeineRateLimitStore(properties, metrics)
         // Use system clock by default for existing tests
         rateLimiter = Bucket4jRateLimiter(
             configurationFactory = configFactory,
             apiKeyParser = apiKeyParser,
             metrics = metrics,
-            properties = properties,
+            rateLimitStore = store,
             clock = Clock.systemUTC(),
         )
     }
@@ -546,11 +548,12 @@ class Bucket4jRateLimiterTest {
         val apiKeyParser = com.profiletailors.ratelimit.infrastructure.adapter.ApiKeyParser(properties)
         val meterRegistry = SimpleMeterRegistry()
         val metrics = RateLimitMetrics(meterRegistry)
+        val store = LocalCaffeineRateLimitStore(properties, metrics)
         val deterministicLimiter = Bucket4jRateLimiter(
             configurationFactory = configFactory,
             apiKeyParser = apiKeyParser,
             metrics = metrics,
-            properties = properties,
+            rateLimitStore = store,
             clock = fixedClock,
         )
 
@@ -596,11 +599,12 @@ class Bucket4jRateLimiterTest {
         val apiKeyParser = com.profiletailors.ratelimit.infrastructure.adapter.ApiKeyParser(customProperties)
         val meterRegistry = SimpleMeterRegistry()
         val metrics = RateLimitMetrics(meterRegistry)
+        val store = LocalCaffeineRateLimitStore(customProperties, metrics)
         val customLimiter = Bucket4jRateLimiter(
             configurationFactory = configFactory,
             apiKeyParser = apiKeyParser,
             metrics = metrics,
-            properties = customProperties,
+            rateLimitStore = store,
             clock = fixedClock,
         )
 

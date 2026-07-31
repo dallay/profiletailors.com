@@ -12,10 +12,12 @@ dependencies {
 
     // Spring Boot
     implementation(libs.spring.boot.starter.webflux)
+    implementation(libs.spring.boot.starter.data.redis)
     implementation(libs.kotlinx.coroutines.reactor)
 
     // Bucket4j for rate limiting
     implementation(libs.bucket4j.core)
+    implementation(libs.bucket4j.redis)
 
     // Caffeine cache
     implementation(libs.caffeine)
@@ -35,4 +37,5 @@ dependencies {
     testImplementation(libs.reactor.test)
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.archunit.junit5)
+    testImplementation(libs.testcontainers.junit.jupiter)
 }

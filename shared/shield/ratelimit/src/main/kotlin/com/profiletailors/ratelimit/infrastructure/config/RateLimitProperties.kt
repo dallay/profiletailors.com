@@ -59,6 +59,11 @@ data class RateLimitProperties(
     val cache: CacheConfig = CacheConfig(),
 
     /**
+     * Storage backend settings for bucket state.
+     */
+    val store: StoreConfig = StoreConfig(),
+
+    /**
      * Configuration for API key prefix mapping to subscription tiers.
      * Used to determine the tier from an API key prefix.
      */
@@ -84,6 +89,48 @@ data class RateLimitProperties(
      */
     val waitlist: WaitlistRateLimitConfig = WaitlistRateLimitConfig(),
 ) {
+
+    enum class StoreType {
+        LOCAL,
+        REDIS,
+        HAZELCAST,
+    }
+
+    data class StoreConfig(
+        /**
+         * Enables distributed store selection.
+         *
+         * When false, [StoreType.LOCAL] is always used.
+         */
+        val distributedEnabled: Boolean = false,
+
+        /**
+         * Preferred store type when [distributedEnabled] is true.
+         */
+        val type: StoreType = StoreType.LOCAL,
+
+        /**
+         * Redis-specific configuration.
+         */
+        val redis: RedisStoreConfig = RedisStoreConfig(),
+    )
+
+    data class RedisStoreConfig(
+        /**
+         * Redis connection URI used by Bucket4j distributed backend.
+         */
+        val uri: String = "redis://localhost:6379",
+
+        /**
+         * Prefix used for rate limit keys in Redis.
+         */
+        val keyPrefix: String = "ratelimit:",
+    ) {
+        init {
+            require(uri.isNotBlank()) { "redis uri must not be blank" }
+            require(keyPrefix.isNotBlank()) { "redis keyPrefix must not be blank" }
+        }
+    }
 
     companion object {
         const val TIER_FREE = "free"

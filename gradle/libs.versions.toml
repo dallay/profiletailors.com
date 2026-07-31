@@ -46,6 +46,7 @@ kotlinx-coroutines-jdk8 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-j
 
 # Spring Boot Starter Dependencies
 spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }
+spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
 spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
 spring-boot-starter-oauth2-resource-server = { module = "org.springframework.boot:spring-boot-starter-security-oauth2-resource-server" }
 spring-boot-starter-data-r2dbc = { module = "org.springframework.boot:spring-boot-starter-data-r2dbc" }
@@ -72,6 +73,7 @@ aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "awsS3" }
 springdoc-openapi-webflux = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version.ref = "springdoc" }
 micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 bucket4j-core = { module = "com.bucket4j:bucket4j-core", version.ref = "bucket4j" }
+bucket4j-redis = { module = "com.bucket4j:bucket4j-redis", version.ref = "bucket4j" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 
 # Transitive deps version pins

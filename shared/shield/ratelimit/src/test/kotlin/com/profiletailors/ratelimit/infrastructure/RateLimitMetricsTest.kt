@@ -3,6 +3,7 @@ package com.profiletailors.ratelimit.infrastructure
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import com.profiletailors.ratelimit.infrastructure.metrics.RateLimitMetrics
+import com.profiletailors.ratelimit.infrastructure.store.BucketSource
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldStartWith
 import io.micrometer.core.instrument.MeterRegistry
@@ -252,5 +253,30 @@ class RateLimitMetricsTest {
             "business",
         )
         businessTimer.count() shouldBe 1L
+    }
+
+    @Test
+    fun `should record source-aware counters without affecting legacy counters`() {
+        val result = RateLimitResult.Allowed(remainingTokens = 1, limitCapacity = 2, resetTime = Instant.now())
+
+        metrics.recordRateLimitCheck(RateLimitStrategy.WAITLIST, result, BucketSource.DISTRIBUTED)
+
+        meterRegistry.counter(
+            "rate_limit.requests.total",
+            "strategy",
+            "waitlist",
+            "result",
+            "allowed",
+        ).count() shouldBe 1.0
+
+        meterRegistry.counter(
+            "rate_limit.requests.by_source.total",
+            "strategy",
+            "waitlist",
+            "result",
+            "allowed",
+            "bucket_source",
+            "distributed",
+        ).count() shouldBe 1.0
     }
 }

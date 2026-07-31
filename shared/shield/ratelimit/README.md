@@ -1,10 +1,11 @@
 # shared:shield:ratelimit
 
-Rate limiting infrastructure for the Profile Tailors API. Implements token-bucket rate limiting with Bucket4j and Caffeine caching, integrated into Spring WebFlux via a reactive `WebFilter`.
+Rate limiting infrastructure for the Profile Tailors API. Implements token-bucket rate limiting with Bucket4j and pluggable bucket storage, integrated into Spring WebFlux via a reactive `WebFilter`.
 
 ## Overview
 
 Provides configurable rate limiting per API key or IP address using the token-bucket algorithm. Emits domain events when limits are exceeded and exposes Micrometer metrics for monitoring.
+Bucket state can run local (single instance) or distributed (Redis) for multi-replica topologies.
 
 ## Key Types
 
@@ -13,7 +14,10 @@ Provides configurable rate limiting per API key or IP address using the token-bu
 | `RateLimiter` | Domain interface — `allowRequest(key)` returns `RateLimitResult` |
 | `RateLimitResult` | Result with allowed/denied + remaining tokens + reset time |
 | `RateLimitStrategy` | Strategy definition (capacity, refill rate, refill period) |
-| `Bucket4jRateLimiter` | Bucket4j-based implementation with Caffeine cache |
+| `Bucket4jRateLimiter` | Bucket4j-based implementation using pluggable bucket storage |
+| `RateLimitStore` | Bucket storage abstraction (`local` / `distributed`) |
+| `LocalCaffeineRateLimitStore` | In-process Caffeine bucket store |
+| `RedisBucket4jRateLimitStore` | Distributed Redis-backed Bucket4j bucket store |
 | `RateLimitingFilter` | Spring `WebFilter` — intercepts requests and enforces limits |
 | `RateLimitingService` | Application service — coordinates rate limiting logic |
 | `RateLimitProperties` | Configuration properties (`profiletailors.ratelimit.*`) |

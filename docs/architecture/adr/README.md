@@ -39,6 +39,7 @@ as a historical record and a guide for current and future development.
 | 0012 | [AGPL-3.0 Commercial Strategy](./0012-agpl-commercial-strategy.md)                       | Accepted | 2026-07-17 |
 | 0013 | [RateLimitTier vs SubscriptionPlan](./0013-ratelimit-tier-vs-subscription-plan.md)       | Accepted | 2026-07-22 |
 | 0014 | [Future Billing Architecture](./0014-future-billing-architecture.md)                     | Accepted | 2026-07-22 |
+| 0015 | [Distributed RateLimit Store for SMP Horizontal Scaling](./0015-distributed-ratelimit-store-for-smp-scaling.md) | Accepted | 2026-07-31 |
 
 ## Relationship with other docs
 

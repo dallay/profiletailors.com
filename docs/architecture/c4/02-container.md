@@ -313,6 +313,18 @@ graph TB
 
 ## Deployment Architecture
 
+### 0.1.0 Production Topology (Current)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Single VPS (0.1.0)                                     │
+├─────────────────────────────────────────────────────────┤
+│ • API Application: 1 SMP replica                        │
+│ • PostgreSQL: same VPS (local service/container)        │
+│ • Waitlist rate-limit store: local in-process Caffeine  │
+└─────────────────────────────────────────────────────────┘
+```
+
 ### Current State (Development)
 
 ```
@@ -327,7 +339,7 @@ graph TB
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Target State (Production)
+### Future Horizontal-Scale Target State (Planned)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -376,8 +388,11 @@ graph TB
 
 - Per-user rate limits enforced by API gateway
 - Per-workspace rate limits for fair usage
-- Public waitlist joins use the shared WAITLIST limiter, default-off in SMP until distributed
-  buckets and trusted-proxy address resolution are implemented
+- Public waitlist joins use the shared WAITLIST limiter.
+- `0.1.0` single-replica deployment can use local in-process Caffeine bucket state.
+- Before multi-replica public traffic, SMP MUST enable distributed bucket storage
+    (Redis backend) so limits are shared across replicas.
+- Trusted-proxy address resolution remains required before honoring forwarded client IP headers.
 - Social media API rate limit tracking and backoff
 
 ---
@@ -422,11 +437,11 @@ graph TB
 
 **Planned**:
 
-- 🔲 Redis/distributed bucket backend for production-safe waitlist rate limiting
+- 🔲 Enable distributed waitlist bucket store in environments that horizontally scale SMP replicas
 - 🔲 Message queue integration
 - 🔲 Social media API integrations
 - 🔲 Cloud storage integration
 
 ---
 
-Last updated: 2026-07-18
+Last updated: 2026-07-31

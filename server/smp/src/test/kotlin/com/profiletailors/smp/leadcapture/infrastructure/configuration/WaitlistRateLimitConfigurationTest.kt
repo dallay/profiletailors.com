@@ -2,19 +2,27 @@ package com.profiletailors.smp.leadcapture.infrastructure.configuration
 
 import com.profiletailors.ratelimit.infrastructure.config.RateLimitConfiguration
 import com.profiletailors.ratelimit.infrastructure.config.RateLimitProperties
+import com.profiletailors.ratelimit.infrastructure.metrics.RateLimitMetrics
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
+
+@TestConfiguration
+class WaitlistRateLimitTestMeterConfig {
+    @Bean
+    fun meterRegistry(): MeterRegistry = SimpleMeterRegistry()
+}
 
 /**
  * Locks the production-safe default for SMP's shared WAITLIST rate-limit wiring.
  *
  * Production context (Kubernetes / Cloud Run ingress with multiple replicas) has two open
- * blockers that prevent `application.rate-limit.waitlist.enabled` from being on by default:
- *  - DALLAY-512 — bucket identity is keyed on `remoteAddress` only and bucket storage is
- *    in-process Caffeine, so multiple ingress hops or replicas collapse clients into the
- *    same bucket or let a single client multiply its allowance by the replica count.
+ * blocker that prevents `application.rate-limit.waitlist.enabled` from being on by default:
  *  - DALLAY-513 — without trusted-proxy wiring, `remoteAddress` is the ingress/load-balancer
  *    address instead of the real client.
  *
@@ -22,7 +30,7 @@ import org.springframework.boot.test.context.SpringBootTest
  * an explicit operator decision (env override `SMP_WAITLIST_RATE_LIMIT_ENABLED=true`).
  */
 @SpringBootTest(
-    classes = [RateLimitConfiguration::class],
+    classes = [RateLimitConfiguration::class, RateLimitMetrics::class, WaitlistRateLimitTestMeterConfig::class],
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
 )
 class WaitlistRateLimitConfigurationTest {
@@ -40,6 +48,12 @@ class WaitlistRateLimitConfigurationTest {
         assertThat(properties.auth.enabled).isFalse()
         assertThat(properties.business.enabled).isFalse()
         assertThat(properties.resume.enabled).isFalse()
+    }
+
+    @Test
+    fun `SMP defaults to local store and keeps distributed backend opt-in`() {
+        assertThat(properties.store.distributedEnabled).isFalse()
+        assertThat(properties.store.type).isEqualTo(RateLimitProperties.StoreType.LOCAL)
     }
 
     @Test
