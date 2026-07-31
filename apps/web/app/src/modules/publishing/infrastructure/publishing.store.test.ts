@@ -211,6 +211,49 @@ describe('publishing store', () => {
       expect(store.recurringSchedules).toEqual([schedule])
     })
 
+    it('updates a schedule and replaces it in local state', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('workspace-1')
+      store.recurringSchedules = [
+        {
+          id: 'recur-1',
+          workspaceId: 'workspace-1',
+          createdBy: 'principal-1',
+          templatePostId: 'pub-1',
+          frequency: 'daily',
+          interval: 1,
+          daysOfWeek: [],
+          dayOfMonth: null,
+          endDate: null,
+          maxOccurrences: null,
+          timezone: 'UTC',
+          nextScheduledAt: '2026-08-01T09:00:00Z',
+          status: 'ACTIVE',
+          createdAt: '2026-07-31T08:00:00Z',
+          updatedAt: '2026-07-31T08:00:00Z',
+        },
+      ]
+      const updated = {
+        ...store.recurringSchedules[0],
+        status: 'PAUSED' as const,
+        updatedAt: '2026-07-31T09:00:00Z',
+      }
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue(updated as never)
+
+      await store.updateRecurringSchedule('recur-1', { status: 'PAUSED' })
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        '/api/v1/workspaces/workspace-1/recurring/recur-1',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: expect.stringContaining('"status":"PAUSED"'),
+        }),
+      )
+      expect(store.recurringSchedules[0]).toEqual(updated)
+    })
+
     it('cancels a schedule locally only after the API succeeds', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()

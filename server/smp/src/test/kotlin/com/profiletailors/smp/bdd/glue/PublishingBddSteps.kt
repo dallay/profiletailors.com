@@ -258,13 +258,16 @@ class PublishingBddSteps {
     @When("the client creates a daily recurring schedule")
     fun whenClientCreatesDailyRecurringSchedule() {
         val templatePostId = requireNotNull(currentPublicationId)
+        val now = java.time.Instant.now()
+        val startsAt = now.plus(java.time.Duration.ofHours(1))
+        val endDate = java.time.LocalDate.now().plusDays(3)
         val body = objectMapper.writeValueAsString(
             mapOf(
                 "templatePostId" to templatePostId,
                 "frequency" to "daily",
                 "interval" to 1,
-                "startsAt" to "2026-08-02T09:00:00Z",
-                "endDate" to "2026-08-04",
+                "startsAt" to startsAt.toString(),
+                "endDate" to endDate.toString(),
                 "timezone" to "UTC",
             ),
         )
@@ -309,12 +312,13 @@ class PublishingBddSteps {
     @Then("the recurring response should contain a schedule id")
     fun thenRecurringResponseShouldContainScheduleId() {
         assertNotNull(currentRecurringScheduleId)
-        assertTrue(requirePublishingResponseBody().contains("\"id\":"))
+        assertTrue(publishingResponseBodyText().contains("\"id\":"))
     }
 
     @Then("the recurring response status should be {string}")
     fun thenRecurringResponseStatusShouldBe(status: String) {
-        assertTrue(requirePublishingResponseBody().contains(""""status":"${status.uppercase()}"""))
+        val actualStatus: String = parsePublishingResponseField("status")
+        assertEquals(status.uppercase(), actualStatus)
     }
 
     @Then("at least {int} recurring publications should be scheduled")
@@ -323,14 +327,8 @@ class PublishingBddSteps {
     }
 
     private fun extractJsonString(field: String): String? {
-        val body = requirePublishingResponseBody()
-        return Regex(""""$field":"([^"]+)"""").find(body)?.groupValues?.get(1)
+        return parsePublishingResponseField<String?>(field)
     }
-
-    private fun requirePublishingResponseBody(): String = String(
-        requireNotNull(latestPublishingResponse).responseBody ?: error("Missing response body"),
-        StandardCharsets.UTF_8,
-    )
 
     @When("the client lists connected channels")
     fun whenClientListsConnectedChannels() {

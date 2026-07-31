@@ -108,7 +108,7 @@ describe('ConsentBanner client script', () => {
     // window.location.reload() because jsdom's location.reload is
     // non-configurable and can't be mocked.
     reloadSpy = { called: false, callCount: 0 }
-    window.__consentReload = () => {
+    window.__consentReload = (): void => {
       reloadSpy.called = true
       reloadSpy.callCount++
     }

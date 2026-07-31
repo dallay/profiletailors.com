@@ -421,6 +421,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   const recurringSchedules = ref<RecurringSchedule[]>([])
   const recurringSchedulesLoading = ref(false)
   const recurringSchedulesError = ref<string | null>(null)
+  const latestRecurringSchedulesFetchId = ref(0)
 
   // Seeding initial mock publications
   const initialPublications: Publication[] = [
@@ -593,22 +594,28 @@ export const usePublishingStore = defineStore('publishing', () => {
   }
 
   async function fetchRecurringSchedules(): Promise<RecurringSchedule[]> {
+    const fetchId = ++latestRecurringSchedulesFetchId.value
     recurringSchedulesLoading.value = true
     recurringSchedulesError.value = null
     try {
-      if (!auth.isAuthenticated) return []
+      if (!auth.isAuthenticated) {
+        recurringSchedules.value = []
+        return []
+      }
       const data = await auth.apiFetch<{ schedules: RecurringSchedule[] }>(recurringPath(), {
         method: 'GET',
         workspaceScoped: true,
       })
+      if (fetchId !== latestRecurringSchedulesFetchId.value) return recurringSchedules.value
       recurringSchedules.value = data.schedules
       return data.schedules
     } catch (error) {
+      if (fetchId !== latestRecurringSchedulesFetchId.value) return recurringSchedules.value
       recurringSchedulesError.value =
         error instanceof Error ? error.message : 'Unable to load recurring schedules.'
       throw error
     } finally {
-      recurringSchedulesLoading.value = false
+      if (fetchId === latestRecurringSchedulesFetchId.value) recurringSchedulesLoading.value = false
     }
   }
 

@@ -82,7 +82,7 @@ data class RecurrenceRule(
         val effectiveEnd = listOfNotNull(endDate, until).minOrNull() ?: until
         var month = start.withDayOfMonth(MIN_DAY_OF_MONTH)
         while (!month.toLocalDate().isAfter(effectiveEnd) && result.size < limit) {
-            val day = dayOfMonth!!
+            val day = requireNotNull(dayOfMonth) { "dayOfMonth is required for monthly recurrence" }
             if (day <= month.toLocalDate().lengthOfMonth()) {
                 val candidate = month.withDayOfMonth(day).with(start.toLocalTime())
                 if (!candidate.isBefore(start) && !candidate.toLocalDate().isAfter(effectiveEnd)) {

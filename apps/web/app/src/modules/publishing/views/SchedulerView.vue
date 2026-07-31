@@ -49,19 +49,26 @@ onMounted(() => {
 })
 
 async function toggleRecurringSchedule(schedule: RecurringSchedule): Promise<void> {
-  await publishingStore.updateRecurringSchedule(schedule.id, {
-    status: schedule.status === 'PAUSED' ? 'ACTIVE' : 'PAUSED',
-  })
+  try {
+    await publishingStore.updateRecurringSchedule(schedule.id, {
+      status: schedule.status === 'PAUSED' ? 'ACTIVE' : 'PAUSED',
+    })
+  } catch (err: unknown) {
+    console.error('Failed to toggle recurring schedule', err)
+  }
 }
 
 async function cancelRecurringSchedule(schedule: RecurringSchedule): Promise<void> {
-  await publishingStore.cancelRecurringSchedule(schedule.id)
+  try {
+    await publishingStore.cancelRecurringSchedule(schedule.id)
+  } catch (err: unknown) {
+    console.error('Failed to cancel recurring schedule', err)
+  }
 }
 
 function openRecurringEditor(schedule: RecurringSchedule): void {
   const publication = publishingStore.publications.find((item) => item.id === schedule.templatePostId)
-  if (!publication) return
-  recurringPublication.value = publication
+  recurringPublication.value = publication ?? null
   editingRecurringSchedule.value = schedule
 }
 
@@ -589,12 +596,12 @@ watch(
       <div class="grid gap-2 md:grid-cols-2">
         <div v-for="schedule in publishingStore.recurringSchedules" :key="schedule.id" class="flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-primary/30 px-3 py-2">
           <div class="min-w-0 flex-1">
-            <p class="truncate text-xs font-semibold text-text-display">{{ schedule.frequency }} · {{ schedule.interval }}</p>
-            <p class="text-[10px] text-text-secondary">{{ schedule.status }} · {{ schedule.nextScheduledAt ? new Date(schedule.nextScheduledAt).toLocaleString() : '—' }}</p>
+            <p class="truncate text-xs font-semibold text-text-display">{{ t(`postDetail.recurring.${schedule.frequency}`) }} · {{ schedule.interval }}</p>
+            <p class="text-[10px] text-text-secondary">{{ t(`scheduler.status.${schedule.status.toLowerCase()}`) }} · {{ schedule.nextScheduledAt ? new Date(schedule.nextScheduledAt).toLocaleString(i18nLocale) : '—' }}</p>
           </div>
           <button type="button" class="rounded-lg border border-border-visible px-2 py-1 text-[10px] font-mono uppercase" @click="openRecurringEditor(schedule)">{{ t('scheduler.edit') }}</button>
-          <button type="button" class="rounded-lg border border-border-visible px-2 py-1 text-[10px] font-mono uppercase" @click="toggleRecurringSchedule(schedule)">{{ schedule.status === 'PAUSED' ? t('scheduler.resume') : t('scheduler.pause') }}</button>
-          <button type="button" class="rounded-lg border border-error/50 px-2 py-1 text-[10px] font-mono uppercase text-error" @click="cancelRecurringSchedule(schedule)">{{ t('scheduler.cancel') }}</button>
+          <button v-if="schedule.status !== 'CANCELLED'" type="button" class="rounded-lg border border-border-visible px-2 py-1 text-[10px] font-mono uppercase" @click="toggleRecurringSchedule(schedule)">{{ schedule.status === 'PAUSED' ? t('scheduler.resume') : t('scheduler.pause') }}</button>
+          <button v-if="schedule.status !== 'CANCELLED'" type="button" class="rounded-lg border border-error/50 px-2 py-1 text-[10px] font-mono uppercase text-error" @click="cancelRecurringSchedule(schedule)">{{ t('scheduler.cancel') }}</button>
         </div>
       </div>
     </Card>

@@ -9,6 +9,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import reactor.core.publisher.Flux
 import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
@@ -67,22 +68,25 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
             .bind("daysOfWeek", schedule.recurrenceRule.daysOfWeek.sorted().joinToString(","))
             .bind("timezone", schedule.timezone).bind("status", schedule.status.name).bind("updatedAt", now)
         spec = schedule.recurrenceRule.dayOfMonth?.let { spec.bind("dayOfMonth", it) }
-            ?: spec.bindNull("dayOfMonth", Int::class.java)
+            ?: spec.bindNull("dayOfMonth", java.lang.Integer::class.java)
         spec = schedule.recurrenceRule.endDate?.let { spec.bind("endDate", it) }
             ?: spec.bindNull("endDate", LocalDate::class.java)
         spec = schedule.recurrenceRule.maxOccurrences?.let { spec.bind("maxOccurrences", it) }
-            ?: spec.bindNull("maxOccurrences", Int::class.java)
+            ?: spec.bindNull("maxOccurrences", java.lang.Integer::class.java)
         spec = schedule.nextScheduledAt?.let { spec.bind("nextScheduledAt", it) }
             ?: spec.bindNull("nextScheduledAt", Instant::class.java)
         if (insert) {
             spec = spec.bind("createdBy", schedule.createdBy).bind("templatePostId", schedule.templatePostId)
                 .bind("createdAt", schedule.createdAt ?: now)
         }
-        spec.fetch().rowsUpdated().awaitSingle()
+        val rowsUpdated = spec.fetch().rowsUpdated().awaitSingle()
+        if (!insert && rowsUpdated == 0L) {
+            throw IllegalArgumentException("Recurring schedule ${schedule.id} not found or not owned by workspace ${schedule.workspaceId}")
+        }
         return schedule.copy(createdAt = schedule.createdAt ?: now, updatedAt = now)
     }
 
-    private fun query(where: String, params: Map<String, Any>): reactor.core.publisher.Flux<RecurringSchedule> {
+    private fun query(where: String, params: Map<String, Any>): Flux<RecurringSchedule> {
         var spec = databaseClient.sql(
             """SELECT id, workspace_id, created_by, template_post_id, frequency, recurrence_interval, days_of_week,
                day_of_month, end_date, max_occurrences, timezone, next_scheduled_at, status, created_at, updated_at
@@ -97,7 +101,7 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
                 templatePostId = requireNotNull(row.get("template_post_id", String::class.java)),
                 recurrenceRule = RecurrenceRule(
                     frequency = RecurrenceFrequency.valueOf(requireNotNull(row.get("frequency", String::class.java))),
-                    interval = requireNotNull(row.get("recurrence_interval", Int::class.java)),
+                    interval = requireNotNull(row.get("recurrence_interval", java.lang.Integer::class.java)),
                     daysOfWeek = row.get("days_of_week", String::class.java).orEmpty().split(",").filter {
                         it.isNotBlank()
                     }.map { it.toInt() }.toSet(),
