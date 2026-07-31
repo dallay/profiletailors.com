@@ -1,0 +1,54 @@
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-001-create-platform-role-assignments
+      author: platform-admin
+      changes:
+        - createTable:
+            tableName: platform_role_assignments
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: principal_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assigned_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assigned_by
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: revoked_at
+                  type: timestamp with time zone
+              - column:
+                  name: revoked_by
+                  type: uuid
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: platform_role_assignments
+            indexName: idx_platform_role_assignments_principal_active
+            columns:
+              - column:
+                  name: principal_id
+              - column:
+                  name: revoked_at

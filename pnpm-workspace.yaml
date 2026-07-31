@@ -1,6 +1,7 @@
 packages:
   - apps/web/marketing
   - apps/web/app
+  - apps/web/admin
   - tools/compliance
   - shared/web
 

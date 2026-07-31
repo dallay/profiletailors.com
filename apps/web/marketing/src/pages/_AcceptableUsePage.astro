@@ -72,6 +72,6 @@ function renderLegalText(text: string): string {
       <LegalPolicyUnavailable locale={locale} documentTitle={policy.title} />
     )}
 
-    <Footer tagline={t.footer.tagline} copy={t.footer.copy} legalLinks={links} />
+    <Footer tagline={t.footer.tagline} copy={t.footer.copy} legalLinks={links} locale={locale} />
   </div>
 </Layout>

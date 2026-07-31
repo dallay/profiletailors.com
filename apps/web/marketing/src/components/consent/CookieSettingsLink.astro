@@ -1,7 +1,13 @@
 ---
 import { useTranslations } from '../../i18n/utils'
+import type { Locale } from '../../i18n/utils'
 
-const t = useTranslations(Astro.currentLocale || 'en')
+interface Props {
+  locale?: Locale
+}
+
+const { locale = 'en' } = Astro.props
+const t = useTranslations(locale)
 ---
 
 <button type="button" id="cookie-settings-link" class="cookie-settings-link">

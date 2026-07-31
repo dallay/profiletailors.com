@@ -1,28 +1,16 @@
 ---
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import CookieSettingsLink from '@components/consent/CookieSettingsLink.astro'
+import type { Locale } from '@i18n/utils'
 
 interface Props {
   tagline: string
   copy: string
   legalLinks?: readonly { label: string; href: string }[]
+  locale?: Locale
 }
 
-const { tagline, copy, legalLinks } = Astro.props
+const { tagline, copy, legalLinks, locale = 'en' } = Astro.props
 ---
 
 <footer class="px-6 py-10 max-w-4xl mx-auto">
@@ -40,7 +28,7 @@ const { tagline, copy, legalLinks } = Astro.props
           {link.label}
         </a>
       ))}
-      <CookieSettingsLink />
+      <CookieSettingsLink locale={locale} />
     </nav>
   )}
 </footer>
