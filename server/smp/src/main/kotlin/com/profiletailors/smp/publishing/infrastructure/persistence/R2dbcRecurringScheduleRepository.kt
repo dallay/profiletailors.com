@@ -67,24 +67,30 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
             .bind("interval", schedule.recurrenceRule.interval)
             .bind("daysOfWeek", schedule.recurrenceRule.daysOfWeek.sorted().joinToString(","))
             .bind("timezone", schedule.timezone).bind("status", schedule.status.name).bind("updatedAt", now)
-        spec = schedule.recurrenceRule.dayOfMonth?.let { spec.bind("dayOfMonth", it) }
-            ?: spec.bindNull("dayOfMonth", java.lang.Integer::class.java)
-        spec = schedule.recurrenceRule.endDate?.let { spec.bind("endDate", it) }
-            ?: spec.bindNull("endDate", LocalDate::class.java)
-        spec = schedule.recurrenceRule.maxOccurrences?.let { spec.bind("maxOccurrences", it) }
-            ?: spec.bindNull("maxOccurrences", java.lang.Integer::class.java)
-        spec = schedule.nextScheduledAt?.let { spec.bind("nextScheduledAt", it) }
-            ?: spec.bindNull("nextScheduledAt", Instant::class.java)
+        spec = bindNullable(spec, "dayOfMonth", schedule.recurrenceRule.dayOfMonth, java.lang.Integer::class.java)
+        spec = bindNullable(spec, "endDate", schedule.recurrenceRule.endDate, LocalDate::class.java)
+        spec =
+            bindNullable(spec, "maxOccurrences", schedule.recurrenceRule.maxOccurrences, java.lang.Integer::class.java)
+        spec = bindNullable(spec, "nextScheduledAt", schedule.nextScheduledAt, Instant::class.java)
         if (insert) {
             spec = spec.bind("createdBy", schedule.createdBy).bind("templatePostId", schedule.templatePostId)
                 .bind("createdAt", schedule.createdAt ?: now)
         }
         val rowsUpdated = spec.fetch().rowsUpdated().awaitSingle()
         if (!insert && rowsUpdated == 0L) {
-            throw IllegalArgumentException("Recurring schedule ${schedule.id} not found or not owned by workspace ${schedule.workspaceId}")
+            throw IllegalArgumentException(
+                "Recurring schedule ${schedule.id} not found or not owned by workspace ${schedule.workspaceId}",
+            )
         }
         return schedule.copy(createdAt = schedule.createdAt ?: now, updatedAt = now)
     }
+
+    private fun <T : Any> bindNullable(
+        spec: DatabaseClient.GenericExecuteSpec,
+        name: String,
+        value: T?,
+        type: Class<T>,
+    ): DatabaseClient.GenericExecuteSpec = value?.let { spec.bind(name, it) } ?: spec.bindNull(name, type)
 
     private fun query(where: String, params: Map<String, Any>): Flux<RecurringSchedule> {
         var spec = databaseClient.sql(

@@ -197,7 +197,8 @@ internal class DeletePublicationHandler(
                     publicationId = current.id,
                     category = com.profiletailors.smp.publishing.domain.NotificationCategory.RECURRENCE_PAUSED,
                     message = "Recurring schedule paused because its template post was deleted.",
-                    suggestedAction = "Create a new recurring schedule from another post.", occurredAt = clock.instant(),
+                    suggestedAction = "Create a new recurring schedule from another post.",
+                    occurredAt = clock.instant(),
                 ),
             )
         }

@@ -326,9 +326,7 @@ class PublishingBddSteps {
         assertTrue(bddDatabaseSupport.countScheduledPublications() >= expected)
     }
 
-    private fun extractJsonString(field: String): String? {
-        return parsePublishingResponseField<String?>(field)
-    }
+    private fun extractJsonString(field: String): String? = parsePublishingResponseField<String?>(field)
 
     @When("the client lists connected channels")
     fun whenClientListsConnectedChannels() {
