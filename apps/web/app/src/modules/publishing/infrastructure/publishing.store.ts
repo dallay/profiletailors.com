@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { consumeSseStream } from '@shared/lib/sse'
 import type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
 import { resolveApiUrl, useAuthStore } from '@modules/auth'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import type { Channel } from '@modules/publishing/domain/channel'
 
 export type { ProviderCatalogItem } from '@shared/lib/provider-presentation'
@@ -75,6 +76,42 @@ export type Publication = {
 
 export type PublicationUpdate = Partial<Publication> & {
   assetIds?: string[]
+}
+
+export type RecurringScheduleStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED'
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly'
+
+export type RecurringSchedule = {
+  id: string
+  workspaceId: string
+  createdBy: string
+  templatePostId: string
+  frequency: RecurrenceFrequency
+  interval: number
+  daysOfWeek: number[]
+  dayOfMonth: number | null
+  endDate: string | null
+  maxOccurrences: number | null
+  timezone: string
+  nextScheduledAt: string | null
+  status: RecurringScheduleStatus
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+export type RecurringScheduleInput = {
+  frequency: RecurrenceFrequency
+  interval: number
+  daysOfWeek?: number[]
+  dayOfMonth?: number | null
+  endDate?: string | null
+  maxOccurrences?: number | null
+  startsAt: string
+  timezone?: string
+}
+
+export type RecurringScheduleUpdate = Partial<RecurringScheduleInput> & {
+  status?: RecurringScheduleStatus
 }
 
 // ---------------------------------------------------------------------------
@@ -360,6 +397,7 @@ function isPublicationDeletable(status: Publication['status']): boolean {
 
 export const usePublishingStore = defineStore('publishing', () => {
   const auth = useAuthStore()
+  const workspace = useWorkspaceStore()
 
   const channels = ref<Channel[]>([])
   const channelsLoading = ref(false)
@@ -379,6 +417,10 @@ export const usePublishingStore = defineStore('publishing', () => {
   const configuredProviders = ref<string[]>([])
   const providersLoading = ref(false)
   const latestProviderCatalogFetchId = ref(0)
+
+  const recurringSchedules = ref<RecurringSchedule[]>([])
+  const recurringSchedulesLoading = ref(false)
+  const recurringSchedulesError = ref<string | null>(null)
 
   // Seeding initial mock publications
   const initialPublications: Publication[] = [
@@ -542,6 +584,67 @@ export const usePublishingStore = defineStore('publishing', () => {
 
   async function refreshWorkspaceData(): Promise<void> {
     await Promise.allSettled([fetchChannels(), fetchProviderCatalog()])
+  }
+
+  function recurringPath(): string {
+    const workspaceId = workspace.activeWorkspaceId
+    if (!workspaceId) throw new Error('Select a workspace before managing recurring posts.')
+    return `/api/v1/workspaces/${encodeURIComponent(workspaceId)}/recurring`
+  }
+
+  async function fetchRecurringSchedules(): Promise<RecurringSchedule[]> {
+    recurringSchedulesLoading.value = true
+    recurringSchedulesError.value = null
+    try {
+      if (!auth.isAuthenticated) return []
+      const data = await auth.apiFetch<{ schedules: RecurringSchedule[] }>(recurringPath(), {
+        method: 'GET',
+        workspaceScoped: true,
+      })
+      recurringSchedules.value = data.schedules
+      return data.schedules
+    } catch (error) {
+      recurringSchedulesError.value = error instanceof Error ? error.message : 'Unable to load recurring schedules.'
+      throw error
+    } finally {
+      recurringSchedulesLoading.value = false
+    }
+  }
+
+  async function createRecurringSchedule(
+    templatePostId: string,
+    input: RecurringScheduleInput,
+  ): Promise<RecurringSchedule> {
+    const data = await auth.apiFetch<RecurringSchedule>(recurringPath(), {
+      method: 'POST',
+      body: JSON.stringify({ templatePostId, ...input }),
+      workspaceScoped: true,
+    })
+    recurringSchedules.value = [...recurringSchedules.value, data]
+    return data
+  }
+
+  async function updateRecurringSchedule(
+    id: string,
+    input: RecurringScheduleUpdate,
+  ): Promise<RecurringSchedule> {
+    const data = await auth.apiFetch<RecurringSchedule>(`${recurringPath()}/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+      workspaceScoped: true,
+    })
+    const index = recurringSchedules.value.findIndex((schedule) => schedule.id === id)
+    if (index >= 0) recurringSchedules.value[index] = data
+    return data
+  }
+
+  async function cancelRecurringSchedule(id: string): Promise<void> {
+    await auth.apiFetch(`${recurringPath()}/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      workspaceScoped: true,
+    })
+    const schedule = recurringSchedules.value.find((item) => item.id === id)
+    if (schedule) schedule.status = 'CANCELLED'
   }
 
   const isLinkedInConfigured = computed(() => configuredProviders.value.includes('linkedin'))
@@ -1097,6 +1200,9 @@ export const usePublishingStore = defineStore('publishing', () => {
     calendarFilters,
     configuredProviders,
     providersLoading,
+    recurringSchedules,
+    recurringSchedulesLoading,
+    recurringSchedulesError,
     isLinkedInConfigured,
     hasReconnectRequiredChannels,
     reconnectRequiredChannels,
@@ -1108,6 +1214,10 @@ export const usePublishingStore = defineStore('publishing', () => {
     fetchProviderCatalog,
     fetchConfiguredProviders,
     refreshWorkspaceData,
+    fetchRecurringSchedules,
+    createRecurringSchedule,
+    updateRecurringSchedule,
+    cancelRecurringSchedule,
     connectLinkedInPersonalProfile,
     completeLinkedInConnectionFromCallback,
     subscribeChannelEvents,

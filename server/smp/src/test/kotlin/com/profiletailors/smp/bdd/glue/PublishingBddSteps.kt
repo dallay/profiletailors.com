@@ -34,6 +34,7 @@ class PublishingBddSteps {
     private var currentSocialConnectionId: String? = null
     private var currentSocialAccountId: String? = null
     private var currentPublicationId: String? = null
+    private var currentRecurringScheduleId: String? = null
     private val objectMapper: ObjectMapper = jacksonObjectMapper()
 
     @Before
@@ -43,6 +44,7 @@ class PublishingBddSteps {
         currentSocialConnectionId = null
         currentSocialAccountId = null
         currentPublicationId = null
+        currentRecurringScheduleId = null
         providerCatalogPolicyControl.reset()
     }
 
@@ -252,6 +254,83 @@ class PublishingBddSteps {
             .expectBody()
             .returnResult()
     }
+
+    @When("the client creates a daily recurring schedule")
+    fun whenClientCreatesDailyRecurringSchedule() {
+        val templatePostId = requireNotNull(currentPublicationId)
+        val body = objectMapper.writeValueAsString(
+            mapOf(
+                "templatePostId" to templatePostId,
+                "frequency" to "daily",
+                "interval" to 1,
+                "startsAt" to "2026-08-02T09:00:00Z",
+                "endDate" to "2026-08-04",
+                "timezone" to "UTC",
+            ),
+        )
+        latestPublishingResponse = webTestClient.post()
+            .uri(bddDatabaseSupport.recurringSchedulesPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(body)
+            .exchange()
+            .expectBody()
+            .returnResult()
+        currentRecurringScheduleId = extractJsonString("id")
+    }
+
+    @When("the client pauses the recurring schedule")
+    fun whenClientPausesRecurringSchedule() {
+        val scheduleId = requireNotNull(currentRecurringScheduleId)
+        val body = objectMapper.writeValueAsString(mapOf("status" to "paused"))
+        latestPublishingResponse = webTestClient.patch()
+            .uri("${bddDatabaseSupport.recurringSchedulesPath()}/$scheduleId")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(body)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client lists recurring schedules")
+    fun whenClientListsRecurringSchedules() {
+        latestPublishingResponse = webTestClient.get()
+            .uri(bddDatabaseSupport.recurringSchedulesPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @Then("the recurring response should contain a schedule id")
+    fun thenRecurringResponseShouldContainScheduleId() {
+        assertNotNull(currentRecurringScheduleId)
+        assertTrue(requirePublishingResponseBody().contains("\"id\":"))
+    }
+
+    @Then("the recurring response status should be {string}")
+    fun thenRecurringResponseStatusShouldBe(status: String) {
+        assertTrue(requirePublishingResponseBody().contains("\"status\":\"${status.uppercase()}\""))
+    }
+
+    @Then("at least {int} recurring publications should be scheduled")
+    fun thenAtLeastRecurringPublicationsShouldBeScheduled(expected: Int) = runBlocking {
+        assertTrue(bddDatabaseSupport.countScheduledPublications() >= expected)
+    }
+
+    private fun extractJsonString(field: String): String? {
+        val body = requirePublishingResponseBody()
+        return Regex("\\\"$field\\\":\\\"([^\\\"]+)\\\"").find(body)?.groupValues?.get(1)
+    }
+
+    private fun requirePublishingResponseBody(): String = String(
+        requireNotNull(latestPublishingResponse).responseBody ?: error("Missing response body"),
+        StandardCharsets.UTF_8,
+    )
 
     @When("the client lists connected channels")
     fun whenClientListsConnectedChannels() {

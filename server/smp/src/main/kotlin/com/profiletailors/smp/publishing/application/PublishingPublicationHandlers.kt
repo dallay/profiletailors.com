@@ -162,6 +162,10 @@ internal class DeletePublicationHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
+    private val recurringScheduleRepository: com.profiletailors.smp.publishing.domain.RecurringScheduleRepository =
+        com.profiletailors.smp.publishing.domain.NoOpRecurringScheduleRepository,
+    private val notificationEventRepository: com.profiletailors.smp.publishing.domain.NotificationEventRepository =
+        com.profiletailors.smp.publishing.domain.NoOpNotificationEventRepository,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
@@ -181,8 +185,19 @@ internal class DeletePublicationHandler(
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
+        recurringScheduleRepository.pauseByTemplatePost(workspaceId, current.id)
         val deleted = publicationRepository.deleteUnpublished(workspaceId, current.id)
         if (!deleted) throw PublicationDeletionNotAllowedException(current.id)
+        notificationEventRepository.record(
+            com.profiletailors.smp.publishing.domain.NotificationEvent(
+                id = "nevt-${java.util.UUID.randomUUID()}", workspaceId = workspaceId,
+                provider = current.provider, socialAccountId = current.socialAccountId,
+                publicationId = current.id,
+                category = com.profiletailors.smp.publishing.domain.NotificationCategory.RECURRENCE_PAUSED,
+                message = "Recurring schedule paused because its template post was deleted.",
+                suggestedAction = "Create a new recurring schedule from another post.", occurredAt = clock.instant(),
+            ),
+        )
         return current.toResult()
     }
 }

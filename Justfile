@@ -299,7 +299,8 @@ backend-coverage:
 
 # Run fast BDD suite
 backend-bdd-fast:
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
+    if test -n "$SMP_DB_TEST_PASSWORD"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
+    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
     {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run PostgreSQL integration tests with Testcontainers

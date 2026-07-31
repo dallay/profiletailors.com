@@ -20,6 +20,15 @@ import com.profiletailors.smp.publishing.application.ProviderCatalogResponse
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
+import com.profiletailors.smp.publishing.application.CreateRecurringScheduleCommand
+import com.profiletailors.smp.publishing.application.DeleteRecurringScheduleCommand
+import com.profiletailors.smp.publishing.application.ListRecurringSchedulesQuery
+import com.profiletailors.smp.publishing.application.RecurringScheduleResult
+import com.profiletailors.smp.publishing.application.RecurringSchedulesResponse
+import com.profiletailors.smp.publishing.application.UpdateRecurringScheduleCommand
+import com.profiletailors.smp.publishing.domain.RecurrenceFrequency
+import com.profiletailors.smp.publishing.domain.RecurrenceRule
+import com.profiletailors.smp.publishing.domain.RecurringScheduleStatus
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventType
@@ -391,3 +400,75 @@ data class ConfiguredProvidersResponse(val providers: List<ConfiguredProvider>)
 
 @Schema(description = "A configured publishing provider")
 data class ConfiguredProvider(val name: String, val configured: Boolean)
+
+@Validated
+@RestController
+@RequestMapping("/api/v1/workspaces/{workspaceId}/recurring")
+@Tag(name = "Recurring Posts", description = "Recurring publication schedules")
+class RecurringScheduleController(
+    private val mediator: Mediator,
+    private val resourceContextProvider: ResourceContextProvider,
+) {
+    @PostMapping(consumes = ["application/json"])
+    suspend fun create(@PathVariable workspaceId: String, @Valid @RequestBody request: RecurringScheduleRequest): RecurringScheduleResult {
+        requireWorkspacePath(workspaceId)
+        return mediator.send(request.toCreateCommand())
+    }
+
+    @GetMapping
+    suspend fun list(@PathVariable workspaceId: String): RecurringSchedulesResponse {
+        requireWorkspacePath(workspaceId)
+        return mediator.send(ListRecurringSchedulesQuery)
+    }
+
+    @PatchMapping("/{id}", consumes = ["application/json"])
+    suspend fun update(@PathVariable workspaceId: String, @PathVariable id: String, @Valid @RequestBody request: RecurringSchedulePatchRequest): RecurringScheduleResult {
+        requireWorkspacePath(workspaceId)
+        return mediator.send(request.toCommand(id))
+    }
+
+    @DeleteMapping("/{id}")
+    suspend fun cancel(@PathVariable workspaceId: String, @PathVariable id: String) {
+        requireWorkspacePath(workspaceId)
+        mediator.send(DeleteRecurringScheduleCommand(id))
+    }
+
+    private fun requireWorkspacePath(pathWorkspaceId: String) {
+        val contextWorkspaceId = resourceContextProvider.requireWorkspaceContext().workspaceId
+        require(pathWorkspaceId == contextWorkspaceId) { "Workspace path does not match the authenticated workspace." }
+    }
+}
+
+data class RecurringScheduleRequest(
+    val templatePostId: String,
+    val frequency: String,
+    val interval: Int = 1,
+    val daysOfWeek: Set<Int> = emptySet(),
+    val dayOfMonth: Int? = null,
+    val endDate: java.time.LocalDate? = null,
+    val maxOccurrences: Int? = null,
+    val startsAt: Instant,
+    val timezone: String = "UTC",
+) {
+    fun toCreateCommand() = CreateRecurringScheduleCommand(
+        templatePostId, RecurrenceRule(RecurrenceFrequency.valueOf(frequency.uppercase()), interval, daysOfWeek, dayOfMonth, endDate, maxOccurrences), startsAt, timezone,
+    )
+}
+
+data class RecurringSchedulePatchRequest(
+    val frequency: String? = null,
+    val interval: Int? = null,
+    val daysOfWeek: Set<Int>? = null,
+    val dayOfMonth: Int? = null,
+    val endDate: java.time.LocalDate? = null,
+    val maxOccurrences: Int? = null,
+    val startsAt: Instant? = null,
+    val timezone: String? = null,
+    val status: String? = null,
+) {
+    fun toCommand(id: String) = UpdateRecurringScheduleCommand(
+        id,
+        frequency?.let { RecurrenceRule(RecurrenceFrequency.valueOf(it.uppercase()), interval ?: 1, daysOfWeek ?: emptySet(), dayOfMonth, endDate, maxOccurrences) },
+        startsAt, timezone, status?.let { RecurringScheduleStatus.valueOf(it.uppercase()) },
+    )
+}

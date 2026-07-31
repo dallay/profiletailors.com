@@ -7,6 +7,7 @@ import {
   type ProviderCatalogItem,
 } from './publishing.store'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 
 // ---------------------------------------------------------------------------
 // Mock auth-api
@@ -147,6 +148,85 @@ describe('publishing store', () => {
       const store = usePublishingStore()
       expect(store.activity).toEqual([])
       expect(store.conflicts).toEqual([])
+    })
+  })
+
+  describe('recurring schedules', () => {
+    it('lists schedules scoped to the active workspace', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('workspace-1')
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        schedules: [],
+      } as never)
+
+      await store.fetchRecurringSchedules()
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/v1/workspaces/workspace-1/recurring', {
+        method: 'GET',
+        workspaceScoped: true,
+      })
+    })
+
+    it('creates a recurring schedule and adds it to local state', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('workspace-1')
+      const schedule = {
+        id: 'recur-1',
+        workspaceId: 'workspace-1',
+        createdBy: 'principal-1',
+        templatePostId: 'pub-1',
+        frequency: 'daily' as const,
+        interval: 1,
+        daysOfWeek: [],
+        dayOfMonth: null,
+        endDate: null,
+        maxOccurrences: null,
+        timezone: 'UTC',
+        nextScheduledAt: '2026-08-01T09:00:00Z',
+        status: 'ACTIVE' as const,
+        createdAt: '2026-07-31T08:00:00Z',
+        updatedAt: '2026-07-31T08:00:00Z',
+      }
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue(schedule as never)
+
+      await store.createRecurringSchedule('pub-1', {
+        frequency: 'daily',
+        interval: 1,
+        startsAt: '2026-08-01T09:00:00Z',
+        timezone: 'UTC',
+      })
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/v1/workspaces/workspace-1/recurring', expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"templatePostId":"pub-1"'),
+      }))
+      expect(store.recurringSchedules).toEqual([schedule])
+    })
+
+    it('cancels a schedule locally only after the API succeeds', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('workspace-1')
+      store.recurringSchedules = [{
+        id: 'recur-1', workspaceId: 'workspace-1', createdBy: 'principal-1', templatePostId: 'pub-1',
+        frequency: 'daily', interval: 1, daysOfWeek: [], dayOfMonth: null, endDate: null,
+        maxOccurrences: null, timezone: 'UTC', nextScheduledAt: null, status: 'ACTIVE',
+        createdAt: null, updatedAt: null,
+      }]
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue(undefined as never)
+
+      await store.cancelRecurringSchedule('recur-1')
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/v1/workspaces/workspace-1/recurring/recur-1', {
+        method: 'DELETE', workspaceScoped: true,
+      })
+      expect(store.recurringSchedules[0]?.status).toBe('CANCELLED')
     })
   })
 
