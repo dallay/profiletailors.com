@@ -484,10 +484,10 @@ function addFiles(filesList: File[]) {
     }
   }
 
-  if (rejected.length > 0 && valid.length === 0) {
+  if (rejected.length > 0) {
     mediaError.value = rejected[0] ?? null
-    return
   }
+  if (valid.length === 0) return
 
   const file = valid[0]
   if (!file) return

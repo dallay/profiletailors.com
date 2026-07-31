@@ -1273,6 +1273,9 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
 
     const inlineCard = getByTestId('inline-local-upload')
     expect(inlineCard.getAttribute('title')).toBe('photo.png')
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      'Unsupported media format',
+    )
   })
 
   it('clears a prior file-rejection alert when publishing with createAnother', async () => {
