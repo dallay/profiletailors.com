@@ -800,6 +800,7 @@ async function uploadDeferredFile(): Promise<boolean> {
 
 function resetPostForm() {
   postText.value = ''
+  mediaError.value = null
   removeFile()
   firstComment.value = ''
   picker.draftAttachmentIds.value = []
@@ -1032,7 +1033,6 @@ async function handleCreateSubmit(
               <p
                 v-if="mediaError"
                 role="alert"
-                aria-live="polite"
                 class="mt-2 rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
               >
                 {{ mediaError }}

@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
-import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
+import {
+  usePublishingStore,
+  type Publication,
+} from '@modules/publishing/infrastructure/publishing.store'
 import { useMediaStore } from '@modules/media'
 import type { MediaAssetSummary, UnsplashPhotoSummary } from '@modules/media/services/media-api'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
@@ -1270,5 +1273,51 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
 
     const inlineCard = getByTestId('inline-local-upload')
     expect(inlineCard.getAttribute('title')).toBe('photo.png')
+  })
+
+  it('clears a prior file-rejection alert when publishing with createAnother', async () => {
+    const store = usePublishingStore()
+    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    // Reject an unsupported drop → role=alert appears
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    const svgFile = new File(['<svg></svg>'], 'diagram.svg', { type: 'image/svg+xml' })
+    const dropEvent = new Event('drop', { bubbles: true, cancelable: true }) as Event & {
+      dataTransfer: { files: File[] }
+    }
+    dropEvent.dataTransfer = { files: [svgFile] }
+    textarea.dispatchEvent(dropEvent)
+    await flushModal(wrapper)
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      'Unsupported media format',
+    )
+
+    // Type content and enable Create Another
+    textarea.value = 'Next post'
+    textarea.dispatchEvent(new Event('input'))
+    const createAnotherLabel = Array.from(document.querySelectorAll('label')).find((label) =>
+      label.textContent?.includes('Create Another'),
+    )
+    const createAnotherInput =
+      createAnotherLabel?.querySelector<HTMLInputElement>('input[type="checkbox"]')
+    expect(createAnotherInput).toBeTruthy()
+    createAnotherInput!.checked = true
+    createAnotherInput!.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushModal(wrapper)
+
+    // Publish → createAnother resets the form; the stale rejection alert must NOT survive
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))
+    expect(scheduleButton).toBeTruthy()
+    scheduleButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+    await vi.waitFor(() => {
+      expect(scheduleSpy).toHaveBeenCalled()
+      expect(document.querySelector('[role="alert"]')).toBeNull()
+      expect((getByTestId('composer-textarea') as HTMLTextAreaElement).value).toBe('')
+    })
   })
 })
