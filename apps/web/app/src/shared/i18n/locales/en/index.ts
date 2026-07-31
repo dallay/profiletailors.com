@@ -16,6 +16,7 @@ import media from './media'
 import settings from './settings'
 import governance from './governance'
 import consent from './consent'
+import tour from './tour'
 
 export default {
   common,
@@ -36,4 +37,5 @@ export default {
   settings,
   governance,
   consent,
+  tour,
 }

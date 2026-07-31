@@ -76,6 +76,7 @@ vi.mock('@lucide/vue', () => {
     BarChart3: stub,
     CalendarDays: stub,
     ChevronsUpDown: stub,
+    CircleHelp: stub,
     Images: stub,
     LayoutGrid: stub,
     LogOut: stub,

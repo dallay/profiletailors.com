@@ -31,6 +31,7 @@
   "dependencies": {
     "@profiletailors/shared-web": "workspace:*",
     "@atlaskit/pragmatic-drag-and-drop": "^1.8.1",
+    "driver.js": "^1.3.6",
     "@internationalized/date": "3.12.2",
     "@lucide/vue": "1.27.0",
     "@tanstack/vue-table": "^8.21.3",

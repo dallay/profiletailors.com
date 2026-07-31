@@ -2,7 +2,13 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { CircleHelp } from '@lucide/vue'
+import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+
+const emit = defineEmits<{
+  startTour: []
+}>()
 
 /**
  * Maps sub-route names to their parent nav key so the header shows the
@@ -32,7 +38,10 @@ const currentSectionLabel = computed(() => {
       <div class="flex min-w-0 items-center gap-3">
         <SidebarTrigger class="rounded-xl border border-border-visible bg-bg-surface text-text-display hover:bg-bg-primary size-9" />
 
-        <div class="min-w-0">
+        <div
+          class="min-w-0"
+          data-tour="section-title"
+        >
           <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-text-secondary">
             {{ t('workspace.title') }}
           </p>
@@ -41,6 +50,18 @@ const currentSectionLabel = computed(() => {
           </h1>
         </div>
       </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        class="gap-2"
+        data-testid="start-tour-btn"
+        @click="emit('startTour')"
+      >
+        <CircleHelp class="size-4" />
+        {{ t('tour.button') }}
+      </Button>
     </div>
   </header>
 </template>
