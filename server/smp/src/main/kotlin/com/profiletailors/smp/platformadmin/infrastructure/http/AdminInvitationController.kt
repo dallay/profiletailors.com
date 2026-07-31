@@ -6,6 +6,7 @@ import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistIn
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
+import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId
@@ -33,7 +34,7 @@ class AdminInvitationController(
     suspend fun getInvitation(@PathVariable invitationId: UUID): ResponseEntity<AdminInvitationSummary> {
         val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         if (PlatformPermission.INVITATIONS_READ !in operatorRoles.effectivePermissions()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+            throw PlatformAccessDeniedException(PlatformPermission.INVITATIONS_READ)
         }
         val invitation = invitationRepository.findById(WaitlistInvitationId(invitationId))
             ?: return ResponseEntity.notFound().build()
@@ -57,7 +58,7 @@ class AdminInvitationController(
 
     @PostMapping("/{invitationId}/revoke")
     @Transactional
-    suspend fun revoke(@PathVariable invitationId: UUID): ResponseEntity<Unit> {
+    suspend fun revoke(@PathVariable invitationId: UUID): ResponseEntity<Map<String, String>> {
         val (operatorId, operatorRoles) = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         revokeHandler.handle(
@@ -67,7 +68,7 @@ class AdminInvitationController(
                 invitationId = invitationId,
             ),
         )
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build()
+        return ResponseEntity.ok(mapOf("status" to "revoked"))
     }
 
     private suspend fun resolveOperator(): Pair<UUID, Set<PlatformRole>>? {

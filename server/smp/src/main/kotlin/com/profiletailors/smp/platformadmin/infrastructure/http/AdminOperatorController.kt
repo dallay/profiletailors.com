@@ -5,6 +5,7 @@ import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRo
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminOperatorSummary
 import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
@@ -37,7 +38,7 @@ class AdminOperatorController(
         val operatorRoles = activeAssignments.map { it.role }.toSet()
 
         if (PlatformPermission.OPERATORS_READ !in operatorRoles.effectivePermissions()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+            throw PlatformAccessDeniedException(PlatformPermission.OPERATORS_READ)
         }
 
         val allAssignments = roleAssignmentRepository.findAllActive()
@@ -59,7 +60,7 @@ class AdminOperatorController(
     suspend fun assignRole(
         @PathVariable principalId: UUID,
         @RequestBody request: AssignRoleRequest,
-    ): ResponseEntity<Unit> {
+    ): ResponseEntity<Map<String, String>> {
         val (operatorId, operatorRoles) = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val role = runCatching { PlatformRole.valueOf(request.role) }.getOrNull()
@@ -73,12 +74,15 @@ class AdminOperatorController(
                 role = role,
             ),
         )
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build()
+        return ResponseEntity.ok(mapOf("status" to "assigned"))
     }
 
     @DeleteMapping("/{principalId}/roles/{role}")
     @Transactional
-    suspend fun revokeRole(@PathVariable principalId: UUID, @PathVariable role: String): ResponseEntity<Unit> {
+    suspend fun revokeRole(
+        @PathVariable principalId: UUID,
+        @PathVariable role: String,
+    ): ResponseEntity<Map<String, String>> {
         val (operatorId, operatorRoles) = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val platformRole = runCatching { PlatformRole.valueOf(role) }.getOrNull()
@@ -92,7 +96,7 @@ class AdminOperatorController(
                 role = platformRole,
             ),
         )
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build()
+        return ResponseEntity.ok(mapOf("status" to "revoked"))
     }
 
     private suspend fun resolveOperator(): Pair<UUID, Set<PlatformRole>>? {

@@ -10,6 +10,7 @@ import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.query.ListAdminWaitlistEntriesQuery
+import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
@@ -53,7 +54,7 @@ class AdminWaitlistController(
     ): ResponseEntity<PagedResult<AdminWaitlistEntrySummary>> {
         val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         if (PlatformPermission.WAITLIST_READ !in operatorRoles.effectivePermissions()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+            throw PlatformAccessDeniedException(PlatformPermission.WAITLIST_READ)
         }
         if (size > MAX_PAGE_SIZE) return ResponseEntity.badRequest().build()
 
@@ -78,7 +79,7 @@ class AdminWaitlistController(
     suspend fun getEntry(@PathVariable entryId: String): ResponseEntity<AdminWaitlistEntryDetail> {
         val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         if (PlatformPermission.WAITLIST_READ !in operatorRoles.effectivePermissions()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+            throw PlatformAccessDeniedException(PlatformPermission.WAITLIST_READ)
         }
         val detail = waitlistQuery.findById(entryId) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(detail)
@@ -101,7 +102,10 @@ class AdminWaitlistController(
 
     @PostMapping("/{entryId}/cancel")
     @Transactional
-    suspend fun cancel(@PathVariable entryId: String, @RequestBody request: CancelRequest): ResponseEntity<Unit> {
+    suspend fun cancel(
+        @PathVariable entryId: String,
+        @RequestBody request: CancelRequest,
+    ): ResponseEntity<Map<String, String>> {
         val (operatorId, operatorRoles) = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         cancelHandler.handle(
@@ -112,7 +116,7 @@ class AdminWaitlistController(
                 reason = request.reason,
             ),
         )
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build()
+        return ResponseEntity.ok(mapOf("status" to "cancelled"))
     }
 
     private suspend fun resolveOperator(): Pair<UUID, Set<PlatformRole>>? {

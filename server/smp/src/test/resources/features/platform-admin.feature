@@ -50,7 +50,7 @@ Feature: Platform administration access control and waitlist management
   Scenario: Cancelling an invited entry revokes the active invitation
     Given an invited waitlist entry with an active invitation exists for "cancel-test@example.com"
     When the platform operator cancels the waitlist entry with reason "spam account"
-    Then the admin response status should be 204
+    Then the admin response status should be 200
     And the waitlist entry status should become "CANCELLED"
     And no active invitation should remain for the entry
 
@@ -65,7 +65,7 @@ Feature: Platform administration access control and waitlist management
   Scenario: Revoking an active invitation marks it as revoked
     Given an invited waitlist entry with an active invitation exists for "revoke-test@example.com"
     When the platform operator revokes the active invitation
-    Then the admin response status should be 204
+    Then the admin response status should be 200
     And the invitation status should be "REVOKED"
     And the waitlist entry status should remain "INVITED"
 

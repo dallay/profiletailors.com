@@ -25,7 +25,7 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
         val params = mutableMapOf<String, Any?>()
 
         query.status?.let {
-            conditions += "p.status = :status"
+            conditions += "p.principal_type = :status"
             params["status"] = it
         }
         query.email?.let {
@@ -48,8 +48,8 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
 
         val countSql = "SELECT COUNT(*) FROM principals p LEFT JOIN user_identities ui ON ui.principal_id = p.id $where"
         val dataSql = """
-            SELECT p.id, p.status, p.created_at,
-                   ui.email, ui.display_name, ui.last_authenticated_at
+            SELECT p.id, p.principal_type, p.created_at, p.display_identity,
+                   ui.email
             FROM principals p
             LEFT JOIN user_identities ui ON ui.principal_id = p.id
             $where
@@ -101,10 +101,10 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
     private fun Readable.toSummary() = AdminUserSummary(
         principalId = requireNotNull(get("id", String::class.java)),
         email = requireNotNull(get("email", String::class.java)),
-        displayIdentity = get("display_name", String::class.java),
-        principalType = requireNotNull(get("status", String::class.java)),
+        displayIdentity = get("display_identity", String::class.java),
+        principalType = requireNotNull(get("principal_type", String::class.java)),
         createdAt = requireNotNull(get("created_at", OffsetDateTime::class.java)).toInstant(),
-        lastAuthenticatedAt = get("last_authenticated_at", OffsetDateTime::class.java)?.toInstant(),
+        lastAuthenticatedAt = null,
         authenticationMethods = emptyList(),
         workspaceCount = 0,
         platformRoles = emptyList(),
@@ -113,10 +113,10 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
     private fun Readable.toDetail() = AdminUserDetail(
         principalId = requireNotNull(get("id", String::class.java)),
         email = requireNotNull(get("email", String::class.java)),
-        displayIdentity = get("display_name", String::class.java),
-        principalType = requireNotNull(get("status", String::class.java)),
+        displayIdentity = get("display_identity", String::class.java),
+        principalType = requireNotNull(get("principal_type", String::class.java)),
         createdAt = requireNotNull(get("created_at", OffsetDateTime::class.java)).toInstant(),
-        lastAuthenticatedAt = get("last_authenticated_at", OffsetDateTime::class.java)?.toInstant(),
+        lastAuthenticatedAt = null,
         authenticationMethods = emptyList(),
         workspaceMemberships = emptyList(),
         platformRoles = emptyList(),
@@ -127,10 +127,9 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
         private val ALLOWED_SORT_FIELDS = mapOf(
             "createdAt" to "p.created_at",
             "email" to "ui.email",
-            "lastAuthenticatedAt" to "ui.last_authenticated_at",
         )
         private const val SELECT_USER_DETAIL = """
-            SELECT p.id, p.status, p.created_at, ui.email, ui.display_name, ui.last_authenticated_at
+            SELECT p.id, p.principal_type, p.created_at, p.display_identity, ui.email
             FROM principals p LEFT JOIN user_identities ui ON ui.principal_id = p.id
             WHERE p.id = :id
         """

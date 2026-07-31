@@ -57,12 +57,14 @@ class PlatformAdminBddSteps {
 
     @Given("the authenticated principal has no active platform role")
     fun noActivePlatformRole() = runBlocking {
+        clearPlatformRoleAssignments()
         seedAdminPrincipal()
         // do NOT seed any platform_role_assignments
     }
 
     @Given("the authenticated principal has the role {string}")
     fun principalHasRole(role: String) = runBlocking {
+        clearPlatformRoleAssignments()
         seedAdminPrincipal()
         seedPlatformRoleAssignment(role)
     }
@@ -275,6 +277,12 @@ class PlatformAdminBddSteps {
         ).forEach { sql ->
             runCatching { databaseClient.sql(sql).fetch().rowsUpdated().awaitSingle() }
         }
+    }
+
+    private suspend fun clearPlatformRoleAssignments() {
+        databaseClient.sql(
+            "DELETE FROM platform_role_assignments WHERE principal_id = '$ADMIN_PRINCIPAL_ID'::uuid",
+        ).fetch().rowsUpdated().awaitSingle()
     }
 
     private suspend fun seedAdminPrincipal() {

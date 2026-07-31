@@ -11,6 +11,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -97,7 +98,7 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
     override suspend fun findById(entryId: String): AdminWaitlistEntryDetail? {
         val entry = databaseClient.sql(SELECT_ENTRY_DETAIL)
             .bind("id", entryId)
-            .map { row, _ -> row }
+            .map { row, _ -> row.toEntrySnapshot() }
             .one()
             .awaitSingleOrNull() ?: return null
 
@@ -109,21 +110,21 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
             .awaitSingle()
 
         return AdminWaitlistEntryDetail(
-            id = requireNotNull(entry.get("id", String::class.java)),
-            waitlistId = requireNotNull(entry.get("waitlist_id", String::class.java)),
-            waitlistKey = requireNotNull(entry.get("waitlist_key", String::class.java)),
-            email = requireNotNull(entry.get("email_original", String::class.java)),
-            normalizedEmail = requireNotNull(entry.get("normalized_email", String::class.java)),
-            status = requireNotNull(entry.get("status", String::class.java)),
-            joinedAt = requireNotNull(entry.get("joined_at", OffsetDateTime::class.java)).toInstant(),
-            invitedAt = entry.get("invited_at", OffsetDateTime::class.java)?.toInstant(),
-            convertedAt = entry.get("converted_at", OffsetDateTime::class.java)?.toInstant(),
-            cancelledAt = entry.get("cancelled_at", OffsetDateTime::class.java)?.toInstant(),
-            preferredLocale = entry.get("locale", String::class.java),
-            earlyAccessConsent = requireNotNull(entry.get("consent_early_access", Boolean::class.java)),
-            marketingConsent = requireNotNull(entry.get("consent_marketing", Boolean::class.java)),
-            consentVersion = entry.get("consent_version", String::class.java),
-            source = requireNotNull(entry.get("source", String::class.java)),
+            id = entry.id,
+            waitlistId = entry.waitlistId,
+            waitlistKey = entry.waitlistKey,
+            email = entry.email,
+            normalizedEmail = entry.normalizedEmail,
+            status = entry.status,
+            joinedAt = entry.joinedAt,
+            invitedAt = entry.invitedAt,
+            convertedAt = entry.convertedAt,
+            cancelledAt = entry.cancelledAt,
+            preferredLocale = entry.preferredLocale,
+            earlyAccessConsent = entry.earlyAccessConsent,
+            marketingConsent = entry.marketingConsent,
+            consentVersion = entry.consentVersion,
+            source = entry.source,
             metadataSummary = emptyMap(),
             invitationHistory = invitations,
             version = 0L,
@@ -140,6 +141,42 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
             .collectList()
             .awaitSingle()
             .toMap()
+
+    private fun Readable.toEntrySnapshot() = AdminWaitlistEntrySnapshot(
+        id = requireNotNull(get("id", String::class.java)),
+        waitlistId = requireNotNull(get("waitlist_id", String::class.java)),
+        waitlistKey = requireNotNull(get("waitlist_key", String::class.java)),
+        email = requireNotNull(get("email_original", String::class.java)),
+        normalizedEmail = requireNotNull(get("normalized_email", String::class.java)),
+        status = requireNotNull(get("status", String::class.java)),
+        joinedAt = requireNotNull(get("joined_at", OffsetDateTime::class.java)).toInstant(),
+        invitedAt = get("invited_at", OffsetDateTime::class.java)?.toInstant(),
+        convertedAt = get("converted_at", OffsetDateTime::class.java)?.toInstant(),
+        cancelledAt = get("cancelled_at", OffsetDateTime::class.java)?.toInstant(),
+        preferredLocale = get("locale", String::class.java),
+        earlyAccessConsent = requireNotNull(get("consent_early_access", Boolean::class.java)),
+        marketingConsent = requireNotNull(get("consent_marketing", Boolean::class.java)),
+        consentVersion = get("consent_version", String::class.java),
+        source = requireNotNull(get("source", String::class.java)),
+    )
+
+    private data class AdminWaitlistEntrySnapshot(
+        val id: String,
+        val waitlistId: String,
+        val waitlistKey: String,
+        val email: String,
+        val normalizedEmail: String,
+        val status: String,
+        val joinedAt: Instant,
+        val invitedAt: Instant?,
+        val convertedAt: Instant?,
+        val cancelledAt: Instant?,
+        val preferredLocale: String?,
+        val earlyAccessConsent: Boolean,
+        val marketingConsent: Boolean,
+        val consentVersion: String?,
+        val source: String,
+    )
 
     private fun Readable.toSummary() = AdminWaitlistEntrySummary(
         id = requireNotNull(get("id", String::class.java)),
