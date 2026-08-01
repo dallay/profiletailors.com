@@ -16,6 +16,8 @@ const DEFAULT_COLUMNS: IdeaColumn[] = [
   { id: 'done', name: 'Done', order: 2 },
 ]
 
+const DEFAULT_FIRST_COLUMN_ID: string = DEFAULT_COLUMNS[0]?.id ?? 'raw'
+
 function isIdeaArray(payload: unknown): payload is Idea[] {
   return Array.isArray(payload)
 }
@@ -189,7 +191,7 @@ export const useIdeasStore = defineStore('ideas', () => {
 
   async function createIdea(input: CreateIdeaInput): Promise<Idea> {
     const workspaceId = requireWorkspace()
-    const targetColumnId = input.columnId ?? orderedColumns.value[0]?.id ?? DEFAULT_COLUMNS[0].id
+    const targetColumnId = input.columnId ?? orderedColumns.value[0]?.id ?? DEFAULT_FIRST_COLUMN_ID
     const nextOrder = ideasByColumn.value[targetColumnId]?.length ?? 0
 
     const payload = {
@@ -403,7 +405,7 @@ export const useIdeasStore = defineStore('ideas', () => {
       columns.value = normalizedColumns
 
       const validColumnIds = new Set(normalizedColumns.map((column) => column.id))
-      const fallbackColumnId = normalizedColumns[0]?.id ?? DEFAULT_COLUMNS[0].id
+      const fallbackColumnId = normalizedColumns[0]?.id ?? DEFAULT_FIRST_COLUMN_ID
 
       ideas.value = normalizeIdeas(
         ideas.value.map((idea) =>

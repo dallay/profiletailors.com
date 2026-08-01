@@ -19,6 +19,8 @@ import {
   Link as LinkIcon,
 } from '@lucide/vue'
 import type { Idea, IdeaColumn, IdeaLink } from '@modules/ideas/domain'
+
+type ColumnDraft = Omit<IdeaColumn, 'color'> & { color: string }
 import { useIdeasStore } from '@modules/ideas/infrastructure/ideas.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { Button } from '@/components/ui/button'
@@ -72,7 +74,7 @@ const detailForm = reactive({
   linksRaw: '',
 })
 
-const columnDraft = ref<IdeaColumn[]>([])
+const columnDraft = ref<ColumnDraft[]>([])
 const newColumnName = ref('')
 const newColumnColor = ref('')
 
@@ -336,7 +338,7 @@ function parseLinks(raw: string): IdeaLink[] {
 
       return {
         label: labelPart ? labelPart.trim() : null,
-        url: urlPart.trim(),
+        url: (urlPart ?? '').trim(),
       }
     })
 }
@@ -424,7 +426,7 @@ async function convertSelectedIdea(): Promise<void> {
 }
 
 function openColumnSettings(): void {
-  columnDraft.value = columns.value.map((column) => ({ ...column }))
+  columnDraft.value = columns.value.map((column) => ({ ...column, color: column.color ?? '' }))
   newColumnName.value = ''
   newColumnColor.value = ''
   isColumnSettingsOpen.value = true
@@ -455,7 +457,7 @@ function addColumn(): void {
   columnDraft.value = [
     ...columnDraft.value,
     ideasStore.createLocalColumn(name, color || null),
-  ].map((column, index) => ({ ...column, order: index }))
+  ].map((column, index) => ({ ...column, color: column.color ?? '', order: index }))
 
   newColumnName.value = ''
   newColumnColor.value = ''
