@@ -12,4 +12,4 @@ permissions:
 
 jobs:
   cleanup:
-    uses: dallay/common-actions/.github/workflows/cleanup-cache.yml@8aaf32edb1b70941a3f8889b47af1a7fd47e3a2c # v2.2.1
+    uses: dallay/common-actions/.github/workflows/cleanup-cache.yml@6548f0dfaad9e40648cd56e85566e5bc2d707dfb # v2.2.2
