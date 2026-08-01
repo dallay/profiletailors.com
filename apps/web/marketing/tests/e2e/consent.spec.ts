@@ -10,11 +10,12 @@ declare global {
 
 test.describe('Consent Management', () => {
   test.beforeEach(async ({ page }) => {
-    // Initialize consent state before any navigation
-    await page.addInitScript(() => {
-      localStorage.removeItem('pt-consent')
-    })
+    // Clear any persisted consent exactly once, before the banner script runs.
+    // Must NOT be an addInitScript: that would re-run on the banner's own
+    // location.reload() and wipe the receipt right after it is saved.
     await page.goto('/')
+    await page.evaluate(() => localStorage.removeItem('pt-consent'))
+    await page.reload()
   })
 
   // TASK-014: Accept all scenario
@@ -24,7 +25,10 @@ test.describe('Consent Management', () => {
     await expect(banner).toBeVisible()
 
     // Click accept all
-    await page.click('[data-consent-accept]')
+    await page.click('[data-consent-accept-all]')
+
+    // Saving triggers a reload; wait for it before asserting
+    await page.waitForLoadState('load')
 
     // Verify localStorage receipt
     const receipt = await page.evaluate(() => {
@@ -35,8 +39,7 @@ test.describe('Consent Management', () => {
     expect(receipt.categories.necessary).toBe(true)
     expect(receipt.source).toBe('banner')
 
-    // Reload and check banner is hidden
-    await page.reload()
+    // Banner is hidden after reload
     await expect(banner).toBeHidden()
 
     // Verify analytics script loaded (window.__PT_CONSENT_ANALYTICS should be true)
@@ -53,6 +56,9 @@ test.describe('Consent Management', () => {
     // Click reject all using accessible selector
     await page.getByRole('button', { name: 'Reject all' }).click()
 
+    // Saving triggers a reload; wait for it before asserting
+    await page.waitForLoadState('load')
+
     // Verify localStorage receipt
     const receipt = await page.evaluate(() => {
       const raw = localStorage.getItem('pt-consent')
@@ -61,8 +67,7 @@ test.describe('Consent Management', () => {
     expect(receipt.categories.analytics).toBe(false)
     expect(receipt.categories.necessary).toBe(true)
 
-    // Reload and check banner is hidden
-    await page.reload()
+    // Banner is hidden after reload
     await expect(banner).toBeHidden()
 
     // Verify analytics flag is false
@@ -96,12 +101,15 @@ test.describe('Consent Management', () => {
     const banner = page.locator('#consent-banner')
     await expect(banner).toBeVisible()
 
-    // Toggle should be OFF by default when DNT is enabled (using accessible selector)
-    const toggle = page.getByRole('switch', { name: 'Analytics cookies' })
+    // Analytics toggle is hidden but its state reflects the DNT default
+    const toggle = page.locator('[data-consent-analytics]')
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
 
     // User can still override using accessible selector
     await page.getByRole('button', { name: 'Accept all' }).click()
+
+    // Saving triggers a reload; wait for it before asserting
+    await page.waitForLoadState('load')
 
     // Verify receipt with dnt flag
     const receipt = await page.evaluate(() => {
@@ -116,27 +124,27 @@ test.describe('Consent Management', () => {
     expect(dntFlag).toBe(true)
   })
 
-  // Additional test: Save preferences with analytics off
-  test('save preferences allows granular control', async ({ page }) => {
+  // Save preferences persists the default analytics state (no visible granular toggle)
+  test('save preferences persists default state', async ({ page }) => {
     const banner = page.locator('#consent-banner')
     await expect(banner).toBeVisible()
 
-    // Toggle analytics OFF (click the toggle)
+    // Without DNT/GPC the default analytics state is enabled
     const toggle = page.locator('[data-consent-analytics]')
-    await toggle.click()
-
-    // Toggle should now be OFF
-    await expect(toggle).toHaveAttribute('aria-checked', 'false')
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
 
     // Save preferences
     await page.click('[data-consent-save]')
+
+    // Saving triggers a reload; wait for it before asserting
+    await page.waitForLoadState('load')
 
     // Verify localStorage receipt
     const receipt = await page.evaluate(() => {
       const raw = localStorage.getItem('pt-consent')
       return raw ? JSON.parse(raw) : null
     })
-    expect(receipt.categories.analytics).toBe(false)
+    expect(receipt.categories.analytics).toBe(true)
     expect(receipt.source).toBe('banner')
   })
 
@@ -178,7 +186,7 @@ test.describe('Consent Management', () => {
 
     await page.goto('/')
 
-    // Toggle should be OFF by default when GPC is enabled
+    // Analytics toggle reflects the GPC default (off)
     const toggle = page.locator('[data-consent-analytics]')
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
   })
