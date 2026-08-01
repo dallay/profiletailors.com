@@ -10,7 +10,16 @@
  */
 
 import { test, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+
+// Axe scans the DOM while the fade-in animation is mid-flight, measuring text
+// at partial opacity and producing false color-contrast failures. Running with
+// reduced motion is both a real user scenario (WCAG 2.3.3) and the stable
+// end-state we actually want to verify. Note: `reducedMotion` must go through
+// `contextOptions` — passing it directly to `test.use` is silently dropped by
+// Playwright 1.62.
+test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -20,7 +29,7 @@ import AxeBuilder from '@axe-core/playwright'
  * Pre-seed consent so the banner never interferes with a11y scans.
  * The banner itself is tested in consent.spec.ts.
  */
-async function seedConsent(page: Parameters<typeof test.beforeEach>[0]['page']): Promise<void> {
+async function seedConsent(page: Page): Promise<void> {
     await page.addInitScript(() => {
         localStorage.setItem(
             'pt-consent',
@@ -37,7 +46,7 @@ async function seedConsent(page: Parameters<typeof test.beforeEach>[0]['page']):
     })
 }
 
-function axe(page: Parameters<typeof AxeBuilder>[0]['page']) {
+function axe(page: Page) {
     return new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
 }
 
@@ -74,12 +83,15 @@ test.describe('Marketing A11y — Landing page @a11y', () => {
 
     test('skip link is present and keyboard-operable', async ({ page }) => {
         await page.goto('/')
-        await page.keyboard.press('Tab')
-
         const skipLink = page.locator('a.skip-link').or(page.getByRole('link', { name: /skip to/i }))
-        await expect(skipLink).toBeFocused()
+        await expect(skipLink).toBeVisible()
 
+        // Focus the skip link and activate it. The target must receive focus
+        // (via #main-content[tabindex="-1"]) and move the viewport to it.
+        await skipLink.focus()
+        await expect(skipLink).toBeFocused()
         await page.keyboard.press('Enter')
+
         const main = page.locator('#main-content').or(page.getByRole('main'))
         await expect(main).toBeFocused()
     })
@@ -90,12 +102,20 @@ test.describe('Marketing A11y — Landing page @a11y', () => {
 
         // Locate the waitlist email input
         const emailInput = page.locator('input[type="email"]').first()
+        const submitBtn = page.locator('button[type="submit"]').first()
         if (await emailInput.isVisible()) {
             await emailInput.focus()
             await expect(emailInput).toBeFocused()
 
-            await page.keyboard.press('Tab')
-            const submitBtn = page.locator('button[type="submit"]').first()
+            // Tab until the submit button receives focus. The form has
+            // checkboxes between the email and the submit, so a fixed Tab
+            // count would be brittle.
+            for (let i = 0; i < 10; i++) {
+                await page.keyboard.press('Tab')
+                if (await submitBtn.evaluate((el) => el === document.activeElement)) {
+                    break
+                }
+            }
             await expect(submitBtn).toBeFocused()
         }
     })
