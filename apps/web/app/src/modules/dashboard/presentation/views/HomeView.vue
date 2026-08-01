@@ -12,33 +12,6 @@ const { t } = useI18n()
 
 const isModalOpen = ref(false)
 
-// ---------------------------------------------------------------------------
-// Feature flag — localStorage toggle to restore old HomeView during development.
-// Key: "pt-dashboard-new" | Values: "true" (default) → new layout, "false" → legacy
-// ---------------------------------------------------------------------------
-const STORAGE_KEY = 'pt-dashboard-new'
-
-function readFlag(): boolean {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored === null) return true // new dashboard by default
-    return stored !== 'false'
-  } catch {
-    return true
-  }
-}
-
-const showNewDashboard = ref(readFlag())
-
-function toggleDashboardVersion() {
-  showNewDashboard.value = !showNewDashboard.value
-  try {
-    localStorage.setItem(STORAGE_KEY, String(showNewDashboard.value))
-  } catch {
-    // localStorage unavailable — flag is ephemeral only
-  }
-}
-
 function handleOpenModal() {
   isModalOpen.value = true
 }
@@ -61,35 +34,13 @@ function handleCreated() {
         </p>
       </div>
       <div class="flex items-center gap-2">
-        <span
-          class="text-[10px] font-[var(--font-space-mono)] uppercase tracking-wider text-[var(--text-secondary)] select-none"
-        >
-          {{ showNewDashboard ? 'New' : 'Legacy' }}
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          class="text-[10px] font-[var(--font-space-mono)] uppercase tracking-wider h-7"
-          @click="toggleDashboardVersion"
-        >
-          {{ showNewDashboard ? 'Switch to Legacy' : 'Switch to New' }}
-        </Button>
         <Button @click="handleOpenModal">
           {{ $t('dashboard.newPost') }}
         </Button>
       </div>
     </div>
 
-    <DashboardLayout v-if="showNewDashboard" />
-
-    <div
-      v-else
-      class="rounded-xl border border-[var(--border-color)] bg-[var(--background-surface)] p-8 text-center"
-    >
-      <p class="text-sm text-[var(--text-secondary)]">
-        Legacy dashboard is disabled. Toggle back to the new dashboard.
-      </p>
-    </div>
+    <DashboardLayout />
 
     <CreatePostModal
       :is-open="isModalOpen"
