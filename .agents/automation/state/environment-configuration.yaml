@@ -17,9 +17,11 @@ findings:
     risk: LOW
     message: "Added 15 missing backend variables (including CORS, Waitlist rate limits, Email configuration, Storage defaults, and LinkedIn API versions) to .env.example."
 checks:
-  - name: Compare application.yaml and .env.example
+  - name: Spring YAML Extraction
     status: Passed
-  - name: Reconcile PUBLISHING_CREDENTIALS_ENCRYPTION_KEY
+  - name: Configuration Sync
     status: Passed
-  - name: Run just ci-local Verification
+  - name: Production Key Sync
+    status: Passed
+  - name: CI Pipeline Verification
     status: Passed
