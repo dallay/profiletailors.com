@@ -290,11 +290,11 @@ Before deploying to production, verify:
 
 ## Access control guidelines
 
-| Secret                              | Who should access          | When                                    |
-|-------------------------------------|----------------------------|-----------------------------------------|
-| `SMP_DB_PASSWORD`                   | Infrastructure admins      | Deployment, incident response           |
+| Secret                                  | Who should access          | When                                    |
+|-----------------------------------------|----------------------------|-----------------------------------------|
+| `SMP_DB_PASSWORD`                       | Infrastructure admins      | Deployment, incident response           |
 | `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` | Infrastructure admins only | Deployment, key rotation                |
-| `SMP_LINKEDIN_CLIENT_SECRET`        | Infrastructure admins      | Deployment, OAuth app changes           |
+| `SMP_LINKEDIN_CLIENT_SECRET`            | Infrastructure admins      | Deployment, OAuth app changes           |
 | `SMP_LOCAL_JWT_SECRET`              | Infrastructure admins      | Deployment, security incident           |
 | `SMP_MEDIA_PREVIEW_SIGNING_SECRET`  | Infrastructure admins      | Deployment, URL-signing rotation        |
 | `SMP_LINKEDIN_STATE_SIGNING_SECRET` | Infrastructure admins      | Deployment, OAuth-state rotation        |
