@@ -63,6 +63,7 @@ internal class McpSecurityConfiguration(
     private val mcpJwtPresenceFilter: WebFilter = McpJwtPresenceFilter()
 
 
+
     /**
      * Configures the security filter chain for MCP endpoints.
      *
