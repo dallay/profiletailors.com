@@ -457,9 +457,9 @@ export class ComposeModalPage {
 
   async pickDate(day: number): Promise<void> {
     // Click an enabled day number in the calendar popover.
-    // Month grids can render duplicate labels for outside-view days, so avoid disabled cells.
+    // Month grids can render duplicate labels for outside-view days, so avoid disabled cells and outside-view days.
     const dayButton = this.page
-      .locator('[data-slot="calendar-cell-trigger"]:not([data-disabled])')
+      .locator('[data-slot="calendar-cell-trigger"]:not([data-disabled]):not([data-outside-view])')
       .getByText(String(day), { exact: true })
     await dayButton.click()
   }

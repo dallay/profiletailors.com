@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { toast } from 'vue-sonner'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import i18n from '@shared/i18n'
 import {
   type ConsentReceipt,
   CONSENT_STORAGE_KEY,
@@ -89,17 +90,35 @@ export const useConsentStore = defineStore('consent', () => {
   async function syncToBackend(receipt: ConsentReceipt): Promise<void> {
     const auth = useAuthStore()
 
-    await auth.apiFetch('/api/governance/consent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        subjectReference: { user: auth.user?.principalId },
-        purpose: 'web.analytics',
-        granted: receipt.categories.analytics,
-        timestamp: receipt.timestamp,
-      }),
-      workspaceScoped: true,
-    })
+    if (receipt.categories.analytics) {
+      await auth.apiFetch('/api/governance/consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subjectKind: 'USER',
+          subjectValue: auth.user?.principalId,
+          consentType: 'CONSENT',
+          purpose: 'web.analytics',
+          policyVersion: receipt.policyVersion,
+          source: receipt.source,
+          locale: i18n.global.locale.value,
+        }),
+        workspaceScoped: true,
+      })
+    } else {
+      await auth.apiFetch('/api/governance/consent/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subjectKind: 'USER',
+          subjectValue: auth.user?.principalId,
+          purpose: 'web.analytics',
+          policyVersion: receipt.policyVersion,
+          reason: 'user_request',
+        }),
+        workspaceScoped: true,
+      })
+    }
   }
 
   /** Open consent settings (force banner visibility). */
