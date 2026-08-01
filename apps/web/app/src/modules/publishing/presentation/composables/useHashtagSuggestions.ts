@@ -101,7 +101,7 @@ export function useHashtagSuggestions() {
 
   function buildHashtagBlock(): string {
     if (addedHashtags.value.size === 0) return ''
-    return '\n\n' + [...addedHashtags.value].join(' ')
+    return `\n\n${[...addedHashtags.value].join(' ')}`
   }
 
   return {

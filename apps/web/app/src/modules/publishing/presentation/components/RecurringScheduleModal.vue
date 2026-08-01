@@ -87,7 +87,8 @@ function localDateTimeToIso(value: string): string {
 
 async function save(): Promise<void> {
   error.value = ''
-  if (!props.schedule && !props.publication) return
+  const scheduleId = props.schedule?.id ?? props.publication?.id
+  if (!scheduleId) return
   if (!startsAt.value || new Date(startsAt.value) <= new Date()) {
     error.value = t('postDetail.recurring.errors.futureStart')
     return
@@ -110,7 +111,7 @@ async function save(): Promise<void> {
     }
     const saved = props.schedule
       ? await publishing.updateRecurringSchedule(props.schedule.id, input)
-      : await publishing.createRecurringSchedule(props.publication!.id, input)
+      : await publishing.createRecurringSchedule(scheduleId, input)
     emit('saved', saved)
     emit('close')
   } catch (cause) {

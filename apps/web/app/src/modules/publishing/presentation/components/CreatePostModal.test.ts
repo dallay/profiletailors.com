@@ -8,7 +8,6 @@ import {
 } from '@modules/publishing/infrastructure/publishing.store'
 import {
   generateAiPostContent,
-  optimizeAiPostContent,
   regenerateAiPostContent,
 } from '@modules/publishing/services/ai-content-api'
 import { useMediaStore } from '@modules/media'

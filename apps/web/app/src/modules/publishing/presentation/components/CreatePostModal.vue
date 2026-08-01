@@ -368,7 +368,6 @@ watch(
 
 
 const isSubmitting = ref(false)
-const isAiProcessing = ref(false)
 const charLimit = 3000
 const charsRemaining = computed(() => charLimit - postText.value.length)
 const isTextTooLong = computed(() => charsRemaining.value < 0)
