@@ -46,7 +46,13 @@ internal class McpSecurityConfiguration {
 
     private val placeholderWwwAuthenticateFilter: WebFilter = PlaceholderWwwAuthenticateFilter()
 
-    @Bean
+    /**
+         * Configures the security filter chain for MCP endpoints.
+         *
+         * @param http The HTTP security configuration to customize.
+         * @return The configured security filter chain.
+         */
+        @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE + 50)
     fun mcpSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
         .securityMatcher(mcpPathMatcher)
@@ -66,7 +72,15 @@ internal class McpSecurityConfiguration {
      * just before the response is committed.
      */
     private class PlaceholderWwwAuthenticateFilter : WebFilter {
-        override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> =
+        /**
+             * Applies the filter chain and adds MCP authentication response headers to unauthorized responses
+             * that do not already include a `WWW-Authenticate` header.
+             *
+             * @param exchange The current server exchange.
+             * @param chain The remaining web filter chain.
+             * @return A completion signal for the filter operation.
+             */
+            override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> =
             chain.filter(exchange).then(
                 Mono.fromRunnable {
                     if (exchange.response.statusCode == HttpStatus.UNAUTHORIZED &&
