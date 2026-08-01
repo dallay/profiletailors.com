@@ -86,6 +86,7 @@ class McpContractTest {
 
         @Suppress("UNCHECKED_CAST")
         val result = parsed["result"] as Map<String, Any?>
+
         @Suppress("UNCHECKED_CAST")
         val tools = result["tools"] as List<Map<String, Any?>>
         assertTrue(tools.size >= 2, "Should have at least 2 tools")
