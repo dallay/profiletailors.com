@@ -1,6 +1,5 @@
 package com.profiletailors.smp.mcp.infrastructure
 
-import com.profiletailors.smp.mcp.adapter.McpToolMetadata
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test

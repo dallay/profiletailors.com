@@ -6,10 +6,8 @@ import java.util.UUID
 /**
  * Exception thrown when an MCP rate limit bucket is exhausted.
  */
-class McpRateLimitExceededException(
-    val bucket: String,
-    val retryAfterSeconds: Long,
-) : RuntimeException("Rate limit exceeded for bucket: $bucket")
+class McpRateLimitExceededException(val bucket: String, val retryAfterSeconds: Long) :
+    RuntimeException("Rate limit exceeded for bucket: $bucket")
 
 /**
  * Structured error returned by MCP tools — never leaks internals.

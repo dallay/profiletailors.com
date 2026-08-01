@@ -51,8 +51,12 @@ class McpToolInvocationAuditFactTest {
         assertThat(map["toolName"]).isEqualTo("get_calendar")
         assertThat(map["outcome"]).isEqualTo("DENIED")
         assertThat(map).containsKeys(
-            "toolName", "scopeChecked", "grantedScopes",
-            "workspaceId", "correlationId", "outcome",
+            "toolName",
+            "scopeChecked",
+            "grantedScopes",
+            "workspaceId",
+            "correlationId",
+            "outcome",
         )
     }
 }

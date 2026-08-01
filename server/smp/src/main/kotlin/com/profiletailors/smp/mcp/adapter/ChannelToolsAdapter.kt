@@ -13,10 +13,7 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
  * (providerAccessToken, refreshToken, OAuth secrets) — those live in the
  * credentials infrastructure layer and never surface via query handlers.
  */
-class ChannelToolsAdapter(
-    private val mediator: Mediator,
-    private val errorMapper: McpErrorMapper,
-) {
+class ChannelToolsAdapter(private val mediator: Mediator, private val errorMapper: McpErrorMapper) {
 
     suspend fun listChannels(status: String?): ToolResponse<Any> = runCatching {
         val connectionStatus = status?.let { SocialConnectionStatus.valueOf(it) }

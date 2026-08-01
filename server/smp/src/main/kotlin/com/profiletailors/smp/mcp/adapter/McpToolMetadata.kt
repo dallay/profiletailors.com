@@ -5,10 +5,7 @@ package com.profiletailors.smp.mcp.adapter
  */
 object McpToolMetadata {
 
-    private data class ToolEntry(
-        val scope: String,
-        val rateLimitBucket: String,
-    )
+    private data class ToolEntry(val scope: String, val rateLimitBucket: String)
 
     private val registry: Map<String, ToolEntry> = mapOf(
         "list_channels" to ToolEntry("mcp:channels:read", "mcp-channels-read"),

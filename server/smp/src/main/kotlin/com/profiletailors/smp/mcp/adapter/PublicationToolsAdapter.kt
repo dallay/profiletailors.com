@@ -11,11 +11,7 @@ import java.time.Instant
 /**
  * Wrapper for tool results that carries either data or error.
  */
-data class ToolResponse<T>(
-    val isSuccess: Boolean,
-    val data: T? = null,
-    val error: ApplicationError? = null,
-) {
+data class ToolResponse<T>(val isSuccess: Boolean, val data: T? = null, val error: ApplicationError? = null) {
     companion object {
         fun <T> success(data: T): ToolResponse<T> = ToolResponse(isSuccess = true, data = data)
         fun <T> failure(error: ApplicationError): ToolResponse<T> = ToolResponse(isSuccess = false, error = error)
@@ -28,10 +24,7 @@ data class ToolResponse<T>(
  * Tools: `list_publications`, `get_calendar`
  * Delegates to existing query handlers via the mediator.
  */
-class PublicationToolsAdapter(
-    private val mediator: Mediator,
-    private val errorMapper: McpErrorMapper,
-) {
+class PublicationToolsAdapter(private val mediator: Mediator, private val errorMapper: McpErrorMapper) {
 
     @Suppress("UnusedParameter")
     suspend fun listPublications(

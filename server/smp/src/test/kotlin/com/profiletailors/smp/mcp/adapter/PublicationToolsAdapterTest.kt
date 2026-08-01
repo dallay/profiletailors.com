@@ -1,7 +1,6 @@
 package com.profiletailors.smp.mcp.adapter
 
 import com.profiletailors.common.domain.bus.Mediator
-import com.profiletailors.smp.mcp.infrastructure.ApplicationError
 import com.profiletailors.smp.mcp.infrastructure.McpErrorMapper
 import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
