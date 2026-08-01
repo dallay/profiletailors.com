@@ -7,6 +7,7 @@ springdoc = "3.0.2"
 detekt = "2.0.0-alpha.3"
 spotless = "8.7.0"
 owasp = "12.1.9"
+licenceReport = "2.9"
 jdk = "21"
 
 # Libraries
@@ -117,6 +118,7 @@ gradle-spring-dependency = { module = "io.spring.dependency-management:io.spring
 gradle-detekt = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 gradle-owasp-depcheck = { module = "org.owasp:dependency-check-gradle", version.ref = "owasp" }
 gradle-spotless = { module = "com.diffplug.spotless:com.diffplug.spotless.gradle.plugin", version.ref = "spotless" }
+gradle-licence-report = { module = "com.github.jk1:gradle-license-report", version.ref = "licenceReport" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
