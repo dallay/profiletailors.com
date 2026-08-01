@@ -2,6 +2,7 @@ package com.profiletailors.buildlogic.library
 
 import com.profiletailors.buildlogic.ConventionPlugin
 import com.profiletailors.buildlogic.extensions.catalogPlugin
+import com.profiletailors.buildlogic.extensions.catalogVersion
 import com.profiletailors.buildlogic.extensions.commonExtensions
 import com.profiletailors.buildlogic.extensions.commonTasks
 import dev.detekt.gradle.extensions.DetektExtension
@@ -9,6 +10,7 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.withType
 
 class KotlinLibraryPlugin : ConventionPlugin {
@@ -20,6 +22,13 @@ class KotlinLibraryPlugin : ConventionPlugin {
         apply(plugin = catalogPlugin("kover").get().pluginId)
 
         repositories.mavenCentral()
+
+        val kotlinVersion = catalogVersion("kotlin")
+
+        dependencies {
+            add("implementation", platform("org.jetbrains.kotlin:kotlin-bom:$kotlinVersion"))
+            add("testImplementation", platform("org.jetbrains.kotlin:kotlin-bom:$kotlinVersion"))
+        }
 
         with(extensions) {
             commonExtensions()
