@@ -19,7 +19,7 @@ All identified contract drifts between the frontend Pinia stores (`consent.store
    - Imported `i18n` from `@shared/i18n` to resolve and supply the active locale string to the backend.
    - Refactored `consent.store.test.ts` to mock and verify correct REST endpoints and exact flat payloads.
 
-2. **Privacy Store DSAR Schema Reconcilation**:
+2. **Privacy Store DSAR Schema Reconciliation**:
    - Updated `submitRequest` in `privacy.store.ts` to flatten `correctionData` values `newEmail` and `newUsername` to root-level keys of the submitted request body to align with `SubmitPrivacyRequestDto`.
    - Implemented `mapStatusDtoToRequest` in `privacy.store.ts` to map backend `SubmitPrivacyResponseDto` on POST and `PrivacyRequestStatusResponseDto` on list/get requests to the local frontend model `DsarRequest`.
    - Refactored `privacy.store.test.ts` to mock backend payloads and assert correct normalization and submission.
