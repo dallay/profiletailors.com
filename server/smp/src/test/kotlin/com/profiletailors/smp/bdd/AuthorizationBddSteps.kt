@@ -473,12 +473,12 @@ class AuthorizationBddSteps {
 
     @When("the user submits credentials for {string}")
     fun whenUserSubmitsCredentialsFor(email: String) {
-        submitLogin(email = email, password = "password123")
+        submitLogin(email = email, password = "bdd-RegisteredP@ssw0rd1")
     }
 
     @When("the user submits credentials with email {string}")
     fun whenUserSubmitsCredentialsWithEmail(email: String) {
-        submitLogin(email = email, password = "password123")
+        submitLogin(email = email, password = "bdd-RegisteredP@ssw0rd1")
     }
 
     @When("the client registers with email {string}")
@@ -792,7 +792,7 @@ class AuthorizationBddSteps {
             .returnResult()
     }
 
-    private fun submitRegistration(email: String, password: String = "password123") {
+    private fun submitRegistration(email: String, password: String = "bdd-RegisteredP@ssw0rd1") {
         latestStatusCode = null
         latestResult = webTestClient.post()
             .uri(bddDatabaseSupport.localAuthRegisterPath())
@@ -821,7 +821,7 @@ class AuthorizationBddSteps {
             .bodyValue(
                 mapOf(
                     "email" to email,
-                    "password" to "password123",
+                    "password" to "bdd-RegisteredP@ssw0rd1",
                     "confirmedAgeEligibility" to true,
                     "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
@@ -861,7 +861,7 @@ class AuthorizationBddSteps {
             .bodyValue(
                 mapOf(
                     "email" to email,
-                    "password" to "password123",
+                    "password" to "bdd-RegisteredP@ssw0rd1",
                     "confirmedAgeEligibility" to true,
                     "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
@@ -884,7 +884,7 @@ class AuthorizationBddSteps {
             .bodyValue(
                 mapOf(
                     "email" to email,
-                    "password" to "password123",
+                    "password" to "bdd-RegisteredP@ssw0rd1",
                 ),
             )
             .exchange()
@@ -919,7 +919,7 @@ class AuthorizationBddSteps {
             .bodyValue(
                 mapOf(
                     "email" to email,
-                    "password" to "password123",
+                    "password" to "bdd-RegisteredP@ssw0rd1",
                 ),
             )
             .exchange()
