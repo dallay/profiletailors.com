@@ -1,0 +1,125 @@
+---
+import Layout from "@layouts/Layout.astro";
+import Footer from "@components/Footer.astro";
+import { useTranslations } from "@i18n/utils";
+import type { Locale } from "@i18n/utils";
+
+interface Props {
+    locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const policy = t.legal.accessibility;
+const links = t.footer.legalLinks;
+
+function renderText(text: string): string {
+    return text
+        .split("\n\n")
+        .map((p) => {
+            const html = p
+                .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                .replace(
+                    /\[([^\]]+)\]\(([^)]+)\)/g,
+                    '<a href="$2" class="underline text-text-muted hover:text-text-display transition-colors duration-200">$1</a>',
+                )
+                .replace(/^- (.+)/gm, "<li>$1</li>")
+                .replace(
+                    /(<li>[\s\S]+?<\/li>)/g,
+                    (block) =>
+                        `<ul class="list-disc pl-6 mb-4 space-y-1">${block}</ul>`,
+                );
+            return p.startsWith("- ")
+                ? html
+                : `<p class="mb-4 leading-relaxed">${html}</p>`;
+        })
+        .join("\n");
+}
+---
+
+<Layout
+    title={policy.title}
+    description={policy.description}
+    lang={locale}
+    canonicalPath="/accessibility/"
+    jsonLdType="WebPage"
+>
+    <div id="main-content" class="fade-in">
+        <article class="max-w-3xl mx-auto px-6 py-16 sm:py-24">
+            <header class="mb-12">
+                <h1
+                    class="font-display text-3xl sm:text-4xl font-bold text-text-display mb-3"
+                >
+                    {policy.title}
+                </h1>
+                <p class="font-mono text-xs text-text-muted tracking-wide">
+                    {policy.lastUpdated}
+                </p>
+            </header>
+
+            <section class="mb-10">
+                <p class="mb-4 leading-relaxed">{policy.intro}</p>
+            </section>
+
+            <section class="mb-10">
+                <h2
+                    class="font-display text-xl font-semibold text-text-display mb-4"
+                >
+                    {policy.section1}
+                </h2>
+                <div set:html={renderText(policy.conformance)} />
+            </section>
+
+            <section class="mb-10">
+                <h2
+                    class="font-display text-xl font-semibold text-text-display mb-4"
+                >
+                    {policy.section2}
+                </h2>
+                <div set:html={renderText(policy.techSpec)} />
+            </section>
+
+            <section class="mb-10">
+                <h2
+                    class="font-display text-xl font-semibold text-text-display mb-4"
+                >
+                    {policy.section3}
+                </h2>
+                <div set:html={renderText(policy.knownLimitations)} />
+            </section>
+
+            <section class="mb-10">
+                <h2
+                    class="font-display text-xl font-semibold text-text-display mb-4"
+                >
+                    {policy.section4}
+                </h2>
+                <div set:html={renderText(policy.contact)} />
+            </section>
+
+            <section class="mb-10">
+                <h2
+                    class="font-display text-xl font-semibold text-text-display mb-4"
+                >
+                    {policy.section5}
+                </h2>
+                <div set:html={renderText(policy.eaa)} />
+            </section>
+
+            <section class="mb-10">
+                <h2
+                    class="font-display text-xl font-semibold text-text-display mb-4"
+                >
+                    {policy.section6}
+                </h2>
+                <div set:html={renderText(policy.enforcement)} />
+            </section>
+        </article>
+
+        <Footer
+            tagline={t.footer.tagline}
+            copy={t.footer.copy}
+            legalLinks={links}
+        />
+    </div>
+</Layout>

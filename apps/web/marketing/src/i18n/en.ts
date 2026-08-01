@@ -38,6 +38,7 @@ export const en = {
       { label: 'Terms of Service', href: '/terms/' },
       { label: 'Cookie Policy', href: '/cookies/' },
       { label: 'Acceptable Use', href: '/acceptable-use/' },
+      { label: 'Accessibility', href: '/accessibility/' },
     ],
   },
   meta: {
@@ -167,6 +168,24 @@ export const en = {
         'To report a violation of this policy, contact the operator at: contact@profiletailors.com\n\nPlease include:\n- The specific content or behaviour you are reporting.\n- The relevant user or account information (if known).\n- Any evidence supporting your report.\n\nThe operator will review reports and take appropriate action. Where required by law, reports may be forwarded to relevant authorities.',
       contact:
         'This policy is incorporated into the Terms of Service. By using the Service, you agree to comply with this policy.\n\nFor questions about this policy or to report a violation, contact:\n\n**Profile Tailors**\nEmail: contact@profiletailors.com',
+    },
+    accessibility: {
+      title: 'Accessibility Statement',
+      description: 'Our commitment to WCAG 2.2 AA accessibility and how to report issues.',
+      lastUpdated: '31 July 2026',
+      intro: 'Profile Tailors is committed to making its web presence accessible to all users, including people with disabilities. This statement describes our current conformance level, known limitations, and how to contact us if you encounter an accessibility barrier.',
+      section1: '1. Conformance Status',
+      conformance: 'We aim for **WCAG 2.2 Level AA** conformance across the marketing site (profiletailors.com) and the dashboard application. Automated axe-core checks run on every pull request as a first-pass gate. Manual review and screen-reader testing supplement automated checks.\n\nCurrent status: **Partially conforms** \u2014 We have completed an initial automated baseline audit. Manual review is ongoing. Known gaps are listed in Section 3.',
+      section2: '2. Technical Specification',
+      techSpec: 'This site relies on the following technologies for conformance:\n\n- HTML5\n- CSS (Tailwind CSS 4)\n- JavaScript (Astro 6, Vue 3)\n- WAI-ARIA 1.2\n\nThe site is tested with the following browser and assistive technology combinations:\n\n- Chrome + NVDA (Windows)\n- Firefox + NVDA (Windows)\n- Safari + VoiceOver (macOS, iOS)\n- Keyboard-only navigation (all supported browsers)',
+      section3: '3. Known Limitations',
+      knownLimitations: 'The following issues are known and are being addressed:\n\n- **Calendar keyboard navigation:** Arrow-key navigation between time slots in the scheduler week view is not yet implemented. Workaround: use Tab to move between interactive controls.\n- **Media picker drag-and-drop:** The drag-and-drop reordering interface does not have a keyboard-accessible alternative in the current release. Workaround: media items can be reordered using the action menu accessible via keyboard.\n- **Third-party embeds:** Some social platform preview embeds may not meet contrast requirements. These are rendered by external providers.\n\nWe are actively working to resolve the calendar and media picker issues in upcoming sprints.',
+      section4: '4. Feedback and Contact',
+      contact: 'If you experience an accessibility barrier not listed above, or if a listed workaround is not sufficient for your needs, please contact us:\n\n**Email:** accessibility@profiletailors.com\n\nWe aim to respond within **5 business days**. If you are not satisfied with our response, you may contact the relevant national accessibility enforcement body in your country.',
+      section5: '5. EAA and Regulatory Applicability',
+      eaa: 'The **European Accessibility Act (EAA / Directive 2019/882)** applies to certain digital products and services offered to consumers in the EU from June 2025. Profile Tailors is currently an early-access preview platform, not a publicly sold product. We are monitoring our regulatory obligations as the product approaches general availability and will update this statement accordingly.\n\nThe UK **Public Sector Bodies Accessibility Regulations** do not apply to this service, which is provided by a private entity.',
+      section6: '6. Enforcement and Escalation',
+      enforcement: 'If you are dissatisfied with our response to an accessibility concern, you may escalate to the relevant national enforcement body:\n\n- **EU:** Your national authority responsible for implementing the EAA.\n- **UK:** Equality and Human Rights Commission (EHRC).\n- **US:** Department of Justice (Section 508 / ADA Title III).',
     },
   },
   waitlist: {
