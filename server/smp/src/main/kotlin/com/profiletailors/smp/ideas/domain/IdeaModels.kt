@@ -2,17 +2,9 @@ package com.profiletailors.smp.ideas.domain
 
 import java.time.Instant
 
-data class IdeaLink(
-    val url: String,
-    val label: String? = null,
-)
+data class IdeaLink(val url: String, val label: String? = null)
 
-data class IdeaColumn(
-    val id: String,
-    val name: String,
-    val color: String? = null,
-    val order: Int,
-)
+data class IdeaColumn(val id: String, val name: String, val color: String? = null, val order: Int)
 
 data class Idea(
     val id: String,
@@ -28,10 +20,7 @@ data class Idea(
     val updatedAt: Instant,
 )
 
-data class IdeaBoardConfig(
-    val workspaceId: String,
-    val columns: List<IdeaColumn>,
-)
+data class IdeaBoardConfig(val workspaceId: String, val columns: List<IdeaColumn>)
 
 object IdeaBoardDefaults {
     val columns: List<IdeaColumn> = listOf(

@@ -42,20 +42,14 @@ data class UpdateIdeaCommand(
     val columnId: String? = null,
 ) : CommandWithResult<IdeaResult>
 
-data class MoveIdeaCommand(
-    val ideaId: String,
-    val columnId: String,
-    val orderInColumn: Int,
-) : CommandWithResult<IdeaResult>
+data class MoveIdeaCommand(val ideaId: String, val columnId: String, val orderInColumn: Int) :
+    CommandWithResult<IdeaResult>
 
 data class DeleteIdeaCommand(val ideaId: String) : CommandWithResult<IdeaResult>
 
 data class ConvertIdeaCommand(val ideaId: String) : CommandWithResult<ConvertIdeaResult>
 
-data class ConvertIdeaResult(
-    val ideaId: String,
-    val publicationId: String?,
-)
+data class ConvertIdeaResult(val ideaId: String, val publicationId: String?)
 
 data object GetColumnsQuery : Query<ColumnsResponse>
 

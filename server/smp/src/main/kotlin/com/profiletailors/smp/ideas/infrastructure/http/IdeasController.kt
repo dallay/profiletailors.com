@@ -56,32 +56,28 @@ class IdeasController(private val mediator: Mediator) {
 
     @Operation(summary = "Update idea")
     @PatchMapping("/{ideaId}", consumes = ["application/json"], version = "1")
-    suspend fun updateIdea(
-        @PathVariable ideaId: String,
-        @Valid @RequestBody request: UpdateIdeaRequest,
-    ): IdeaResult = mediator.send(
-        UpdateIdeaCommand(
-            ideaId = ideaId,
-            title = request.title,
-            notes = request.notes,
-            tags = request.tags,
-            links = request.links,
-            columnId = request.columnId,
-        ),
-    )
+    suspend fun updateIdea(@PathVariable ideaId: String, @Valid @RequestBody request: UpdateIdeaRequest): IdeaResult =
+        mediator.send(
+            UpdateIdeaCommand(
+                ideaId = ideaId,
+                title = request.title,
+                notes = request.notes,
+                tags = request.tags,
+                links = request.links,
+                columnId = request.columnId,
+            ),
+        )
 
     @Operation(summary = "Move idea")
     @PatchMapping("/{ideaId}/move", consumes = ["application/json"], version = "1")
-    suspend fun moveIdea(
-        @PathVariable ideaId: String,
-        @Valid @RequestBody request: MoveIdeaRequest,
-    ): IdeaResult = mediator.send(
-        MoveIdeaCommand(
-            ideaId = ideaId,
-            columnId = request.columnId,
-            orderInColumn = request.orderInColumn,
-        ),
-    )
+    suspend fun moveIdea(@PathVariable ideaId: String, @Valid @RequestBody request: MoveIdeaRequest): IdeaResult =
+        mediator.send(
+            MoveIdeaCommand(
+                ideaId = ideaId,
+                columnId = request.columnId,
+                orderInColumn = request.orderInColumn,
+            ),
+        )
 
     @Operation(summary = "Delete idea")
     @DeleteMapping("/{ideaId}", version = "1")

@@ -31,7 +31,7 @@ internal class CreateIdeaHandler(
         val board = ensureBoard(workspaceId)
 
         val targetColumnId = command.columnId ?: board.columns.minByOrNull { it.order }?.id
-        ?: IdeaBoardDefaults.columns.first().id
+            ?: IdeaBoardDefaults.columns.first().id
 
         val currentIdeas = ideaRepository.listByWorkspace(workspaceId)
         val nextOrder = currentIdeas.count { it.columnId == targetColumnId }
@@ -156,7 +156,7 @@ internal class ConvertIdeaHandler(
 
         val publication: PublicationResult = mediator.send(
             CreatePublicationCommand(
-                socialAccountId = requireConnectedSocialAccountId(),
+                socialAccountId = requireConnectedAccountId(),
                 title = idea.title,
                 bodyText = fallbackBody,
                 assetIds = emptyList(),
@@ -177,7 +177,7 @@ internal class ConvertIdeaHandler(
         return ConvertIdeaResult(ideaId = idea.id, publicationId = publication.publicationId)
     }
 
-    private suspend fun requireConnectedSocialAccountId(): String {
+    private suspend fun requireConnectedAccountId(): String {
         val channels = mediator.send(ListConnectedChannelsQuery(status = SocialConnectionStatus.ACTIVE))
         return channels.channels.firstOrNull()?.socialAccountId
             ?: throw InvalidIdeaColumnsException("At least one active social channel is required to convert an idea.")
