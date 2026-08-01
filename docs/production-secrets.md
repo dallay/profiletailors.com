@@ -149,7 +149,7 @@ Secrets are grouped by risk level and rotation frequency:
 
 ### Credential Encryption
 
-#### `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY`
+#### `PUBLISHING_CREDENTIALS_KEY`
 
 - **Type:** Base64-encoded 32-byte key (AES-256)
 - **Description:** Master encryption key for OAuth access/refresh tokens stored in database.
@@ -171,7 +171,7 @@ Secrets are grouped by risk level and rotation frequency:
     7. **Fallback:** If rotation fails, users must reconnect LinkedIn accounts.
 - **Access:** Infrastructure admins only. Not readable by developers or support.
 - **Related issue:
-  ** [#176 - PUBLISHING_CREDENTIALS_ENCRYPTION_KEY has no validation](https://github.com/dallay/profiletailors.com/issues/176)
+  ** [#176 - PUBLISHING_CREDENTIALS_KEY has no validation](https://github.com/dallay/profiletailors.com/issues/176)
 
 ### Media Preview Signing
 
@@ -279,7 +279,7 @@ Before deploying to production, verify:
 - [ ] No default/example credentials in use.
 - [ ] `SMP_LOCAL_JWT_DEV_FALLBACK` is **empty** (production must use explicit
   `SMP_LOCAL_JWT_SECRET`).
-- [ ] `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` is exactly 32 bytes (Base64-encoded, 44 chars).
+- [ ] `PUBLISHING_CREDENTIALS_KEY` is exactly 32 bytes (Base64-encoded, 44 chars).
 - [ ] `SMP_MEDIA_PREVIEW_SIGNING_SECRET` is a unique 32-byte secret.
 - [ ] `SMP_LINKEDIN_STATE_SIGNING_SECRET` is unique and not a development fallback.
 - [ ] `SMP_DB_PASSWORD` is strong (≥32 chars, randomly generated).
@@ -290,11 +290,11 @@ Before deploying to production, verify:
 
 ## Access control guidelines
 
-| Secret                                  | Who should access          | When                                    |
-|-----------------------------------------|----------------------------|-----------------------------------------|
-| `SMP_DB_PASSWORD`                       | Infrastructure admins      | Deployment, incident response           |
-| `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` | Infrastructure admins only | Deployment, key rotation                |
-| `SMP_LINKEDIN_CLIENT_SECRET`            | Infrastructure admins      | Deployment, OAuth app changes           |
+| Secret                              | Who should access          | When                                    |
+|-------------------------------------|----------------------------|-----------------------------------------|
+| `SMP_DB_PASSWORD`                   | Infrastructure admins      | Deployment, incident response           |
+| `PUBLISHING_CREDENTIALS_KEY`        | Infrastructure admins only | Deployment, key rotation                |
+| `SMP_LINKEDIN_CLIENT_SECRET`        | Infrastructure admins      | Deployment, OAuth app changes           |
 | `SMP_LOCAL_JWT_SECRET`              | Infrastructure admins      | Deployment, security incident           |
 | `SMP_MEDIA_PREVIEW_SIGNING_SECRET`  | Infrastructure admins      | Deployment, URL-signing rotation        |
 | `SMP_LINKEDIN_STATE_SIGNING_SECRET` | Infrastructure admins      | Deployment, OAuth-state rotation        |
@@ -332,6 +332,6 @@ If a secret is compromised or suspected to be compromised:
 ## References
 
 - [Getting Started Guide](./getting-started.md) — local `.env` setup
-- [Issue #176 - PUBLISHING_CREDENTIALS_ENCRYPTION_KEY validation](https://github.com/dallay/profiletailors.com/issues/176)
+- [Issue #176 - PUBLISHING_CREDENTIALS_KEY validation](https://github.com/dallay/profiletailors.com/issues/176)
 - [Issue #177 - Audit Liquibase seed migrations for hardcoded credential hashes](https://github.com/dallay/profiletailors.com/issues/177)
 - [Actuator Security](./monitoring/actuator-security.md) — production monitoring posture

@@ -215,7 +215,7 @@ mocked dependencies.
 - LinkedIn OAuth app configured with valid `SMP_LINKEDIN_CLIENT_ID` and
   `SMP_LINKEDIN_CLIENT_SECRET` in `.env`
 - `SMP_PUBLISHING_WORKER_ENABLED=true` in `.env`
-- `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` set (32-byte base64 key)
+- `PUBLISHING_CREDENTIALS_KEY` set (32-byte base64 key)
 - `SMP_CORS_ALLOWED_ORIGINS` includes the dashboard URL
 - Postgres running: `just infra-up`
 - Backend running: `just backend-run`

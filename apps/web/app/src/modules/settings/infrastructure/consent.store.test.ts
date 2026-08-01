@@ -192,7 +192,7 @@ describe('consent store', () => {
 
   // ── syncToBackend (authenticated) ─────────────────────────────────────
 
-  it('saveConsent calls syncToBackend for authenticated user', async () => {
+  it('saveConsent calls syncToBackend for authenticated user with analytics true (record)', async () => {
     mockApiFetch.mockResolvedValue({})
 
     const { useConsentStore } = await import('./consent.store')
@@ -203,7 +203,37 @@ describe('consent store', () => {
     expect(mockApiFetch).toHaveBeenCalledWith('/api/governance/consent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: expect.stringContaining('"purpose":"web.analytics"'),
+      body: JSON.stringify({
+        subjectKind: 'USER',
+        subjectValue: 'user-1',
+        consentType: 'CONSENT',
+        purpose: 'web.analytics',
+        policyVersion: CURRENT_POLICY_VERSION,
+        source: 'banner',
+        locale: 'en',
+      }),
+      workspaceScoped: true,
+    })
+  })
+
+  it('saveConsent calls syncToBackend for authenticated user with analytics false (withdraw)', async () => {
+    mockApiFetch.mockResolvedValue({})
+
+    const { useConsentStore } = await import('./consent.store')
+    const store = useConsentStore()
+
+    await store.saveConsent({ analytics: false, source: 'banner' })
+
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/governance/consent/withdraw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subjectKind: 'USER',
+        subjectValue: 'user-1',
+        purpose: 'web.analytics',
+        policyVersion: CURRENT_POLICY_VERSION,
+        reason: 'user_request',
+      }),
       workspaceScoped: true,
     })
   })

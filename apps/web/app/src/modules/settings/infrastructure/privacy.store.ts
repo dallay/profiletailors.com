@@ -36,6 +36,20 @@ export interface DsarRequestListResponse {
   requests: DsarRequest[]
 }
 
+function mapStatusDtoToRequest(dto: any): DsarRequest {
+  return {
+    id: dto.id,
+    workspaceId: dto.workspaceId || '',
+    type: dto.type as DsarRequestType,
+    status: dto.status as DsarRequestStatus,
+    notes: dto.notes || null,
+    correctionData: dto.correctionData || null,
+    resultRef: dto.result?.ref || dto.resultRef || null,
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -69,14 +83,28 @@ export const usePrivacyStore = defineStore('privacy', () => {
         body.notes = payload.notes
       }
       if (payload.correctionData) {
-        body.correctionData = payload.correctionData
+        body.newEmail = payload.correctionData.newEmail
+        body.newUsername = payload.correctionData.newUsername
       }
 
-      const result = await auth.apiFetch<DsarRequest>('/api/v1/privacy/requests', {
+      const response = await auth.apiFetch<any>('/api/v1/privacy/requests', {
         method: 'POST',
         body: JSON.stringify(body),
         workspaceScoped: true,
       })
+
+      // Map backend response (SubmitPrivacyResponseDto) + payload to DsarRequest
+      const result: DsarRequest = {
+        id: response.id,
+        workspaceId: '',
+        type: payload.type,
+        status: response.status as DsarRequestStatus,
+        notes: payload.notes || null,
+        correctionData: payload.correctionData || null,
+        resultRef: response.downloadUrl || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
 
       requests.value.unshift(result)
       return result
@@ -97,11 +125,12 @@ export const usePrivacyStore = defineStore('privacy', () => {
     error.value = null
 
     try {
-      const data = await auth.apiFetch<DsarRequestListResponse>('/api/v1/privacy/requests', {
+      const data = await auth.apiFetch<any>('/api/v1/privacy/requests', {
         workspaceScoped: true,
       })
-      requests.value = data.requests
-      return requests.value
+      const mapped = (data.requests || []).map((req: any) => mapStatusDtoToRequest(req))
+      requests.value = mapped
+      return mapped
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load requests.'
       error.value = message
@@ -122,11 +151,12 @@ export const usePrivacyStore = defineStore('privacy', () => {
     error.value = null
 
     try {
-      const result = await auth.apiFetch<DsarRequest>(`/api/v1/privacy/requests/${id}`, {
+      const result = await auth.apiFetch<any>(`/api/v1/privacy/requests/${id}`, {
         workspaceScoped: true,
       })
-      currentRequest.value = result
-      return result
+      const mapped = mapStatusDtoToRequest(result)
+      currentRequest.value = mapped
+      return mapped
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load request.'
       error.value = message
