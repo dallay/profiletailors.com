@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { LogOut, Settings } from '@lucide/vue'
 import { usePopoverDismissal } from '@shared/composables/usePopoverDismissal'
@@ -24,11 +24,45 @@ const settings = useSettingsStore()
 
 const containerRef = ref<HTMLElement | null>(null)
 const triggerRef = ref<HTMLElement | null>(null)
+const menuRef = ref<HTMLElement | null>(null)
 
 const { open, toggle, close } = usePopoverDismissal({
   container: containerRef,
   trigger: triggerRef,
 })
+
+// Focus management for menu popover
+watch(open, async (isOpen) => {
+  if (isOpen) {
+    await nextTick()
+    const firstItem = menuRef.value?.querySelector<HTMLElement>('[role="menuitem"]')
+    firstItem?.focus()
+  }
+})
+
+function handleMenuKeydown(e: KeyboardEvent) {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault()
+    const items = Array.from(
+      menuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    )
+    if (items.length === 0) return
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement)
+    let nextIndex: number
+    if (currentIndex === -1) {
+      // Focus first item — roving tabindex: only this item is tabbable
+      items.forEach((item, i) => item.setAttribute('tabindex', i === 0 ? '0' : '-1'))
+      nextIndex = 0
+    } else {
+      nextIndex = e.key === 'ArrowDown'
+        ? (currentIndex + 1) % items.length
+        : (currentIndex - 1 + items.length) % items.length
+    }
+    // Update roving tabindex: only the next item is tabbable
+    items.forEach((item, i) => item.setAttribute('tabindex', i === nextIndex ? '0' : '-1'))
+    items[nextIndex]?.focus()
+  }
+}
 
 function onOpenSettings() {
   emit('openSettings')
@@ -52,12 +86,14 @@ function segmentedControlClass(isActive: boolean) {
     ref="containerRef"
     class="relative min-w-0"
   >
-    <div
-      v-if="open"
-      id="sidebar-account-menu"
-      class="absolute right-0 bottom-full mb-2 w-full min-w-56 rounded-lg border border-border-subtle bg-bg-surface p-1.5 shadow-lg group-data-[collapsible=icon]:left-0"
-      role="menu"
-    >
+      <div
+        v-if="open"
+        id="sidebar-account-menu"
+        ref="menuRef"
+        class="absolute right-0 bottom-full mb-2 w-full min-w-56 rounded-lg border border-border-subtle bg-bg-surface p-1.5 shadow-lg group-data-[collapsible=icon]:left-0"
+        role="menu"
+        @keydown="handleMenuKeydown"
+      >
       <div class="px-2 py-2">
         <p class="truncate text-sm font-medium text-text-display">
           {{ user.isRefreshing ? 'Refreshing session...' : user.displayName }}
@@ -72,6 +108,7 @@ function segmentedControlClass(isActive: boolean) {
       <div class="space-y-1">
         <button
           role="menuitem"
+          tabindex="-1"
           class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-left text-sm text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display"
           type="button"
           @click="onOpenSettings"
@@ -178,6 +215,7 @@ function segmentedControlClass(isActive: boolean) {
 
         <button
           role="menuitem"
+          tabindex="-1"
           class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-left text-sm text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display"
           type="button"
           @click="onLogout"

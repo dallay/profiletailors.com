@@ -64,6 +64,7 @@ set positional-arguments := true
 # ——— Paths ———————————————————————————————————————————————————
 frontend-dir   := "apps/web/marketing"
 app-dir        := "apps/web/app"
+admin-dir      := "apps/web/admin"
 # Auto-detect Gradle wrapper: `gradlew.bat` on Windows (CMD/PowerShell), `./gradlew` otherwise
 gradle-root    := `if [ -n "${COMSPEC:-}" ] && [ -z "${MSYSTEM:-}" ]; then echo "gradlew.bat"; else echo "./gradlew"; fi`
 docker-compose := "docker compose"
@@ -122,6 +123,10 @@ dev-frontend $force="":
 app:
     cd {{app-dir}} && pnpm dev
 
+# Start the platform admin SPA
+admin:
+    cd {{admin-dir}} && pnpm dev
+
 # Build frontend for production
 frontend-build:
     cd {{frontend-dir}} && pnpm build
@@ -129,6 +134,10 @@ frontend-build:
 # Build the dashboard SPA for production
 app-build:
     cd {{app-dir}} && pnpm build
+
+# Build the platform admin SPA for production
+admin-build:
+    cd {{admin-dir}} && pnpm build
 
 # Build the dashboard SPA against a deployed API
 release-dashboard-build api_base_url:
@@ -154,6 +163,14 @@ frontend-check:
 frontend-test:
     cd {{frontend-dir}} && pnpm test
 
+# Run platform admin unit tests (Vitest)
+admin-test:
+    cd {{admin-dir}} && pnpm test:run
+
+# Run platform admin type check
+admin-check:
+    cd {{admin-dir}} && pnpm type-check
+
 # Run frontend unit tests with coverage (--coverage)
 frontend-test-cov *flags="":
     cd {{frontend-dir}} && pnpm test:coverage {{flags}}
@@ -161,6 +178,7 @@ frontend-test-cov *flags="":
 # Run E2E tests (Playwright headless)
 frontend-test-e2e:
     cd {{frontend-dir}} && pnpm test:e2e
+    pnpm --filter app test:e2e:media:mocked
 
 # Run E2E tests in Playwright UI mode
 frontend-test-e2e-ui:
@@ -221,17 +239,20 @@ release-backend-image version="0.1.0" image_repository="profiletailors/smp":
 # Postgres integration tests use Testcontainers and require SMP_DB_TEST_PASSWORD,
 # which is sourced from .env (or the shell) — same shape as the CI workflow.
 backend-test exclude-tags="":
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
+    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
+    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
     {{gradle-root}} :server:smp:test --no-daemon {{ if exclude-tags != "" { "-PexcludeTags=" + exclude-tags } else { "" } }}
 
 # Run backend tests (fast)
 backend-test-fast:
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
+    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
+    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
     {{gradle-root}} :server:smp:test --no-daemon
 
 # Run full check: tests + Detekt (aligns with CI — excludes BDD suites)
 backend-check:
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
+    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
+    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
     {{gradle-root}} :server:smp:check --no-daemon -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
 
 # Run Detekt static analysis
@@ -298,7 +319,8 @@ backend-coverage:
 
 # Run fast BDD suite
 backend-bdd-fast:
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
+    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
+    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
     {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run PostgreSQL integration tests with Testcontainers
@@ -445,6 +467,15 @@ ci-local:
     @echo "▸ App: production build..."
     cd {{app-dir}} && pnpm build
     @echo ""
+    @echo "▸ Admin: Biome lint..."
+    cd {{admin-dir}} && pnpm lint
+    @echo ""
+    @echo "▸ Admin: unit tests..."
+    cd {{admin-dir}} && pnpm test:run
+    @echo ""
+    @echo "▸ Admin: production build..."
+    cd {{admin-dir}} && pnpm build
+    @echo ""
     @echo "▸ Frontend: unit tests + coverage..."
     cd {{frontend-dir}} && pnpm test:coverage
     @echo ""
@@ -455,7 +486,8 @@ ci-local:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ Backend: unit tests (fast)..."
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
+    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
+    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
     {{gradle-root}} :server:smp:test --no-daemon
     @echo ""
     @echo "▸ Backend: build..."
@@ -499,6 +531,11 @@ ci:
     cd {{app-dir}} && pnpm test:run
     cd {{app-dir}} && pnpm build
     @echo ""
+    @echo "▸ [3b/8] Admin: Biome lint + unit tests..."
+    cd {{admin-dir}} && pnpm lint
+    cd {{admin-dir}} && pnpm test:run
+    cd {{admin-dir}} && pnpm build
+    @echo ""
     @echo "▸ [4/8] Frontend: unit tests + coverage..."
     cd {{frontend-dir}} && pnpm test:coverage
     @echo ""
@@ -506,11 +543,14 @@ ci:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ [6/8] Backend: unit tests (fast)..."
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
+    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
+    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
     {{gradle-root}} :server:smp:test --no-daemon
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_PASSWORD= .env | cut -d= -f2) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
+    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
+    {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
     cd {{frontend-dir}} && pnpm test:e2e

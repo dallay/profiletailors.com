@@ -29,4 +29,10 @@ export default {
   addPublication: 'Agregar publicación',
   timezoneMadrid: 'Madrid',
   morePosts: '+{count} más',
+  recurring: 'Recurrente',
+  recurringSchedules: 'Programaciones recurrentes',
+  edit: 'Editar',
+  pause: 'Pausar',
+  resume: 'Reanudar',
+  cancel: 'Cancelar',
 }

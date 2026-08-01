@@ -34,6 +34,9 @@ private val BDD_USER_TOKEN_PREFIXES = setOf(
     "owner-",
 )
 
+const val BDD_ADMIN_PRINCIPAL_ID = "aaaaaaaa-bbbb-cccc-dddd-000000000001"
+const val BDD_ADMIN_TOKEN = "admin-operator-token"
+
 private fun isBddUserToken(token: String): Boolean = token == "valid-token" ||
     BDD_USER_TOKEN_PREFIXES.any(token::startsWith)
 
@@ -160,6 +163,17 @@ class CommonBddTestConfiguration {
     @Primary
     fun reactiveJwtDecoder(): ReactiveJwtDecoder = ReactiveJwtDecoder { token ->
         when {
+            token == BDD_ADMIN_TOKEN -> Mono.just(
+                Jwt.withTokenValue(token)
+                    .header("alg", "RS256")
+                    .claim("sub", "admin-subject")
+                    .claim("iss", "https://issuer.example")
+                    .claim("principal_id", BDD_ADMIN_PRINCIPAL_ID)
+                    .claim("preferred_username", "platform-admin")
+                    .issuedAt(Instant.now().minusSeconds(60))
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build(),
+            )
             isBddUserToken(token) -> Mono.just(
                 Jwt.withTokenValue(token)
                     .header("alg", "RS256")

@@ -57,7 +57,7 @@ function snapVisible(el: HTMLElement): void {
 }
 
 // Animate label: whole element, micro-scale + fade, 240ms one-shot.
-function animateLabel(el: HTMLElement, delayMs: number): Promise<void> {
+async function animateLabel(el: HTMLElement, delayMs: number): Promise<void> {
   el.style.opacity = '0'
   const anim = el.animate(
     [
@@ -66,7 +66,8 @@ function animateLabel(el: HTMLElement, delayMs: number): Promise<void> {
     ],
     { delay: delayMs, duration: 240, easing: EASING_SPRING, fill: 'forwards' }
   )
-  return anim.finished.then(() => commitAndCancel(anim, el))
+  await anim.finished
+  commitAndCancel(anim, el)
 }
 
 // Animate headline: soft-blur-in per-character.
@@ -142,7 +143,7 @@ function animateSub(el: HTMLElement, delayMs: number): Promise<void> {
 }
 
 // Animate a generic element: plain fade + translateY.
-function animateFade(el: HTMLElement, delayMs: number): Promise<void> {
+async function animateFade(el: HTMLElement, delayMs: number): Promise<void> {
   el.style.opacity = '0'
   const anim = el.animate(
     [
@@ -151,7 +152,8 @@ function animateFade(el: HTMLElement, delayMs: number): Promise<void> {
     ],
     { delay: delayMs, duration: 400, easing: EASING_EASE, fill: 'forwards' }
   )
-  return anim.finished.then(() => commitAndCancel(anim, el))
+  await anim.finished
+  commitAndCancel(anim, el)
 }
 
 export async function initHeroAnimations(): Promise<void> {

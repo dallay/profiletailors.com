@@ -48,6 +48,7 @@ class BddDatabaseSupport(
         const val MEDIA_ASSET_ID = "asset-bdd-1"
         const val MEDIA_ASSET_FILE_HASH = "b591d9820ae723ef0604a2014276dea6a9a26566b5f857a146a51fae9b22da41"
         const val PUBLISHING_PUBLICATIONS_PATH = "/api/publishing/publications"
+        const val RECURRING_SCHEDULES_PATH_TEMPLATE = "/api/v1/workspaces/%s/recurring"
         const val PUBLISHING_CHANNELS_PATH = "/api/publishing/channels"
         const val PUBLISHING_CHANNEL_PROVIDERS_PATH = "/api/publishing/channels/providers"
         const val GOVERNANCE_AUDIT_EVENTS_PATH = "/api/governance/audit-events"
@@ -297,6 +298,16 @@ class BddDatabaseSupport(
     fun mediaAssetsPath(): String = MEDIA_ASSETS_PATH
 
     fun publishingPublicationsPath(): String = PUBLISHING_PUBLICATIONS_PATH
+
+    fun recurringSchedulesPath(): String = RECURRING_SCHEDULES_PATH_TEMPLATE.format(WORKSPACE_ID)
+
+    suspend fun countScheduledPublications(): Long = databaseClient.sql(
+        "SELECT COUNT(*) AS count FROM publications WHERE workspace_id = :workspaceId AND status = 'SCHEDULED'",
+    )
+        .bind("workspaceId", WORKSPACE_ID)
+        .map { row, _ -> requireNotNull(row.get("count", Long::class.java)) }
+        .one()
+        .awaitSingle()
 
     fun publishingChannelsPath(): String = PUBLISHING_CHANNELS_PATH
 
@@ -893,7 +904,11 @@ class BddDatabaseSupport(
     }
 
     private fun cleanupStatements(): List<String> = listOf(
-        // Governance / Compliance (seeded in baseline, must clear for NOT_APPLICABLE gate tests)
+        "DELETE FROM platform_admin_audit_events",
+        "DELETE FROM waitlist_invitations",
+        "DELETE FROM platform_role_assignments",
+        "DELETE FROM waitlist_entries",
+        "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
         "DELETE FROM compliance_risk_acceptances",
         "DELETE FROM compliance_control_evidences",
         // evidence_links FK references compliance_evidences, must be deleted first
@@ -905,6 +920,7 @@ class BddDatabaseSupport(
         "DELETE FROM compliance_controls",
         // Audit
         "DELETE FROM audit_events",
+        "DELETE FROM notification_events",
         // Authorization
         "DELETE FROM workspace_target_scopes",
         "DELETE FROM workspace_direct_grants",
@@ -919,6 +935,7 @@ class BddDatabaseSupport(
         "DELETE FROM api_key_credentials",
         "DELETE FROM service_account_credentials",
         // Publishing
+        "DELETE FROM recurring_schedules",
         "DELETE FROM publication_asset_links",
         "DELETE FROM delivery_attempts",
         "DELETE FROM publication_jobs",
