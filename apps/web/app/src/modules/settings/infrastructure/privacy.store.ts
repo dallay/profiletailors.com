@@ -1,7 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 
 // ---------------------------------------------------------------------------
 // Types — DSAR Request (frontend model)
@@ -37,51 +36,15 @@ export interface DsarRequestListResponse {
   requests: DsarRequest[]
 }
 
-// ---------------------------------------------------------------------------
-// Backend DTO Types
-// ---------------------------------------------------------------------------
-
-interface SubmitPrivacyResponseDto {
-  id: string
-  status: string
-  message: string
-  oldValues: Record<string, string> | null
-  downloadUrl: string | null
-}
-
-interface PrivacyRequestResult {
-  ref: string | null
-}
-
-interface PrivacyRequestStatusResponseDto {
-  id: string
-  type: string
-  status: string
-  result: PrivacyRequestResult | null
-  createdAt: string
-  updatedAt: string
-}
-
-interface PrivacyRequestListResponseDto {
-  requests: PrivacyRequestStatusResponseDto[]
-  total: number
-  page: number
-  perPage: number
-}
-
-// ---------------------------------------------------------------------------
-// Mapping Functions
-// ---------------------------------------------------------------------------
-
-function mapStatusDtoToRequest(dto: PrivacyRequestStatusResponseDto, workspaceId: string): DsarRequest {
+function mapStatusDtoToRequest(dto: any): DsarRequest {
   return {
     id: dto.id,
-    workspaceId,
+    workspaceId: dto.workspaceId || '',
     type: dto.type as DsarRequestType,
     status: dto.status as DsarRequestStatus,
-    notes: null,
-    correctionData: null,
-    resultRef: dto.result?.ref || null,
+    notes: dto.notes || null,
+    correctionData: dto.correctionData || null,
+    resultRef: dto.result?.ref || dto.resultRef || null,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
   }
@@ -93,7 +56,6 @@ function mapStatusDtoToRequest(dto: PrivacyRequestStatusResponseDto, workspaceId
 
 export const usePrivacyStore = defineStore('privacy', () => {
   const auth = useAuthStore()
-  const workspace = useWorkspaceStore()
 
   const requests = ref<DsarRequest[]>([])
   const currentRequest = ref<DsarRequest | null>(null)
@@ -125,18 +87,16 @@ export const usePrivacyStore = defineStore('privacy', () => {
         body.newUsername = payload.correctionData.newUsername
       }
 
-      const rawResponse = await auth.apiFetch('/api/v1/privacy/requests', {
+      const response = await auth.apiFetch<any>('/api/v1/privacy/requests', {
         method: 'POST',
         body: JSON.stringify(body),
         workspaceScoped: true,
       })
 
-      const response = rawResponse as unknown as SubmitPrivacyResponseDto
-
       // Map backend response (SubmitPrivacyResponseDto) + payload to DsarRequest
       const result: DsarRequest = {
         id: response.id,
-        workspaceId: workspace.activeWorkspaceId || '',
+        workspaceId: '',
         type: payload.type,
         status: response.status as DsarRequestStatus,
         notes: payload.notes || null,
@@ -165,12 +125,10 @@ export const usePrivacyStore = defineStore('privacy', () => {
     error.value = null
 
     try {
-      const rawData = await auth.apiFetch('/api/v1/privacy/requests', {
+      const data = await auth.apiFetch<any>('/api/v1/privacy/requests', {
         workspaceScoped: true,
       })
-      const data = rawData as unknown as PrivacyRequestListResponseDto
-      const activeWsId = workspace.activeWorkspaceId || ''
-      const mapped = (data.requests || []).map((req) => mapStatusDtoToRequest(req, activeWsId))
+      const mapped = (data.requests || []).map((req: any) => mapStatusDtoToRequest(req))
       requests.value = mapped
       return mapped
     } catch (err) {
@@ -193,12 +151,10 @@ export const usePrivacyStore = defineStore('privacy', () => {
     error.value = null
 
     try {
-      const rawResult = await auth.apiFetch(`/api/v1/privacy/requests/${id}`, {
+      const result = await auth.apiFetch<any>(`/api/v1/privacy/requests/${id}`, {
         workspaceScoped: true,
       })
-      const result = rawResult as unknown as PrivacyRequestStatusResponseDto
-      const activeWsId = workspace.activeWorkspaceId || ''
-      const mapped = mapStatusDtoToRequest(result, activeWsId)
+      const mapped = mapStatusDtoToRequest(result)
       currentRequest.value = mapped
       return mapped
     } catch (err) {

@@ -1,37 +1,5 @@
 schemaVersion: 1
 task: justfile-verification
-lastExecution: "2026-07-29T23:50:00Z"
-findings:
-  - id: backend-test-fast-missing-exclude-tags
-    title: "backend-test-fast, ci-local, and ci recipes missing modularity/postgres exclude tags"
-    status: resolved
-    type: justfile-verification
-    file: "Justfile"
-    reproducible: true
-    details: "The backend-test-fast, ci-local, and ci recipes did not contain the expected -PexcludeTags=modularity,postgres option, which caused them to fail validation checks."
-    remediation: "Appended -PexcludeTags=modularity,postgres to the Gradle test task in backend-test-fast, ci-local, and ci recipes."
-  - id: ci-local-missing-exclude-tags
-    title: "ci-local recipe missing modularity/postgres exclude tags"
-    status: resolved
-    type: justfile-verification
-    file: "Justfile"
-    reproducible: true
-    details: "The ci-local recipe ran backend tests without excluding modularity and postgres tags, deviating from expected boundaries and causing validation failures."
-    remediation: "Appended -PexcludeTags=modularity,postgres to the Gradle test task in the fast unit tests step of ci-local."
-  - id: missing-app-scheduler-e2e
-    title: "Missing app scheduler E2E recipe"
-    status: resolved
-    type: justfile-verification
-    file: "Justfile"
-    reproducible: true
-    details: "No Justfile recipe was available to execute the dashboard scheduler E2E tests, which meant developers had to use npm/pnpm commands directly and the local CI command did not run these tests."
-    remediation: "Added app-test-e2e-scheduler recipe and integrated it into frontend-test-e2e and full ci recipes."
-checks:
-  - name: "boundaries check script"
-    status: Passed
-  - name: "just -l command verification"
-    status: Passed
-  - name: "frontend lint checks"
-    status: Passed
-  - name: "backend static analysis & format"
-    status: Passed
+lastExecution: null
+findings: [ ]
+checks: [ ]

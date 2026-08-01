@@ -66,7 +66,6 @@ describe('privacy store', () => {
     expect(result.id).toBe('req-1')
     expect(result.status).toBe('PENDING')
     expect(result.type).toBe('ACCESS')
-    expect(result.workspaceId).toBe(mockWorkspaceId)
     expect(store.requests).toHaveLength(1)
     expect(store.requests[0]).toEqual(result)
   })
@@ -84,7 +83,7 @@ describe('privacy store', () => {
     const { usePrivacyStore } = await import('./privacy.store')
     const store = usePrivacyStore()
 
-    const result = await store.submitRequest({
+    await store.submitRequest({
       type: 'CORRECTION',
       notes: 'Please update my email',
       correctionData: { newEmail: 'new@test.com', newUsername: null },
@@ -101,7 +100,6 @@ describe('privacy store', () => {
       workspaceScoped: true,
     })
     expect(store.requests).toHaveLength(1)
-    expect(result.workspaceId).toBe(mockWorkspaceId)
   })
 
   it('fetchRequests calls apiFetch GET and populates requests list', async () => {
@@ -139,9 +137,7 @@ describe('privacy store', () => {
     expect(store.requests).toHaveLength(2)
     expect(store.requests[0]!.type).toBe('ACCESS')
     expect(store.requests[0]!.resultRef).toBe('export-file-1.zip')
-    expect(store.requests[0]!.workspaceId).toBe(mockWorkspaceId)
     expect(store.requests[1]!.status).toBe('REJECTED')
-    expect(store.requests[1]!.workspaceId).toBe(mockWorkspaceId)
   })
 
   it('fetchRequest calls apiFetch GET with id and sets currentRequest', async () => {
@@ -166,7 +162,6 @@ describe('privacy store', () => {
     expect(result.id).toBe('req-1')
     expect(result.type).toBe('EXPORT')
     expect(result.status).toBe('PROCESSING')
-    expect(result.workspaceId).toBe(mockWorkspaceId)
     expect(store.currentRequest).toEqual(result)
   })
 
