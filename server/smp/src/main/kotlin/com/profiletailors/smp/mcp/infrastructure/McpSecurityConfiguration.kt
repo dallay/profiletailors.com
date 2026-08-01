@@ -1,5 +1,6 @@
 package com.profiletailors.smp.mcp.infrastructure
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -40,10 +41,13 @@ import reactor.core.publisher.Mono
     name = ["enabled"],
     havingValue = "true",
 )
-internal class McpSecurityConfiguration {
+internal class McpSecurityConfiguration(
+    @Value("\${spring.ai.mcp.server.streamable-http.mcp-endpoint:/api/mcp}")
+    private val mcpEndpoint: String,
+) {
 
     private val mcpPathMatcher: ServerWebExchangeMatcher =
-        ServerWebExchangeMatchers.pathMatchers("/api/mcp", "/api/mcp/**")
+        ServerWebExchangeMatchers.pathMatchers(mcpEndpoint, "$mcpEndpoint/**")
 
     private val cookiePresentMatcher = ServerWebExchangeMatcher { exchange ->
         if (exchange.request.headers.getFirst(HttpHeaders.COOKIE).isNullOrBlank()) {
