@@ -3,13 +3,13 @@ task: justfile-verification
 lastExecution: "2026-07-29T23:50:00Z"
 findings:
   - id: backend-test-fast-missing-exclude-tags
-    title: "backend-test-fast recipe missing modularity/postgres exclude tags"
+    title: "backend-test-fast, ci-local, and ci recipes missing modularity/postgres exclude tags"
     status: resolved
     type: justfile-verification
     file: "Justfile"
     reproducible: true
-    details: "The backend-test-fast recipe did not contain the expected -PexcludeTags=modularity,postgres option, which caused it to fail validation checks."
-    remediation: "Appended -PexcludeTags=modularity,postgres to the Gradle test task in backend-test-fast."
+    details: "The backend-test-fast, ci-local, and ci recipes did not contain the expected -PexcludeTags=modularity,postgres option, which caused them to fail validation checks."
+    remediation: "Appended -PexcludeTags=modularity,postgres to the Gradle test task in backend-test-fast, ci-local, and ci recipes."
   - id: ci-local-missing-exclude-tags
     title: "ci-local recipe missing modularity/postgres exclude tags"
     status: resolved

@@ -178,8 +178,8 @@ frontend-test-cov *flags="":
 # Run E2E tests (Playwright headless)
 frontend-test-e2e:
     cd {{frontend-dir}} && pnpm test:e2e
-    pnpm --filter app test:e2e:scheduler
-    pnpm --filter app test:e2e:media:mocked
+    just app-test-e2e-scheduler
+    just app-test-e2e-media-mocked
 
 # Run E2E tests in Playwright UI mode
 frontend-test-e2e-ui:
@@ -559,8 +559,8 @@ ci:
     @echo ""
     @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
     cd {{frontend-dir}} && pnpm test:e2e
-    pnpm --filter app test:e2e:scheduler
-    pnpm --filter app test:e2e:media:mocked
+    just app-test-e2e-scheduler
+    just app-test-e2e-media-mocked
     @echo ""
     @echo "════════════════════════════════════════════════"
     @echo "  ✅ Full CI Pipeline Complete — everything passed"
