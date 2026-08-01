@@ -491,6 +491,11 @@ class AuthorizationBddSteps {
         submitRegistration(email = "newuser@example.com", password = password)
     }
 
+    @When("the client registers with email {string} and password {string}")
+    fun whenClientRegistersWithEmailAndPassword(email: String, password: String) {
+        submitRegistration(email = email, password = password)
+    }
+
     @And("the auth response should include an access token")
     fun andAuthResponseShouldIncludeAccessToken() {
         val body = requireResponseBodyText()
