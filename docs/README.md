@@ -22,6 +22,8 @@
 - [OpenSpec](../openspec/README.md) - Product specifications, change artifacts, and verification
   evidence
 - [Consent Management](./consent-management.md) - Shared consent model and frontend/backend flow
+- [Compliance Baseline](./compliance/README.md) - Current legal controls and future-state compliance boundary
+- [Marketing Legal Baseline Mapping](./compliance/marketing-legal-baseline.md) - Awesome Legal mapping to Profile Tailors legal artifacts
 - [Publishing Failure Modes](./publishing-failure-modes.md) - User-facing publishing error taxonomy
 - [Release Verification](./release-verification.md) - Evidence required before release readiness
 

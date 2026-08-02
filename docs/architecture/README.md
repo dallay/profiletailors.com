@@ -13,7 +13,7 @@ architecture at different levels of abstraction.
 ### Quick Navigation
 
 | Level       | Document                                  | Description                           | Audience               |
-|-------------|-------------------------------------------|---------------------------------------|------------------------|
+| ----------- | ----------------------------------------- | ------------------------------------- | ---------------------- |
 | **Summary** | [SUMMARY.md](c4/SUMMARY.md)               | Executive summary and roadmap         | Everyone               |
 | **Level 1** | [System Context](c4/01-system-context.md) | Big picture, external dependencies    | Everyone               |
 | **Level 2** | [Container](c4/02-container.md)           | Deployable units, technology stack    | Technical leadership   |
@@ -132,7 +132,7 @@ architecture at different levels of abstraction.
 
 **Implemented** (✅):
 
-- Marketing site (Astro 6)
+- Marketing site (Astro 7)
 - Web application (Vue 3)
 - Backend foundation (Spring Boot 4, Kotlin, WebFlux)
 - Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform)

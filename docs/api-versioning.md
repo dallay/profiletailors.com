@@ -107,7 +107,7 @@ class WebFluxConfiguration : WebFluxConfigurer {
 ### HTTP Client (Recommended)
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/login \
+curl -X POST http://localhost:7638/api/auth/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/vnd.api.v1+json" \
   -d '{"email":"user@example.com","password":"secret"}'
