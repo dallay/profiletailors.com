@@ -1,6 +1,7 @@
 package com.profiletailors.smp.mcp.infrastructure.oauth
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
@@ -15,6 +16,11 @@ import reactor.core.publisher.Mono
  * @see <a href="https://www.rfc-editor.org/rfc/rfc9728.html">RFC 9728</a>
  */
 @RestController
+@ConditionalOnProperty(
+    prefix = "spring.ai.mcp.server",
+    name = ["enabled"],
+    havingValue = "true",
+)
 class ResourceMetadataController {
 
     @GetMapping(
