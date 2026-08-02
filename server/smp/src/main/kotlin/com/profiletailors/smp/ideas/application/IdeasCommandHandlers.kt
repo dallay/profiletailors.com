@@ -12,8 +12,6 @@ import com.profiletailors.smp.ideas.domain.IdeaRepository
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
 import com.profiletailors.smp.publishing.application.PublicationResult
-import com.profiletailors.smp.publishing.domain.ScheduleMode
-import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import java.time.Clock
 import java.util.UUID
@@ -155,15 +153,10 @@ internal class ConvertIdeaHandler(
         }
 
         val publication: PublicationResult = mediator.send(
-            CreatePublicationCommand(
+            CreatePublicationCommand.now(
                 socialAccountId = requireConnectedAccountId(),
                 title = idea.title,
                 bodyText = fallbackBody,
-                assetIds = emptyList(),
-                scheduleMode = ScheduleMode.NOW,
-                scheduledFor = null,
-                nextSlotAfter = null,
-                priority = false,
             ),
         )
 
@@ -178,7 +171,7 @@ internal class ConvertIdeaHandler(
     }
 
     private suspend fun requireConnectedAccountId(): String {
-        val channels = mediator.send(ListConnectedChannelsQuery(status = SocialConnectionStatus.ACTIVE))
+        val channels = mediator.send(ListConnectedChannelsQuery.active())
         return channels.channels.firstOrNull()?.socialAccountId
             ?: throw InvalidIdeaColumnsException("At least one active social channel is required to convert an idea.")
     }

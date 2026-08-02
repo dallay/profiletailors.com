@@ -20,6 +20,29 @@ class PublishingApiTest {
     private val now = Instant.parse("2026-06-15T12:00:00Z")
 
     @Test
+    fun `CreatePublicationCommand now factory creates an immediate publication`() {
+        val command = CreatePublicationCommand.now(
+            socialAccountId = "acc-1",
+            title = "My Post",
+            bodyText = "Hello world",
+        )
+
+        assertEquals("acc-1", command.socialAccountId)
+        assertEquals(ScheduleMode.NOW, command.scheduleMode)
+        assertEquals("My Post", command.title)
+        assertEquals("Hello world", command.bodyText)
+        assertTrue(command.assetIds.isEmpty())
+        assertEquals(false, command.priority)
+    }
+
+    @Test
+    fun `ListConnectedChannelsQuery active factory filters active channels`() {
+        val query = ListConnectedChannelsQuery.active()
+
+        assertEquals(SocialConnectionStatus.ACTIVE, query.status)
+    }
+
+    @Test
     fun `CreatePublicationCommand stores all fields`() {
         val command = CreatePublicationCommand(
             socialAccountId = "acc-1",
