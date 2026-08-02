@@ -18,7 +18,7 @@ findings:
     risk: LOW
     message: "The pt-dashboard-new localStorage feature flag is obsolete; the legacy dashboard template was entirely removed, leaving a dead toggle and UI element."
   - id: AUTO-feature-flag-rate-limit-drift
-    title: "Feature Flag Drift: Platform Rate Limiting Hook"
+    title: "Feature Flag Drift: Platform Rate-Limiting Hook"
     status: unresolved
     classification: HAS_UNRESOLVED_FINDINGS
     evidence: "server/smp/src/main/resources/application.yaml, .env.example"

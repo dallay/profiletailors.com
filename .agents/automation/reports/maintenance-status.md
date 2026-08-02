@@ -66,11 +66,11 @@ All 20 automated tasks have been audited, their states parsed, and their finding
 - **Risk:** **LOW**. A cosmetic/clean-up item with no security or reliability implications.
 - **Remediation Plan:** Remove the UI element and clean up associated feature flag references in Vue components in a future cycle.
 
-### 3. Feature Flag Drift: Platform Rate Limiting Hook
+### 3. Feature Flag Drift: Platform Rate-Limiting Hook
 
 - **Finding ID:** `AUTO-feature-flag-rate-limit-drift` (aggregated from `FF-RATE-LIMIT-DRIFT`)
 - **Description:** `SMP_PLATFORM_RATE_LIMIT_ENABLED` defaults to `true` in `application.yaml` if omitted, but is explicitly set to `false` in `.env.example`.
-- **Risk:** **LOW**. Configuration default drift that could lead to unexpected behavior in different environments if parameters are missing.
+- **Risk:** **LOW**. Rate-limiting configuration default drift that could lead to unexpected behavior in different environments if parameters are missing.
 - **Remediation Plan:** Unify the default configuration parameters in `application.yaml` and `.env.example`.
 
 ## Blockers
