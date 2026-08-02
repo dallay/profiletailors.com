@@ -16,17 +16,16 @@ The Profile Tailors codebase demonstrates **above-average security hygiene** for
 Two confirmed medium-severity findings have remediation evidence in the current checkout: one
 pre-authorized unauthenticated path for an unimplemented proxy endpoint and a predictable default
 OAuth state signing secret that did not fail fast. SEC-001's BDD coverage landed in `850668ca`,
-but its allowlist removal is still an unstaged code change outside this documentation slice.
-SEC-002's guard and regression coverage landed in `eed89343`. A set of deferred architectural
+and its allowlist removal landed in `e3b78d16`. SEC-002's guard and regression coverage landed in
+`eed89343`. A set of deferred architectural
 risks is documented separately.
 
 ### Evidence anchors
 
-- **SEC-001:** Commit `850668ca` added the endpoint-authorization BDD coverage. The current
+- **SEC-001:** Commit `850668ca` added the endpoint-authorization BDD coverage and `e3b78d16`
+  committed the corresponding production allowlist removal. The current
   `IdentitySecurityConfiguration` no longer includes `/api/media/proxy` in the unauthenticated
-  allowlist; the source configuration is the implementation evidence for the removal. The
-  configuration deletion is not present in the `850668ca` commit itself and remains uncommitted
-  by design in Slice H.
+  allowlist.
 - **SEC-002:** Commit `eed89343` added the placeholder-prefix guard and regression coverage in
   `HmacOAuthStateSigner`.
 
@@ -36,14 +35,13 @@ risks is documented separately.
 | -------- | --------- | ------------------ |
 | Critical | 0         | —                  |
 | High     | 0         | —                  |
-| Medium   | 2         | SEC-002 landed; SEC-001 code change pending commit |
+| Medium   | 2         | SEC-001 and SEC-002 landed |
 | Low      | 4         | 2 remediated; 2 deferred |
 | Info     | 3         | 0 (ops/config)     |
 
 ### Immediate Release Blockers
 
-SEC-001's allowlist deletion is present in the current checkout but still needs a code commit before
-release. This documentation slice does not stage or commit that code. SEC-002 is landed in
+SEC-001 is landed in `e3b78d16`, with its BDD coverage in `850668ca`. SEC-002 is landed in
 `eed89343`. No Critical or High findings were identified; deferred Low and Info risks remain
 documented below.
 
@@ -146,7 +144,7 @@ Internet
 
 | ID      | Severity | Confidence | Component                                                          | Finding                                                                                                                          | CWE     | OWASP     | ASVS    | Exploitable                            | Status                  |
 | ------- | -------- | ---------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- | ------- | -------------------------------------- | ----------------------- |
-| SEC-001 | Medium   | High       | `IdentitySecurityConfiguration`                                    | Pre-authorized unauthenticated path `/api/media/proxy` with no controller implementation                                         | CWE-306 | A01, API5 | V4.2.1  | Future (when implemented without auth) | **FIXED IN CHECKOUT; CODE COMMIT PENDING** |
+| SEC-001 | Medium   | High       | `IdentitySecurityConfiguration`                                    | Pre-authorized unauthenticated path `/api/media/proxy` with no controller implementation                                         | CWE-306 | A01, API5 | V4.2.1  | Future (when implemented without auth) | **FIXED**               |
 | SEC-002 | Medium   | High       | `application.yaml` / `HmacOAuthStateSigner`                        | LinkedIn OAuth state signing secret defaults to predictable `CHANGE_ME_LINKEDIN_STATE`; no fail-fast                             | CWE-798 | A07, API2 | V3.5.3  | Yes (if default not changed)           | **FIXED**               |
 | SEC-003 | Low      | High       | `AuthRateLimitWebFilter`                                           | Auth rate limiter keys on socket IP — behind Cloudflare/ingress, all users share the proxy's IP bucket                           | CWE-307 | A07       | V11.1.7 | Partial (rate limit bypass at scale)   | Deferred (DALLAY-513)   |
 | SEC-004 | Low      | Medium     | `application.yaml`                                                 | `application.rate-limit.auth.enabled: false` and `business.enabled: false` disable shield rate limiting for business endpoints   | CWE-770 | A09       | V11.1.4 | Low                                    | **FIXED** (doc)         |
@@ -168,10 +166,9 @@ Internet
 **Component:** `IdentitySecurityConfiguration.kt`  
 **Location:** `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/IdentitySecurityConfiguration.kt`, line ~150
 
-**Current status:** **FIXED IN CHECKED-OUT SOURCE; CODE COMMIT PENDING**. The current public
-allowlist does not contain `/api/media/proxy`. The BDD regression coverage was added in commit
-`850668ca`, but that commit does not contain the corresponding `IdentitySecurityConfiguration`
-deletion; Slice H intentionally does not stage code.
+**Current status:** **FIXED**. The current public allowlist does not contain `/api/media/proxy`.
+The BDD regression coverage was added in commit `850668ca`, and the corresponding production
+configuration deletion was committed in `e3b78d16`.
 
 **Attacker prerequisites:** None — unauthenticated internet access
 
@@ -284,7 +281,7 @@ signer throws `IllegalArgumentException` for `CHANGE_ME_LINKEDIN_STATE`, `CHANGE
 | V3.5.3  | OAuth state unpredictable                        | YES           | PASS                         | `HmacOAuthStateSigner.init` rejects blank and placeholder-prefixed secrets; SEC-002 fixed in `eed89343`                                                          |
 | V4.1.1  | Access control decisions enforced server-side    | YES           | PASS                         | `WorkspaceAuthorizationService`                                                                                                                                    |
 | V4.1.2  | Deny by default                                  | YES           | PASS                         | `anyExchange().authenticated()` catch-all                                                                                                                          |
-| V4.2.1  | All paths require authentication by default      | YES           | PASS IN CHECKOUT; COMMIT PENDING | `/api/media/proxy` is absent from the current public allowlist; SEC-001 BDD coverage landed in `850668ca`, but the allowlist deletion is not in that commit |
+| V4.2.1  | All paths require authentication by default      | YES           | PASS                         | `/api/media/proxy` is absent from the current public allowlist; BDD coverage landed in `850668ca` and the production deletion in `e3b78d16` |
 | V5.1.1  | All inputs parameterized                         | YES           | PASS                         | R2DBC `.bind()` throughout                                                                                                                                         |
 | V5.2.1  | Input validation before processing               | YES           | PASS                         | Bean Validation annotations on all DTOs                                                                                                                            |
 | V7.1.1  | No credentials logged                            | YES           | PASS                         | No credential logging found                                                                                                                                        |
@@ -313,9 +310,8 @@ signer throws `IllegalArgumentException` for `CHANGE_ME_LINKEDIN_STATE`, `CHANGE
 **Security invariant introduced:** `GET /api/media/proxy` requires authentication unless explicitly permitted again at implementation time.
 
 **Evidence:** The current `IdentitySecurityConfiguration` omits the proxy path from
-`permitAll()`. Commit `850668ca` adds the corresponding unauthenticated-401 BDD scenario, but the
-commit itself does not include the `IdentitySecurityConfiguration` deletion; that code remains
-outside Slice H.
+`permitAll()`. Commit `850668ca` adds the corresponding unauthenticated-401 BDD scenario, and
+commit `e3b78d16` contains the production configuration deletion.
 
 **Tests added:**  
 - `server/smp/src/test/resources/features/security-endpoint-authorization.feature` — BDD: 401 on `/api/media/proxy`, `/api/media/assets/*`, `/api/workspaces/**`; 200 only on actuator health/prometheus and capabilities/public (5 scenarios, `@security @smoke @fast`)
@@ -323,8 +319,9 @@ outside Slice H.
 
 **Compatibility impact:** None — the endpoint has no implementation.  
 **Deployment impact:** None.  
-**Residual risk:** The current checkout is protected, but the allowlist deletion remains an
-unstaged code change and must be committed before release.
+**Residual risk:** None for the current unimplemented endpoint. Any future proxy implementation
+must define its authentication and SSRF protections explicitly before adding a public allowlist
+entry.
 
 ---
 

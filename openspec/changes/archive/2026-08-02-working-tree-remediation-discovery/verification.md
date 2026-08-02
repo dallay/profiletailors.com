@@ -4,7 +4,7 @@
 **Mode:** OpenSpec
 **Verified:** 2026-08-02
 **Branch:** `feat/app-product-tour`
-**HEAD:** `7599d36a` (`Add documentation for working tree remediation and technical specificati`)
+**HEAD:** `225892a8` (`fix(architecture): keep ideas within publishing application boundary`)
 **Application support baseline:** `aa7dc26d` (`feat(app): complete composer AI error and localization support`)
 **MVP deferral baseline:** `bf895af1` (`chore(smp): defer distributed waitlist rate limiting for MVP`)
 
@@ -17,9 +17,9 @@ positive quality gates pass. Known unrelated backend/app baseline failures, a re
 Playwright harness failure before assertions, and a small set of direct scenario-coverage gaps
 remain warnings; the deferred two-replica waitlist scenarios are not counted as current failures.
 
-No application code was modified during verification. No push was performed. The only changes made
-by this verification phase are OpenSpec artifacts: this report, `state.yaml`, `tasks.md`, and the
-final status note in `apply-progress.md`.
+No application code was modified during the original verification run. The subsequent push-gate
+fix `225892a8` corrected the Ideas → Publishing Modulith boundary and was verified by a successful
+`just backend-test-fast` run. No push was performed by the verification phase.
 
 ## Artifact and repository inspection
 
@@ -104,7 +104,7 @@ test was not rerun because the test was removed and its capability is deferred.
 | `just frontend-check` | **PASS** — 72 files, 0 errors, 0 warnings, 14 hints, exit 0 | Positive Astro check evidence |
 | `just licence-check` | **PASS** — frontend scan passed and `:server:smp:generateLicenseReport` ended `BUILD SUCCESSFUL`, exit 0 | Positive licensing/ADR evidence; known non-fatal jk1 configuration-cache serialization warning |
 | `just backend-lint` | **PASS** — `:server:smp:detekt`, `BUILD SUCCESSFUL`, exit 0 | Positive Detekt/quality evidence; active baseline remains untouched |
-| `just backend-test-fast` | **FAIL** — 1,481 tests completed, 1 failed, 2 skipped. The only failure is `ModularStructureTest`: existing Ideas → Publishing domain imports through `ConvertIdeaHandler` (`SocialConnectionStatus` and `ScheduleMode`). | Known unrelated baseline warning; the removed F test is not a current failure |
+| `just backend-test-fast` | **PASS** — `BUILD SUCCESSFUL` after `225892a8` moved the Ideas conversion flow behind the `publishing :: application` API boundary. | Positive backend unit/modularity evidence |
 | `just backend-bdd-fast` | **FAIL** — 155 tests completed, 4 failed. Failures: trending hashtags, saved hashtag deletion, scheduled publication creation, and quick-created scheduled publication. | Established unrelated BDD baseline; all five SEC-001 scenarios pass |
 | `just frontend-test-e2e` | **PASS** — marketing Playwright 190 passed; app mocked-media lane 36 passed and 4 documented known-defect skips | Positive marketing/a11y/consent and app media evidence |
 | `pnpm --filter app test:run` | **FAIL** — 110 files, 1,226 passed, 15 failed, 1,241 total. Fourteen failures are the existing missing `Lightbulb` export in App/AppShell mocks; one is the existing CreatePostModal comparison assertion. | Known app baseline warning; unchanged failure files were not part of `aa7dc26d` |
@@ -114,7 +114,7 @@ test was not rerun because the test was removed and its capability is deferred.
 | `just ci-local` | **FAIL** — stopped at the app unit stage on the same 15 known failures; gitleaks, licence-check, marketing/app lint, and earlier steps passed before the stop. | Precisely classified baseline failure; later ci-local stages were not reached |
 | `just backend-build` | **FAIL** — compile/Spotless/Detekt/`bootJar`/`assemble` tasks completed, but the recipe's test tasks ended non-zero: 1,295 tests with 38 initialization failures plus the four known BDD failures. | Test-harness/baseline warning; dependency compilation itself completed |
 | `just frontend-test-cov` | **PASS** — 85 tests; statements 87.25%, branches 82.60%, functions 73.68%, lines 87.25% | Coverage run positive; configured threshold is 0 |
-| `just backend-coverage` | **FAIL** — same `ModularStructureTest` baseline failure after 1,481 tests; no configured coverage threshold was breached | Baseline warning; no coverage threshold block |
+| `just backend-coverage` | **Not rerun after `225892a8`** — the earlier run had the now-fixed Modulith violation; no configured coverage threshold was breached | Historical evidence superseded by the passing backend gate |
 | Focused Actuator: `./gradlew :server:smp:postgresIntegrationTest --tests 'com.profiletailors.smp.integration.ActuatorEndpointsIntegrationTest' --no-daemon` | **PASS** — 8 tests, 0 failures, `BUILD SUCCESSFUL` | Positive `3511aacd` evidence |
 | Focused signer: `./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.linkedin.HmacOAuthStateSignerTest' --no-daemon` | **PASS** — `BUILD SUCCESSFUL`; XML reports 14/14 passed | Positive SEC-002 evidence |
 
@@ -179,7 +179,7 @@ result is explicitly partial rather than overstated.
 | E ideas/baseline | ✅ Implemented | Formatting/helper rename landed; only the unreferenced stub was removed; active baseline remains. |
 | F distributed waitlist | ⏭️ Deferred outside MVP | No Redis/distributed store/configuration/test is present; local Caffeine and default-off SMP posture remain. |
 | G1/G2 build controls | ⚠️ Partial runtime gate | Licence gate and compilation tasks pass; the aggregate backend build recipe is non-zero because of unrelated tests. |
-| H compliance docs | ⚠️ Mostly truthful | Retention and ADR claims are supported; security audit status wording still has the stale “commit pending” reference. |
+| H compliance docs | ✅ Truthful | Retention and ADR claims are supported; the SEC-001 audit status now references `e3b78d16`. |
 | I repository docs/config | ✅ Implemented | Manifest/recipe checks and `frontend-check` pass. |
 
 ## Design coherence
@@ -195,7 +195,7 @@ result is explicitly partial rather than overstated.
 | E deletes only the detekt stub | ✅ Followed | `server/smp/detekt-baseline.xml` remains present and lint passes. |
 | F shared distributed store | ⏭️ Intentionally deferred | Redis is not implemented; two-replica scenarios wait for DALLAY-512/DALLAY-513. |
 | G1/G2 split policy from dependency churn | ✅ Followed | Licence enforcement and dependency bumps are separate commits. |
-| H validates retention before documentation | ✅ Followed with stale audit wording | Missing API/table are documented as planned; audit status needs a future docs refresh. |
+| H validates retention before documentation | ✅ Followed | Missing API/table are documented as planned; SEC-001 audit status is current. |
 | I validates manifests and recipes before docs | ✅ Followed | Astro/Kotlin versions and documented recipes match current repository evidence. |
 
 ## Strict TDD audit
@@ -215,9 +215,7 @@ two-replica scenarios are explicitly deferred and are not a current acceptance f
 
 ### WARNING
 
-1. `just backend-test-fast` remains non-zero because of the existing Ideas → Publishing Modulith
-   violation in `ConvertIdeaHandler`; the removed distributed F test is not part of the result.
-2. `just backend-bdd-fast` remains non-zero for four established unrelated scenarios: trending
+1. `just backend-bdd-fast` remains non-zero for four established unrelated scenarios: trending
    hashtags, saved hashtag deletion, scheduled publication, and quick-created scheduled publication.
 3. The full app suite remains non-zero at 1,226/1,241 passed because of fourteen existing
    `Lightbulb` mock failures and one existing CreatePostModal comparison assertion; the focused
@@ -231,8 +229,8 @@ two-replica scenarios are explicitly deferred and are not a current acceptance f
 6. Direct runtime coverage is still missing for exact consent palette values, every legal-page hash
    focus path, direct robots/sitemap HTTP responses, the negative GPL fixture, and the register
    no-network assertion.
-7. `docs/security/audit-report.md` still says the SEC-001 code commit is pending even though
-   `e3b78d16` committed it. The security invariant is correct; the documentation status is stale.
+7. `just backend-test-fast` passed after `225892a8` corrected the Ideas → Publishing Modulith
+   boundary. The remaining warnings are unrelated BDD/app baselines and harness coverage gaps.
 8. The jk1 licence-report task emits a known non-fatal Gradle configuration-cache serialization
    warning.
 9. The marketing/app E2E aggregate retains four documented media skips for known defects or
