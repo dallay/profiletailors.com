@@ -38,8 +38,7 @@ class PublishingBddSteps {
     private val objectMapper: ObjectMapper = jacksonObjectMapper()
 
     @Before
-    fun resetPublishingState() = runBlocking {
-        bddDatabaseSupport.resetDatabase()
+    fun resetPublishingState() {
         latestPublishingResponse = null
         latestPublicationId = null
         currentSocialConnectionId = null
