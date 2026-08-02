@@ -1,128 +1,215 @@
 ---
-import { getLocaleFromUrl, useTranslations } from "../../i18n/utils";
+import { useTranslations } from '../../i18n/utils'
+import type { Locale } from '../../i18n/utils'
 
-const t = useTranslations(getLocaleFromUrl(Astro.url));
+interface Props {
+  locale?: Locale
+}
+
+const { locale = 'en' } = Astro.props
+const t = useTranslations(locale)
 ---
 
-<section id="consent-banner" aria-label="Cookie consent" hidden>
+<div id="consent-banner" role="dialog" aria-labelledby="consent-heading" aria-modal="true" tabindex="-1" hidden>
+  <div class="consent-backdrop"></div>
   <div class="consent-container">
-    <div class="consent-info">
-      <h2 id="consent-heading">{t.consent.banner.heading}</h2>
-      <p class="consent-description" set:html={t.consent.banner.description} />
+    <h2 id="consent-heading">{t.consent.banner.heading}</h2>
+    <p class="consent-description" set:html={t.consent.banner.description} />
+
+    <!-- Necessary (always-on, disabled) -->
+    <div class="consent-category consent-category--disabled">
+      <div class="consent-category-info">
+        <span class="consent-category-label">
+          {t.consent.category.necessary.label}
+        </span>
+        <span class="consent-category-desc">
+          {t.consent.category.necessary.description}
+        </span>
+      </div>
+      <input
+        type="checkbox"
+        checked
+        disabled
+        aria-disabled="true"
+        class="consent-checkbox"
+      />
     </div>
 
-    <!-- Hidden toggle kept for save-preferences logic -->
-    <button
-      type="button"
-      role="switch"
-      aria-checked="false"
-      aria-label="Analytics cookies"
-      data-consent-analytics
-      style="display:none"
-    >
-      <span class="consent-toggle-thumb"></span>
-    </button>
-
-    <!-- Actions -->
-    <div class="consent-actions">
+    <!-- Analytics (opt-in) -->
+    <div class="consent-category">
+      <div class="consent-category-info">
+        <span class="consent-category-label">
+          {t.consent.category.analytics.label}
+        </span>
+        <span class="consent-category-desc">
+          {t.consent.category.analytics.description}
+        </span>
+      </div>
       <button
         type="button"
-        data-consent-accept-all
-        class="consent-button consent-button--primary"
+        role="switch"
+        aria-checked="false"
+        aria-label="Analytics cookies"
+        data-consent-analytics
+        class="consent-toggle"
       >
+        <span class="consent-toggle-thumb"></span>
+      </button>
+    </div>
+
+    <!-- Actions: Equal prominence -->
+    <div class="consent-actions">
+      <button type="button" data-consent-accept-all class="consent-button consent-button--primary">
         {t.consent.action.acceptAll}
       </button>
-      <button
-        type="button"
-        data-consent-reject-all
-        class="consent-button consent-button--primary"
-      >
+      <button type="button" data-consent-reject-all class="consent-button consent-button--primary">
         {t.consent.action.rejectAll}
       </button>
-      <button
-        type="button"
-        data-consent-save
-        class="consent-button consent-button--secondary"
-      >
+      <button type="button" data-consent-save class="consent-button consent-button--secondary">
         {t.consent.action.savePreferences}
       </button>
     </div>
   </div>
-</section>
+</div>
 
 <style>
   #consent-banner {
     position: fixed;
-    bottom: 0;
+    top: 0;
     left: 0;
-    right: 0;
+    width: 100%;
+    height: 100%;
     z-index: 9999;
-    padding: 1rem;
-    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   #consent-banner[hidden] {
     display: none;
   }
 
+  .consent-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+
   .consent-container {
-    pointer-events: auto;
-    max-width: 760px;
-    margin: 0 auto;
-    /* The banner is always dark (system-style toast) in both themes, so it
-       must not inherit light-mode text tokens designed for light surfaces. */
+    position: relative;
+    max-width: 480px;
+    width: 90%;
     background: #1a1a1a;
     border: 1px solid #333;
     border-radius: 12px;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .consent-info {
-    min-width: 0;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
 
   #consent-heading {
-    margin: 0 0 0.25rem;
-    font-size: 1rem;
+    margin: 0 0 1rem;
+    font-size: 1.5rem;
     font-weight: 600;
     color: #ffffff;
   }
 
   .consent-description {
-    margin: 0;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    /* #a3a3a3 on #1a1a1a is 5.0:1 — passes WCAG AA in both themes */
+    margin: 0 0 1.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
     color: #a3a3a3;
   }
 
   .consent-description :global(a) {
-    /* The banner surface is always dark (#1a1a1a) in both themes, so the link
-       must use a fixed light-on-dark color instead of the theme accent, which
-       is near-black in light mode. #0ea5e9 on #1a1a1a is ~6.5:1 (WCAG AA). */
     color: #0ea5e9;
     text-decoration: underline;
+  }
+
+  .consent-category {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #333;
+    margin-bottom: 0.75rem;
+    background: #222222;
+  }
+
+  .consent-category--disabled {
+    opacity: 0.6;
+    background: #2a2a2a;
+  }
+
+  .consent-category-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+  }
+
+  .consent-category-label {
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .consent-category-desc {
+    font-size: 0.875rem;
+    color: #a3a3a3;
+  }
+
+  .consent-checkbox {
+    width: 20px;
+    height: 20px;
+  }
+
+  .consent-toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: #444444;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .consent-toggle[aria-checked="true"] {
+    background: #0ea5e9;
+  }
+
+  .consent-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+
+  .consent-toggle[aria-checked="true"] .consent-toggle-thumb {
+    transform: translateX(20px);
   }
 
   .consent-actions {
     display: flex;
     gap: 0.5rem;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    margin-top: 1.5rem;
   }
 
   .consent-button {
-    white-space: nowrap;
-    padding: 0.5rem 1rem;
+    flex: 1;
+    min-width: 0;
+    padding: 0.75rem 1rem;
     border-radius: 8px;
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 2px solid transparent;
@@ -130,18 +217,23 @@ const t = useTranslations(getLocaleFromUrl(Astro.url));
 
   .consent-button--primary,
   .consent-button--secondary {
-    background: var(--color-surface, #333);
-    color: var(--color-text, #fff);
-    border-color: var(--color-border, #444);
+    background: #333333;
+    color: #ffffff;
+    border-color: #444444;
   }
 
   .consent-button--primary:hover,
   .consent-button--secondary:hover {
-    background: var(--color-surface-hover, #3a3a3a);
-    border-color: var(--color-accent, #0ea5e9);
+    background: #3a3a3a;
+    border-color: #0ea5e9;
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .consent-toggle,
+    .consent-toggle-thumb {
+      transition: none;
+    }
+
     .consent-button {
       transition: none;
     }
@@ -153,87 +245,152 @@ const t = useTranslations(getLocaleFromUrl(Astro.url));
 
   @media (max-width: 640px) {
     .consent-container {
-      grid-template-columns: 1fr;
-      padding: 1rem;
+      width: 95%;
+      padding: 1.5rem;
     }
 
     .consent-actions {
-      justify-content: stretch;
+      flex-direction: column;
     }
 
     .consent-button {
-      flex: 1;
+      width: 100%;
     }
   }
 </style>
 
 <script>
-  import {
-    CURRENT_CONSENT_VERSION,
-    CURRENT_POLICY_VERSION,
-    PT_CONSENT_KEY,
-  } from "../../constants/consent";
-  import type { ConsentReceipt } from "@profiletailors/shared-web";
-  import { validateConsentReceipt } from "@profiletailors/shared-web";
+  import { CURRENT_CONSENT_VERSION, CURRENT_POLICY_VERSION, PT_CONSENT_KEY } from '../../constants/consent'
+  import type { ConsentReceipt } from '@profiletailors/shared-web'
+  import { validateConsentReceipt } from '@profiletailors/shared-web'
+
+  // --- Focus trap helpers ---
+  let previousActiveElement: HTMLElement | null = null
+  let focusTrapHandler: ((e: KeyboardEvent) => void) | null = null
+
+  function getFocusableElements(container: HTMLElement): HTMLElement[] {
+    const selectors = [
+      'a[href]',
+      'button:not([disabled])',
+      'textarea:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ]
+    return Array.from(container.querySelectorAll<HTMLElement>(selectors.join(', '))).filter(
+      (el) => {
+        const style = getComputedStyle(el)
+        return style.display !== 'none' && style.visibility !== 'hidden'
+      },
+    )
+  }
+
+  function activateFocusTrap(container: HTMLElement) {
+    previousActiveElement = document.activeElement as HTMLElement | null
+
+    const focusable = getFocusableElements(container)
+    const firstFocusable = focusable[0]
+    if (firstFocusable) {
+      firstFocusable.focus()
+    } else {
+      container.focus()
+    }
+
+    focusTrapHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        closeBanner()
+        return
+      }
+
+      if (e.key !== 'Tab') return
+
+      const focusableElements = getFocusableElements(container)
+      if (focusableElements.length === 0) {
+        e.preventDefault()
+        return
+      }
+
+      const first = focusableElements[0]
+      const last = focusableElements.at(-1)
+      if (!first || !last) return
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', focusTrapHandler)
+  }
+
+  function deactivateFocusTrap() {
+    if (focusTrapHandler) {
+      document.removeEventListener('keydown', focusTrapHandler)
+      focusTrapHandler = null
+    }
+
+    if (previousActiveElement && document.contains(previousActiveElement)) {
+      previousActiveElement.focus()
+    }
+    previousActiveElement = null
+  }
 
   // --- Banner logic ---
 
   function initConsentBanner() {
-    const banner = document.getElementById("consent-banner");
-    if (!banner) return;
+    const banner = document.getElementById('consent-banner')
+    if (!banner) return
 
-    const analyticsToggle = banner.querySelector(
-      "[data-consent-analytics]",
-    ) as HTMLButtonElement;
-    const acceptBtn = banner.querySelector(
-      "[data-consent-accept-all]",
-    ) as HTMLButtonElement;
-    const rejectBtn = banner.querySelector(
-      "[data-consent-reject-all]",
-    ) as HTMLButtonElement;
-    const saveBtn = banner.querySelector(
-      "[data-consent-save]",
-    ) as HTMLButtonElement;
+    const analyticsToggle = banner.querySelector('[data-consent-analytics]') as HTMLButtonElement
+    const acceptBtn = banner.querySelector('[data-consent-accept-all]') as HTMLButtonElement
+    const rejectBtn = banner.querySelector('[data-consent-reject-all]') as HTMLButtonElement
+    const saveBtn = banner.querySelector('[data-consent-save]') as HTMLButtonElement
 
     // Check if banner should be shown
-    const existingConsent = loadConsent();
-    const hasDNT = window.__PT_DNT || false;
+    const existingConsent = loadConsent()
+    const hasDNT = window.__PT_DNT || false
 
     if (!existingConsent) {
       // Set default based on DNT/GPC
-      const defaultAnalytics = !hasDNT;
-      analyticsToggle.setAttribute("aria-checked", String(defaultAnalytics));
+      const defaultAnalytics = !hasDNT
+      analyticsToggle.setAttribute('aria-checked', String(defaultAnalytics))
       if (defaultAnalytics) {
-        analyticsToggle.classList.add("consent-toggle--on");
+        analyticsToggle.classList.add('consent-toggle--on')
       }
-      banner.removeAttribute("hidden");
+      banner.removeAttribute('hidden')
+      // Activate focus trap after banner is visible
+      requestAnimationFrame(() => activateFocusTrap(banner))
     }
 
     // Toggle analytics
-    analyticsToggle?.addEventListener("click", () => {
-      const isChecked = analyticsToggle.getAttribute("aria-checked") === "true";
-      analyticsToggle.setAttribute("aria-checked", String(!isChecked));
-      analyticsToggle.classList.toggle("consent-toggle--on");
-    });
+    analyticsToggle?.addEventListener('click', () => {
+      const isChecked = analyticsToggle.getAttribute('aria-checked') === 'true'
+      analyticsToggle.setAttribute('aria-checked', String(!isChecked))
+      analyticsToggle.classList.toggle('consent-toggle--on')
+    })
 
     // Accept all
-    acceptBtn?.addEventListener("click", () => {
-      saveConsentChoice(true);
-      closeBanner();
-    });
+    acceptBtn?.addEventListener('click', () => {
+      saveConsentChoice(true)
+      closeBanner()
+    })
 
     // Reject all
-    rejectBtn?.addEventListener("click", () => {
-      saveConsentChoice(false);
-      closeBanner();
-    });
+    rejectBtn?.addEventListener('click', () => {
+      saveConsentChoice(false)
+      closeBanner()
+    })
 
     // Save preferences
-    saveBtn?.addEventListener("click", () => {
-      const analytics = analyticsToggle.getAttribute("aria-checked") === "true";
-      saveConsentChoice(analytics);
-      closeBanner();
-    });
+    saveBtn?.addEventListener('click', () => {
+      const analytics = analyticsToggle.getAttribute('aria-checked') === 'true'
+      saveConsentChoice(analytics)
+      closeBanner()
+    })
   }
 
   function saveConsentChoice(analytics: boolean) {
@@ -241,45 +398,46 @@ const t = useTranslations(getLocaleFromUrl(Astro.url));
       consentVersion: CURRENT_CONSENT_VERSION,
       policyVersion: CURRENT_POLICY_VERSION,
       timestamp: new Date().toISOString(),
-      region: "EU",
+      region: 'EU',
       categories: {
         necessary: true,
         analytics,
       },
       dnt: window.__PT_DNT || false,
-      source: "banner",
-    };
+      source: 'banner',
+    }
 
     try {
-      localStorage.setItem(PT_CONSENT_KEY, JSON.stringify(receipt));
+      localStorage.setItem(PT_CONSENT_KEY, JSON.stringify(receipt))
       // Reload to apply changes
-      window.location.reload();
+      window.location.reload()
     } catch (error) {
-      console.error("[Consent] Failed to save:", error);
+      console.error('[Consent] Failed to save:', error)
     }
   }
 
   function loadConsent(): ConsentReceipt | null {
     try {
-      const raw = localStorage.getItem(PT_CONSENT_KEY);
-      if (!raw) return null;
+      const raw = localStorage.getItem(PT_CONSENT_KEY)
+      if (!raw) return null
       // Use shared validation schema
-      const parsed = JSON.parse(raw);
-      return validateConsentReceipt(parsed);
+      const parsed = JSON.parse(raw)
+      return validateConsentReceipt(parsed)
     } catch {
-      return null;
+      return null
     }
   }
 
   function closeBanner() {
-    const banner = document.getElementById("consent-banner");
-    banner?.setAttribute("hidden", "");
+    deactivateFocusTrap()
+    const banner = document.getElementById('consent-banner')
+    banner?.setAttribute('hidden', '')
   }
 
   // Initialize on load
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initConsentBanner);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initConsentBanner)
   } else {
-    initConsentBanner();
+    initConsentBanner()
   }
 </script>

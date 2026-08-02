@@ -937,7 +937,11 @@ class BddDatabaseSupport(
     }
 
     private fun cleanupStatements(): List<String> = listOf(
-        // Governance / Compliance (seeded in baseline, must clear for NOT_APPLICABLE gate tests)
+        "DELETE FROM platform_admin_audit_events",
+        "DELETE FROM waitlist_invitations",
+        "DELETE FROM platform_role_assignments",
+        "DELETE FROM waitlist_entries",
+        "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
         "DELETE FROM compliance_risk_acceptances",
         "DELETE FROM compliance_control_evidences",
         // evidence_links FK references compliance_evidences, must be deleted first
