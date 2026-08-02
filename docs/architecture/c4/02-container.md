@@ -36,7 +36,7 @@ System_Boundary(profile_tailors, "Profile Tailors") {
     
     ContainerDb(db, "Database", "PostgreSQL 18", "Stores user data, workspaces, posts, schedules, credentials, and audit logs. R2DBC for reactive access.")
     
-    ContainerDb(cache, "Cache", "Redis", "Session cache, rate limiting, and temporary data")
+    ContainerDb(cache, "Cache", "Redis (follow-up)", "Session cache and future distributed rate limiting; not the MVP waitlist limiter")
     
     Container(queue, "Message Queue", "RabbitMQ / Kafka", "Asynchronous job processing and event streaming")
 }
@@ -53,7 +53,7 @@ Rel(spa, api, "Makes API calls", "HTTPS/REST, JSON")
 Rel(web_app, api, "Submits waitlist", "HTTPS/REST, JSON")
 
 Rel(api, db, "Reads/writes", "R2DBC, PostgreSQL wire protocol")
-Rel(api, cache, "Reads/writes", "Redis protocol")
+Rel(api, cache, "Reads/writes when enabled", "Redis protocol")
 Rel(api, queue, "Publishes events", "AMQP / Kafka protocol")
 Rel(api, auth_provider, "Authenticates users", "HTTPS/OAuth2")
 Rel(api, storage, "Stores/retrieves media", "HTTPS/S3 API")
@@ -88,7 +88,7 @@ graph TB
         ANALYTICS[Analytics Service<br/>Spring Boot 4, Kotlin<br/>Metrics Collection]
         
         DB[(Database<br/>PostgreSQL 18<br/>R2DBC)]
-        CACHE[(Cache<br/>Redis)]
+        CACHE[(Cache<br/>Redis follow-up)]
         QUEUE[Message Queue<br/>RabbitMQ/Kafka]
     end
 
@@ -104,7 +104,7 @@ graph TB
     WEB -->|REST/JSON| API
     
     API -->|R2DBC| DB
-    API -->|Redis Protocol| CACHE
+    API -->|Redis Protocol when enabled| CACHE
     API -->|Publish Events| QUEUE
     API -->|OAuth2| AUTH
     API -->|S3 API| STORAGE
@@ -193,12 +193,18 @@ graph TB
   credentials/tokens, audit logs, analytics metrics.
 - **Access Pattern**: Reactive via R2DBC (non-blocking)
 
-#### Cache (Redis)
+#### Cache (Redis — follow-up)
 
 - **Technology**: Redis 7+
 - **Deployment**: Managed service (AWS ElastiCache, Upstash)
-- **Purpose**: Session cache, rate limiting, temporary data
-- **Use Cases**: Session storage, rate-limit counters, OAuth token cache, API response cache.
+- **Purpose**: Session cache and future distributed data; not the MVP waitlist rate-limit backend
+- **Use Cases**: Session storage, OAuth token cache, API response cache, and future distributed
+  rate-limit counters after the relevant production blockers are resolved.
+
+The current SMP waitlist limiter is intentionally different: it uses a bounded per-JVM Caffeine
+cache for Bucket4j buckets, and `application.rate-limit.waitlist.enabled` defaults to `false`.
+Redis/distributed waitlist rate limiting is deferred out of MVP until DALLAY-512 (distributed
+bucket backend) and DALLAY-513 (trusted proxy/client identity) are resolved.
 
 #### Message Queue (RabbitMQ / Kafka)
 
@@ -380,7 +386,8 @@ graph TB
 
 **Planned**:
 
-- 🔲 Redis/distributed bucket backend for production-safe waitlist rate limiting
+- 🔲 Redis/distributed bucket backend for production-safe waitlist rate limiting (follow-up after
+  DALLAY-512/DALLAY-513; explicitly out of MVP)
 - 🔲 Message queue integration
 - 🔲 Social media API integrations
 - 🔲 Cloud storage integration
