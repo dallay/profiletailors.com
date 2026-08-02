@@ -1,7 +1,7 @@
 # Apply Progress — working-tree-remediation-discovery
 
 **Updated**: 2026-08-02
-**Status**: Original slices remain landed: Tier 1 (A1, B, C, D), Tier 2 (A2, E, G1, G2), H, and I. Post-verification remediation is complete for the SEC-001 production boundary, the remaining B password contract paths, and the planned Actuator test support. The approved pragmatic MVP decision defers distributed waitlist rate limiting: F7.1 is cancelled/deferred, not failed; the untracked distributed E2E test is removed; no Redis dependency or distributed implementation is added. Re-verification and final review remain open.
+**Status**: Original slices remain landed: Tier 1 (A1, B, C, D), Tier 2 (A2, E, G1, G2), H, and I. Post-verification remediation is complete for the SEC-001 production boundary, the remaining B password contract paths, and the planned Actuator test support. The approved pragmatic MVP decision defers distributed waitlist rate limiting: F7.1 is cancelled/deferred, not failed; the untracked distributed E2E test is removed; no Redis dependency or distributed implementation is added. Final verification completed with PASS WITH WARNINGS; remaining non-zero gates are classified baseline or harness warnings, and archive is eligible because no current MVP blocker remains.
 
 ## Slice F — MVP Decision Applied (2026-08-02)
 
@@ -143,6 +143,14 @@ DALLAY-513. The unrelated app WIP paths were not changed or staged.
 - Property-precedence probe (Tier 1): with `LINKEDIN_STATE_SIGNING_SECRET` removed from fast BDD `@SpringBootTest`, suite still boots (155 tests) → test `application.properties` value overrides test-profile yaml default → postgres BDD config safe, no extra wiring needed.
 - Slice-F property-precedence probe (Tier 2): `SpringApplicationBuilder.properties(map)` is default-properties (lowest precedence) → classpath `application.yaml` `spring.liquibase.url` wins over the container-mapped URL → `localhost:5432` refused. This is exactly the class of bug the F test needs a higher-precedence mechanism for (env var / `--spring.liquibase.url` arg / `@DynamicPropertySource`), and is moot while the distributed store is absent.
 
-## Remaining (Tier 3)
+## Final verification — 2026-08-02
 
-I11.1 (final review/re-verification of the commit sequence) and the post-verification gate rerun remain open. I10.1–I10.3 and the three remediation omissions are applied. Distributed waitlist rate limiting remains a future follow-up, not an open MVP task. Open tasks in `tasks.md`.
+- `I11.1` is complete. The full landed sequence, including `bf895af1`, `aa7dc26d`, and the
+  artifact-only OpenSpec commit `7599d36a`, was inspected for path mixing and boundary drift.
+- The application/backend working tree is committed. After the verification artifact update,
+  only intentional OpenSpec files are expected to be modified.
+- `just frontend-test`, `just frontend-check`, `just licence-check`, and `just backend-lint` pass.
+  Backend fast/BDD, full app tests, and `ci-local` retain known unrelated baseline or harness
+  failures documented in `verification.md`.
+- Distributed waitlist two-replica scenarios remain follow-up work after DALLAY-512/DALLAY-513;
+  they are not current MVP failures.

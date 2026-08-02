@@ -1,6 +1,0 @@
-change: working-tree-remediation-discovery
-current_phase: apply
-completed: [init, explore, propose, spec, design, tasks, apply]
-next: verify
-note: "Approved pragmatic MVP decision applied: do not add Redis or any distributed rate-limit implementation now. The shared Bucket4j adapter remains bounded per-JVM Caffeine (Bucket4jRateLimiter.kt:59-72), and server/smp/src/main/resources/application.yaml:35-39 defaults waitlist limiting to ${SMP_WAITLIST_RATE_LIMIT_ENABLED:false} while documenting DALLAY-512/DALLAY-513. F7.1 is cancelled/deferred, not failed; the untracked WaitlistDistributedRateLimitE2ETest.kt was removed; future two-replica acceptance scenarios remain under follow-up sections. Re-run sdd-verify against the updated MVP contract."
-updated: 2026-08-02

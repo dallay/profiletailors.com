@@ -1,0 +1,6 @@
+change: working-tree-remediation-discovery
+current_phase: archive
+completed: [init, explore, propose, spec, design, tasks, apply, verify, archive]
+next: none
+note: "Final verification completed with PASS WITH WARNINGS. Application and backend WIP is committed through aa7dc26d; bf895af1's approved MVP decision remains in force: no Redis or distributed rate-limit implementation, bounded per-JVM Caffeine, SMP waitlist limiting default OFF, and DALLAY-512/DALLAY-513 follow-up blockers. Known backend/app baseline failures and the registration Playwright harness warning are documented in verification.md."
+updated: 2026-08-02

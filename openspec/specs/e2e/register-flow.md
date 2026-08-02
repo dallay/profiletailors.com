@@ -614,7 +614,7 @@ And the submit button reads "Crear cuenta"
 And the alternate label reads "¿Ya tienes una cuenta?"
 And the alternate link reads "Iniciar sesión"
 And the email placeholder is "tu@ejemplo.com"
-And the password placeholder is "Al menos 8 caracteres"
+And the password placeholder is "Al menos 12 caracteres"
 ```
 
 ### 8.3 Language switch on register page

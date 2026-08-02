@@ -110,4 +110,4 @@ These scenarios are intentionally not part of the current acceptance gate.
 
 ## Phase 11: Final Review
 
-- [ ] I11.1 Review 11-commit sequence: `git log --oneline`; clean tree between commits; each commit green before next; NO pushes, NO `-am` mixes.
+- [x] I11.1 Review the landed remediation sequence: inspect the full `git log`, verify commit boundaries and the final working tree, classify known baseline failures, and confirm no pushes or `-am` mixes.
