@@ -1,5 +1,17 @@
 schemaVersion: 1
 task: frontend-route-navigation-auditor
-lastExecution: null
-findings: [ ]
-checks: [ ]
+lastExecution: "2026-02-23T23:45:00Z"
+findings: []
+checks:
+  - id: check-web-app-routes
+    name: Web App Route & Sidebar Link Consistency Check
+    status: Passed
+    timestamp: "2026-02-23T23:45:00Z"
+  - id: check-admin-routes
+    name: Admin SPA Route & Navigation Link Consistency Check
+    status: Passed
+    timestamp: "2026-02-23T23:45:00Z"
+  - id: check-marketing-pages
+    name: Marketing Astro Site Pages & Legal Links Consistency Check
+    status: Passed
+    timestamp: "2026-02-23T23:45:00Z"
