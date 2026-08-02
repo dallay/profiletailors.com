@@ -82,8 +82,7 @@ class McpSecurityConfigurationTest {
     @TestConfiguration
     class TestJwtDecoderConfig {
         @Bean
-        @Primary
-        fun mcpTestJwtDecoder(): ReactiveJwtDecoder =
+        fun reactiveJwtDecoder(): ReactiveJwtDecoder =
             NimbusReactiveJwtDecoder.withPublicKey(rsaKey.toRSAPublicKey()).build()
     }
 
