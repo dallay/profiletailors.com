@@ -4,7 +4,6 @@ import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.JWSHeader
 import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.jwk.RSAKey
-import com.nimbusds.jose.jwk.gen.RSAKeyGenerator
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
@@ -15,14 +14,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
-import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
-import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -69,7 +64,7 @@ import java.util.Date
 )
 @AutoConfigureWebTestClient
 @ActiveProfiles("test")
-@Import(TestStorageConfiguration::class)
+@Import(TestStorageConfiguration::class, McpTestJwtDecoderConfig::class)
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
@@ -77,13 +72,6 @@ class McpSecurityConfigurationTest {
 
     @Autowired
     private lateinit var webTestClient: WebTestClient
-
-    @TestConfiguration
-    class TestJwtDecoderConfig {
-        @Bean
-        fun reactiveJwtDecoder(): ReactiveJwtDecoder =
-            NimbusReactiveJwtDecoder.withPublicKey(rsaKey.toRSAPublicKey()).build()
-    }
 
     @Test
     fun `test 1 - unauthenticated request returns 401 with WWW-Authenticate`() {
@@ -183,9 +171,7 @@ class McpSecurityConfigurationTest {
     }
 
     companion object {
-        private val rsaKey: RSAKey = RSAKeyGenerator(2048)
-            .keyID("test-key-id")
-            .generate()
+        private val rsaKey: RSAKey = McpTestJwtDecoderConfig.RSA_KEY
 
         private val signer = RSASSASigner(rsaKey)
 
