@@ -13,7 +13,7 @@ Feature: Publications management
     And the publication status should be "QUEUED"
 
   Scenario: Create scheduled publication
-    When the client creates a scheduled publication for "2027-08-01T12:00:00Z" with title "Scheduled Post" and body "Scheduled post"
+    When the client creates a scheduled publication for "+7days" with title "Scheduled Post" and body "Scheduled post"
     Then the publishing response status should be 200
     And the response should contain a publicationId
     And the publication status should be "SCHEDULED"
@@ -39,7 +39,7 @@ Feature: Publications management
     And the response should contain 0 publications
 
   Scenario: Quick-create a scheduled publication
-    When the client quick-creates a publication for "2027-08-01T12:00:00Z" with title "Quick Post" and body "Quick body"
+    When the client quick-creates a publication for "+7days" with title "Quick Post" and body "Quick body"
     Then the publishing response status should be 200
     And the publication status should be "SCHEDULED"
 
