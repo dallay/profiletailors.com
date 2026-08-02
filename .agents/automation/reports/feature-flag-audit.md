@@ -30,7 +30,7 @@ The audit concluded with **CHANGES_APPLIED**. All state and report files have be
 
 | Feature Flag ID | Flag Name / Key | Scope | Expected Behavior / Intent | Observed Behavior | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FF-DASHBOARD-STALE** | `pt-dashboard-new` | Frontend (Vue) | Toggle to restore old legacy dashboard layout during development | Legacy dashboard has been completely deleted. UI toggle is dead/stale control rendering a static text block. Resolved by removing dead flag and UI code. | **RESOLVED** |
+| **FF-DASHBOARD-STALE** | `pt-dashboard-new` | Frontend (Vue) | Toggle to restore old legacy dashboard layout during development | **Pre-remediation**: Legacy dashboard was completely deleted, leaving the UI toggle as a dead/stale control rendering a static text block. **Current state**: Flag and toggle code have been removed; HomeView.vue now unconditionally renders DashboardLayout. | **RESOLVED** |
 | **FF-WAITLIST-CONSISTENT** | `WAITLIST_ENABLED` | Frontend (Astro) | Controls waitlist capture form; must be `false` until compliance is approved | Compliant. Defaults to `false` in `.env.example` and `astro.config.mjs` and successfully verified against the marketing site. | **CONSISTENT** |
 | **FF-RATE-LIMIT-DRIFT** | `SMP_PLATFORM_RATE_LIMIT_ENABLED` | Backend (Spring) | Toggle platform-wide rate-limiting hook | Defaults to `true` in `application.yaml` if omitted, but explicitly set to `false` in `.env.example`. | **INCONSISTENT** |
 | **FF-AUDIT-METRICS-CONSISTENT** | `SMP_PLATFORM_AUDIT_ENABLED`, `SMP_PLATFORM_METRICS_ENABLED` | Backend (Spring) | Control audit event logging and prometheus metrics exporter hooks | Consistent. Both default to `false` in `application.yaml` when not configured, and are explicitly `false` in `.env.example`. | **CONSISTENT** |
@@ -69,4 +69,4 @@ None.
 
 ## Human Review Notes
 
-All major feature flags (such as the waitlist compliance gate and Unsplash media provider hooks) are highly consistent with documentation. The stale frontend toggle (`pt-dashboard-new`) was successfully resolved and removed. The backend rate-limiting default mismatch (`SMP_PLATFORM_RATE_LIMIT_ENABLED`) remains as an unresolved finding to be addressed in subsequent maintenance.
+All major feature flags (such as the waitlist compliance gate and Unsplash media provider hooks) are highly consistent with documentation. The stale frontend toggle (`pt-dashboard-new`) was successfully resolved and removed; HomeView.vue now unconditionally renders DashboardLayout with no legacy toggle or flag check remaining. The backend rate-limiting default mismatch (`SMP_PLATFORM_RATE_LIMIT_ENABLED`) remains as an unresolved finding to be addressed in subsequent maintenance.
