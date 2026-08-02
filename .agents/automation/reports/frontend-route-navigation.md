@@ -33,7 +33,7 @@ None.
 | `marketing` Astro Check | `pnpm --filter marketing run check` | **Passed** | Astro check returned 0 errors / warnings. |
 | `marketing` Linting & Formatting | `pnpm --filter marketing run lint` | **Passed** | Biome checked 56 files cleanly. |
 | `admin` Unit Tests | `pnpm --filter admin run test` | **Passed** | Succeeded. |
-| `admin` Type Check & Linting | `pnpm --filter admin run type-check`, `lint` | **Passed** | Clean. |
+| `admin` Type Check & Linting | `pnpm --filter admin run type-check`, `pnpm --filter admin run lint` | **Passed** | Clean. |
 
 ## Unresolved Findings
 None.
@@ -49,4 +49,4 @@ State updated correctly in `.agents/automation/state/frontend-route-navigation.y
 - **Assessment:** Zero structural modifications applied. Existing routes are verified as fully intact and highly resilient.
 
 ## Human Review Notes
-- The audit confirm that navigation items match active routes with 100% fidelity. No developer action is required to resolve navigation drift.
+- The audit confirms that navigation items match active routes with 100% fidelity. No developer action is required to resolve navigation drift.
