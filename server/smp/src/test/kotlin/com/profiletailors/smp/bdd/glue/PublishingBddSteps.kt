@@ -92,7 +92,7 @@ class PublishingBddSteps {
         bddDatabaseSupport.seedScheduledPublication(
             publicationId = "pub-bdd-scheduled-1",
             socialAccountId = socialAccountId,
-            scheduledFor = Instant.parse("2026-08-01T12:00:00Z"),
+            scheduledFor = Instant.parse("2027-08-01T12:00:00Z"),
             title = "Scheduled Post",
             bodyText = "Scheduled body",
         )
@@ -116,7 +116,7 @@ class PublishingBddSteps {
         bddDatabaseSupport.seedScheduledPublication(
             publicationId = "pub-bdd-scheduled-2",
             socialAccountId = socialAccountId,
-            scheduledFor = Instant.parse("2026-08-01T14:00:00Z"),
+            scheduledFor = Instant.parse("2027-08-01T14:00:00Z"),
             title = "Scheduled Post 2",
             bodyText = "Scheduled body 2",
         )
