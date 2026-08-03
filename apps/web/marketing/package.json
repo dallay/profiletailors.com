@@ -42,7 +42,7 @@
     "@bgotink/playwright-coverage": "^0.3.2",
     "@codecov/vite-plugin": "^2.0.1",
     "@playwright/test": "^1.61.1",
-    "@vitest/coverage-v8": "^3.0.0",
+    "@vitest/coverage-v8": "^3.2.7",
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
     "vite": "^7.3.6",
