@@ -141,6 +141,19 @@ class McpSecurityConfigurationTest {
     }
 
     @Test
+    fun `MCP request carrying a browser cookie requires a CSRF token`() {
+        webTestClient.post()
+            .uri("/api/mcp")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $validToken")
+            .header(HttpHeaders.COOKIE, "pt_refresh=browser-session")
+            .accept(MediaType.APPLICATION_JSON, MediaType.TEXT_EVENT_STREAM)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"jsonrpc":"2.0","method":"ping","id":1}""")
+            .exchange()
+            .expectStatus().isForbidden
+    }
+
+    @Test
     fun `test 7 - RFC 9728 metadata endpoint is publicly accessible`() {
         webTestClient.get()
             .uri("/.well-known/oauth-protected-resource/api/mcp")
