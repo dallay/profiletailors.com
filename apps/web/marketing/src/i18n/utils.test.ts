@@ -42,12 +42,13 @@ describe('i18n utils', () => {
   });
 
   describe('legal translations', () => {
-    it('EN has legal key with all four policy sections', () => {
+    it('EN has legal key with all five policy sections', () => {
       const t = useTranslations(new URL('https://example.com/'));
       expect(t.legal.privacy).toBeDefined();
       expect(t.legal.terms).toBeDefined();
       expect(t.legal.cookies).toBeDefined();
       expect(t.legal.aup).toBeDefined();
+      expect(t.legal.accessibility).toBeDefined();
     });
 
     it('ES has same legal section structure as EN', () => {
@@ -57,13 +58,14 @@ describe('i18n utils', () => {
       expect(Object.keys(tEs.legal.terms)).toEqual(Object.keys(tEn.legal.terms));
       expect(Object.keys(tEs.legal.cookies)).toEqual(Object.keys(tEn.legal.cookies));
       expect(Object.keys(tEs.legal.aup)).toEqual(Object.keys(tEn.legal.aup));
+      expect(Object.keys(tEs.legal.accessibility)).toEqual(Object.keys(tEn.legal.accessibility));
     });
 
-    it('footer has legalLinks with 4 entries', () => {
+    it('footer has legalLinks with 5 entries', () => {
       const tEn = useTranslations(new URL('https://example.com/'));
       const tEs = useTranslations(new URL('https://example.com/es/'));
-      expect(tEn.footer.legalLinks).toHaveLength(4);
-      expect(tEs.footer.legalLinks).toHaveLength(4);
+      expect(tEn.footer.legalLinks).toHaveLength(5);
+      expect(tEs.footer.legalLinks).toHaveLength(5);
       tEn.footer.legalLinks.forEach((link) => {
         expect(link).toHaveProperty('label');
         expect(link).toHaveProperty('href');

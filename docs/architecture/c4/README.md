@@ -17,7 +17,7 @@ The C4 model provides a hierarchical set of architecture diagrams:
 ## Quick Reference
 
 | Level     | Audience               | Focus                                 |
-|-----------|------------------------|---------------------------------------|
+| --------- | ---------------------- | ------------------------------------- |
 | Context   | Everyone               | Big picture, external dependencies    |
 | Container | Technical leadership   | Deployable units, technology stack    |
 | Component | Developers, architects | Internal structure, bounded contexts  |
@@ -46,7 +46,7 @@ Diagrams are written in:
 
 **What's implemented**:
 
-- Marketing site (Astro 6, static)
+- Marketing site (Astro 7, static)
 - Backend foundation (Spring Boot 4, Kotlin, WebFlux)
 - Core bounded contexts: Identity, Authorization, Tenancy, Credentials, Governance, Platform
 

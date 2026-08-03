@@ -101,7 +101,7 @@ test.describe('Registration', { tag: '@integration' }, () => {
       status: 422,
       body: {
         title: 'Validation Error',
-        detail: 'Password must be at least 8 characters.',
+        detail: 'Password must be at least 12 characters.',
         status: 422,
         errors: { password: ['too short'] },
       },

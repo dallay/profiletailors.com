@@ -972,6 +972,41 @@ MUST reject the request.
 - THEN the system MUST return 400 with a state-validation error
 - AND it MUST NOT exchange the authorization code or persist any connection
 
+### Requirement: OAuth State Signer Placeholder-Secret Guard (SEC-002)
+
+The system MUST fail fast at startup when the LinkedIn OAuth state-signing secret is missing or
+looks like a placeholder. `HmacOAuthStateSigner` construction MUST reject a blank secret and MUST
+reject secrets whose case-insensitive prefix matches any of `CHANGE_ME`, `change_me`, `changeme`,
+`placeholder`, or `test-`. Real secrets MUST be accepted. BDD/test configuration MUST provide a
+passing secret so the suite boots.
+
+#### Scenario: Placeholder secret fails fast at startup
+
+- GIVEN `SMP_LINKEDIN_STATE_SIGNING_SECRET` is `test-fake-secret`
+- WHEN the `HmacOAuthStateSigner` bean is constructed
+- THEN construction MUST throw (startup fails)
+- AND the error MUST identify the placeholder prefix
+
+#### Scenario: Blank secret is rejected
+
+- GIVEN `SMP_LINKEDIN_STATE_SIGNING_SECRET` is blank or absent
+- WHEN the signer is constructed
+- THEN construction MUST throw with "OAuth state signing secret is required"
+
+#### Scenario: Real secret is accepted
+
+- GIVEN a strong, non-placeholder signing secret
+- WHEN the signer is constructed
+- THEN construction MUST succeed
+- AND signing and verification of OAuth state MUST work
+
+#### Scenario: BDD configuration boots with passing secret
+
+- GIVEN `CucumberSpringConfiguration`, `BddTestProperties`, and `application.properties` provide a
+  state-signing secret
+- WHEN the BDD suite starts
+- THEN the suite MUST boot without triggering the placeholder guard
+
 ### Requirement: Frontend Channel Data Source Migration
 
 The publishing Pinia store MUST replace mock channel seeding with backend-loaded channels. The store

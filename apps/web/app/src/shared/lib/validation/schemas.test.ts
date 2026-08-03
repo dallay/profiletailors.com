@@ -56,14 +56,14 @@ describe('password recovery schemas', () => {
     expect(forgotPasswordSchema.safeParse({ email }).success).toBe(false)
   })
 
-  it.each([8, 128])('accepts a matching password at the %i character boundary', (length) => {
+  it.each([12, 128])('accepts a matching password at the %i character boundary', (length) => {
     const password = 'a'.repeat(length)
     expect(resetPasswordSchema.safeParse({ password, confirmPassword: password }).success).toBe(
       true,
     )
   })
 
-  it.each(['', 'a'.repeat(7), 'a'.repeat(129)])('rejects invalid password length', (password) => {
+  it.each(['', 'a'.repeat(11), 'a'.repeat(129)])('rejects invalid password length', (password) => {
     expect(resetPasswordSchema.safeParse({ password, confirmPassword: password }).success).toBe(
       false,
     )
@@ -112,8 +112,8 @@ describe('registerSchema', () => {
   it('validates a correct registration payload', () => {
     const result = registerSchema.safeParse({
       email: 'user@example.com',
-      password: 'password123',
-      confirmPassword: 'password123',
+      password: 'password1234',
+      confirmPassword: 'password1234',
       confirmedAgeEligibility: true,
       acceptedTerms: true,
     })
@@ -122,8 +122,8 @@ describe('registerSchema', () => {
     if (result.success) {
       expect(result.data).toEqual({
         email: 'user@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
+        password: 'password1234',
+        confirmPassword: 'password1234',
         confirmedAgeEligibility: true,
         acceptedTerms: true,
       })
@@ -133,8 +133,8 @@ describe('registerSchema', () => {
   it('rejects registration if age eligibility is unchecked', () => {
     const result = registerSchema.safeParse({
       email: 'user@example.com',
-      password: 'password123',
-      confirmPassword: 'password123',
+      password: 'password1234',
+      confirmPassword: 'password1234',
       confirmedAgeEligibility: false,
       acceptedTerms: true,
     })
@@ -150,8 +150,8 @@ describe('registerSchema', () => {
   it('rejects registration if terms are not accepted', () => {
     const result = registerSchema.safeParse({
       email: 'user@example.com',
-      password: 'password123',
-      confirmPassword: 'password123',
+      password: 'password1234',
+      confirmPassword: 'password1234',
       confirmedAgeEligibility: true,
       acceptedTerms: false,
     })
@@ -165,7 +165,7 @@ describe('registerSchema', () => {
   it('rejects registration if passwords do not match', () => {
     const result = registerSchema.safeParse({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'password1234',
       confirmPassword: 'mismatchingPassword',
       confirmedAgeEligibility: true,
       acceptedTerms: true,
@@ -180,7 +180,7 @@ describe('registerSchema', () => {
   it('rejects registration if confirmPassword is empty', () => {
     const result = registerSchema.safeParse({
       email: 'user@example.com',
-      password: 'password123',
+      password: 'password1234',
       confirmPassword: '',
       confirmedAgeEligibility: true,
       acceptedTerms: true,
@@ -191,6 +191,21 @@ describe('registerSchema', () => {
       expect(result.error.flatten().fieldErrors.confirmPassword).toContain(
         'confirmPasswordRequired',
       )
+    }
+  })
+
+  it('rejects registration with a password below the 12-character minimum', () => {
+    const result = registerSchema.safeParse({
+      email: 'user@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+      confirmedAgeEligibility: true,
+      acceptedTerms: true,
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.password).toContain('passwordTooShort')
     }
   })
 })

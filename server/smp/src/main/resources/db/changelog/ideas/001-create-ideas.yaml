@@ -1,0 +1,102 @@
+databaseChangeLog:
+  - changeSet:
+      id: ideas-001-create-ideas
+      author: profiletailors
+      changes:
+        - createTable:
+            tableName: idea_board_configs
+            columns:
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    foreignKeyName: fk_idea_board_workspace
+                    references: workspaces(id)
+              - column:
+                  name: columns_json
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: ideas
+            columns:
+              - column:
+                  name: id
+                  type: varchar(128)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_ideas_workspace
+                    references: workspaces(id)
+              - column:
+                  name: title
+                  type: varchar(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notes
+                  type: text
+              - column:
+                  name: tags_json
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: links_json
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: column_id
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: order_in_column
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: converted_to_publication_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_ideas_publication
+                    references: publications(id)
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            tableName: ideas
+            indexName: idx_ideas_workspace_column_order
+            columns:
+              - column:
+                  name: workspace_id
+              - column:
+                  name: column_id
+              - column:
+                  name: order_in_column

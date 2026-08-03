@@ -3,6 +3,7 @@ export default {
   scheduler: 'Programador',
   analytics: 'Analítica',
   media: 'Librería de Medios',
+  ideas: 'Ideas',
   governance: 'Gobernanza',
   settings: 'Ajustes',
   system: 'Sistema',

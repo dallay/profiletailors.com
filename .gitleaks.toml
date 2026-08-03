@@ -4,8 +4,8 @@ title = "Profile Tailors gitleaks config"
 # Start from the maintained upstream rule set and keep repo-local tuning minimal.
 useDefault = true
 
-# No repo-local allowlists are defined yet.
-# Add one only for a reviewed false positive with a path-scoped English reason.
+# Repo-local allowlist covers reviewed false positives: explicit test-only tokens,
+# docs examples, and example env defaults. Add entries only with a path-scoped English reason.
 
 [allowlist]
 description = "False positives: explicit test-only tokens, docs examples, and reviewed example env defaults"
@@ -19,6 +19,7 @@ paths = [
   "server/smp/src/test/resources/application-test.properties",
   "server/smp/src/test/resources/application.properties",
   "server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/credentials/LinkedInCredentialGatewayTest.kt",
+  "server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/HmacOAuthStateSignerTest.kt", # Test-only random secret fixture proving the signer accepts a strong secret (SEC-002)
   "docs/plans/2026-06-10-publishing-infrastructure-credentials-tests-design.md",
   ".agents/skills/testing/playwright-best-practices/advanced/authentication-flows.md",
   "apps/web/app/e2e/hars/", # Recorded HAR fixtures containing test-only local JWT tokens

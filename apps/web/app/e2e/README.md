@@ -8,36 +8,32 @@ This folder contains the Playwright end-to-end suites for the Profile Tailors SP
 
 ### Composer media attachment lanes
 
-The composer media coverage now uses dedicated tags and Playwright projects:
+The composer media coverage uses tags within the existing Media Library Playwright projects:
 
 | Tag | Project | Purpose | Command |
-|---|---|---|---|
-| `@composer-ui-mocked` | `media-mocked-composer` | Deterministic mocked composer flows: picker staging, limits, removal, failure paths, preview swaps | `pnpm test:e2e:media:mocked:composer` |
-| `@composer-smoke-real` | `media-real-composer` | Real-backend happy-path smoke coverage for composer attachments | `pnpm test:e2e:media:real:composer` |
-| `@composer-provider-real` | `media-real-composer` | Reserved for real provider coverage | Deferred |
+| --- | --- | --- | --- |
+| `@composer-ui-mocked` | `media-mocked-chromium` | Deterministic mocked composer flows: picker staging, limits, removal, failure paths, preview swaps | `pnpm test:e2e:media:mocked -- --grep "@composer-ui-mocked"` |
+| `@real-unsplash` | `media-real-chromium` | Real-backend Unsplash composer smoke coverage | `pnpm test:e2e:media:real -- --grep "@real-unsplash"` |
+| — | `media-real-chromium` | Additional real provider coverage | Deferred |
 
-The existing media projects stay in place for non-composer scenarios:
+The existing media projects stay in place for both composer and non-composer scenarios:
 
-- `media-mocked-chromium` runs mocked Media Library coverage except `@composer-ui-mocked`
-- `media-real-chromium` runs real Media Library smoke except `@composer-smoke-real`
+- `media-mocked-chromium` runs the mocked Media Library and composer specs.
+- `media-real-chromium` runs the real Media Library smoke and Unsplash composer smoke specs.
 
 ### Lane topology
 
 - `apps/web/app/e2e/playwright.media-mocked.config.ts`
-  - `media-mocked-chromium` excludes `@composer-ui-mocked`
-  - `media-mocked-composer` runs only `@composer-ui-mocked`
+  - `media-mocked-chromium` matches the mocked Media Library and composer spec files
+  - use `--grep "@composer-ui-mocked"` to run only the mocked composer scenarios
 - `apps/web/app/e2e/playwright.media-real.config.ts`
-  - `media-real-chromium` excludes `@composer-smoke-real`
-  - `media-real-composer` runs only `@composer-smoke-real`
-  - when `E2E_MEDIA_EMAIL` or `E2E_MEDIA_PASSWORD` is missing, the real composer project resolves to an empty grep and skips discovery cleanly
+  - `media-real-chromium` matches the real Media Library spec files
+  - use `--grep "@real-unsplash"` to run only the Unsplash composer smoke
 
 ### CI integration
 
-- PR CI now runs `app-e2e-mocked-composer` when composer E2E paths change
-- Real composer smoke remains for scheduled/manual execution because it needs live credentials and a real backend environment
-- HTML reports for composer lanes annotate the generated `index.html` with:
-  - `data-tag="@composer-ui-mocked"`
-  - `data-tag="@composer-smoke-real"`
+- The mocked composer scenarios run through the existing app Media Library mocked lane.
+- Real Unsplash composer smoke remains credential- and backend-dependent.
 
 ### WebKit Support Level (Dropped for Dashboard E2E)
 
@@ -62,6 +58,12 @@ From `apps/web/app`:
 
 ```bash
 pnpm test:e2e:media:mocked
+```
+
+Run only the composer-tagged scenarios with:
+
+```bash
+pnpm test:e2e:media:mocked -- --grep "@composer-ui-mocked"
 ```
 
 Target one scenario:
@@ -90,6 +92,12 @@ From `apps/web/app`:
 pnpm test:e2e:media:real
 ```
 
+Run only the Unsplash composer smoke with:
+
+```bash
+pnpm test:e2e:media:real -- --grep "@real-unsplash"
+```
+
 ### Aggregated media lane
 
 ```bash
@@ -111,13 +119,10 @@ Composer E2E specs MUST NOT mutate `$pinia.state` directly. Use mocked routes an
 - provider visibility comes from the mocked `/api/flags` route
 - picker state is driven through clicks and seeded mock assets
 
-### Real composer project discovers zero tests
+### Real composer smoke requires credentials
 
-That is expected when `E2E_MEDIA_EMAIL` or `E2E_MEDIA_PASSWORD` is missing. The config intentionally avoids failing discovery in environments without real credentials.
-
-### Report headers
-
-If you need to confirm lane attribution, open the generated HTML report and inspect the `<body>` tag for the lane `data-tag` attribute.
+Set `E2E_MEDIA_EMAIL` and `E2E_MEDIA_PASSWORD` before running the real lane. The real fixture
+authenticates through the login flow and fails fast when either variable is missing.
 
 ## References
 

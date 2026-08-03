@@ -355,7 +355,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bodyValue(
                 mapOf(
                     "email" to "verify@example.com",
-                    "password" to "password123",
+                    "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
                     "confirmedAgeEligibility" to true,
                     "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
@@ -367,7 +367,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/login")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
-            .bodyValue(mapOf("email" to "verify@example.com", "password" to "password123"))
+            .bodyValue(mapOf("email" to "verify@example.com", "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123"))
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -388,7 +388,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bodyValue(
                 mapOf(
                     "email" to email,
-                    "password" to "password123",
+                    "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
                     "confirmedAgeEligibility" to true,
                     "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
@@ -412,7 +412,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bodyValue(
                 mapOf(
                     "email" to email,
-                    "password" to "password123",
+                    "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
                     "confirmedAgeEligibility" to true,
                     "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
@@ -435,7 +435,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bodyValue(
                 mapOf(
                     "email" to email,
-                    "password" to "password123",
+                    "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
                     "confirmedAgeEligibility" to true,
                     "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
@@ -473,7 +473,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bodyValue(
                 mapOf(
                     "email" to "pending-claims@example.com",
-                    "password" to "password123",
+                    "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
                     "confirmedAgeEligibility" to true,
                     "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
@@ -487,7 +487,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bodyValue(
                 mapOf(
                     "email" to "pending-claims@example.com",
-                    "password" to "password123",
+                    "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
                 ),
             )
             .exchange()
@@ -618,7 +618,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bodyValue(
                 mapOf(
                     "email" to "badlogin@example.com",
-                    "password" to "password123",
+                    "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
                     "confirmedAgeEligibility" to true,
                     "acceptedTermsVersion" to "terms-v1.0.0",
                 ),
@@ -660,7 +660,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 """.trimIndent(),
             ).fetch().rowsUpdated().block()!!
 
-            val passwordHash = BCrypt.hashpw("password123", BCrypt.gensalt())
+            val passwordHash = BCrypt.hashpw("TEST_PASSWORD_S3cr3tP@ssw0rd*123", BCrypt.gensalt())
             databaseClient.sql(
                 """
                 INSERT INTO local_password_credentials (principal_id, password_hash)
@@ -677,7 +677,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bodyValue(
                 mapOf(
                     "email" to "owner@example.com",
-                    "password" to "password123",
+                    "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
                 ),
             )
             .exchange()

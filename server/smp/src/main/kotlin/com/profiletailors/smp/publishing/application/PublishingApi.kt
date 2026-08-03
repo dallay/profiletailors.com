@@ -25,7 +25,11 @@ data class CompleteLinkedInConnectionCommand(
     val state: String,
 ) : CommandWithResult<SocialConnectionResult>
 
-data class ListConnectedChannelsQuery(val status: SocialConnectionStatus? = null) : Query<ConnectedChannelsResponse>
+data class ListConnectedChannelsQuery(val status: SocialConnectionStatus? = null) : Query<ConnectedChannelsResponse> {
+    companion object {
+        fun active(): ListConnectedChannelsQuery = ListConnectedChannelsQuery(SocialConnectionStatus.ACTIVE)
+    }
+}
 
 data class ConnectedChannelsResponse(val channels: List<ConnectedSocialChannelSummary>)
 
@@ -50,7 +54,17 @@ data class CreatePublicationCommand(
     val scheduledFor: Instant? = null,
     val nextSlotAfter: Instant? = null,
     val priority: Boolean = false,
-) : CommandWithResult<PublicationResult>
+) : CommandWithResult<PublicationResult> {
+    companion object {
+        fun now(socialAccountId: String, title: String? = null, bodyText: String? = null): CreatePublicationCommand =
+            CreatePublicationCommand(
+                socialAccountId = socialAccountId,
+                title = title,
+                bodyText = bodyText,
+                scheduleMode = ScheduleMode.NOW,
+            )
+    }
+}
 
 data class EditPublicationCommand(
     val publicationId: String,

@@ -439,9 +439,10 @@ test.describe('Scheduler — Create Post', () => {
 
     // Modal should still be visible (Create Another was checked)
     await composeModal.expectVisible()
+    await expect(composeModal.textarea).toHaveValue('')
 
     // Close the modal via Escape key (avoids detachment timing issues)
-    await page.keyboard.press('Escape')
+    await page.locator('dialog[open]').press('Escape')
     await composeModal.expectHidden()
   })
 })

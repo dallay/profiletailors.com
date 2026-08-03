@@ -34,7 +34,7 @@ const langLabel = locale === 'en' ? 'Cambiar a español' : 'Switch to English'
 ---
 
 <Layout title={t.meta.title} description={t.meta.description} lang={locale}>
-  <div id="main-content" class="fade-in">
+  <div id="main-content" class="fade-in" tabindex="-1">
     <Nav
       langSwitch={t.nav.langSwitch}
       langHref={langHref}

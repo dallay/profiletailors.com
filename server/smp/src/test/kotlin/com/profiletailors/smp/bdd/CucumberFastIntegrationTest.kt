@@ -12,4 +12,8 @@ import org.junit.platform.suite.api.Suite
     key = "cucumber.glue",
     value = "com.profiletailors.smp.bdd.glue,com.profiletailors.smp.bdd.fast",
 )
+@ConfigurationParameter(
+    key = "cucumber.execution.parallel.enabled",
+    value = "false",
+)
 class CucumberFastIntegrationTest

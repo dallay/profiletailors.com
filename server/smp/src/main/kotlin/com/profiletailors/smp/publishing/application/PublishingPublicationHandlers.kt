@@ -172,10 +172,6 @@ internal class DeletePublicationHandler(
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<DeletePublicationCommand, PublicationResult> {
     override suspend fun handle(command: DeletePublicationCommand): PublicationResult {
-        val ctxBefore = resourceContextProvider.current()
-        java.io.File(
-            "/tmp/debug-wf.log",
-        ).appendText("[DEBUG_HANDLER] DeletePublicationHandler.handle: current()=$ctxBefore\n")
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
             principalCtx,

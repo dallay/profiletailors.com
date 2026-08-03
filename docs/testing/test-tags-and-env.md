@@ -19,7 +19,6 @@ hide failures — tests must pass unconditionally before merge.
 
 1. Copy `.env.example` → `.env` at the project root
 2. Set `SMP_DB_TEST_PASSWORD` to any non-empty value (e.g., the same as `SMP_POSTGRES_PASSWORD`)
-3. Run `./bin/setup-env.sh` to create symlinks for subprojects
 
 **Example:**
 
@@ -141,7 +140,6 @@ fun `should fetch data from LinkedIn API`() {
 
 1. Start Docker Desktop or Docker daemon
 2. Verify `.env` contains `SMP_DB_TEST_PASSWORD`
-3. Re-run `./bin/setup-env.sh` if the symlink is missing
 
 ### "Test passed locally but failed in CI"
 

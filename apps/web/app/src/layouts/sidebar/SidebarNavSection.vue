@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LucideIcon } from '@lucide/vue'
+import { useSidebar } from '@/components/ui/sidebar/utils'
 
 export interface NavItem {
   labelKey: string
@@ -21,6 +22,13 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const { isMobile, setOpenMobile } = useSidebar()
+
+function handleNavigation(): void {
+  if (isMobile.value) {
+    setOpenMobile(false)
+  }
+}
 
 function formatBadge(count: number): string {
   if (count <= 0) return ''
@@ -66,6 +74,7 @@ const renderedGroups = computed<NavGroup[]>(() =>
           <RouterLink
             :to="item.to"
             class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm text-text-secondary transition-colors no-underline hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
+            @click="handleNavigation"
           >
             <component
               :is="item.icon"

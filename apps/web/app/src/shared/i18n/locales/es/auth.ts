@@ -25,7 +25,7 @@ export default {
   email: 'Correo',
   password: 'Contraseña',
   emailPlaceholder: 'tu{at}ejemplo.com',
-  passwordPlaceholder: 'Al menos 8 caracteres',
+  passwordPlaceholder: 'Al menos 12 caracteres',
   confirmPassword: 'Confirmar contraseña',
   confirmPasswordPlaceholder: 'Repite tu contraseña',
   invalidEmail: 'Por favor, introduce un correo electrónico válido.',

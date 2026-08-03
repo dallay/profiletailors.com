@@ -144,7 +144,6 @@ class IdentitySecurityConfiguration {
                 "/actuator/health/**",
                 "/actuator/prometheus",
                 "/api/capabilities/public",
-                "/api/media/proxy",
                 "/api/media/assets/*/preview",
                 "/api/media/assets/*/content",
             ).permitAll()

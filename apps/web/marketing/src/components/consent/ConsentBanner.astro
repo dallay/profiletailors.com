@@ -19,15 +19,16 @@ const t = useTranslations(locale)
     <!-- Necessary (always-on, disabled) -->
     <div class="consent-category consent-category--disabled">
       <div class="consent-category-info">
-        <span class="consent-category-label">
+        <label class="consent-category-label" for="consent-necessary">
           {t.consent.category.necessary.label}
-        </span>
+        </label>
         <span class="consent-category-desc">
           {t.consent.category.necessary.description}
         </span>
       </div>
       <input
         type="checkbox"
+        id="consent-necessary"
         checked
         disabled
         aria-disabled="true"
@@ -103,8 +104,8 @@ const t = useTranslations(locale)
     position: relative;
     max-width: 480px;
     width: 90%;
-    background: var(--color-background, #1a1a1a);
-    border: 1px solid var(--color-border, #333);
+    background: #1a1a1a;
+    border: 1px solid #333;
     border-radius: 12px;
     padding: 2rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -114,18 +115,18 @@ const t = useTranslations(locale)
     margin: 0 0 1rem;
     font-size: 1.5rem;
     font-weight: 600;
-    color: var(--color-text, #fff);
+    color: #ffffff;
   }
 
   .consent-description {
     margin: 0 0 1.5rem;
     font-size: 0.9375rem;
     line-height: 1.6;
-    color: var(--color-text-muted, #aaa);
+    color: #a3a3a3;
   }
 
   .consent-description :global(a) {
-    color: var(--color-accent, #0ea5e9);
+    color: #0ea5e9;
     text-decoration: underline;
   }
 
@@ -135,14 +136,14 @@ const t = useTranslations(locale)
     align-items: center;
     padding: 1rem;
     border-radius: 8px;
-    border: 1px solid var(--color-border, #333);
+    border: 1px solid #333;
     margin-bottom: 0.75rem;
-    background: var(--color-surface, #222);
+    background: #222222;
   }
 
   .consent-category--disabled {
     opacity: 0.6;
-    background: var(--color-muted, #2a2a2a);
+    background: #2a2a2a;
   }
 
   .consent-category-info {
@@ -154,12 +155,12 @@ const t = useTranslations(locale)
 
   .consent-category-label {
     font-weight: 600;
-    color: var(--color-text, #fff);
+    color: #ffffff;
   }
 
   .consent-category-desc {
     font-size: 0.875rem;
-    color: var(--color-text-muted, #aaa);
+    color: #a3a3a3;
   }
 
   .consent-checkbox {
@@ -171,7 +172,7 @@ const t = useTranslations(locale)
     position: relative;
     width: 44px;
     height: 24px;
-    background: var(--color-border, #444);
+    background: #444444;
     border-radius: 12px;
     border: none;
     cursor: pointer;
@@ -179,7 +180,7 @@ const t = useTranslations(locale)
   }
 
   .consent-toggle[aria-checked="true"] {
-    background: var(--color-accent, #0ea5e9);
+    background: #0ea5e9;
   }
 
   .consent-toggle-thumb {
@@ -217,15 +218,15 @@ const t = useTranslations(locale)
 
   .consent-button--primary,
   .consent-button--secondary {
-    background: var(--color-surface, #333);
-    color: var(--color-text, #fff);
-    border-color: var(--color-border, #444);
+    background: #333333;
+    color: #ffffff;
+    border-color: #444444;
   }
 
   .consent-button--primary:hover,
   .consent-button--secondary:hover {
-    background: var(--color-surface-hover, #3a3a3a);
-    border-color: var(--color-accent, #0ea5e9);
+    background: #3a3a3a;
+    border-color: #0ea5e9;
   }
 
   @media (prefers-reduced-motion: reduce) {

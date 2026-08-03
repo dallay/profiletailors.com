@@ -41,12 +41,12 @@
     "test:app": "pnpm --filter app test",
     "lint": "pnpm --recursive run lint",
     "format": "pnpm --recursive run format",
-    "clean": "rm -rf apps/web/marketing/dist apps/web/app/dist .gradle/build-cache; ./gradlew clean --no-daemon 2>/dev/null || true",
-    "backend:build": "./gradlew :server:smp:build --no-daemon",
-    "backend:run": "./gradlew :server:smp:bootRun --args='--spring.profiles.active=dev'",
-    "backend:test": "./gradlew :server:smp:test --no-daemon -PexcludeTags=modularity,postgres",
-    "backend:lint": "./gradlew :server:smp:detekt --no-daemon",
-    "prepare": "if [ -d .git ] && [ -z \"$CI\" ]; then pnpm exec lefthook install && pnpm dlx @dallay/agentsync apply || true; fi"
+    "clean": "node scripts/workspace-clean.mjs",
+    "backend:build": "node scripts/gradle-run.mjs :server:smp:build --no-daemon",
+    "backend:run": "node scripts/gradle-run.mjs :server:smp:bootRun --args=--spring.profiles.active=dev",
+    "backend:test": "node scripts/gradle-run.mjs :server:smp:test --no-daemon -PexcludeTags=modularity,postgres",
+    "backend:lint": "node scripts/gradle-run.mjs :server:smp:detekt --no-daemon",
+    "prepare": "node scripts/prepare-workspace.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.5"

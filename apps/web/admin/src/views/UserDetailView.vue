@@ -53,7 +53,6 @@ async function fetchUser() {
 
 onMounted(fetchUser)
 </script>
-
 <template>
   <div class="p-8">
     <button
@@ -116,4 +115,3 @@ const Field = defineComponent({
 
 export { Field }
 </script>
-

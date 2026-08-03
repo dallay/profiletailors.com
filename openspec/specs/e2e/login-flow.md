@@ -35,7 +35,7 @@ login page rendering → form interaction → API integration → session manage
 ### Key Contracts
 
 | Endpoint             | Method | Request               | Success      | Failure                                  |
-|----------------------|--------|-----------------------|--------------|------------------------------------------|
+| -------------------- | ------ | --------------------- | ------------ | ---------------------------------------- |
 | `/api/auth/login`    | POST   | `{ email, password }` | 200 + tokens | 401 InvalidEmailPassword                 |
 | `/api/auth/register` | POST   | `{ email, password }` | 200 + tokens | 409 UserAlreadyExists / 400 InvalidInput |
 | `/api/auth/refresh`  | POST   | (HttpOnly cookie)     | 200 + tokens | 401 RefreshSessionNotActive              |
@@ -313,14 +313,14 @@ Then the frontend HTML5 validation blocks the request (if type="email")
 Or the API returns 400 with "Invalid registration input" (if bypassed)
 ```
 
-### 5.4 Registration with short password (< 8 chars)
+### 5.4 Registration with short password (< 12 chars)
 
 ```
 Given the user navigates to /register
 When the user fills email with "newuser@example.com"
 And fills password with "Ab1" (3 chars)
 Then the API returns 400 InvalidRegistrationInputException
-And the error detail says "Password must contain at least 8 characters."
+And the error detail says "Password must contain at least 12 characters."
 ```
 
 ### 5.5 Registration with whitespace in email is normalized
@@ -692,7 +692,7 @@ Then all text meets WCAG AA contrast ratios
 ## 16. Test Scenarios Matrix
 
 | ID   | Area          | Scenario                                 | Priority | Auth Required | API Required |
-|------|---------------|------------------------------------------|----------|---------------|--------------|
+| ---- | ------------- | ---------------------------------------- | -------- | ------------- | ------------ |
 | 1.1  | Rendering     | Login page renders fully                 | P0       | No            | No           |
 | 1.4  | Rendering     | Registration page renders                | P0       | No            | No           |
 | 3.1  | Login API     | Successful login + redirect              | P0       | No            | Yes          |
@@ -789,7 +789,7 @@ DELETE FROM identity WHERE email LIKE 'e2e-test-%';
 ## Appendix A: Routes Map
 
 | Path                              | Component                | Auth Required | Guest Only |
-|-----------------------------------|--------------------------|---------------|------------|
+| --------------------------------- | ------------------------ | ------------- | ---------- |
 | `/login`                          | AuthView (login mode)    | No            | Yes        |
 | `/register`                       | AuthView (register mode) | No            | Yes        |
 | `/`                               | HomeView (dashboard)     | Yes           | No         |
@@ -840,7 +840,7 @@ DELETE FROM identity WHERE email LIKE 'e2e-test-%';
 // 400 Response (invalid input)
 {
   "title": "Invalid registration input",
-  "detail": "Password must contain at least 8 characters.",
+  "detail": "Password must contain at least 12 characters.",
   "status": 400
 }
 ```

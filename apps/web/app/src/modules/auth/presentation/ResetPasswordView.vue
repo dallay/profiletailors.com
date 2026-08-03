@@ -95,7 +95,7 @@ async function submit(): Promise<void> {
         <form v-else class="flex flex-col gap-5" @submit.prevent="submit">
           <div class="flex flex-col gap-2">
             <Label for="new-password">{{ t('passwordRecovery.newPasswordLabel') }}</Label>
-            <Input id="new-password" v-model="password" name="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required :aria-invalid="fieldErrors.password ? 'true' : 'false'" :aria-describedby="fieldErrors.password ? 'new-password-error' : 'password-policy'" />
+            <Input id="new-password" v-model="password" name="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required :aria-invalid="fieldErrors.password ? 'true' : 'false'" :aria-describedby="fieldErrors.password ? 'new-password-error' : 'password-policy'" />
             <p id="password-policy" class="text-sm text-text-secondary">{{ t('passwordRecovery.passwordPolicy') }}</p>
             <p v-if="fieldErrors.password" id="new-password-error" role="alert" class="text-sm text-error">{{ t(`passwordRecovery.${fieldErrors.password}`) }}</p>
           </div>

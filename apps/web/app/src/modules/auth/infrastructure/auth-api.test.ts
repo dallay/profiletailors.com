@@ -119,6 +119,33 @@ describe('login', () => {
     })
   })
 
+  it('preserves AI quota metadata from a non-OK JSON response', async () => {
+    const resetAt = '2026-08-31T00:00:00.000Z'
+    const upgradeOptions = ['Free 10/mo', 'Pro 100/mo', 'Team 500/mo']
+    mockFetch(
+      new Response(
+        JSON.stringify({
+          title: 'Too Many Requests',
+          detail: 'Monthly AI generation limit reached.',
+          resetAt,
+          upgradeOptions,
+        }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+
+    await expect(
+      login({ email: 'user@example.com', password: 'password123' }),
+    ).rejects.toMatchObject({
+      status: 429,
+      resetAt,
+      upgradeOptions,
+    })
+  })
+
   it('throws ApiError when server returns non-JSON error body', async () => {
     mockFetch(
       new Response('plain text error', {

@@ -18,8 +18,10 @@ class AuthenticatedPrincipalContextWebFilter(private val requestContextStore: Re
                 requestContextStore.setPrincipalContext(authenticatedPrincipal.context)
                 chain.filter(exchange)
                     .doFinally { requestContextStore.setPrincipalContext(null) }
+                    .thenReturn(Unit)
             }
-            .switchIfEmpty(chain.filter(exchange))
+            .switchIfEmpty(Mono.defer { chain.filter(exchange).thenReturn(Unit) })
+            .then()
 
     private fun extractPrincipal(authentication: Authentication): AuthenticatedPrincipal? =
         authentication.principal as? AuthenticatedPrincipal

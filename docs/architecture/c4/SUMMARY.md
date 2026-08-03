@@ -26,10 +26,10 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 ### Technology Stack
 
 | Layer        | Technology                                 |
-|--------------|--------------------------------------------|
-| **Frontend** | Astro 6 (marketing), Vue 3 (dashboard app) |
+| ------------ | ------------------------------------------ |
+| **Frontend** | Astro 7 (marketing), Vue 3 (dashboard app) |
 | **Backend**  | Spring Boot 4, Kotlin, WebFlux (reactive)  |
-| **Database** | PostgreSQL 16 with R2DBC (reactive driver) |
+| **Database** | PostgreSQL 18 with R2DBC (reactive driver) |
 | **Cache**    | Redis                                      |
 | **Queue**    | RabbitMQ / Kafka                           |
 | **Storage**  | S3-compatible (Cloudflare R2, AWS S3)      |
@@ -50,7 +50,7 @@ The API Application is composed of multiple Gradle modules. The **Shared Kernel*
 framework-agnostic domain primitives and shared infrastructure:
 
 | Module                      | Purpose                                                            | Spring Deps |
-|-----------------------------|--------------------------------------------------------------------|-------------|
+| --------------------------- | ------------------------------------------------------------------ | ----------- |
 | `shared:common`             | Domain primitives, base entities, value objects, `@Service` marker | ❌ None      |
 | `shared:bus`                | Event bus abstractions (CQRS mediator)                             | ❌ None      |
 | `shared:security`           | Security primitives (Hasher interface + implementations)           | ❌ None      |
@@ -308,7 +308,7 @@ Managed Services
 
 ### Phase 1: Foundation (✅ Complete)
 
-- [x] Marketing site (Astro 6)
+- [x] Marketing site (Astro 7)
 - [x] Backend foundation (Spring Boot 4, Kotlin, WebFlux)
 - [x] Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform)
 - [x] JWT and API Key authentication

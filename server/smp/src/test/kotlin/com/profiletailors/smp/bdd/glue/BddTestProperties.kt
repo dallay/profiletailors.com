@@ -10,4 +10,6 @@ object BddTestProperties {
     const val LINKEDIN_CLIENT_ID = "publishing.linkedin.client-id=test-client-id"
     const val LINKEDIN_CLIENT_SECRET = "publishing.linkedin.client-secret=test-client-secret"
     const val LINKEDIN_REDIRECT_URI = "publishing.linkedin.redirect-uri=http://localhost:9999/callback"
+    const val LINKEDIN_STATE_SIGNING_SECRET =
+        "publishing.linkedin.state-signing-secret=bdd-test-oauth-state-signing-secret-32b"
 }

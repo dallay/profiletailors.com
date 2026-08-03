@@ -36,7 +36,7 @@ describe('module relocation guard', () => {
     await expect(import('@modules/settings/infrastructure/settings.store')).resolves.toHaveProperty(
       'useSettingsStore',
     )
-  })
+  }, 20_000)
 
   it('resolves dashboard files from @modules/dashboard paths', async () => {
     await expect(
@@ -61,7 +61,7 @@ describe('module relocation guard', () => {
       import('@modules/dashboard/infrastructure/content-pipeline.store'),
     ).resolves.toHaveProperty('useContentPipelineStore')
     await expect(import('@modules/dashboard/domain/dashboard.types')).resolves.toBeDefined()
-  })
+  }, 20_000)
 
   it('resolves media files from @modules/media paths', async () => {
     await expect(

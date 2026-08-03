@@ -41,6 +41,8 @@ export type ApiError = {
   status?: number
   code?: string
   errorCode?: string
+  resetAt?: string
+  upgradeOptions?: string[]
 }
 
 export type ApiFetchOptions = RequestInit & {
@@ -52,7 +54,7 @@ function apiError(
   title: string,
   detail: string,
   status: number,
-  properties: Pick<ApiError, 'code' | 'errorCode'> = {},
+  properties: Partial<ApiError> = {},
 ): Error & ApiError {
   return Object.assign(new Error(title), { title, detail, status, ...properties })
 }
@@ -116,7 +118,12 @@ async function requestRaw(
       payload?.title ?? 'Request failed',
       payload?.detail ?? 'An unexpected error occurred.',
       response.status,
-      { code: payload?.code, errorCode: payload?.errorCode },
+      {
+        code: payload?.code,
+        errorCode: payload?.errorCode,
+        resetAt: payload?.resetAt,
+        upgradeOptions: payload?.upgradeOptions,
+      },
     )
   }
 

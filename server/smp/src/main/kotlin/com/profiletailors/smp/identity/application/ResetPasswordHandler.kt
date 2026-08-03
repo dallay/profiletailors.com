@@ -97,7 +97,7 @@ internal class ResetPasswordHandler(
     }
 
     private companion object {
-        const val MIN_PASSWORD_LENGTH = 8
+        const val MIN_PASSWORD_LENGTH = 12
         const val MAX_PASSWORD_LENGTH = 128
     }
 }

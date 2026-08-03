@@ -38,6 +38,7 @@ export const es = {
       { label: 'Términos del Servicio', href: '/es/terms/' },
       { label: 'Política de Cookies', href: '/es/cookies/' },
       { label: 'Uso Aceptable', href: '/es/acceptable-use/' },
+      { label: 'Accesibilidad', href: '/es/accessibility/' },
     ],
   },
   meta: {
@@ -168,6 +169,24 @@ export const es = {
         'Para denunciar una infracci\u00F3n de esta pol\u00EDtica, contacta con el operador en: contact@profiletailors.com\n\nIncluye:\n- El contenido o comportamiento espec\u00EDfico que denuncias.\n- La informaci\u00F3n del usuario o cuenta relevante (si la conoces).\n- Cualquier evidencia que respalde tu denuncia.\n\nEl operador revisar\u00E1 las denuncias y tomar\u00E1 las medidas oportunas. Cuando lo exija la ley, las denuncias podr\u00E1n remitirse a las autoridades competentes.',
       contact:
         'Esta pol\u00EDtica est\u00E1 incorporada a los T\u00E9rminos del Servicio. Al usar el Servicio, aceptas cumplir con esta pol\u00EDtica.\n\nPara preguntas sobre esta pol\u00EDtica o para denunciar una infracci\u00F3n, contacta con:\n\n**Profile Tailors**\nCorreo electr\u00F3nico: contact@profiletailors.com',
+    },
+    accessibility: {
+      title: 'Declaraci\u00F3n de Accesibilidad',
+      description: 'Nuestro compromiso con la accesibilidad WCAG 2.2 AA y c\u00f3mo informar de problemas.',
+      lastUpdated: '31 de julio de 2026',
+      intro: 'Profile Tailors se compromete a hacer su presencia web accesible para todos los usuarios, incluidas las personas con discapacidad. Esta declaraci\u00f3n describe nuestro nivel de conformidad actual, las limitaciones conocidas y c\u00f3mo contactarnos si encuentras una barrera de accesibilidad.',
+      section1: '1. Estado de Conformidad',
+      conformance: 'Nuestro objetivo es la conformidad con **WCAG 2.2 Nivel AA** en el sitio de marketing (profiletailors.com) y en la aplicaci\u00f3n de panel. Las comprobaciones automatizadas con axe-core se ejecutan en cada pull request como primera revisi\u00f3n. La revisi\u00f3n manual y las pruebas con lector de pantalla complementan las comprobaciones automatizadas.\n\nEstado actual: **Conformidad parcial** \u2014 Hemos completado una auditor\u00eda automatizada inicial de base. La revisi\u00f3n manual est\u00e1 en curso. Las brechas conocidas se enumeran en la Secci\u00f3n 3.',
+      section2: '2. Especificaci\u00f3n T\u00e9cnica',
+      techSpec: 'Este sitio utiliza las siguientes tecnolog\u00edas para la conformidad:\n\n- HTML5\n- CSS (Tailwind CSS 4)\n- JavaScript (Astro 6, Vue 3)\n- WAI-ARIA 1.2\n\nEl sitio se prueba con las siguientes combinaciones de navegador y tecnolog\u00eda de asistencia:\n\n- Chrome + NVDA (Windows)\n- Firefox + NVDA (Windows)\n- Safari + VoiceOver (macOS, iOS)\n- Navegaci\u00f3n solo con teclado (todos los navegadores compatibles)',
+      section3: '3. Limitaciones Conocidas',
+      knownLimitations: 'Los siguientes problemas son conocidos y se est\u00e1n abordando:\n\n- **Navegaci\u00f3n por teclado en el calendario:** La navegaci\u00f3n con teclas de flecha entre franjas horarias en la vista semanal del programador a\u00fan no est\u00e1 implementada. Soluci\u00f3n alternativa: usa Tab para moverte entre los controles interactivos.\n- **Arrastrar y soltar en el selector de medios:** La interfaz de reordenaci\u00f3n por arrastre no tiene una alternativa accesible por teclado en la versi\u00f3n actual. Soluci\u00f3n alternativa: los elementos multimedia se pueden reordenar mediante el men\u00fa de acci\u00f3n accesible con teclado.\n- **Incrustaciones de terceros:** Algunas vistas previas de plataformas sociales pueden no cumplir los requisitos de contraste. Estas son renderizadas por proveedores externos.\n\nEstamos trabajando activamente para resolver los problemas del calendario y el selector de medios en pr\u00f3ximos sprints.',
+      section4: '4. Comentarios y Contacto',
+      contact: 'Si encuentras una barrera de accesibilidad no indicada anteriormente, o si la soluci\u00f3n alternativa indicada no es suficiente para tus necesidades, cont\u00e1ctanos:\n\n**Correo electr\u00f3nico:** accessibility@profiletailors.com\n\nNuestro objetivo es responder en un plazo de **5 d\u00edas h\u00e1biles**. Si no est\u00e1s satisfecho con nuestra respuesta, puedes contactar con el organismo nacional de aplicaci\u00f3n de accesibilidad de tu pa\u00eds.',
+      section5: '5. Aplicabilidad de la EAA y Normativa',
+      eaa: 'La **Ley Europea de Accesibilidad (EAA / Directiva 2019/882)** se aplica a ciertos productos y servicios digitales ofrecidos a consumidores en la UE desde junio de 2025. Profile Tailors es actualmente una plataforma en vista previa de acceso anticipado, no un producto de venta p\u00fablica. Estamos supervisando nuestras obligaciones regulatorias a medida que el producto se acerca a la disponibilidad general y actualizaremos esta declaraci\u00f3n en consecuencia.\n\nLos **Reglamentos de Accesibilidad de Organismos del Sector P\u00fablico** del Reino Unido no se aplican a este servicio, prestado por una entidad privada.',
+      section6: '6. Aplicaci\u00f3n y Escalada',
+      enforcement: 'Si no est\u00e1s satisfecho con nuestra respuesta a una preocupaci\u00f3n de accesibilidad, puedes escalar al organismo nacional de aplicaci\u00f3n correspondiente:\n\n- **UE:** Tu autoridad nacional responsable de implementar la EAA.\n- **Reino Unido:** Comisi\u00f3n de Igualdad y Derechos Humanos (EHRC).\n- **EE. UU.:** Departamento de Justicia (Secci\u00f3n 508 / ADA T\u00edtulo III).',
     },
   },
   waitlist: {

@@ -243,6 +243,23 @@ class ResetPasswordHandlerTest {
         tokenRepository.consumeCalls shouldBe 0
     }
 
+    // SEC-009: ASVS L2 V2.1.1 requires password >= 12 chars
+    @Test
+    fun `rejects password of exactly 11 characters (below ASVS L2 minimum)`() = runTest {
+        val tokenRepository = FakePasswordResetTokenRepository()
+        val refreshSvc = RecordingRefreshSessionLifecycleService()
+        val handler = newHandler(tokenRepository, refreshSvc)
+
+        try {
+            handler.handle(ResetPasswordCommand(token = "raw-token", newPassword = "Ab1defghijk"))
+            throw AssertionError("Expected PasswordRecoveryPasswordException")
+        } catch (e: PasswordRecoveryPasswordException) {
+            e.message shouldBe "Password does not meet policy requirements."
+        }
+
+        tokenRepository.consumeCalls shouldBe 0
+    }
+
     @Test
     fun `rejects password longer than the maximum length`() = runTest {
         val tokenRepository = FakePasswordResetTokenRepository()

@@ -20,6 +20,13 @@ These are maintained in `apps/web/marketing/src/i18n/{en,es}.ts` under the `lega
 leading slash in each link is intentional: these are deployed marketing routes, not files inside
 the repository, so filesystem-only Markdown link checkers may report them as unresolved.
 
+Reference mapping from Awesome Legal categories to current and future Profile Tailors legal
+artifacts is documented in
+[`marketing-legal-baseline.md`](marketing-legal-baseline.md).
+
+Status naming conventions for all compliance artifacts are defined in
+[`status-taxonomy.md`](status-taxonomy.md).
+
 ## When to use these documents
 
 These templates and registers are the compliance target for a future where the project operates

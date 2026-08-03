@@ -22,7 +22,7 @@ All documentation is centralized in the `docs/` directory:
 
 ### 1. Start Infrastructure
 ```bash
-docker compose up -d
+just infra-up
 ```
 
 This starts:
@@ -32,12 +32,12 @@ This starts:
 
 ### 2. Run Server
 ```bash
-./gradlew bootRun --args='--spring.profiles.active=dev'
+just backend-run
 ```
 
 ### 3. Verify
 ```bash
-curl http://localhost:8080/actuator/health
+curl http://localhost:9091/actuator/health
 ```
 
 ## Package Structure
@@ -61,16 +61,16 @@ three-layer rule as product contexts (`identity`, `authorization`, `tenancy`, et
 
 ```bash
 # Build
-./gradlew build
+just backend-build
 
 # Run tests
-./gradlew test
+just backend-test-fast
 
 # Run with coverage
-./gradlew test jacocoTestReport
+just backend-coverage
 
 # Check code style
-./gradlew detekt
+just backend-lint
 ```
 
 ## Database-backed tests
@@ -90,8 +90,7 @@ just backend-bdd-fast
 The PostgreSQL-tagged integration suite can also be run directly:
 
 ```bash
-SMP_DB_TEST_PASSWORD=profiletailors-test \
-  ./gradlew :server:smp:postgresIntegrationTest
+just backend-test-postgres
 ```
 
 ### Troubleshooting
@@ -104,9 +103,10 @@ SMP_DB_TEST_PASSWORD=profiletailors-test \
 
 ## 📊 Monitoring
 
+- **API**: http://localhost:7638
 - **Prometheus**: http://localhost:9090
 - **Grafana**: http://localhost:3000 (admin/admin)
-- **Metrics**: http://localhost:8080/actuator/prometheus (dev mode)
+- **Metrics**: http://localhost:9091/actuator/prometheus (dev mode)
 
 ## 🔒 Security
 

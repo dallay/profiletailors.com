@@ -236,7 +236,7 @@ internal class RegisterUserHandler(
 
     private companion object {
         private val EMAIL_REGEX = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
-        private const val MIN_PASSWORD_LENGTH = 8
+        private const val MIN_PASSWORD_LENGTH = 12
         private const val AGE_ELIGIBILITY_PURPOSE = "age-eligibility.18-plus"
         private const val CURRENT_TERMS_VERSION = "terms-v1.0.0"
         private const val AGE_ELIGIBILITY_POLICY_VERSION = CURRENT_TERMS_VERSION

@@ -42,9 +42,11 @@ pre-commit:
 
     # ========== BACKEND (Kotlin + Spring Boot) ==========
     # Spotless: auto-format Kotlin with ktlint — fixes what it can
-    # NOTE: spotlessApply fixes on disk but does NOT re-stage — we chain git add -u
+    # NOTE: spotlessApply fixes on disk but does NOT re-stage — we re-add only the
+    # files already staged so partial/per-slice commits stay scoped (never a blanket
+    # `git add -u` of the whole working tree).
     backend-spotless:
-      run: './gradlew spotlessApply --no-daemon && git add -u'
+      run: './gradlew spotlessApply --no-daemon && git add -u {staged_files}'
 
     # Detekt: static analysis (NOT formatting — spotless handles that)
     backend-detekt:

@@ -11,6 +11,10 @@ import AppComponent from './App.vue'
 
 const mockT = (key: string) => key
 const routeState = { name: 'dashboard', path: '/', query: {}, meta: {} as Record<string, boolean> }
+const sidebarContext = vi.hoisted(() => ({
+  isMobile: { value: false },
+  setOpenMobile: vi.fn(),
+}))
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: mockT, locale: { value: 'en' } }),
@@ -66,6 +70,10 @@ vi.mock('@/components/ui/sidebar', () => ({
   SidebarTrigger: { template: '<button class="sidebar-trigger" />' },
 }))
 
+vi.mock('@/components/ui/sidebar/utils', () => ({
+  useSidebar: () => sidebarContext,
+}))
+
 vi.mock('@shared/components/ThemeToggle.vue', () => ({
   default: { template: '<div class="theme-toggle" />' },
 }))
@@ -76,7 +84,9 @@ vi.mock('@lucide/vue', () => {
     BarChart3: stub,
     CalendarDays: stub,
     ChevronsUpDown: stub,
+    CircleHelp: stub,
     Images: stub,
+    Lightbulb: stub,
     LayoutGrid: stub,
     LogOut: stub,
     PanelLeft: stub,

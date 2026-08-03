@@ -2,7 +2,7 @@
 
 ## Overview
 
-The marketing site is the static-first Astro 6 application at `apps/web/marketing/`. It serves the
+The marketing site is the static-first Astro 7 application at `apps/web/marketing/`. It serves the
 public Profile Tailors website, including English and Spanish locale routes, legal pages, consent
 UI, and the client-side waitlist flow.
 
@@ -55,6 +55,23 @@ Marketing Playwright specs are under `e2e/`. Consent behavior is covered by
 - `src/i18n/` — English and Spanish marketing/legal copy.
 - `src/styles/` — site-level styling and design tokens.
 - `e2e/` — Playwright configuration and browser scenarios.
+
+## Legal Baseline
+
+The marketing site publishes the active legal policies for the current operator-hosted instance:
+
+- `/privacy/` and `/es/privacy/`
+- `/terms/` and `/es/terms/`
+- `/cookies/` and `/es/cookies/`
+- `/acceptable-use/` and `/es/acceptable-use/`
+
+Policy source of truth is maintained in:
+
+- `src/i18n/en.ts`
+- `src/i18n/es.ts`
+
+Reference mapping from the Awesome Legal guide to Profile Tailors artifacts is documented in
+[`docs/compliance/marketing-legal-baseline.md`](../../../docs/compliance/marketing-legal-baseline.md).
 
 Shared web assets and consent primitives live under `shared/` and are consumed through workspace
 aliases. See [consent-management.md](../../../docs/consent-management.md) for the cross-surface

@@ -6,13 +6,14 @@
 
 **Schedule smarter. Post everywhere.**
 
-Public-facing marketing site for the Profile Tailors social media management platform.
+Monorepo for the Profile Tailors social media management platform (marketing, dashboard, backend,
+shared modules, and infrastructure).
 
 </div>
 
 [![License](https://img.shields.io/github/license/dallay/profiletailors.com?style=for-the-badge&color=2d3748)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/dallay/profiletailors.com/release-please.yml?style=for-the-badge&color=2d3748&label=CI)](https://github.com/dallay/profiletailors.com/actions)
-[![Astro](https://img.shields.io/badge/Astro-6.4.8-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
+[![Astro](https://img.shields.io/badge/Astro-7.x-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
 [![Node.js](https://img.shields.io/badge/Node.js-22.12%2B-2d3748?style=for-the-badge&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
 [![pnpm](https://img.shields.io/badge/pnpm-11.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
 
@@ -32,11 +33,11 @@ Public-facing marketing site for the Profile Tailors social media management pla
 
 ### Prerequisites
 
-| Requirement    | Version               | Install                                    |
-|----------------|-----------------------|--------------------------------------------|
-| Node.js        | `>= 22.12.0`          | [nodejs.org](https://nodejs.org)           |
-| pnpm           | `>= 11.8.0`           | `npm install -g pnpm`                      |
-| just           | `>= 1.30`             | `brew install just` / `winget install Casey.Just` / `cargo install just` |
+| Requirement | Version      | Install                                                                  |
+| ----------- | ------------ | ------------------------------------------------------------------------ |
+| Node.js     | `>= 22.12.0` | [nodejs.org](https://nodejs.org)                                         |
+| pnpm        | `>= 11.8.0`  | `npm install -g pnpm`                                                    |
+| just        | `>= 1.30`    | `brew install just` / `winget install Casey.Just` / `cargo install just` |
 
 > **Windows users:** `just` runs natively on Windows. The Gradle wrapper is auto-detected
 > (`gradlew.bat` in CMD/PowerShell, `./gradlew` in Git Bash/WSL). Recipes that use `rm -rf`
@@ -74,6 +75,7 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 - install workspace dependencies with `pnpm install --frozen-lockfile`,
 - install Lefthook unless Git hooks are globally disabled (`core.hooksPath=/dev/null`, e.g. Jules).
 - apply AI agent configurations with `pnpm dlx @dallay/agentsync apply`.
+- run optional local tooling setup via `node scripts/setup-optional-tools.mjs`.
 
 #### 3) Start local development
 
@@ -92,55 +94,55 @@ Docker commands separately. Run `just -l` to list everything.
 
 #### Frontend (Astro + Vue / pnpm)
 
-| Command                     | What it does                               |
-|-----------------------------|--------------------------------------------|
-| `just dev-frontend`         | Start both dev servers in parallel         |
-| `just app`                  | Start only the Vue 3 dashboard app         |
-| `just frontend-build`       | Build the marketing site for production    |
-| `just frontend-preview`     | Preview marketing production build         |
-| `just frontend-lint`        | Lint marketing with Biome                  |
-| `just frontend-format`      | Format marketing code with Biome           |
-| `just frontend-check`       | Run Astro type/content checks              |
-| `just frontend-test`        | Run marketing unit tests (Vitest)          |
-| `just frontend-test-cov`    | Run marketing unit tests with coverage     |
-| `just frontend-test-e2e`    | Run marketing E2E tests (Playwright)       |
-| `just app-test-e2e-media`   | Run app Media Library E2E tests            |
+| Command                   | What it does                            |
+| ------------------------- | --------------------------------------- |
+| `just dev-frontend`       | Start both dev servers in parallel      |
+| `just app`                | Start only the Vue 3 dashboard app      |
+| `just frontend-build`     | Build the marketing site for production |
+| `just frontend-preview`   | Preview marketing production build      |
+| `just frontend-lint`      | Lint marketing with Biome               |
+| `just frontend-format`    | Format marketing code with Biome        |
+| `just frontend-check`     | Run Astro type/content checks           |
+| `just frontend-test`      | Run marketing unit tests (Vitest)       |
+| `just frontend-test-cov`  | Run marketing unit tests with coverage  |
+| `just frontend-test-e2e`  | Run marketing E2E tests (Playwright)    |
+| `just app-test-e2e-media` | Run app Media Library E2E tests         |
 
 #### Backend (Gradle / Kotlin / Spring Boot)
 
-| Command                     | What it does                        |
-|-----------------------------|-------------------------------------|
-| `just backend-build`        | Compile and package                 |
-| `just backend-run`          | Start Spring Boot (dev profile)     |
-| `just backend-test-fast`    | Run unit tests (fast: no Postgres)  |
-| `just backend-test`         | Run unit tests (pass exclude-tags)  |
-| `just backend-lint`         | Run Detekt static analysis          |
-| `just backend-check`        | Full check (tests + Detekt)         |
-| `just backend-coverage`     | Tests with JaCoCo coverage report   |
+| Command                  | What it does                       |
+| ------------------------ | ---------------------------------- |
+| `just backend-build`     | Compile and package                |
+| `just backend-run`       | Start Spring Boot (dev profile)    |
+| `just backend-test-fast` | Run unit tests (fast: no Postgres) |
+| `just backend-test`      | Run unit tests (pass exclude-tags) |
+| `just backend-lint`      | Run Detekt static analysis         |
+| `just backend-check`     | Full check (tests + Detekt)        |
+| `just backend-coverage`  | Tests with JaCoCo coverage report  |
 
 #### Infrastructure (Docker)
 
-| Command              | What it does                    |
-|----------------------|---------------------------------|
-| `just infra-up`      | Start Postgres + services       |
-| `just infra-down`    | Stop and remove containers      |
-| `just infra-logs`    | Tail service logs               |
+| Command           | What it does               |
+| ----------------- | -------------------------- |
+| `just infra-up`   | Start Postgres + services  |
+| `just infra-down` | Stop and remove containers |
+| `just infra-logs` | Tail service logs          |
 
 #### CI Simulation
 
-| Command             | What it does                                   |
-|---------------------|------------------------------------------------|
-| `just ci-local`     | Full CI pipeline simulation (fast, local-only) |
-| `just ci-full`      | CI pipeline + Postgres BDD tests               |
+| Command         | What it does                                   |
+| --------------- | ---------------------------------------------- |
+| `just ci-local` | Full CI pipeline simulation (fast, local-only) |
+| `just ci-full`  | CI pipeline + Postgres BDD tests               |
 
 #### Setup & Maintenance
 
-| Command               | What it does                          |
-|-----------------------|---------------------------------------|
-| `just install`        | Install all dependencies              |
-| `just setup`          | Full initial setup (.env + install + hooks + agentsync) |
-| `just hooks-install`  | Install Lefthook git hooks            |
-| `just clean`          | Clean all build artifacts and caches  |
+| Command              | What it does                                            |
+| -------------------- | ------------------------------------------------------- |
+| `just install`       | Install all dependencies                                |
+| `just setup`         | Full initial setup (.env + install + hooks + agentsync) |
+| `just hooks-install` | Install Lefthook git hooks                              |
+| `just clean`         | Clean all build artifacts and caches                    |
 
 ---
 
@@ -265,6 +267,15 @@ Contact: **security@profiletailors.com**
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
 See [`LICENSE`](LICENSE) for the full text.
+
+**Source offer (AGPL-3.0 § 13):** users who interact with Profile Tailors over a network are
+entitled to the corresponding source code. The canonical source is available at
+[github.com/dallay/profiletailors.com](https://github.com/dallay/profiletailors.com).
+Deployed releases are tagged; the running version is exposed via `/actuator/info`.
+
+For licensing questions, commercial use, or CLA enquiries see
+[`docs/architecture/adr/0012-agpl-commercial-strategy.md`](docs/architecture/adr/0012-agpl-commercial-strategy.md)
+and [`CLA.md`](CLA.md).
 
 ---
 

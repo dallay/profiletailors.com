@@ -34,7 +34,7 @@ backend sync attempt. The backend governance API provides durable audit storage.
               ▼                      ▼                      ▼
    ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐
    │  Marketing Site  │   │   App (Vue 3)   │   │    Backend API   │
-   │   (Astro 6)      │   │   (shadcn-vue)  │   │  Spring Boot 4   │
+    │   (Astro 7)      │   │   (shadcn-vue)  │   │  Spring Boot 4   │
    │                  │   │                  │   │                  │
    │ ConsentScript    │   │ Pinia Store      │   │ POST /consent    │
    │ (inline <head>)  │   │ (loadFromStorage │   │ POST /withdraw   │
@@ -53,11 +53,11 @@ backend sync attempt. The backend governance API provides durable audit storage.
 
 ## Cross-Surface Coverage
 
-| Surface | Tech | Component(s) | Trigger |
-|---------|------|-------------|---------|
-| **Marketing** | Astro 6 | `ConsentScript.astro` (inline `<head>`), `ConsentBanner.astro` (fixed bottom), `CookieSettingsLink.astro` (footer) | On load if no valid receipt |
-| **App** | Vue 3 + shadcn-vue | `ConsentBanner.vue` (Dialog), `CookieSettings.vue` (standalone panel) | On load if no valid receipt; footer link opens settings |
-| **Backend** | Spring Boot 4 / WebFlux | `ConsentController` at `/api/governance/consent` | On explicit sync from Pinia store |
+| Surface       | Tech                    | Component(s)                                                                                                       | Trigger                                                 |
+| ------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| **Marketing** | Astro 7                 | `ConsentScript.astro` (inline `<head>`), `ConsentBanner.astro` (fixed bottom), `CookieSettingsLink.astro` (footer) | On load if no valid receipt                             |
+| **App**       | Vue 3 + shadcn-vue      | `ConsentBanner.vue` (Dialog), `CookieSettings.vue` (standalone panel)                                              | On load if no valid receipt; footer link opens settings |
+| **Backend**   | Spring Boot 4 / WebFlux | `ConsentController` at `/api/governance/consent`                                                                   | On explicit sync from Pinia store                       |
 
 ---
 
@@ -209,11 +209,11 @@ export const CURRENT_POLICY_VERSION = '2026-07-23'
 
 Defined in `shared/web/utils/privacy-signals.ts`:
 
-| Signal | Detection | Effect |
-|--------|-----------|--------|
+| Signal  | Detection                                 | Effect                 |
+| ------- | ----------------------------------------- | ---------------------- |
 | **DNT** | `navigator.doNotTrack === '1'` or `'yes'` | Analytics defaults OFF |
 | **GPC** | `navigator.globalPrivacyControl === true` | Analytics defaults OFF |
-| Both | Either signal active | Analytics defaults OFF |
+| Both    | Either signal active                      | Analytics defaults OFF |
 
 All functions are **SSR-safe** — they return `false` when `navigator` is
 undefined.
@@ -253,12 +253,12 @@ consentStore.saveConsent(receipt)
 
 Base path: `/api/governance/consent`
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/governance/consent` | Record a consent decision |
-| POST | `/api/governance/consent/withdraw` | Withdraw an active consent |
-| GET | `/api/governance/consent` | List workspace consent records |
-| GET | `/api/governance/consent/history` | Get consent lifecycle history |
+| Method | Endpoint                           | Purpose                        |
+| ------ | ---------------------------------- | ------------------------------ |
+| POST   | `/api/governance/consent`          | Record a consent decision      |
+| POST   | `/api/governance/consent/withdraw` | Withdraw an active consent     |
+| GET    | `/api/governance/consent`          | List workspace consent records |
+| GET    | `/api/governance/consent/history`  | Get consent lifecycle history  |
 
 Source values accepted by the API: `'banner'`, `'settings-panel'`
 
@@ -284,7 +284,7 @@ shared/web/
 
 ### Marketing (Astro)
 
-`apps/web/marketing/e2e/consent.spec.ts` — 6 tests:
+`apps/web/marketing/tests/e2e/consent.spec.ts` — 6 tests:
 
 1. **accept-all** — analytics=true, source='banner', banner hides on reload
 2. **reject-all** — analytics=false, Ahrefs blocked
@@ -311,15 +311,15 @@ shared/web/
 
 ## Design Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| localStorage as source of truth | Survives page reload, synchronous, no network dependency |
-| Backend sync is best-effort | Consent must work offline; audit is secondary |
-| Two-version upgrade (version + policy) | Policy changes and schema changes are independent events |
-| Zod validation on every read | Defensive — localStorage data is mutable by users/extensions |
-| DNT/GPC default OFF but overridable | Compliance without blocking user intent |
-| Necessary category locked to `true` | Ensures minimum functionality consent is never disabled |
-| Source tracking (banner vs settings) | Distinguishes first-time consent from preference changes |
+| Decision                               | Rationale                                                    |
+| -------------------------------------- | ------------------------------------------------------------ |
+| localStorage as source of truth        | Survives page reload, synchronous, no network dependency     |
+| Backend sync is best-effort            | Consent must work offline; audit is secondary                |
+| Two-version upgrade (version + policy) | Policy changes and schema changes are independent events     |
+| Zod validation on every read           | Defensive — localStorage data is mutable by users/extensions |
+| DNT/GPC default OFF but overridable    | Compliance without blocking user intent                      |
+| Necessary category locked to `true`    | Ensures minimum functionality consent is never disabled      |
+| Source tracking (banner vs settings)   | Distinguishes first-time consent from preference changes     |
 
 ---
 

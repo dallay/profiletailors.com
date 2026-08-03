@@ -17,6 +17,7 @@ export type AuthCredentials = z.infer<typeof authCredentialsSchema>
 
 export const registerSchema = authCredentialsSchema
   .extend({
+    password: z.string().trim().min(1, 'passwordRequired').min(12, 'passwordTooShort'),
     confirmPassword: z.string().trim().min(1, 'confirmPasswordRequired'),
     confirmedAgeEligibility: z.literal(true, { message: 'ageEligibilityRequired' }),
     acceptedTerms: z.literal(true, { message: 'termsRequired' }),
@@ -41,7 +42,7 @@ export const resetPasswordSchema = z
     password: z
       .string()
       .min(1, 'passwordRequired')
-      .min(8, 'passwordTooShort')
+      .min(12, 'passwordTooShort')
       .max(128, 'passwordTooLong'),
     confirmPassword: z.string().min(1, 'confirmPasswordRequired'),
   })

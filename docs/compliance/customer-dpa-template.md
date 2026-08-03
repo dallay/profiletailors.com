@@ -1,7 +1,7 @@
 # Customer Data Processing Addendum Template
 
 > **Classification:** Internal — Contract Drafting
-> **Status:** Non-executable template — parties, services, markets, annexes, and qualified legal
+> **Status:** Template — non-executable; parties, services, markets, annexes, and qualified legal
 > approval unresolved
 > **Restriction:** Do not sign, publish, or incorporate by reference in its current form
 
@@ -35,7 +35,7 @@ introduced only through an approved country schedule.
 ## Changes
 
 | Version | Date       | Description                                                           |
-|---------|------------|-----------------------------------------------------------------------|
+| ------- | ---------- | --------------------------------------------------------------------- |
 | 1.0     | 2026-07-17 | Added the evidence-driven global DPA structure and regional schedules |
 
 ## Usage
@@ -45,7 +45,7 @@ introduced only through an approved country schedule.
 Complete and approve before drafting operative clauses:
 
 | Field                | Required evidence                                                                                               |
-|----------------------|-----------------------------------------------------------------------------------------------------------------|
+| -------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Customer             | Exact legal name, form, address, registration, country, signatory, and authority                                |
 | Service provider     | Exact Profile Tailors operating legal person, address, registration, and signatory                              |
 | Service agreement    | Immutable signed version, order form, term, and precedence                                                      |
@@ -245,7 +245,7 @@ contracting parties and countries.
 The final DPA contains only schedules approved for the actual scope:
 
 | Region           | Required review                                                                                                                                                                                                            |
-|------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | EU/EEA and Spain | GDPR Art. 28 content, national overlays, ePrivacy context, representative/DPO, transfers, supervisory authority, consumer and employment distinctions                                                                      |
 | United States    | Federal sector rules plus every applicable state controller/processor or business/service-provider contract requirement, sale/share/targeted-advertising restrictions, certification, deletion, and audit terms            |
 | Canada           | PIPEDA and provincial private-sector or health-law accountability, comparable protection, access, breach, and service-provider terms                                                                                       |

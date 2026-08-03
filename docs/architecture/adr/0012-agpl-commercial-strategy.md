@@ -1,14 +1,38 @@
 # ADR-0012: AGPL-3.0 Commercial Strategy
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-17
+- Last revised: 2026-07-31
 - Decision owners: Principal Architect
 - Scope: profiletailors.com monorepo
 - Supersedes: None
 - Superseded by: None
+- Legal review status: **Pending external counsel** — this ADR records engineering intent and
+  operational processes. It does not constitute legal advice. The items marked
+  `[LEGAL-REVIEW REQUIRED]` must be reviewed by a qualified lawyer before commercial distribution
+  or external investment.
 - Related:
     - OpenSpec: `legal-compliance-foundation`
     - Issues/PRs: DALLAY-498
+    - Contributor map: [`docs/compliance/contributor-copyright-map.md`](../../compliance/contributor-copyright-map.md)
+    - Source-offer runbook: [`docs/compliance/agpl-source-offer.md`](../../compliance/agpl-source-offer.md)
+
+## Acceptance Criteria Status
+
+| Criterion                                                        | Status                                                           |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Decision recorded as ADR with legal-review status                | Done — see header above                                          |
+| Current contributors and copyright holders mapped                | Done — `docs/compliance/contributor-copyright-map.md`            |
+| Source-offer obligations reflected in deployment/release process | Done — `docs/compliance/agpl-source-offer.md`                    |
+| Proprietary boundary technically enforceable and documented      | Done — see "Proprietary boundary" section below                  |
+| Dependency licence scanning in CI                                | Done — `just licence-check` is defined in `Justfile` and called by `ci-local` |
+| README, Terms, contribution docs do not contradict this decision | Done — README updated; `CLA.md` and `CONTRIBUTING.md` consistent |
+
+**Verification evidence (2026-08-02):** The current `Justfile` defines `licence-check` at lines
+339–344 and invokes it from `ci-local` at line 360. Commit `2babe18f` added the backend
+`LicenceReportPlugin` and its SMP wiring; it did not modify `Justfile` (the recipe was introduced
+earlier by `d395d8c3`). The acceptance claim is supported by the current recipe plus the landed
+backend enforcement.
 
 ## Overview
 
@@ -68,17 +92,61 @@ between open-source and proprietary capabilities, and the decision on dual-licen
    The CLA grants Profile Tailors the ability to relicense contributions if dual-licensing is
    later adopted.
 
+### Proprietary boundary
+
+AGPL-3.0 copyleft covers the combined work. The following rules define where proprietary code can
+legally exist alongside the open-source monorepo:
+
+| Layer                                                                       | Copyleft applies?                                     | Rule                                                                                                                       |
+| --------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Code merged into this monorepo                                              | **Yes**                                               | Must be AGPL-3.0-only                                                                                                      |
+| Services communicating over a **network API** (HTTP/gRPC) with the monorepo | **No**                                                | Separate network processes are not a "combined work" under AGPL-3.0 §13 unless they embed or statically link monorepo code |
+| Plugins or modules loaded at runtime via a defined plugin API               | **Depends** [LEGAL-REVIEW REQUIRED]                   | If the plugin boundary is a network call → no copyleft; if it is in-process dynamic linking → counsel required             |
+| Infrastructure-only configuration (Dockerfile, Helm, Terraform)             | **No** — unless they include modified monorepo source | Configuration alone does not trigger copyleft                                                                              |
+
+**Technical enforcement:** proprietary services must live in a separate private repository and
+communicate with the monorepo exclusively via its published HTTP/WebSocket API. No monorepo source
+file may be copied into a proprietary repository. This boundary is reinforced by architecture
+tests (ArchUnit) that prevent cross-module compilation dependencies beyond defined public API
+packages.
+
+**Consequence for investors/acquirers:** the monorepo is AGPL-3.0. A commercial licence can be
+issued only by Dallay (as copyright holder via CLA), conditional on legal review and execution of
+a commercial licence agreement. See the dual-licensing deferral above for the current position.
+
+### Dependency licence policy
+
+All runtime dependencies MUST use licences compatible with AGPL-3.0. The following categories
+are assessed by the `licence-check` recipe in `Justfile`, which is called by `ci-local`:
+
+| Category                       | Examples                                                    | Status                                         |
+| ------------------------------ | ----------------------------------------------------------- | ---------------------------------------------- |
+| Permissive                     | MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Unlicense | Allowed                                        |
+| Weak copyleft                  | LGPL-2.1, LGPL-3.0, MPL-2.0, CDDL-1.0                       | Allowed with review                            |
+| Strong copyleft (compatible)   | GPL-3.0, AGPL-3.0                                           | Allowed (compatible with AGPL-3.0)             |
+| Strong copyleft (incompatible) | GPL-2.0-only                                                | **Blocked** — incompatible with AGPL-3.0       |
+| Proprietary / Commercial       | BSL-1.1, SSPL-1.0, Elastic-2.0                              | **Blocked** — requires legal review before use |
+
+The JVM report is written to `server/smp/build/reports/dependency-licence/`; the frontend scan
+reads the JSON output from `pnpm licenses list --json`. Both checks run through `licence-check`,
+which `ci-local` invokes before the remaining local CI checks.
+
 ### Scope and boundaries
 
 - This ADR applies to the `profiletailors.com` monorepo and all derived works.
 - Third-party dependencies retain their own licences; this ADR does not modify their terms.
 - `LICENSE`, `CONTRIBUTING.md`, and `CLA.md` are NOT modified by this ADR.
+- The contributor and copyright map is maintained in
+  [`docs/compliance/contributor-copyright-map.md`](../../compliance/contributor-copyright-map.md).
+- The AGPL source-offer process is documented in
+  [`docs/compliance/agpl-source-offer.md`](../../compliance/agpl-source-offer.md).
 
 ## Changes
 
-| Version | Date       | Description                                                            |
-|---------|------------|------------------------------------------------------------------------|
-| 1.0     | 2026-07-17 | Initial ADR — AGPL-3.0 strategy, no dual-licensing, compliance posture |
+| Version | Date       | Description                                                                                            |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------ |
+| 1.0     | 2026-07-17 | Initial ADR — AGPL-3.0 strategy, no dual-licensing, compliance posture                                 |
+| 2.0     | 2026-07-31 | Accepted — proprietary boundary, dependency policy, CI scanning, contributor map, source-offer runbook |
 
 ## Usage
 
@@ -133,8 +201,14 @@ The dual-licensing deferral MUST be revisited if:
 
 ### Follow-up actions
 
-- [ ] Add SPDX header check to CI/linting (separate issue).
-- [ ] Schedule AGPL-3.0 Section 13 compliance review with legal counsel.
-- [ ] Add source notice/link to application UI (footer).
-- [ ] Automate deployment tagging in CI.
+- [x] Add dependency licence scanning to CI (`just licence-check` → `ci-local`).
+- [x] Create contributor and copyright map (`docs/compliance/contributor-copyright-map.md`).
+- [x] Create AGPL source-offer runbook (`docs/compliance/agpl-source-offer.md`).
+- [x] Document proprietary boundary in this ADR.
+- [x] Update README licence section with source-offer notice.
+- [ ] [LEGAL-REVIEW REQUIRED] Validate AGPL-3.0 Section 13 compliance posture with external counsel.
+- [ ] [LEGAL-REVIEW REQUIRED] Draft commercial licence template for when dual-licensing is triggered.
+- [ ] Add SPDX header check to Biome/Detekt/CI lint (separate issue — DALLAY-499).
+- [ ] Add source notice link to application UI footer (marketing site and dashboard).
+- [ ] Automate deployment tagging in CI so each deploy produces a reachable git tag.
 - [ ] Monitor enterprise adoption requests as signal for dual-licensing evaluation.
