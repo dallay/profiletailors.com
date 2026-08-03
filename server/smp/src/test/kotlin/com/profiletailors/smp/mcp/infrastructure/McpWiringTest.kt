@@ -119,6 +119,18 @@ class McpWiringTest {
             }
     }
 
+    @Test
+    fun `POST api-mcp with a browser cookie requires a CSRF token`() {
+        webTestClient.post()
+            .uri("/api/mcp")
+            .header(HttpHeaders.COOKIE, "pt_refresh=browser-session")
+            .accept(MediaType.APPLICATION_JSON, MediaType.TEXT_EVENT_STREAM)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"jsonrpc":"2.0","method":"initialize","id":1}""")
+            .exchange()
+            .expectStatus().isForbidden
+    }
+
     companion object {
         @Container
         @JvmStatic
