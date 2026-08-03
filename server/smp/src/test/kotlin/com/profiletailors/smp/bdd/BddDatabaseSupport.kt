@@ -792,6 +792,9 @@ class BddDatabaseSupport(
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+            .also { rows ->
+                require(rows > 0L) { "seedScheduledPublication: INSERT affected 0 rows for id=$publicationId" }
+            }
     }
 
     /**
