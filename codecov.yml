@@ -40,6 +40,9 @@ ignore:
   - "apps/web/app/src/components/ui/**"
   - "**/.astro/**"
   - "**/ModuleMetadata.kt"
+  - "**/McpBoundedContext.kt"
+  - "**/McpApplicationMarker.kt"
+  - "**/McpDomainMarker.kt"
 
 # Align Codecov's scope with SonarQube:
 # - project status reflects overall repo coverage across uploaded backend + frontend reports

@@ -56,6 +56,9 @@ internal class McpSecurityConfiguration {
     @Order(Ordered.HIGHEST_PRECEDENCE + 50)
     fun mcpSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
         .securityMatcher(mcpPathMatcher)
+        // MCP clients authenticate with an Authorization Bearer token; this chain does not use
+        // browser cookies, so CSRF tokens cannot add protection to this stateless API.
+        // codeql[java/spring-disabled-csrf-protection] MCP is a bearer-only, non-browser endpoint.
         .csrf { it.disable() }
         .authorizeExchange { it.anyExchange().authenticated() }
         .exceptionHandling { exceptions ->
