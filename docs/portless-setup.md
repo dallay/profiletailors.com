@@ -12,10 +12,10 @@ redirects, API clients, and tooling.
 Instead of remembering `http://localhost:4321` (Astro) and `http://localhost:5173` (Vite), you get
 consistent HTTPS URLs:
 
-| Project           | URL                                 |
-|-------------------|-------------------------------------|
-| Marketing (Astro) | `https://profile-tailors.localhost` |
-| App (Vue 3)       | `https://pt-app.localhost`          |
+| Project           | URL                                |
+| ----------------- | ---------------------------------- |
+| Marketing (Astro) | `https://profiletailors.localhost` |
+| App (Vue 3)       | `https://pt-app.localhost`         |
 
 Portless auto-discovers packages through `pnpm-workspace.yaml` and respects per-package
 `"portless"` config in each `package.json`. Name resolution uses the closest config, with this
@@ -56,10 +56,10 @@ Run any frontend project with `pnpm dev` — portless transparently redirects to
 server:
 
 ```bash
-# Marketing site (Astro 6)
+# Marketing site (Astro 7)
 cd apps/web/marketing
 pnpm dev
-# → https://profile-tailors.localhost
+# → https://profiletailors.localhost
 
 # App (Vue 3 + Vite 8)
 cd apps/web/app
@@ -76,7 +76,7 @@ Each project's `package.json` declares its portless config:
   ```json
   {
     "portless": {
-      "name": "profile-tailors",
+      "name": "profiletailors",
       "script": "dev:app"
     },
     "scripts": {
@@ -107,7 +107,7 @@ The root `portless.json` provides additional name resolution for the monorepo:
 {
   "apps": {
     "apps/web/app": { "name": "pt-app" },
-    "apps/web/marketing": { "name": "profile-tailors" }
+    "apps/web/marketing": { "name": "profiletailors" }
   }
 }
 ```
@@ -115,7 +115,7 @@ The root `portless.json` provides additional name resolution for the monorepo:
 ### Useful commands
 
 | Command                      | Description                                     |
-|------------------------------|-------------------------------------------------|
+| ---------------------------- | ----------------------------------------------- |
 | `portless proxy start`       | Start the HTTPS proxy (sudo for port 443)       |
 | `portless proxy stop`        | Stop the proxy                                  |
 | `portless service install`   | Install as launchd service (auto-start on boot) |

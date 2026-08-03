@@ -40,6 +40,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
         BddTestProperties.LINKEDIN_CLIENT_ID,
         BddTestProperties.LINKEDIN_CLIENT_SECRET,
         BddTestProperties.LINKEDIN_REDIRECT_URI,
+        BddTestProperties.LINKEDIN_STATE_SIGNING_SECRET,
     ],
 )
 @Import(CommonBddTestConfiguration::class, FastBddTestConfiguration::class)

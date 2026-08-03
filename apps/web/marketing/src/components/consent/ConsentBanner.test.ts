@@ -39,7 +39,7 @@ function extractConsentBannerScript(): string {
 
   // Replace the value import from constants/consent with inline constant values.
   code = code.replace(
-    /^\s*import\s*\{[^}]*\}\s*from\s*['"]\.\.\/\.\.\/constants\/consent['"]\s*\n/m,
+    /^\s*import\s*\{[^}]*\}\s*from\s*['"]\.\.\/\.\.\/constants\/consent['"];?\s*\n/m,
     `const CURRENT_CONSENT_VERSION = ${JSON.stringify(CURRENT_CONSENT_VERSION)}\n` +
       `const CURRENT_POLICY_VERSION = ${JSON.stringify(CURRENT_POLICY_VERSION)}\n` +
       `const PT_CONSENT_KEY = ${JSON.stringify(PT_CONSENT_KEY)}\n`
@@ -49,7 +49,7 @@ function extractConsentBannerScript(): string {
   // mock that passes through valid (parseable) objects, just like the real
   // validateConsentReceipt does.
   code = code.replace(
-    /^\s*import\s*\{[^}]*\}\s*from\s*['"]@profiletailors\/shared-web['"]\s*\n/m,
+    /^\s*import\s*\{[^}]*\}\s*from\s*['"]@profiletailors\/shared-web['"];?\s*\n/m,
     `const validateConsentReceipt = (receipt) => receipt\n`
   )
 

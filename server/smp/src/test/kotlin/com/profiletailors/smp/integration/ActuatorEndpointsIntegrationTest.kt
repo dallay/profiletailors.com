@@ -51,6 +51,8 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "platform.storage.providers.attachments.type=local",
         "platform.storage.providers.attachments.base-path=./tmp/actuator-test-storage",
         "media.storage.bucket=attachments",
+        "management.health.redis.enabled=false",
+        "management.endpoint.health.show-components=always",
     ],
 )
 @Tag("postgres")

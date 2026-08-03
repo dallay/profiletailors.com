@@ -14,6 +14,10 @@ import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
+// Prefixes that identify well-known dev/placeholder values. A secret matching any of these
+// would be guessable and allow an attacker to forge valid OAuth state tokens (OAuth CSRF).
+private val INSECURE_PLACEHOLDER_PREFIXES = listOf("CHANGE_ME", "change_me", "changeme", "placeholder", "test-")
+
 class HmacOAuthStateSigner(
     private val secret: String,
     private val objectMapper: ObjectMapper,
@@ -21,6 +25,10 @@ class HmacOAuthStateSigner(
 ) : OAuthStateSigner {
     init {
         require(secret.isNotBlank()) { "OAuth state signing secret is required." }
+        require(INSECURE_PLACEHOLDER_PREFIXES.none { secret.startsWith(it, ignoreCase = true) }) {
+            "OAuth state signing secret appears to be a placeholder (starts with a known insecure prefix). " +
+                "Set SMP_LINKEDIN_STATE_SIGNING_SECRET to a strong random secret before enabling LinkedIn integration."
+        }
     }
 
     override fun sign(payload: LinkedInOAuthStatePayload): String {

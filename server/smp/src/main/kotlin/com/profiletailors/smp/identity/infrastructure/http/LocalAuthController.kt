@@ -187,12 +187,12 @@ data class RegisterUserRequest(
     val email: String,
 
     @field:NotBlank(message = "Password is required")
-    @field:Size(min = 8, max = 128, message = "Password must be between 8 and 128 characters")
+    @field:Size(min = 12, max = 128, message = "Password must be between 12 and 128 characters")
     @field:Schema(
-        description = "User's password (minimum 8 characters)",
+        description = "User's password (minimum 12 characters)",
         example = "SecureP@ssw0rd",
         required = true,
-        minLength = 8,
+        minLength = 12,
         maxLength = 128,
         format = "password",
     )
@@ -290,7 +290,7 @@ data class ResetPasswordRequest(
     @field:Schema(
         description = "New account password",
         required = true,
-        minLength = 8,
+        minLength = 12,
         maxLength = 128,
         format = "password",
     )

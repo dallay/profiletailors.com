@@ -95,6 +95,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/ideas',
+      name: 'ideas',
+      component: () => import('@modules/ideas/presentation/views/IdeasView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/governance/takedown',
       name: 'governance-takedown',
       component: () => import('@modules/governance/views/GovernanceTakedownView.vue'),

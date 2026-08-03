@@ -23,7 +23,7 @@ export default {
   email: 'Email',
   password: 'Password',
   emailPlaceholder: 'you{at}example.com',
-  passwordPlaceholder: 'At least 8 characters',
+  passwordPlaceholder: 'At least 12 characters',
   confirmPassword: 'Confirm Password',
   confirmPasswordPlaceholder: 'Repeat your password',
   invalidEmail: 'Please enter a valid email address.',

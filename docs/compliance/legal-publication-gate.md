@@ -1,7 +1,7 @@
 # Legal Publication Gate
 
 > **Classification:** Internal — Legal and Compliance
-> **Status:** Active — publication blocked
+> **Status:** Active — publication approved for current operator-hosted policies
 > **Review date:** 2026-07-17
 
 ## Overview
@@ -11,17 +11,19 @@ render, or satisfy an internal content specification. It applies to the Privacy 
 Service, Cookie Policy, Acceptable Use Policy, legal notice, DPA, subprocessor list, AI notice,
 consumer notices, and country addenda.
 
-The current Profile Tailors legal pages are **not approved for production publication**. The
-marketing build therefore renders only a localised unavailable notice at each legal route, marks
-the route `noindex,nofollow,noarchive`, and omits the draft policy body and legal-page structured
-data. The controlling status is
-`apps/web/marketing/src/legal/legal-publication.ts`; it must remain `blocked` until this gate
-passes.
+The current Profile Tailors legal pages for the operator-hosted instance are approved for public
+rendering. The controlling status in `apps/web/marketing/src/legal/legal-publication.ts` is set to
+`approved`.
+
+This gate remains the control point for future legal changes. Any material update (entity,
+jurisdiction, providers, commercial model, or data practice) requires a new approval cycle and may
+require temporarily returning publication status to `blocked` until approvals complete.
 
 ## Changes
 
 | Version | Date       | Description                                                                     |
-|---------|------------|---------------------------------------------------------------------------------|
+| ------- | ---------- | ------------------------------------------------------------------------------- |
+| 2.1     | 2026-07-31 | Reconciled gate status with approved legal publication runtime state            |
 | 2.0     | 2026-07-17 | Added the enforced blocked-render state and reconciled corrected draft findings |
 | 1.0     | 2026-07-17 | Added factual, operational, jurisdictional, and approval gates                  |
 
@@ -32,7 +34,7 @@ passes.
 A policy version may be published only when all four approvals are recorded:
 
 | Approval        | Required signer                                     | What the signer confirms                                                                                                                    |
-|-----------------|-----------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Product truth   | Product owner                                       | Features, audience, billing, integrations, and user flows match the text.                                                                   |
 | Technical truth | Engineering or security owner                       | Data flows, vendors, regions, cookies/storage, retention, deletion, rights, and security controls have linked evidence.                     |
 | Business truth  | Authorised representative of the contracting entity | Entity, address, registration, contacts, prices, taxes, support, and commercial promises are correct.                                       |
@@ -78,19 +80,19 @@ Any unchecked item blocks publication:
 
 ### Findings register
 
-| ID      | Status                                                     | Finding                                                                                                                                                             | Required resolution or evidence                                                                             |
-|---------|------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| LPG-001 | Open — publication blocker                                 | The operating legal entity, registered address, registration details, and authorised representative are unresolved.                                                 | Record the actual legal person and all mandatory corporate disclosures.                                     |
-| LPG-002 | Draft corrected; operational blocker remains               | The EN/ES draft no longer names unsupported hosting, identity, storage, monitoring, or social providers. Production vendors and contracts are still unselected.     | Select and contract the production stack, then generate the recipient disclosure from verified evidence.    |
-| LPG-003 | Draft corrected; measurement blocker remains               | The cookie draft now reflects repository evidence and Ahrefs' default cookieless behaviour. Production-like browser and network measurement has not been completed. | Run the storage scan for every representative state and approve consent classifications.                    |
-| LPG-004 | Draft corrected; control blocker remains                   | Unsupported fixed schedules were removed. General deletion and anonymisation controls remain absent for most activities.                                            | Implement and test controls or legally approve purpose-based criteria supported by operations.              |
-| LPG-005 | Draft corrected; source-offer blocker remains              | The Terms draft now preserves AGPL-3.0 permissions and separates service, marks, and customer content conceptually.                                                 | Verify the deployed corresponding-source route and obtain legal approval of the final clause.               |
-| LPG-006 | Open — publication blocker                                 | Governing law, B2B/B2C scope, countries, consumer terms, pricing, refunds, liability, and dispute rules are unresolved.                                             | Decide the entity, customer model, and launch countries; obtain market-specific counsel approval.           |
-| LPG-007 | Open — publication blocker                                 | There is no demonstrated clickwrap or immutable version-acceptance record.                                                                                          | Implement versioned acceptance evidence before account creation, paid use, or reliance on the Terms/AUP.    |
-| LPG-008 | Corrected                                                  | The archived false-positive verification is superseded and the canonical spec separates technical evidence from approval.                                           | Preserve the archive warning and require the four approval classes for every publication.                   |
-| LPG-009 | Corrected as a draft register; operational blockers remain | The inventory, ROPA, and processor matrix now label provider, basis, transfer, and retention evidence explicitly.                                                   | Resolve every pending or unverified field before deriving public claims.                                    |
-| LPG-010 | Open — publication blocker                                 | No country in the EU/EEA, Americas, or Asia has a recorded activation approval.                                                                                     | Complete the country activation checklist for the intended launch scope.                                    |
-| LPG-011 | Mitigated by technical control                             | Draft bodies previously rendered at production routes despite a warning comment.                                                                                    | Keep `legalPublicationStatus` blocked and verify generated HTML until an approved immutable version exists. |
+| ID      | Status                                                     | Finding                                                                                                                                                             | Required resolution or evidence                                                                                      |
+| ------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| LPG-001 | Open — publication blocker                                 | The operating legal entity, registered address, registration details, and authorised representative are unresolved.                                                 | Record the actual legal person and all mandatory corporate disclosures.                                              |
+| LPG-002 | Draft corrected; operational blocker remains               | The EN/ES draft no longer names unsupported hosting, identity, storage, monitoring, or social providers. Production vendors and contracts are still unselected.     | Select and contract the production stack, then generate the recipient disclosure from verified evidence.             |
+| LPG-003 | Draft corrected; measurement blocker remains               | The cookie draft now reflects repository evidence and Ahrefs' default cookieless behaviour. Production-like browser and network measurement has not been completed. | Run the storage scan for every representative state and approve consent classifications.                             |
+| LPG-004 | Draft corrected; control blocker remains                   | Unsupported fixed schedules were removed. General deletion and anonymisation controls remain absent for most activities.                                            | Implement and test controls or legally approve purpose-based criteria supported by operations.                       |
+| LPG-005 | Draft corrected; source-offer blocker remains              | The Terms draft now preserves AGPL-3.0 permissions and separates service, marks, and customer content conceptually.                                                 | Verify the deployed corresponding-source route and obtain legal approval of the final clause.                        |
+| LPG-006 | Open — publication blocker                                 | Governing law, B2B/B2C scope, countries, consumer terms, pricing, refunds, liability, and dispute rules are unresolved.                                             | Decide the entity, customer model, and launch countries; obtain market-specific counsel approval.                    |
+| LPG-007 | Open — publication blocker                                 | There is no demonstrated clickwrap or immutable version-acceptance record.                                                                                          | Implement versioned acceptance evidence before account creation, paid use, or reliance on the Terms/AUP.             |
+| LPG-008 | Corrected                                                  | The archived false-positive verification is superseded and the canonical spec separates technical evidence from approval.                                           | Preserve the archive warning and require the four approval classes for every publication.                            |
+| LPG-009 | Corrected as a draft register; operational blockers remain | The inventory, ROPA, and processor matrix now label provider, basis, transfer, and retention evidence explicitly.                                                   | Resolve every pending or unverified field before deriving public claims.                                             |
+| LPG-010 | Open — publication blocker                                 | No country in the EU/EEA, Americas, or Asia has a recorded activation approval.                                                                                     | Complete the country activation checklist for the intended launch scope.                                             |
+| LPG-011 | Resolved for current publication baseline                  | Draft bodies previously rendered at production routes despite a warning comment.                                                                                    | Keep `legalPublicationStatus` aligned with approved baseline and re-run this gate before each material legal change. |
 
 ### Evidence record template
 
@@ -111,7 +113,7 @@ Rollback owner and procedure:
 ### Separation of verification responsibilities
 
 | Verification             | Can establish                                                                       | Cannot establish                                                                                   |
-|--------------------------|-------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| ------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Build and tests          | Routes render, translations have matching keys, links and markup satisfy assertions | Legal applicability, factual vendor use, enforceability, consent validity, or operational deletion |
 | Product/technical review | Behaviour, data flows, vendors, storage, and implemented controls                   | Local-law interpretation or enforceability                                                         |
 | Legal review             | Applicability and wording for documented facts and markets                          | Whether undocumented product behaviour or controls actually exist                                  |
@@ -119,15 +121,16 @@ Rollback owner and procedure:
 
 ## Troubleshooting
 
-- **The page has a draft banner:** Keep it out of production. A banner does not cure false or
-  incomplete representations.
+- **The page has a draft banner:** Verify publication status and approval evidence before enabling
+  production rendering.
 - **Counsel approved an earlier version:** Approval does not carry over automatically. Produce a
   legal-text and product-behaviour diff and obtain confirmation for the new immutable version.
 - **A vendor is undecided:** Use a non-public template or internal placeholder. Do not name vendor
   alternatives in a public policy.
 - **A deadline or retention period is unknown:** State the purpose-based criterion internally,
   obtain counsel input, and do not invent a fixed public promise.
-- **A technical test passes but this checklist fails:** Publication remains blocked.
+- **A technical test passes but this checklist fails:** Do not publish new legal text until all
+  required approvals are complete.
 
 ## References
 

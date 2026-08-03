@@ -288,11 +288,11 @@ Yes (clarify strategy).
 
 ### Observed implementation
 
-Marketing site is Astro 6. Web application (dashboard) is Vue 3 with Pinia.
+Marketing site is Astro 7. Web application (dashboard) is Vue 3 with Pinia.
 
 ### Evidence
 
-- `apps/web/marketing/package.json`: `"astro": "^6.4.6"`.
+- `apps/web/marketing/package.json`: `"astro": "^7.1.0"`.
 - `apps/web/app/package.json`: `"vue": "3.5.38"`, `"pinia": "3.0.4"`.
 
 ### Documented intention

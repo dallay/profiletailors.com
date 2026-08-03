@@ -37,10 +37,12 @@ class AuthenticatedPrincipalContextWebFilterTest {
         }
         val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/").build())
         var seenDuringChain: PrincipalContext? = null
+        var chainInvocations = 0
 
         filter.filter(
             exchange,
             WebFilterChain {
+                chainInvocations += 1
                 seenDuringChain = store.currentPrincipalContext()
                 Mono.empty()
             },
@@ -51,6 +53,7 @@ class AuthenticatedPrincipalContextWebFilterTest {
             .block()
 
         assertEquals(principal.context, seenDuringChain)
+        assertEquals(1, chainInvocations)
         assertNull(store.currentPrincipalContext())
     }
 
