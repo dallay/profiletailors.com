@@ -59,7 +59,7 @@ internal class McpSecurityConfiguration {
         .securityMatcher(mcpPathMatcher)
         // MCP clients authenticate with an Authorization Bearer token; this chain does not use
         // browser cookies, so CSRF tokens cannot add protection to this stateless API.
-        // lgtm [java/spring-disabled-csrf-protection]
+        // codeql[java/spring-disabled-csrf-protection]
         .csrf { it.disable() }
         .authorizeExchange { it.anyExchange().authenticated() }
         .exceptionHandling { exceptions ->
