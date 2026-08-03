@@ -9,6 +9,17 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${SMP_JWT_ISSUER_URI:http://localhost/profiletailors-local}
+  ai:
+    mcp:
+      server:
+        # Feature flag — single source of truth for MCP enablement (PR 1 spike outcome §1.5).
+        # When false, Spring AI's transport bean is excluded entirely; the existing REST
+        # endpoints remain unaffected.
+        enabled: ${SMP_MCP_ENABLED:false}
+        protocol: STATELESS
+        type: ASYNC
+        streamable-http:
+          mcp-endpoint: /api/mcp
   r2dbc:
     url: ${SMP_R2DBC_URL:r2dbc:postgresql://localhost:5432/profiletailors_smp}
     username: ${SMP_DB_USERNAME:profiletailors}
@@ -68,6 +79,12 @@ app:
     verification-subject-prefix: ${SMP_EMAIL_VERIFICATION_SUBJECT_PREFIX:[Profile Tailors]}
     resend:
       api-key: ${SMP_RESEND_API_KEY:}  # empty = disabled; ResendEmailSender is not loaded
+  # MCP server (PR 1 foundation). The transport endpoint is gated by
+  # `spring.ai.mcp.server.enabled` above; these keys carry Profile Tailors-specific
+  # data consumed by the security chain (PR 2) and tool authorizer (PR 3).
+  mcp:
+    resource-uri: ${SMP_MCP_RESOURCE_URI:https://api.profiletailors.com/api/mcp}
+    required-audience: ${SMP_MCP_AUDIENCE:https://api.profiletailors.com/api/mcp}
 
 media:
   # SMP_MEDIA_PREVIEW_SIGNING_SECRET is intentionally required in non-test
