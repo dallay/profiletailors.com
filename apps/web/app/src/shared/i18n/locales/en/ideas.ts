@@ -45,6 +45,10 @@ export default {
     minimumOne: 'At least one column is required.',
     colorPlaceholder: '#f59e0b',
     newNamePlaceholder: 'New column name',
+    columnName: 'Column name',
+    columnColor: 'Column color',
+    newColumnName: 'New column name',
+    newColumnColor: 'New column color',
   },
   toasts: {
     created: 'Idea saved.',

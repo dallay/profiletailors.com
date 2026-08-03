@@ -51,7 +51,7 @@ class HashtagsController(private val mediator: Mediator) {
 
     @Operation(summary = "Delete a saved hashtag set")
     @DeleteMapping("/saved-sets/{setId}", version = "1")
-    suspend fun deleteSet(@PathVariable setId: String): ResponseEntity<Void> {
+    suspend fun deleteSet(@PathVariable setId: String): ResponseEntity<Unit> {
         mediator.send(DeleteHashtagSetCommand(setId = setId))
         return ResponseEntity.noContent().build()
     }

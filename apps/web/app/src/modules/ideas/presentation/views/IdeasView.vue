@@ -528,6 +528,10 @@ onBeforeUnmount(() => {
       {{ t('ideas.loading') }}
     </div>
 
+    <div v-else-if="ideasStore.error" class="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-sm text-red-400">
+      {{ ideasStore.error }}
+    </div>
+
     <div v-else class="overflow-x-auto pb-2">
       <div class="flex min-w-225 gap-4 lg:min-w-0 lg:grid lg:grid-cols-3">
         <Card v-for="column in boardColumns" :key="column.id" class="min-w-70 lg:min-w-0">
@@ -616,7 +620,7 @@ onBeforeUnmount(() => {
             <label class="text-sm font-medium text-text-display" for="idea-column-select">
               {{ t('ideas.fields.column') }}
             </label>
-            <Select v-model="quickCaptureForm.columnId">
+            <Select v-model="quickCaptureForm.columnId" :aria-label="t('ideas.fields.column')">
               <SelectTrigger id="idea-column-select">
                 <SelectValue :placeholder="t('ideas.fields.columnPlaceholder')" />
               </SelectTrigger>
@@ -666,7 +670,7 @@ onBeforeUnmount(() => {
             <label class="text-sm font-medium text-text-display" for="idea-detail-column">
               {{ t('ideas.fields.column') }}
             </label>
-            <Select v-model="detailForm.columnId">
+            <Select v-model="detailForm.columnId" :aria-label="t('ideas.fields.column')">
               <SelectTrigger id="idea-detail-column">
                 <SelectValue :placeholder="t('ideas.fields.columnPlaceholder')" />
               </SelectTrigger>
@@ -742,8 +746,19 @@ onBeforeUnmount(() => {
             :key="column.id"
             class="flex items-center gap-2 rounded-xl border border-border-visible bg-bg-primary p-2"
           >
-            <Input v-model="column.name" class="flex-1" />
-            <Input v-model="column.color" class="w-28" :placeholder="t('ideas.columns.colorPlaceholder')" />
+            <label class="sr-only" :for="`idea-column-name-${column.id}`">
+              {{ t('ideas.columns.columnName') }}
+            </label>
+            <Input :id="`idea-column-name-${column.id}`" v-model="column.name" class="flex-1" />
+            <label class="sr-only" :for="`idea-column-color-${column.id}`">
+              {{ t('ideas.columns.columnColor') }}
+            </label>
+            <Input
+              :id="`idea-column-color-${column.id}`"
+              v-model="column.color"
+              class="w-28"
+              :placeholder="t('ideas.columns.colorPlaceholder')"
+            />
             <Button variant="ghost" size="icon-sm" :disabled="index === 0" @click="moveColumn(index, -1)">
               <ArrowUp class="size-4" />
             </Button>
@@ -756,8 +771,22 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="grid gap-2 rounded-xl border border-dashed border-border-visible p-3 sm:grid-cols-[1fr_120px_auto]">
-            <Input v-model="newColumnName" :placeholder="t('ideas.columns.newNamePlaceholder')" />
-            <Input v-model="newColumnColor" :placeholder="t('ideas.columns.colorPlaceholder')" />
+            <label class="sr-only" for="idea-new-column-name">
+              {{ t('ideas.columns.newColumnName') }}
+            </label>
+            <Input
+              id="idea-new-column-name"
+              v-model="newColumnName"
+              :placeholder="t('ideas.columns.newNamePlaceholder')"
+            />
+            <label class="sr-only" for="idea-new-column-color">
+              {{ t('ideas.columns.newColumnColor') }}
+            </label>
+            <Input
+              id="idea-new-column-color"
+              v-model="newColumnColor"
+              :placeholder="t('ideas.columns.colorPlaceholder')"
+            />
             <Button variant="outline" @click="addColumn">
               <Plus class="mr-2 size-4" />
               {{ t('ideas.columns.add') }}

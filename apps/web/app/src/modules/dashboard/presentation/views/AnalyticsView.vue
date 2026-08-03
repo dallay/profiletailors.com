@@ -88,11 +88,15 @@ function previewText(post: { title: string | null; bodyText: string | null }): s
 
       <!-- Date range controls -->
       <div class="flex items-center gap-2">
+        <label class="sr-only" for="analytics-date-preset">
+          {{ $t('analytics.dateRange') }}
+        </label>
         <Select
           :model-value="store.preset"
+          :aria-label="$t('analytics.dateRange')"
           @update:model-value="(v) => store.setPreset(v as DateRangePreset)"
         >
-          <SelectTrigger class="w-36 font-mono text-[11px]">
+          <SelectTrigger id="analytics-date-preset" class="w-36 font-mono text-[11px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -104,14 +108,22 @@ function previewText(post: { title: string | null; bodyText: string | null }): s
         </Select>
 
         <template v-if="store.preset === 'custom'">
+          <label class="sr-only" for="analytics-start-date">
+            {{ $t('analytics.startDate') }}
+          </label>
           <Input
+            id="analytics-start-date"
             type="date"
             :model-value="store.customStart"
             class="w-36 font-mono text-[11px]"
             @change="onStartDateChange"
           />
           <span class="text-text-secondary font-mono text-[11px]">→</span>
+          <label class="sr-only" for="analytics-end-date">
+            {{ $t('analytics.endDate') }}
+          </label>
           <Input
+            id="analytics-end-date"
             type="date"
             :model-value="store.customEnd"
             class="w-36 font-mono text-[11px]"

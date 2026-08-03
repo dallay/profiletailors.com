@@ -8,6 +8,18 @@ async function seedAuthAndConsent(page: import('@playwright/test').Page) {
   await mockConsentSync(page)
 }
 
+async function openIdeasNavigation(page: import('@playwright/test').Page) {
+  const ideasLink = page.getByRole('link', { name: /^ideas(?:\s+ideas)?$/i })
+  if (!(await ideasLink.isVisible())) {
+    await page
+      .locator('header')
+      .getByRole('button', { name: /toggle sidebar/i })
+      .click()
+  }
+  await expect(ideasLink).toBeVisible()
+  await ideasLink.click()
+}
+
 test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
   test.beforeEach(async ({ page }) => {
     await seedAuthAndConsent(page)
@@ -167,7 +179,7 @@ test.describe('Ideas Canvas', { tag: '@frontend' }, () => {
     })
     await page.reload()
 
-    await page.getByRole('link', { name: /ideas/i }).click()
+    await openIdeasNavigation(page)
     await expect(page.getByTestId('ideas-view')).toBeVisible()
 
     await page

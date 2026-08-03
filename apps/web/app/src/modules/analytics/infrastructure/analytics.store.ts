@@ -117,8 +117,11 @@ export const useAnalyticsStore = defineStore('analytics', () => {
       const anchor = document.createElement('a')
       anchor.href = url
       anchor.download = `analytics-export-${startDate}-${endDate}.csv`
-      anchor.click()
-      URL.revokeObjectURL(url)
+      try {
+        anchor.click()
+      } finally {
+        URL.revokeObjectURL(url)
+      }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Export failed.'
     } finally {

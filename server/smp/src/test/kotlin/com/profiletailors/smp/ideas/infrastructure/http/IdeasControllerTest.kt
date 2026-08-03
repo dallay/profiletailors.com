@@ -9,9 +9,12 @@ import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.smp.ideas.application.ColumnsResponse
 import com.profiletailors.smp.ideas.application.ConvertIdeaResult
 import com.profiletailors.smp.ideas.application.CreateIdeaCommand
+import com.profiletailors.smp.ideas.application.DeleteIdeaCommand
 import com.profiletailors.smp.ideas.application.GetColumnsQuery
 import com.profiletailors.smp.ideas.application.GetIdeaQuery
+import com.profiletailors.smp.ideas.application.IdeaNotFoundException
 import com.profiletailors.smp.ideas.application.IdeaResult
+import com.profiletailors.smp.ideas.application.InvalidIdeaColumnsException
 import com.profiletailors.smp.ideas.application.ListIdeasQuery
 import com.profiletailors.smp.ideas.application.ListIdeasResponse
 import com.profiletailors.smp.ideas.application.MoveIdeaCommand
@@ -22,9 +25,25 @@ import com.profiletailors.smp.ideas.domain.IdeaLink
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpStatus
 import java.time.Instant
 
 class IdeasControllerTest {
+    @Test
+    fun `problem details map idea errors to stable responses`() {
+        val handler = IdeasProblemDetailsHandler()
+
+        val notFound = handler.handle(IdeaNotFoundException("idea-1"))
+        assertEquals(HttpStatus.NOT_FOUND.value(), notFound.status)
+        assertEquals("Idea not found", notFound.title)
+        assertEquals("idea-1", notFound.properties?.get("ideaId"))
+
+        val invalid = handler.handle(InvalidIdeaColumnsException("Bad columns"))
+        assertEquals(HttpStatus.BAD_REQUEST.value(), invalid.status)
+        assertEquals("Invalid idea columns", invalid.title)
+        assertEquals("Bad columns", invalid.detail)
+    }
+
     @Test
     fun `list ideas dispatches query`() = runTest {
         val mediator = CapturingMediator()
@@ -61,6 +80,34 @@ class IdeasControllerTest {
             ),
             mediator.lastRequest,
         )
+    }
+
+    @Test
+    fun `create idea supplies empty optional collections when omitted`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = IdeasController(mediator)
+
+        controller.createIdea(CreateIdeaRequest(title = "Idea 2"))
+
+        assertEquals(
+            CreateIdeaCommand(title = "Idea 2", tags = emptyList(), links = emptyList()),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
+    fun `controller dispatches get update delete and convert idea commands`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = IdeasController(mediator)
+
+        controller.getIdea("idea-1")
+        assertEquals(GetIdeaQuery("idea-1"), mediator.lastQuery)
+        controller.updateIdea("idea-1", UpdateIdeaRequest(title = "Updated"))
+        assertEquals(UpdateIdeaCommand("idea-1", title = "Updated"), mediator.lastRequest)
+        controller.deleteIdea("idea-1")
+        assertEquals(DeleteIdeaCommand("idea-1"), mediator.lastRequest)
+        controller.convertIdea("idea-1")
+        assertEquals(com.profiletailors.smp.ideas.application.ConvertIdeaCommand("idea-1"), mediator.lastRequest)
     }
 
     @Test

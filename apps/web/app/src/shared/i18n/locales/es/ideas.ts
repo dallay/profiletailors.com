@@ -45,6 +45,10 @@ export default {
     minimumOne: 'Se requiere al menos una columna.',
     colorPlaceholder: '#f59e0b',
     newNamePlaceholder: 'Nombre de nueva columna',
+    columnName: 'Nombre de columna',
+    columnColor: 'Color de columna',
+    newColumnName: 'Nombre de nueva columna',
+    newColumnColor: 'Color de nueva columna',
   },
   toasts: {
     created: 'Idea guardada.',

@@ -4,6 +4,15 @@ import { defineComponent, h, markRaw } from 'vue'
 import { mount, type DOMWrapper } from '@vue/test-utils'
 import SidebarNavSection, { type NavGroup } from './SidebarNavSection.vue'
 
+const sidebar = vi.hoisted(() => ({
+  isMobile: { value: true },
+  setOpenMobile: vi.fn(),
+}))
+
+vi.mock('@/components/ui/sidebar/utils', () => ({
+  useSidebar: () => sidebar,
+}))
+
 const RouterLinkStub = defineComponent({
   name: 'RouterLink',
   props: ['to'],
@@ -100,5 +109,22 @@ describe('SidebarNavSection', () => {
     const schedulerLink = links.find((l: DOMWrapper<Element>) => l.text().includes('nav.scheduler'))
     expect(schedulerLink).toBeTruthy()
     expect(schedulerLink?.attributes('href')).toBe('/scheduler')
+  })
+
+  it('closes the mobile sidebar after selecting a navigation item', async () => {
+    const groups: NavGroup[] = [
+      {
+        label: 'Workspace',
+        items: [{ labelKey: 'nav.ideas', to: '/ideas', icon: StubIcon }],
+      },
+    ]
+    const wrapper = mount(SidebarNavSection, {
+      ...mountOptions,
+      props: { groups, totalQueuedCount: 0 },
+    })
+
+    await wrapper.get('a[href="/ideas"]').trigger('click')
+
+    expect(sidebar.setOpenMobile).toHaveBeenCalledWith(false)
   })
 })

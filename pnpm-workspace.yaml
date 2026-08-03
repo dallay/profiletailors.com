@@ -33,6 +33,8 @@ minimumReleaseAgeExclude:
   - vitest@4.0.0
   # Renovate security update: shell-quote@1.10.0
   - shell-quote@1.10.0
+  # Renovate security update: @babel/core@7.29.6
+  - "@babel/core@7.29.6"
 
 overrides:
   esbuild: ">=0.28.1"
@@ -41,4 +43,4 @@ overrides:
   js-yaml: "4.3.0"
   devalue: ">=5.8.2"
   yaml: "^2.9.0"
-  "@babel/core": ">=7.27.0"
+  "@babel/core": ">=7.29.6"

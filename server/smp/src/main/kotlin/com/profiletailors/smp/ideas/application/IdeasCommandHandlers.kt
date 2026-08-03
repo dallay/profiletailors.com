@@ -28,8 +28,12 @@ internal class CreateIdeaHandler(
         val now = clock.instant()
         val board = ensureBoard(workspaceId)
 
-        val targetColumnId = command.columnId ?: board.columns.minByOrNull { it.order }?.id
-            ?: IdeaBoardDefaults.columns.first().id
+        val requestedColumnId = command.columnId
+        val targetColumnId = when {
+            requestedColumnId != null -> requestedColumnId
+            board.columns.isNotEmpty() -> board.columns.minBy { it.order }.id
+            else -> IdeaBoardDefaults.columns.first().id
+        }
 
         val currentIdeas = ideaRepository.listByWorkspace(workspaceId)
         val nextOrder = currentIdeas.count { it.columnId == targetColumnId }

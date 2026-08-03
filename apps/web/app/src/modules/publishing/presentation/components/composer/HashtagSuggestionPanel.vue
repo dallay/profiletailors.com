@@ -159,7 +159,11 @@ function submitSaveSet() {
           {{ t('composer.hashtags.saveAsSet') }}
         </Button>
         <form v-else class="flex items-center gap-1.5 mt-1" @submit.prevent="submitSaveSet">
+          <label class="sr-only" for="hashtag-save-set-name">
+            {{ t('composer.hashtags.setNamePlaceholder') }}
+          </label>
           <input
+            id="hashtag-save-set-name"
             v-model="saveSetName"
             type="text"
             :placeholder="t('composer.hashtags.setNamePlaceholder')"
@@ -247,6 +251,7 @@ function submitSaveSet() {
             type="button"
             :disabled="isAtLimit && !addedHashtags.has(item.hashtag)"
             :aria-pressed="addedHashtags.has(item.hashtag)"
+            :title="addedHashtags.has(item.hashtag) ? t('composer.hashtags.removeTag') : t('composer.hashtags.addTag')"
             class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             :class="addedHashtags.has(item.hashtag)
               ? 'bg-accent-primary/15 border-accent-primary/40 text-accent-primary'

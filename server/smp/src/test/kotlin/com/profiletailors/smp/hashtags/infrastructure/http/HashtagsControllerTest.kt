@@ -7,6 +7,7 @@ import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.smp.hashtags.application.DeleteHashtagSetCommand
+import com.profiletailors.smp.hashtags.application.HashtagSavedSetNotFoundException
 import com.profiletailors.smp.hashtags.application.HashtagSavedSetResult
 import com.profiletailors.smp.hashtags.application.SaveHashtagSetCommand
 import kotlinx.coroutines.test.runTest
@@ -16,6 +17,24 @@ import org.springframework.http.HttpStatus
 import java.time.Instant
 
 class HashtagsControllerTest {
+    @Test
+    fun `problem details map saved set validation errors`() {
+        val handler = HashtagsProblemDetailsHandler()
+
+        val notFound = handler.handleSavedSetNotFound(HashtagSavedSetNotFoundException("set-1"))
+        assertEquals(HttpStatus.NOT_FOUND.value(), notFound.status)
+        assertEquals("Hashtag set not found", notFound.title)
+        assertEquals("set-1", notFound.properties?.get("setId"))
+
+        val blank = handler.handleBlankName()
+        assertEquals(HttpStatus.BAD_REQUEST.value(), blank.status)
+        assertEquals("Invalid hashtag set", blank.title)
+
+        val empty = handler.handleEmptySet()
+        assertEquals(HttpStatus.BAD_REQUEST.value(), empty.status)
+        assertEquals("Invalid hashtag set", empty.title)
+    }
+
     @Test
     fun `save set returns created response explicitly`() = runTest {
         val result = HashtagSavedSetResult(
@@ -45,6 +64,15 @@ class HashtagsControllerTest {
 
         assertEquals(HttpStatus.NO_CONTENT, response.statusCode)
         assertEquals(DeleteHashtagSetCommand("set-1"), mediator.lastCommand)
+    }
+
+    @Test
+    fun `delete set returns a unit response type`() = runTest {
+        val controller = HashtagsController(CapturingMediator(null))
+
+        val response = controller.deleteSet("set-1")
+
+        assertEquals(HttpStatus.NO_CONTENT, response.statusCode)
     }
 
     private class CapturingMediator(private val result: Any?) : Mediator {

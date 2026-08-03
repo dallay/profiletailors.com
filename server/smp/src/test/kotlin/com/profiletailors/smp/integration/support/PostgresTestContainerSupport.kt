@@ -69,6 +69,9 @@ object PostgresTestContainerSupport {
 
 object PostgresDatabaseCleanup {
     val statements: List<String> = listOf(
+        "DELETE FROM hashtag_saved_sets",
+        "DELETE FROM ideas",
+        "DELETE FROM idea_board_configs",
         "DELETE FROM platform_admin_audit_events",
         "DELETE FROM waitlist_invitations",
         "DELETE FROM platform_role_assignments",

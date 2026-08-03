@@ -11,6 +11,8 @@ import {
   generateAiPostContent,
   optimizeAiPostContent,
   regenerateAiPostContent,
+  type AiContentResponse,
+  type AiGenerationRequest,
   type AiGenerationFormat,
   type AiGenerationLength,
   type AiGenerationTone,
@@ -741,6 +743,13 @@ const selectedAiVersion = computed(() =>
 const aiSelectedContent = computed(() => selectedAiVersion.value?.content ?? '')
 const aiHasMultipleVersions = computed(() => aiVersions.value.length > 1)
 
+const submitButtonLabel = computed(() => {
+  if (isEditMode.value) return t('composer.saveChanges')
+  if (scheduleMode.value === 'now') return t('composer.scheduleNowBtn')
+  if (scheduleMode.value === 'next') return t('composer.nextScheduleBtn')
+  return t('composer.scheduleBtn')
+})
+
 const aiResetLabel = computed(() => {
   if (!aiResetAt.value) return ''
   return new Date(aiResetAt.value).toLocaleString(undefined, {
@@ -924,19 +933,9 @@ async function runAiGeneration(mode: 'generate' | 'optimize' | 'regenerate'): Pr
 
   try {
     const request = buildAiRequest(prompt || draft)
-    const response = mode === 'optimize'
-      ? await optimizeAiPostContent({
-          ...request,
-          content: draft,
-        })
-      : mode === 'regenerate'
-        ? await regenerateAiPostContent({
-            ...request,
-            previous_content: aiSelectedContent.value,
-          })
-        : await generateAiPostContent(request)
+    const response = await requestAiContent(mode, request, draft)
 
-    const nextContent = response.content.trim()
+    const nextContent = response.content?.trim() ?? ''
     if (!nextContent) {
       throw new Error(t('composer.ai.errors.emptyResponse'))
     }
@@ -950,10 +949,33 @@ async function runAiGeneration(mode: 'generate' | 'optimize' | 'regenerate'): Pr
       return
     }
 
-    aiReviewError.value = error instanceof Error ? error.message : t('composer.ai.errors.generic')
+    aiReviewError.value =
+      error instanceof Error && error.message ? error.message : t('composer.ai.errors.generic')
   } finally {
     isAiGenerating.value = false
   }
+}
+
+async function requestAiContent(
+  mode: 'generate' | 'optimize' | 'regenerate',
+  request: AiGenerationRequest,
+  draft: string,
+): Promise<AiContentResponse> {
+  if (mode === 'optimize') {
+    return optimizeAiPostContent({
+      ...request,
+      content: draft,
+    })
+  }
+
+  if (mode === 'regenerate') {
+    return regenerateAiPostContent({
+      ...request,
+      previous_content: aiSelectedContent.value,
+    })
+  }
+
+  return generateAiPostContent(request)
 }
 
 async function handleAiAssist(): Promise<void> {
@@ -1055,6 +1077,8 @@ function resetPostForm() {
   mediaError.value = null
   removeFile()
   firstComment.value = ''
+  createAnother.value = false
+  priorityMode.value = false
   picker.draftAttachmentIds.value = []
   picker.pickerSelectionIds.value = []
   picker.resetPickerSessionTracking()
@@ -1736,7 +1760,7 @@ async function handleCreateSubmit(
                   :disabled="!canSubmit"
                   class="col-span-2 justify-center py-2.5 font-bold"
                 >
-                  {{ isEditMode ? $t('composer.saveChanges') : scheduleMode === 'now' ? 'Schedule Now' : scheduleMode === 'next' ? 'Next Schedule' : $t('composer.scheduleBtn') }}
+                  {{ submitButtonLabel }}
                 </Button>
               </div>
             </div>

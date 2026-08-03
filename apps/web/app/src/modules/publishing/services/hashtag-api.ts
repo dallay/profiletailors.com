@@ -66,5 +66,5 @@ export async function listHashtagSavedSets(): Promise<HashtagSavedSetsResult> {
 }
 
 export async function deleteHashtagSavedSet(setId: string): Promise<void> {
-  return request<void>(`/api/hashtags/saved-sets/${setId}`, { method: 'DELETE' })
+  await request<void>(`/api/hashtags/saved-sets/${setId}`, { method: 'DELETE' })
 }
