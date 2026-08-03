@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "profile-tailors": {
+      "url": "https://api.profiletailors.com/api/mcp",
+      "transport": "streamable-http",
+      "headers": {
+        "Authorization": "Bearer <YOUR_OAUTH_ACCESS_TOKEN>"
+      }
+    }
+  }
+}
