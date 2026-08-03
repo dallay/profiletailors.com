@@ -162,7 +162,7 @@ internal class LocalHashtagAnalysisService : HashtagAnalysisPort {
                 HashtagSuggestion("#climateaction", 0.80f, HashtagPopularity.HIGH, TOPIC_SUSTAINABILITY, 1_500_000),
             ),
             TOPIC_PROFESSIONAL to listOf(
-                HashtagSuggestion("#linkedin", 0.70f, HashtagPopularity.HIGH, TOPIC_PROFESSIONAL, 8_100_000),
+                HashtagSuggestion("#linkedin", 0.70f, HashtagPopularity.TRENDING, TOPIC_PROFESSIONAL, 8_100_000),
                 HashtagSuggestion("#networking", 0.72f, HashtagPopularity.HIGH, TOPIC_PROFESSIONAL, 3_900_000),
                 HashtagSuggestion("#business", 0.75f, HashtagPopularity.HIGH, TOPIC_PROFESSIONAL, 7_500_000),
             ),

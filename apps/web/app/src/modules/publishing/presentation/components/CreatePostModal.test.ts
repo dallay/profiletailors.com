@@ -87,6 +87,7 @@ const translations: Record<string, string> = {
   'composer.ai.generating': 'Generating…',
   'composer.ai.reviewTitle': 'Generated draft',
   'composer.ai.reviewHint': 'Pick the version you want to insert into the editor.',
+  'composer.ai.comparisonTitle': 'Compare versions',
   'composer.ai.accept': 'Use selected version',
   'composer.ai.close': 'Close',
   'composer.ai.version': 'Version',

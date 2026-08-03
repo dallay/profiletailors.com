@@ -155,7 +155,7 @@ class PublishingBddSteps {
             "socialAccountId" to currentSocialAccountId,
             "bodyText" to body,
             "scheduleMode" to "SCHEDULED_AT",
-            "scheduledFor" to scheduledFor,
+            "scheduledFor" to resolveScheduledFor(scheduledFor),
         )
         if (title != null) bodyMap["title"] = title
         val json = objectMapper.writeValueAsString(bodyMap)
@@ -226,7 +226,7 @@ class PublishingBddSteps {
         }
         val bodyMap = mutableMapOf<String, Any?>(
             "socialAccountId" to currentSocialAccountId,
-            "scheduledFor" to scheduledFor,
+            "scheduledFor" to resolveScheduledFor(scheduledFor),
         )
         if (title != null) bodyMap["title"] = title
         if (body != null) bodyMap["bodyText"] = body
@@ -241,6 +241,12 @@ class PublishingBddSteps {
             .exchange()
             .expectBody()
             .returnResult()
+    }
+
+    private fun resolveScheduledFor(value: String): String = if (value.equals("future", ignoreCase = true)) {
+        Instant.now().plusSeconds(60).toString()
+    } else {
+        value
     }
 
     @When("the client lists publications")

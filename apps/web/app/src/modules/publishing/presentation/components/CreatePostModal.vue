@@ -86,7 +86,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'created'): void
+  (e: 'created', options: { keepOpen: boolean }): void
   (e: 'updated'): void
 }>()
 
@@ -1143,7 +1143,7 @@ async function handleCreateSubmit(
     assetIds: [...picker.draftAttachmentIds.value],
     socialAccountId: selectedChannel.value?.accountId,
   })
-  emit('created')
+  emit('created', { keepOpen: createAnother.value })
   finalizeAfterCreate(createAnother.value)
 }
 </script>
@@ -1567,6 +1567,12 @@ async function handleCreateSubmit(
                 </div>
 
                 <div v-if="aiVersions.length > 0" class="mt-4 space-y-3">
+                  <p
+                    v-if="aiHasMultipleVersions"
+                    class="font-mono text-[9px] font-bold uppercase tracking-[0.24em] text-text-secondary"
+                  >
+                    {{ t('composer.ai.comparisonTitle') }}
+                  </p>
                   <div v-if="aiHasMultipleVersions" class="grid gap-3 lg:grid-cols-2">
                     <button
                       v-for="version in aiVersions"

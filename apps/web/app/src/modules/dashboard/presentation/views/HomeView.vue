@@ -16,8 +16,8 @@ function handleOpenModal() {
   isModalOpen.value = true
 }
 
-function handleCreated() {
-  isModalOpen.value = false
+function handleCreated(options: { keepOpen?: boolean } = {}) {
+  if (!options.keepOpen) isModalOpen.value = false
   toast.success(t('composer.scheduleSuccessToast'))
 }
 </script>

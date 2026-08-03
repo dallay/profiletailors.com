@@ -100,7 +100,7 @@ vi.mock('vue-sonner', () => ({
 vi.mock('@modules/publishing/presentation/components/CreatePostModal.vue', () => ({
   default: {
     template:
-      '<div v-if="isOpen" data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button><button data-testid="create-post-created" @click="$emit(\'created\')">created</button></div><div v-if="isOpen" data-testid="create-post-modal-open">open</div>',
+      '<div v-if="isOpen" data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button><button data-testid="create-post-created" @click="$emit(\'created\')">created</button><button data-testid="create-post-created-keep-open" @click="$emit(\'created\', { keepOpen: true })">created keep open</button></div><div v-if="isOpen" data-testid="create-post-modal-open">open</div>',
     props: ['isOpen', 'initialDate', 'editingPublication', 'provider'],
     emits: ['close', 'created', 'updated'],
   },
@@ -1217,6 +1217,22 @@ describe('SchedulerView', () => {
       expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(false)
       expect(toastSuccessMock).toHaveBeenCalledTimes(1)
       expect(toastSuccessMock).toHaveBeenCalledWith('composer.scheduleSuccessToast')
+    })
+
+    it('keeps the composer open when creation requests another post', async () => {
+      toastSuccessMock.mockClear()
+
+      const wrapper = mountView()
+      await flushPromises()
+
+      await wrapper.find('[data-testid="header-new-post"]').trigger('click')
+      await flushPromises()
+
+      await wrapper.find('[data-testid="create-post-created-keep-open"]').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(true)
+      expect(toastSuccessMock).toHaveBeenCalledTimes(1)
     })
   })
 

@@ -252,6 +252,7 @@ vi.mock('@layouts/sidebar/SidebarChannelsSection.vue', () => ({
 
 vi.mock('@lucide/vue', () => ({
   Images: { template: '<svg />' },
+  Lightbulb: { template: '<svg />' },
   LayoutGrid: { template: '<svg />' },
   Shield: { template: '<svg />' },
 }))

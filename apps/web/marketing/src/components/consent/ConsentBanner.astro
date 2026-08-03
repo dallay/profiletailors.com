@@ -19,15 +19,16 @@ const t = useTranslations(locale)
     <!-- Necessary (always-on, disabled) -->
     <div class="consent-category consent-category--disabled">
       <div class="consent-category-info">
-        <span class="consent-category-label">
+        <label class="consent-category-label" for="consent-necessary">
           {t.consent.category.necessary.label}
-        </span>
+        </label>
         <span class="consent-category-desc">
           {t.consent.category.necessary.description}
         </span>
       </div>
       <input
         type="checkbox"
+        id="consent-necessary"
         checked
         disabled
         aria-disabled="true"

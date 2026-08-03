@@ -78,6 +78,7 @@ vi.mock('@lucide/vue', () => {
     ChevronsUpDown: stub,
     CircleHelp: stub,
     Images: stub,
+    Lightbulb: stub,
     LayoutGrid: stub,
     LogOut: stub,
     PanelLeft: stub,

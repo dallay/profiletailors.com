@@ -16,13 +16,13 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotEmpty
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -41,9 +41,9 @@ class HashtagsController(private val mediator: Mediator) {
 
     @Operation(summary = "Save a hashtag set for reuse")
     @PostMapping("/saved-sets", consumes = ["application/json"], version = "1")
-    @ResponseStatus(HttpStatus.CREATED)
-    suspend fun saveSet(@Valid @RequestBody request: SaveHashtagSetRequest): HashtagSavedSetResult =
-        mediator.send(SaveHashtagSetCommand(name = request.name, hashtags = request.hashtags))
+    suspend fun saveSet(@Valid @RequestBody request: SaveHashtagSetRequest): ResponseEntity<HashtagSavedSetResult> =
+        ResponseEntity.status(HttpStatus.CREATED)
+            .body(mediator.send(SaveHashtagSetCommand(name = request.name, hashtags = request.hashtags)))
 
     @Operation(summary = "List saved hashtag sets")
     @GetMapping("/saved-sets", version = "1")
@@ -51,9 +51,9 @@ class HashtagsController(private val mediator: Mediator) {
 
     @Operation(summary = "Delete a saved hashtag set")
     @DeleteMapping("/saved-sets/{setId}", version = "1")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    suspend fun deleteSet(@PathVariable setId: String) {
+    suspend fun deleteSet(@PathVariable setId: String): ResponseEntity<Void> {
         mediator.send(DeleteHashtagSetCommand(setId = setId))
+        return ResponseEntity.noContent().build()
     }
 }
 
