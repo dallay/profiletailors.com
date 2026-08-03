@@ -54,7 +54,7 @@ internal class McpSecurityConfiguration {
      */
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE + 50)
-    @Suppress("lgtm[java/spring-disabled-csrf-protection]")
+    @SuppressWarnings("lgtm[java/spring-disabled-csrf-protection]")
     fun mcpSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
         .securityMatcher(mcpPathMatcher)
         // MCP clients authenticate with an Authorization Bearer token; this chain does not use
