@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder
@@ -45,7 +46,7 @@ internal class McpSecurityConfiguration {
         ServerWebExchangeMatchers.pathMatchers("/api/mcp", "/api/mcp/**")
 
     private val cookiePresentMatcher = ServerWebExchangeMatcher { exchange ->
-        if (exchange.request.cookies.isEmpty) {
+        if (exchange.request.headers.getFirst(HttpHeaders.COOKIE).isNullOrBlank()) {
             ServerWebExchangeMatcher.MatchResult.notMatch()
         } else {
             ServerWebExchangeMatcher.MatchResult.match()
