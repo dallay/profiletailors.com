@@ -32,6 +32,7 @@ private val BDD_USER_TOKEN_PREFIXES = setOf(
     "login-",
     "auth-redirect",
     "owner-",
+    "mcp-",
 )
 
 const val BDD_ADMIN_PRINCIPAL_ID = "aaaaaaaa-bbbb-cccc-dddd-000000000001"
@@ -174,6 +175,18 @@ class CommonBddTestConfiguration {
                     .expiresAt(Instant.now().plusSeconds(3600))
                     .build(),
             )
+            token.startsWith("mcp-") -> Mono.just(
+                Jwt.withTokenValue(token)
+                    .header("alg", "RS256")
+                    .claim("sub", "mcp-subject-123")
+                    .claim("iss", "https://issuer.example")
+                    .claim("principal_id", "principal-1")
+                    .claim("workspace_id", extractMcpWorkspaceId(token))
+                    .audience(listOf("https://api.profiletailors.com/api/mcp"))
+                    .issuedAt(Instant.now().minusSeconds(60))
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build(),
+            )
             isBddUserToken(token) -> Mono.just(
                 Jwt.withTokenValue(token)
                     .header("alg", "RS256")
@@ -206,6 +219,22 @@ class CommonBddTestConfiguration {
             else -> Mono.error(BadJwtException("Invalid token"))
         }
     }
+}
+
+/**
+ * Extracts the workspace ID from MCP BDD tokens.
+ *
+ * Convention: `mcp-reader-token` → `workspace-1` (default),
+ * `mcp-ws-other-token` → `workspace-other`.
+ */
+private fun extractMcpWorkspaceId(token: String): String {
+    val wsPrefix = "mcp-ws-"
+    if (token.startsWith(wsPrefix)) {
+        val rest = token.removePrefix(wsPrefix)
+        val workspacePart = rest.substringBefore("-token")
+        return "workspace-$workspacePart"
+    }
+    return BddDatabaseSupport.WORKSPACE_ID
 }
 
 class MutableRegistrationFlag {
