@@ -44,6 +44,14 @@ internal class McpSecurityConfiguration {
     private val mcpPathMatcher: ServerWebExchangeMatcher =
         ServerWebExchangeMatchers.pathMatchers("/api/mcp", "/api/mcp/**")
 
+    private val cookiePresentMatcher = ServerWebExchangeMatcher { exchange ->
+        if (exchange.request.cookies.isEmpty) {
+            ServerWebExchangeMatcher.MatchResult.notMatch()
+        } else {
+            ServerWebExchangeMatcher.MatchResult.match()
+        }
+    }
+
     private val placeholderWwwAuthenticateFilter: WebFilter = PlaceholderWwwAuthenticateFilter()
 
     /**
@@ -54,13 +62,11 @@ internal class McpSecurityConfiguration {
      */
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE + 50)
-    @SuppressWarnings("lgtm[java/spring-disabled-csrf-protection]")
     fun mcpSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
         .securityMatcher(mcpPathMatcher)
         // MCP clients authenticate with an Authorization Bearer token; this chain does not use
-        // browser cookies, so CSRF tokens cannot add protection to this stateless API.
-        // codeql[java/spring-disabled-csrf-protection]
-        .csrf { it.disable() }
+        // browser cookies. Requests that carry cookies retain CSRF protection as defense in depth.
+        .csrf { it.requireCsrfProtectionMatcher(cookiePresentMatcher) }
         .authorizeExchange { it.anyExchange().authenticated() }
         .exceptionHandling { exceptions ->
             // PR 1 emits a placeholder Bearer challenge. PR 2 replaces this with
