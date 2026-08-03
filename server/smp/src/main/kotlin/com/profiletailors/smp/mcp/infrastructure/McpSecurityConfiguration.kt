@@ -1,5 +1,7 @@
 package com.profiletailors.smp.mcp.infrastructure
 
+import com.profiletailors.smp.mcp.infrastructure.security.McpJwtConverter
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -10,8 +12,10 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder
 import org.springframework.security.config.web.server.ServerHttpSecurity
+import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverterAdapter
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint
+import org.springframework.security.web.server.util.matcher.OrServerWebExchangeMatcher
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers
 import org.springframework.web.server.ServerWebExchange
@@ -20,19 +24,13 @@ import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
 /**
- * Minimal security chain for the MCP endpoint shipped in PR 1.
+ * Security configuration for the MCP API.
  *
- * Scope: this class exists solely so the PR 1 acceptance test can prove the
- * MCP endpoint exists and rejects unauthenticated traffic with `401
- * Unauthorized` plus a placeholder `WWW-Authenticate: Bearer …` header. PR 2
- * will replace this bean with the full resource-server chain — JWT audience +
- * `workspace_id` validation, plus the RFC 9728 `resource_metadata` URL in the
- * entry point.
- *
- * Why is this NOT a WebFilter? Spring AI's transport mounts at the route
- * declared by `spring.ai.mcp.server.streamable-http.mcp-endpoint`. Routing
- * auth at that path through `SecurityWebFilterChain` keeps the body-parsing
- * invariant intact: the security chain never inspects the JSON-RPC body.
+ * Configures JWT-based authentication for the MCP endpoint with:
+ * - Audience validation (`https://api.profiletailors.com/api/mcp`)
+ * - workspace_id claim extraction
+ * - RFC 9728 metadata endpoint exemption (public endpoint)
+ * - 401 responses with WWW-Authenticate header when JWT is missing or invalid
  */
 @Configuration
 @ConditionalOnProperty(
@@ -40,10 +38,13 @@ import reactor.core.publisher.Mono
     name = ["enabled"],
     havingValue = "true",
 )
-internal class McpSecurityConfiguration {
+internal class McpSecurityConfiguration(
+    @Value("\${spring.ai.mcp.server.streamable-http.mcp-endpoint:/api/mcp}")
+    private val mcpEndpoint: String,
+) {
 
     private val mcpPathMatcher: ServerWebExchangeMatcher =
-        ServerWebExchangeMatchers.pathMatchers("/api/mcp", "/api/mcp/**")
+        ServerWebExchangeMatchers.pathMatchers(mcpEndpoint, "$mcpEndpoint/**")
 
     private val cookiePresentMatcher = ServerWebExchangeMatcher { exchange ->
         if (exchange.request.headers.getFirst(HttpHeaders.COOKIE).isNullOrBlank()) {
@@ -53,7 +54,13 @@ internal class McpSecurityConfiguration {
         }
     }
 
-    private val placeholderWwwAuthenticateFilter: WebFilter = PlaceholderWwwAuthenticateFilter()
+    private val rfc9728MetadataMatcher: ServerWebExchangeMatcher =
+        ServerWebExchangeMatchers.pathMatchers(
+            "/.well-known/oauth-protected-resource",
+            "/.well-known/oauth-protected-resource/**",
+        )
+
+    private val mcpJwtPresenceFilter: WebFilter = McpJwtPresenceFilter()
 
     /**
      * Configures the security filter chain for MCP endpoints.
@@ -64,43 +71,56 @@ internal class McpSecurityConfiguration {
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE + 50)
     fun mcpSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
-        .securityMatcher(mcpPathMatcher)
+        .securityMatcher(
+            OrServerWebExchangeMatcher(mcpPathMatcher, rfc9728MetadataMatcher),
+        )
         // MCP clients authenticate with an Authorization Bearer token; this chain does not use
         // browser cookies. Requests that carry cookies retain CSRF protection as defense in depth.
         .csrf { it.requireCsrfProtectionMatcher(cookiePresentMatcher) }
-        .authorizeExchange { it.anyExchange().authenticated() }
+        .authorizeExchange {
+            it.matchers(rfc9728MetadataMatcher).permitAll()
+                .anyExchange().authenticated()
+        }
+        .oauth2ResourceServer { oauth2 ->
+            oauth2.jwt { jwt ->
+                jwt.jwtAuthenticationConverter(
+                    ReactiveJwtAuthenticationConverterAdapter(McpJwtConverter()),
+                )
+            }
+        }
         .exceptionHandling { exceptions ->
-            // PR 1 emits a placeholder Bearer challenge. PR 2 replaces this with
-            // the full Bearer challenge carrying the RFC 9728 resource_metadata URL.
             exceptions.authenticationEntryPoint(HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED))
         }
-        .addFilterBefore(placeholderWwwAuthenticateFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+        .addFilterBefore(mcpJwtPresenceFilter, SecurityWebFiltersOrder.AUTHENTICATION)
         .build()
 
     /**
-     * Stamps `WWW-Authenticate: Bearer realm="mcp"` onto every 401 response
-     * from the chain. Runs after the entry point, so the header is appended
-     * just before the response is committed.
+     * Returns 401 with WWW-Authenticate header when JWT is missing.
+     *
+     * Runs at HIGHEST_PRECEDENCE + 40 to intercept before JWT processing.
      */
-    private class PlaceholderWwwAuthenticateFilter : WebFilter {
-        /**
-         * Applies the filter chain and adds MCP authentication response headers to unauthorized responses
-         * that do not already include a `WWW-Authenticate` header.
-         *
-         * @param exchange The current server exchange.
-         * @param chain The remaining web filter chain.
-         * @return A completion signal for the filter operation.
-         */
-        override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> =
-            chain.filter(exchange).then(
-                Mono.fromRunnable {
-                    if (exchange.response.statusCode == HttpStatus.UNAUTHORIZED &&
-                        exchange.response.headers.getFirst("WWW-Authenticate").isNullOrEmpty()
-                    ) {
-                        exchange.response.headers.add("WWW-Authenticate", "Bearer realm=\"mcp\"")
-                        exchange.response.headers.contentType = MediaType.APPLICATION_JSON
-                    }
-                },
-            )
+    private class McpJwtPresenceFilter : WebFilter {
+        override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
+            val path = exchange.request.uri.path
+
+            // Skip JWT presence check for RFC 9728 metadata endpoint (public)
+            if (path.startsWith("/.well-known/oauth-protected-resource")) {
+                return chain.filter(exchange)
+            }
+
+            val authHeader = exchange.request.headers.getFirst("Authorization")
+
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                exchange.response.statusCode = HttpStatus.UNAUTHORIZED
+                exchange.response.headers.add(
+                    "WWW-Authenticate",
+                    """Bearer realm="mcp", resource="https://api.profiletailors.com/api/mcp"""",
+                )
+                exchange.response.headers.contentType = MediaType.APPLICATION_JSON
+                return exchange.response.setComplete()
+            }
+
+            return chain.filter(exchange)
+        }
     }
 }
