@@ -521,6 +521,10 @@ class LinkedInPublishingConfiguration(
         LinkedInAuthorizationUrlBuilderAdapter(properties)
 
     @Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = ["publishing.linkedin.client-id"],
+        matchIfMissing = false,
+    )
     fun oauthStateSigner(
         @Value("\${publishing.linkedin.state-signing-secret}") stateSigningSecret: String,
         objectMapper: ObjectMapper,

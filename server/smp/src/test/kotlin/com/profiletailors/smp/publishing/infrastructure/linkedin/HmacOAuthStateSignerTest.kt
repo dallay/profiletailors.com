@@ -20,7 +20,7 @@ class HmacOAuthStateSignerTest {
         .findAndRegisterModules()
         .registerModule(JavaTimeModule())
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-    private val signer = HmacOAuthStateSigner("test-secret-with-enough-entropy", objectMapper, clock)
+    private val signer = HmacOAuthStateSigner("unit-secret-with-enough-entropy", objectMapper, clock)
 
     @Test
     fun `signs and verifies oauth state payload`() {
@@ -64,6 +64,59 @@ class HmacOAuthStateSignerTest {
             HmacOAuthStateSigner("", objectMapper, clock)
         }
         assertEquals("OAuth state signing secret is required.", error.message)
+    }
+
+    // SEC-002: predictable default secrets must not be accepted at startup
+    @Test
+    fun `rejects CHANGE_ME placeholder secret`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            HmacOAuthStateSigner("CHANGE_ME_LINKEDIN_STATE", objectMapper, clock)
+        }
+    }
+
+    @Test
+    fun `rejects CHANGE_ME prefix variant`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            HmacOAuthStateSigner("CHANGE_ME_anything", objectMapper, clock)
+        }
+    }
+
+    @Test
+    fun `rejects changeme lowercase prefix`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            HmacOAuthStateSigner("changeme-secret", objectMapper, clock)
+        }
+    }
+
+    @Test
+    fun `rejects placeholder prefix`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            HmacOAuthStateSigner("placeholder-value", objectMapper, clock)
+        }
+    }
+
+    @Test
+    fun `accepts a strong random secret`() {
+        val strongSecret = "Xq9mP2rLvJ8dKcY5hNwAeT3bUfGsOiQ7"
+        val strongSigner = HmacOAuthStateSigner(strongSecret, objectMapper, clock)
+        val payload = validPayload()
+        assertEquals(payload, strongSigner.verify(strongSigner.sign(payload)))
+    }
+
+    @Test
+    fun `rejects test- prefixed placeholder secret`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            HmacOAuthStateSigner("test-secret-with-enough-entropy", objectMapper, clock)
+        }
+    }
+
+    @Test
+    fun `accepts bdd- and smp- prefixed test secrets`() {
+        listOf("bdd-oauth-state-signing-secret-32b", "smp-integration-test-oauth-state-secret").forEach { secret ->
+            val secretSigner = HmacOAuthStateSigner(secret, objectMapper, clock)
+            val payload = validPayload()
+            assertEquals(payload, secretSigner.verify(secretSigner.sign(payload)))
+        }
     }
 
     @Test

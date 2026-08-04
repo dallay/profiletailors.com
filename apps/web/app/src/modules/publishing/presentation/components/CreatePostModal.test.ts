@@ -1,11 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import type { Component } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import {
   usePublishingStore,
   type Publication,
 } from '@modules/publishing/infrastructure/publishing.store'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import {
+  generateAiPostContent,
+  optimizeAiPostContent,
+  regenerateAiPostContent,
+} from '@modules/publishing/services/ai-content-api'
 import { useMediaStore } from '@modules/media'
 import type { MediaAssetSummary, UnsplashPhotoSummary } from '@modules/media/services/media-api'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
@@ -50,6 +57,55 @@ const translations: Record<string, string> = {
   'composer.media.unsupportedFormat':
     'Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.',
   'composer.media.fileSizeExceeded': 'File size exceeds 10MB limit.',
+  'composer.scheduleBtn': 'Schedule Post',
+  'composer.scheduleNowBtn': 'Schedule Now',
+  'composer.nextScheduleBtn': 'Next Schedule',
+  'composer.saveChanges': 'Save Changes',
+  'composer.cancelBtn': 'Cancel',
+  'composer.ai.button': 'AI Assistant',
+  'composer.ai.title': 'AI content generator',
+  'composer.ai.description':
+    'Generate, refine and compare LinkedIn-ready post drafts from a prompt.',
+  'composer.ai.prompt': 'Prompt',
+  'composer.ai.promptPlaceholder': 'e.g. importance of clean code in software projects',
+  'composer.ai.industry': 'Industry',
+  'composer.ai.industryPlaceholder': 'e.g. SaaS, healthcare, education',
+  'composer.ai.targetAudience': 'Target audience',
+  'composer.ai.targetAudiencePlaceholder': 'e.g. engineering leaders',
+  'composer.ai.format': 'Format',
+  'composer.ai.formats.standard': 'Standard',
+  'composer.ai.formats.thread': 'Thread',
+  'composer.ai.formats.tips': 'Tips',
+  'composer.ai.formats.question': 'Question',
+  'composer.ai.formats.story': 'Story',
+  'composer.ai.tone': 'Tone',
+  'composer.ai.tones.professional': 'Professional',
+  'composer.ai.tones.casual': 'Casual',
+  'composer.ai.tones.inspirational': 'Inspirational',
+  'composer.ai.tones.educational': 'Educational',
+  'composer.ai.length': 'Length',
+  'composer.ai.lengths.short': 'Short',
+  'composer.ai.lengths.medium': 'Medium',
+  'composer.ai.lengths.long': 'Long',
+  'composer.ai.keywords': 'Keywords',
+  'composer.ai.keywordsPlaceholder': 'Kotlin, microservices, cloud-native',
+  'composer.ai.generate': 'Generate',
+  'composer.ai.optimize': 'Optimize draft',
+  'composer.ai.regenerate': 'Regenerate alternative',
+  'composer.ai.generating': 'Generating…',
+  'composer.ai.reviewTitle': 'Generated draft',
+  'composer.ai.reviewHint': 'Pick the version you want to insert into the editor.',
+  'composer.ai.comparisonTitle': 'Compare versions',
+  'composer.ai.accept': 'Use selected version',
+  'composer.ai.close': 'Close',
+  'composer.ai.version': 'Version',
+  'composer.ai.errors.promptRequired': 'Enter a prompt to generate content.',
+  'composer.ai.errors.currentDraftRequired': 'Write a draft to optimize.',
+  'composer.ai.errors.previousVersionRequired': 'Generate content before regenerating.',
+  'composer.ai.errors.monthlyLimitReached': 'Monthly limit reached',
+  'composer.ai.errors.emptyResponse': 'AI service returned empty content.',
+  'composer.ai.errors.generic': 'Unable to generate content right now.',
+  'composer.ai.resetDate': 'Resets on {date}',
 }
 
 const mockT = (key: string, params?: Record<string, string | number>): string => {
@@ -83,6 +139,13 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   logoutSession: vi.fn(),
   proxyImageUrl: (url: string) => url,
   resolveApiUrl: (url: string) => url,
+}))
+
+vi.mock('@modules/publishing/services/ai-content-api', () => ({
+  generateAiPostContent: vi.fn(),
+  optimizeAiPostContent: vi.fn(),
+  regenerateAiPostContent: vi.fn(),
+  fetchAiSuggestions: vi.fn(),
 }))
 
 vi.mock('@modules/media/services/media-api', async (importOriginal) => {
@@ -182,20 +245,35 @@ function makeChannel(id: string, overrides: Partial<Omit<TestChannel, 'id'>> = {
   }
 }
 
-function mountModal(channels: TestChannel[], props: Record<string, unknown> = {}) {
+function mountModal(
+  channels: TestChannel[],
+  props: Record<string, unknown> = {},
+  stubs: Record<string, Component> = {},
+) {
   const store = usePublishingStore()
   store.channels = channels
 
   const workspaceStore = useWorkspaceStore()
   workspaceStore.setActiveWorkspaceId('ws-1')
 
-  return mount(CreatePostModalComponent, {
+  const wrapper = mount(CreatePostModalComponent, {
     attachTo: document.body,
     props: { isOpen: true, ...props },
     global: {
       mocks: { $t: mockT },
+      stubs,
     },
   })
+  mountedWrappers.push(wrapper)
+  return wrapper
+}
+
+const mountedWrappers: Array<{ unmount: () => void }> = []
+
+async function cleanupMountedWrappers() {
+  for (const wrapper of mountedWrappers.splice(0)) {
+    wrapper.unmount()
+  }
 }
 
 async function flushModal(_wrapper: ReturnType<typeof mountModal>): Promise<void> {
@@ -263,7 +341,8 @@ describe('CreatePostModal.vue — media picker foundation', () => {
     })
   })
 
-  afterEach(() => {
+  afterEach(async () => {
+    await cleanupMountedWrappers()
     document.body.innerHTML = ''
     vi.unstubAllGlobals()
   })
@@ -806,7 +885,8 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     })
   })
 
-  afterEach(() => {
+  afterEach(async () => {
+    await cleanupMountedWrappers()
     document.body.innerHTML = ''
     vi.unstubAllGlobals()
   })
@@ -1112,6 +1192,688 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     expect(disabledSubmit).toBeDefined()
 
     await wrapper.unmount()
+  })
+})
+
+describe('CreatePostModal.vue — AI assistant', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:mock-preview'),
+      revokeObjectURL: vi.fn(),
+    })
+  })
+
+  afterEach(async () => {
+    await cleanupMountedWrappers()
+    document.body.innerHTML = ''
+    vi.unstubAllGlobals()
+  })
+
+  it('generates content, compares alternatives, and inserts the selected version into the editor', async () => {
+    vi.mocked(generateAiPostContent).mockResolvedValueOnce({
+      content: 'Clean code keeps software projects readable, testable, and easier to evolve.',
+    })
+    vi.mocked(regenerateAiPostContent).mockResolvedValueOnce({
+      content:
+        'Clean code turns software projects into systems teams can trust, extend, and ship faster.',
+    })
+
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+
+    const promptInput = getByTestId('composer-ai-prompt') as HTMLTextAreaElement
+    promptInput.value = 'importance of clean code in software projects'
+    promptInput.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-generate').click()
+    await flushModal(wrapper)
+
+    expect(generateAiPostContent).toHaveBeenCalledTimes(1)
+    expect(generateAiPostContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'importance of clean code in software projects',
+      }),
+    )
+    expect(document.body.innerHTML).toContain('Clean code keeps software projects readable')
+
+    getByTestId('composer-ai-regenerate').click()
+    await flushModal(wrapper)
+
+    expect(regenerateAiPostContent).toHaveBeenCalledTimes(1)
+    expect(document.body.innerHTML).toContain('Compare versions')
+    expect(document.body.innerHTML).toContain(
+      'Clean code turns software projects into systems teams can trust',
+    )
+
+    getByTestId('composer-ai-version-1').click()
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-accept').click()
+    await flushModal(wrapper)
+
+    const composerTextarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    expect(composerTextarea.value).toBe(
+      'Clean code keeps software projects readable, testable, and easier to evolve.',
+    )
+  })
+
+  it('maps assistant fields into the generation request and renders the mapped response', async () => {
+    vi.mocked(generateAiPostContent).mockResolvedValueOnce({
+      content: 'Mapped response content',
+      title: 'Mapped response title',
+      suggestions: [{ text: 'Use a measurable result.' }],
+    })
+    const auth = useAuthStore()
+    auth.user = {
+      principalId: 'user-1',
+      email: 'author@example.com',
+      username: 'author',
+      emailStatus: 'VERIFIED',
+      displayIdentity: 'Author Name',
+    }
+
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+
+    const setInput = (selector: string, value: string) => {
+      const input = document.querySelector<HTMLInputElement | HTMLSelectElement>(selector)
+      expect(input).not.toBeNull()
+      input!.value = value
+      input!.dispatchEvent(new Event(input instanceof HTMLSelectElement ? 'change' : 'input'))
+    }
+    setInput('[data-testid="composer-ai-prompt"]', '  launch a developer tool  ')
+    setInput('#ai-industry-input', ' SaaS ')
+    setInput('#ai-audience-input', ' engineering leaders ')
+    setInput('#ai-format-select', 'tips')
+    setInput('#ai-tone-select', 'educational')
+    setInput('#ai-length-select', 'long')
+    setInput('#ai-keywords-input', ' Kotlin, , cloud ')
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-generate').click()
+    await flushModal(wrapper)
+
+    expect(generateAiPostContent).toHaveBeenCalledWith({
+      prompt: 'launch a developer tool',
+      context: {
+        user_profile: {
+          display_name: 'Author Name',
+          email: 'author@example.com',
+          username: 'author',
+        },
+        industry: 'SaaS',
+        target_audience: 'engineering leaders',
+      },
+      options: {
+        format: 'tips',
+        tone: 'educational',
+        length: 'long',
+        keywords: ['Kotlin', 'cloud'],
+      },
+    })
+    expect(document.body.textContent).toContain('Mapped response content')
+  })
+
+  it('rejects a blank prompt before making an AI request', async () => {
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+    const promptInput = getByTestId('composer-ai-prompt') as HTMLTextAreaElement
+    promptInput.value = '   '
+    promptInput.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-generate').click()
+    await flushModal(wrapper)
+
+    expect(generateAiPostContent).not.toHaveBeenCalled()
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      'Enter a prompt to generate content.',
+    )
+  })
+
+  it('shows the empty-response message when the AI response has no content', async () => {
+    vi.mocked(generateAiPostContent).mockResolvedValueOnce({ content: undefined } as never)
+
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+
+    const promptInput = getByTestId('composer-ai-prompt') as HTMLTextAreaElement
+    promptInput.value = 'a useful prompt'
+    promptInput.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    getByTestId('composer-ai-generate').click()
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      'AI service returned empty content.',
+    )
+  })
+
+  it('falls back to the generic error when a failed AI request has no message', async () => {
+    vi.mocked(generateAiPostContent).mockRejectedValueOnce(new Error(''))
+
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+
+    const promptInput = getByTestId('composer-ai-prompt') as HTMLTextAreaElement
+    promptInput.value = 'a useful prompt'
+    promptInput.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    getByTestId('composer-ai-generate').click()
+    await flushModal(wrapper)
+
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      'Unable to generate content right now.',
+    )
+  })
+
+  it('uses the next-month reset date when a rate-limit error omits resetAt', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
+    try {
+      vi.mocked(generateAiPostContent).mockRejectedValueOnce(
+        Object.assign(new Error('Rate limited'), { status: 429 }),
+      )
+
+      const wrapper = mountModal([makeChannel('ch-ai')])
+      await flushModal(wrapper)
+      getByTestId('composer-ai-assist').click()
+      await flushModal(wrapper)
+
+      const promptInput = getByTestId('composer-ai-prompt') as HTMLTextAreaElement
+      promptInput.value = 'a useful prompt'
+      promptInput.dispatchEvent(new Event('input'))
+      await flushModal(wrapper)
+      getByTestId('composer-ai-generate').click()
+      await flushModal(wrapper)
+
+      expect(document.body.textContent).toContain('Resets on')
+      expect(document.body.textContent).not.toContain('Invalid Date')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('shows the monthly limit message, reset date, and upgrade options when generation is rate limited', async () => {
+    vi.mocked(generateAiPostContent).mockRejectedValueOnce(
+      Object.assign(new Error('Rate limited'), {
+        status: 429,
+        resetAt: '2026-08-31T00:00:00.000Z',
+      }),
+    )
+
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+
+    const promptInput = getByTestId('composer-ai-prompt') as HTMLTextAreaElement
+    promptInput.value = 'best programming languages to learn in 2026'
+    promptInput.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-generate').click()
+    await flushModal(wrapper)
+
+    expect(document.body.innerHTML).toContain('Monthly limit reached')
+    expect(document.body.innerHTML).toContain('Resets on')
+    expect(document.body.innerHTML).toContain('Free 10/mo')
+    expect(document.body.innerHTML).toContain('Pro 100/mo')
+    expect(document.body.innerHTML).toContain('Team 500/mo')
+
+    await wrapper.unmount()
+  })
+
+  it('optimizes the current draft and sends the draft content to the AI service', async () => {
+    vi.mocked(optimizeAiPostContent).mockResolvedValueOnce({ content: 'Optimized draft' })
+
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+
+    const composerTextarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    composerTextarea.value = 'A draft that needs optimization'
+    composerTextarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    getByTestId('composer-ai-optimize').click()
+    await flushModal(wrapper)
+
+    expect(optimizeAiPostContent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'A draft that needs optimization',
+      }),
+    )
+    expect(document.body.innerHTML).toContain('Optimized draft')
+  })
+
+  it('keeps optimize disabled and reports the draft guard when no current content exists', async () => {
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+
+    const optimizeButton = getByTestId('composer-ai-optimize') as HTMLButtonElement
+    expect(optimizeButton.disabled).toBe(true)
+    expect(optimizeAiPostContent).not.toHaveBeenCalled()
+  })
+
+  it('keeps regenerate disabled until a generated version exists', async () => {
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+    getByTestId('composer-ai-assist').click()
+    await flushModal(wrapper)
+
+    const regenerateButton = getByTestId('composer-ai-regenerate') as HTMLButtonElement
+    expect(regenerateButton.disabled).toBe(true)
+    expect(regenerateAiPostContent).not.toHaveBeenCalled()
+  })
+
+  it('emits create-another, clears the draft, and unchecks create-another after creation', async () => {
+    const store = usePublishingStore()
+    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+
+    const composerTextarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    composerTextarea.value = 'First post content'
+    composerTextarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    const createAnotherInput = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    ).find((input) => input.parentElement?.textContent?.includes('Create Another'))
+    expect(createAnotherInput).toBeDefined()
+    createAnotherInput!.click()
+    await flushModal(wrapper)
+
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))
+    expect(scheduleButton).toBeDefined()
+    scheduleButton!.click()
+    await vi.waitFor(() => expect(scheduleSpy).toHaveBeenCalledTimes(1))
+    await flushModal(wrapper)
+
+    expect(scheduleSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'First post content' }),
+    )
+    expect(wrapper.emitted('created')).toEqual([[{ keepOpen: true }]])
+    expect(composerTextarea.value).toBe('')
+    expect(createAnotherInput!.checked).toBe(false)
+  })
+
+  it('uses the translated submit label for each schedule mode and edit mode', async () => {
+    const wrapper = mountModal([makeChannel('ch-ai')])
+    await flushModal(wrapper)
+
+    const submitButton = () => document.querySelector<HTMLButtonElement>('.ui-button')
+    expect(submitButton()?.textContent).toContain('Schedule Now')
+
+    const nextMode = getByTestId('schedule-mode-next').querySelector<HTMLInputElement>('input')
+    expect(nextMode).not.toBeNull()
+    nextMode!.click()
+    await flushModal(wrapper)
+    expect(submitButton()?.textContent).toContain('Next Schedule')
+
+    const customMode = getByTestId('schedule-mode-custom').querySelector<HTMLInputElement>('input')
+    expect(customMode).not.toBeNull()
+    customMode!.click()
+    await flushModal(wrapper)
+    expect(submitButton()?.textContent).toContain('Schedule Post')
+
+    await wrapper.unmount()
+    const editWrapper = mountModal([makeChannel('ch-ai')], {
+      editingPublication: makeEditingPublication(),
+    })
+    await flushModal(editWrapper)
+    await flushModal(editWrapper)
+    expect(submitButton()?.textContent).toContain('Save Changes')
+    await editWrapper.setProps({ isOpen: false })
+    await flushModal(editWrapper)
+    await editWrapper.unmount()
+  })
+
+  it('closes through Escape and restores focus to the trigger', async () => {
+    const trigger = document.createElement('button')
+    trigger.type = 'button'
+    trigger.textContent = 'Open composer'
+    document.body.appendChild(trigger)
+    trigger.focus()
+    const wrapper = mountModal(
+      [makeChannel('ch-focus')],
+      {},
+      {
+        ComposerMediaPickerShell: { template: '<div data-testid="media-picker-stub" />' },
+      },
+    )
+    await flushModal(wrapper)
+
+    const overlay = document.body.querySelector('.fixed.inset-0')
+    expect(overlay).not.toBeNull()
+    overlay!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(wrapper.emitted('close')).toHaveLength(1)
+
+    await wrapper.setProps({ isOpen: false })
+    await flushModal(wrapper)
+    expect(document.activeElement).toBe(trigger)
+    await wrapper.unmount()
+    document.body.removeChild(trigger)
+  })
+
+  it('closes when the backdrop is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-backdrop')])
+    await flushModal(wrapper)
+    const overlay = document.body.querySelector('.fixed.inset-0')
+    expect(overlay).not.toBeNull()
+    overlay!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(wrapper.emitted('close')).toHaveLength(1)
+
+    await wrapper.setProps({ isOpen: false })
+    await flushModal(wrapper)
+    await wrapper.unmount()
+  })
+
+  it('closes when the cancel action is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-cancel')])
+    await flushModal(wrapper)
+    const cancelButton = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
+      (button) => button.textContent?.includes('Cancel'),
+    )
+    expect(cancelButton).toBeDefined()
+    cancelButton!.click()
+    expect(wrapper.emitted('close')).toHaveLength(1)
+    await wrapper.setProps({ isOpen: false })
+    await flushModal(wrapper)
+    await wrapper.unmount()
+  })
+
+  it('selects the first active channel when the current channel becomes inactive', async () => {
+    const channels = [makeChannel('ch-first'), makeChannel('ch-second')]
+    const wrapper = mountModal(channels)
+    await flushModal(wrapper)
+
+    const channelButton = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
+      (button) => button.textContent?.includes('Channel ch-second'),
+    )
+    expect(channelButton).toBeDefined()
+    channelButton!.click()
+    await flushModal(wrapper)
+
+    const publishingStore = usePublishingStore()
+    publishingStore.channels = [
+      makeChannel('ch-inactive', { status: 'INACTIVE' }),
+      makeChannel('ch-third'),
+    ]
+    await flushModal(wrapper)
+
+    const selectedChannelButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('[data-testid="channel-button"]'),
+    ).find((button) => button.textContent?.includes('Channel ch-third'))
+    expect(
+      selectedChannelButton?.querySelector('[data-testid="channel-selected-icon"]'),
+    ).not.toBeNull()
+  })
+
+  it('updates an edited publication without assetIds until attachments are changed', async () => {
+    const publishingStore = usePublishingStore()
+    const updatePost = vi.spyOn(publishingStore, 'updatePost').mockResolvedValue({} as Publication)
+    const wrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication({ accountId: 'ch-edit-1', assetIds: [] }),
+    })
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Edited content'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    const saveButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button')).find(
+      (button) => button.textContent?.includes('Save Changes'),
+    )
+    expect(saveButton).toBeDefined()
+    saveButton!.click()
+    await vi.waitFor(() => expect(updatePost).toHaveBeenCalledTimes(1))
+
+    expect(updatePost).toHaveBeenCalledWith(
+      'pub-edit-1',
+      expect.not.objectContaining({ assetIds: expect.anything() }),
+    )
+    expect(wrapper.emitted('updated')).toHaveLength(1)
+  })
+
+  it('initializes a new post from initialDate when the modal is opened', async () => {
+    vi.useFakeTimers()
+    const current = new Date(2026, 7, 3, 12, 0, 0)
+    const sameDay = new Date(2026, 7, 3, 13, 30, 0)
+    const futureDay = new Date(2026, 7, 4, 9, 15, 0)
+    vi.setSystemTime(current)
+    try {
+      const wrapper = mountModal([makeChannel('ch-create')], {
+        isOpen: false,
+        initialDate: sameDay.toISOString(),
+      })
+      await flushModal(wrapper)
+
+      await wrapper.setProps({ isOpen: true })
+      await flushModal(wrapper)
+      expect(
+        (getByTestId('schedule-mode-custom').querySelector('input') as HTMLInputElement).checked,
+      ).toBe(true)
+      expect((getByTestId('schedule-time-input') as HTMLInputElement).value).toBe('13:30')
+      expect((getByTestId('schedule-time-input') as HTMLInputElement).min).toBe('12:05')
+
+      await wrapper.setProps({ isOpen: false, initialDate: futureDay.toISOString() })
+      await flushModal(wrapper)
+      await wrapper.setProps({ isOpen: true })
+      await flushModal(wrapper)
+      expect((getByTestId('schedule-time-input') as HTMLInputElement).min).toBe('00:00')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('rejects a custom schedule without a selected date', async () => {
+    const publishingStore = usePublishingStore()
+    const schedulePost = vi
+      .spyOn(publishingStore, 'schedulePost')
+      .mockResolvedValue({} as Publication)
+    const wrapper = mountModal([makeChannel('ch-schedule')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'A post that is ready to schedule'
+    textarea.dispatchEvent(new Event('input'))
+    getByTestId('schedule-mode-custom')
+      .querySelector('input')
+      ?.dispatchEvent(new Event('change', { bubbles: true }))
+    await flushModal(wrapper)
+
+    const submitButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Post'))
+    expect(submitButton).toBeDefined()
+    submitButton!.click()
+    await flushModal(wrapper)
+
+    expect(schedulePost).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain('Select a date.')
+  })
+
+  it('rejects invalid custom time values and rejects times inside the five-minute safety window', async () => {
+    vi.useFakeTimers()
+    const current = new Date(2026, 7, 3, 12, 0, 30)
+    const soon = new Date(2026, 7, 3, 12, 4, 0)
+    vi.setSystemTime(current)
+    try {
+      const publishingStore = usePublishingStore()
+      const schedulePost = vi
+        .spyOn(publishingStore, 'schedulePost')
+        .mockResolvedValue({} as Publication)
+      const wrapper = mountModal([makeChannel('ch-time')], {
+        isOpen: false,
+        initialDate: soon.toISOString(),
+      })
+      await wrapper.setProps({ isOpen: true })
+      await flushModal(wrapper)
+
+      const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+      textarea.value = 'A post with a custom time'
+      textarea.dispatchEvent(new Event('input'))
+      await flushModal(wrapper)
+
+      const timeInput = getByTestId('schedule-time-input') as HTMLInputElement
+      Object.defineProperty(timeInput, 'value', { configurable: true, value: '25:00' })
+      timeInput.dispatchEvent(new Event('input', { bubbles: true }))
+      await flushModal(wrapper)
+      const submitButton = Array.from(
+        document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+      ).find((button) => button.textContent?.includes('Schedule Post'))
+      expect(submitButton).toBeDefined()
+      submitButton!.click()
+      await flushModal(wrapper)
+      expect(schedulePost).not.toHaveBeenCalled()
+      expect(document.body.textContent).toContain('Invalid time selected.')
+
+      Object.defineProperty(timeInput, 'value', { configurable: true, value: '12:04' })
+      timeInput.dispatchEvent(new Event('input', { bubbles: true }))
+      submitButton!.click()
+      await flushModal(wrapper)
+      expect(document.body.textContent).toContain('Selected date and time must be in the future.')
+      expect(schedulePost).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('uploads a deferred file before creating a post and reports upload failures', async () => {
+    const mediaStore = useMediaStore()
+    const createAndUpload = vi.spyOn(mediaStore, 'createAndUpload').mockResolvedValue({
+      assetId: 'asset-deferred',
+    } as MediaAssetSummary)
+    const addToSelection = vi.spyOn(mediaStore, 'addToSelection')
+    const publishingStore = usePublishingStore()
+    const schedulePost = vi
+      .spyOn(publishingStore, 'schedulePost')
+      .mockResolvedValue({} as Publication)
+    const wrapper = mountModal([makeChannel('ch-upload')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'A post with deferred media'
+    textarea.dispatchEvent(new Event('input'))
+    const uploadInput = getByTestId('picker-upload-input') as HTMLInputElement
+    const file = new File(['image'], 'deferred.png', { type: 'image/png' })
+    Object.defineProperty(uploadInput, 'files', { configurable: true, value: [file] })
+    uploadInput.dispatchEvent(new Event('change'))
+    await flushModal(wrapper)
+
+    const submitButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))
+    expect(submitButton).toBeDefined()
+    submitButton!.click()
+    await vi.waitFor(() => expect(schedulePost).toHaveBeenCalledTimes(1))
+
+    expect(createAndUpload).toHaveBeenCalledWith(
+      file,
+      expect.stringMatching(/^modal-upload-/),
+      expect.any(Function),
+    )
+    expect(addToSelection).toHaveBeenCalledWith('asset-deferred')
+    expect(schedulePost).toHaveBeenCalledWith(
+      expect.objectContaining({ assetIds: ['asset-deferred'] }),
+    )
+
+    createAndUpload.mockRejectedValueOnce(new Error('upload failed'))
+    Object.defineProperty(uploadInput, 'files', { configurable: true, value: [file] })
+    uploadInput.dispatchEvent(new Event('change'))
+    await flushModal(wrapper)
+    submitButton!.click()
+    await flushModal(wrapper)
+    expect(document.body.textContent).toContain('Media upload failed. Please try again.')
+    expect(schedulePost).toHaveBeenCalledTimes(1)
+  })
+
+  it('handles media source controls, drag lifecycle, paste guards, and emoji insertion', async () => {
+    const wrapper = mountModal([makeChannel('ch-media-controls')], { provider: 'unsplash' })
+    await flushModal(wrapper)
+
+    const uploadInput = getByTestId('picker-upload-input') as HTMLInputElement
+    const clickSpy = vi.spyOn(uploadInput, 'click')
+    getByTestId('composer-upload-trigger').click()
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+
+    const sourcesTrigger = getByTestId('composer-sources-trigger')
+    sourcesTrigger.click()
+    await flushModal(wrapper)
+    getByTestId('composer-source-unsplash').click()
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea')
+    const dragEvent = new Event('dragover', { bubbles: true, cancelable: true }) as Event & {
+      dataTransfer: { files: File[] }
+    }
+    dragEvent.dataTransfer = { files: [] }
+    textarea.dispatchEvent(dragEvent)
+    expect(dragEvent.defaultPrevented).toBe(false)
+
+    const file = new File(['png'], 'drag.png', { type: 'image/png' })
+    dragEvent.dataTransfer = { files: [file] }
+    textarea.dispatchEvent(dragEvent)
+    expect(dragEvent.defaultPrevented).toBe(true)
+    const dragLeave = new Event('dragleave', { bubbles: true, cancelable: true })
+    textarea.dispatchEvent(dragLeave)
+    expect(dragLeave.defaultPrevented).toBe(true)
+
+    const emptyPaste = new Event('paste', { bubbles: true, cancelable: true }) as Event & {
+      clipboardData: { files: File[]; items: [] }
+    }
+    emptyPaste.clipboardData = { files: [], items: [] }
+    textarea.dispatchEvent(emptyPaste)
+    expect(emptyPaste.defaultPrevented).toBe(false)
+
+    const emojiButton = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
+      (button) => button.getAttribute('title') === 'Open emoji picker',
+    )
+    expect(emojiButton).toBeDefined()
+    emojiButton!.click()
+    await flushModal(wrapper)
+    expect((textarea as HTMLTextAreaElement).value).toContain('🙂')
+  })
+
+  it('opens and closes the hashtag panel on request', async () => {
+    const wrapper = mountModal([makeChannel('ch-hashtags')])
+    await flushModal(wrapper)
+
+    const hashtagToggle = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(
+      (button) => button.getAttribute('aria-label')?.includes('hashtags'),
+    )
+    expect(hashtagToggle).toBeDefined()
+    hashtagToggle!.click()
+    await flushModal(wrapper)
+    expect(document.querySelector('aside[aria-label="Hashtag suggestions"]')).not.toBeNull()
+    hashtagToggle!.click()
+    await flushModal(wrapper)
+    expect(document.querySelector('aside[aria-label="Hashtag suggestions"]')).toBeNull()
   })
 })
 

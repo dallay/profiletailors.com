@@ -92,7 +92,7 @@ class PublishingBddSteps {
         bddDatabaseSupport.seedScheduledPublication(
             publicationId = "pub-bdd-scheduled-1",
             socialAccountId = socialAccountId,
-            scheduledFor = Instant.parse("2026-08-01T12:00:00Z"),
+            scheduledFor = Instant.now().plus(java.time.Duration.ofDays(7)),
             title = "Scheduled Post",
             bodyText = "Scheduled body",
         )
@@ -116,7 +116,7 @@ class PublishingBddSteps {
         bddDatabaseSupport.seedScheduledPublication(
             publicationId = "pub-bdd-scheduled-2",
             socialAccountId = socialAccountId,
-            scheduledFor = Instant.parse("2026-08-01T14:00:00Z"),
+            scheduledFor = Instant.now().plus(java.time.Duration.ofDays(14)),
             title = "Scheduled Post 2",
             bodyText = "Scheduled body 2",
         )
@@ -155,7 +155,7 @@ class PublishingBddSteps {
             "socialAccountId" to currentSocialAccountId,
             "bodyText" to body,
             "scheduleMode" to "SCHEDULED_AT",
-            "scheduledFor" to scheduledFor,
+            "scheduledFor" to resolveScheduledFor(scheduledFor),
         )
         if (title != null) bodyMap["title"] = title
         val json = objectMapper.writeValueAsString(bodyMap)
@@ -226,7 +226,7 @@ class PublishingBddSteps {
         }
         val bodyMap = mutableMapOf<String, Any?>(
             "socialAccountId" to currentSocialAccountId,
-            "scheduledFor" to scheduledFor,
+            "scheduledFor" to resolveScheduledFor(scheduledFor),
         )
         if (title != null) bodyMap["title"] = title
         if (body != null) bodyMap["bodyText"] = body
@@ -337,6 +337,21 @@ class PublishingBddSteps {
     }
 
     private fun extractJsonString(field: String): String? = parsePublishingResponseField<String?>(field)
+
+    private fun resolveScheduledFor(value: String): String {
+        if (value.equals("future", ignoreCase = true)) {
+            return Instant.now().plusSeconds(60).toString()
+        }
+
+        val daysPattern = Regex("""\+(\d+)days""")
+        val match = daysPattern.matchEntire(value)
+        return if (match != null) {
+            val days = match.groupValues[1].toLong()
+            Instant.now().plus(java.time.Duration.ofDays(days)).toString()
+        } else {
+            value
+        }
+    }
 
     @When("the client lists connected channels")
     fun whenClientListsConnectedChannels() {

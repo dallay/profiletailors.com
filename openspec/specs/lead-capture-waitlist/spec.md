@@ -179,3 +179,22 @@ Entries matching only the old or only the new email MUST NOT be affected.
 - AND a correction from `old@x.com` to `new@x.com`
 - WHEN propagation runs
 - THEN the entry's email MUST become `"new@x.com"`
+
+---
+
+## MVP Rate-Limiting Decision
+
+The MVP MUST NOT introduce Redis, another distributed bucket store, or any other distributed
+rate-limit implementation. The accepted MVP behavior is:
+
+- The shared rate-limit adapter uses a bounded, per-JVM Caffeine cache for Bucket4j buckets.
+- SMP's waitlist limiter defaults to disabled through
+  `SMP_WAITLIST_RATE_LIMIT_ENABLED:false` in `server/smp/src/main/resources/application.yaml`.
+- An operator MAY explicitly enable the waitlist limiter, but that opt-in is per instance and MUST
+  NOT be treated as safe distributed enforcement.
+- Multi-replica waitlist rate-limit enablement remains deferred until DALLAY-512 (distributed
+  bucket backend) and DALLAY-513 (trusted proxy / client-identity handling) are resolved.
+
+The two-replica burst and shared-window-reset scenarios are follow-up scenarios only. They are not
+current MVP acceptance criteria and MUST NOT be used to claim that the per-JVM bucket is globally
+enforced across replicas.

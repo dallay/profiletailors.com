@@ -2,6 +2,7 @@ import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
 
 plugins {
     id("com.profiletailors.spring.boot.application")
+    id("com.profiletailors.legal.licence-report")
 }
 
 group = "com.profiletailors"
@@ -103,10 +104,11 @@ dependencies {
     implementation(libs.kotlinx.coroutines.reactor)
     implementation(libs.springdoc.openapi.webflux)
     implementation(libs.spring.modulith.starter.core)
+    implementation(libs.spring.ai.starter.mcp.server.webflux)
     implementation(libs.jackson.module.kotlin)
     // Jackson 2.x compat — PlatformBootstrapConfiguration uses kotlinModule() from the 2.x line
     @Suppress("GradleDependency")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.1")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation(libs.resend.java)
     implementation(libs.spring.boot.starter.actuator)
@@ -155,6 +157,11 @@ dependencyManagement {
         mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
         mavenBom(
             libs.spring.modulith.bom
+                .get()
+                .toString(),
+        )
+        mavenBom(
+            libs.spring.ai.bom
                 .get()
                 .toString(),
         )

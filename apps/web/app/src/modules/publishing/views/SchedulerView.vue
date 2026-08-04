@@ -487,8 +487,8 @@ async function handleUpdated() {
   })
 }
 
-function onPostCreated() {
-  isModalOpen.value = false
+function onPostCreated(options: { keepOpen?: boolean } = {}) {
+  if (!options.keepOpen) isModalOpen.value = false
   toast.success(t('composer.scheduleSuccessToast'))
 }
 

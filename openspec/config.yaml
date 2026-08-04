@@ -1,11 +1,27 @@
 schema: spec-driven
 
 context: |
-  Monorepo: profiletailors.com with Astro marketing app and Kotlin backend module at server/smp.
-  Tech stack: Kotlin 2.2, Spring Boot 4, WebFlux, Spring Security, Spring Modulith, PostgreSQL R2DBC, Liquibase planned, Astro 6, Tailwind CSS 4.
-  Architecture: monorepo with backend foundation work targeting hexagonal architecture and CQRS/mediator-style common abstractions; current backend codebase is still bootstrap-level.
-  Testing: JUnit 5 with Spring Boot test support, WebFlux test, Spring Security test, Kotlin coroutines test, Spring Modulith test.
-  Style: Gradle Kotlin DSL; Kotlin compiler strict JSR-305 nullability; Node >=22.12 for frontend.
+  Monorepo: profiletailors.com with Astro marketing app, Vue 3/Vite SPA, shared libraries, and Kotlin backend at server/smp.
+  Tech stack: Kotlin 2.3, Spring Boot 4, WebFlux, Spring Security, Spring Modulith, PostgreSQL/R2DBC, Liquibase, Astro 7, Tailwind CSS 4, Vue 3, pnpm 11.
+  Architecture: backend dependency direction domain <- application <- infrastructure, package-by-context, CQRS/mediator-style handlers; frontend feature modules and shared web libraries.
+  Testing: JUnit 5, Spring WebFlux/Security tests, Kotlin coroutines, Modulith, Cucumber BDD, Testcontainers, Kover, Vitest, Playwright, Astro check, and vue-tsc.
+  Style: Gradle Kotlin DSL, strict Kotlin JSR-305 nullability, Biome, Detekt, Spotless, English documentation, and just command recipes.
+
+testing:
+  strict_tdd: true
+  runners:
+    backend_unit: "just backend-test-fast"
+    backend_bdd_fast: "just backend-bdd-fast"
+    backend_postgres: "just backend-test-postgres"
+    backend_bdd_postgres: "just backend-bdd-postgres"
+    marketing_unit: "just frontend-test"
+    app_unit: "pnpm --filter app test:run"
+    marketing_e2e: "pnpm --filter marketing test:e2e"
+    app_e2e: "pnpm --filter app test:e2e:scheduler"
+  quality: ["just backend-lint", "just frontend-lint", "just frontend-check", "pnpm --filter app type-check"]
+  coverage: ["just frontend-test-cov", "just backend-coverage", "quality-gate.yml Kover/LCOV checks"]
+  full_gate: "just ci"
+  rationale: "Strict TDD is explicit in this config and repository instructions; multiple backend and frontend runners are available."
 
 rules:
   proposal:

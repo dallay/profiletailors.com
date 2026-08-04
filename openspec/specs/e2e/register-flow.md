@@ -78,7 +78,7 @@ PENDING user logs in/registers successfully
 ### Key Contracts
 
 | Endpoint             | Method | Request                    | Success          | Failure                                  |
-|----------------------|--------|----------------------------|------------------|------------------------------------------|
+| -------------------- | ------ | -------------------------- | ---------------- | ---------------------------------------- |
 | `/api/auth/register` | POST   | `{ email, password }`      | 201 + AuthTokens | 409 UserAlreadyExists / 400 InvalidInput |
 | `/api/auth/login`    | POST   | `{ email, password }`      | 200 + AuthTokens | 401 InvalidCredentials                   |
 | `/api/auth/refresh`  | POST   | (HttpOnly cookie)          | 200 + AuthTokens | 401 RefreshSessionNotActive              |
@@ -123,7 +123,7 @@ Given a browser navigates to /register
 Then the password input has type="password"
 And the password input has autocomplete="current-password"
 And the password input is required
-And the password input has placeholder "At least 8 characters"
+And the password input has placeholder "At least 12 characters"
 ```
 
 ### 1.4 Navigation between login and register
@@ -195,14 +195,14 @@ Then the browser shows HTML5 validation for the password field
 And no network request is made
 ```
 
-### 2.4 No client-side password length validation
+### 2.4 Client-side password length validation (ASVS L2)
 
 ```
 Given a browser navigates to /register
 When the user types "valid@email.com" in the email field
 And types "Ab1" (3 chars) in the password field
-Then no client-side error is shown
-And clicking "Create account" makes a request to the API
+Then a client-side "password too short" error is shown
+And no network request is made
 ```
 
 ---
@@ -328,7 +328,7 @@ And fills password with "SecurePass123!"
 Then the API returns 409 (case-insensitive duplicate check)
 ```
 
-### 4.3 Password too short (< 8 chars)
+### 4.3 Password too short (< 12 chars)
 
 ```
 Given the user navigates to /register
@@ -338,10 +338,10 @@ And clicks "Create account"
 Then the API returns 400 with ProblemDetail:
   {
     "title": "Invalid registration input",
-    "detail": "Password must contain at least 8 characters.",
+    "detail": "Password must contain at least 12 characters.",
     "status": 400
   }
-And the error banner shows "Password must contain at least 8 characters."
+And the error banner shows "Password must contain at least 12 characters."
 And the user stays on /register
 ```
 
@@ -601,7 +601,7 @@ And the submit button reads "Create account"
 And the alternate label reads "Already have an account?"
 And the alternate link reads "SIGN IN"
 And the email placeholder is "you@example.com"
-And the password placeholder is "At least 8 characters"
+And the password placeholder is "At least 12 characters"
 ```
 
 ### 8.2 Register page in Spanish
@@ -614,7 +614,7 @@ And the submit button reads "Crear cuenta"
 And the alternate label reads "¿Ya tienes una cuenta?"
 And the alternate link reads "Iniciar sesión"
 And the email placeholder is "tu@ejemplo.com"
-And the password placeholder is "Al menos 8 caracteres"
+And the password placeholder is "Al menos 12 caracteres"
 ```
 
 ### 8.3 Language switch on register page
@@ -818,7 +818,7 @@ And the button text indicates loading ("...")
 ## 13. Test Scenarios Matrix
 
 | ID   | Area               | Scenario                                     | Priority | Auth Required | API Required |
-|------|--------------------|----------------------------------------------|----------|---------------|--------------|
+| ---- | ------------------ | -------------------------------------------- | -------- | ------------- | ------------ |
 | 1.1  | Rendering          | Register page renders fully                  | P0       | No            | No           |
 | 1.2  | Rendering          | Email input attributes                       | P1       | No            | No           |
 | 1.3  | Rendering          | Password input attributes                    | P1       | No            | No           |
@@ -931,7 +931,7 @@ DELETE FROM workspaces WHERE name LIKE 'e2e-register-%';
 ## Appendix A: Routes Map
 
 | Path         | Component     | Auth Required | Guest Only |
-|--------------|---------------|---------------|------------|
+| ------------ | ------------- | ------------- | ---------- |
 | `/login`     | AuthView      | No            | Yes        |
 | `/register`  | AuthView      | No            | Yes        |
 | `/`          | HomeView      | Yes           | No         |
@@ -967,7 +967,7 @@ DELETE FROM workspaces WHERE name LIKE 'e2e-register-%';
 // 400 Bad Request (validation error)
 {
   "title": "Invalid registration input",
-  "detail": "Password must contain at least 8 characters.",
+  "detail": "Password must contain at least 12 characters.",
   "status": 400
 }
 ```

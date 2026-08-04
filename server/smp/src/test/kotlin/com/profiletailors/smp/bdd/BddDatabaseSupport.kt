@@ -792,6 +792,9 @@ class BddDatabaseSupport(
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+            .also { rows ->
+                require(rows > 0L) { "seedScheduledPublication: INSERT affected 0 rows for id=$publicationId" }
+            }
     }
 
     /**
@@ -822,6 +825,39 @@ class BddDatabaseSupport(
             .bind("workspaceId", WORKSPACE_ID)
             .bind("authorPrincipalId", PRINCIPAL_ID)
             .bind("socialAccountId", socialAccountId)
+            .let { spec ->
+                if (title != null) spec.bind("title", title) else spec.bindNull("title", String::class.java)
+            }
+            .let { spec ->
+                if (bodyText != null) spec.bind("bodyText", bodyText) else spec.bindNull("bodyText", String::class.java)
+            }
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    suspend fun seedPublishedPublication(
+        publicationId: String,
+        socialAccountId: String,
+        title: String?,
+        bodyText: String?,
+        publishedAt: Instant = Instant.now(),
+    ) {
+        databaseClient.sql(
+            """
+            INSERT INTO publications (id, workspace_id, author_principal_id, provider, social_account_id,
+                                      status, schedule_mode, priority, title, body_text,
+                                      published_at, created_at, updated_at)
+            VALUES (:id, :workspaceId, :authorPrincipalId, 'LINKEDIN', :socialAccountId,
+                    'PUBLISHED', 'NOW', FALSE, :title, :bodyText,
+                    :publishedAt, NOW(), NOW())
+            """.trimIndent(),
+        )
+            .bind("id", publicationId)
+            .bind("workspaceId", WORKSPACE_ID)
+            .bind("authorPrincipalId", PRINCIPAL_ID)
+            .bind("socialAccountId", socialAccountId)
+            .bind("publishedAt", publishedAt)
             .let { spec ->
                 if (title != null) spec.bind("title", title) else spec.bindNull("title", String::class.java)
             }
@@ -934,6 +970,9 @@ class BddDatabaseSupport(
         "DELETE FROM local_password_credentials",
         "DELETE FROM api_key_credentials",
         "DELETE FROM service_account_credentials",
+        // Ideas (reference publications + workspaces — must be deleted before both)
+        "DELETE FROM ideas",
+        "DELETE FROM idea_board_configs",
         // Publishing
         "DELETE FROM recurring_schedules",
         "DELETE FROM publication_asset_links",
@@ -949,6 +988,8 @@ class BddDatabaseSupport(
         "DELETE FROM workspace_file_blobs",
         "DELETE FROM workspace_upload_slots",
         "DELETE FROM media_rate_limits",
+        // Hashtags
+        "DELETE FROM hashtag_saved_sets",
         // Workspace
         "DELETE FROM workspace_memberships",
         "DELETE FROM workspace_ownerships",

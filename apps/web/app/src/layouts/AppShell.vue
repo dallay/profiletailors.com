@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
-import { Images, LayoutGrid, Shield } from '@lucide/vue'
+import { Images, LayoutGrid, Lightbulb, Shield } from '@lucide/vue'
 import {
   Sidebar,
   SidebarContent,
@@ -33,6 +33,7 @@ import SidebarChannelsSection, { type SidebarChannel } from '@layouts/sidebar/Si
 import SidebarConnectSection from '@layouts/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@layouts/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@layouts/UploadProgressToast.vue'
+import { startAppTour } from '@/lib/app-tour'
 import { Toaster } from '@/components/ui/sonner'
 import ConsentBanner from '@/components/consent/ConsentBanner.vue'
 import CookieSettings from '@/components/consent/CookieSettings.vue'
@@ -119,6 +120,7 @@ const navigationGroups = computed<NavGroup[]>(() => [
       { labelKey: 'nav.scheduler', to: '/scheduler', icon: LayoutGrid },
       { labelKey: 'nav.analytics', to: '/analytics', icon: LayoutGrid, badge: 'Live' },
       { labelKey: 'nav.media', to: '/media', icon: Images },
+      { labelKey: 'nav.ideas', to: '/ideas', icon: Lightbulb },
       { labelKey: 'nav.governance', to: '/governance/takedown', icon: Shield },
     ],
   },
@@ -221,6 +223,10 @@ function openCookieSettings() {
   showCookieSettings.value = true
 }
 
+function onStartTour() {
+  startAppTour()
+}
+
 async function handleLogout() {
   try {
     await auth.logout()
@@ -264,7 +270,10 @@ onBeforeUnmount(() => {
   <TooltipProvider>
     <SidebarProvider class="bg-bg-primary font-sans text-text-body transition-colors duration-250">
       <Sidebar collapsible="icon">
-        <SidebarHeader class="gap-3">
+        <SidebarHeader
+          class="gap-3"
+          data-tour="workspace-switcher"
+        >
           <SidebarHeaderSection
             :active-workspace="workspace.activeWorkspace"
             :options="workspace.workspaces"
@@ -283,6 +292,7 @@ onBeforeUnmount(() => {
                 <SidebarNavSection
                   :groups="navigationGroups"
                   :total-queued-count="totalQueuedCount"
+                  data-tour="primary-navigation"
                 />
               </SidebarMenuItem>
             </SidebarMenu>
@@ -298,6 +308,7 @@ onBeforeUnmount(() => {
               :active-channel-id="extractFirstChannelId(route.query)"
               :total-queued-count="totalQueuedCount"
               :is-scheduler-route="isSchedulerRoute()"
+              data-tour="channel-filters"
               @select-all="showAllChannels"
               @select-channel="selectChannel"
             />
@@ -327,7 +338,7 @@ onBeforeUnmount(() => {
 
       <SidebarInset>
         <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <AppHeader />
+          <AppHeader @start-tour="onStartTour" />
 
           <section
             v-if="shouldShowEmailVerificationBanner"
@@ -372,6 +383,7 @@ onBeforeUnmount(() => {
           <main
             id="main-content"
             tabindex="-1"
+            data-tour="main-content"
             :class="[
               'dot-grid flex-1 px-4 py-6 md:px-6 lg:px-8 lg:py-8',
               isSchedulerRoute() ? 'flex min-h-0 flex-col overflow-hidden' : 'overflow-y-auto',
@@ -386,6 +398,7 @@ onBeforeUnmount(() => {
               type="button"
               class="text-xs text-text-secondary transition-colors hover:text-text-display hover:underline"
               data-testid="cookie-settings-link"
+              data-tour="cookie-settings"
               @click="openCookieSettings"
             >
               {{ t('consent.footer.cookieSettings') }}

@@ -13,9 +13,11 @@ import linkedinCallback from './linkedinCallback'
 import workspace from './workspace'
 import analytics from './analytics'
 import media from './media'
+import ideas from './ideas'
 import settings from './settings'
 import { governance } from './governance'
 import { consent } from './consent'
+import tour from './tour'
 
 export default {
   common,
@@ -33,7 +35,9 @@ export default {
   workspace,
   analytics,
   media,
+  ideas,
   settings,
   governance,
   consent,
+  tour,
 }

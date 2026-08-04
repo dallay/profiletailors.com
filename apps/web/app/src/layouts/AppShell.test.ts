@@ -32,6 +32,7 @@ vi.mock('vue-router', () => ({
 }))
 
 vi.mock('vue-i18n', () => ({
+  createI18n: () => ({ global: { locale: { value: 'en' } } }),
   useI18n: () => ({
     t: (key: string) =>
       ({
@@ -251,6 +252,7 @@ vi.mock('@layouts/sidebar/SidebarChannelsSection.vue', () => ({
 
 vi.mock('@lucide/vue', () => ({
   Images: { template: '<svg />' },
+  Lightbulb: { template: '<svg />' },
   LayoutGrid: { template: '<svg />' },
   Shield: { template: '<svg />' },
 }))

@@ -12,7 +12,7 @@
 # Cross-platform: just itself runs on macOS, Linux, and Windows.
 # The Gradle wrapper is auto-detected: `gradlew.bat` on Windows CMD/PowerShell,
 # `./gradlew` on POSIX shells (macOS, Linux, Git Bash, WSL).
-# Recipes that use `rm -rf` still require a POSIX shell (Git Bash or WSL on Windows).
+# Recipes are wired through cross-platform Node.js helpers where shell features differ.
 #
 # Every recipe delegates to its tool's native commands —
 # nothing is replaced, just coordinated.
@@ -60,13 +60,14 @@
 # ────────────────────────────────────────────────────────────────
 
 set positional-arguments := true
+set windows-shell := ["pwsh", "-NoLogo", "-Command"]
 
 # ——— Paths ———————————————————————————————————————————————————
 frontend-dir   := "apps/web/marketing"
 app-dir        := "apps/web/app"
 admin-dir      := "apps/web/admin"
 # Auto-detect Gradle wrapper: `gradlew.bat` on Windows (CMD/PowerShell), `./gradlew` otherwise
-gradle-root    := `if [ -n "${COMSPEC:-}" ] && [ -z "${MSYSTEM:-}" ]; then echo "gradlew.bat"; else echo "./gradlew"; fi`
+gradle-root    := if os_family() == "windows" { "gradlew.bat" } else { "./gradlew" }
 docker-compose := "docker compose"
 production-compose := "infra/apps/smp/production/compose.yaml"
 production-env := "infra/apps/smp/production/.env"
@@ -83,21 +84,15 @@ install:
 
 # Full initial setup: .env → install → git hooks → agentsync → codegraph
 setup:
-    cp -n .env.example .env 2>/dev/null || true
+    node -e "const fs=require('fs');if(!fs.existsSync('.env')&&fs.existsSync('.env.example'))fs.copyFileSync('.env.example','.env')"
     just install
     just hooks-install
     pnpm dlx @dallay/agentsync apply
-    command -v portless >/dev/null 2>&1 || pnpm add -g portless
-    command -v codegraph >/dev/null 2>&1 && codegraph init || echo "⚠️  codegraph not found — skipping index init"
+    node scripts/setup-optional-tools.mjs
 
 # Install Lefthook git hooks unless globally disabled
 hooks-install:
-    @HOOKS_PATH="$$(git config --global core.hooksPath 2>/dev/null || true)"; \
-    if [ "$$HOOKS_PATH" = "/dev/null" ]; then \
-        echo "Skipping Lefthook install: core.hooksPath=/dev/null"; \
-    else \
-        pnpm exec lefthook install; \
-    fi
+    node scripts/hooks-install.mjs
 
 # ═══════════════════════════════════════════════════════════════
 # FRONTEND  (pnpm / Astro / Biome / Vitest / Playwright)
@@ -105,19 +100,7 @@ hooks-install:
 
 # Start both frontend dev servers in parallel (portless)
 dev-frontend $force="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [ "{{force}}" = "--force" ]; then
-        echo "Killing frontend dev servers..."
-        pkill -f "vite" || true
-        sleep 0.5
-    elif [ -n "{{force}}" ]; then
-        echo "Unknown option: {{force}}"
-        echo "Usage: just dev-frontend [--force]"
-        exit 2
-    fi
-    echo "Starting frontend dev servers (marketing + app)..."
-    pnpm --parallel --filter marketing --filter app dev
+    node scripts/dev-frontend.mjs "{{force}}"
 
 # Start only the Vue 3 app (dashboard SPA)
 app:
@@ -217,43 +200,25 @@ backend-image image_name="profiletailors/smp:local" version="0.0.1-SNAPSHOT":
 
 # Verify production startup, Liquibase migrations, and health with ephemeral infrastructure
 release-backend-verify image_name:
-    ./scripts/verify-release-image.sh "{{image_name}}"
+    node scripts/run-shell-script.mjs scripts/verify-release-image.sh "{{image_name}}"
 
 # Build a revision-tagged OCI backend image with Spring Boot buildpacks
 release-backend-image version="0.1.0" image_repository="profiletailors/smp":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [ -n "$(git status --porcelain)" ]; then
-        echo "Release images must be built from a clean worktree."
-        exit 1
-    fi
-    revision="$(git rev-parse HEAD)"
-    short_revision="${revision:0:12}"
-    image_name="{{image_repository}}:{{version}}-${short_revision}"
-    BP_OCI_REVISION="$revision" BP_OCI_VERSION="{{version}}" \
-        {{gradle-root}} :server:smp:bootBuildImage -PreleaseVersion="{{version}}" \
-            --imageName="$image_name" --no-daemon
-    docker image inspect "$image_name" --format 'image={{"{{"}}.RepoTags{{"}}"}} id={{"{{"}}.Id{{"}}"}}'
+    node scripts/release-backend-image.mjs "{{version}}" "{{image_repository}}"
 
 # Run backend unit tests (optionally exclude tags: just backend-test 'postgres')
 # Postgres integration tests use Testcontainers and require SMP_DB_TEST_PASSWORD,
 # which is sourced from .env (or the shell) — same shape as the CI workflow.
 backend-test exclude-tags="":
-    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
-    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
-    {{gradle-root}} :server:smp:test --no-daemon {{ if exclude-tags != "" { "-PexcludeTags=" + exclude-tags } else { "" } }}
+    node scripts/with-db-password-gradle.mjs :server:smp:test --no-daemon {{ if exclude-tags != "" { "-PexcludeTags=" + exclude-tags } else { "" } }}
 
 # Run backend tests (fast)
 backend-test-fast:
-    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
-    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
-    {{gradle-root}} :server:smp:test --no-daemon
+    node scripts/with-db-password-gradle.mjs :server:smp:test --no-daemon
 
 # Run full check: tests + Detekt (aligns with CI — excludes BDD suites)
 backend-check:
-    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
-    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
-    {{gradle-root}} :server:smp:check --no-daemon -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
+    node scripts/with-db-password-gradle.mjs :server:smp:check --no-daemon -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
 
 # Run Detekt static analysis
 backend-lint:
@@ -273,31 +238,7 @@ backend-run:
 
 # Start backend + frontend app in parallel
 serve $force="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [ "{{force}}" = "--force" ]; then
-        just kill-servers
-    elif [ -n "{{force}}" ]; then
-        echo "Unknown option: {{force}}"
-        echo "Usage: just serve [--force]"
-        exit 2
-    fi
-    # Ensure portless proxy is running so HTTPS dashboard URLs work
-    if ! pgrep -f "portless.*proxy" >/dev/null 2>&1; then
-        echo "Portless proxy not running."
-        read -r -p "Start it now? (requires sudo for port 443, or falls back to :1355) [Y/n] " reply
-        reply="${reply:-Y}"
-        if [[ "$reply" =~ ^[Yy]$ ]]; then
-            sudo portless proxy start
-        else
-            echo "Skipping portless. Dashboard will only be reachable at http://localhost:<vite-port>."
-        fi
-    else
-        echo "Portless proxy already running."
-    fi
-    echo "Starting backend (Spring Boot) + frontend app (Vite)..."
-    {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev' &
-    cd {{app-dir}} && pnpm dev
+    node scripts/serve-dev.mjs "{{force}}"
 
 # Restart backend + frontend app, killing previous dev servers first
 serve-force:
@@ -305,33 +246,23 @@ serve-force:
 
 # Kill running dev servers (backend, frontend, Gradle daemons)
 kill-servers:
-    #!/usr/bin/env bash
-    echo "Stopping dev servers..."
-    pkill -f "bootRun" || true
-    pkill -f "vite" || true
-    pkill -f "GradleDaemon" || true
-    echo "✓ Servers stopped"
+    node scripts/kill-servers.mjs
 
 # Run tests with JaCoCo coverage report
 backend-coverage:
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
-    {{gradle-root}} :server:smp:test :server:smp:jacocoTestReport --no-daemon
+    node scripts/with-db-password-gradle.mjs :server:smp:test :server:smp:jacocoTestReport --no-daemon
 
 # Run fast BDD suite
 backend-bdd-fast:
-    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
-    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
-    {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/with-db-password-gradle.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run PostgreSQL integration tests with Testcontainers
 backend-test-postgres:
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
-    {{gradle-root}} :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/with-db-password-gradle.mjs :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run Postgres BDD suite (requires infra-up first)
 backend-bdd-postgres:
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
-    {{gradle-root}} :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/with-db-password-gradle.mjs :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # ═══════════════════════════════════════════════════════════════
 # INFRASTRUCTURE  (Docker Compose)
@@ -355,7 +286,7 @@ infra-restart:
 
 # Generate local files required by the production Compose stack
 production-prepare:
-    ./infra/apps/smp/production/prepare.sh
+    node scripts/run-shell-script.mjs infra/apps/smp/production/prepare.sh
 
 # Validate the fully resolved production Compose configuration
 production-config:
@@ -379,7 +310,7 @@ production-status:
 
 # Verify HTTP routing, migrations, production data, secrets, and container hardening
 production-smoke *flags="":
-    ./infra/apps/smp/production/smoke-test.sh {{flags}}
+    node scripts/run-shell-script.mjs infra/apps/smp/production/smoke-test.sh {{flags}}
 
 # Tail production stack logs
 production-logs *service="":
@@ -387,7 +318,7 @@ production-logs *service="":
 
 # Generate local configuration and secret sources for Docker Swarm
 swarm-prepare:
-    ./infra/apps/smp/swarm/prepare.sh
+    node scripts/run-shell-script.mjs infra/apps/smp/swarm/prepare.sh
 
 # Label the single node that owns PostgreSQL and local media data
 swarm-label-storage node:
@@ -395,52 +326,39 @@ swarm-label-storage node:
 
 # Validate the rendered Docker Swarm stack
 swarm-config:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    set -a
-    source {{swarm-env}}
-    set +a
-    docker stack config --compose-file {{swarm-stack}} >/dev/null
+    node scripts/swarm-env-run.mjs config
 
 # Create secrets, deploy the Swarm stack, and wait for readiness
 swarm-deploy:
-    ./infra/apps/smp/swarm/deploy.sh
+    node scripts/run-shell-script.mjs infra/apps/smp/swarm/deploy.sh
 
 # Show services in the deployed Swarm stack
 swarm-status:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    set -a
-    source {{swarm-env}}
-    set +a
-    docker stack services "$SWARM_STACK_NAME"
+    node scripts/swarm-env-run.mjs status
 
 # Tail logs for one Swarm service, for example: just swarm-logs backend
 swarm-logs service:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    set -a
-    source {{swarm-env}}
-    set +a
-    docker service logs --follow "${SWARM_STACK_NAME}_{{service}}"
+    node scripts/swarm-env-run.mjs logs "{{service}}"
 
 # Roll back one application service, for example: just swarm-rollback backend
 swarm-rollback service:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case "{{service}}" in
-        backend|dashboard) ;;
-        *) echo "Service must be backend or dashboard."; exit 1 ;;
-    esac
-    set -a
-    source {{swarm-env}}
-    set +a
-    : "${SWARM_STACK_NAME:?Set SWARM_STACK_NAME in swarm/.env}"
-    docker service rollback "${SWARM_STACK_NAME}_{{service}}"
+    node scripts/swarm-env-run.mjs rollback "{{service}}"
 
 # Remove the Swarm stack while preserving secrets and persistent volumes
 swarm-remove:
-    ./infra/apps/smp/swarm/remove.sh
+    node scripts/run-shell-script.mjs infra/apps/smp/swarm/remove.sh
+
+# ═══════════════════════════════════════════════════════════════
+# LICENCE COMPLIANCE
+# ═══════════════════════════════════════════════════════════════
+
+# Scan all dependency licences for AGPL-3.0 compatibility (frontend + backend)
+licence-check:
+    @echo "▸ Frontend: dependency licence scan..."
+    pnpm licenses list --json | node scripts/check-frontend-licences.mjs
+    @echo "▸ Backend: dependency licence report..."
+    {{gradle-root}} :server:smp:generateLicenseReport --no-daemon
+    @echo "  Report: server/smp/build/reports/dependency-licence/dependency-licence.txt"
 
 # ═══════════════════════════════════════════════════════════════
 # CI / VALIDATION
@@ -454,6 +372,9 @@ ci-local:
     @echo ""
     @echo "▸ Gitleaks (secrets scan)..."
     gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
+    @echo ""
+    @echo "▸ Dependency licence scan..."
+    just licence-check
     @echo ""
     @echo "▸ Marketing: Biome lint..."
     cd {{frontend-dir}} && pnpm lint
@@ -486,13 +407,10 @@ ci-local:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ Backend: unit tests (fast)..."
-    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
-    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
-    {{gradle-root}} :server:smp:test --no-daemon
+    node scripts/with-db-password-gradle.mjs :server:smp:test --no-daemon
     @echo ""
     @echo "▸ Backend: build..."
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
-    {{gradle-root}} :server:smp:assemble --no-daemon
+    node scripts/with-db-password-gradle.mjs :server:smp:assemble --no-daemon
     @echo ""
     @echo "══════════════════════════════════════════════"
     @echo "  ✅ CI Pipeline Simulation Complete"
@@ -503,12 +421,10 @@ ci-full: infra-up
     just ci-local
     @echo ""
     @echo "▸ Backend: Postgres integration suite..."
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
-    {{gradle-root}} :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/with-db-password-gradle.mjs :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ Backend: Postgres BDD suite..."
-    export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env | cut -d= -f2-); \
-    {{gradle-root}} :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/with-db-password-gradle.mjs :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "══════════════════════════════════════════════"
     @echo "  ✅ Full CI Suite Complete (incl. Postgres)"
@@ -522,6 +438,9 @@ ci:
     @echo ""
     @echo "▸ [1/8] Gitleaks (secrets scan)..."
     gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
+    @echo ""
+    @echo "▸ [1b/8] Dependency licence scan..."
+    just licence-check
     @echo ""
     @echo "▸ [2/8] Marketing: Biome lint..."
     cd {{frontend-dir}} && pnpm lint
@@ -543,14 +462,10 @@ ci:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ [6/8] Backend: unit tests (fast)..."
-    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
-    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
-    {{gradle-root}} :server:smp:test --no-daemon
+    node scripts/with-db-password-gradle.mjs :server:smp:test --no-daemon
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
-    if test -n "${SMP_DB_TEST_PASSWORD:-}"; then :; else export SMP_DB_TEST_PASSWORD=$(grep ^SMP_DB_TEST_PASSWORD= .env 2>/dev/null | cut -d= -f2-); fi; \
-    test -n "$SMP_DB_TEST_PASSWORD" || { echo "SMP_DB_TEST_PASSWORD must be set in the environment or .env" >&2; exit 1; }; \
-    {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/with-db-password-gradle.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
     cd {{frontend-dir}} && pnpm test:e2e
@@ -565,7 +480,5 @@ ci:
 
 # Clean all build artifacts and caches
 clean:
-    rm -rf {{frontend-dir}}/dist
-    rm -rf {{frontend-dir}}/coverage
-    {{gradle-root}} clean --no-daemon 2>/dev/null || true
-    rm -rf .gradle/build-cache
+    node -e "const fs=require('fs');for(const p of ['{{frontend-dir}}/dist','{{frontend-dir}}/coverage','.gradle/build-cache']){fs.rmSync(p,{recursive:true,force:true});}"
+    -{{gradle-root}} clean --no-daemon

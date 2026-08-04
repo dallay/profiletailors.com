@@ -36,9 +36,11 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "platform.workspace-context.header-name=X-Workspace-Id",
         "app.security.cors.allowed-origins=http://localhost",
         "spring.main.allow-bean-definition-overriding=true",
+        "spring.ai.mcp.server.enabled=true",
         BddTestProperties.LINKEDIN_CLIENT_ID,
         BddTestProperties.LINKEDIN_CLIENT_SECRET,
         BddTestProperties.LINKEDIN_REDIRECT_URI,
+        BddTestProperties.LINKEDIN_STATE_SIGNING_SECRET,
     ],
 )
 @Import(CommonBddTestConfiguration::class, FastBddTestConfiguration::class)

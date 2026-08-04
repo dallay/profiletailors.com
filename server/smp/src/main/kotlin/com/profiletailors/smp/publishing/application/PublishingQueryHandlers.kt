@@ -111,10 +111,6 @@ internal class ListPublicationsHandler(
 ) : QueryHandler<ListPublicationsQuery, ListPublicationsResponse> {
 
     override suspend fun handle(query: ListPublicationsQuery): ListPublicationsResponse {
-        val ctxBefore = resourceContextProvider.current()
-        java.io.File(
-            "/tmp/debug-wf.log",
-        ).appendText("[DEBUG_HANDLER] ListPublicationsHandler.handle: current()=$ctxBefore\n")
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
 
         val from = query.from

@@ -1,7 +1,7 @@
 # Retention and Erasure Control Plan
 
 > **Classification:** Internal — Privacy, Security, and Data Operations
-> **Status:** Remediation plan — production retention publication blocked
+> **Status:** Internal remediation plan — not a public policy document
 > **Source of truth:** `docs/compliance/data-inventory.yaml`
 
 ## Overview
@@ -18,7 +18,7 @@ approved and the complete deletion or anonymisation path is verified.
 ### Required Control States
 
 | State           | Meaning                                                                                                                |
-|-----------------|------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | Not implemented | No complete automatic or operator control was found.                                                                   |
 | Partial         | Some expiry, revocation, hard deletion, or physical-object handling exists but the end-to-end record is incomplete.    |
 | Implemented     | Trigger, scope, action, processors, backups, holds, evidence, monitoring, failure handling, and tests are operational. |
@@ -27,7 +27,7 @@ approved and the complete deletion or anonymisation path is verified.
 ## Changes
 
 | Version | Date       | Description                                                                                                      |
-|---------|------------|------------------------------------------------------------------------------------------------------------------|
+| ------- | ---------- | ---------------------------------------------------------------------------------------------------------------- |
 | 1.0     | 2026-07-17 | Added evidence-based control gaps, design requirements, and verification scenarios for all processing activities |
 
 ## Usage
@@ -35,7 +35,7 @@ approved and the complete deletion or anonymisation path is verified.
 ### Current Control Register
 
 | Activity                                        | Current state   | Verified capability                                                                                           | Missing control before approval                                                                                                                               |
-|-------------------------------------------------|-----------------|---------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | pa-001 Accounts, authentication, and sessions   | Partial         | Refresh sessions expire and can be revoked; logout clears the refresh cookie                                  | Account closure, identity erasure or minimisation, expired verification cleanup, federated identity handling, legal holds, processors, backups, and proof     |
 | pa-002 Publishing and scheduling                | Partial         | Unpublished publication deletion removes related jobs, asset links, attempts, and the publication             | Published/failed/cancelled schedules, customer termination, social-platform propagation, notification/audit retention, holds, backups, and processor proof    |
 | pa-003 Hosting and delivery                     | Not implemented | No production provider is selected                                                                            | Select provider, configure logs and CDN/security data, approve period, deletion/export, incident holds, subprocessor flow-down, and evidence                  |

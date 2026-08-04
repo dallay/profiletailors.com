@@ -20,6 +20,7 @@ dependencies {
     implementation(libs.gradle.owasp.depcheck)
     implementation(libs.gradle.kover)
     implementation(libs.gradle.spotless)
+    implementation(libs.gradle.licence.report)
 
     testImplementation(platform("org.junit:junit-bom:6.1.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
@@ -51,6 +52,10 @@ gradlePlugin {
         register("spotless") {
             id = "com.profiletailors.spotless"
             implementationClass = "com.profiletailors.buildlogic.formatting.SpotlessPlugin"
+        }
+        register("licence-report") {
+            id = "com.profiletailors.legal.licence-report"
+            implementationClass = "com.profiletailors.buildlogic.legal.LicenceReportPlugin"
         }
     }
 }

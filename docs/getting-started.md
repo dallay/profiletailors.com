@@ -15,7 +15,7 @@ Run `just -l` to see every available recipe.
 ## Prerequisites
 
 | Requirement | Version      | Install                                                                |
-|-------------|--------------|------------------------------------------------------------------------|
+| ----------- | ------------ | ---------------------------------------------------------------------- |
 | Java        | `>= 21`      | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
 | Node.js     | `>= 22.12.0` | [nodejs.org](https://nodejs.org)                                       |
 | pnpm        | `11.11.0`    | `npm install -g pnpm@11.11.0`                                          |
@@ -82,7 +82,7 @@ cd profiletailors.com
 just setup
 ```
 
-`just setup` performs four steps automatically:
+`just setup` performs five steps automatically:
 
 1. **`.env` bootstrap** — copies `.env.example` to `.env` (skipped if `.env` already exists).
 2. **Dependency installation** — runs `pnpm install --frozen-lockfile` to install all workspace
@@ -91,6 +91,8 @@ just setup
    disabled, e.g. `core.hooksPath=/dev/null` in Jules or CI environments).
 4. **AI agents** — runs `pnpm dlx @dallay/agentsync apply` to synchronize AI agent configurations
    and instructions.
+5. **Optional local tooling** — runs `node scripts/setup-optional-tools.mjs` to bootstrap optional
+   local tools.
 
 If hooks are not installed, CI will catch any issues — so there is no risk in skipping them locally.
 
@@ -126,7 +128,7 @@ This runs Biome lint, Vitest unit tests, and a production build.
 just backend-run
 ```
 
-The server starts in dev profile. API endpoints will be available at `http://localhost:8080`.
+The server starts in dev profile. API endpoints will be available at `http://localhost:7638`.
 
 Run fast tests:
 
@@ -155,7 +157,7 @@ just -l
 Key recipes:
 
 | Command                  | Description                                     |
-|--------------------------|-------------------------------------------------|
+| ------------------------ | ----------------------------------------------- |
 | `just setup`             | Full bootstrap: .env + deps + hooks + agentsync |
 | `just dev-frontend`      | Start both Astro and Vue dev servers            |
 | `just frontend-test`     | Run Vitest unit tests                           |
