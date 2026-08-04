@@ -10,6 +10,10 @@ Use the repository [documentation index](../docs/README.md) for operational, arc
 security, infrastructure, and onboarding documentation. Use this directory when you need to
 understand what the product must do, why a change was made, or what evidence verifies it.
 
+## Changes
+
+- **2026-08-03**: Updated password-recovery artifact references from `changes/password-recovery/...` to `changes/archive/2026-07-29-password-recovery/...` (dead-reference-cleanup automation).
+
 ## Structure
 
 | Path | Purpose |
@@ -41,7 +45,7 @@ When implementing a feature:
 5. Archive a change only after implementation, verification, and source-spec synchronization are
    complete.
 
-For the current password-recovery work, start with:
+For the archived password-recovery work (completed and archived 2026-07-29), refer to:
 
 - [Password-recovery state](changes/archive/2026-07-29-password-recovery/state.yaml)
 - [Password-recovery specification](changes/archive/2026-07-29-password-recovery/spec.md)

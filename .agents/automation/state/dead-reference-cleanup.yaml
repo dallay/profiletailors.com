@@ -44,3 +44,5 @@ checks:
     status: Passed
   - name: Standard AGENTS.md reference validation
     status: Passed
+  - name: Test suite validation
+    status: Passed

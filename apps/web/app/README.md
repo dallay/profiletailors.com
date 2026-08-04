@@ -9,6 +9,10 @@ Spanish copy, and Vitest plus Playwright for verification.
 The app is part of the workspace at `apps/web/app/`. Run commands from the repository root through
 the `just` command hub rather than invoking package-manager or Gradle commands manually.
 
+## Changes
+
+- **2026-08-03**: Corrected AGENTS.md reference path from `../../../AGENTS.md` to `../../../.agents/AGENTS.md` (dead-reference-cleanup automation).
+
 ## Usage
 
 ### Start development
