@@ -35,11 +35,13 @@ minimumReleaseAgeExclude:
   - shell-quote@1.10.0
   # Renovate security update: @babel/core@7.29.6
   - "@babel/core@7.29.6"
+  # Renovate security update: hono@4.12.34
+  - hono@4.12.34
 
 overrides:
   esbuild: ">=0.28.1"
   undici: ">=7.28.0 <8.0.0"
-  hono: ">=4.12.32"
+  hono: ">=4.12.34"
   js-yaml: "4.3.0"
   devalue: ">=5.8.2"
   yaml: "^2.9.0"
