@@ -56,7 +56,7 @@ Additional Playwright projects and fixtures live under `e2e/`.
 - `src/shared/` — shared UI, validation, i18n, and utilities.
 - `e2e/` — Playwright configurations, fixtures, page objects, and specs.
 
-Follow the repository architecture rules in [AGENTS.md](../../../AGENTS.md) and the relevant
+Follow the repository architecture rules in [AGENTS.md](../../../.agents/AGENTS.md) and the relevant
 frontend skills under `.agents/skills/`.
 
 ## Troubleshooting

@@ -43,10 +43,10 @@ When implementing a feature:
 
 For the current password-recovery work, start with:
 
-- [Password-recovery state](changes/password-recovery/state.yaml)
-- [Password-recovery specification](changes/password-recovery/spec.md)
-- [Password-recovery task progress](changes/password-recovery/apply-progress.md)
-- [Password-recovery verification report](changes/password-recovery/verify-report.md)
+- [Password-recovery state](changes/archive/2026-07-29-password-recovery/state.yaml)
+- [Password-recovery specification](changes/archive/2026-07-29-password-recovery/spec.md)
+- [Password-recovery task progress](changes/archive/2026-07-29-password-recovery/apply-progress.md)
+- [Password-recovery verification report](changes/archive/2026-07-29-password-recovery/verify-report.md)
 
 ## Troubleshooting
 

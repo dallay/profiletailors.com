@@ -1,5 +1,46 @@
 schemaVersion: 1
 task: dead-reference-cleaner
-lastExecution: null
-findings: [ ]
-checks: [ ]
+lastExecution: "2026-08-03T01:45:00Z"
+findings:
+  - id: PASSWORD-RECOVERY-DOC-DRIFT
+    title: "Outdated Password Recovery References"
+    status: resolved
+    classification: DRIFT_DETECTED
+    evidence: "docs/runbooks/password-recovery.md"
+    risk: LOW
+    message: "Updated dead links pointing to active changes/password-recovery to correct changes/archive/2026-07-29-password-recovery paths."
+  - id: JUSTFILE-PATH-CASING
+    title: "Lowercase justfile Reference Mismatch"
+    status: resolved
+    classification: DRIFT_DETECTED
+    evidence: "docs/runbooks/password-recovery.md"
+    risk: LOW
+    message: "Corrected relative reference to lowercase 'justfile' to match uppercase 'Justfile'."
+  - id: APP-AGENTS-DOC-LINK
+    title: "Dashboard App AGENTS.md Path Reference"
+    status: resolved
+    classification: DRIFT_DETECTED
+    evidence: "apps/web/app/README.md"
+    risk: LOW
+    message: "Corrected relative path from repo root 'AGENTS.md' to the standardized '.agents/AGENTS.md'."
+  - id: OPENSPEC-README-PASSWORD-RECOVERY
+    title: "OpenSpec README Password Recovery References"
+    status: resolved
+    classification: DRIFT_DETECTED
+    evidence: "openspec/README.md"
+    risk: LOW
+    message: "Updated dead references pointing to active changes/password-recovery state, spec, progress, and verify reports to point to changes/archive/2026-07-29-password-recovery paths."
+  - id: MARKETING-PAGE-INTENTIONAL-ROUTES
+    title: "Compliance intentional marketing routes"
+    status: ignored
+    classification: NO_DRIFT
+    evidence: "docs/compliance/README.md"
+    risk: LOW
+    message: "Web marketing pages routes (such as /privacy, /terms, /acceptable-use, /cookies) are intentional deploy routes, not repo files, as documented in docs/compliance/README.md. Ignored as per decision rules."
+checks:
+  - name: Markdown relative path link validation
+    status: Passed
+  - name: Justfile reference casing validation
+    status: Passed
+  - name: Standard AGENTS.md reference validation
+    status: Passed
