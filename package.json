@@ -49,6 +49,6 @@
     "prepare": "node scripts/prepare-workspace.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.5"
+    "@biomejs/biome": "2.5.6"
   }
 }
