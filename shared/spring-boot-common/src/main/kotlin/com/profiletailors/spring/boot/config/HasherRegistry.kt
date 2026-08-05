@@ -13,7 +13,7 @@ class HasherRegistry(private val securityProperties: SecurityProperties) {
         // throw during bean construction so application context fails early.
         if (securityProperties.default == "hmac" && securityProperties.ipHmacSecret.isBlank()) {
             check(securityProperties.ipHmacSecret.isNotBlank()) {
-                "HMAC selected as default hasher but application.security.hasher.ip-hmac-secret is blank"
+                "HMAC selected as default hasher but application.hasher.ip-hmac-secret is blank"
             }
         }
     }
