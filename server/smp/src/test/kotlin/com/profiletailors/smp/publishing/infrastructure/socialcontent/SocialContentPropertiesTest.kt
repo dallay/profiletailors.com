@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.socialcontent
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -12,7 +13,7 @@ class SocialContentPropertiesTest {
         .withUserConfiguration(TestConfiguration::class.java)
 
     @Test
-    fun `all social content features are disabled by default`() {
+    fun `should disable every social content feature by default`() {
         contextRunner.run { context ->
             val properties = context.getBean(SocialContentProperties::class.java)
 
@@ -27,7 +28,7 @@ class SocialContentPropertiesTest {
     }
 
     @Test
-    fun `binds feature gates and operational limits`() {
+    fun `should bind feature gates and operational limits when configuration is supplied`() {
         contextRunner
             .withPropertyValues(
                 "publishing.social-content.discovery-enabled=true",
@@ -70,6 +71,116 @@ class SocialContentPropertiesTest {
                 properties.purge.enabled shouldBe true
                 properties.purge.interval shouldBe Duration.ofHours(6)
             }
+    }
+
+    @Test
+    fun `should reject polling interval that is zero or negative`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Polling(interval = Duration.ZERO)
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Polling(interval = Duration.ofMinutes(-5))
+        }
+    }
+
+    @Test
+    fun `should reject polling overlap that is negative`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Polling(overlap = Duration.ofMinutes(-1))
+        }
+    }
+
+    @Test
+    fun `should reject polling page size outside the inclusive range`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Polling(pageSize = 0)
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Polling(pageSize = -1)
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Polling(pageSize = 101)
+        }
+    }
+
+    @Test
+    fun `should reject polling max pages below one`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Polling(maxPages = 0)
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Polling(maxPages = -3)
+        }
+    }
+
+    @Test
+    fun `should reject quota requestsPerMinute below the minimum`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Quota(requestsPerMinute = 0)
+        }
+    }
+
+    @Test
+    fun `should reject quota burst below the minimum`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Quota(burst = 0)
+        }
+    }
+
+    @Test
+    fun `should reject purge interval that is zero or negative`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Purge(interval = Duration.ZERO)
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties.Purge(interval = Duration.ofMinutes(-1))
+        }
+    }
+
+    @Test
+    fun `should reject apiVersion that does not match the six digit YYYYMM format`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(apiVersion = "2026")
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(apiVersion = "abcdef")
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(apiVersion = "")
+        }
+    }
+
+    @Test
+    fun `should reject activity cache TTL that is zero or negative`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(activityCacheTtl = Duration.ZERO)
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(activityCacheTtl = Duration.ofHours(-1))
+        }
+    }
+
+    @Test
+    fun `should reject commenter profile cache TTL that is zero or negative`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(commenterProfileCacheTtl = Duration.ZERO)
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(commenterProfileCacheTtl = Duration.ofHours(-1))
+        }
+    }
+
+    @Test
+    fun `should reject apiVersion with non digit characters`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(apiVersion = "20A606")
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(apiVersion = "abcdef")
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(apiVersion = "")
+        }
     }
 
     @Configuration(proxyBeanMethods = false)

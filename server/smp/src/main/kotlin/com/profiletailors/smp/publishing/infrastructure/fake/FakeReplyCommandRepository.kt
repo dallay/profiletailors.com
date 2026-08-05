@@ -9,6 +9,7 @@ import com.profiletailors.smp.publishing.domain.WorkspaceScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+/** In-memory [ReplyCommandRepository] that de-duplicates claim calls by idempotency key. */
 class FakeReplyCommandRepository : ReplyCommandRepository {
     private val mutex = Mutex()
     private val results = mutableMapOf<Pair<WorkspaceScope, String>, ReplyCommandResult>()

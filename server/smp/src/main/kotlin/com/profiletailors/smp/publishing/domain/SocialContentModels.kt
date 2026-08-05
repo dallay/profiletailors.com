@@ -3,6 +3,7 @@ package com.profiletailors.smp.publishing.domain
 import java.time.Duration
 import java.time.Instant
 
+/** Workspace identifier that scopes every social-content read, sync, and reply operation. */
 @JvmInline
 value class WorkspaceScope(val value: String) {
     init {
@@ -10,6 +11,7 @@ value class WorkspaceScope(val value: String) {
     }
 }
 
+/** Provider-assigned actor id (e.g. `urn:li:organization:123`) identifying the remote social account. */
 @JvmInline
 value class ProviderActorId(val value: String) {
     init {
@@ -17,6 +19,7 @@ value class ProviderActorId(val value: String) {
     }
 }
 
+/** Provider-assigned post id used to reconcile external social posts with local publications. */
 @JvmInline
 value class ExternalPostId(val value: String) {
     init {
@@ -24,6 +27,7 @@ value class ExternalPostId(val value: String) {
     }
 }
 
+/** Provider-assigned comment id used to dedupe inbound social comments and replies. */
 @JvmInline
 value class ExternalCommentId(val value: String) {
     init {
@@ -31,6 +35,7 @@ value class ExternalCommentId(val value: String) {
     }
 }
 
+/** Caller-supplied key that guarantees a reply command is executed at most once. */
 @JvmInline
 value class IdempotencyKey(val value: String) {
     init {
@@ -66,6 +71,19 @@ value class PageCursor(val value: String) {
     }
 }
 
+/**
+ * Snapshot of the caller's permissions as observed by the social-content provider for an actor.
+ *
+ * @property accountKind LinkedIn account type that drove the capability check.
+ * @property grantedScopes OAuth scopes currently granted to the actor.
+ * @property roleState Effective administrative role of the actor on the underlying page.
+ * @property canReadPosts Whether the actor's permissions allow post imports.
+ * @property canReadComments Whether the actor's permissions allow comment imports.
+ * @property canReplyAsActor Whether the actor may post replies under its identity.
+ * @property canReceiveCommentWebhooks Whether LinkedIn delivers comment webhooks for the actor.
+ * @property supportsNestedReplies Whether LinkedIn accepts threaded replies under the actor.
+ * @property retention Cache retention windows enforced for activity read by this actor.
+ */
 data class ProviderCapabilities(
     val accountKind: SocialAccountKind,
     val grantedScopes: Set<String>,
@@ -78,13 +96,18 @@ data class ProviderCapabilities(
     val retention: RetentionRequirements,
 ) {
     /**
- * Determines whether the account can import company-page content.
- *
- * @return `true` if the account is an organization page and can read posts, `false` otherwise.
- */
-fun canImportCompanyPage(): Boolean = accountKind == SocialAccountKind.ORGANIZATION_PAGE && canReadPosts
+     * Whether posts from this actor's company page can be imported into the workspace.
+     *
+     * Organization pages are the only account kind allowed to ingest posts.
+     */
+    fun canImportCompanyPage(): Boolean = accountKind == SocialAccountKind.ORGANIZATION_PAGE && canReadPosts
 }
 
+/**
+ * Cache retention windows applied to social-content reads.
+ *
+ * Both TTLs must be strictly positive; the values feed payload-cache expiry and tombstone cleanup.
+ */
 data class RetentionRequirements(val activityTtl: java.time.Duration, val commenterProfileTtl: java.time.Duration) {
     init {
         require(!activityTtl.isNegative && !activityTtl.isZero) { "Activity TTL must be positive." }
@@ -94,6 +117,11 @@ data class RetentionRequirements(val activityTtl: java.time.Duration, val commen
     }
 }
 
+/**
+ * LinkedIn-discovered actor candidate before workspace reconciliation.
+ *
+ * Discovery returns these before any workspace binding; [SocialContentActor] materializes one per workspace scope.
+ */
 data class SocialContentActorCandidate(
     val id: String,
     val externalActorId: ProviderActorId,
@@ -108,6 +136,12 @@ data class SocialContentActorCandidate(
     }
 }
 
+/**
+ * Workspace-scoped social-content actor configured for a single LinkedIn organization page.
+ *
+ * The actor is the unit of capability and import: only organization pages are accepted, and derived
+ * capabilities drive every downstream permission check.
+ */
 data class SocialContentActor(
     val id: String,
     val scope: WorkspaceScope,
@@ -129,10 +163,7 @@ data class SocialContentActor(
     }
 
     /**
-     * Derives the provider capabilities available to this social content actor.
-     *
-     * @param retention The retention requirements applied to supported content.
-     * @return The actor's account kind, granted scopes, role state, supported operations, and retention requirements.
+     * Derive a [ProviderCapabilities] view for this actor scoped to the supplied retention windows.
      */
     fun capabilities(retention: RetentionRequirements): ProviderCapabilities = ProviderCapabilities(
         accountKind = kind,
@@ -150,6 +181,12 @@ data class SocialContentActor(
     )
 }
 
+/**
+ * Workspace-scoped social post either imported from a provider or locally reconciled.
+ *
+ * [origin] traces the provenance; [lifecycle] distinguishes published posts from tombstoned ones;
+ * [expiresAt] drives automated cleanup once the activity TTL elapses.
+ */
 data class SocialPost(
     val scope: WorkspaceScope,
     val provider: SocialProvider,
@@ -162,51 +199,36 @@ data class SocialPost(
     val lifecycle: PostLifecycle = PostLifecycle.PUBLISHED,
     val expiresAt: Instant,
 ) {
+    /** Whether the post is still considered live in the workspace feed. */
     val isActive: Boolean get() = lifecycle == PostLifecycle.PUBLISHED
+
+    /** Whether local services may mutate the post; false for externally imported posts. */
     val mutationAllowed: Boolean get() = false
 
-    /**
- * Determines whether the post has reached or passed its expiration time.
- *
- * @param now The time at which to evaluate expiration.
- * @return `true` if the post is expired, `false` otherwise.
- */
-fun isExpired(now: Instant): Boolean = !now.isBefore(expiresAt)
+    /** Returns true when [now] is at or past the post expiry instant. */
+    fun isExpired(now: Instant): Boolean = !now.isBefore(expiresAt)
 
     /**
-     * Associates the post with a local publication.
+     * Mark the post as reconciled with the supplied local publication id.
      *
-     * @param publicationId The nonblank local publication identifier.
-     * @return A copy of the post associated with the specified publication.
-     * @throws IllegalArgumentException If `publicationId` is blank.
+     * Updates [origin] to [PostOrigin.PROFILETAILORS] and stores [publicationId]; rejection for blank ids preserves
+     * invariants during command-to-post linking.
      */
     fun reconcileWithLocalPublication(publicationId: String): SocialPost {
         require(publicationId.isNotBlank()) { "Local publication ID is required." }
         return copy(origin = PostOrigin.PROFILETAILORS, localPublicationId = publicationId)
     }
 
-    /**
- * Marks the post as tombstoned at the specified time.
- *
- * @param at The time at which the post is tombstoned.
- * @return A tombstoned copy of the post.
- */
-fun tombstone(at: Instant): SocialPost = copy(lifecycle = PostLifecycle.TOMBSTONED, expiresAt = at)
+    /** Mark the post as tombstoned at [at], preserving identity. */
+    fun tombstone(at: Instant): SocialPost = copy(lifecycle = PostLifecycle.TOMBSTONED, expiresAt = at)
 
     companion object {
         private val DEFAULT_ACTIVITY_TTL: Duration = Duration.ofHours(48)
 
         /**
-         * Creates an externally originated social post for the specified actor.
+         * Build a freshly imported external post with the activity TTL applied to the supplied [now].
          *
-         * @param scope The workspace scope containing the post.
-         * @param actor The social content actor associated with the post.
-         * @param externalPostId The provider's identifier for the post.
-         * @param publishedAt The time the post was published externally.
-         * @param now The reference time used to calculate the default expiration.
-         * @param body The post body, if available.
-         * @param expiresAt The time after which the post is considered expired.
-         * @return The imported social post.
+         * @param expiresAt Defaults to `now + DEFAULT_ACTIVITY_TTL`; override when the provider returns its own expiry.
          */
         fun imported(
             scope: WorkspaceScope,
@@ -220,6 +242,11 @@ fun tombstone(at: Instant): SocialPost = copy(lifecycle = PostLifecycle.TOMBSTON
     }
 }
 
+/**
+ * Cursor used to resume a social-content sync.
+ *
+ * [lastSuccessfulAt] records the last successful sync attempt; [highWaterMark] tracks the highest known publishedAt.
+ */
 data class SyncCheckpoint(
     val scope: WorkspaceScope,
     val actorId: String,
@@ -233,12 +260,9 @@ data class SyncCheckpoint(
     }
 
     /**
-     * Advances the synchronization checkpoint with the latest progress and success time.
+     * Return a new checkpoint advanced to [nextCursor] and marked successful at [successfulAt].
      *
-     * @param nextCursor The cursor for the next synchronization page, or `null` when no cursor remains.
-     * @param successfulAt The time of the successful synchronization.
-     * @param nextHighWaterMark The updated high-water mark, or the current high-water mark by default.
-     * @return An updated synchronization checkpoint.
+     * @param nextHighWaterMark Defaults to the previous high-water mark to keep progress monotonic.
      */
     fun advance(
         nextCursor: PageCursor?,
@@ -251,6 +275,7 @@ data class SyncCheckpoint(
     )
 }
 
+/** Inbound LinkedIn webhook event whose payload is stored under [payloadCacheKey]. */
 data class WebhookEvent(
     val scope: WorkspaceScope,
     val providerEventId: String,
@@ -265,6 +290,7 @@ data class WebhookEvent(
     }
 }
 
+/** Encrypted webhook payload cached for replay within the lifetime of [expiresAt]. */
 data class PayloadCache(
     val scope: WorkspaceScope,
     val key: String,
@@ -277,25 +303,18 @@ data class PayloadCache(
         require(encryptedPayload.isNotEmpty()) { "Payload cache payload is required." }
     }
 
-    /**
- * Determines whether the cached payload is available at the specified time.
- *
- * @param now The time at which availability is evaluated.
- * @return `true` if the cache has not expired, `false` otherwise.
- */
-fun isAvailable(now: Instant): Boolean = now.isBefore(expiresAt)
+    /** Whether the cached payload is still retrievable at [now]. */
+    fun isAvailable(now: Instant): Boolean = now.isBefore(expiresAt)
 }
 
-class DefaultCapabilityResolver(private val gates: SocialContentFeatureGates) {
-    /**
-     * Evaluates whether an actor is permitted to perform an operation.
-     *
-     * @param actor The actor requesting the operation.
-     * @param operation The operation to evaluate.
-     * @param retention The retention requirements used for capability evaluation.
-     * @return An allowed decision or a denial containing the specific failure reason.
-     */
-    fun resolve(
+/**
+ * Default capability resolution backed by [SocialContentFeatureGates].
+ *
+ * Implements [SocialContentCapabilityResolver] returning [CapabilityDecision.Allowed] when the actor's role, scopes,
+ * and feature gates permit [operation], otherwise a [CapabilityDecision.Denied] with the matching failure.
+ */
+class DefaultCapabilityResolver(private val gates: SocialContentFeatureGates) : SocialContentCapabilityResolver {
+    override fun resolve(
         actor: SocialContentActor,
         operation: CapabilityOperation,
         retention: RetentionRequirements,
@@ -323,12 +342,6 @@ class DefaultCapabilityResolver(private val gates: SocialContentFeatureGates) {
         CapabilityOperation.REPLY -> repliesEnabled
     }
 
-    /**
-     * Determines whether the provider capabilities support the specified operation.
-     *
-     * @param operation The capability operation to evaluate.
-     * @return `true` if the operation is supported, `false` otherwise.
-     */
     private fun ProviderCapabilities.supports(operation: CapabilityOperation): Boolean = when (operation) {
         CapabilityOperation.DISCOVER_ACTORS -> accountKind == SocialAccountKind.ORGANIZATION_PAGE
         CapabilityOperation.READ_POSTS -> canReadPosts
@@ -337,6 +350,7 @@ class DefaultCapabilityResolver(private val gates: SocialContentFeatureGates) {
     }
 }
 
+/** Inbound LinkedIn comment eligible for reply when its [state] is [ThreadState.OPEN] and not expired. */
 data class SocialComment(
     val scope: WorkspaceScope,
     val postId: ExternalPostId,
@@ -349,15 +363,15 @@ data class SocialComment(
     val state: ThreadState,
     val expiresAt: Instant,
 ) {
-    /**
- * Determines whether the post has reached or passed its expiration time.
- *
- * @param now The time at which to evaluate expiration.
- * @return `true` if the post is expired, `false` otherwise.
- */
-fun isExpired(now: Instant): Boolean = !now.isBefore(expiresAt)
+    /** Returns true when [now] is at or past the comment expiry instant. */
+    fun isExpired(now: Instant): Boolean = !now.isBefore(expiresAt)
 }
 
+/**
+ * Outbound reply command triggered by an actor against a [SocialComment] parent.
+ *
+ * Carries the workspace scope and the idempotency key used to dedupe replays.
+ */
 data class ReplyCommand(
     val scope: WorkspaceScope,
     val actorId: String,
@@ -371,12 +385,9 @@ data class ReplyCommand(
     }
 
     /**
-     * Validates that the reply command can be applied to the specified comment and actor scope.
+     * Validate the command against the parent [comment] and the supplied [actorScope].
      *
-     * @param comment The comment to validate as the reply parent.
-     * @param actorScope The workspace scope of the acting actor.
-     * @param now The current time used to evaluate comment expiration.
-     * @throws ReplyRejectedException If the workspace, actor, parent comment, thread state, or expiration requirements are invalid.
+     * @throws ReplyRejectedException When the parent comment, actor, or workspace context does not match.
      */
     fun validateAgainst(comment: SocialComment, actorScope: WorkspaceScope, now: Instant) {
         val rejection = when {
@@ -391,6 +402,7 @@ data class ReplyCommand(
     }
 }
 
+/** Reasons a [ReplyCommand] can be rejected before being forwarded to the provider. */
 enum class ReplyRejectionReason {
     WORKSPACE_MISMATCH,
     ACTOR_MISMATCH,
@@ -399,4 +411,6 @@ enum class ReplyRejectionReason {
     EXPIRED,
     CAPABILITY_DENIED,
 }
+
+/** Thrown when a [ReplyCommand] is rejected by [ReplyCommand.validateAgainst] or the capability check. */
 class ReplyRejectedException(val reason: ReplyRejectionReason) : IllegalArgumentException("Reply rejected: $reason")

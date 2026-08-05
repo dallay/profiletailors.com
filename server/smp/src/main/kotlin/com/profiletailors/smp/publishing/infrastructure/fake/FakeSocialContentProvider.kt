@@ -17,12 +17,14 @@ import com.profiletailors.smp.publishing.domain.WorkspaceScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+/** Controlled failures the fake provider will inject before returning its next read. */
 enum class FakeProviderFailure {
     UNAUTHORIZED,
     ROLE_FORBIDDEN,
     RATE_LIMITED,
 }
 
+/** Static fixture inputs handed to the fake provider at construction time. */
 data class FakeSocialContentFixtures(
     val actorCandidates: List<SocialContentActorCandidate> = emptyList(),
     val posts: Map<String, List<SocialPost>> = emptyMap(),
@@ -40,6 +42,7 @@ data class FakeSocialContentFixtures(
     }
 }
 
+/** Discriminated record of operations sent to the fake provider during a test run. */
 sealed interface FakeProviderCall {
     data class DiscoverActors(val scope: String, val connectionId: String) : FakeProviderCall
     data class FetchPosts(val actorId: String, val cursor: String?) : FakeProviderCall
@@ -47,6 +50,7 @@ sealed interface FakeProviderCall {
     data class Reply(val actorId: String, val parentCommentId: String, val idempotencyKey: String) : FakeProviderCall
 }
 
+/** In-memory [SocialContentPostRepository] keyed by workspace + provider + actor + external post id. */
 class FakeSocialContentPostRepository : SocialContentPostRepository {
     private val records = linkedMapOf<PostIdentity, SocialPost>()
 
@@ -115,6 +119,7 @@ class FakeSocialContentPostRepository : SocialContentPostRepository {
     )
 }
 
+/** In-memory [SocialContentProvider] used by tests; records every call for later assertions. */
 class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures) : SocialContentProvider {
     private val mutex = Mutex()
     private val recordedCalls = mutableListOf<FakeProviderCall>()
@@ -139,14 +144,14 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
     }
 
     /**
-         * Retrieves a paginated set of posts for an actor.
-         *
-         * @param actor The actor whose posts are retrieved.
-         * @param cursor The cursor identifying the starting position, or `null` to start from the beginning.
-         * @return A page of posts and a cursor for the next page when more posts are available.
-         * @throws SocialContentProviderException If a configured provider failure occurs.
-         */
-        override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> =
+     * Retrieves a paginated set of posts for an actor.
+     *
+     * @param actor The actor whose posts are retrieved.
+     * @param cursor The cursor identifying the starting position, or `null` to start from the beginning.
+     * @return A page of posts and a cursor for the next page when more posts are available.
+     * @throws SocialContentProviderException If a configured provider failure occurs.
+     */
+    override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> =
         mutex.withLock {
             recordedCalls += FakeProviderCall.FetchPosts(actor.id, cursor?.value)
             fixtures.failures.removeFirstOrNull()?.let {
@@ -165,13 +170,13 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
         }
 
     /**
-         * Retrieves the configured comments for a post.
-         *
-         * @param actor The actor associated with the post.
-         * @param post The post whose comments are retrieved.
-         * @return A page containing the configured comments and no subsequent cursor.
-         */
-        override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
+     * Retrieves the configured comments for a post.
+     *
+     * @param actor The actor associated with the post.
+     * @param post The post whose comments are retrieved.
+     * @return A page containing the configured comments and no subsequent cursor.
+     */
+    override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
         mutex.withLock {
             recordedCalls += FakeProviderCall.FetchComments(actor.id, post.externalPostId.value)
             SocialContentPage(fixtures.comments[post.externalPostId.value].orEmpty(), null)

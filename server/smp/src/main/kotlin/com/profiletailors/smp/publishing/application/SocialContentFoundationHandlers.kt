@@ -27,6 +27,12 @@ import com.profiletailors.smp.publishing.domain.SyncCheckpoint
 import com.profiletailors.smp.publishing.domain.SyncResource
 import java.time.Instant
 
+/**
+ * Retries provider calls when the failure is a transient rate-limit signal.
+ *
+ * Non-rate-limited failures rethrow immediately; rate-limited failures retry until [maxAttempts] is
+ * exhausted, in which case the original exception propagates.
+ */
 class SocialContentRetryPolicy(
     private val maxAttempts: Int = 3,
     private val backoff: suspend (attempt: Int) -> Unit = {},
@@ -58,6 +64,13 @@ class SocialContentRetryPolicy(
     }
 }
 
+/**
+ * Top-level application handler that orchestrates social-content discovery, sync, and tombstoning.
+ *
+ * Each public entry point enforces workspace capability gates via [capabilityResolver] before invoking
+ * the provider, persists the resulting state through the repository ports, and delegates transient
+ * retries to [SocialContentRetryPolicy].
+ */
 class SocialContentFoundationHandlers(
     private val provider: SocialContentProvider,
     private val postRepository: SocialContentPostRepository,
@@ -170,6 +183,14 @@ class SocialContentFoundationHandlers(
     }
 }
 
+/**
+ * Application handler that dispatches reply commands to the LinkedIn provider with idempotency.
+ *
+ * The handler claims the reply command atomically through [ReplyCommandRepository.claim], enforces the
+ * reply capability gate, executes the provider reply, and persists the resulting state transitions
+ * (PROCESSING → SUCCEEDED/FAILED). A second invocation with the same idempotency key returns the
+ * previously persisted result without invoking the provider.
+ */
 class IdempotentReplyHandler(
     private val provider: SocialContentProvider,
     private val commandRepository: ReplyCommandRepository,

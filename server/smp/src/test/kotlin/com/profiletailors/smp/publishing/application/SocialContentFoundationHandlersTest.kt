@@ -1,9 +1,12 @@
 package com.profiletailors.smp.publishing.application
 
+import com.profiletailors.smp.publishing.domain.ActorRoleState
 import com.profiletailors.smp.publishing.domain.DefaultCapabilityResolver
 import com.profiletailors.smp.publishing.domain.ExternalCommentId
 import com.profiletailors.smp.publishing.domain.ExternalPostId
 import com.profiletailors.smp.publishing.domain.IdempotencyKey
+import com.profiletailors.smp.publishing.domain.PageCursor
+import com.profiletailors.smp.publishing.domain.ProviderActorId
 import com.profiletailors.smp.publishing.domain.ReplyCommandState
 import com.profiletailors.smp.publishing.domain.ReplyRejectedException
 import com.profiletailors.smp.publishing.domain.RetentionRequirements
@@ -14,6 +17,7 @@ import com.profiletailors.smp.publishing.domain.SocialContentActorCandidate
 import com.profiletailors.smp.publishing.domain.SocialContentCheckpointRepository
 import com.profiletailors.smp.publishing.domain.SocialContentCommentRepository
 import com.profiletailors.smp.publishing.domain.SocialContentFeatureGates
+import com.profiletailors.smp.publishing.domain.SocialContentPage
 import com.profiletailors.smp.publishing.domain.SocialContentPostRepository
 import com.profiletailors.smp.publishing.domain.SocialContentProvider
 import com.profiletailors.smp.publishing.domain.SocialContentProviderException
@@ -40,16 +44,17 @@ import java.time.Instant
 class SocialContentFoundationHandlersTest {
     private val now = Instant.parse("2026-08-01T12:00:00Z")
     private val workspace = WorkspaceScope("workspace-1")
+    private val otherWorkspace = WorkspaceScope("workspace-2")
     private val retention = RetentionRequirements(Duration.ofHours(48), Duration.ofHours(24))
     private val actor = SocialContentActor(
         id = "actor-1",
         scope = workspace,
         connectionId = "connection-1",
         provider = SocialProvider.LINKEDIN,
-        externalActorId = com.profiletailors.smp.publishing.domain.ProviderActorId("urn:li:organization:123"),
-        kind = com.profiletailors.smp.publishing.domain.SocialAccountKind.ORGANIZATION_PAGE,
+        externalActorId = ProviderActorId("urn:li:organization:123"),
+        kind = SocialAccountKind.ORGANIZATION_PAGE,
         displayName = "Profile Tailors",
-        roleState = com.profiletailors.smp.publishing.domain.ActorRoleState.ADMIN,
+        roleState = ActorRoleState.ADMIN,
         grantedScopes = setOf(
             "r_organization_social",
             "r_organization_social_social_actions",
@@ -58,7 +63,7 @@ class SocialContentFoundationHandlersTest {
     )
 
     @Test
-    fun `discovers only administered organization pages`() = runTest {
+    fun `should keep only administered organization pages in discovery output`() = runTest {
         val provider = FakeSocialContentProvider(
             FakeSocialContentFixtures(
                 actorCandidates = listOf(
@@ -76,33 +81,30 @@ class SocialContentFoundationHandlersTest {
                 scope = workspace,
                 connectionId = actor.connectionId,
                 provider = SocialProvider.LINKEDIN,
-                externalActorId = com.profiletailors.smp.publishing.domain.ProviderActorId("urn:li:organization:123"),
+                externalActorId = ProviderActorId("urn:li:organization:123"),
                 kind = SocialAccountKind.ORGANIZATION_PAGE,
                 displayName = "Profile Tailors",
-                roleState = com.profiletailors.smp.publishing.domain.ActorRoleState.ADMIN,
+                roleState = ActorRoleState.ADMIN,
                 grantedScopes = actor.grantedScopes,
             ),
         )
     }
 
     @Test
-    fun `provider failure does not mutate posts or checkpoint`() = runTest {
-        val provider = FakeSocialContentProvider(
-            FakeSocialContentFixtures(failures = ArrayDeque(listOf(FakeProviderFailure.UNAUTHORIZED))),
+    fun `should reject discovery when the active feature gate is disabled`() = runTest {
+        val provider = FakeSocialContentProvider(FakeSocialContentFixtures(actorCandidates = listOf(administeredOrganizationCandidate())))
+        val handler = foundationHandler(
+            provider,
+            RecordingPostRepository(),
+            RecordingCheckpointRepository(),
+            gates = SocialContentFeatureGates(discoveryEnabled = false),
         )
-        val posts = RecordingPostRepository()
-        val checkpoints = RecordingCheckpointRepository()
-        val handler = foundationHandler(provider, posts, checkpoints)
 
-        shouldThrow<SocialContentProviderException> { handler.importPosts(actor, now) }
-
-        posts.upserted shouldHaveSize 0
-        posts.tombstoneCalls shouldBe emptyList()
-        checkpoints.saved shouldHaveSize 0
+        shouldThrow<IllegalStateException> { handler.discoverActors(actor) }
     }
 
     @Test
-    fun `imports posts and advances checkpoint only after successful reconciliation`() = runTest {
+    fun `should import posts and advance checkpoint only after successful reconciliation`() = runTest {
         val post = fixturePost("post-1")
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures(posts = mapOf(actor.id to listOf(post))))
         val posts = RecordingPostRepository()
@@ -121,7 +123,20 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
-    fun `retries rate limits and records the successful checkpoint`() = runTest {
+    fun `should reject post import when the import feature gate is disabled`() = runTest {
+        val provider = FakeSocialContentProvider(FakeSocialContentFixtures(posts = mapOf(actor.id to listOf(fixturePost("post-1")))))
+        val handler = foundationHandler(
+            provider,
+            RecordingPostRepository(),
+            RecordingCheckpointRepository(),
+            gates = SocialContentFeatureGates(importEnabled = false),
+        )
+
+        shouldThrow<IllegalStateException> { handler.importPosts(actor, now) }
+    }
+
+    @Test
+    fun `should retry rate limited post reads and advance the checkpoint after the eventual success`() = runTest {
         val post = fixturePost("post-1")
         val provider = FakeSocialContentProvider(
             FakeSocialContentFixtures(
@@ -146,7 +161,7 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
-    fun `does not mutate posts or checkpoint when provider fails`() = runTest {
+    fun `should not mutate posts or checkpoint when provider fails`() = runTest {
         val provider = FakeSocialContentProvider(
             FakeSocialContentFixtures(failures = ArrayDeque(listOf(FakeProviderFailure.UNAUTHORIZED))),
         )
@@ -162,7 +177,58 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
-    fun `reconciles all pages before tombstoning missing posts`() = runTest {
+    fun `should rethrow non rate limited provider failures without retrying`() = runTest {
+        val provider = FakeSocialContentProvider(
+            FakeSocialContentFixtures(
+                posts = mapOf(actor.id to listOf(fixturePost("post-1"))),
+                failures = ArrayDeque(listOf(FakeProviderFailure.UNAUTHORIZED)),
+            ),
+        )
+        val backoffCalls = mutableListOf<Int>()
+        val handler = foundationHandler(
+            provider = provider,
+            posts = RecordingPostRepository(),
+            checkpoints = RecordingCheckpointRepository(),
+            retryPolicy = SocialContentRetryPolicy(backoff = { backoffCalls += it }),
+        )
+
+        shouldThrow<SocialContentProviderException> { handler.importPosts(actor, now) }
+            .failure shouldBe SocialContentProviderFailure.UNAUTHORIZED
+
+        provider.calls shouldHaveSize 1
+        backoffCalls shouldBe emptyList()
+    }
+
+    @Test
+    fun `should rethrow rate limited provider failures once maxAttempts is exhausted`() = runTest {
+        val provider = FakeSocialContentProvider(
+            FakeSocialContentFixtures(
+                posts = mapOf(actor.id to listOf(fixturePost("post-1"))),
+                failures = ArrayDeque(listOf(FakeProviderFailure.RATE_LIMITED, FakeProviderFailure.RATE_LIMITED)),
+            ),
+        )
+        val backoffCalls = mutableListOf<Int>()
+        val handler = foundationHandler(
+            provider = provider,
+            posts = RecordingPostRepository(),
+            checkpoints = RecordingCheckpointRepository(),
+            retryPolicy = SocialContentRetryPolicy(maxAttempts = 2, backoff = { backoffCalls += it }),
+        )
+
+        shouldThrow<SocialContentProviderException> { handler.importPosts(actor, now) }
+            .failure shouldBe SocialContentProviderFailure.RATE_LIMITED
+
+        provider.calls shouldHaveSize 2
+        backoffCalls shouldBe listOf(1)
+    }
+
+    @Test
+    fun `should reject retry policy configured with fewer than one attempt`() {
+        shouldThrow<IllegalArgumentException> { SocialContentRetryPolicy(maxAttempts = 0) }
+    }
+
+    @Test
+    fun `should reconcile every page before tombstoning missing posts`() = runTest {
         val first = fixturePost("post-1")
         val second = fixturePost("post-2")
         val missing = fixturePost("post-missing")
@@ -180,7 +246,7 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
-    fun `deduplicates repeated provider posts by workspace actor and external identity`() = runTest {
+    fun `should deduplicate repeated provider posts by workspace actor and external identity`() = runTest {
         val post = fixturePost("post-1")
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures(posts = mapOf(actor.id to listOf(post))))
         val posts = FakeSocialContentPostRepository()
@@ -194,7 +260,7 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
-    fun `imports comments while preserving provider parent identity`() = runTest {
+    fun `should preserve provider parent identity when importing comments`() = runTest {
         val post = fixturePost("post-1")
         val comment = fixtureComment(post, "comment-1")
         val reply = fixtureComment(post, "comment-2", comment.externalCommentId)
@@ -210,46 +276,83 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
-    fun `rejects a foreign reply parent before provider execution`() = runTest {
+    fun `should record a FAILED reply result and rethrow when the provider fails`() = runTest {
+        val provider = ThrowingSocialContentProvider(IllegalStateException("upstream down"))
+        val commandRepository = RecordingReplyCommandRepository()
+        val handler = IdempotentReplyHandler(
+            provider = provider,
+            commandRepository = commandRepository,
+            capabilityResolver = allRepliesAllowed(),
+            retention = retention,
+        )
+        val parent = fixtureComment(fixturePost("post-1"), "comment-1")
+
+        shouldThrow<IllegalStateException> { handler.handle(actor, parent, "Answer", IdempotencyKey("reply-1"), now) }
+
+        val failed = commandRepository.saved.last()
+        failed.state shouldBe ReplyCommandState.FAILED
+        failed.command.idempotencyKey shouldBe IdempotencyKey("reply-1")
+    }
+
+    @Test
+    fun `should throw ReplyRejectedException with WORKSPACE_MISMATCH when the reply parent belongs to a foreign workspace`() = runTest {
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
-        val parent = fixtureComment(fixturePost("post-1"), "comment-1").copy(scope = WorkspaceScope("workspace-2"))
+        val parent = fixtureComment(fixturePost("post-1"), "comment-1").copy(scope = otherWorkspace)
         val handler = replyHandler(provider)
 
-        shouldThrow<IllegalArgumentException> {
+        shouldThrow<ReplyRejectedException> {
             handler.handle(actor, parent, "Answer", IdempotencyKey("reply-1"), now)
-        }
+        }.reason shouldBe com.profiletailors.smp.publishing.domain.ReplyRejectionReason.WORKSPACE_MISMATCH
 
         provider.replyCalls shouldHaveSize 0
     }
 
     @Test
-    fun `rejects closed deleted and expired reply parents before provider execution`() = runTest {
+    fun `should throw ReplyRejectedException with CLOSED thread state when the reply parent is closed`() = runTest {
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
         val handler = replyHandler(provider)
         val closed = fixtureComment(fixturePost("post-1"), "comment-1").copy(state = ThreadState.CLOSED)
-        val deleted = fixtureComment(fixturePost("post-2"), "comment-2").copy(state = ThreadState.DELETED)
-        val expired = fixtureComment(fixturePost("post-3"), "comment-3").copy(expiresAt = now)
 
-        shouldThrow<IllegalArgumentException> {
+        shouldThrow<ReplyRejectedException> {
             handler.handle(actor, closed, "Answer", IdempotencyKey("reply-closed"), now)
-        }
-        shouldThrow<IllegalArgumentException> {
-            handler.handle(actor, deleted, "Answer", IdempotencyKey("reply-deleted"), now)
-        }
-        shouldThrow<IllegalArgumentException> {
-            handler.handle(actor, expired, "Answer", IdempotencyKey("reply-expired"), now)
-        }
+        }.reason shouldBe com.profiletailors.smp.publishing.domain.ReplyRejectionReason.THREAD_NOT_OPEN
 
         provider.replyCalls shouldHaveSize 0
     }
 
     @Test
-    fun `rejects a reply when the selected actor does not own the parent post`() = runTest {
+    fun `should throw ReplyRejectedException with DELETED thread state when the reply parent is deleted`() = runTest {
+        val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
+        val handler = replyHandler(provider)
+        val deleted = fixtureComment(fixturePost("post-2"), "comment-2").copy(state = ThreadState.DELETED)
+
+        shouldThrow<ReplyRejectedException> {
+            handler.handle(actor, deleted, "Answer", IdempotencyKey("reply-deleted"), now)
+        }.reason shouldBe com.profiletailors.smp.publishing.domain.ReplyRejectionReason.THREAD_NOT_OPEN
+
+        provider.replyCalls shouldHaveSize 0
+    }
+
+    @Test
+    fun `should throw ReplyRejectedException with EXPIRED when the reply parent has expired`() = runTest {
+        val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
+        val handler = replyHandler(provider)
+        val expired = fixtureComment(fixturePost("post-3"), "comment-3").copy(expiresAt = now)
+
+        shouldThrow<ReplyRejectedException> {
+            handler.handle(actor, expired, "Answer", IdempotencyKey("reply-expired"), now)
+        }.reason shouldBe com.profiletailors.smp.publishing.domain.ReplyRejectionReason.EXPIRED
+
+        provider.replyCalls shouldHaveSize 0
+    }
+
+    @Test
+    fun `should throw ReplyRejectedException with ACTOR_MISMATCH when the actor does not own the reply parent`() = runTest {
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
         val handler = replyHandler(provider)
         val parent = fixtureComment(fixturePost("post-1"), "comment-1").copy(ownerActorId = "actor-2")
 
-        shouldThrow<com.profiletailors.smp.publishing.domain.ReplyRejectedException> {
+        shouldThrow<ReplyRejectedException> {
             handler.handle(actor, parent, "Answer", IdempotencyKey("reply-owner"), now)
         }.reason shouldBe com.profiletailors.smp.publishing.domain.ReplyRejectionReason.ACTOR_MISMATCH
 
@@ -257,26 +360,25 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
-    fun `rejects reply when the selected actor loses capability before provider execution`() = runTest {
+    fun `should throw ReplyRejectedException with CAPABILITY_DENIED when the active feature gate forbids replies`() = runTest {
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
-        val handler = replyHandler(provider)
+        val handler = IdempotentReplyHandler(
+            provider = provider,
+            commandRepository = FakeReplyCommandRepository(),
+            capabilityResolver = DefaultCapabilityResolver(SocialContentFeatureGates()),
+            retention = retention,
+        )
         val parent = fixtureComment(fixturePost("post-1"), "comment-1")
 
-        shouldThrow<IllegalArgumentException> {
-            handler.handle(
-                actor.copy(roleState = com.profiletailors.smp.publishing.domain.ActorRoleState.MEMBER),
-                parent,
-                "Answer",
-                IdempotencyKey("reply-1"),
-                now,
-            )
-        }
+        shouldThrow<ReplyRejectedException> {
+            handler.handle(actor, parent, "Answer", IdempotencyKey("reply-capability"), now)
+        }.reason shouldBe com.profiletailors.smp.publishing.domain.ReplyRejectionReason.CAPABILITY_DENIED
 
         provider.replyCalls shouldHaveSize 0
     }
 
     @Test
-    fun `returns existing reply result without a second provider call`() = runTest {
+    fun `should return existing reply result without a second provider call`() = runTest {
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
         val handler = replyHandler(provider)
         val parent = fixtureComment(fixturePost("post-1"), "comment-1")
@@ -296,19 +398,18 @@ class SocialContentFoundationHandlersTest {
         checkpoints: RecordingCheckpointRepository,
         comments: RecordingCommentRepository = RecordingCommentRepository(),
         retryPolicy: SocialContentRetryPolicy = SocialContentRetryPolicy(),
+        gates: SocialContentFeatureGates = SocialContentFeatureGates(
+            discoveryEnabled = true,
+            importEnabled = true,
+            inboxEnabled = true,
+            repliesEnabled = true,
+        ),
     ) = SocialContentFoundationHandlers(
         provider = provider,
         postRepository = posts,
         commentRepository = comments,
         checkpointRepository = checkpoints,
-        capabilityResolver = DefaultCapabilityResolver(
-            SocialContentFeatureGates(
-                discoveryEnabled = true,
-                importEnabled = true,
-                inboxEnabled = true,
-                repliesEnabled = true,
-            ),
-        ),
+        capabilityResolver = allCapabilitiesEnabled(gates),
         retention = retention,
         retryPolicy = retryPolicy,
     )
@@ -316,36 +417,38 @@ class SocialContentFoundationHandlersTest {
     private fun replyHandler(provider: SocialContentProvider) = IdempotentReplyHandler(
         provider = provider,
         commandRepository = FakeReplyCommandRepository(),
-        capabilityResolver = DefaultCapabilityResolver(
-            SocialContentFeatureGates(repliesEnabled = true),
-        ),
+        capabilityResolver = allRepliesAllowed(),
         retention = retention,
     )
+
+    private fun allCapabilitiesEnabled(gates: SocialContentFeatureGates) = DefaultCapabilityResolver(gates)
+
+    private fun allRepliesAllowed() = DefaultCapabilityResolver(SocialContentFeatureGates(repliesEnabled = true))
 
     private fun administeredOrganizationCandidate() = SocialContentActorCandidate(
         id = actor.id,
         externalActorId = actor.externalActorId,
         kind = SocialAccountKind.ORGANIZATION_PAGE,
         displayName = actor.displayName,
-        roleState = com.profiletailors.smp.publishing.domain.ActorRoleState.ADMIN,
+        roleState = ActorRoleState.ADMIN,
         grantedScopes = actor.grantedScopes,
     )
 
     private fun nonAdminOrganizationCandidate() = SocialContentActorCandidate(
         id = "actor-2",
-        externalActorId = com.profiletailors.smp.publishing.domain.ProviderActorId("urn:li:organization:456"),
+        externalActorId = ProviderActorId("urn:li:organization:456"),
         kind = SocialAccountKind.ORGANIZATION_PAGE,
         displayName = "Non-admin Page",
-        roleState = com.profiletailors.smp.publishing.domain.ActorRoleState.MEMBER,
+        roleState = ActorRoleState.MEMBER,
         grantedScopes = actor.grantedScopes,
     )
 
     private fun personalProfileCandidate() = SocialContentActorCandidate(
         id = "personal-1",
-        externalActorId = com.profiletailors.smp.publishing.domain.ProviderActorId("urn:li:person:789"),
+        externalActorId = ProviderActorId("urn:li:person:789"),
         kind = SocialAccountKind.PERSONAL_PROFILE,
         displayName = "Personal profile",
-        roleState = com.profiletailors.smp.publishing.domain.ActorRoleState.ADMIN,
+        roleState = ActorRoleState.ADMIN,
         grantedScopes = actor.grantedScopes,
     )
 
@@ -363,7 +466,7 @@ class SocialContentFoundationHandlersTest {
         externalCommentId = ExternalCommentId(id),
         parentExternalCommentId = parentId,
         ownerActorId = actor.id,
-        actorExternalId = com.profiletailors.smp.publishing.domain.ProviderActorId("urn:li:person:1"),
+        actorExternalId = ProviderActorId("urn:li:person:1"),
         body = "Question",
         createdAt = post.publishedAt,
         state = ThreadState.OPEN,
@@ -373,7 +476,7 @@ class SocialContentFoundationHandlersTest {
     private class RecordingPostRepository(initial: List<SocialPost> = emptyList()) : SocialContentPostRepository {
         val upserted = mutableListOf<SocialPost>()
         val tombstoned = initial.toMutableList()
-        val tombstoneCalls = mutableListOf<Set<com.profiletailors.smp.publishing.domain.ExternalPostId>>()
+        val tombstoneCalls = mutableListOf<Set<ExternalPostId>>()
 
         override suspend fun upsert(post: SocialPost): SocialPost {
             upserted += post
@@ -419,14 +522,14 @@ class SocialContentFoundationHandlersTest {
 
         override suspend fun fetchPosts(
             actor: SocialContentActor,
-            cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
-        ): com.profiletailors.smp.publishing.domain.SocialContentPage<SocialPost> = when (cursor?.value) {
-            null -> com.profiletailors.smp.publishing.domain.SocialContentPage(
+            cursor: PageCursor?,
+        ): SocialContentPage<SocialPost> = when (cursor?.value) {
+            null -> SocialContentPage(
                 items = listOf(posts[0]),
-                nextCursor = com.profiletailors.smp.publishing.domain.PageCursor("page-2"),
+                nextCursor = PageCursor("page-2"),
             )
 
-            "page-2" -> com.profiletailors.smp.publishing.domain.SocialContentPage(
+            "page-2" -> SocialContentPage(
                 items = listOf(posts[1]),
                 nextCursor = null,
             )
@@ -437,8 +540,8 @@ class SocialContentFoundationHandlersTest {
         override suspend fun fetchComments(
             actor: SocialContentActor,
             post: SocialPost,
-        ): com.profiletailors.smp.publishing.domain.SocialContentPage<SocialComment> =
-            com.profiletailors.smp.publishing.domain.SocialContentPage(emptyList(), null)
+        ): SocialContentPage<SocialComment> =
+            SocialContentPage(emptyList(), null)
 
         override suspend fun reply(
             actor: SocialContentActor,
@@ -446,6 +549,24 @@ class SocialContentFoundationHandlersTest {
             body: String,
             idempotencyKey: IdempotencyKey,
         ): SocialComment = parent
+    }
+
+    private class ThrowingSocialContentProvider(private val throwable: Throwable) : SocialContentProvider {
+        override suspend fun discoverActors(scope: WorkspaceScope, connectionId: String): List<SocialContentActorCandidate> =
+            emptyList()
+
+        override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> =
+            throw throwable
+
+        override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
+            throw throwable
+
+        override suspend fun reply(
+            actor: SocialContentActor,
+            parent: SocialComment,
+            body: String,
+            idempotencyKey: IdempotencyKey,
+        ): SocialComment = throw throwable
     }
 
     private class RecordingCommentRepository : SocialContentCommentRepository {
@@ -473,6 +594,21 @@ class SocialContentFoundationHandlersTest {
             this.checkpoint = checkpoint
             saved += checkpoint
             return checkpoint
+        }
+    }
+
+    private class RecordingReplyCommandRepository(
+        private val delegate: com.profiletailors.smp.publishing.infrastructure.fake.FakeReplyCommandRepository =
+            com.profiletailors.smp.publishing.infrastructure.fake.FakeReplyCommandRepository(),
+    ) : com.profiletailors.smp.publishing.domain.ReplyCommandRepository {
+        val saved = mutableListOf<com.profiletailors.smp.publishing.domain.ReplyCommandResult>()
+
+        override suspend fun claim(command: com.profiletailors.smp.publishing.domain.ReplyCommand) =
+            delegate.claim(command)
+
+        override suspend fun save(result: com.profiletailors.smp.publishing.domain.ReplyCommandResult): com.profiletailors.smp.publishing.domain.ReplyCommandResult {
+            saved += result
+            return delegate.save(result)
         }
     }
 }

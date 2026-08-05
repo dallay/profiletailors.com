@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test
 
 class FakeReplyCommandRepositoryTest {
     @Test
-    fun `claim returns claimed once and existing result afterwards`() = runTest {
+    fun `should return Claimed on first claim and Existing with the previous result on subsequent claims`() = runTest {
         val repository = FakeReplyCommandRepository()
         val command = command()
 
