@@ -148,6 +148,9 @@ class SocialContentPropertiesTest {
         shouldThrow<IllegalArgumentException> {
             SocialContentProperties(apiVersion = "")
         }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(apiVersion = "20A606")
+        }
     }
 
     @Test
@@ -167,19 +170,6 @@ class SocialContentPropertiesTest {
         }
         shouldThrow<IllegalArgumentException> {
             SocialContentProperties(commenterProfileCacheTtl = Duration.ofHours(-1))
-        }
-    }
-
-    @Test
-    fun `should reject apiVersion with non digit characters`() {
-        shouldThrow<IllegalArgumentException> {
-            SocialContentProperties(apiVersion = "20A606")
-        }
-        shouldThrow<IllegalArgumentException> {
-            SocialContentProperties(apiVersion = "abcdef")
-        }
-        shouldThrow<IllegalArgumentException> {
-            SocialContentProperties(apiVersion = "")
         }
     }
 

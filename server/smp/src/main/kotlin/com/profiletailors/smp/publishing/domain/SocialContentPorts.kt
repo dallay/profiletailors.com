@@ -31,9 +31,10 @@ interface SocialContentProvider {
      *
      * @param actor The actor whose comments are being fetched.
      * @param post The post whose comments are being fetched.
+     * @param cursor The cursor identifying the page to fetch, or `null` for the first page.
      * @return A page of social comments with optional pagination metadata.
      */
-    suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment>
+    suspend fun fetchComments(actor: SocialContentActor, post: SocialPost, cursor: PageCursor? = null): SocialContentPage<SocialComment>
 
     /**
      * Publishes a reply to a parent comment.

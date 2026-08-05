@@ -255,8 +255,8 @@ class SocialContentFoundationHandlersTest {
         handler.importPosts(actor, now)
         handler.importPosts(actor, now)
 
-        posts.all shouldHaveSize 1
-        posts.all.single().externalPostId shouldBe post.externalPostId
+        posts.all() shouldHaveSize 1
+        posts.all().single().externalPostId shouldBe post.externalPostId
     }
 
     @Test
@@ -308,7 +308,7 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
-    fun `should throw ReplyRejectedException with CLOSED thread state when the reply parent is closed`() = runTest {
+    fun `should throw ReplyRejectedException with THREAD_NOT_OPEN when the reply parent is closed`() = runTest {
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
         val handler = replyHandler(provider)
         val closed = fixtureComment(fixturePost("post-1"), "comment-1").copy(state = ThreadState.CLOSED)
@@ -321,7 +321,7 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
-    fun `should throw ReplyRejectedException with DELETED thread state when the reply parent is deleted`() = runTest {
+    fun `should throw ReplyRejectedException with THREAD_NOT_OPEN when the reply parent is deleted`() = runTest {
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
         val handler = replyHandler(provider)
         val deleted = fixtureComment(fixturePost("post-2"), "comment-2").copy(state = ThreadState.DELETED)
@@ -540,6 +540,7 @@ class SocialContentFoundationHandlersTest {
         override suspend fun fetchComments(
             actor: SocialContentActor,
             post: SocialPost,
+            cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
         ): SocialContentPage<SocialComment> =
             SocialContentPage(emptyList(), null)
 
@@ -558,7 +559,7 @@ class SocialContentFoundationHandlersTest {
         override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> =
             throw throwable
 
-        override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
+        override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost, cursor: com.profiletailors.smp.publishing.domain.PageCursor?): SocialContentPage<SocialComment> =
             throw throwable
 
         override suspend fun reply(

@@ -163,9 +163,17 @@ class SocialContentFoundationHandlers(
         now: Instant,
     ): SocialContentPage<SocialComment> {
         requireAllowed(actor, CapabilityOperation.READ_COMMENTS)
-        val page = retryPolicy.execute { provider.fetchComments(actor, post) }
-        page.items.forEach { commentRepository.upsert(it.copy(expiresAt = now.plus(retention.activityTtl))) }
-        return page
+        var cursor: com.profiletailors.smp.publishing.domain.PageCursor? = null
+        val allComments = mutableListOf<SocialComment>()
+
+        do {
+            val page = retryPolicy.execute { provider.fetchComments(actor, post, cursor) }
+            page.items.forEach { commentRepository.upsert(it.copy(expiresAt = now.plus(retention.activityTtl))) }
+            allComments.addAll(page.items)
+            cursor = page.nextCursor
+        } while (cursor != null)
+
+        return SocialContentPage(allComments, null)
     }
 
     /**

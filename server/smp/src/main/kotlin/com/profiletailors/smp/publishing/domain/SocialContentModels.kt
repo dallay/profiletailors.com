@@ -202,8 +202,8 @@ data class SocialPost(
     /** Whether the post is still considered live in the workspace feed. */
     val isActive: Boolean get() = lifecycle == PostLifecycle.PUBLISHED
 
-    /** Whether local services may mutate the post; false for externally imported posts. */
-    val mutationAllowed: Boolean get() = false
+    /** Whether local services may mutate the post; true only for posts reconciled with local publications. */
+    val mutationAllowed: Boolean get() = origin == PostOrigin.PROFILETAILORS && localPublicationId != null
 
     /** Returns true when [now] is at or past the post expiry instant. */
     fun isExpired(now: Instant): Boolean = !now.isBefore(expiresAt)

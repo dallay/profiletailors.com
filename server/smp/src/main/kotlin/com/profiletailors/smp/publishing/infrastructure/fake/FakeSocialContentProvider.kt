@@ -52,9 +52,10 @@ sealed interface FakeProviderCall {
 
 /** In-memory [SocialContentPostRepository] keyed by workspace + provider + actor + external post id. */
 class FakeSocialContentPostRepository : SocialContentPostRepository {
+    private val mutex = Mutex()
     private val records = linkedMapOf<PostIdentity, SocialPost>()
 
-    val all: List<SocialPost> get() = records.values.toList()
+    suspend fun all(): List<SocialPost> = mutex.withLock { records.values.toList() }
 
     /**
      * Inserts or replaces a stored social post.
@@ -62,9 +63,9 @@ class FakeSocialContentPostRepository : SocialContentPostRepository {
      * @param post The social post to store.
      * @return The stored social post.
      */
-    override suspend fun upsert(post: SocialPost): SocialPost {
+    override suspend fun upsert(post: SocialPost): SocialPost = mutex.withLock {
         records[PostIdentity(post.scope, post.provider, post.actorId, post.externalPostId)] = post
-        return post
+        post
     }
 
     /**
@@ -81,7 +82,9 @@ class FakeSocialContentPostRepository : SocialContentPostRepository {
         provider: SocialProvider,
         actorId: String,
         externalPostId: com.profiletailors.smp.publishing.domain.ExternalPostId,
-    ): SocialPost? = records[PostIdentity(scope, provider, actorId, externalPostId)]
+    ): SocialPost? = mutex.withLock {
+        records[PostIdentity(scope, provider, actorId, externalPostId)]
+    }
 
     /**
      * Tombstones stored posts for an actor that are absent from the supplied external IDs.
@@ -96,7 +99,7 @@ class FakeSocialContentPostRepository : SocialContentPostRepository {
         provider: SocialProvider,
         actorId: String,
         seenExternalIds: Set<com.profiletailors.smp.publishing.domain.ExternalPostId>,
-    ) {
+    ) = mutex.withLock {
         records.replaceAll { key, post ->
             if (
                 key.scope == scope &&
@@ -174,9 +177,10 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
      *
      * @param actor The actor associated with the post.
      * @param post The post whose comments are retrieved.
+     * @param cursor The cursor identifying the page to fetch, or `null` for the first page.
      * @return A page containing the configured comments and no subsequent cursor.
      */
-    override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
+    override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost, cursor: PageCursor?): SocialContentPage<SocialComment> =
         mutex.withLock {
             recordedCalls += FakeProviderCall.FetchComments(actor.id, post.externalPostId.value)
             SocialContentPage(fixtures.comments[post.externalPostId.value].orEmpty(), null)
