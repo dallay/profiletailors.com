@@ -180,11 +180,14 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
      * @param cursor The cursor identifying the page to fetch, or `null` for the first page.
      * @return A page containing the configured comments and no subsequent cursor.
      */
-    override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost, cursor: PageCursor?): SocialContentPage<SocialComment> =
-        mutex.withLock {
-            recordedCalls += FakeProviderCall.FetchComments(actor.id, post.externalPostId.value)
-            SocialContentPage(fixtures.comments[post.externalPostId.value].orEmpty(), null)
-        }
+    override suspend fun fetchComments(
+        actor: SocialContentActor,
+        post: SocialPost,
+        cursor: PageCursor?,
+    ): SocialContentPage<SocialComment> = mutex.withLock {
+        recordedCalls += FakeProviderCall.FetchComments(actor.id, post.externalPostId.value)
+        SocialContentPage(fixtures.comments[post.externalPostId.value].orEmpty(), null)
+    }
 
     /**
      * Creates a fake reply to a parent comment and records the provider call.
