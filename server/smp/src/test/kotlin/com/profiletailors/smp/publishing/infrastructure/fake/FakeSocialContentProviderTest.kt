@@ -158,9 +158,27 @@ class FakeSocialContentProviderTest {
         repository.upsert(postA)
         repository.upsert(postB)
 
-        repository.findByWorkspaceAndExternalId(actorA.scope, SocialProvider.LINKEDIN, actorA.id, postA.externalPostId) shouldBe postA
-        repository.findByWorkspaceAndExternalId(actorA.scope, SocialProvider.LINKEDIN, actorA.id, postB.externalPostId) shouldBe null
-        repository.findByWorkspaceAndExternalId(actorB.scope, SocialProvider.LINKEDIN, actorB.id, postB.externalPostId) shouldBe postB
+        repository.findByWorkspaceAndExternalId(
+            actorA.scope,
+            SocialProvider.LINKEDIN,
+            actorA.id,
+            postA.externalPostId,
+        ) shouldBe
+            postA
+        repository.findByWorkspaceAndExternalId(
+            actorA.scope,
+            SocialProvider.LINKEDIN,
+            actorA.id,
+            postB.externalPostId,
+        ) shouldBe
+            null
+        repository.findByWorkspaceAndExternalId(
+            actorB.scope,
+            SocialProvider.LINKEDIN,
+            actorB.id,
+            postB.externalPostId,
+        ) shouldBe
+            postB
     }
 
     @Test
@@ -175,27 +193,52 @@ class FakeSocialContentProviderTest {
         repository.upsert(stale)
         repository.upsert(fixturePost(actorB, "post-other-actor"))
 
-        repository.tombstoneMissing(actorA.scope, SocialProvider.LINKEDIN, actorA.id, seenExternalIds = setOf(retained.externalPostId))
+        repository.tombstoneMissing(
+            actorA.scope,
+            SocialProvider.LINKEDIN,
+            actorA.id,
+            seenExternalIds = setOf(retained.externalPostId),
+        )
 
-        repository.findByWorkspaceAndExternalId(actorA.scope, SocialProvider.LINKEDIN, actorA.id, retained.externalPostId)?.lifecycle shouldBe PostLifecycle.PUBLISHED
-        repository.findByWorkspaceAndExternalId(actorA.scope, SocialProvider.LINKEDIN, actorA.id, stale.externalPostId)?.lifecycle shouldBe PostLifecycle.TOMBSTONED
-        repository.findByWorkspaceAndExternalId(actorB.scope, SocialProvider.LINKEDIN, actorB.id, ExternalPostId("post-other-actor"))?.lifecycle shouldBe PostLifecycle.PUBLISHED
+        repository.findByWorkspaceAndExternalId(
+            actorA.scope,
+            SocialProvider.LINKEDIN,
+            actorA.id,
+            retained.externalPostId,
+        )?.lifecycle shouldBe
+            PostLifecycle.PUBLISHED
+        repository.findByWorkspaceAndExternalId(
+            actorA.scope,
+            SocialProvider.LINKEDIN,
+            actorA.id,
+            stale.externalPostId,
+        )?.lifecycle shouldBe
+            PostLifecycle.TOMBSTONED
+        repository.findByWorkspaceAndExternalId(
+            actorB.scope,
+            SocialProvider.LINKEDIN,
+            actorB.id,
+            ExternalPostId("post-other-actor"),
+        )?.lifecycle shouldBe
+            PostLifecycle.PUBLISHED
     }
 
-    private fun fixtureActor(
-        id: String = "actor-1",
-        externalId: String = "urn:li:organization:123",
-    ) = SocialContentActor(
-        id = id,
-        scope = WorkspaceScope("workspace-1"),
-        connectionId = "connection-1",
-        provider = SocialProvider.LINKEDIN,
-        externalActorId = ProviderActorId(externalId),
-        kind = com.profiletailors.smp.publishing.domain.SocialAccountKind.ORGANIZATION_PAGE,
-        displayName = "Profile Tailors",
-        roleState = com.profiletailors.smp.publishing.domain.ActorRoleState.ADMIN,
-        grantedScopes = setOf("r_organization_social", "r_organization_social_social_actions", "w_organization_social"),
-    )
+    private fun fixtureActor(id: String = "actor-1", externalId: String = "urn:li:organization:123") =
+        SocialContentActor(
+            id = id,
+            scope = WorkspaceScope("workspace-1"),
+            connectionId = "connection-1",
+            provider = SocialProvider.LINKEDIN,
+            externalActorId = ProviderActorId(externalId),
+            kind = com.profiletailors.smp.publishing.domain.SocialAccountKind.ORGANIZATION_PAGE,
+            displayName = "Profile Tailors",
+            roleState = com.profiletailors.smp.publishing.domain.ActorRoleState.ADMIN,
+            grantedScopes = setOf(
+                "r_organization_social",
+                "r_organization_social_social_actions",
+                "w_organization_social",
+            ),
+        )
 
     private fun administeredOrganizationCandidate(actor: SocialContentActor) = SocialContentActorCandidate(
         id = actor.id,

@@ -310,79 +310,78 @@ class SocialContentModelsTest {
     }
 
     @Test
-    fun `should reject reply commands when workspace, actor owner, parent or thread state mismatches`() {
-        val matchingActorId = "actor-1"
-        val openThreadComment = SocialComment(
-            scope = workspace,
-            postId = ExternalPostId("post-1"),
-            ownerActorId = matchingActorId,
-            externalCommentId = ExternalCommentId("comment-1"),
-            parentExternalCommentId = null,
-            actorExternalId = ProviderActorId("urn:li:person:1"),
-            body = "Question",
-            createdAt = publishedAt,
-            state = ThreadState.OPEN,
-            expiresAt = publishedAt.plusSeconds(3600),
-        )
+    fun `should reject reply commands for workspace mismatch`() {
+        val comment = openThreadComment()
+        val command = replyCommand(scope = otherWorkspace, idempotencyKey = "reply-workspace")
 
-        ReplyCommand(
-            scope = workspace,
-            actorId = matchingActorId,
-            parentCommentId = openThreadComment.externalCommentId,
-            body = "Answer",
-            idempotencyKey = IdempotencyKey("reply-ok"),
-        ).validateAgainst(openThreadComment, workspace, publishedAt.plusSeconds(1)) shouldBe Unit
-
-        val foreignReply = ReplyCommand(
-            scope = otherWorkspace,
-            actorId = matchingActorId,
-            parentCommentId = openThreadComment.externalCommentId,
-            body = "Answer",
-            idempotencyKey = IdempotencyKey("reply-workspace"),
-        )
         shouldThrow<ReplyRejectedException> {
-            foreignReply.validateAgainst(openThreadComment, workspace, publishedAt.plusSeconds(1))
-        }
-            .reason shouldBe ReplyRejectionReason.WORKSPACE_MISMATCH
-
-        val foreignActorReply = ReplyCommand(
-            scope = workspace,
-            actorId = "another-actor",
-            parentCommentId = openThreadComment.externalCommentId,
-            body = "Answer",
-            idempotencyKey = IdempotencyKey("reply-actor"),
-        )
-        shouldThrow<ReplyRejectedException> {
-            foreignActorReply.validateAgainst(openThreadComment, workspace, publishedAt.plusSeconds(1))
-        }
-            .reason shouldBe ReplyRejectionReason.ACTOR_MISMATCH
-
-        val wrongParentComment = openThreadComment.copy(externalCommentId = ExternalCommentId("comment-2"))
-        val parentMismatch = ReplyCommand(
-            scope = workspace,
-            actorId = matchingActorId,
-            parentCommentId = openThreadComment.externalCommentId,
-            body = "Answer",
-            idempotencyKey = IdempotencyKey("reply-parent"),
-        )
-        shouldThrow<ReplyRejectedException> {
-            parentMismatch.validateAgainst(wrongParentComment, workspace, publishedAt.plusSeconds(1))
-        }
-            .reason shouldBe ReplyRejectionReason.PARENT_NOT_FOUND
-
-        val closedComment = openThreadComment.copy(state = ThreadState.CLOSED)
-        val threadMismatch = ReplyCommand(
-            scope = workspace,
-            actorId = matchingActorId,
-            parentCommentId = openThreadComment.externalCommentId,
-            body = "Answer",
-            idempotencyKey = IdempotencyKey("reply-thread"),
-        )
-        shouldThrow<ReplyRejectedException> {
-            threadMismatch.validateAgainst(closedComment, workspace, publishedAt.plusSeconds(1))
-        }
-            .reason shouldBe ReplyRejectionReason.THREAD_NOT_OPEN
+            command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1))
+        }.reason shouldBe ReplyRejectionReason.WORKSPACE_MISMATCH
     }
+
+    @Test
+    fun `should reject reply commands for actor mismatch`() {
+        val comment = openThreadComment()
+        val command = replyCommand(actorId = "another-actor", idempotencyKey = "reply-actor")
+
+        shouldThrow<ReplyRejectedException> {
+            command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1))
+        }.reason shouldBe ReplyRejectionReason.ACTOR_MISMATCH
+    }
+
+    @Test
+    fun `should reject reply commands for parent mismatch`() {
+        val comment = openThreadComment()
+        val command = replyCommand(idempotencyKey = "reply-parent")
+        val wrongParent = comment.copy(externalCommentId = ExternalCommentId("comment-2"))
+
+        shouldThrow<ReplyRejectedException> {
+            command.validateAgainst(wrongParent, workspace, publishedAt.plusSeconds(1))
+        }.reason shouldBe ReplyRejectionReason.PARENT_NOT_FOUND
+    }
+
+    @Test
+    fun `should reject reply commands for closed threads`() {
+        val comment = openThreadComment().copy(state = ThreadState.CLOSED)
+        val command = replyCommand(idempotencyKey = "reply-thread")
+
+        shouldThrow<ReplyRejectedException> {
+            command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1))
+        }.reason shouldBe ReplyRejectionReason.THREAD_NOT_OPEN
+    }
+
+    @Test
+    fun `should accept reply commands when the parent matches an open thread`() {
+        val comment = openThreadComment()
+        val command = replyCommand(idempotencyKey = "reply-ok")
+
+        command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1)) shouldBe Unit
+    }
+
+    private fun openThreadComment(): SocialComment = SocialComment(
+        scope = workspace,
+        postId = ExternalPostId("post-1"),
+        ownerActorId = "actor-1",
+        externalCommentId = ExternalCommentId("comment-1"),
+        parentExternalCommentId = null,
+        actorExternalId = ProviderActorId("urn:li:person:1"),
+        body = "Question",
+        createdAt = publishedAt,
+        state = ThreadState.OPEN,
+        expiresAt = publishedAt.plusSeconds(3600),
+    )
+
+    private fun replyCommand(
+        scope: WorkspaceScope = workspace,
+        actorId: String = "actor-1",
+        idempotencyKey: String,
+    ): ReplyCommand = ReplyCommand(
+        scope = scope,
+        actorId = actorId,
+        parentCommentId = ExternalCommentId("comment-1"),
+        body = "Answer",
+        idempotencyKey = IdempotencyKey(idempotencyKey),
+    )
 
     @Test
     fun `should reject reply commands when the parent comment has expired`() {

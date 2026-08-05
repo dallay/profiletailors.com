@@ -18,7 +18,8 @@ class FakeReplyCommandRepository : ReplyCommandRepository {
      * Claims a reply command for processing while enforcing idempotency within its workspace.
      *
      * @param command The reply command to claim.
-     * @return An existing result when the command was previously claimed; otherwise, a claimed status after storing a processing result.
+     * @return An existing result when the command was previously claimed; otherwise, a claimed status after
+     * storing a processing result.
      */
     override suspend fun claim(command: ReplyCommand): ReplyCommandClaim = mutex.withLock {
         val idempotencyKey = command.scope to command.idempotencyKey.value

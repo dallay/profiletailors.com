@@ -46,7 +46,8 @@ class SocialContentRetryPolicy(
      *
      * @param operation The suspending operation to execute.
      * @return The result produced by the operation.
-     * @throws SocialContentProviderException If the operation fails with a non-rate-limited failure or exhausts the allowed attempts.
+     * @throws SocialContentProviderException If the operation fails with a non-rate-limited failure or exhausts
+     * the allowed attempts.
      */
     suspend fun <T> execute(operation: suspend () -> T): T {
         var attempt = 1
