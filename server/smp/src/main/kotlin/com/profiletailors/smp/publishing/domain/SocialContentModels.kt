@@ -77,7 +77,12 @@ data class ProviderCapabilities(
     val supportsNestedReplies: Boolean,
     val retention: RetentionRequirements,
 ) {
-    fun canImportCompanyPage(): Boolean = accountKind == SocialAccountKind.ORGANIZATION_PAGE && canReadPosts
+    /**
+ * Determines whether the account can import company-page content.
+ *
+ * @return `true` if the account is an organization page and can read posts, `false` otherwise.
+ */
+fun canImportCompanyPage(): Boolean = accountKind == SocialAccountKind.ORGANIZATION_PAGE && canReadPosts
 }
 
 data class RetentionRequirements(val activityTtl: java.time.Duration, val commenterProfileTtl: java.time.Duration) {
@@ -123,6 +128,12 @@ data class SocialContentActor(
         }
     }
 
+    /**
+     * Derives the provider capabilities available to this social content actor.
+     *
+     * @param retention The retention requirements applied to supported content.
+     * @return The actor's account kind, granted scopes, role state, supported operations, and retention requirements.
+     */
     fun capabilities(retention: RetentionRequirements): ProviderCapabilities = ProviderCapabilities(
         accountKind = kind,
         grantedScopes = grantedScopes,
@@ -154,18 +165,49 @@ data class SocialPost(
     val isActive: Boolean get() = lifecycle == PostLifecycle.PUBLISHED
     val mutationAllowed: Boolean get() = false
 
-    fun isExpired(now: Instant): Boolean = !now.isBefore(expiresAt)
+    /**
+ * Determines whether the post has reached or passed its expiration time.
+ *
+ * @param now The time at which to evaluate expiration.
+ * @return `true` if the post is expired, `false` otherwise.
+ */
+fun isExpired(now: Instant): Boolean = !now.isBefore(expiresAt)
 
+    /**
+     * Associates the post with a local publication.
+     *
+     * @param publicationId The nonblank local publication identifier.
+     * @return A copy of the post associated with the specified publication.
+     * @throws IllegalArgumentException If `publicationId` is blank.
+     */
     fun reconcileWithLocalPublication(publicationId: String): SocialPost {
         require(publicationId.isNotBlank()) { "Local publication ID is required." }
         return copy(origin = PostOrigin.PROFILETAILORS, localPublicationId = publicationId)
     }
 
-    fun tombstone(at: Instant): SocialPost = copy(lifecycle = PostLifecycle.TOMBSTONED, expiresAt = at)
+    /**
+ * Marks the post as tombstoned at the specified time.
+ *
+ * @param at The time at which the post is tombstoned.
+ * @return A tombstoned copy of the post.
+ */
+fun tombstone(at: Instant): SocialPost = copy(lifecycle = PostLifecycle.TOMBSTONED, expiresAt = at)
 
     companion object {
         private val DEFAULT_ACTIVITY_TTL: Duration = Duration.ofHours(48)
 
+        /**
+         * Creates an externally originated social post for the specified actor.
+         *
+         * @param scope The workspace scope containing the post.
+         * @param actor The social content actor associated with the post.
+         * @param externalPostId The provider's identifier for the post.
+         * @param publishedAt The time the post was published externally.
+         * @param now The reference time used to calculate the default expiration.
+         * @param body The post body, if available.
+         * @param expiresAt The time after which the post is considered expired.
+         * @return The imported social post.
+         */
         fun imported(
             scope: WorkspaceScope,
             actor: SocialContentActor,
@@ -190,6 +232,14 @@ data class SyncCheckpoint(
         require(actorId.isNotBlank()) { "Checkpoint actor ID is required." }
     }
 
+    /**
+     * Advances the synchronization checkpoint with the latest progress and success time.
+     *
+     * @param nextCursor The cursor for the next synchronization page, or `null` when no cursor remains.
+     * @param successfulAt The time of the successful synchronization.
+     * @param nextHighWaterMark The updated high-water mark, or the current high-water mark by default.
+     * @return An updated synchronization checkpoint.
+     */
     fun advance(
         nextCursor: PageCursor?,
         successfulAt: Instant,
@@ -227,10 +277,24 @@ data class PayloadCache(
         require(encryptedPayload.isNotEmpty()) { "Payload cache payload is required." }
     }
 
-    fun isAvailable(now: Instant): Boolean = now.isBefore(expiresAt)
+    /**
+ * Determines whether the cached payload is available at the specified time.
+ *
+ * @param now The time at which availability is evaluated.
+ * @return `true` if the cache has not expired, `false` otherwise.
+ */
+fun isAvailable(now: Instant): Boolean = now.isBefore(expiresAt)
 }
 
 class DefaultCapabilityResolver(private val gates: SocialContentFeatureGates) {
+    /**
+     * Evaluates whether an actor is permitted to perform an operation.
+     *
+     * @param actor The actor requesting the operation.
+     * @param operation The operation to evaluate.
+     * @param retention The retention requirements used for capability evaluation.
+     * @return An allowed decision or a denial containing the specific failure reason.
+     */
     fun resolve(
         actor: SocialContentActor,
         operation: CapabilityOperation,
@@ -259,6 +323,12 @@ class DefaultCapabilityResolver(private val gates: SocialContentFeatureGates) {
         CapabilityOperation.REPLY -> repliesEnabled
     }
 
+    /**
+     * Determines whether the provider capabilities support the specified operation.
+     *
+     * @param operation The capability operation to evaluate.
+     * @return `true` if the operation is supported, `false` otherwise.
+     */
     private fun ProviderCapabilities.supports(operation: CapabilityOperation): Boolean = when (operation) {
         CapabilityOperation.DISCOVER_ACTORS -> accountKind == SocialAccountKind.ORGANIZATION_PAGE
         CapabilityOperation.READ_POSTS -> canReadPosts
@@ -279,7 +349,13 @@ data class SocialComment(
     val state: ThreadState,
     val expiresAt: Instant,
 ) {
-    fun isExpired(now: Instant): Boolean = !now.isBefore(expiresAt)
+    /**
+ * Determines whether the post has reached or passed its expiration time.
+ *
+ * @param now The time at which to evaluate expiration.
+ * @return `true` if the post is expired, `false` otherwise.
+ */
+fun isExpired(now: Instant): Boolean = !now.isBefore(expiresAt)
 }
 
 data class ReplyCommand(
@@ -294,6 +370,14 @@ data class ReplyCommand(
         require(body.isNotBlank()) { "Reply body is required." }
     }
 
+    /**
+     * Validates that the reply command can be applied to the specified comment and actor scope.
+     *
+     * @param comment The comment to validate as the reply parent.
+     * @param actorScope The workspace scope of the acting actor.
+     * @param now The current time used to evaluate comment expiration.
+     * @throws ReplyRejectedException If the workspace, actor, parent comment, thread state, or expiration requirements are invalid.
+     */
     fun validateAgainst(comment: SocialComment, actorScope: WorkspaceScope, now: Instant) {
         val rejection = when {
             scope != actorScope || comment.scope != actorScope -> ReplyRejectionReason.WORKSPACE_MISMATCH

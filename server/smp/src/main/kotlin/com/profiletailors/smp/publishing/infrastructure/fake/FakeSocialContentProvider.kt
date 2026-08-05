@@ -52,11 +52,26 @@ class FakeSocialContentPostRepository : SocialContentPostRepository {
 
     val all: List<SocialPost> get() = records.values.toList()
 
+    /**
+     * Inserts or replaces a stored social post.
+     *
+     * @param post The social post to store.
+     * @return The stored social post.
+     */
     override suspend fun upsert(post: SocialPost): SocialPost {
         records[PostIdentity(post.scope, post.provider, post.actorId, post.externalPostId)] = post
         return post
     }
 
+    /**
+     * Finds a stored social post by workspace, provider, actor, and external post identifier.
+     *
+     * @param scope The workspace scope.
+     * @param provider The social provider.
+     * @param actorId The provider's actor identifier.
+     * @param externalPostId The provider's post identifier.
+     * @return The matching social post, or `null` if no post is stored.
+     */
     override suspend fun findByWorkspaceAndExternalId(
         scope: WorkspaceScope,
         provider: SocialProvider,
@@ -64,6 +79,14 @@ class FakeSocialContentPostRepository : SocialContentPostRepository {
         externalPostId: com.profiletailors.smp.publishing.domain.ExternalPostId,
     ): SocialPost? = records[PostIdentity(scope, provider, actorId, externalPostId)]
 
+    /**
+     * Tombstones stored posts for an actor that are absent from the supplied external IDs.
+     *
+     * @param scope The workspace scope containing the posts.
+     * @param provider The social provider associated with the posts.
+     * @param actorId The external actor identifier.
+     * @param seenExternalIds The external post IDs observed for the actor.
+     */
     override suspend fun tombstoneMissing(
         scope: WorkspaceScope,
         provider: SocialProvider,
@@ -100,6 +123,13 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
     val calls: List<FakeProviderCall> get() = recordedCalls.toList()
     val replyCalls: List<FakeProviderCall.Reply> get() = recordedReplyCalls.toList()
 
+    /**
+     * Discovers the configured social content actor candidates.
+     *
+     * @param scope The workspace scope for the discovery request.
+     * @param connectionId The provider connection identifier.
+     * @return The configured actor candidates.
+     */
     override suspend fun discoverActors(
         scope: WorkspaceScope,
         connectionId: String,
@@ -108,7 +138,15 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
         fixtures.actorCandidates.toList()
     }
 
-    override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> =
+    /**
+         * Retrieves a paginated set of posts for an actor.
+         *
+         * @param actor The actor whose posts are retrieved.
+         * @param cursor The cursor identifying the starting position, or `null` to start from the beginning.
+         * @return A page of posts and a cursor for the next page when more posts are available.
+         * @throws SocialContentProviderException If a configured provider failure occurs.
+         */
+        override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> =
         mutex.withLock {
             recordedCalls += FakeProviderCall.FetchPosts(actor.id, cursor?.value)
             fixtures.failures.removeFirstOrNull()?.let {
@@ -126,12 +164,28 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
             SocialContentPage(page, (offset + page.size).takeIf { it < posts.size }?.toString()?.let(::PageCursor))
         }
 
-    override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
+    /**
+         * Retrieves the configured comments for a post.
+         *
+         * @param actor The actor associated with the post.
+         * @param post The post whose comments are retrieved.
+         * @return A page containing the configured comments and no subsequent cursor.
+         */
+        override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
         mutex.withLock {
             recordedCalls += FakeProviderCall.FetchComments(actor.id, post.externalPostId.value)
             SocialContentPage(fixtures.comments[post.externalPostId.value].orEmpty(), null)
         }
 
+    /**
+     * Creates a fake reply to a parent comment and records the provider call.
+     *
+     * @param actor The actor creating the reply.
+     * @param parent The comment receiving the reply.
+     * @param body The reply text.
+     * @param idempotencyKey The key used to identify the reply.
+     * @return A comment representing the created reply.
+     */
     override suspend fun reply(
         actor: SocialContentActor,
         parent: SocialComment,

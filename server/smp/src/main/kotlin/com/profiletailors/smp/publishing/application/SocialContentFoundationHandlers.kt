@@ -35,6 +35,13 @@ class SocialContentRetryPolicy(
         require(maxAttempts >= 1) { "Social content retry attempts must be at least 1." }
     }
 
+    /**
+     * Executes an operation and retries rate-limited provider failures up to the configured attempt limit.
+     *
+     * @param operation The suspending operation to execute.
+     * @return The result produced by the operation.
+     * @throws SocialContentProviderException If the operation fails with a non-rate-limited failure or exhausts the allowed attempts.
+     */
     suspend fun <T> execute(operation: suspend () -> T): T {
         var attempt = 1
         while (true) {
@@ -60,6 +67,13 @@ class SocialContentFoundationHandlers(
     private val retention: RetentionRequirements,
     private val retryPolicy: SocialContentRetryPolicy = SocialContentRetryPolicy(),
 ) {
+    /**
+     * Discovers organization pages where the actor has administrator privileges.
+     *
+     * @param actor The actor whose scope and connection are used for discovery.
+     * @return The discovered organization pages with administrator privileges.
+     * @throws IllegalStateException If the actor is not permitted to discover actors.
+     */
     suspend fun discoverActors(actor: SocialContentActor): List<SocialContentActor> {
         requireAllowed(actor, CapabilityOperation.DISCOVER_ACTORS)
         return provider.discoverActors(actor.scope, actor.connectionId)
@@ -82,6 +96,13 @@ class SocialContentFoundationHandlers(
             .toList()
     }
 
+    /**
+     * Imports all posts for an actor and updates the corresponding synchronization state.
+     *
+     * @param actor The actor whose posts are imported.
+     * @param now The timestamp used for post expiration and checkpoint updates.
+     * @return The imported posts and completed synchronization high-water mark.
+     */
     suspend fun importPosts(actor: SocialContentActor, now: Instant): SocialContentPage<SocialPost> {
         requireAllowed(actor, CapabilityOperation.READ_POSTS)
         val checkpoint = checkpointRepository.find(actor.scope, actor.id, SyncResource.POSTS)
@@ -115,6 +136,14 @@ class SocialContentFoundationHandlers(
         return SocialContentPage(importedPosts, null, completedPage.highWaterMark)
     }
 
+    /**
+     * Imports comments for a post and persists them with the configured activity expiration time.
+     *
+     * @param actor The actor whose comments are being imported.
+     * @param post The post whose comments are being imported.
+     * @param now The time used to calculate comment expiration.
+     * @return The imported comment page.
+     */
     suspend fun importComments(
         actor: SocialContentActor,
         post: SocialPost,
@@ -126,6 +155,13 @@ class SocialContentFoundationHandlers(
         return page
     }
 
+    /**
+     * Ensures the actor is authorized to perform the specified operation.
+     *
+     * @param actor The actor requesting the operation.
+     * @param operation The operation to authorize.
+     * @throws IllegalStateException If the operation is denied.
+     */
     private fun requireAllowed(actor: SocialContentActor, operation: CapabilityOperation) {
         when (val decision = capabilityResolver.resolve(actor, operation, retention)) {
             CapabilityDecision.Allowed -> Unit
@@ -140,6 +176,16 @@ class IdempotentReplyHandler(
     private val capabilityResolver: DefaultCapabilityResolver,
     private val retention: RetentionRequirements,
 ) {
+    /**
+     * Handles a reply command idempotently.
+     *
+     * @param actor The actor submitting the reply.
+     * @param parent The comment to which the reply is added.
+     * @param body The reply text.
+     * @param key The key used to identify duplicate reply requests.
+     * @param now The time used to validate the command.
+     * @return The result of the existing or newly processed reply command.
+     */
     suspend fun handle(
         actor: SocialContentActor,
         parent: SocialComment,
@@ -156,6 +202,15 @@ class IdempotentReplyHandler(
         }
     }
 
+    /**
+     * Executes a reply command and records its processing, success, or failure state.
+     *
+     * @param actor The actor sending the reply.
+     * @param parent The comment receiving the reply.
+     * @param command The validated reply command to execute.
+     * @return The completed reply command result.
+     * @throws Exception If the provider fails to create the reply.
+     */
     private suspend fun executeReply(
         actor: SocialContentActor,
         parent: SocialComment,
@@ -177,6 +232,12 @@ class IdempotentReplyHandler(
         }
     }
 
+    /**
+     * Ensures the actor is authorized to reply to a comment.
+     *
+     * @param actor The actor requesting reply capability.
+     * @throws ReplyRejectedException If the actor is denied permission to reply.
+     */
     private fun requireAllowed(actor: SocialContentActor) {
         when (val decision = capabilityResolver.resolve(actor, CapabilityOperation.REPLY, retention)) {
             CapabilityDecision.Allowed -> Unit

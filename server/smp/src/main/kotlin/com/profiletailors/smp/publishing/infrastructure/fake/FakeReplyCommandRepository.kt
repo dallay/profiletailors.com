@@ -13,6 +13,12 @@ class FakeReplyCommandRepository : ReplyCommandRepository {
     private val mutex = Mutex()
     private val results = mutableMapOf<Pair<WorkspaceScope, String>, ReplyCommandResult>()
 
+    /**
+     * Claims a reply command for processing while enforcing idempotency within its workspace.
+     *
+     * @param command The reply command to claim.
+     * @return An existing result when the command was previously claimed; otherwise, a claimed status after storing a processing result.
+     */
     override suspend fun claim(command: ReplyCommand): ReplyCommandClaim = mutex.withLock {
         val idempotencyKey = command.scope to command.idempotencyKey.value
         val existing = results[idempotencyKey]
@@ -24,6 +30,12 @@ class FakeReplyCommandRepository : ReplyCommandRepository {
         }
     }
 
+    /**
+     * Saves a reply command result for its scope and idempotency key.
+     *
+     * @param result The reply command result to store.
+     * @return The saved reply command result.
+     */
     override suspend fun save(result: ReplyCommandResult): ReplyCommandResult = mutex.withLock {
         results[result.command.scope to result.command.idempotencyKey.value] = result
         result
