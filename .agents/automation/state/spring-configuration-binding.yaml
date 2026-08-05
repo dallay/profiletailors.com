@@ -9,3 +9,5 @@ checks:
     status: Passed
   - name: Environment Example Alignment Check
     status: Passed
+  - name: Fast Backend Integration
+    status: Passed
