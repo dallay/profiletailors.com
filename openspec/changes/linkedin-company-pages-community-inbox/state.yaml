@@ -1,0 +1,7 @@
+change: linkedin-company-pages-community-inbox
+current_phase: verify
+completed: [explore, propose, spec, design, tasks, verify]
+next: archive
+implementation_status: partial
+updated: 2026-08-04
+note: Verification is PASS WITH WARNINGS. Current focused wiring test passes 4/4, backend-bdd-fast passes 189 scenarios with 0 failures, bddPostgresTest is BUILD SUCCESSFUL with 189 scenarios and 0 failures, compileTestKotlin passes, and git diff --check passes. Task 2.2 remains PARTIAL and schema-blocked for actor persistence, approval-evidence persistence, and provider-portable checkpoint mapping; no migrations or simulated productive repositories were added. Community Management remains disabled by default and fail-closed, and personal OAuth/publishing is preserved. Residual warnings: production R2DBC calendar cursor continuation is not implemented end-to-end, and the imported-Page publication-write rejection plus mixed personal/imported calendar scenarios lack active runtime coverage. Tasks 3.1, 3.2, 5.1, and 5.2 remain open in tasks.md. Archive is the next recommended phase; Task 2.2 must remain open and must not be closed by archive.

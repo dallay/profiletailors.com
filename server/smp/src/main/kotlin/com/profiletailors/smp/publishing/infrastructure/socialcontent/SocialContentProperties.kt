@@ -8,6 +8,7 @@ private val DEFAULT_COMMENTER_PROFILE_CACHE_TTL = Duration.ofHours(24)
 private val DEFAULT_POLL_INTERVAL = Duration.ofMinutes(15)
 private val DEFAULT_POLL_OVERLAP = Duration.ofMinutes(10)
 private const val MAX_PAGE_SIZE = 100
+private val DEFAULT_SUPPORTED_API_VERSIONS = setOf("202606")
 private const val MIN_REQUESTS_PER_MINUTE = 1
 private const val MIN_BURST = 1
 private val DEFAULT_PURGE_INTERVAL = Duration.ofHours(6)
@@ -20,6 +21,9 @@ data class SocialContentProperties(
     val repliesEnabled: Boolean = false,
     val syncEnabled: Boolean = false,
     val apiVersion: String = "202606",
+    val supportedApiVersions: Set<String> = DEFAULT_SUPPORTED_API_VERSIONS,
+    val retentionPolicyVersion: String = "",
+
     val polling: Polling = Polling(),
     val activityCacheTtl: Duration = DEFAULT_ACTIVITY_CACHE_TTL,
     val commenterProfileCacheTtl: Duration = DEFAULT_COMMENTER_PROFILE_CACHE_TTL,
@@ -69,6 +73,9 @@ data class SocialContentProperties(
         }
         require(!commenterProfileCacheTtl.isNegative && !commenterProfileCacheTtl.isZero) {
             "Commenter profile cache TTL must be positive."
+        }
+        require(supportedApiVersions.isNotEmpty() && supportedApiVersions.all(String::isNotBlank)) {
+            "Supported LinkedIn API versions must not be empty."
         }
     }
 }

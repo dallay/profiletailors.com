@@ -22,6 +22,8 @@ class SocialContentPropertiesTest {
             properties.inboxEnabled shouldBe false
             properties.repliesEnabled shouldBe false
             properties.syncEnabled shouldBe false
+            properties.supportedApiVersions shouldBe setOf("202606")
+            properties.retentionPolicyVersion shouldBe ""
             properties.webhooks.enabled shouldBe false
             properties.purge.enabled shouldBe false
         }
