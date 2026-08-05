@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "yaml": "^2.7.0",
+    "yaml": "^2.9.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
