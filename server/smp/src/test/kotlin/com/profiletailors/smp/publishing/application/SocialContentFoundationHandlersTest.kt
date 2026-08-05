@@ -551,6 +551,7 @@ class SocialContentFoundationHandlersTest {
         override suspend fun fetchComments(
             actor: SocialContentActor,
             post: SocialPost,
+            cursor: PageCursor?,
         ): SocialContentPage<SocialComment> = SocialContentPage(emptyList(), null)
 
         override suspend fun reply(
@@ -573,6 +574,7 @@ class SocialContentFoundationHandlersTest {
         override suspend fun fetchComments(
             actor: SocialContentActor,
             post: SocialPost,
+            cursor: PageCursor?,
         ): SocialContentPage<SocialComment> = throw throwable
 
         override suspend fun reply(
