@@ -1,6 +1,6 @@
 [versions]
-kotlin = "2.3.21"
-springBoot = "4.0.7"
+kotlin = "2.4.10"
+springBoot = "4.1.0"
 springManagement = "1.1.7"
 springModulith = "2.1.0"
 springAi = "2.0.0"
@@ -15,25 +15,25 @@ jdk = "21"
 coroutines = "1.10.2"
 jackson = "3.0.+"
 slf4j = "2.0.18"
-commonsText = "1.12.0"
-resend = "4.4.0"
+commonsText = "1.15.0"
+resend = "4.13.0"
 awsS3 = "2.50.2"
 bucket4j = "8.10.1"
-caffeine = "3.1.8"
+caffeine = "3.2.4"
 
 # Transitive deps requiring explicit versions
-okio = "3.17.0"
+okio = "3.18.1"
 bouncycastle = "1.85"
 
 # Testing
-reactor = "3.7.5"
+reactor = "3.8.6"
 junit = "6.1.2"
 assertj = "3.27.7"
 mockk = "1.14.11"
 testcontainers = "1.20.6"
 cucumber = "7.34.6"
 archunit = "1.4.2"
-kover = "0.9.1"
+kover = "0.9.9"
 kotest = "6.2.3"
 
 [libraries]
