@@ -1,6 +1,6 @@
 schemaVersion: 1
 task: dependency-maintenance
-lastExecution: 2026-03-05T18:00:00Z
+lastExecution: 2026-03-05T18:15:00Z
 outcome: CHANGES_APPLIED
 findings:
   - id: detekt-kotlin-mismatch
@@ -13,14 +13,16 @@ findings:
   - id: biome-patch-drift
     dependency: "@biomejs/biome"
     type: patch-drift
-    currentVersion: 2.5.4
-    resolvedVersion: 2.5.5
+    currentVersion: 2.5.5
+    resolvedVersion: 2.5.6
     status: resolved
-    evidence: "Biome upgraded from 2.5.4 to 2.5.5 as a conservative dependency maintenance patch."
+    evidence: "Biome upgraded from 2.5.5 to 2.5.6 as a conservative dependency maintenance patch."
 checks:
   - name: backend-build-check
     status: Passed
-  - name: backend-detekt-check
-    status: Passed
   - name: frontend-biome-check
+    status: Passed
+  - name: frontend-build-check
+    status: Passed
+  - name: frontend-test-check
     status: Passed
