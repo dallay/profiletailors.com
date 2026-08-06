@@ -73,16 +73,15 @@ class FakeSocialContentActorRepositoryTest {
         repository.findByWorkspaceAndId(replacement.scope, "actor-2") shouldNotBe null
     }
 
-    private fun fixtureActor(id: String = "actor-1", displayName: String = "Profile Tailors") =
-        SocialContentActor(
-            id = id,
-            scope = WorkspaceScope("workspace-1"),
-            connectionId = "connection-1",
-            provider = SocialProvider.LINKEDIN,
-            externalActorId = ProviderActorId("urn:li:organization:123"),
-            kind = SocialAccountKind.ORGANIZATION_PAGE,
-            displayName = displayName,
-            roleState = ActorRoleState.ADMIN,
-            grantedScopes = setOf("r_organization_social"),
-        )
+    private fun fixtureActor(id: String = "actor-1", displayName: String = "Profile Tailors") = SocialContentActor(
+        id = id,
+        scope = WorkspaceScope("workspace-1"),
+        connectionId = "connection-1",
+        provider = SocialProvider.LINKEDIN,
+        externalActorId = ProviderActorId("urn:li:organization:123"),
+        kind = SocialAccountKind.ORGANIZATION_PAGE,
+        displayName = displayName,
+        roleState = ActorRoleState.ADMIN,
+        grantedScopes = setOf("r_organization_social"),
+    )
 }
