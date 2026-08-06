@@ -115,7 +115,6 @@ class SocialContentFoundationHandlersTest {
         provider.calls shouldBe emptyList()
     }
 
-
     @Test
     fun `should accept the capability resolver port without requiring its default implementation`() = runTest {
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures())

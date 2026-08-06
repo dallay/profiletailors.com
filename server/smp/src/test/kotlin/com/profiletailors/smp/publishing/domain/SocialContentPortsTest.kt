@@ -69,7 +69,6 @@ class SocialContentPortsTest {
         shouldThrow<IllegalArgumentException> { SocialContentSyncLimits(pageSize = 1, maxPages = 0) }
     }
 
-
     @Test
     fun `cursor and checkpoint preserve workspace and only advance after success`() {
         val cursor = PageCursor("next-1")
