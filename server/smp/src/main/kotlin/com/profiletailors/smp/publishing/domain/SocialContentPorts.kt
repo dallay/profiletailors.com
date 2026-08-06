@@ -24,7 +24,11 @@ interface SocialContentProvider {
      * @param cursor The cursor identifying the page to fetch, or `null` for the first page.
      * @return A page of posts with optional pagination metadata.
      */
-    suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost>
+    suspend fun fetchPosts(
+        actor: SocialContentActor,
+        cursor: PageCursor?,
+        pageSize: Int = 100,
+    ): SocialContentPage<SocialPost>
 
     /**
      * Fetches comments associated with a social post.
@@ -38,6 +42,7 @@ interface SocialContentProvider {
         actor: SocialContentActor,
         post: SocialPost,
         cursor: PageCursor? = null,
+        pageSize: Int = 100,
     ): SocialContentPage<SocialComment>
 
     /**
@@ -199,6 +204,7 @@ data class ReplyCommandResult(
     val command: ReplyCommand,
     val state: ReplyCommandState,
     val externalCommentId: ExternalCommentId? = null,
+    val failure: SocialContentProviderFailure? = null,
 )
 
 /** Lifecycle states for a [ReplyCommandResult] persisted through [ReplyCommandRepository]. */

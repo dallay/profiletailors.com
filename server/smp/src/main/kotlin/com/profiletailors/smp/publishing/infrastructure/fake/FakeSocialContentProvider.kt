@@ -154,23 +154,26 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
      * @return A page of posts and a cursor for the next page when more posts are available.
      * @throws SocialContentProviderException If a configured provider failure occurs.
      */
-    override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> =
-        mutex.withLock {
-            recordedCalls += FakeProviderCall.FetchPosts(actor.id, cursor?.value)
-            fixtures.failures.removeFirstOrNull()?.let {
-                throw SocialContentProviderException(
-                    when (it) {
-                        FakeProviderFailure.UNAUTHORIZED -> SocialContentProviderFailure.UNAUTHORIZED
-                        FakeProviderFailure.ROLE_FORBIDDEN -> SocialContentProviderFailure.ROLE_FORBIDDEN
-                        FakeProviderFailure.RATE_LIMITED -> SocialContentProviderFailure.RATE_LIMITED
-                    },
-                )
-            }
-            val offset = cursor?.value?.toIntOrNull() ?: 0
-            val posts = fixtures.posts[actor.id].orEmpty()
-            val page = posts.drop(offset).take(fixtures.pageSize)
-            SocialContentPage(page, (offset + page.size).takeIf { it < posts.size }?.toString()?.let(::PageCursor))
+    override suspend fun fetchPosts(
+        actor: SocialContentActor,
+        cursor: PageCursor?,
+        pageSize: Int,
+    ): SocialContentPage<SocialPost> = mutex.withLock {
+        recordedCalls += FakeProviderCall.FetchPosts(actor.id, cursor?.value)
+        fixtures.failures.removeFirstOrNull()?.let {
+            throw SocialContentProviderException(
+                when (it) {
+                    FakeProviderFailure.UNAUTHORIZED -> SocialContentProviderFailure.UNAUTHORIZED
+                    FakeProviderFailure.ROLE_FORBIDDEN -> SocialContentProviderFailure.ROLE_FORBIDDEN
+                    FakeProviderFailure.RATE_LIMITED -> SocialContentProviderFailure.RATE_LIMITED
+                },
+            )
         }
+        val offset = cursor?.value?.toIntOrNull() ?: 0
+        val posts = fixtures.posts[actor.id].orEmpty()
+        val page = posts.drop(offset).take(minOf(pageSize, fixtures.pageSize))
+        SocialContentPage(page, (offset + page.size).takeIf { it < posts.size }?.toString()?.let(::PageCursor))
+    }
 
     /**
      * Retrieves the configured comments for a post.
@@ -184,9 +187,16 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
         actor: SocialContentActor,
         post: SocialPost,
         cursor: PageCursor?,
+        pageSize: Int,
     ): SocialContentPage<SocialComment> = mutex.withLock {
         recordedCalls += FakeProviderCall.FetchComments(actor.id, post.externalPostId.value)
-        SocialContentPage(fixtures.comments[post.externalPostId.value].orEmpty(), null)
+        val comments = fixtures.comments[post.externalPostId.value].orEmpty()
+        val offset = cursor?.value?.toIntOrNull() ?: 0
+        val page = comments.drop(offset).take(minOf(pageSize, fixtures.pageSize))
+        SocialContentPage(
+            page,
+            (offset + page.size).takeIf { it < comments.size }?.toString()?.let(::PageCursor),
+        )
     }
 
     /**

@@ -1,0 +1,74 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-017-social-content-workspace-fks
+      author: opencode
+      changes:
+        - addUniqueConstraint:
+            tableName: social_accounts
+            columnNames: workspace_id, id
+            constraintName: uq_social_accounts_workspace_id
+        - addUniqueConstraint:
+            tableName: social_content_posts
+            columnNames: workspace_id, id
+            constraintName: uq_social_content_posts_workspace_id
+        - addForeignKeyConstraint:
+            baseTableName: social_content_actor_capabilities
+            baseColumnNames: workspace_id, social_account_id
+            constraintName: fk_social_content_capabilities_workspace_account
+            referencedTableName: social_accounts
+            referencedColumnNames: workspace_id, id
+        - addForeignKeyConstraint:
+            baseTableName: social_content_posts
+            baseColumnNames: workspace_id, social_account_id
+            constraintName: fk_social_content_posts_workspace_account
+            referencedTableName: social_accounts
+            referencedColumnNames: workspace_id, id
+        - addForeignKeyConstraint:
+            baseTableName: social_content_comments
+            baseColumnNames: workspace_id, post_id
+            constraintName: fk_social_content_comments_workspace_post
+            referencedTableName: social_content_posts
+            referencedColumnNames: workspace_id, id
+        - addForeignKeyConstraint:
+            baseTableName: social_content_sync_checkpoints
+            baseColumnNames: workspace_id, social_account_id
+            constraintName: fk_social_content_checkpoints_workspace_account
+            referencedTableName: social_accounts
+            referencedColumnNames: workspace_id, id
+        - addForeignKeyConstraint:
+            baseTableName: social_content_webhook_events
+            baseColumnNames: workspace_id, social_account_id
+            constraintName: fk_social_content_webhooks_workspace_account
+            referencedTableName: social_accounts
+            referencedColumnNames: workspace_id, id
+        - addForeignKeyConstraint:
+            baseTableName: social_content_reply_commands
+            baseColumnNames: workspace_id, social_account_id
+            constraintName: fk_social_content_replies_workspace_account
+            referencedTableName: social_accounts
+            referencedColumnNames: workspace_id, id
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: social_content_reply_commands
+            constraintName: fk_social_content_replies_workspace_account
+        - dropForeignKeyConstraint:
+            baseTableName: social_content_webhook_events
+            constraintName: fk_social_content_webhooks_workspace_account
+        - dropForeignKeyConstraint:
+            baseTableName: social_content_sync_checkpoints
+            constraintName: fk_social_content_checkpoints_workspace_account
+        - dropForeignKeyConstraint:
+            baseTableName: social_content_comments
+            constraintName: fk_social_content_comments_workspace_post
+        - dropForeignKeyConstraint:
+            baseTableName: social_content_posts
+            constraintName: fk_social_content_posts_workspace_account
+        - dropForeignKeyConstraint:
+            baseTableName: social_content_actor_capabilities
+            constraintName: fk_social_content_capabilities_workspace_account
+        - dropUniqueConstraint:
+            tableName: social_content_posts
+            constraintName: uq_social_content_posts_workspace_id
+        - dropUniqueConstraint:
+            tableName: social_accounts
+            constraintName: uq_social_accounts_workspace_id

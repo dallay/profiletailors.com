@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.domain
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import java.time.Duration
@@ -59,6 +60,19 @@ class SocialContentPortsTest {
             CapabilityOperation.REPLY,
             retention,
         ) shouldBe CapabilityDecision.Denied(CapabilityFailure.ROLE_REQUIRED)
+    }
+
+    @Test
+    fun `pagination limits reject invalid values`() {
+        shouldThrow<IllegalArgumentException> { SocialContentSyncLimits(pageSize = 0, maxPages = 1) }
+        shouldThrow<IllegalArgumentException> { SocialContentSyncLimits(pageSize = 101, maxPages = 1) }
+        shouldThrow<IllegalArgumentException> { SocialContentSyncLimits(pageSize = 1, maxPages = 0) }
+    }
+
+    @Test
+    fun `capability denial preserves the exact typed failure`() {
+        val denied = CapabilityDecision.Denied(CapabilityFailure.MISSING_SCOPE)
+        denied.failure shouldBe CapabilityFailure.MISSING_SCOPE
     }
 
     @Test

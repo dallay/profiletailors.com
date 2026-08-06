@@ -9,7 +9,7 @@ class SocialContentLiquibaseChangelogTest {
     fun `master includes the social content foundation changelog`() {
         val master = resourceText("db/changelog/db.changelog-master.yaml")
 
-        master shouldContain "db/changelog/publishing/016-create-social-content-foundation.yaml"
+        master shouldContain "\n  - include:\n      file: $FOUNDATION_CHANGELOG"
         javaClass.classLoader
             .getResource("db/changelog/publishing/016-create-social-content-foundation.yaml")
             .shouldNotBeNull()
@@ -36,6 +36,34 @@ class SocialContentLiquibaseChangelogTest {
     }
 
     @Test
+    fun `master includes the workspace foreign key remediation changelog`() {
+        val master = resourceText("db/changelog/db.changelog-master.yaml")
+        val migration = resourceText("db/changelog/publishing/017-social-content-workspace-fks.yaml")
+
+        master shouldContain "\n  - include:\n      file: db/changelog/publishing/017-social-content-workspace-fks.yaml"
+        migration shouldContain "uq_social_accounts_workspace_id"
+        migration shouldContain "uq_social_content_posts_workspace_id"
+        migration shouldContain "fk_social_content_capabilities_workspace_account"
+        migration shouldContain "fk_social_content_posts_workspace_account"
+        migration shouldContain "fk_social_content_comments_workspace_post"
+        migration shouldContain "fk_social_content_checkpoints_workspace_account"
+        migration shouldContain "fk_social_content_webhooks_workspace_account"
+        migration shouldContain "fk_social_content_replies_workspace_account"
+        migration shouldContain "rollback:"
+        migration shouldContain "dropForeignKeyConstraint:"
+    }
+
+    @Test
+    fun `workspace foreign key remediation uses composite account and post references`() {
+        val migration = resourceText("db/changelog/publishing/017-social-content-workspace-fks.yaml")
+
+        migration shouldContain "baseColumnNames: workspace_id, social_account_id"
+        migration shouldContain "referencedColumnNames: workspace_id, id"
+        migration shouldContain "baseColumnNames: workspace_id, post_id"
+        migration shouldContain "referencedTableName: social_content_posts"
+    }
+
+    @Test
     fun `foundation changelog includes expiry checkpoint and hierarchy indexes`() {
         val changelog = resourceText("db/changelog/publishing/016-create-social-content-foundation.yaml")
 
@@ -49,4 +77,9 @@ class SocialContentLiquibaseChangelogTest {
         requireNotNull(javaClass.classLoader.getResourceAsStream(path)) { "Missing resource $path" }
             .bufferedReader()
             .use { it.readText() }
+
+    private companion object {
+        const val FOUNDATION_CHANGELOG =
+            "db/changelog/publishing/016-create-social-content-foundation.yaml"
+    }
 }

@@ -151,6 +151,12 @@ class SocialContentPropertiesTest {
         shouldThrow<IllegalArgumentException> {
             SocialContentProperties(apiVersion = "20A606")
         }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(apiVersion = "202600")
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialContentProperties(apiVersion = "202613")
+        }
     }
 
     @Test

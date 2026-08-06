@@ -8,10 +8,26 @@ import com.profiletailors.smp.publishing.domain.ReplyCommandResult
 import com.profiletailors.smp.publishing.domain.ReplyCommandState
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 
 class FakeReplyCommandRepositoryTest {
+    @Test
+    fun `should atomically claim a key only once under concurrent callers`() = runTest {
+        val repository = FakeReplyCommandRepository()
+        val command = command()
+
+        val claims = coroutineScope {
+            (1..32).map { async { repository.claim(command) } }.awaitAll()
+        }
+
+        claims.count { it == ReplyCommandClaim.Claimed } shouldBe 1
+        claims.count { it is ReplyCommandClaim.Existing } shouldBe 31
+    }
+
     @Test
     fun `should return Claimed on first claim and Existing with the previous result on subsequent claims`() = runTest {
         val repository = FakeReplyCommandRepository()

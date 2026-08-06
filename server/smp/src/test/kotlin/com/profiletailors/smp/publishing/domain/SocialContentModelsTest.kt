@@ -56,6 +56,91 @@ class SocialContentModelsTest {
     }
 
     @Test
+    fun `should reject social post and comment blank identity and body values`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialPost(
+                scope = workspace,
+                provider = SocialProvider.LINKEDIN,
+                actorId = " ",
+                externalPostId = ExternalPostId("post-1"),
+                publishedAt = publishedAt,
+                body = "Body",
+                expiresAt = publishedAt.plusSeconds(60),
+            )
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialPost(
+                scope = workspace,
+                provider = SocialProvider.LINKEDIN,
+                actorId = actor.id,
+                externalPostId = ExternalPostId("post-1"),
+                publishedAt = publishedAt,
+                body = " ",
+                expiresAt = publishedAt.plusSeconds(60),
+            )
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialComment(
+                scope = workspace,
+                postId = ExternalPostId("post-1"),
+                ownerActorId = " ",
+                externalCommentId = ExternalCommentId("comment-1"),
+                parentExternalCommentId = null,
+                actorExternalId = ProviderActorId("urn:li:person:1"),
+                body = "Question",
+                createdAt = publishedAt,
+                state = ThreadState.OPEN,
+                expiresAt = publishedAt.plusSeconds(60),
+            )
+        }
+        shouldThrow<IllegalArgumentException> {
+            SocialComment(
+                scope = workspace,
+                postId = ExternalPostId("post-1"),
+                ownerActorId = actor.id,
+                externalCommentId = ExternalCommentId("comment-1"),
+                parentExternalCommentId = null,
+                actorExternalId = ProviderActorId("urn:li:person:1"),
+                body = " ",
+                createdAt = publishedAt,
+                state = ThreadState.OPEN,
+                expiresAt = publishedAt.plusSeconds(60),
+            )
+        }
+    }
+
+    @Test
+    fun `should preserve payload cache byte value equality and defensive bytes`() {
+        val original = byteArrayOf(0x01, 0x02)
+        val equivalent = byteArrayOf(0x01, 0x02)
+        val first = PayloadCache(workspace, "key-1", CacheKind.ACTIVITY, original, publishedAt.plusSeconds(60))
+        val second = PayloadCache(workspace, "key-1", CacheKind.ACTIVITY, equivalent, publishedAt.plusSeconds(60))
+
+        first shouldBe second
+        first.hashCode() shouldBe second.hashCode()
+        original[0] = 0x09
+        first.encryptedPayload shouldBe byteArrayOf(0x01, 0x02)
+        first.encryptedPayload[0] = 0x08
+        first.encryptedPayload shouldBe byteArrayOf(0x01, 0x02)
+    }
+
+    @Test
+    fun `should reject profiletailors posts without a nonblank local publication`() {
+        shouldThrow<IllegalArgumentException> {
+            SocialPost(
+                scope = workspace,
+                provider = SocialProvider.LINKEDIN,
+                actorId = actor.id,
+                externalPostId = ExternalPostId("post-1"),
+                publishedAt = publishedAt,
+                origin = PostOrigin.PROFILETAILORS,
+                localPublicationId = " ",
+                expiresAt = publishedAt.plusSeconds(60),
+            )
+        }
+    }
+
+    @Test
     fun `should reject social content actors when any identity field is blank`() {
         shouldThrow<IllegalArgumentException> {
             actor.copy(id = "")

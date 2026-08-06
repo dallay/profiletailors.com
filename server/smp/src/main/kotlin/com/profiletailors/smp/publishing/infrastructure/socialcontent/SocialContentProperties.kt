@@ -61,7 +61,9 @@ data class SocialContentProperties(
     }
 
     init {
-        require(apiVersion.matches(Regex("\\d{6}"))) { "LinkedIn API version must be YYYYMM." }
+        require(apiVersion.matches(Regex("\\d{4}(0[1-9]|1[0-2])"))) {
+            "LinkedIn API version must be YYYYMM with a calendar month."
+        }
         require(!activityCacheTtl.isNegative && !activityCacheTtl.isZero) {
             "Activity cache TTL must be positive."
         }

@@ -1,0 +1,7 @@
+change: pr-624-social-content-remediation
+current_phase: apply
+completed: [propose, spec, design, tasks, apply]
+next: verify
+updated: 2026-08-06
+delivery_strategy: single-pr
+size_exception: approved by user

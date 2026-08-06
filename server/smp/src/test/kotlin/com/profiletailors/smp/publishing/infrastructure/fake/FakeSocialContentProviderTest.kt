@@ -49,6 +49,27 @@ class FakeSocialContentProviderTest {
     }
 
     @Test
+    fun `should paginate comments using the requested page size`() = runTest {
+        val actor = fixtureActor()
+        val post = fixturePost(actor, "post-comments")
+        val firstComment = fixtureComment(actor, post, "comment-1")
+        val secondComment = fixtureComment(actor, post, "comment-2")
+        val provider = FakeSocialContentProvider(
+            FakeSocialContentFixtures(
+                comments = mapOf(post.externalPostId.value to listOf(firstComment, secondComment)),
+                pageSize = 10,
+            ),
+        )
+
+        val firstPage = provider.fetchComments(actor, post, pageSize = 1)
+        val secondPage = provider.fetchComments(actor, post, firstPage.nextCursor, pageSize = 1)
+
+        firstPage.items shouldBe listOf(firstComment)
+        secondPage.items shouldBe listOf(secondComment)
+        secondPage.nextCursor shouldBe null
+    }
+
+    @Test
     fun `should expose configured failures before succeeding on a subsequent fetch`() = runTest {
         val actor = fixtureActor()
         val provider = FakeSocialContentProvider(
@@ -247,6 +268,19 @@ class FakeSocialContentProviderTest {
         displayName = actor.displayName,
         roleState = com.profiletailors.smp.publishing.domain.ActorRoleState.ADMIN,
         grantedScopes = actor.grantedScopes,
+    )
+
+    private fun fixtureComment(actor: SocialContentActor, post: SocialPost, id: String) = SocialComment(
+        scope = actor.scope,
+        postId = post.externalPostId,
+        ownerActorId = actor.id,
+        externalCommentId = ExternalCommentId(id),
+        parentExternalCommentId = null,
+        actorExternalId = ProviderActorId("urn:li:person:1"),
+        body = "Question",
+        createdAt = post.publishedAt,
+        state = ThreadState.OPEN,
+        expiresAt = post.expiresAt,
     )
 
     private fun fixturePost(actor: SocialContentActor, id: String) = SocialPost.imported(

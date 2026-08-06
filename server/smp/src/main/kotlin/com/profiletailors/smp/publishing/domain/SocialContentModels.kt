@@ -52,6 +52,22 @@ enum class CacheKind { ACTIVITY, COMMENTER_PROFILE }
 enum class CapabilityOperation { DISCOVER_ACTORS, READ_POSTS, READ_COMMENTS, REPLY }
 enum class CapabilityFailure { REAUTH_REQUIRED, ROLE_REQUIRED, MISSING_SCOPE, UNSUPPORTED }
 
+data class SocialContentSyncLimits(val pageSize: Int, val maxPages: Int) {
+    init {
+        require(pageSize in MIN_PAGE_SIZE..MAX_PAGE_SIZE) {
+            "Social content page size must be between $MIN_PAGE_SIZE and $MAX_PAGE_SIZE."
+        }
+        require(maxPages >= MIN_PAGE_SIZE) { "Social content max pages must be at least $MIN_PAGE_SIZE." }
+    }
+
+    companion object {
+        const val DEFAULT_PAGE_SIZE = 100
+        const val DEFAULT_MAX_PAGES = 10
+        private const val MIN_PAGE_SIZE = 1
+        private const val MAX_PAGE_SIZE = DEFAULT_PAGE_SIZE
+    }
+}
+
 data class SocialContentFeatureGates(
     val discoveryEnabled: Boolean = false,
     val importEnabled: Boolean = false,
@@ -199,6 +215,16 @@ data class SocialPost(
     val lifecycle: PostLifecycle = PostLifecycle.PUBLISHED,
     val expiresAt: Instant,
 ) {
+    init {
+        require(actorId.isNotBlank()) { "Post actor ID is required." }
+        body?.let { require(it.isNotBlank()) { "Post body must not be blank." } }
+        if (origin == PostOrigin.PROFILETAILORS) {
+            require(!localPublicationId.isNullOrBlank()) {
+                "Profile Tailors posts require a local publication ID."
+            }
+        }
+    }
+
     /** Whether the post is still considered live in the workspace feed. */
     val isActive: Boolean get() = lifecycle == PostLifecycle.PUBLISHED
 
@@ -270,7 +296,7 @@ data class SyncCheckpoint(
         nextHighWaterMark: Instant? = highWaterMark,
     ): SyncCheckpoint = copy(
         cursor = nextCursor,
-        highWaterMark = nextHighWaterMark,
+        highWaterMark = listOfNotNull(highWaterMark, nextHighWaterMark).maxOrNull(),
         lastSuccessfulAt = successfulAt,
     )
 }
@@ -291,20 +317,39 @@ data class WebhookEvent(
 }
 
 /** Encrypted webhook payload cached for replay within the lifetime of [expiresAt]. */
-data class PayloadCache(
+class PayloadCache(
     val scope: WorkspaceScope,
     val key: String,
     val kind: CacheKind,
-    val encryptedPayload: ByteArray,
+    encryptedPayload: ByteArray,
     val expiresAt: Instant,
 ) {
+    private val payload = encryptedPayload.copyOf()
+    val encryptedPayload: ByteArray get() = payload.copyOf()
+
     init {
         require(key.isNotBlank()) { "Payload cache key is required." }
-        require(encryptedPayload.isNotEmpty()) { "Payload cache payload is required." }
+        require(payload.isNotEmpty()) { "Payload cache payload is required." }
     }
 
     /** Whether the cached payload is still retrievable at [now]. */
     fun isAvailable(now: Instant): Boolean = now.isBefore(expiresAt)
+
+    override fun equals(other: Any?): Boolean = other is PayloadCache &&
+        scope == other.scope &&
+        key == other.key &&
+        kind == other.kind &&
+        payload.contentEquals(other.payload) &&
+        expiresAt == other.expiresAt
+
+    override fun hashCode(): Int {
+        var result = scope.hashCode()
+        result = 31 * result + key.hashCode()
+        result = 31 * result + kind.hashCode()
+        result = 31 * result + payload.contentHashCode()
+        result = 31 * result + expiresAt.hashCode()
+        return result
+    }
 }
 
 /**
@@ -363,6 +408,11 @@ data class SocialComment(
     val state: ThreadState,
     val expiresAt: Instant,
 ) {
+    init {
+        require(ownerActorId.isNotBlank()) { "Comment owner actor ID is required." }
+        require(body.isNotBlank()) { "Comment body must not be blank." }
+    }
+
     /** Returns true when [now] is at or past the comment expiry instant. */
     fun isExpired(now: Instant): Boolean = !now.isBefore(expiresAt)
 }
@@ -412,5 +462,8 @@ enum class ReplyRejectionReason {
     CAPABILITY_DENIED,
 }
 
-/** Thrown when a [ReplyCommand] is rejected by [ReplyCommand.validateAgainst] or the capability check. */
-class ReplyRejectedException(val reason: ReplyRejectionReason) : IllegalArgumentException("Reply rejected: $reason")
+/**
+ * Thrown when a [ReplyCommand] is rejected by [ReplyCommand.validateAgainst] or the capability check.
+ */
+open class ReplyRejectedException(val reason: ReplyRejectionReason) :
+    IllegalArgumentException("Reply rejected: $reason")
