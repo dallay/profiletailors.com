@@ -57,7 +57,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",
     "@bgotink/playwright-coverage": "^0.3.2",
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "4.3.3",
     "@tsconfig/node24": "24.0.4",
     "@types/node": "25.9.5",
