@@ -65,7 +65,7 @@ class SocialContentSyncHandler(
         when (val decision = capabilityResolver.resolve(actor, CapabilityOperation.READ_POSTS, retention)) {
             com.profiletailors.smp.publishing.domain.CapabilityDecision.Allowed -> Unit
             is com.profiletailors.smp.publishing.domain.CapabilityDecision.Denied ->
-                throw SocialContentCapabilityDeniedException(decision.failure)
+                throw SocialContentCapabilityDeniedException(CapabilityOperation.READ_POSTS, decision.failure)
         }
     }
 
@@ -144,8 +144,13 @@ class SocialContentSyncHandler(
         val highWaterMark: Instant?,
     )
 
-    private fun newer(previous: SocialPost?, candidate: SocialPost): SocialPost =
-        if (previous == null || candidate.lastModifiedAt.orOlderThan(previous.lastModifiedAt)) candidate else previous
+    private fun newer(previous: SocialPost?, candidate: SocialPost): SocialPost = when {
+        previous == null -> candidate
+        candidate.lastModifiedAt == null -> previous
+        previous.lastModifiedAt == null -> candidate
+        candidate.lastModifiedAt.isAfter(previous.lastModifiedAt) -> candidate
+        else -> previous
+    }
 
     private suspend fun fetchWithRetry(
         actor: SocialContentActor,
@@ -166,12 +171,6 @@ class SocialContentSyncHandler(
             }
         }
     }
-}
-
-private fun Instant?.orOlderThan(other: Instant?): Boolean = when {
-    this == null -> false
-    other == null -> true
-    else -> !this.isBefore(other)
 }
 
 private fun SocialContentProviderException.suspension(): SocialContentSyncSuspension = when (failure) {

@@ -86,23 +86,39 @@ class LinkedInCommunityManagementAdapter(
     }
 
     override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> =
-        fetchPosts(actor, cursor, null)
+        fetchPosts(actor, cursor, DEFAULT_PAGE_SIZE, null)
 
     override suspend fun fetchPosts(
         actor: SocialContentActor,
         cursor: PageCursor?,
+        pageSize: Int,
+    ): SocialContentPage<SocialPost> = fetchPosts(actor, cursor, pageSize, null)
+
+    override suspend fun fetchPosts(
+        actor: SocialContentActor,
+        cursor: PageCursor?,
+        modifiedSince: Instant?,
+    ): SocialContentPage<SocialPost> = fetchPosts(actor, cursor, DEFAULT_PAGE_SIZE, modifiedSince)
+
+    private suspend fun fetchPosts(
+        actor: SocialContentActor,
+        cursor: PageCursor?,
+        pageSize: Int,
         modifiedSince: Instant?,
     ): SocialContentPage<SocialPost> {
         requireOrganizationActor(actor)
         authorize(actor, CapabilityOperation.READ_POSTS)
         val start = cursor?.value?.toIntOrNull() ?: 0
         require(start >= 0) { "LinkedIn post cursor must be non-negative." }
+        require(pageSize in 1..DEFAULT_PAGE_SIZE) {
+            "LinkedIn post page size must be between 1 and $DEFAULT_PAGE_SIZE."
+        }
         val since = modifiedSince?.let { "&lastModifiedAt=${encode(it.toEpochMilli().toString())}" }.orEmpty()
         val response = getJson(
             scope = actor.scope,
             connectionId = actor.connectionId,
             path = "/rest/posts?author=${encode(actor.externalActorId.value)}&q=author&" +
-                "start=$start&count=$DEFAULT_PAGE_SIZE$since",
+                "start=$start&count=$pageSize$since",
         )
         val elements = response.path("elements")
         val posts = elements.map { element -> post(actor, element) }
@@ -113,14 +129,27 @@ class LinkedInCommunityManagementAdapter(
         )
     }
 
-    override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> {
+    override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
+        fetchComments(actor, post, null, DEFAULT_PAGE_SIZE)
+
+    override suspend fun fetchComments(
+        actor: SocialContentActor,
+        post: SocialPost,
+        cursor: PageCursor?,
+        pageSize: Int,
+    ): SocialContentPage<SocialComment> {
         requireOrganizationActor(actor)
         authorize(actor, CapabilityOperation.READ_COMMENTS)
+        val start = cursor?.value?.toIntOrNull() ?: 0
+        require(start >= 0) { "LinkedIn comment cursor must be non-negative." }
+        require(pageSize in 1..DEFAULT_PAGE_SIZE) {
+            "LinkedIn comment page size must be between 1 and $DEFAULT_PAGE_SIZE."
+        }
         val response = requestJson(
             scope = actor.scope,
             connectionId = actor.connectionId,
             method = "GET",
-            path = "/rest/socialActions/${encode(post.externalPostId.value)}/comments?start=0&count=$DEFAULT_PAGE_SIZE",
+            path = "/rest/socialActions/${encode(post.externalPostId.value)}/comments?start=$start&count=$pageSize",
         )
         val elements = response.body.path("elements")
         val comments = elements.map { element ->
@@ -138,7 +167,7 @@ class LinkedInCommunityManagementAdapter(
                 expiresAt = post.expiresAt,
             )
         }
-        return SocialContentPage(comments, nextCursor(0, elements.size(), response.body.path("paging")))
+        return SocialContentPage(comments, nextCursor(start, elements.size(), response.body.path("paging")))
     }
 
     override suspend fun reply(

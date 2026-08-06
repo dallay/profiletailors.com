@@ -207,6 +207,42 @@ class LinkedInCommunityManagementAdapterTest {
     }
 
     @Test
+    fun `fetches paginated comments from the requested cursor`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(
+                200,
+                emptyHeaders(),
+                """
+                    {"elements":[{"id":"comment-1","actor":"urn:li:person:7","message":{"text":"First"},"created":{"time":1754049600000},"parentComment":""}],"paging":{"start":0,"count":1,"total":2}}
+                """.trimIndent(),
+            ),
+            LinkedInHttpResponse(
+                200,
+                emptyHeaders(),
+                """
+                    {"elements":[{"id":"comment-2","actor":"urn:li:person:8","message":{"text":"Second"},"created":{"time":1754049660000},"parentComment":""}],"paging":{"start":1,"count":1,"total":2}}
+                """.trimIndent(),
+            ),
+        )
+        val post = SocialPost.imported(
+            scope = actor.scope,
+            actor = actor,
+            externalPostId = ExternalPostId("urn:li:share:1"),
+            publishedAt = java.time.Instant.parse("2026-08-01T12:00:00Z"),
+            now = java.time.Instant.parse("2026-08-01T12:00:00Z"),
+        )
+        val adapter = adapter(transport)
+
+        val firstPage = adapter.fetchComments(actor, post, pageSize = 1)
+        val secondPage = adapter.fetchComments(actor, post, firstPage.nextCursor, pageSize = 1)
+
+        assertEquals(listOf("comment-1"), firstPage.items.map { it.externalCommentId.value })
+        assertEquals(listOf("comment-2"), secondPage.items.map { it.externalCommentId.value })
+        assertTrue(transport.requests[1].uri().query.contains("start=1"))
+        assertTrue(transport.requests[1].uri().query.contains("count=1"))
+    }
+
+    @Test
     fun `reads social actions and posts a page reply with page urn`() = runTest {
         val post = SocialPost.imported(
             scope = actor.scope,

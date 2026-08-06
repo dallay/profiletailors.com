@@ -660,6 +660,26 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
+    fun `imports all comment pages using the configured provider page size`() = runTest {
+        val post = fixturePost("post-1")
+        val first = fixtureComment(post, "comment-1")
+        val second = fixtureComment(post, "comment-2", first.externalCommentId)
+        val provider = FakeSocialContentProvider(
+            FakeSocialContentFixtures(
+                comments = mapOf(post.externalPostId.value to listOf(first, second)),
+                pageSize = 1,
+            ),
+        )
+        val comments = RecordingCommentRepository()
+        val handler = foundationHandler(provider, RecordingPostRepository(), RecordingCheckpointRepository(), comments)
+
+        handler.importComments(actor, post, now)
+
+        comments.upserted.map { it.externalCommentId } shouldBe
+            listOf(first.externalCommentId, second.externalCommentId)
+    }
+
+    @Test
     fun `should preserve provider parent identity when importing comments`() = runTest {
         val post = fixturePost("post-1")
         val comment = fixtureComment(post, "comment-1")
@@ -999,6 +1019,12 @@ class SocialContentFoundationHandlersTest {
         val tombstoneCalls = mutableListOf<Set<ExternalPostId>>()
 
         override suspend fun upsert(post: SocialPost): SocialPost {
+            upserted.removeIf { existing ->
+                existing.scope == post.scope &&
+                    existing.provider == post.provider &&
+                    existing.actorId == post.actorId &&
+                    existing.externalPostId == post.externalPostId
+            }
             upserted += post
             return post
         }

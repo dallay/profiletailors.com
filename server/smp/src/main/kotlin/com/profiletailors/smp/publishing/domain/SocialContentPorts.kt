@@ -8,14 +8,14 @@ import java.time.Instant
  * Implementations are responsible for translating LinkedIn API calls into typed social-content responses.
  */
 interface SocialContentProvider {
-    /**
-     * Discovers actors available through a social content connection.
-     *
-     * @param scope The workspace scope for the discovery operation.
-     * @param connectionId The identifier of the connection to query.
-     * @return The discovered social content actor candidates.
-     */
-    suspend fun discoverActors(scope: WorkspaceScope, connectionId: String): List<SocialContentActorCandidate>
+    suspend fun discoverActors(scope: WorkspaceScope, connectionId: String): List<SocialContentActorCandidate> =
+        discoverActors(scope, connectionId, connectionId)
+
+    suspend fun discoverActors(
+        scope: WorkspaceScope,
+        connectionId: String,
+        socialAccountId: String,
+    ): List<SocialContentActorCandidate> = discoverActors(scope, connectionId)
 
     /**
      * Fetches a page of posts for an actor.
@@ -24,11 +24,19 @@ interface SocialContentProvider {
      * @param cursor The cursor identifying the page to fetch, or `null` for the first page.
      * @return A page of posts with optional pagination metadata.
      */
+    suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost>
+
     suspend fun fetchPosts(
         actor: SocialContentActor,
         cursor: PageCursor?,
-        pageSize: Int = 100,
-    ): SocialContentPage<SocialPost>
+        pageSize: Int,
+    ): SocialContentPage<SocialPost> = fetchPosts(actor, cursor)
+
+    suspend fun fetchPosts(
+        actor: SocialContentActor,
+        cursor: PageCursor?,
+        modifiedSince: Instant?,
+    ): SocialContentPage<SocialPost> = fetchPosts(actor, cursor)
 
     /**
      * Fetches comments associated with a social post.
@@ -38,12 +46,14 @@ interface SocialContentProvider {
      * @param cursor The cursor identifying the page to fetch, or `null` for the first page.
      * @return A page of social comments with optional pagination metadata.
      */
+    suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment>
+
     suspend fun fetchComments(
         actor: SocialContentActor,
         post: SocialPost,
         cursor: PageCursor? = null,
-        pageSize: Int = 100,
-    ): SocialContentPage<SocialComment>
+        pageSize: Int,
+    ): SocialContentPage<SocialComment> = fetchComments(actor, post)
 
     /**
      * Publishes a reply to a parent comment.
@@ -70,20 +80,48 @@ enum class SocialContentProviderFailure {
     UNAUTHORIZED,
     ROLE_FORBIDDEN,
     RATE_LIMITED,
+    PROVIDER_UNAVAILABLE,
 }
 
 /** Thrown by provider implementations to surface typed failures surfaced from the LinkedIn API. */
-class SocialContentProviderException(val failure: SocialContentProviderFailure) :
-    IllegalStateException("Social content provider failure: $failure")
+class SocialContentProviderException(
+    val failure: SocialContentProviderFailure,
+    val statusCode: Int? = null,
+    val retryAfter: java.time.Duration? = null,
+) : IllegalStateException("Social content provider failure: $failure")
+
+enum class SocialContentSyncSuspension { REAUTH_REQUIRED, ROLE_REQUIRED, PROVIDER_UNAVAILABLE }
+
+fun interface SocialContentSyncFailureRecorder {
+    suspend fun record(scope: WorkspaceScope, actorId: String, suspension: SocialContentSyncSuspension)
+}
+
+/** Persistent repository for [SocialContentActor] records keyed by workspace and actor id. */
+interface SocialContentReader {
+    suspend fun findImportedPosts(query: SocialContentCalendarQuery): SocialContentPage<SocialPost>
+    suspend fun findPost(scope: WorkspaceScope, externalPostId: ExternalPostId): SocialPost? = null
+}
+
+fun interface SocialContentApprovalEvidenceRepository {
+    suspend fun findByWorkspaceAndAccount(workspaceId: String, socialAccountId: String): SocialContentApprovalEvidence?
+}
+
+interface SocialContentActorRepository {
+    suspend fun findByWorkspaceAndId(scope: WorkspaceScope, actorId: String): SocialContentActor?
+
+    suspend fun findByWorkspaceExternalId(
+        scope: WorkspaceScope,
+        provider: SocialProvider,
+        externalActorId: ProviderActorId,
+    ): SocialContentActor?
+
+    suspend fun upsert(actor: SocialContentActor): SocialContentActor
+}
+
 
 /** Persistent repository for imported social posts; identity is workspace + provider + actor + external post id. */
 interface SocialContentPostRepository {
-    /**
-     * Creates or updates a social post identified by its workspace, provider, actor, and external ID.
-     *
-     * @param post The social post to create or update.
-     * @return The persisted social post.
-     */
+    /** Upserts by the workspace/provider/actor/external-post identity. */
     suspend fun upsert(post: SocialPost): SocialPost
 
     /**
@@ -139,6 +177,10 @@ interface SocialContentCommentRepository {
      * @return The persisted social content comment.
      */
     suspend fun upsert(comment: SocialComment): SocialComment
+}
+
+interface SocialContentBatchWriter {
+    suspend fun persist(posts: Collection<SocialPost>, tombstoneIds: Set<ExternalPostId>, checkpoint: SyncCheckpoint)
 }
 
 /** Persistent repository for [SyncCheckpoint] records used to resume incremental syncs. */
@@ -209,7 +251,6 @@ data class ReplyCommandResult(
     val command: ReplyCommand,
     val state: ReplyCommandState,
     val externalCommentId: ExternalCommentId? = null,
-    val failure: SocialContentProviderFailure? = null,
 )
 
 /** Lifecycle states for a [ReplyCommandResult] persisted through [ReplyCommandRepository]. */

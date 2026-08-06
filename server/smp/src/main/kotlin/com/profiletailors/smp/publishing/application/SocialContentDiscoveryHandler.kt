@@ -1,7 +1,6 @@
 package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.smp.publishing.domain.ActorRoleState
-import com.profiletailors.smp.publishing.domain.CapabilityFailure
 import com.profiletailors.smp.publishing.domain.CapabilityOperation
 import com.profiletailors.smp.publishing.domain.DefaultCapabilityResolver
 import com.profiletailors.smp.publishing.domain.ProviderActorId
@@ -13,9 +12,6 @@ import com.profiletailors.smp.publishing.domain.SocialContentProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
 import java.time.Duration
-
-class SocialContentCapabilityDeniedException(val failure: CapabilityFailure) :
-    IllegalStateException("Social content capability denied: $failure")
 
 interface LinkedInPageDiscoveryHandler {
     suspend fun handle(scope: WorkspaceScope, connectionId: String, provider: SocialProvider): List<SocialContentActor>
@@ -84,7 +80,7 @@ class SocialContentDiscoveryHandler(
         ) {
             com.profiletailors.smp.publishing.domain.CapabilityDecision.Allowed -> Unit
             is com.profiletailors.smp.publishing.domain.CapabilityDecision.Denied ->
-                throw SocialContentCapabilityDeniedException(decision.failure)
+                throw SocialContentCapabilityDeniedException(CapabilityOperation.DISCOVER_ACTORS, decision.failure)
         }
     }
 
