@@ -45,7 +45,7 @@ services:
       - prometheus
 
   loki:
-    image: grafana/loki:3.5.1@sha256:a74594532eec4cc313401beedc4dd2708c43674c032084b1aeb87c14a5be1745
+    image: grafana/loki:3.7.4@sha256:87f0a067673756a3cede1bcbf0c74875f7df9b09fddb53e399d0c576f756cfcc
     command: -config.file=/etc/loki/loki.yml
     volumes:
       - ./configs/loki/loki.yml:/etc/loki/loki.yml:ro
