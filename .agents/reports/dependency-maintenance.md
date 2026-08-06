@@ -18,13 +18,13 @@ CHANGES_APPLIED
 | Finding ID | Dependency | Type | Version Drift | Resolved Version | Status | Evidence |
 |------------|------------|------|---------------|------------------|--------|----------|
 | detekt-kotlin-mismatch | `dev.detekt` | version-drift | `2.0.0-alpha.5` | `2.0.0-alpha.3` | resolved | Detekt 2.0.0-alpha.5 compiled with Kotlin 2.4.0, but project Kotlin is 2.3.21. Downgrading to 2.0.0-alpha.3 resolved mismatch. |
-| biome-patch-drift | `@biomejs/biome` | patch-drift | `2.5.5` | `2.5.6` | resolved | Safe minor patch upgrade. |
+| biome-patch-drift | `@biomejs/biome` | patch-drift | `2.5.5` | `2.5.6` | resolved | Safe patch upgrade. |
 
 ## Validation Table
 | Check Name | Status | Description |
 |------------|--------|-------------|
 | `./gradlew :server:smp:compileKotlin` | Passed | Compiled backend successfully. |
-| `pnpm biome check package.json` | Passed | Validated package.json formatting and biome lint checks. |
+| `pnpm run lint` | Passed | Ran frontend source code linting successfully. |
 | `pnpm run build` | Passed | Built frontend for production successfully. |
 | `pnpm run test` | Passed | Ran frontend unit tests successfully. |
 
