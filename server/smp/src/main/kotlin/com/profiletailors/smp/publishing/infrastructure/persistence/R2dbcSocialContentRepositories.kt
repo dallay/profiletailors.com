@@ -103,7 +103,7 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
     ) {
         if (seenExternalIds.isEmpty()) return
         val placeholders = seenExternalIds.indices.joinToString(", ") { ":seen$it" }
-        val statement = databaseClient.sql(
+        var statement = databaseClient.sql(
             """
             UPDATE social_content_posts
             SET lifecycle = :tombstoned, updated_at = CURRENT_TIMESTAMP
@@ -119,7 +119,7 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
             .bind(SOCIAL_ACCOUNT_ID_PARAMETER, actorId)
             .bind("tombstoned", PostLifecycle.TOMBSTONED.name)
         seenExternalIds.forEachIndexed { index, externalPostId ->
-            statement.bind("seen$index", externalPostId.value)
+            statement = statement.bind("seen$index", externalPostId.value)
         }
         statement.fetch().rowsUpdated().awaitSingle()
     }
