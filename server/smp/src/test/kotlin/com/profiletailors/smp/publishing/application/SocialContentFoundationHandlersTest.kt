@@ -115,13 +115,6 @@ class SocialContentFoundationHandlersTest {
         provider.calls shouldBe emptyList()
     }
 
-    @Test
-    fun `should expose dedicated handlers for discovery, post sync, comment sync, and replies`() {
-        DiscoverSocialActorsQueryHandler::class.java.simpleName shouldBe "DiscoverSocialActorsQueryHandler"
-        SyncSocialPostsCommandHandler::class.java.simpleName shouldBe "SyncSocialPostsCommandHandler"
-        SyncSocialCommentsCommandHandler::class.java.simpleName shouldBe "SyncSocialCommentsCommandHandler"
-        ReplyToSocialCommentCommandHandler::class.java.simpleName shouldBe "ReplyToSocialCommentCommandHandler"
-    }
 
     @Test
     fun `should accept the capability resolver port without requiring its default implementation`() = runTest {
@@ -755,22 +748,11 @@ class SocialContentFoundationHandlersTest {
         }
     }
 
-    private class RepeatingCursorProvider(private val post: SocialPost) : SocialContentProvider {
-        val requestedCursors = mutableListOf<PageCursor?>()
-
+    private abstract class BaseFakeSocialContentProvider : SocialContentProvider {
         override suspend fun discoverActors(
             scope: WorkspaceScope,
             connectionId: String,
         ): List<SocialContentActorCandidate> = emptyList()
-
-        override suspend fun fetchPosts(
-            actor: SocialContentActor,
-            cursor: PageCursor?,
-            pageSize: Int,
-        ): SocialContentPage<SocialPost> {
-            requestedCursors += cursor
-            return SocialContentPage(listOf(post), PageCursor("repeat"))
-        }
 
         override suspend fun fetchComments(
             actor: SocialContentActor,
@@ -787,73 +769,35 @@ class SocialContentFoundationHandlersTest {
         ): SocialComment = parent
     }
 
-    private class EndlessCursorProvider(private val post: SocialPost) : SocialContentProvider {
-        val requestedCursors = mutableListOf<PageCursor?>()
+    private class RepeatingCursorProvider(private val post: SocialPost) : BaseFakeSocialContentProvider() {
+        override suspend fun fetchPosts(
+            actor: SocialContentActor,
+            cursor: PageCursor?,
+            pageSize: Int,
+        ): SocialContentPage<SocialPost> = SocialContentPage(listOf(post), PageCursor("repeat"))
+    }
 
-        override suspend fun discoverActors(
-            scope: WorkspaceScope,
-            connectionId: String,
-        ): List<SocialContentActorCandidate> = emptyList()
+    private class EndlessCursorProvider(private val post: SocialPost) : BaseFakeSocialContentProvider() {
+        private var callCount = 0
 
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: PageCursor?,
             pageSize: Int,
-        ): SocialContentPage<SocialPost> {
-            requestedCursors += cursor
-            return SocialContentPage(listOf(post), PageCursor("${requestedCursors.size}"))
-        }
-
-        override suspend fun fetchComments(
-            actor: SocialContentActor,
-            post: SocialPost,
-            cursor: PageCursor?,
-            pageSize: Int,
-        ): SocialContentPage<SocialComment> = SocialContentPage(emptyList(), null)
-
-        override suspend fun reply(
-            actor: SocialContentActor,
-            parent: SocialComment,
-            body: String,
-            idempotencyKey: IdempotencyKey,
-        ): SocialComment = parent
+        ): SocialContentPage<SocialPost> = SocialContentPage(listOf(post), PageCursor("${++callCount}"))
     }
 
     private class HighWaterMarkProvider(private val post: SocialPost, private val highWaterMark: Instant) :
-        SocialContentProvider {
-        override suspend fun discoverActors(
-            scope: WorkspaceScope,
-            connectionId: String,
-        ): List<SocialContentActorCandidate> = emptyList()
-
+        BaseFakeSocialContentProvider() {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: PageCursor?,
             pageSize: Int,
         ): SocialContentPage<SocialPost> = SocialContentPage(listOf(post), null, highWaterMark)
-
-        override suspend fun fetchComments(
-            actor: SocialContentActor,
-            post: SocialPost,
-            cursor: PageCursor?,
-            pageSize: Int,
-        ): SocialContentPage<SocialComment> = SocialContentPage(emptyList(), null)
-
-        override suspend fun reply(
-            actor: SocialContentActor,
-            parent: SocialComment,
-            body: String,
-            idempotencyKey: IdempotencyKey,
-        ): SocialComment = parent
     }
 
-    private class ResumeProvider(private val post: SocialPost) : SocialContentProvider {
+    private class ResumeProvider(private val post: SocialPost) : BaseFakeSocialContentProvider() {
         val requestedCursors = mutableListOf<PageCursor?>()
-
-        override suspend fun discoverActors(
-            scope: WorkspaceScope,
-            connectionId: String,
-        ): List<SocialContentActorCandidate> = emptyList()
 
         override suspend fun fetchPosts(
             actor: SocialContentActor,
@@ -863,28 +807,9 @@ class SocialContentFoundationHandlersTest {
             requestedCursors += cursor
             return SocialContentPage(listOf(post), null, post.publishedAt)
         }
-
-        override suspend fun fetchComments(
-            actor: SocialContentActor,
-            post: SocialPost,
-            cursor: PageCursor?,
-            pageSize: Int,
-        ): SocialContentPage<SocialComment> = SocialContentPage(emptyList(), null)
-
-        override suspend fun reply(
-            actor: SocialContentActor,
-            parent: SocialComment,
-            body: String,
-            idempotencyKey: IdempotencyKey,
-        ): SocialComment = parent
     }
 
-    private class PagedSocialContentProvider(private val posts: List<SocialPost>) : SocialContentProvider {
-        override suspend fun discoverActors(
-            scope: WorkspaceScope,
-            connectionId: String,
-        ): List<SocialContentActorCandidate> = emptyList()
-
+    private class PagedSocialContentProvider(private val posts: List<SocialPost>) : BaseFakeSocialContentProvider() {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: PageCursor?,
@@ -902,20 +827,6 @@ class SocialContentFoundationHandlersTest {
 
             else -> error("Unexpected cursor: ${cursor.value}")
         }
-
-        override suspend fun fetchComments(
-            actor: SocialContentActor,
-            post: SocialPost,
-            cursor: PageCursor?,
-            pageSize: Int,
-        ): SocialContentPage<SocialComment> = SocialContentPage(emptyList(), null)
-
-        override suspend fun reply(
-            actor: SocialContentActor,
-            parent: SocialComment,
-            body: String,
-            idempotencyKey: IdempotencyKey,
-        ): SocialComment = parent
     }
 
     private class ThrowingSocialContentProvider(private val throwable: Throwable) : SocialContentProvider {

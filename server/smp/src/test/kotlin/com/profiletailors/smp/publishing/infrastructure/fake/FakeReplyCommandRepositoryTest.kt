@@ -8,9 +8,11 @@ import com.profiletailors.smp.publishing.domain.ReplyCommandResult
 import com.profiletailors.smp.publishing.domain.ReplyCommandState
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 
@@ -19,9 +21,17 @@ class FakeReplyCommandRepositoryTest {
     fun `should atomically claim a key only once under concurrent callers`() = runTest {
         val repository = FakeReplyCommandRepository()
         val command = command()
+        val barrier = Mutex(locked = true)
 
         val claims = coroutineScope {
-            (1..32).map { async { repository.claim(command) } }.awaitAll()
+            val deferreds = (1..32).map {
+                async(Dispatchers.Default) {
+                    barrier.lock()
+                    repository.claim(command)
+                }
+            }
+            repeat(32) { barrier.unlock() }
+            deferreds.awaitAll()
         }
 
         claims.count { it == ReplyCommandClaim.Claimed } shouldBe 1

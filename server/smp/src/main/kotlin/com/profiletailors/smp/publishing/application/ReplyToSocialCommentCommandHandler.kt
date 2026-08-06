@@ -61,6 +61,7 @@ class ReplyToSocialCommentCommandHandler(
                 ),
             )
         } catch (exception: Exception) {
+            if (exception is kotlinx.coroutines.CancellationException) throw exception
             val failure = (exception as? SocialContentProviderException)?.failure
             commandRepository.save(processing.copy(state = ReplyCommandState.FAILED, failure = failure))
             throw exception

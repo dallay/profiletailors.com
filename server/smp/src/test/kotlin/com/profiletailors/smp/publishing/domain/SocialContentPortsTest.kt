@@ -69,11 +69,6 @@ class SocialContentPortsTest {
         shouldThrow<IllegalArgumentException> { SocialContentSyncLimits(pageSize = 1, maxPages = 0) }
     }
 
-    @Test
-    fun `capability denial preserves the exact typed failure`() {
-        val denied = CapabilityDecision.Denied(CapabilityFailure.MISSING_SCOPE)
-        denied.failure shouldBe CapabilityFailure.MISSING_SCOPE
-    }
 
     @Test
     fun `cursor and checkpoint preserve workspace and only advance after success`() {

@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.smp.publishing.domain.CapabilityOperation
+import com.profiletailors.smp.publishing.domain.PageCursor
 import com.profiletailors.smp.publishing.domain.RetentionRequirements
 import com.profiletailors.smp.publishing.domain.SocialContentActor
 import com.profiletailors.smp.publishing.domain.SocialContentCapabilityResolver
@@ -31,7 +32,9 @@ class SyncSocialPostsCommandHandler(
         val posts = pages.flatMap { it.items }.map { it.copy(expiresAt = now.plus(retention.activityTtl)) }
         val seenExternalIds = posts.mapTo(mutableSetOf()) { it.externalPostId }
         posts.forEach { postRepository.upsert(it) }
-        postRepository.tombstoneMissing(actor.scope, actor.provider, actor.id, seenExternalIds)
+        if (checkpoint?.cursor == null) {
+            postRepository.tombstoneMissing(actor.scope, actor.provider, actor.id, seenExternalIds)
+        }
         val highWaterMark = listOfNotNull(
             pages.mapNotNull { it.highWaterMark }.maxOrNull(),
             posts.map { it.publishedAt }.maxOrNull(),
@@ -45,10 +48,10 @@ class SyncSocialPostsCommandHandler(
 
     private suspend fun readPages(
         actor: SocialContentActor,
-        initialCursor: com.profiletailors.smp.publishing.domain.PageCursor?,
+        initialCursor: PageCursor?,
     ): List<SocialContentPage<SocialPost>> {
         val pages = mutableListOf<SocialContentPage<SocialPost>>()
-        val requestedCursors = mutableSetOf<com.profiletailors.smp.publishing.domain.PageCursor>()
+        val requestedCursors = mutableSetOf<PageCursor>()
         var cursor = initialCursor
         while (true) {
             if (cursor != null && !requestedCursors.add(cursor)) {
