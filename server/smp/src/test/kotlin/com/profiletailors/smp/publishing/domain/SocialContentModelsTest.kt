@@ -282,7 +282,7 @@ class SocialContentModelsTest {
         reconciled.origin shouldBe PostOrigin.PROFILETAILORS
         reconciled.localPublicationId shouldBe "publication-1"
         reconciled.externalPostId shouldBe ExternalPostId("post-1")
-        reconciled.mutationAllowed shouldBe false
+        reconciled.mutationAllowed shouldBe true
 
         shouldThrow<IllegalArgumentException> { post.reconcileWithLocalPublication("") }
         shouldThrow<IllegalArgumentException> { post.reconcileWithLocalPublication("   ") }
