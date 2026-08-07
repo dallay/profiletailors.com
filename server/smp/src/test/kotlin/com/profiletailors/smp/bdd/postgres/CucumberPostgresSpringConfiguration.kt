@@ -1,5 +1,6 @@
 package com.profiletailors.smp.bdd.postgres
 
+import com.profiletailors.smp.bdd.SocialContentBddTestConfiguration
 import com.profiletailors.smp.bdd.glue.BddTestProperties
 import com.profiletailors.smp.bdd.glue.CommonBddTestConfiguration
 import io.cucumber.spring.CucumberContextConfiguration
@@ -35,7 +36,11 @@ import org.testcontainers.junit.jupiter.Testcontainers
         BddTestProperties.LINKEDIN_REDIRECT_URI,
     ],
 )
-@Import(CommonBddTestConfiguration::class, PostgresBddTestConfiguration::class)
+@Import(
+    CommonBddTestConfiguration::class,
+    PostgresBddTestConfiguration::class,
+    SocialContentBddTestConfiguration::class,
+)
 @Testcontainers(disabledWithoutDocker = true)
 class CucumberPostgresSpringConfiguration {
     companion object {

@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.bus.event.EventConsumer
 import com.profiletailors.smp.authorization.infrastructure.http.AuthorizationProblemDetailsHandler
 import com.profiletailors.smp.credentials.infrastructure.R2dbcApiKeyCredentialReplacementGateway
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import com.profiletailors.smp.publishing.domain.SocialContentBatchWriter
 import com.profiletailors.smp.publishing.infrastructure.credentials.R2dbcLinkedInCredentialGateway
 import com.profiletailors.smp.test.TestStorageConfiguration
 import org.junit.jupiter.api.Tag
@@ -50,6 +51,15 @@ class SmpApplicationTests {
      * context is loaded (with `EventConfiguration` active), every `EventConsumer` bean must
      * appear exactly once.
      */
+    @Test
+    fun schemaSupportedSocialContentBatchWriterIsRegisteredOnce() {
+        val writers = applicationContext.getBeansOfType(SocialContentBatchWriter::class.java)
+
+        check(writers.size == 1) {
+            "Expected one schema-supported SocialContentBatchWriter, found ${writers.keys}"
+        }
+    }
+
     @Test
     fun eventConsumersAreRegisteredUniquely() {
         val consumers = applicationContext.getBeansOfType(EventConsumer::class.java)

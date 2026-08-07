@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.smp.publishing.domain.CapabilityOperation
+import com.profiletailors.smp.publishing.domain.ExternalPostId
 import com.profiletailors.smp.publishing.domain.PageCursor
 import com.profiletailors.smp.publishing.domain.RetentionRequirements
 import com.profiletailors.smp.publishing.domain.SocialContentActor
@@ -34,13 +35,25 @@ class ImportSocialPostsHandler(
         requireSocialContentCapability(actor, CapabilityOperation.READ_POSTS, capabilityResolver, retention)
         val checkpoint = checkpointRepository.find(actor.scope, actor.id, SyncResource.POSTS)
         val pages = readPages(actor, checkpoint?.cursor)
-        val posts = pages.flatMap { it.items }.map { it.copy(expiresAt = now.plus(retention.activityTtl)) }
+        val posts = pages
+            .flatMap { it.items }
+            .map { it.copy(expiresAt = now.plus(retention.activityTtl)) }
+            .fold(linkedMapOf<ExternalPostId, SocialPost>()) { latest, post ->
+                val existing = latest[post.externalPostId]
+                if (existing == null || post.isNewerThan(existing)) {
+                    latest[post.externalPostId] = post
+                }
+                latest
+            }
+            .values
+            .toList()
         val seenExternalIds = posts.mapTo(mutableSetOf()) { it.externalPostId }
         posts.forEach { postRepository.upsert(it) }
         if (checkpoint?.cursor == null) {
             postRepository.tombstoneMissing(actor.scope, actor.provider, actor.id, seenExternalIds)
         }
         val highWaterMark = listOfNotNull(
+            checkpoint?.highWaterMark,
             pages.mapNotNull { it.highWaterMark }.maxOrNull(),
             posts.map { it.publishedAt }.maxOrNull(),
         ).maxOrNull()
@@ -71,4 +84,10 @@ class ImportSocialPostsHandler(
             if (cursor == null) return pages
         }
     }
+}
+
+private fun SocialPost.isNewerThan(other: SocialPost): Boolean = when {
+    lastModifiedAt == null -> false
+    other.lastModifiedAt == null -> true
+    else -> lastModifiedAt.isAfter(other.lastModifiedAt)
 }

@@ -3,6 +3,9 @@ package com.profiletailors.smp.publishing.infrastructure.http
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.application.PublicationNotFoundException
+import com.profiletailors.smp.publishing.application.SocialContentActorNotFoundException
+import com.profiletailors.smp.publishing.application.SocialContentPostIsolationException
+import com.profiletailors.smp.publishing.application.SocialContentPostNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.ProviderConnectionNotAvailableException
@@ -13,12 +16,14 @@ import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedExc
 import com.profiletailors.smp.publishing.domain.PublicationEditNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationRetryNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationStateTransitionException
+import com.profiletailors.smp.publishing.domain.SocialContentAccessDeniedException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
+@Suppress("TooManyFunctions")
 class PublishingProblemDetailsHandler {
 
     @ExceptionHandler(ProviderNotConfiguredException::class)
@@ -60,6 +65,42 @@ class PublishingProblemDetailsHandler {
         PUBLICATION_NOT_FOUND_DETAIL,
     ).apply {
         title = "Publication not found"
+    }
+
+    @ExceptionHandler(SocialContentPostNotFoundException::class)
+    @Suppress("UNUSED_PARAMETER")
+    fun handle(exception: SocialContentPostNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.NOT_FOUND,
+        SOCIAL_CONTENT_POST_NOT_FOUND_DETAIL,
+    ).apply {
+        title = "Social content post not found"
+    }
+
+    @ExceptionHandler(SocialContentActorNotFoundException::class)
+    @Suppress("UNUSED_PARAMETER")
+    fun handle(exception: SocialContentActorNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.NOT_FOUND,
+        SOCIAL_CONTENT_ACTOR_NOT_FOUND_DETAIL,
+    ).apply {
+        title = "Social content actor not found"
+    }
+
+    @ExceptionHandler(SocialContentAccessDeniedException::class)
+    fun handle(exception: SocialContentAccessDeniedException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.FORBIDDEN,
+        SOCIAL_CONTENT_ACCESS_DENIED_DETAIL,
+    ).apply {
+        title = "Social content access denied"
+        setProperty("code", exception.denial.name)
+    }
+
+    @ExceptionHandler(SocialContentPostIsolationException::class)
+    @Suppress("UNUSED_PARAMETER")
+    fun handle(exception: SocialContentPostIsolationException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.CONFLICT,
+        SOCIAL_CONTENT_POST_ISOLATION_DETAIL,
+    ).apply {
+        title = "Social content workspace conflict"
     }
 
     @ExceptionHandler(ExpiredOAuthStateException::class)
@@ -122,6 +163,11 @@ class PublishingProblemDetailsHandler {
         private const val PUBLICATION_STATE_CONFLICT_DETAIL =
             "The publication cannot transition from its current state."
         private const val PUBLICATION_NOT_FOUND_DETAIL = "Publication not found."
+        private const val SOCIAL_CONTENT_POST_NOT_FOUND_DETAIL = "Social content post not found."
+        private const val SOCIAL_CONTENT_ACTOR_NOT_FOUND_DETAIL = "Social content actor not found."
+        private const val SOCIAL_CONTENT_ACCESS_DENIED_DETAIL = "Social content access denied."
+        private const val SOCIAL_CONTENT_POST_ISOLATION_DETAIL =
+            "The social content post crossed a workspace boundary."
         private const val OAUTH_STATE_EXPIRED_DETAIL = "OAuth state has expired."
         private const val OAUTH_STATE_INVALID_DETAIL = "OAuth state is invalid."
         private const val MEDIA_SERVICE_UNAVAILABLE_DETAIL = "Media service is unavailable."

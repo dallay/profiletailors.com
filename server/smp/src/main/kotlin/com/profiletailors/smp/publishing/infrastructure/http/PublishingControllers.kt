@@ -26,9 +26,16 @@ import com.profiletailors.smp.publishing.application.RecurringSchedulesResponse
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
+import com.profiletailors.smp.publishing.application.SocialContentCalendarResponse
+import com.profiletailors.smp.publishing.application.SocialContentPostQuery
+import com.profiletailors.smp.publishing.application.SocialContentSyncCommand
+import com.profiletailors.smp.publishing.application.SocialContentSyncResult
 import com.profiletailors.smp.publishing.application.UpdateRecurringScheduleCommand
+import com.profiletailors.smp.publishing.application.WorkspaceSocialContentCalendarQuery
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventType
+import com.profiletailors.smp.publishing.domain.PageCursor
+import com.profiletailors.smp.publishing.domain.PostLifecycle
 import com.profiletailors.smp.publishing.domain.ProviderCatalogItem
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.RecurrenceFrequency
@@ -36,6 +43,7 @@ import com.profiletailors.smp.publishing.domain.RecurrenceRule
 import com.profiletailors.smp.publishing.domain.RecurringScheduleStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
+import com.profiletailors.smp.publishing.domain.SocialPost
 import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
@@ -66,6 +74,44 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
+
+@Validated
+@RestController
+@RequestMapping(value = ["/api/publishing/social-content"])
+@Tag(name = "Publishing Social Content", description = "Workspace social-content synchronization endpoints")
+class SocialContentController(private val mediator: Mediator) {
+    @Operation(summary = "Synchronize workspace social content")
+    @PostMapping("/sync", consumes = ["application/json"])
+    suspend fun sync(@Valid @RequestBody request: SocialContentSyncRequest): SocialContentSyncResult =
+        mediator.send(SocialContentSyncCommand(actorId = request.actorId))
+
+    @Operation(summary = "Get an imported workspace social content post")
+    @GetMapping("/posts/{externalPostId}")
+    suspend fun post(@PathVariable externalPostId: String): SocialPost =
+        mediator.send(SocialContentPostQuery(externalPostId))
+
+    @Operation(summary = "List imported workspace social content for a date range")
+    @GetMapping("/calendar")
+    suspend fun calendar(
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant,
+        @RequestParam(required = false) actorId: String? = null,
+        @RequestParam(required = false) lifecycle: PostLifecycle? = null,
+        @RequestParam(required = false) cursor: String? = null,
+        @RequestParam(required = false, defaultValue = "50") limit: Int = 50,
+    ): SocialContentCalendarResponse = mediator.send(
+        WorkspaceSocialContentCalendarQuery(
+            from = from,
+            to = to,
+            actorId = actorId,
+            lifecycle = lifecycle,
+            cursor = cursor?.let(::PageCursor),
+            limit = limit,
+        ),
+    )
+}
+
+data class SocialContentSyncRequest(@field:NotBlank val actorId: String)
 
 @Validated
 @RestController

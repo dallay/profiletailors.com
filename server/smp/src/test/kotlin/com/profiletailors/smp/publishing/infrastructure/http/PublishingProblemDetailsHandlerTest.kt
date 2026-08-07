@@ -1,6 +1,9 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
 import com.profiletailors.smp.publishing.application.PublicationNotFoundException
+import com.profiletailors.smp.publishing.application.SocialContentActorNotFoundException
+import com.profiletailors.smp.publishing.application.SocialContentPostIsolationException
+import com.profiletailors.smp.publishing.application.SocialContentPostNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
@@ -11,6 +14,8 @@ import com.profiletailors.smp.publishing.domain.PublicationEditNotAllowedExcepti
 import com.profiletailors.smp.publishing.domain.PublicationRetryNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationStateTransitionException
 import com.profiletailors.smp.publishing.domain.PublicationStatus
+import com.profiletailors.smp.publishing.domain.SocialContentAccessDenial
+import com.profiletailors.smp.publishing.domain.SocialContentAccessDeniedException
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -58,6 +63,46 @@ class PublishingProblemDetailsHandlerTest {
         problem.status shouldBe HttpStatus.NOT_FOUND.value()
         problem.title shouldBe "Publication not found"
         problem.detail shouldBe "Publication not found."
+    }
+
+    @Test
+    fun `maps SocialContentPostNotFoundException to 404 NOT_FOUND`() {
+        val exception = SocialContentPostNotFoundException("post-missing")
+        val problem = handler.handle(exception)
+
+        problem.status shouldBe HttpStatus.NOT_FOUND.value()
+        problem.title shouldBe "Social content post not found"
+        problem.detail shouldBe "Social content post not found."
+    }
+
+    @Test
+    fun `maps SocialContentActorNotFoundException to 404 NOT_FOUND`() {
+        val exception = SocialContentActorNotFoundException("page-missing")
+        val problem = handler.handle(exception)
+
+        problem.status shouldBe HttpStatus.NOT_FOUND.value()
+        problem.title shouldBe "Social content actor not found"
+        problem.detail shouldBe "Social content actor not found."
+    }
+
+    @Test
+    fun `maps SocialContentAccessDeniedException to 403 FORBIDDEN with denial`() {
+        val exception = SocialContentAccessDeniedException(SocialContentAccessDenial.OPERATION_DISABLED)
+        val problem = handler.handle(exception)
+
+        problem.status shouldBe HttpStatus.FORBIDDEN.value()
+        problem.title shouldBe "Social content access denied"
+        problem.properties?.get("code") shouldBe "OPERATION_DISABLED"
+    }
+
+    @Test
+    fun `maps SocialContentPostIsolationException to 409 CONFLICT`() {
+        val exception = SocialContentPostIsolationException()
+        val problem = handler.handle(exception)
+
+        problem.status shouldBe HttpStatus.CONFLICT.value()
+        problem.title shouldBe "Social content workspace conflict"
+        problem.detail shouldBe "The social content post crossed a workspace boundary."
     }
 
     // -------------------------------------------------------------------------

@@ -14,7 +14,6 @@ import com.profiletailors.smp.publishing.domain.SocialComment
 import com.profiletailors.smp.publishing.domain.SocialContentActor
 import com.profiletailors.smp.publishing.domain.SocialContentCapabilityResolver
 import com.profiletailors.smp.publishing.domain.SocialContentProvider
-import com.profiletailors.smp.publishing.domain.SocialContentProviderException
 import java.time.Instant
 
 /** Explicit application command for one idempotent social-comment reply. */
@@ -82,8 +81,7 @@ class ReplyToSocialCommentCommandHandler(
             )
         } catch (exception: Exception) {
             if (exception is kotlinx.coroutines.CancellationException) throw exception
-            val failure = (exception as? SocialContentProviderException)?.failure
-            commandRepository.save(processing.copy(state = ReplyCommandState.FAILED, failure = failure))
+            commandRepository.save(processing.copy(state = ReplyCommandState.FAILED))
             throw exception
         }
     }
