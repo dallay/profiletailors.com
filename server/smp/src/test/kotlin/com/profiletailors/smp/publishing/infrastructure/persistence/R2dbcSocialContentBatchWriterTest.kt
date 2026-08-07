@@ -111,6 +111,27 @@ class R2dbcSocialContentBatchWriterTest {
         events shouldBe emptyList()
     }
 
+    @Test
+    fun `rejects posts from a different actor or workspace before opening a transaction`() = runTest {
+        val events = mutableListOf<String>()
+        val writer = R2dbcSocialContentBatchWriter(
+            postRepository = RecordingPostRepository(events),
+            checkpointRepository = RecordingCheckpointRepository(events),
+            transactionRunner = RecordingTransactionRunner(events),
+        )
+        val foreignPost = post("post-foreign").copy(actorId = "other-actor")
+
+        shouldThrow<IllegalArgumentException> {
+            writer.persist(
+                posts = listOf(foreignPost),
+                tombstoneIds = emptySet(),
+                checkpoint = checkpoint(SyncResource.POSTS),
+            )
+        }
+
+        events shouldBe emptyList()
+    }
+
     private fun post(externalId: String): SocialPost = SocialPost.imported(
         scope = scope,
         actor = actor,

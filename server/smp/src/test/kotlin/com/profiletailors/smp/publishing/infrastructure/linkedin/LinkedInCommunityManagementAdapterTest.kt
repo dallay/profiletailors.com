@@ -207,6 +207,119 @@ class LinkedInCommunityManagementAdapterTest {
     }
 
     @Test
+    fun `maps an unclassified provider error and parses retry after seconds`() = runTest {
+        val adapter = adapter(
+            RecordingTransport(
+                LinkedInHttpResponse(
+                    404,
+                    HttpHeaders.of(mapOf("Retry-After" to listOf("7"))) { _, _ -> true },
+                    "error",
+                ),
+            ),
+        )
+
+        val error = assertThrows<SocialContentProviderException> {
+            adapter.fetchPosts(actor, null)
+        }
+
+        assertEquals(SocialContentProviderFailure.PROVIDER_UNAVAILABLE, error.failure)
+        assertEquals(404, error.statusCode)
+        assertEquals(java.time.Duration.ofSeconds(7), error.retryAfter)
+    }
+
+    @Test
+    fun `fetches posts modified since the checkpoint and preserves nested commentary text`() = runTest {
+        val modifiedSince = java.time.Instant.parse("2026-08-01T12:00:00Z")
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(
+                200,
+                emptyHeaders(),
+                """
+                    {"elements":[{"id":"urn:li:share:1","author":"urn:li:organization:123","created":{"time":1754049600000},"lastModified":{"time":1754049660000},"commentary":{"text":"Nested hello"}}],"paging":{"start":0,"count":1,"total":1}}
+                """.trimIndent(),
+            ),
+        )
+
+        val page = adapter(transport).fetchPosts(actor, null, modifiedSince)
+
+        assertEquals("Nested hello", page.items.single().body)
+        val query = transport.requests.single().uri().query
+        assertTrue(query.contains("lastModifiedAt=1785585600000"))
+    }
+
+    @Test
+    fun `rejects non organization actors before sending HTTP`() = runTest {
+        val transport = RecordingTransport(LinkedInHttpResponse(200, emptyHeaders(), "{}"))
+        val adapter = adapter(transport)
+        val invalidUrnActor = actor.copy(externalActorId = ProviderActorId("urn:li:person:7"))
+
+        assertThrows<IllegalArgumentException> { adapter.fetchPosts(invalidUrnActor, null) }
+
+        assertTrue(transport.requests.isEmpty())
+    }
+
+    @Test
+    fun `rejects invalid pagination inputs before sending HTTP`() = runTest {
+        val transport = RecordingTransport(LinkedInHttpResponse(200, emptyHeaders(), "{}"))
+        val adapter = adapter(transport)
+
+        assertThrows<IllegalArgumentException> {
+            adapter.fetchPosts(actor, com.profiletailors.smp.publishing.domain.PageCursor("-1"))
+        }
+        assertThrows<IllegalArgumentException> { adapter.fetchPosts(actor, null, 0) }
+        assertThrows<IllegalArgumentException> {
+            adapter.fetchComments(actor, post(), pageSize = 101)
+        }
+
+        assertTrue(transport.requests.isEmpty())
+    }
+
+    @Test
+    fun `follows organization ACL pagination when the first response is incomplete`() = runTest {
+        val transport = RecordingTransport(
+            LinkedInHttpResponse(
+                200,
+                emptyHeaders(),
+                """
+                    {"elements":[{"organization":"urn:li:organization:123","role":"ADMINISTRATOR"}],"paging":{"total":2}}
+                """.trimIndent(),
+            ),
+            LinkedInHttpResponse(
+                200,
+                emptyHeaders(),
+                """
+                    {"elements":[{"organization":"urn:li:organization:456","role":"ADMINISTRATOR"}],"paging":{"total":2}}
+                """.trimIndent(),
+            ),
+        )
+
+        val candidates = adapter(transport).discoverActors(actor.scope, actor.connectionId)
+
+        assertEquals(
+            listOf("urn:li:organization:123", "urn:li:organization:456"),
+            candidates.map { it.externalActorId.value },
+        )
+        assertTrue(transport.requests[1].uri().query.contains("start=1"))
+        assertTrue(transport.requests[1].uri().query.contains("count=100"))
+    }
+
+    @Test
+    fun `default access gate denies reads without approval evidence`() = runTest {
+        val transport = RecordingTransport(LinkedInHttpResponse(200, emptyHeaders(), "{}"))
+        val adapter = LinkedInCommunityManagementAdapter(
+            properties = properties,
+            objectMapper = ObjectMapper(),
+            httpTransport = transport,
+            accessTokenResolver = LinkedInSocialContentAccessTokenResolver { _, _ -> "access-token" },
+        )
+
+        assertThrows<SocialContentAccessDeniedException> {
+            adapter.fetchPosts(actor, null)
+        }
+        assertTrue(transport.requests.isEmpty())
+    }
+
+    @Test
     fun `fetches paginated comments from the requested cursor`() = runTest {
         val transport = RecordingTransport(
             LinkedInHttpResponse(
@@ -279,6 +392,14 @@ class LinkedInCommunityManagementAdapterTest {
         assertEquals("202601", replyRequest.headers().firstValue("LinkedIn-Version").orElse(null))
         assertTrue(replyRequest.bodyPublisher().isPresent)
     }
+
+    private fun post(): SocialPost = SocialPost.imported(
+        scope = actor.scope,
+        actor = actor,
+        externalPostId = ExternalPostId("urn:li:share:1"),
+        publishedAt = java.time.Instant.parse("2026-08-01T12:00:00Z"),
+        now = java.time.Instant.parse("2026-08-01T12:00:00Z"),
+    )
 
     private fun adapter(
         transport: RecordingTransport,

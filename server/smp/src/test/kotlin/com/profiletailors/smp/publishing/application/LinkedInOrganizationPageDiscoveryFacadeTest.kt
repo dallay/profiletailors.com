@@ -58,14 +58,82 @@ class LinkedInOrganizationPageDiscoveryFacadeTest {
         )
     }
 
-    private fun fixture(account: SocialAccount = fixtureAccount(), approval: Boolean = true): Fixture {
+    @Test
+    fun `account and connection gates deny discovery before approval lookup`() = runTest {
+        val cases = listOf(
+            fixture(account = fixtureAccount(status = SocialConnectionStatus.REVOKED)) to
+                LinkedInOrganizationPageDiscoveryFailure.INACTIVE_ACCOUNT,
+            fixture(connectionStatus = SocialConnectionStatus.REVOKED) to
+                LinkedInOrganizationPageDiscoveryFailure.INACTIVE_CONNECTION,
+        )
+
+        cases.forEach { (fixture, expectedFailure) ->
+            val exception = assertThrows<LinkedInOrganizationPageDiscoveryException> {
+                fixture.facade.discover(fixture.account.id)
+            }
+
+            assertEquals(expectedFailure, exception.failure)
+            assertEquals(0, fixture.discoveryHandler.calls)
+        }
+    }
+
+    @Test
+    fun `missing account and connection are reported before discovery`() = runTest {
+        val missingAccount = fixture()
+        val accountException = assertThrows<LinkedInOrganizationPageDiscoveryException> {
+            missingAccount.facade.discover("missing-account")
+        }
+        assertEquals(LinkedInOrganizationPageDiscoveryFailure.ACCOUNT_NOT_FOUND, accountException.failure)
+
+        val missingConnection = fixture(connectionId = "missing-connection")
+        val connectionException = assertThrows<LinkedInOrganizationPageDiscoveryException> {
+            missingConnection.facade.discover(missingConnection.account.id)
+        }
+        assertEquals(LinkedInOrganizationPageDiscoveryFailure.CONNECTION_NOT_FOUND, connectionException.failure)
+    }
+
+    @Test
+    fun `approval evidence validation reports the first unmet requirement`() = runTest {
+        val base = evidence()
+        val cases = listOf(
+            base.copy(workspaceId = "other-workspace") to
+                LinkedInOrganizationPageDiscoveryFailure.INVALID_APPROVAL_EVIDENCE,
+            base.copy(communityManagementApproved = false) to
+                LinkedInOrganizationPageDiscoveryFailure.MISSING_APPROVAL,
+            base.copy(roleState = ActorRoleState.MEMBER) to
+                LinkedInOrganizationPageDiscoveryFailure.ADMIN_ROLE_REQUIRED,
+            base.copy(grantedScopes = setOf("r_organization_social")) to
+                LinkedInOrganizationPageDiscoveryFailure.REQUIRED_SCOPE_MISSING,
+            base.copy(apiVersion = "") to
+                LinkedInOrganizationPageDiscoveryFailure.API_VERSION_MISSING,
+            base.copy(retentionPolicyVersion = "") to
+                LinkedInOrganizationPageDiscoveryFailure.RETENTION_POLICY_VERSION_MISSING,
+        )
+
+        cases.forEach { (approvalEvidence, expectedFailure) ->
+            val fixture = fixture(approvalEvidence = approvalEvidence)
+            val exception = assertThrows<LinkedInOrganizationPageDiscoveryException> {
+                fixture.facade.discover(fixture.account.id)
+            }
+            assertEquals(expectedFailure, exception.failure)
+            assertEquals(0, fixture.discoveryHandler.calls)
+        }
+    }
+
+    private fun fixture(
+        account: SocialAccount = fixtureAccount(),
+        approval: Boolean = true,
+        connectionId: String = "connection-1",
+        connectionStatus: SocialConnectionStatus = SocialConnectionStatus.ACTIVE,
+        approvalEvidence: SocialContentApprovalEvidence? = null,
+    ): Fixture {
         val scope = WorkspaceScope("workspace-1")
         val connection = SocialConnection(
-            id = "connection-1",
+            id = connectionId,
             workspaceId = scope.value,
             provider = SocialProvider.LINKEDIN,
             providerConnectionRef = "linkedin-connection-1",
-            status = SocialConnectionStatus.ACTIVE,
+            status = connectionStatus,
         )
         val expected = SocialContentActor(
             id = "page-1",
@@ -84,34 +152,49 @@ class LinkedInOrganizationPageDiscoveryFacadeTest {
             connectionRepository = InMemoryConnectionRepository(connection),
             accountRepository = InMemoryAccountRepository(account),
             approvalEvidenceRepository = InMemoryApprovalEvidenceRepository(
-                SocialContentApprovalEvidence(
+                approvalEvidence ?: evidence(
                     workspaceId = scope.value,
                     socialAccountId = account.id,
-                    roleState = ActorRoleState.ADMIN,
-                    grantedScopes = setOf(
-                        "r_organization_social",
-                        "r_organization_social_feed",
-                        "rw_organization_admin",
-                    ),
                     communityManagementApproved = approval,
-                    apiVersion = "202601",
-                    retentionPolicyVersion = "social-content-48h-24h-v1",
                 ),
+                allowMismatchedEvidence = approvalEvidence != null,
             ),
             discoveryHandler = discoveryHandler,
         )
         return Fixture(scope, connection, account, expected, facade, discoveryHandler)
     }
 
-    private fun fixtureAccount(kind: SocialAccountKind = SocialAccountKind.ORGANIZATION_PAGE) = SocialAccount(
+    private fun evidence(
+        workspaceId: String = "workspace-1",
+        socialAccountId: String = "account-1",
+        communityManagementApproved: Boolean = true,
+        roleState: ActorRoleState = ActorRoleState.ADMIN,
+        grantedScopes: Set<String> = setOf("r_organization_social", "r_organization_social_feed"),
+        apiVersion: String = "202601",
+        retentionPolicyVersion: String = "social-content-48h-24h-v1",
+    ) = SocialContentApprovalEvidence(
+        workspaceId = workspaceId,
+        socialAccountId = socialAccountId,
+        roleState = roleState,
+        grantedScopes = grantedScopes,
+        communityManagementApproved = communityManagementApproved,
+        apiVersion = apiVersion,
+        retentionPolicyVersion = retentionPolicyVersion,
+    )
+
+    private fun fixtureAccount(
+        kind: SocialAccountKind = SocialAccountKind.ORGANIZATION_PAGE,
+        provider: SocialProvider = SocialProvider.LINKEDIN,
+        status: SocialConnectionStatus = SocialConnectionStatus.ACTIVE,
+    ) = SocialAccount(
         id = "account-1",
         socialConnectionId = "connection-1",
         workspaceId = "workspace-1",
-        provider = SocialProvider.LINKEDIN,
+        provider = provider,
         providerAccountId = "organization-1",
         kind = kind,
         displayName = "Profile Tailors",
-        status = SocialConnectionStatus.ACTIVE,
+        status = status,
     )
 
     private data class Fixture(
@@ -141,13 +224,15 @@ class LinkedInOrganizationPageDiscoveryFacadeTest {
             account.takeIf { it.workspaceId == workspaceId && it.id == accountId }
     }
 
-    private class InMemoryApprovalEvidenceRepository(private val evidence: SocialContentApprovalEvidence) :
-        SocialContentApprovalEvidenceRepository {
+    private class InMemoryApprovalEvidenceRepository(
+        private val evidence: SocialContentApprovalEvidence,
+        private val allowMismatchedEvidence: Boolean = false,
+    ) : SocialContentApprovalEvidenceRepository {
         override suspend fun findByWorkspaceAndAccount(
             workspaceId: String,
             socialAccountId: String,
         ): SocialContentApprovalEvidence? = evidence.takeIf {
-            it.workspaceId == workspaceId && it.socialAccountId == socialAccountId
+            allowMismatchedEvidence || it.workspaceId == workspaceId && it.socialAccountId == socialAccountId
         }
     }
 

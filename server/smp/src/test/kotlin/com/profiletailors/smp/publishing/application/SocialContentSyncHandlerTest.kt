@@ -288,6 +288,37 @@ class SocialContentSyncHandlerTest {
     }
 
     @Test
+    fun `sync records role and provider suspensions without retrying non-rate-limit failures`() = runTest {
+        val cases = listOf(
+            SocialContentProviderFailure.ROLE_FORBIDDEN to SocialContentSyncSuspension.ROLE_REQUIRED,
+            SocialContentProviderFailure.PROVIDER_UNAVAILABLE to SocialContentSyncSuspension.PROVIDER_UNAVAILABLE,
+        )
+
+        cases.forEach { (failure, expectedSuspension) ->
+            val provider = ScriptedProvider(SocialContentProviderException(failure, 403))
+            val suspensions = mutableListOf<SocialContentSyncSuspension>()
+            val handler = SocialContentSyncHandler(
+                provider,
+                RecordingPostRepository(),
+                RecordingCheckpointRepository(),
+                com.profiletailors.smp.publishing.domain.DefaultCapabilityResolver(
+                    SocialContentFeatureGates(importEnabled = true),
+                ),
+                retention,
+                SocialContentFeatureGates(importEnabled = true),
+                batchWriter = RecordingBatchWriter(),
+                backoff = { _, _ -> error("non-rate-limit failures must not back off") },
+                failureRecorder = { _, _, suspension -> suspensions += suspension },
+            )
+
+            shouldThrow<SocialContentSyncStateException> { handler.importPosts(actor, now) }
+
+            provider.calls shouldBe 1
+            suspensions shouldBe listOf(expectedSuspension)
+        }
+    }
+
+    @Test
     fun `incremental sync resumes cursor and persists the latest provider high water mark`() = runTest {
         val previousHighWaterMark = now.minusSeconds(60)
         val previous = SyncCheckpoint(
@@ -556,11 +587,11 @@ class SocialContentSyncHandlerTest {
         val upserted = initial.toMutableList()
         val tombstones = mutableListOf<Set<ExternalPostId>>()
         override suspend fun upsert(post: SocialPost): SocialPost {
-            upserted.removeIf {
-                it.scope == post.scope &&
-                    it.provider == post.provider &&
-                    it.actorId == post.actorId &&
-                    it.externalPostId == post.externalPostId
+            upserted.removeIf { existingPost ->
+                existingPost.scope == post.scope &&
+                    existingPost.provider == post.provider &&
+                    existingPost.actorId == post.actorId &&
+                    existingPost.externalPostId == post.externalPostId
             }
             upserted += post
             return post
