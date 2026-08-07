@@ -53,6 +53,7 @@ class ImportSocialPostsHandler(
             postRepository.tombstoneMissing(actor.scope, actor.provider, actor.id, seenExternalIds)
         }
         val highWaterMark = listOfNotNull(
+            checkpoint?.highWaterMark,
             pages.mapNotNull { it.highWaterMark }.maxOrNull(),
             posts.map { it.publishedAt }.maxOrNull(),
         ).maxOrNull()

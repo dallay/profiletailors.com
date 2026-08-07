@@ -22,7 +22,7 @@ class FakeSocialContentBatchWriter(
     private val failOnCheckpoint: Boolean = false,
 ) : SocialContentBatchWriter {
     private val postRepository = BatchFakeSocialContentPostRepository(initialPosts)
-    private val checkpointRepository = FakeSocialContentCheckpointRepository()
+    private val checkpointRepository = BatchFakeSocialContentCheckpointRepository()
     private val recordedEvents = mutableListOf<String>()
 
     val events: List<String> get() = recordedEvents.toList()
@@ -77,25 +77,35 @@ class FakeSocialContentBatchWriter(
         checkpointRepository.find(scope, actorId, SyncResource.POSTS)
 }
 
-private class FakeSocialContentCheckpointRepository : SocialContentCheckpointRepository {
+private class BatchFakeSocialContentCheckpointRepository : SocialContentCheckpointRepository {
     private val checkpoints = linkedMapOf<CheckpointIdentity, SyncCheckpoint>()
 
-    override suspend fun find(scope: WorkspaceScope, actorId: String, resource: SyncResource): SyncCheckpoint? =
-        checkpoints[CheckpointIdentity(scope, actorId, resource)]
+    override suspend fun find(
+        scope: WorkspaceScope,
+        actorId: String,
+        resource: SyncResource,
+        postId: ExternalPostId?,
+    ): SyncCheckpoint? = checkpoints[CheckpointIdentity(scope, actorId, resource, postId)]
 
     override suspend fun save(checkpoint: SyncCheckpoint): SyncCheckpoint {
-        checkpoints[CheckpointIdentity(checkpoint.scope, checkpoint.actorId, checkpoint.resource)] = checkpoint
+        checkpoints[CheckpointIdentity(checkpoint.scope, checkpoint.actorId, checkpoint.resource, checkpoint.postId)] =
+            checkpoint
         return checkpoint
     }
 
-    fun copy() = FakeSocialContentCheckpointRepository().also { it.checkpoints.putAll(checkpoints) }
+    fun copy() = BatchFakeSocialContentCheckpointRepository().also { it.checkpoints.putAll(checkpoints) }
 
-    fun replaceWith(other: FakeSocialContentCheckpointRepository) {
+    fun replaceWith(other: BatchFakeSocialContentCheckpointRepository) {
         checkpoints.clear()
         checkpoints.putAll(other.checkpoints)
     }
 
-    private data class CheckpointIdentity(val scope: WorkspaceScope, val actorId: String, val resource: SyncResource)
+    private data class CheckpointIdentity(
+        val scope: WorkspaceScope,
+        val actorId: String,
+        val resource: SyncResource,
+        val postId: ExternalPostId?,
+    )
 }
 
 private class BatchFakeSocialContentPostRepository(initialPosts: Collection<SocialPost>) : SocialContentPostRepository {

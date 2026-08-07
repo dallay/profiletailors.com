@@ -124,48 +124,78 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
         statement.fetch().rowsUpdated().awaitSingle()
     }
 
-    override suspend fun find(scope: WorkspaceScope, actorId: String, resource: SyncResource): SyncCheckpoint? =
-        databaseClient.sql(
-            """
-            SELECT workspace_id, social_account_id, resource, cursor, high_water_mark, last_successful_at
-            FROM social_content_sync_checkpoints
-            WHERE workspace_id = :workspaceId
-              AND social_account_id = :socialAccountId
-              AND resource = :resource
-            """.trimIndent(),
-        )
-            .bind(WORKSPACE_ID_PARAMETER, scope.value)
-            .bind(SOCIAL_ACCOUNT_ID_PARAMETER, actorId)
-            .bind("resource", resource.name)
-            .map { row, _ -> row.toSyncCheckpoint() }
-            .one()
-            .awaitSingleOrNull()
+    override suspend fun find(
+        scope: WorkspaceScope,
+        actorId: String,
+        resource: SyncResource,
+        postId: ExternalPostId?,
+    ): SyncCheckpoint? = databaseClient.sql(
+        """
+        SELECT workspace_id, social_account_id, resource, post_id, cursor, high_water_mark, last_successful_at
+        FROM social_content_sync_checkpoints
+        WHERE workspace_id = :workspaceId
+          AND social_account_id = :socialAccountId
+          AND resource = :resource
+          AND (:postId IS NULL OR post_id = :postId)
+        """.trimIndent(),
+    )
+        .bind(WORKSPACE_ID_PARAMETER, scope.value)
+        .bind(SOCIAL_ACCOUNT_ID_PARAMETER, actorId)
+        .bind(RESOURCE_PARAMETER, resource.name)
+        .bindNullable(POST_ID_PARAMETER, postId?.value, String::class.java)
+        .map { row, _ -> row.toSyncCheckpoint() }
+        .one()
+        .awaitSingleOrNull()
 
     override suspend fun save(checkpoint: SyncCheckpoint): SyncCheckpoint {
         databaseClient.sql(
             """
             INSERT INTO social_content_sync_checkpoints (
-                id, workspace_id, social_account_id, resource, cursor, high_water_mark, last_successful_at
+                id, workspace_id, social_account_id, resource, post_id, cursor, high_water_mark, last_successful_at
             ) VALUES (
-                :id, :workspaceId, :socialAccountId, :resource, :cursor, :highWaterMark, :lastSuccessfulAt
+                :id, :workspaceId, :socialAccountId, :resource, :postId, :cursor, :highWaterMark, :lastSuccessfulAt
             )
-            ON CONFLICT (workspace_id, social_account_id, resource) DO UPDATE SET
-                cursor = EXCLUDED.cursor,
-                high_water_mark = EXCLUDED.high_water_mark,
-                last_successful_at = EXCLUDED.last_successful_at
+            ON CONFLICT DO NOTHING
             """.trimIndent(),
         )
             .bind("id", UUID.randomUUID().toString())
             .bind(WORKSPACE_ID_PARAMETER, checkpoint.scope.value)
             .bind(SOCIAL_ACCOUNT_ID_PARAMETER, checkpoint.actorId)
-            .bind("resource", checkpoint.resource.name)
-            .bindNullable("cursor", checkpoint.cursor?.value, String::class.java)
-            .bindNullable("highWaterMark", checkpoint.highWaterMark, Instant::class.java)
-            .bindNullable("lastSuccessfulAt", checkpoint.lastSuccessfulAt, Instant::class.java)
+            .bind(RESOURCE_PARAMETER, checkpoint.resource.name)
+            .bindNullable(POST_ID_PARAMETER, checkpoint.postId?.value, String::class.java)
+            .bindNullable(CURSOR_PARAMETER, checkpoint.cursor?.value, String::class.java)
+            .bindNullable(HIGH_WATER_MARK_PARAMETER, checkpoint.highWaterMark, Instant::class.java)
+            .bindNullable(LAST_SUCCESSFUL_AT_PARAMETER, checkpoint.lastSuccessfulAt, Instant::class.java)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+        updateCheckpoint(checkpoint)
         return checkpoint
+    }
+
+    private suspend fun updateCheckpoint(checkpoint: SyncCheckpoint) {
+        val matchesPost = checkpoint.resource != SyncResource.POSTS && checkpoint.postId != null
+        val postIdClause = if (matchesPost) "AND post_id = :postId" else "AND post_id IS NULL"
+        var statement = databaseClient.sql(
+            """
+            UPDATE social_content_sync_checkpoints
+            SET cursor = :cursor, high_water_mark = :highWaterMark, last_successful_at = :lastSuccessfulAt
+            WHERE workspace_id = :workspaceId
+              AND social_account_id = :socialAccountId
+              AND resource = :resource
+              $postIdClause
+            """.trimIndent(),
+        )
+            .bind(WORKSPACE_ID_PARAMETER, checkpoint.scope.value)
+            .bind(SOCIAL_ACCOUNT_ID_PARAMETER, checkpoint.actorId)
+            .bind(RESOURCE_PARAMETER, checkpoint.resource.name)
+            .bindNullable(CURSOR_PARAMETER, checkpoint.cursor?.value, String::class.java)
+            .bindNullable(HIGH_WATER_MARK_PARAMETER, checkpoint.highWaterMark, Instant::class.java)
+            .bindNullable(LAST_SUCCESSFUL_AT_PARAMETER, checkpoint.lastSuccessfulAt, Instant::class.java)
+        if (matchesPost) {
+            statement = statement.bind(POST_ID_PARAMETER, checkpoint.postId.value)
+        }
+        statement.fetch().rowsUpdated().awaitSingle()
     }
 
     override suspend fun findImportedPosts(query: SocialContentCalendarQuery): SocialContentPage<SocialPost> {
@@ -209,18 +239,28 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
         expiresAt = get("expires_at", Instant::class.java) ?: error("expires_at missing"),
     )
 
-    private fun io.r2dbc.spi.Readable.toSyncCheckpoint(): SyncCheckpoint = SyncCheckpoint(
-        scope = WorkspaceScope(get("workspace_id", String::class.java) ?: error("workspace_id missing")),
-        actorId = get("social_account_id", String::class.java) ?: error("social_account_id missing"),
-        resource = SyncResource.valueOf(get("resource", String::class.java) ?: error("resource missing")),
-        cursor = get("cursor", String::class.java)?.let(::PageCursor),
-        highWaterMark = get("high_water_mark", Instant::class.java),
-        lastSuccessfulAt = get("last_successful_at", Instant::class.java),
-    )
+    private fun io.r2dbc.spi.Readable.toSyncCheckpoint(): SyncCheckpoint {
+        val resource = SyncResource.valueOf(get("resource", String::class.java) ?: error("resource missing"))
+        val postId = get("post_id", String::class.java)?.let(::ExternalPostId)
+        return SyncCheckpoint(
+            scope = WorkspaceScope(get("workspace_id", String::class.java) ?: error("workspace_id missing")),
+            actorId = get("social_account_id", String::class.java) ?: error("social_account_id missing"),
+            resource = resource,
+            cursor = get("cursor", String::class.java)?.let(::PageCursor),
+            highWaterMark = get("high_water_mark", Instant::class.java),
+            lastSuccessfulAt = get("last_successful_at", Instant::class.java),
+            postId = postId,
+        )
+    }
 
     private companion object {
         const val WORKSPACE_ID_PARAMETER = "workspaceId"
         const val SOCIAL_ACCOUNT_ID_PARAMETER = "socialAccountId"
         const val PROVIDER_PARAMETER = "provider"
+        const val RESOURCE_PARAMETER = "resource"
+        const val POST_ID_PARAMETER = "postId"
+        const val CURSOR_PARAMETER = "cursor"
+        const val HIGH_WATER_MARK_PARAMETER = "highWaterMark"
+        const val LAST_SUCCESSFUL_AT_PARAMETER = "lastSuccessfulAt"
     }
 }

@@ -118,7 +118,6 @@ interface SocialContentActorRepository {
     suspend fun upsert(actor: SocialContentActor): SocialContentActor
 }
 
-
 /** Persistent repository for imported social posts; identity is workspace + provider + actor + external post id. */
 interface SocialContentPostRepository {
     /** Upserts by the workspace/provider/actor/external-post identity. */
@@ -271,4 +270,13 @@ interface SocialContentCapabilityResolver {
         operation: CapabilityOperation,
         retention: RetentionRequirements,
     ): CapabilityDecision
+}
+
+class DefaultSocialContentCapabilityResolver(private val resolver: DefaultCapabilityResolver) :
+    SocialContentCapabilityResolver {
+    override fun resolve(
+        actor: SocialContentActor,
+        operation: CapabilityOperation,
+        retention: RetentionRequirements,
+    ): CapabilityDecision = resolver.resolve(actor, operation, retention)
 }

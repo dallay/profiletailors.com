@@ -179,8 +179,12 @@ class R2dbcSocialContentBatchWriterTest {
     ) : SocialContentCheckpointRepository {
         val saved = mutableListOf<SyncCheckpoint>()
 
-        override suspend fun find(scope: WorkspaceScope, actorId: String, resource: SyncResource): SyncCheckpoint? =
-            current
+        override suspend fun find(
+            scope: WorkspaceScope,
+            actorId: String,
+            resource: SyncResource,
+            postId: ExternalPostId?,
+        ): SyncCheckpoint? = current
 
         override suspend fun save(checkpoint: SyncCheckpoint): SyncCheckpoint {
             events += "checkpoint:save"

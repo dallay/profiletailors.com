@@ -595,7 +595,12 @@ class SocialContentSyncHandlerTest {
     private class RecordingCheckpointRepository(var current: SyncCheckpoint? = null) :
         SocialContentCheckpointRepository {
         val saved = mutableListOf<SyncCheckpoint>()
-        override suspend fun find(scope: WorkspaceScope, actorId: String, resource: SyncResource) = current
+        override suspend fun find(
+            scope: WorkspaceScope,
+            actorId: String,
+            resource: SyncResource,
+            postId: ExternalPostId?,
+        ) = current
         override suspend fun save(checkpoint: SyncCheckpoint): SyncCheckpoint {
             current = checkpoint
             saved += checkpoint

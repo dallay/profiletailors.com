@@ -194,13 +194,15 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     }
 
     @Test
-    fun `save updates existing checkpoint on identity conflict`() = runTest {
+    fun `save updates existing comment checkpoint on post-scoped identity conflict`() = runTest {
+        val postId = ExternalPostId("linkedin-post-comments")
         val base = SyncCheckpoint(
             scope = WorkspaceScope("workspace-1"),
             actorId = "soacc-1",
             resource = SyncResource.COMMENTS,
             cursor = PageCursor("cursor-first"),
             lastSuccessfulAt = Instant.parse("2026-08-01T01:00:00Z"),
+            postId = postId,
         )
         repository.save(base)
         repository.save(base.copy(cursor = PageCursor("cursor-second")))
@@ -209,10 +211,49 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             scope = WorkspaceScope("workspace-1"),
             actorId = "soacc-1",
             resource = SyncResource.COMMENTS,
+            postId = postId,
         )
 
         assertNotNull(loaded)
         assertEquals("cursor-second", loaded?.cursor?.value)
+    }
+
+    @Test
+    fun `comment checkpoints remain isolated by post identity`() = runTest {
+        val first = SyncCheckpoint(
+            scope = WorkspaceScope("workspace-1"),
+            actorId = "soacc-1",
+            resource = SyncResource.COMMENTS,
+            cursor = PageCursor("cursor-first"),
+            lastSuccessfulAt = Instant.parse("2026-08-01T01:00:00Z"),
+            postId = ExternalPostId("linkedin-post-first"),
+        )
+        val second = first.copy(
+            cursor = PageCursor("cursor-second"),
+            postId = ExternalPostId("linkedin-post-second"),
+        )
+
+        repository.save(first)
+        repository.save(second)
+
+        assertEquals(
+            "cursor-first",
+            repository.find(
+                WorkspaceScope("workspace-1"),
+                "soacc-1",
+                SyncResource.COMMENTS,
+                first.postId,
+            )?.cursor?.value,
+        )
+        assertEquals(
+            "cursor-second",
+            repository.find(
+                WorkspaceScope("workspace-1"),
+                "soacc-1",
+                SyncResource.COMMENTS,
+                second.postId,
+            )?.cursor?.value,
+        )
     }
 
     @Test
@@ -221,6 +262,7 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             scope = WorkspaceScope("workspace-1"),
             actorId = "soacc-1",
             resource = SyncResource.COMMENTS,
+            postId = ExternalPostId("linkedin-post-unknown"),
         )
 
         assertNull(loaded)

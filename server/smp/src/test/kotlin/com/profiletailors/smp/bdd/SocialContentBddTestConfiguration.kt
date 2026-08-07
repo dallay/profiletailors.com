@@ -278,11 +278,16 @@ class BddContentStore :
         }
     }
 
-    override suspend fun find(scope: WorkspaceScope, actorId: String, resource: SyncResource): SyncCheckpoint? =
-        checkpoints[CheckpointKey(scope, actorId, resource)]
+    override suspend fun find(
+        scope: WorkspaceScope,
+        actorId: String,
+        resource: SyncResource,
+        postId: ExternalPostId?,
+    ): SyncCheckpoint? = checkpoints[CheckpointKey(scope, actorId, resource, postId)]
 
     override suspend fun save(checkpoint: SyncCheckpoint): SyncCheckpoint {
-        checkpoints[CheckpointKey(checkpoint.scope, checkpoint.actorId, checkpoint.resource)] = checkpoint
+        checkpoints[CheckpointKey(checkpoint.scope, checkpoint.actorId, checkpoint.resource, checkpoint.postId)] =
+            checkpoint
         return checkpoint
     }
 
@@ -333,7 +338,12 @@ class BddContentStore :
         constructor(post: SocialPost) : this(post.scope, post.provider, post.actorId, post.externalPostId)
     }
 
-    private data class CheckpointKey(val scope: WorkspaceScope, val actorId: String, val resource: SyncResource)
+    private data class CheckpointKey(
+        val scope: WorkspaceScope,
+        val actorId: String,
+        val resource: SyncResource,
+        val postId: ExternalPostId?,
+    )
 }
 
 fun bddOrganizationPageActor(workspaceId: String, actorId: String = "page-1", socialAccountId: String = actorId) =

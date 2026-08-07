@@ -642,7 +642,7 @@ class SocialContentFoundationHandlersTest {
             handler.handle(actor, parent, "Answer", IdempotencyKey("reply-failed"), now)
         }
 
-        repository.saved.last().failure shouldBe SocialContentProviderFailure.ROLE_FORBIDDEN
+        repository.saved.last().state shouldBe ReplyCommandState.FAILED
     }
 
     @Test
@@ -1061,6 +1061,16 @@ class SocialContentFoundationHandlersTest {
     }
 
     private abstract class BaseFakeSocialContentProvider : SocialContentProvider {
+        override suspend fun fetchPosts(
+            actor: SocialContentActor,
+            cursor: PageCursor?,
+        ): SocialContentPage<SocialPost> = SocialContentPage(emptyList(), null, null)
+
+        override suspend fun fetchComments(
+            actor: SocialContentActor,
+            post: SocialPost,
+        ): SocialContentPage<SocialComment> = throw UnsupportedOperationException("Comments are not configured")
+
         override suspend fun discoverActors(
             scope: WorkspaceScope,
             connectionId: String,
@@ -1176,7 +1186,7 @@ class SocialContentFoundationHandlersTest {
         }
     }
 
-    private class ThrowingSocialContentProvider(private val throwable: Throwable) : SocialContentProvider {
+    private class ThrowingSocialContentProvider(private val throwable: Throwable) : BaseFakeSocialContentProvider() {
         override suspend fun discoverActors(
             scope: WorkspaceScope,
             connectionId: String,
@@ -1185,8 +1195,12 @@ class SocialContentFoundationHandlersTest {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: PageCursor?,
-            pageSize: Int,
         ): SocialContentPage<SocialPost> = throw throwable
+
+        override suspend fun fetchComments(
+            actor: SocialContentActor,
+            post: SocialPost,
+        ): SocialContentPage<SocialComment> = throw throwable
 
         override suspend fun fetchComments(
             actor: SocialContentActor,
