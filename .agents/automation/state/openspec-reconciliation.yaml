@@ -1,5 +1,40 @@
 schemaVersion: 1
 task: openspec-reconciliation
-lastExecution: null
-findings: [ ]
-checks: [ ]
+lastExecution: "2026-08-07T18:40:00Z"
+findings:
+  - id: F-1
+    title: "mcp-server Active Change Implementation Status"
+    description: "The mcp-server change is in progress and partially implemented (foundation slice PR1 is complete and passing, PR2/PR3/PR4 are pending). Specifications remain local to the change directory as expected before final merge and archive."
+    status: unresolved
+    severity: LOW
+    detectedAt: "2026-08-07T18:40:00Z"
+  - id: F-2
+    title: "pr-577-quality-gate-remediation Active Change Implementation Status"
+    description: "The pr-577-quality-gate-remediation change is in progress (verify phase). Source-level remediations are present and valid, but verification failed locally because the fresh app LCOV project coverage report is 69.50% (below the required 80% project gate). Task 5.3 is incomplete."
+    status: unresolved
+    severity: LOW
+    detectedAt: "2026-08-07T18:40:00Z"
+  - id: F-3
+    title: "Archived Changes Compliance Audit"
+    description: "All archived changes under openspec/changes/archive/ are correctly marked as archived, with state.yaml files indicating current_phase: archive. No zombie or uncoordinated active changes were found."
+    status: resolved
+    severity: LOW
+    detectedAt: "2026-08-07T18:40:00Z"
+    resolvedAt: "2026-08-07T18:40:00Z"
+checks:
+  - id: C-1
+    name: "Active Change State File Scan"
+    status: PASSED
+    executedAt: "2026-08-07T18:40:00Z"
+  - id: C-2
+    name: "Archived Changes Index Verification"
+    status: PASSED
+    executedAt: "2026-08-07T18:40:00Z"
+  - id: C-3
+    name: "Global Specification Directory Completeness"
+    status: PASSED
+    executedAt: "2026-08-07T18:40:00Z"
+  - id: C-4
+    name: "MCP Bounded Context Unit and Integration Tests"
+    status: PASSED
+    executedAt: "2026-08-07T18:40:00Z"
