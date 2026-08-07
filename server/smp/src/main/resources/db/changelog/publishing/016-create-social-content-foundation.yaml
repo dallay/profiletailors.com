@@ -1,0 +1,281 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-016-create-social-content-foundation
+      author: opencode
+      changes:
+        - createTable:
+            tableName: social_content_actor_capabilities
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_social_content_capabilities_workspace
+                    references: workspaces(id)
+              - column:
+                  name: social_account_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_social_content_capabilities_account
+                    references: social_accounts(id)
+              - column:
+                  name: provider
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role_state
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: granted_scopes
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: can_read_posts
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: can_read_comments
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: can_reply_as_actor
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: can_receive_comment_webhooks
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: supports_nested_replies
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: activity_ttl_seconds
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: commenter_profile_ttl_seconds
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: social_content_actor_capabilities
+            columnNames: workspace_id, social_account_id
+            constraintName: uq_social_content_capabilities_workspace_account
+        - createTable:
+            tableName: social_content_posts
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_social_content_posts_workspace
+                    references: workspaces(id)
+              - column:
+                  name: social_account_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_social_content_posts_account
+                    references: social_accounts(id)
+              - column:
+                  name: provider
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: external_post_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: published_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_modified_at
+                  type: timestamp with time zone
+              - column:
+                  name: body
+                  type: text
+              - column:
+                  name: origin
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: local_publication_id
+                  type: varchar(64)
+              - column:
+                  name: lifecycle
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: social_content_posts
+            columnNames: workspace_id, provider, social_account_id, external_post_id
+            constraintName: uq_social_content_posts_identity
+        - createIndex:
+            tableName: social_content_posts
+            indexName: idx_social_content_posts_workspace_actor_published
+            columns:
+              - column: {name: workspace_id}
+              - column: {name: social_account_id}
+              - column: {name: published_at}
+        - createTable:
+            tableName: social_content_comments
+            columns:
+              - column: {name: id, type: varchar(64), constraints: {primaryKey: true, nullable: false}}
+              - column: {name: workspace_id, type: varchar(64), constraints: {nullable: false, foreignKeyName: fk_social_content_comments_workspace, references: workspaces(id)}}
+              - column: {name: post_id, type: varchar(64), constraints: {nullable: false, foreignKeyName: fk_social_content_comments_post, references: social_content_posts(id)}}
+              - column: {name: provider, type: varchar(32), constraints: {nullable: false}}
+              - column: {name: external_comment_id, type: varchar(255), constraints: {nullable: false}}
+              - column: {name: parent_external_comment_id, type: varchar(255)}
+              - column: {name: actor_external_id, type: varchar(255), constraints: {nullable: false}}
+              - column: {name: body, type: text}
+              - column: {name: created_at, type: timestamp with time zone, constraints: {nullable: false}}
+              - column: {name: state, type: varchar(32), constraints: {nullable: false}}
+              - column: {name: expires_at, type: timestamp with time zone, constraints: {nullable: false}}
+        - addUniqueConstraint:
+            tableName: social_content_comments
+            columnNames: workspace_id, provider, post_id, external_comment_id
+            constraintName: uq_social_content_comments_identity
+        - createIndex:
+            tableName: social_content_comments
+            indexName: idx_social_content_comments_post_parent
+            columns:
+              - column: {name: post_id}
+              - column: {name: parent_external_comment_id}
+        - createTable:
+            tableName: social_content_payload_cache
+            columns:
+              - column: {name: id, type: varchar(64), constraints: {primaryKey: true, nullable: false}}
+              - column: {name: workspace_id, type: varchar(64), constraints: {nullable: false, foreignKeyName: fk_social_content_cache_workspace, references: workspaces(id)}}
+              - column: {name: cache_key, type: varchar(255), constraints: {nullable: false}}
+              - column: {name: cache_kind, type: varchar(32), constraints: {nullable: false}}
+              - column: {name: encrypted_payload, type: text, constraints: {nullable: false}}
+              - column: {name: expires_at, type: timestamp with time zone, constraints: {nullable: false}}
+        - addUniqueConstraint:
+            tableName: social_content_payload_cache
+            columnNames: workspace_id, cache_key
+            constraintName: uq_social_content_payload_cache_key
+        - createIndex:
+            tableName: social_content_payload_cache
+            indexName: idx_social_content_payload_cache_expires_at
+            columns:
+              - column: {name: expires_at}
+        - createTable:
+            tableName: social_content_sync_checkpoints
+            columns:
+              - column: {name: id, type: varchar(64), constraints: {primaryKey: true, nullable: false}}
+              - column: {name: workspace_id, type: varchar(64), constraints: {nullable: false, foreignKeyName: fk_social_content_checkpoints_workspace, references: workspaces(id)}}
+              - column: {name: social_account_id, type: varchar(64), constraints: {nullable: false, foreignKeyName: fk_social_content_checkpoints_account, references: social_accounts(id)}}
+              - column: {name: resource, type: varchar(32), constraints: {nullable: false}}
+              - column: {name: cursor, type: varchar(1024)}
+              - column: {name: high_water_mark, type: timestamp with time zone}
+              - column: {name: last_successful_at, type: timestamp with time zone}
+              - column: {name: next_run_at, type: timestamp with time zone}
+              - column: {name: claimed_by, type: varchar(128)}
+              - column: {name: lease_expires_at, type: timestamp with time zone}
+        - addUniqueConstraint:
+            tableName: social_content_sync_checkpoints
+            columnNames: workspace_id, social_account_id, resource
+            constraintName: uq_social_content_sync_checkpoints_identity
+        - createIndex:
+            tableName: social_content_sync_checkpoints
+            indexName: idx_social_content_sync_checkpoints_due
+            columns:
+              - column: {name: next_run_at}
+              - column: {name: lease_expires_at}
+        - createTable:
+            tableName: social_content_webhook_events
+            columns:
+              - column: {name: id, type: varchar(64), constraints: {primaryKey: true, nullable: false}}
+              - column: {name: workspace_id, type: varchar(64), constraints: {nullable: false, foreignKeyName: fk_social_content_webhooks_workspace, references: workspaces(id)}}
+              - column: {name: provider_event_id, type: varchar(255), constraints: {nullable: false}}
+              - column: {name: social_account_id, type: varchar(64), constraints: {nullable: false, foreignKeyName: fk_social_content_webhooks_account, references: social_accounts(id)}}
+              - column: {name: received_at, type: timestamp with time zone, constraints: {nullable: false}}
+              - column: {name: payload_cache_key, type: varchar(255), constraints: {nullable: false}}
+              - column: {name: processed_at, type: timestamp with time zone}
+        - addUniqueConstraint:
+            tableName: social_content_webhook_events
+            columnNames: workspace_id, provider_event_id
+            constraintName: uq_social_content_webhook_events_identity
+        - createTable:
+            tableName: social_content_reply_commands
+            columns:
+              - column: {name: id, type: varchar(64), constraints: {primaryKey: true, nullable: false}}
+              - column: {name: workspace_id, type: varchar(64), constraints: {nullable: false, foreignKeyName: fk_social_content_replies_workspace, references: workspaces(id)}}
+              - column: {name: social_account_id, type: varchar(64), constraints: {nullable: false, foreignKeyName: fk_social_content_replies_account, references: social_accounts(id)}}
+              - column: {name: parent_external_comment_id, type: varchar(255), constraints: {nullable: false}}
+              - column: {name: idempotency_key, type: varchar(255), constraints: {nullable: false}}
+              - column: {name: body, type: text, constraints: {nullable: false}}
+              - column: {name: status, type: varchar(32), constraints: {nullable: false}}
+              - column: {name: external_comment_id, type: varchar(255)}
+              - column: {name: created_at, type: timestamp with time zone, defaultValueComputed: CURRENT_TIMESTAMP, constraints: {nullable: false}}
+        - addUniqueConstraint:
+            tableName: social_content_reply_commands
+            columnNames: workspace_id, idempotency_key
+            constraintName: uq_social_content_reply_commands_idempotency
+      rollback:
+        - dropTable: {tableName: social_content_reply_commands, cascadeConstraints: true}
+        - dropTable: {tableName: social_content_webhook_events, cascadeConstraints: true}
+        - dropTable: {tableName: social_content_sync_checkpoints, cascadeConstraints: true}
+        - dropTable: {tableName: social_content_payload_cache, cascadeConstraints: true}
+        - dropTable: {tableName: social_content_comments, cascadeConstraints: true}
+        - dropTable: {tableName: social_content_posts, cascadeConstraints: true}
+        - dropTable: {tableName: social_content_actor_capabilities, cascadeConstraints: true}
