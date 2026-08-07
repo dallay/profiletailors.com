@@ -48,8 +48,8 @@ second PR onward, the check passes automatically.
 git clone https://github.com/dallay/profiletailors.com.git
 cd profiletailors.com
 
-# Landing page
-cd apps/web/landing
+# Marketing site (landing page)
+cd apps/web/marketing
 pnpm install
 pnpm dev
 ```
