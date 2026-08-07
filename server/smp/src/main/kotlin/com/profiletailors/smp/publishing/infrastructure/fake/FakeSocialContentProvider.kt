@@ -1,11 +1,13 @@
 package com.profiletailors.smp.publishing.infrastructure.fake
 
 import com.profiletailors.smp.publishing.domain.ExternalCommentId
+import com.profiletailors.smp.publishing.domain.ExternalPostId
 import com.profiletailors.smp.publishing.domain.IdempotencyKey
 import com.profiletailors.smp.publishing.domain.PageCursor
 import com.profiletailors.smp.publishing.domain.SocialComment
 import com.profiletailors.smp.publishing.domain.SocialContentActor
 import com.profiletailors.smp.publishing.domain.SocialContentActorCandidate
+import com.profiletailors.smp.publishing.domain.SocialContentCheckpointRepository
 import com.profiletailors.smp.publishing.domain.SocialContentPage
 import com.profiletailors.smp.publishing.domain.SocialContentPostRepository
 import com.profiletailors.smp.publishing.domain.SocialContentProvider
@@ -13,6 +15,8 @@ import com.profiletailors.smp.publishing.domain.SocialContentProviderException
 import com.profiletailors.smp.publishing.domain.SocialContentProviderFailure
 import com.profiletailors.smp.publishing.domain.SocialPost
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.domain.SyncCheckpoint
+import com.profiletailors.smp.publishing.domain.SyncResource
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -123,6 +127,33 @@ class FakeSocialContentPostRepository : SocialContentPostRepository {
 }
 
 /** In-memory [SocialContentProvider] used by tests; records every call for later assertions. */
+class FakeSocialContentCheckpointRepository : SocialContentCheckpointRepository {
+    private val mutex = Mutex()
+    private val checkpoints = mutableMapOf<CheckpointIdentity, SyncCheckpoint>()
+
+    override suspend fun find(
+        scope: WorkspaceScope,
+        actorId: String,
+        resource: SyncResource,
+        postId: ExternalPostId?,
+    ): SyncCheckpoint? = mutex.withLock {
+        checkpoints[CheckpointIdentity(scope, actorId, resource, postId)]
+    }
+
+    override suspend fun save(checkpoint: SyncCheckpoint): SyncCheckpoint = mutex.withLock {
+        val identity = CheckpointIdentity(checkpoint.scope, checkpoint.actorId, checkpoint.resource, checkpoint.postId)
+        checkpoints[identity] = checkpoint
+        checkpoint
+    }
+
+    private data class CheckpointIdentity(
+        val scope: WorkspaceScope,
+        val actorId: String,
+        val resource: SyncResource,
+        val postId: ExternalPostId?,
+    )
+}
+
 class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures) : SocialContentProvider {
     private val mutex = Mutex()
     private val recordedCalls = mutableListOf<FakeProviderCall>()

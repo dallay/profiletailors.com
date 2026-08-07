@@ -3,6 +3,7 @@ package com.profiletailors.smp.publishing.infrastructure.fake
 import com.profiletailors.smp.publishing.domain.ExternalCommentId
 import com.profiletailors.smp.publishing.domain.ExternalPostId
 import com.profiletailors.smp.publishing.domain.IdempotencyKey
+import com.profiletailors.smp.publishing.domain.PageCursor
 import com.profiletailors.smp.publishing.domain.PostLifecycle
 import com.profiletailors.smp.publishing.domain.PostOrigin
 import com.profiletailors.smp.publishing.domain.ProviderActorId
@@ -14,6 +15,8 @@ import com.profiletailors.smp.publishing.domain.SocialContentProviderException
 import com.profiletailors.smp.publishing.domain.SocialContentProviderFailure
 import com.profiletailors.smp.publishing.domain.SocialPost
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.domain.SyncCheckpoint
+import com.profiletailors.smp.publishing.domain.SyncResource
 import com.profiletailors.smp.publishing.domain.ThreadState
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
 import io.kotest.assertions.throwables.shouldThrow
@@ -242,6 +245,35 @@ class FakeSocialContentProviderTest {
             ExternalPostId("post-other-actor"),
         )?.lifecycle shouldBe
             PostLifecycle.PUBLISHED
+    }
+
+    @Test
+    fun `should isolate fake checkpoints by post identity`() = runTest {
+        val repository = FakeSocialContentCheckpointRepository()
+        val firstPost = fixturePost(fixtureActor(), "post-first")
+        val secondPost = fixturePost(fixtureActor(), "post-second")
+        val firstCheckpoint = SyncCheckpoint(
+            scope = firstPost.scope,
+            actorId = firstPost.actorId,
+            resource = SyncResource.COMMENTS,
+            cursor = PageCursor("first-cursor"),
+            lastSuccessfulAt = Instant.parse("2026-08-01T12:00:00Z"),
+            postId = firstPost.externalPostId,
+        )
+        val secondCheckpoint = firstCheckpoint.copy(
+            cursor = PageCursor("second-cursor"),
+            postId = secondPost.externalPostId,
+        )
+
+        repository.save(firstCheckpoint)
+        repository.save(secondCheckpoint)
+
+        repository.find(firstPost.scope, firstPost.actorId, SyncResource.COMMENTS, firstPost.externalPostId) shouldBe
+            firstCheckpoint
+        repository.find(firstPost.scope, firstPost.actorId, SyncResource.COMMENTS, secondPost.externalPostId) shouldBe
+            secondCheckpoint
+        repository.find(firstPost.scope, firstPost.actorId, SyncResource.COMMENTS, ExternalPostId("missing")) shouldBe
+            null
     }
 
     private fun fixtureActor(id: String = "actor-1", externalId: String = "urn:li:organization:123") =

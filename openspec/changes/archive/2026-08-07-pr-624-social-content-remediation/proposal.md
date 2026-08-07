@@ -58,10 +58,11 @@ Revert the remediation commits and any isolated Liquibase change; restore the or
 
 Apply handlers directly in tests:
 ```kotlin
-val handler = SyncSocialPostsCommandHandler(
+val handler = ImportSocialPostsHandler(
     provider, postRepository, checkpointRepository,
     capabilityResolver, retention, syncLimits, retryPolicy
 )
+handler.handle(SyncSocialPostsCommand(actor, now))
 ```
 
 Use the compatibility façade for existing test code:

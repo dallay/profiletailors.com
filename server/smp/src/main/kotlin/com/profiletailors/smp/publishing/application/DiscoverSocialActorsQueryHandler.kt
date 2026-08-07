@@ -8,13 +8,17 @@ import com.profiletailors.smp.publishing.domain.SocialContentActorCandidate
 import com.profiletailors.smp.publishing.domain.SocialContentCapabilityResolver
 import com.profiletailors.smp.publishing.domain.SocialContentProvider
 
+/** Query for discovering only administered organization pages for an actor. */
+data class DiscoverSocialContentActorsQuery(val actor: SocialContentActor)
+
 /** Query handler that discovers only administered organization pages. */
-class DiscoverSocialActorsQueryHandler(
+class DiscoverSocialContentActorsHandler(
     private val provider: SocialContentProvider,
     private val capabilityResolver: SocialContentCapabilityResolver,
     private val retention: RetentionRequirements,
 ) {
-    suspend fun handle(actor: SocialContentActor): List<SocialContentActor> {
+    suspend fun handle(query: DiscoverSocialContentActorsQuery): List<SocialContentActor> {
+        val actor = query.actor
         requireSocialContentCapability(actor, CapabilityOperation.DISCOVER_ACTORS, capabilityResolver, retention)
         return provider.discoverActors(actor.scope, actor.connectionId)
             .asSequence()

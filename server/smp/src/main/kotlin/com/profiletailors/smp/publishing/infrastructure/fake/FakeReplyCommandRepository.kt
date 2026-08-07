@@ -15,6 +15,16 @@ class FakeReplyCommandRepository : ReplyCommandRepository {
     private val results = mutableMapOf<Pair<WorkspaceScope, String>, ReplyCommandResult>()
 
     /**
+     * Reads the stored result for a command without creating a processing record.
+     *
+     * @param command The reply command to look up.
+     * @return The stored result, or `null` when the scope and idempotency key were never claimed.
+     */
+    override suspend fun find(command: ReplyCommand): ReplyCommandResult? = mutex.withLock {
+        results[command.scope to command.idempotencyKey.value]
+    }
+
+    /**
      * Claims a reply command for processing while enforcing idempotency within its workspace.
      *
      * @param command The reply command to claim.

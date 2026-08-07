@@ -35,16 +35,19 @@ Decision: User approved single-pr with size exception; all units delivered toget
 ### Phase 2: CQRS and State
 
 - [x] 2.1 RED: Extend server/smp/src/test/kotlin/com/profiletailors/smp/publishing/application/SocialContentFoundationHandlersTest.kt for boundaries, denial/no-call, pagination, repeated cursor, max pages, resume/HWM, checkpoints, and no-write behavior.
-- [x] 2.2 GREEN: Create DiscoverSocialActorsQueryHandler.kt, SyncSocialPostsCommandHandler.kt, and SyncSocialCommentsCommandHandler.kt; replace SocialContentFoundationHandlers.kt without Spring wiring.
+- [x] 2.2 GREEN: Create the dedicated discovery, post-sync, and comment-sync handler files with explicit query/command objects; replace SocialContentFoundationHandlers.kt without Spring wiring.
 - [x] 2.3 RED: Add reply-state/conflict tests in SocialContentFoundationHandlersTest.kt and server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/fake/FakeReplyCommandRepositoryTest.kt.
 - [x] 2.4 GREEN: Create ReplyToSocialCommentCommandHandler.kt; update FakeReplyCommandRepository.kt, FakeSocialContentProvider.kt, and ports for atomic claim/one terminal save.
 - [x] 2.5 VERIFY: Run focused application/fake tests, workspace isolation, and page-size/cursor assertions. High-water marks now incorporate both provider metadata and received item timestamps.
+- [x] 2.6 REVIEW FIX: Added explicit DiscoverSocialContentActorsQuery, SyncSocialPostsCommand, and SyncSocialCommentsCommand boundaries, renamed dedicated handlers to DiscoverSocialContentActorsHandler, ImportSocialPostsHandler, and ImportSocialCommentsHandler, and retained the compatibility façade.
+- [x] 2.7 REVIEW FIX: Isolated comment checkpoints by post in domain/ports/handler tests and added migration coverage for the persistence contract.
 
 ### Phase 3: Liquibase
 
 - [x] 3.1 RED: Extend server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/persistence/SocialContentLiquibaseChangelogTest.kt for 017, inclusion, composite constraints, indexes, and rollback.
 - [x] 3.2 GREEN: Create server/smp/src/main/resources/db/changelog/publishing/017-social-content-workspace-fks.yaml; include after 016 in server/smp/src/main/resources/db/changelog/db.changelog-master.yaml, preserving 016 history.
-- [x] 3.3 VERIFY: Run static Liquibase tests; live Postgres proof remains a verify-phase concern because the available harness requires infrastructure startup.
+- [x] 3.3 VERIFY: Run static Liquibase tests; live Postgres proof was completed later during verification with the available Testcontainers harness.
+- [x] 3.4 REVIEW FIX: Added publishing-018 to add post_id, post-scoped checkpoint indexes, workspace/post foreign-key protection, and rollback while preserving the existing 017 composite-FK approach.
 
 ### Phase 4: Review Closure Evidence and Reply Planning
 
@@ -57,14 +60,24 @@ Decision: User approved single-pr with size exception; all units delivered toget
 ### Phase 5: Final Verification
 
 - [x] 5.1 Local test execution: Full just backend-test-fast and focused publishing suite executed successfully during apply; all local quality checks pass.
-- [ ] 5.2 Live PostgreSQL/Liquibase verification: Deferred because Docker daemon is unavailable; static migration tests pass; live proof required before production deployment.
+- [x] 5.2 Live PostgreSQL/Liquibase verification: `just backend-test-postgres` completed successfully with Docker/OrbStack available; the Testcontainers harness applied the Liquibase baseline and passed PostgreSQL integration tests.
+
+### Phase 6: Review Remediation (CodeRabbit findings)
+
+- [x] 6.1 FIX 1 (P1): Bind reply commands to the executing actor — `handle()` throws `ReplyRejectedException(EXECUTOR_MISMATCH)` when `command.actorId != actor.id`; provider is never called.
+- [x] 6.2 FIX 2 (P1): Deterministic idempotency — add non-mutating `ReplyCommandRepository.find()`; return stored SUCCEEDED/FAILED/PROCESSING results before current-state validation; invalid commands never create PROCESSING records. Hardens Q.2.
+- [x] 6.3 FIX 3 (P1): Migration 018 stores `post_id` as `varchar(255)` and drops the impossible local FK; rollback drops the FK block too.
+- [x] 6.4 FIX 4 (P1): Migration 018 rollback deletes `COMMENTS` checkpoints before restoring the old unique constraint (deterministic).
+- [x] 6.5 FIX 6 (P2): Cap exponential backoff at 60s (`MAX_BACKOFF_SHIFT = 20`) to prevent Long overflow at attempt 58+.
+- [x] 6.6 FIX 7 (P2): Correct the outdated `ImportSocialPostsHandler` usage example in apply-progress.md.
+- [x] 6.7 FIX 5 (policy): Document the BDD exception — this slice has no HTTP surface, so Cucumber coverage is not applicable; exception recorded in apply-progress.md.
 
 ### Apply Quality Continuation
 
 - [x] Q.1 Resolve all 14 local Detekt findings from server/smp/build/reports/detekt/detekt.md without suppressions, including braces, named constants, and max-line formatting in changed files.
 - [x] Q.2 Preserve and verify deterministic reply idempotency for persisted PROCESSING, SUCCEEDED, and FAILED results; focused publishing tests pass without a second provider call.
 - [x] Q.3 Run Spotless formatting/checks, focused publishing tests, just backend-check, and git diff --check; all local quality checks pass.
-- [ ] Q.4 Run live PostgreSQL/Liquibase proof when Docker/infrastructure is available; do not mark complete from this continuation.
+- [x] Q.4 Live PostgreSQL/Liquibase proof: PASS (2026-08-07) — `PublishingHandlersTransactionPostgresIntegrationTest` (13 tests) green against real Testcontainers Postgres; migration 018 applied via the full Liquibase changelog.
 - [ ] Q.5 Post external GitHub review replies with evidence; do not mark complete from this continuation.
 
 ## Usage
@@ -80,8 +93,8 @@ Phase progression:
 
 ## Troubleshooting
 
-- Incomplete tasks: Phase 4.5 (GitHub replies) and 5.2 (live PostgreSQL) are external dependencies, not implementation failures.
-- Docker unavailable: Static Liquibase tests pass; live proof deferred to environment with operational Docker daemon.
+- Incomplete tasks: Phase 4.5 (GitHub replies) is an external communication dependency, not an implementation failure.
+- Docker: Live PostgreSQL proof completed 2026-08-07 via the targeted integration class; running the full default `:server:smp:test` (which includes all `@Tag("postgres")` classes) can stall on Docker daemon responses — use `-PexcludeTags=postgres` plus the targeted integration class for deterministic local verification.
 - Evidence vs. replies: Items 4.1-4.4 represent evidence collected and decisions made; actual GitHub communication is item 4.5.
 - Test failures: If focused tests fail, verify handler construction matches documented patterns in design.md.
 

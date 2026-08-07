@@ -124,7 +124,7 @@ data class ProviderCapabilities(
  *
  * Both TTLs must be strictly positive; the values feed payload-cache expiry and tombstone cleanup.
  */
-data class RetentionRequirements(val activityTtl: java.time.Duration, val commenterProfileTtl: java.time.Duration) {
+data class RetentionRequirements(val activityTtl: Duration, val commenterProfileTtl: Duration) {
     init {
         require(!activityTtl.isNegative && !activityTtl.isZero) { "Activity TTL must be positive." }
         require(!commenterProfileTtl.isNegative && !commenterProfileTtl.isZero) {
@@ -186,15 +186,22 @@ data class SocialContentActor(
         grantedScopes = grantedScopes,
         roleState = roleState,
         canReadPosts = roleState != ActorRoleState.REVOKED &&
-            grantedScopes.any { it in setOf("r_organization_social", "r_organization_social_feed") },
+            grantedScopes.any(POST_READ_SCOPES::contains),
         canReadComments = roleState != ActorRoleState.REVOKED &&
-            grantedScopes.contains("r_organization_social_social_actions"),
+            grantedScopes.contains(COMMENT_READ_SCOPE),
         canReplyAsActor = roleState == ActorRoleState.ADMIN &&
-            grantedScopes.contains("w_organization_social"),
-        canReceiveCommentWebhooks = grantedScopes.contains("rw_organization_admin"),
+            grantedScopes.contains(REPLY_SCOPE),
+        canReceiveCommentWebhooks = grantedScopes.contains(ADMIN_SCOPE),
         supportsNestedReplies = true,
         retention = retention,
     )
+
+    private companion object {
+        val POST_READ_SCOPES = setOf("r_organization_social", "r_organization_social_feed")
+        const val COMMENT_READ_SCOPE = "r_organization_social_social_actions"
+        const val REPLY_SCOPE = "w_organization_social"
+        const val ADMIN_SCOPE = "rw_organization_admin"
+    }
 }
 
 /**
@@ -280,9 +287,15 @@ data class SyncCheckpoint(
     val cursor: PageCursor?,
     val highWaterMark: Instant? = null,
     val lastSuccessfulAt: Instant?,
+    val postId: ExternalPostId? = null,
 ) {
     init {
         require(actorId.isNotBlank()) { "Checkpoint actor ID is required." }
+        if (resource == SyncResource.COMMENTS) {
+            requireNotNull(postId) { "Comment checkpoints require a post ID." }
+        } else {
+            require(postId == null) { "Post checkpoints must not have a post ID." }
+        }
     }
 
     /**
@@ -437,10 +450,10 @@ data class ReplyCommand(
     /**
      * Validate the command against the parent [comment] and the supplied [actorScope].
      *
-     * @throws ReplyRejectedException When the parent comment, actor, or workspace context does not match.
+     * @return The rejection reason, or `null` when the command is valid.
      */
-    fun validateAgainst(comment: SocialComment, actorScope: WorkspaceScope, now: Instant) {
-        val rejection = when {
+    fun validateAgainst(comment: SocialComment, actorScope: WorkspaceScope, now: Instant): ReplyRejectionReason? =
+        when {
             scope != actorScope || comment.scope != actorScope -> ReplyRejectionReason.WORKSPACE_MISMATCH
             comment.ownerActorId != actorId -> ReplyRejectionReason.ACTOR_MISMATCH
             comment.externalCommentId != parentCommentId -> ReplyRejectionReason.PARENT_NOT_FOUND
@@ -448,14 +461,15 @@ data class ReplyCommand(
             comment.isExpired(now) -> ReplyRejectionReason.EXPIRED
             else -> null
         }
-        rejection?.let { throw ReplyRejectedException(it) }
-    }
 }
 
 /** Reasons a [ReplyCommand] can be rejected before being forwarded to the provider. */
 enum class ReplyRejectionReason {
     WORKSPACE_MISMATCH,
     ACTOR_MISMATCH,
+
+    /** The command's actor is not the actor executing the request; distinct from [ACTOR_MISMATCH]. */
+    EXECUTOR_MISMATCH,
     PARENT_NOT_FOUND,
     THREAD_NOT_OPEN,
     EXPIRED,

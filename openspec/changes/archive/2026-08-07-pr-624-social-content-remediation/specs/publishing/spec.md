@@ -82,10 +82,11 @@ Remediation MUST provide classification, evidence, and scope decisions for stale
 
 Handlers are directly constructible in tests without Spring wiring:
 ```kotlin
-val syncHandler = SyncSocialPostsCommandHandler(
+val syncHandler = ImportSocialPostsHandler(
     provider, postRepository, checkpointRepository,
     capabilityResolver, retention, syncLimits, retryPolicy
 )
+syncHandler.handle(SyncSocialPostsCommand(actor, now))
 ```
 
 The BDD exception applies: no Cucumber scenarios are required because no HTTP surface exists. If HTTP endpoints are added, corresponding Cucumber scenarios will become required.

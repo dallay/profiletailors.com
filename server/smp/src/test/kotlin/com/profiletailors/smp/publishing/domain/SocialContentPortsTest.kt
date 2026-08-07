@@ -4,6 +4,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import java.time.Duration
+import java.time.Instant
 
 class SocialContentPortsTest {
     private val workspace = WorkspaceScope("workspace-1")
@@ -70,7 +71,7 @@ class SocialContentPortsTest {
     }
 
     @Test
-    fun `cursor and checkpoint preserve workspace and only advance after success`() {
+    fun `checkpoint advance preserves the source and records success time`() {
         val cursor = PageCursor("next-1")
         val checkpoint = SyncCheckpoint(
             scope = workspace,
@@ -79,10 +80,14 @@ class SocialContentPortsTest {
             cursor = cursor,
             lastSuccessfulAt = null,
         )
+        val successfulAt = Instant.parse("2026-08-01T12:00:00Z")
 
-        checkpoint.advance(PageCursor("next-2"), java.time.Instant.parse("2026-08-01T12:00:00Z")).cursor shouldBe
-            PageCursor("next-2")
-        checkpoint.scope shouldBe workspace
-        cursor.value shouldBe "next-1"
+        val advanced = checkpoint.advance(PageCursor("next-2"), successfulAt)
+
+        advanced.cursor shouldBe PageCursor("next-2")
+        advanced.lastSuccessfulAt shouldBe successfulAt
+        advanced.scope shouldBe workspace
+        checkpoint.cursor shouldBe cursor
+        checkpoint.lastSuccessfulAt shouldBe null
     }
 }

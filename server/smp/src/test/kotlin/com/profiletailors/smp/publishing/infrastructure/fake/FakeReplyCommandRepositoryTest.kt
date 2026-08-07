@@ -47,6 +47,22 @@ class FakeReplyCommandRepositoryTest {
         )
     }
 
+    @Test
+    fun `should find a stored result without creating a processing record`() = runTest {
+        val repository = FakeReplyCommandRepository()
+        val command = command()
+
+        repository.find(command) shouldBe null
+        repository.claim(command) shouldBe ReplyCommandClaim.Claimed
+        val saved = ReplyCommandResult(
+            command,
+            ReplyCommandState.SUCCEEDED,
+            externalCommentId = ExternalCommentId("reply-1"),
+        )
+        repository.save(saved)
+        repository.find(command) shouldBe saved
+    }
+
     private fun command() = ReplyCommand(
         scope = WorkspaceScope("workspace-1"),
         actorId = "actor-1",

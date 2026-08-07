@@ -15,8 +15,11 @@ import com.profiletailors.smp.publishing.domain.SyncCheckpoint
 import com.profiletailors.smp.publishing.domain.SyncResource
 import java.time.Instant
 
+/** Command for importing bounded post pages for an actor. */
+data class SyncSocialPostsCommand(val actor: SocialContentActor, val now: Instant)
+
 /** Command handler that buffers bounded post pages before mutating repositories. */
-class SyncSocialPostsCommandHandler(
+class ImportSocialPostsHandler(
     private val provider: SocialContentProvider,
     private val postRepository: SocialContentPostRepository,
     private val checkpointRepository: SocialContentCheckpointRepository,
@@ -25,7 +28,9 @@ class SyncSocialPostsCommandHandler(
     private val syncLimits: SocialContentSyncLimits,
     private val retryPolicy: SocialContentRetryPolicy = SocialContentRetryPolicy(),
 ) {
-    suspend fun handle(actor: SocialContentActor, now: Instant): SocialContentPage<SocialPost> {
+    suspend fun handle(command: SyncSocialPostsCommand): SocialContentPage<SocialPost> {
+        val actor = command.actor
+        val now = command.now
         requireSocialContentCapability(actor, CapabilityOperation.READ_POSTS, capabilityResolver, retention)
         val checkpoint = checkpointRepository.find(actor.scope, actor.id, SyncResource.POSTS)
         val pages = readPages(actor, checkpoint?.cursor)

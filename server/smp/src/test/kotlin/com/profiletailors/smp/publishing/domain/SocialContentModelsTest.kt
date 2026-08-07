@@ -399,9 +399,8 @@ class SocialContentModelsTest {
         val comment = openThreadComment()
         val command = replyCommand(scope = otherWorkspace, idempotencyKey = "reply-workspace")
 
-        shouldThrow<ReplyRejectedException> {
-            command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1))
-        }.reason shouldBe ReplyRejectionReason.WORKSPACE_MISMATCH
+        command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1)) shouldBe
+            ReplyRejectionReason.WORKSPACE_MISMATCH
     }
 
     @Test
@@ -409,9 +408,8 @@ class SocialContentModelsTest {
         val comment = openThreadComment()
         val command = replyCommand(actorId = "another-actor", idempotencyKey = "reply-actor")
 
-        shouldThrow<ReplyRejectedException> {
-            command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1))
-        }.reason shouldBe ReplyRejectionReason.ACTOR_MISMATCH
+        command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1)) shouldBe
+            ReplyRejectionReason.ACTOR_MISMATCH
     }
 
     @Test
@@ -420,9 +418,8 @@ class SocialContentModelsTest {
         val command = replyCommand(idempotencyKey = "reply-parent")
         val wrongParent = comment.copy(externalCommentId = ExternalCommentId("comment-2"))
 
-        shouldThrow<ReplyRejectedException> {
-            command.validateAgainst(wrongParent, workspace, publishedAt.plusSeconds(1))
-        }.reason shouldBe ReplyRejectionReason.PARENT_NOT_FOUND
+        command.validateAgainst(wrongParent, workspace, publishedAt.plusSeconds(1)) shouldBe
+            ReplyRejectionReason.PARENT_NOT_FOUND
     }
 
     @Test
@@ -430,9 +427,8 @@ class SocialContentModelsTest {
         val comment = openThreadComment().copy(state = ThreadState.CLOSED)
         val command = replyCommand(idempotencyKey = "reply-thread")
 
-        shouldThrow<ReplyRejectedException> {
-            command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1))
-        }.reason shouldBe ReplyRejectionReason.THREAD_NOT_OPEN
+        command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1)) shouldBe
+            ReplyRejectionReason.THREAD_NOT_OPEN
     }
 
     @Test
@@ -440,7 +436,7 @@ class SocialContentModelsTest {
         val comment = openThreadComment()
         val command = replyCommand(idempotencyKey = "reply-ok")
 
-        command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1)) shouldBe Unit
+        command.validateAgainst(comment, workspace, publishedAt.plusSeconds(1)) shouldBe null
     }
 
     private fun openThreadComment(): SocialComment = SocialComment(
@@ -492,9 +488,8 @@ class SocialContentModelsTest {
             idempotencyKey = IdempotencyKey("reply-expired"),
         )
 
-        shouldThrow<ReplyRejectedException> {
-            command.validateAgainst(expiredComment, workspace, publishedAt.plusSeconds(120))
-        }.reason shouldBe ReplyRejectionReason.EXPIRED
+        command.validateAgainst(expiredComment, workspace, publishedAt.plusSeconds(120)) shouldBe
+            ReplyRejectionReason.EXPIRED
     }
 
     @Test

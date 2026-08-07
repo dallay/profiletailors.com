@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.smp.publishing.domain.IdempotencyKey
+import com.profiletailors.smp.publishing.domain.ReplyCommand
 import com.profiletailors.smp.publishing.domain.ReplyCommandRepository
 import com.profiletailors.smp.publishing.domain.RetentionRequirements
 import com.profiletailors.smp.publishing.domain.SocialComment
@@ -28,8 +29,8 @@ class SocialContentFoundationHandlers(
         maxPages = SocialContentSyncLimits.DEFAULT_MAX_PAGES,
     ),
 ) {
-    private val discovery = DiscoverSocialActorsQueryHandler(provider, capabilityResolver, retention)
-    private val posts = SyncSocialPostsCommandHandler(
+    private val discovery = DiscoverSocialContentActorsHandler(provider, capabilityResolver, retention)
+    private val posts = ImportSocialPostsHandler(
         provider,
         postRepository,
         checkpointRepository,
@@ -38,7 +39,7 @@ class SocialContentFoundationHandlers(
         syncLimits,
         retryPolicy,
     )
-    private val comments = SyncSocialCommentsCommandHandler(
+    private val comments = ImportSocialCommentsHandler(
         provider,
         commentRepository,
         checkpointRepository,
@@ -48,12 +49,12 @@ class SocialContentFoundationHandlers(
         retryPolicy,
     )
 
-    suspend fun discoverActors(actor: SocialContentActor) = discovery.handle(actor)
+    suspend fun discoverActors(actor: SocialContentActor) = discovery.handle(DiscoverSocialContentActorsQuery(actor))
 
-    suspend fun importPosts(actor: SocialContentActor, now: Instant) = posts.handle(actor, now)
+    suspend fun importPosts(actor: SocialContentActor, now: Instant) = posts.handle(SyncSocialPostsCommand(actor, now))
 
     suspend fun importComments(actor: SocialContentActor, post: SocialPost, now: Instant) =
-        comments.handle(actor, post, now)
+        comments.handle(SyncSocialCommentsCommand(actor, post, now))
 }
 
 /** Compatibility alias for the former direct reply handler while adopting the dedicated CQRS name. */
@@ -76,5 +77,12 @@ class IdempotentReplyHandler(
         body: String,
         key: IdempotencyKey,
         now: Instant = Instant.now(),
-    ) = delegate.handle(actor, parent, body, key, now)
+    ) = delegate.handle(
+        ReplyToSocialCommentCommand(
+            actor,
+            parent,
+            ReplyCommand(actor.scope, actor.id, parent.externalCommentId, body, key),
+            now,
+        ),
+    )
 }

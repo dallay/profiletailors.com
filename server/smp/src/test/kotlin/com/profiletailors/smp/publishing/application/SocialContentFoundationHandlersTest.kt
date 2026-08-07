@@ -10,10 +10,12 @@ import com.profiletailors.smp.publishing.domain.ExternalPostId
 import com.profiletailors.smp.publishing.domain.IdempotencyKey
 import com.profiletailors.smp.publishing.domain.PageCursor
 import com.profiletailors.smp.publishing.domain.ProviderActorId
+import com.profiletailors.smp.publishing.domain.ReplyCommand
 import com.profiletailors.smp.publishing.domain.ReplyCommandRepository
 import com.profiletailors.smp.publishing.domain.ReplyCommandResult
 import com.profiletailors.smp.publishing.domain.ReplyCommandState
 import com.profiletailors.smp.publishing.domain.ReplyRejectedException
+import com.profiletailors.smp.publishing.domain.ReplyRejectionReason
 import com.profiletailors.smp.publishing.domain.RetentionRequirements
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialComment
@@ -43,11 +45,13 @@ import com.profiletailors.smp.publishing.infrastructure.fake.FakeSocialContentPr
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
 
+@Suppress("LargeClass")
 class SocialContentFoundationHandlersTest {
     private val now = Instant.parse("2026-08-01T12:00:00Z")
     private val workspace = WorkspaceScope("workspace-1")
@@ -116,6 +120,68 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
+    fun `should expose dedicated import handlers with explicit commands`() = runTest {
+        val post = fixturePost("post-command")
+        val provider = FakeSocialContentProvider(
+            FakeSocialContentFixtures(
+                posts = mapOf(actor.id to listOf(post)),
+                comments = mapOf(post.externalPostId.value to emptyList()),
+            ),
+        )
+        val posts = RecordingPostRepository()
+        val checkpoints = RecordingCheckpointRepository()
+        val resolver = allCapabilitiesEnabled(
+            SocialContentFeatureGates(
+                discoveryEnabled = true,
+                importEnabled = true,
+                inboxEnabled = true,
+                repliesEnabled = true,
+            ),
+        )
+
+        ImportSocialPostsHandler(
+            provider,
+            posts,
+            checkpoints,
+            resolver,
+            retention,
+            SocialContentSyncLimits(pageSize = 1, maxPages = 1),
+        ).handle(SyncSocialPostsCommand(actor, now))
+        ImportSocialCommentsHandler(
+            provider,
+            RecordingCommentRepository(),
+            checkpoints,
+            resolver,
+            retention,
+            SocialContentSyncLimits(1, 1),
+        ).handle(SyncSocialCommentsCommand(actor, post, now))
+
+        posts.upserted.single().externalPostId shouldBe post.externalPostId
+    }
+
+    @Test
+    fun `should expose reply handling through an explicit command boundary`() = runTest {
+        val post = fixturePost("post-command-reply")
+        val parent = fixtureComment(post, "comment-command-reply")
+        val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
+        val handler = ReplyToSocialCommentCommandHandler(
+            provider,
+            FakeReplyCommandRepository(),
+            allRepliesAllowed(),
+            retention,
+        )
+        val command = ReplyToSocialCommentCommand(
+            actor,
+            parent,
+            ReplyCommand(workspace, actor.id, parent.externalCommentId, "Answer", IdempotencyKey("reply-command")),
+            now,
+        )
+
+        handler.handle(command).state shouldBe ReplyCommandState.SUCCEEDED
+        provider.replyCalls shouldHaveSize 1
+    }
+
+    @Test
     fun `should accept the capability resolver port without requiring its default implementation`() = runTest {
         val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
         val resolver = object : SocialContentCapabilityResolver {
@@ -125,10 +191,11 @@ class SocialContentFoundationHandlersTest {
                 retention: RetentionRequirements,
             ): CapabilityDecision = CapabilityDecision.Denied(CapabilityFailure.MISSING_SCOPE)
         }
-        val handler = DiscoverSocialActorsQueryHandler(provider, resolver, retention)
+        val handler = DiscoverSocialContentActorsHandler(provider, resolver, retention)
 
-        shouldThrow<SocialContentCapabilityDeniedException> { handler.handle(actor) }
-            .failure shouldBe CapabilityFailure.MISSING_SCOPE
+        shouldThrow<SocialContentCapabilityDeniedException> {
+            handler.handle(DiscoverSocialContentActorsQuery(actor))
+        }.failure shouldBe CapabilityFailure.MISSING_SCOPE
         provider.calls shouldBe emptyList()
     }
 
@@ -265,6 +332,76 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
+    fun `should delay rate limited retries with the default exponential backoff`() = runTest {
+        var attempts = 0
+        val startedAt = currentTime
+
+        SocialContentRetryPolicy(maxAttempts = 3).execute {
+            attempts += 1
+            if (attempts < 3) {
+                throw SocialContentProviderException(SocialContentProviderFailure.RATE_LIMITED)
+            }
+            Unit
+        }
+
+        attempts shouldBe 3
+        currentTime - startedAt shouldBe 300L
+    }
+
+    @Test
+    fun `should fail repeated comment cursors without writing or replacing the checkpoint`() = runTest {
+        val firstPost = fixturePost("post-comment-repeat")
+        val comment = fixtureComment(firstPost, "comment-repeat")
+        val checkpoints = RecordingCheckpointRepository(
+            SyncCheckpoint(
+                workspace,
+                actor.id,
+                SyncResource.COMMENTS,
+                PageCursor("old"),
+                null,
+                now.minusSeconds(1),
+                firstPost.externalPostId,
+            ),
+        )
+        val comments = RecordingCommentRepository()
+        val handler = foundationHandler(
+            provider = RepeatingCommentCursorProvider(comment),
+            posts = RecordingPostRepository(),
+            checkpoints = checkpoints,
+            comments = comments,
+            limits = SocialContentSyncLimits(pageSize = 1, maxPages = 3),
+        )
+
+        shouldThrow<SocialContentPaginationException> { handler.importComments(actor, firstPost, now) }
+            .reason shouldBe PaginationGuardReason.REPEATED_CURSOR
+
+        comments.upserted shouldBe emptyList()
+        checkpoints.saved shouldBe emptyList()
+        checkpoints.checkpoint?.cursor shouldBe PageCursor("old")
+    }
+
+    @Test
+    fun `should fail max comment pages without writing or replacing the checkpoint`() = runTest {
+        val post = fixturePost("post-comment-max")
+        val comment = fixtureComment(post, "comment-max")
+        val checkpoints = RecordingCheckpointRepository()
+        val comments = RecordingCommentRepository()
+        val handler = foundationHandler(
+            provider = EndlessCommentCursorProvider(comment),
+            posts = RecordingPostRepository(),
+            checkpoints = checkpoints,
+            comments = comments,
+            limits = SocialContentSyncLimits(pageSize = 1, maxPages = 2),
+        )
+
+        shouldThrow<SocialContentPaginationException> { handler.importComments(actor, post, now) }
+            .reason shouldBe PaginationGuardReason.MAX_PAGES_EXCEEDED
+
+        comments.upserted shouldBe emptyList()
+        checkpoints.saved shouldBe emptyList()
+    }
+
+    @Test
     fun `should reconcile every page before tombstoning missing posts`() = runTest {
         val first = fixturePost("post-1")
         val second = fixturePost("post-2")
@@ -377,6 +514,7 @@ class SocialContentFoundationHandlersTest {
                 null,
                 now.minusSeconds(300),
                 now.minusSeconds(300),
+                post.externalPostId,
             ),
         )
         val provider = FakeSocialContentProvider(
@@ -387,6 +525,34 @@ class SocialContentFoundationHandlersTest {
         handler.importComments(actor, post, now)
 
         checkpoints.saved.single().highWaterMark shouldBe now.minusSeconds(60)
+        checkpoints.saved.single().postId shouldBe post.externalPostId
+    }
+
+    @Test
+    fun `should isolate comment checkpoints by post`() = runTest {
+        val firstPost = fixturePost("post-comments-1")
+        val secondPost = fixturePost("post-comments-2")
+        val firstComment = fixtureComment(firstPost, "comment-1")
+        val secondComment = fixtureComment(secondPost, "comment-2")
+        val checkpoints = RecordingCheckpointRepository()
+        val provider = FakeSocialContentProvider(
+            FakeSocialContentFixtures(
+                comments = mapOf(
+                    firstPost.externalPostId.value to listOf(firstComment),
+                    secondPost.externalPostId.value to listOf(secondComment),
+                ),
+            ),
+        )
+        val handler = foundationHandler(provider, RecordingPostRepository(), checkpoints)
+
+        handler.importComments(actor, firstPost, now)
+        handler.importComments(actor, secondPost, now)
+
+        checkpoints.saved.map { it.postId } shouldBe listOf(firstPost.externalPostId, secondPost.externalPostId)
+        checkpoints.find(workspace, actor.id, SyncResource.COMMENTS, firstPost.externalPostId)?.postId shouldBe
+            firstPost.externalPostId
+        checkpoints.find(workspace, actor.id, SyncResource.COMMENTS, secondPost.externalPostId)?.postId shouldBe
+            secondPost.externalPostId
     }
 
     @Test
@@ -396,7 +562,15 @@ class SocialContentFoundationHandlersTest {
         )
         val comments = RecordingCommentRepository()
         val checkpoints = RecordingCheckpointRepository(
-            SyncCheckpoint(workspace, actor.id, SyncResource.COMMENTS, PageCursor("old"), null, now.minusSeconds(1)),
+            SyncCheckpoint(
+                workspace,
+                actor.id,
+                SyncResource.COMMENTS,
+                PageCursor("old"),
+                null,
+                now.minusSeconds(1),
+                ExternalPostId("post-1"),
+            ),
         )
         val handler = foundationHandler(provider, RecordingPostRepository(), checkpoints, comments)
 
@@ -620,6 +794,119 @@ class SocialContentFoundationHandlersTest {
         provider.replyCalls shouldHaveSize 1
     }
 
+    @Test
+    fun `should reject a reply command whose actor differs from the executing actor`() = runTest {
+        val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
+        val repository = FakeReplyCommandRepository()
+        val handler = ReplyToSocialCommentCommandHandler(provider, repository, allRepliesAllowed(), retention)
+        val parent = fixtureComment(fixturePost("post-executor"), "comment-executor").copy(ownerActorId = "actor-2")
+        val command = ReplyCommand(
+            workspace,
+            "actor-2",
+            parent.externalCommentId,
+            "Answer",
+            IdempotencyKey("reply-executor"),
+        )
+
+        shouldThrow<ReplyRejectedException> { handler.handle(actor, parent, command, now) }
+            .reason shouldBe ReplyRejectionReason.EXECUTOR_MISMATCH
+
+        provider.replyCalls shouldHaveSize 0
+    }
+
+    @Test
+    fun `should return a stored SUCCEEDED reply before validating an expired parent`() = runTest {
+        val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
+        val repository = FakeReplyCommandRepository()
+        val parent = fixtureComment(fixturePost("post-replay-succeeded"), "comment-replay-succeeded")
+        val command = ReplyCommand(
+            workspace,
+            actor.id,
+            parent.externalCommentId,
+            "Answer",
+            IdempotencyKey("replay-succeeded"),
+        )
+        repository.claim(command)
+        val existing = ReplyCommandResult(
+            command,
+            ReplyCommandState.SUCCEEDED,
+            externalCommentId = ExternalCommentId("reply-id"),
+        )
+        repository.save(existing)
+        val handler = ReplyToSocialCommentCommandHandler(provider, repository, allRepliesAllowed(), retention)
+
+        handler.handle(actor, parent.copy(expiresAt = now), command, now) shouldBe existing
+        provider.replyCalls shouldHaveSize 0
+    }
+
+    @Test
+    fun `should return stored FAILED and PROCESSING replies before validating an expired parent`() = runTest {
+        listOf(ReplyCommandState.FAILED, ReplyCommandState.PROCESSING).forEach { state ->
+            val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
+            val repository = FakeReplyCommandRepository()
+            val parent = fixtureComment(fixturePost("post-replay-$state"), "comment-replay-$state")
+            val command = ReplyCommand(
+                workspace,
+                actor.id,
+                parent.externalCommentId,
+                "Answer",
+                IdempotencyKey("replay-$state"),
+            )
+            repository.claim(command)
+            val existing = ReplyCommandResult(command, state)
+            repository.save(existing)
+            val handler = ReplyToSocialCommentCommandHandler(provider, repository, allRepliesAllowed(), retention)
+
+            handler.handle(actor, parent.copy(expiresAt = now), command, now) shouldBe existing
+            provider.replyCalls shouldHaveSize 0
+        }
+    }
+
+    @Test
+    fun `should not persist a PROCESSING record for an invalid reply command`() = runTest {
+        val provider = FakeSocialContentProvider(FakeSocialContentFixtures())
+        val repository = FakeReplyCommandRepository()
+        val parent = fixtureComment(fixturePost("post-invalid"), "comment-invalid").copy(expiresAt = now)
+        val command = ReplyCommand(
+            workspace,
+            actor.id,
+            parent.externalCommentId,
+            "Answer",
+            IdempotencyKey("reply-invalid"),
+        )
+        val handler = ReplyToSocialCommentCommandHandler(provider, repository, allRepliesAllowed(), retention)
+
+        shouldThrow<ReplyRejectedException> { handler.handle(actor, parent, command, now) }
+            .reason shouldBe ReplyRejectionReason.EXPIRED
+
+        repository.find(command) shouldBe null
+        provider.replyCalls shouldHaveSize 0
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test
+    fun `should cap exponential backoff delays to a positive maximum`() = runTest {
+        var attempts = 0
+        val observedDelays = mutableListOf<Long>()
+        var lastObservation = currentTime
+
+        val exception = shouldThrow<SocialContentProviderException> {
+            SocialContentRetryPolicy(maxAttempts = 65).execute {
+                attempts += 1
+                observedDelays += currentTime - lastObservation
+                lastObservation = currentTime
+                throw SocialContentProviderException(SocialContentProviderFailure.RATE_LIMITED)
+            }
+        }
+
+        exception.failure shouldBe SocialContentProviderFailure.RATE_LIMITED
+        attempts shouldBe 65
+        observedDelays shouldHaveSize 65
+        val retryDelays = observedDelays.drop(1)
+        retryDelays.all { it > 0 } shouldBe true
+        retryDelays.max() shouldBe 60_000L
+    }
+
     private fun foundationHandler(
         provider: SocialContentProvider,
         posts: SocialContentPostRepository,
@@ -776,6 +1063,41 @@ class SocialContentFoundationHandlersTest {
         ): SocialContentPage<SocialPost> = SocialContentPage(listOf(post), PageCursor("repeat"))
     }
 
+    private class RepeatingCommentCursorProvider(private val comment: SocialComment) : BaseFakeSocialContentProvider() {
+        override suspend fun fetchPosts(
+            actor: SocialContentActor,
+            cursor: PageCursor?,
+            pageSize: Int,
+        ): SocialContentPage<SocialPost> = SocialContentPage(emptyList(), null)
+
+        override suspend fun fetchComments(
+            actor: SocialContentActor,
+            post: SocialPost,
+            cursor: PageCursor?,
+            pageSize: Int,
+        ): SocialContentPage<SocialComment> = SocialContentPage(listOf(comment), PageCursor("repeat"))
+    }
+
+    private class EndlessCommentCursorProvider(private val comment: SocialComment) : BaseFakeSocialContentProvider() {
+        private var callCount = 0
+
+        override suspend fun fetchPosts(
+            actor: SocialContentActor,
+            cursor: PageCursor?,
+            pageSize: Int,
+        ): SocialContentPage<SocialPost> = SocialContentPage(emptyList(), null)
+
+        override suspend fun fetchComments(
+            actor: SocialContentActor,
+            post: SocialPost,
+            cursor: PageCursor?,
+            pageSize: Int,
+        ): SocialContentPage<SocialComment> = SocialContentPage(
+            listOf(comment),
+            PageCursor("${++callCount}"),
+        )
+    }
+
     private class EndlessCursorProvider(private val post: SocialPost) : BaseFakeSocialContentProvider() {
         private var callCount = 0
 
@@ -870,17 +1192,36 @@ class SocialContentFoundationHandlersTest {
     }
 
     private class RecordingCheckpointRepository(initial: SyncCheckpoint? = null) : SocialContentCheckpointRepository {
+        private val checkpoints = mutableMapOf<CheckpointIdentity, SyncCheckpoint>()
         var checkpoint: SyncCheckpoint? = initial
         val saved = mutableListOf<SyncCheckpoint>()
 
-        override suspend fun find(scope: WorkspaceScope, actorId: String, resource: SyncResource): SyncCheckpoint? =
-            checkpoint
+        init {
+            initial?.let { checkpoints[it.identity()] = it }
+        }
+
+        override suspend fun find(
+            scope: WorkspaceScope,
+            actorId: String,
+            resource: SyncResource,
+            postId: ExternalPostId?,
+        ): SyncCheckpoint? = checkpoints[CheckpointIdentity(scope, actorId, resource, postId)]
 
         override suspend fun save(checkpoint: SyncCheckpoint): SyncCheckpoint {
             this.checkpoint = checkpoint
+            checkpoints[checkpoint.identity()] = checkpoint
             saved += checkpoint
             return checkpoint
         }
+
+        private fun SyncCheckpoint.identity() = CheckpointIdentity(scope, actorId, resource, postId)
+
+        private data class CheckpointIdentity(
+            val scope: WorkspaceScope,
+            val actorId: String,
+            val resource: SyncResource,
+            val postId: ExternalPostId?,
+        )
     }
 
     private class RecordingReplyCommandRepository(
@@ -888,6 +1229,9 @@ class SocialContentFoundationHandlersTest {
             com.profiletailors.smp.publishing.infrastructure.fake.FakeReplyCommandRepository(),
     ) : com.profiletailors.smp.publishing.domain.ReplyCommandRepository {
         val saved = mutableListOf<com.profiletailors.smp.publishing.domain.ReplyCommandResult>()
+
+        override suspend fun find(command: com.profiletailors.smp.publishing.domain.ReplyCommand) =
+            delegate.find(command)
 
         override suspend fun claim(command: com.profiletailors.smp.publishing.domain.ReplyCommand) =
             delegate.claim(command)

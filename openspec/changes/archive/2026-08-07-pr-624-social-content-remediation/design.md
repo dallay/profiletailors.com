@@ -10,7 +10,7 @@ The approach preserves the existing SocialContentFoundationHandlers as a backwar
 
 ### Technical Approach
 
-Keep the existing package-by-context hexagonal boundary: domain owns models, typed failures, and repository/provider ports; application owns CQRS orchestration; infrastructure owns Spring properties, fakes, R2DBC, and Liquibase. The SocialContentFoundationHandlers façade now delegates to dedicated application handlers: DiscoverSocialActorsQueryHandler, SyncSocialPostsCommandHandler, SyncSocialCommentsCommandHandler, and ReplyToSocialCommentCommandHandler. No mediator/Spring wiring is added: SocialContentConfiguration currently only binds properties, and no real SocialContentProvider or social-content repository adapter is wired. Tests construct handlers directly until an adapter exists.
+Keep the existing package-by-context hexagonal boundary: domain owns models, typed failures, and repository/provider ports; application owns CQRS orchestration; infrastructure owns Spring properties, fakes, R2DBC, and Liquibase. The SocialContentFoundationHandlers façade now delegates to dedicated application handlers: DiscoverSocialContentActorsHandler, ImportSocialPostsHandler, ImportSocialCommentsHandler, and ReplyToSocialCommentCommandHandler. No mediator/Spring wiring is added: SocialContentConfiguration currently only binds properties, and no real SocialContentProvider or social-content repository adapter is wired. Tests construct handlers directly until an adapter exists.
 
 Strict TDD order: add failing focused tests, implement the smallest domain/handler/port change, then run focused backend tests before integration checks.
 
@@ -18,7 +18,7 @@ Strict TDD order: add failing focused tests, implement the smallest domain/handl
 
 | Decision | Choice | Alternatives rejected | Rationale |
 |---|---|---|---|
-| CQRS classes | DiscoverSocialActorsQuery/DiscoverSocialActorsQueryHandler; SyncSocialPostsCommand/SyncSocialPostsCommandHandler; SyncSocialCommentsCommand/SyncSocialCommentsCommandHandler; ReplyToSocialCommentCommand/ReplyToSocialCommentCommandHandler | Retain the mixed façade; use Spring annotations | Makes read discovery and state-changing sync/reply boundaries explicit without coupling application to Spring or the shared bus. The façade delegates to these handlers for backward compatibility. |
+| CQRS classes | DiscoverSocialContentActorsQuery/DiscoverSocialContentActorsHandler; SyncSocialPostsCommand/ImportSocialPostsHandler; SyncSocialCommentsCommand/ImportSocialCommentsHandler; ReplyToSocialCommentCommand/ReplyToSocialCommentCommandHandler | Retain the mixed façade; use Spring annotations | Makes read discovery and state-changing sync/reply boundaries explicit without coupling application to Spring or the shared bus. The façade delegates to these handlers for backward compatibility. |
 | Typed failures | Add SocialContentCapabilityDeniedException, SocialContentPaginationException with PaginationGuardReason { REPEATED_CURSOR, MAX_PAGES_EXCEEDED }, and ReplyIdempotencyConflictException; retain SocialContentProviderException and ReplyRejectedException | error()/generic IllegalStateException; string errors | Callers and tests can distinguish authorization, provider, pagination, and idempotency failures. |
 | Pagination | Introduce SocialContentSyncLimits(pageSize, maxPages). Pass pageSize through provider read ports; handler owns the maxPages guard. Track every requested/returned non-null cursor and fail on repetition. A non-null cursor after page maxPages fails. | Unbounded do/while; silently stop at the bound | Prevents provider loops and partial "successful" imports while preserving provider-controlled cursors. |
 | Checkpoints | Read workspace/actor/resource checkpoint; start at its cursor. Buffer and validate all pages first. Persist posts/comments, tombstone only after terminal completion, then save cursor=null, max(previous HWM, page/item HWM), and lastSuccessfulAt=now. Guard/provider failure performs no writes and leaves the old checkpoint/tombstones intact. | Advance per page; clear checkpoint before fetching | Resume is deterministic and a failed bounded run cannot erase known-good state. |
@@ -40,7 +40,7 @@ Reply command → atomic claim(PROCESSING) → provider once → terminal result
 | File | Action | Description |
 |---|---|---|
 | publishing/domain/SocialContentModels.kt, SocialContentPorts.kt | Modify | Invariants, byte equality, typed failures, sync limits, port signatures, reply transitions/conflict contract. |
-| publishing/application/{DiscoverSocialActorsQueryHandler,SyncSocialPostsCommandHandler,SyncSocialCommentsCommandHandler,ReplyToSocialCommentCommandHandler}.kt | Create | Dedicated handlers and bounded orchestration. |
+| publishing/application/{DiscoverSocialActorsQueryHandler,SyncSocialPostsCommandHandler,SyncSocialCommentsCommandHandler,ReplyToSocialCommentCommandHandler}.kt | Create/Modify | Dedicated handlers and bounded orchestration. Explicit command/query APIs are exposed by these files; the implementation classes are DiscoverSocialContentActorsHandler, ImportSocialPostsHandler, ImportSocialCommentsHandler, and ReplyToSocialCommentCommandHandler. |
 | publishing/application/SocialContentFoundationHandlers.kt | Modify | Retain as compatibility delegate façade that constructs and delegates to dedicated handlers. |
 | publishing/infrastructure/fake/* and focused publishing tests | Modify | Page-size/cursor fixtures, isolated repositories, all state/guard regressions. |
 | publishing/infrastructure/socialcontent/SocialContentProperties.kt | Modify | Validate calendar month 01..12; expose limits to composition. |
@@ -67,11 +67,11 @@ Apply the additive 017 migration after 016; verify existing rows before deployme
 Handlers are directly constructible in tests without Spring wiring:
 
 ```kotlin
-val syncHandler = SyncSocialPostsCommandHandler(
+val syncHandler = ImportSocialPostsHandler(
     provider, postRepository, checkpointRepository,
     capabilityResolver, retention, syncLimits, retryPolicy
 )
-val result = syncHandler.handle(actor, now)
+val result = syncHandler.handle(SyncSocialPostsCommand(actor, now))
 ```
 
 The compatibility façade delegates:
@@ -80,14 +80,14 @@ val handlers = SocialContentFoundationHandlers(
     provider, postRepository, commentRepository, checkpointRepository,
     capabilityResolver, retention, retryPolicy, syncLimits
 )
-handlers.importPosts(actor, now) // delegates to SyncSocialPostsCommandHandler
+handlers.importPosts(actor, now) // delegates to ImportSocialPostsHandler
 ```
 
 ## Troubleshooting
 
 - BDD/Cucumber coverage: This backend handler-level feature has no HTTP surface, so Cucumber scenarios are not applicable. The explicit exception is documented in this design and in specs/publishing/spec.md.
-- Checkpoint vs. post scope: Current checkpoint design is workspace/actor/resource scoped. Comments for all posts share one checkpoint cursor. Extending to per-post checkpoints would require SyncCheckpoint schema changes and is deferred.
-- Command objects: Dedicated SyncSocialPostsCommand and SyncSocialCommentsCommand classes are potential future enhancements. Current handlers accept parameters directly; ReplyCommand already exists for reply operations.
+- Checkpoint vs. post scope: Post checkpoints remain workspace/actor/resource scoped; comment checkpoints are additionally isolated by external post id. Migration 018 adds the post-scoped identity and rollback semantics.
+- Command objects: Dedicated SyncSocialPostsCommand and SyncSocialCommentsCommand are the explicit APIs for post and comment synchronization. ReplyToSocialCommentCommand provides the corresponding reply boundary.
 
 ## References
 

@@ -17,7 +17,9 @@ import com.profiletailors.smp.publishing.domain.SyncResource
 import java.time.Instant
 
 /** Command handler that buffers bounded comment pages before persisting them. */
-class SyncSocialCommentsCommandHandler(
+data class SyncSocialCommentsCommand(val actor: SocialContentActor, val post: SocialPost, val now: Instant)
+
+class ImportSocialCommentsHandler(
     private val provider: SocialContentProvider,
     private val commentRepository: SocialContentCommentRepository,
     private val checkpointRepository: SocialContentCheckpointRepository,
@@ -26,9 +28,12 @@ class SyncSocialCommentsCommandHandler(
     private val syncLimits: SocialContentSyncLimits,
     private val retryPolicy: SocialContentRetryPolicy = SocialContentRetryPolicy(),
 ) {
-    suspend fun handle(actor: SocialContentActor, post: SocialPost, now: Instant): SocialContentPage<SocialComment> {
+    suspend fun handle(command: SyncSocialCommentsCommand): SocialContentPage<SocialComment> {
+        val actor = command.actor
+        val post = command.post
+        val now = command.now
         requireSocialContentCapability(actor, CapabilityOperation.READ_COMMENTS, capabilityResolver, retention)
-        val checkpoint = checkpointRepository.find(actor.scope, actor.id, SyncResource.COMMENTS)
+        val checkpoint = checkpointRepository.find(actor.scope, actor.id, SyncResource.COMMENTS, post.externalPostId)
         val pages = readPages(actor, post, checkpoint?.cursor)
         val comments = pages.flatMap { it.items }.map { it.copy(expiresAt = now.plus(retention.activityTtl)) }
         comments.forEach { commentRepository.upsert(it) }
@@ -37,8 +42,17 @@ class SyncSocialCommentsCommandHandler(
             comments.map { it.createdAt }.maxOrNull(),
         ).maxOrNull()
         checkpointRepository.save(
-            (checkpoint ?: SyncCheckpoint(actor.scope, actor.id, SyncResource.COMMENTS, null, null, null))
-                .advance(null, now, highWaterMark),
+            (
+                checkpoint ?: SyncCheckpoint(
+                    actor.scope,
+                    actor.id,
+                    SyncResource.COMMENTS,
+                    null,
+                    null,
+                    null,
+                    post.externalPostId,
+                )
+                ).advance(null, now, highWaterMark),
         )
         return SocialContentPage(comments, null, highWaterMark)
     }

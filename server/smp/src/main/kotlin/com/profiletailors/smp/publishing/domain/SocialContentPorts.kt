@@ -76,18 +76,6 @@ enum class SocialContentProviderFailure {
 class SocialContentProviderException(val failure: SocialContentProviderFailure) :
     IllegalStateException("Social content provider failure: $failure")
 
-/** Persistent repository for [SocialContentActor] records keyed by workspace and actor id. */
-interface SocialContentActorRepository {
-    /**
-     * Finds a social content actor within a workspace by its identifier.
-     *
-     * @param scope The workspace scope in which to search.
-     * @param actorId The actor identifier.
-     * @return The matching social content actor, or `null` if none exists.
-     */
-    suspend fun findByWorkspaceAndId(scope: WorkspaceScope, actorId: String): SocialContentActor?
-}
-
 /** Persistent repository for imported social posts; identity is workspace + provider + actor + external post id. */
 interface SocialContentPostRepository {
     /**
@@ -158,12 +146,20 @@ interface SocialContentCheckpointRepository {
     /**
      * Finds the synchronization checkpoint for an actor and resource within a workspace.
      *
+     * Comment checkpoints are additionally isolated by [postId]. Post checkpoints must use `null`.
+     *
      * @param scope The workspace scope.
      * @param actorId The actor identifier.
      * @param resource The synchronized resource.
+     * @param postId The post identifier for a comment checkpoint, or `null` for post checkpoints.
      * @return The matching synchronization checkpoint, or `null` if none exists.
      */
-    suspend fun find(scope: WorkspaceScope, actorId: String, resource: SyncResource): SyncCheckpoint?
+    suspend fun find(
+        scope: WorkspaceScope,
+        actorId: String,
+        resource: SyncResource,
+        postId: ExternalPostId? = null,
+    ): SyncCheckpoint?
 
     /**
      * Saves a synchronization checkpoint.
@@ -177,10 +173,19 @@ interface SocialContentCheckpointRepository {
 /** Persistent repository for in-flight reply commands and their eventual state transitions. */
 interface ReplyCommandRepository {
     /**
-     * Attempts to claim a reply command for processing.
+     * Non-mutating lookup of a previously claimed reply command result.
+     *
+     * @param command The reply command to look up.
+     * @return The stored result for the command's scope and idempotency key, or `null` when never claimed.
+     */
+    suspend fun find(command: ReplyCommand): ReplyCommandResult?
+
+    /**
+     * Atomically persists a new command in [ReplyCommandState.PROCESSING] state.
      *
      * @param command The reply command to claim.
-     * @return The claim indicating ownership or an existing command result.
+     * @return [ReplyCommandClaim.Claimed] when this caller owns the command, or [ReplyCommandClaim.Existing]
+     * when the idempotency key is already claimed.
      */
     suspend fun claim(command: ReplyCommand): ReplyCommandClaim
 
@@ -225,21 +230,4 @@ interface SocialContentCapabilityResolver {
         operation: CapabilityOperation,
         retention: RetentionRequirements,
     ): CapabilityDecision
-}
-
-class DefaultSocialContentCapabilityResolver(private val resolver: DefaultCapabilityResolver) :
-    SocialContentCapabilityResolver {
-    /**
-     * Resolves the actor's capability to perform an operation under the specified retention requirements.
-     *
-     * @param actor The actor requesting the operation.
-     * @param operation The capability operation to evaluate.
-     * @param retention The retention requirements applied to the decision.
-     * @return The capability decision.
-     */
-    override fun resolve(
-        actor: SocialContentActor,
-        operation: CapabilityOperation,
-        retention: RetentionRequirements,
-    ): CapabilityDecision = resolver.resolve(actor, operation, retention)
 }
