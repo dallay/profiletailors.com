@@ -1064,12 +1064,8 @@ class SocialContentFoundationHandlersTest {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: PageCursor?,
-        ): SocialContentPage<SocialPost> = SocialContentPage(emptyList(), null, null)
-
-        override suspend fun fetchComments(
-            actor: SocialContentActor,
-            post: SocialPost,
-        ): SocialContentPage<SocialComment> = throw UnsupportedOperationException("Comments are not configured")
+            pageSize: Int,
+        ): SocialContentPage<SocialPost> = SocialContentPage(emptyList(), null)
 
         override suspend fun discoverActors(
             scope: WorkspaceScope,
@@ -1195,12 +1191,8 @@ class SocialContentFoundationHandlersTest {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: PageCursor?,
+            pageSize: Int,
         ): SocialContentPage<SocialPost> = throw throwable
-
-        override suspend fun fetchComments(
-            actor: SocialContentActor,
-            post: SocialPost,
-        ): SocialContentPage<SocialComment> = throw throwable
 
         override suspend fun fetchComments(
             actor: SocialContentActor,

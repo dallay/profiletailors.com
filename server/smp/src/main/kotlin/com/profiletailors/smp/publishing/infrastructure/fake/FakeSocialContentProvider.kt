@@ -185,9 +185,6 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
      * @return A page of posts and a cursor for the next page when more posts are available.
      * @throws SocialContentProviderException If a configured provider failure occurs.
      */
-    override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> =
-        fetchPosts(actor, cursor, fixtures.pageSize)
-
     override suspend fun fetchPosts(
         actor: SocialContentActor,
         cursor: PageCursor?,
@@ -217,9 +214,6 @@ class FakeSocialContentProvider(private val fixtures: FakeSocialContentFixtures)
      * @param cursor The cursor identifying the page to fetch, or `null` for the first page.
      * @return A page containing the configured comments and no subsequent cursor.
      */
-    override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
-        fetchComments(actor, post, null, fixtures.pageSize)
-
     override suspend fun fetchComments(
         actor: SocialContentActor,
         post: SocialPost,

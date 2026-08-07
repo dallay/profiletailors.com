@@ -203,13 +203,21 @@ class BddProvider : SocialContentProvider {
         callCount = 0
     }
 
-    override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> {
+    override suspend fun fetchPosts(
+        actor: SocialContentActor,
+        cursor: PageCursor?,
+        pageSize: Int,
+    ): SocialContentPage<SocialPost> {
         callCount++
         return SocialContentPage(emptyList(), null)
     }
 
-    override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
-        SocialContentPage(emptyList(), null)
+    override suspend fun fetchComments(
+        actor: SocialContentActor,
+        post: SocialPost,
+        cursor: PageCursor?,
+        pageSize: Int,
+    ): SocialContentPage<SocialComment> = SocialContentPage(emptyList(), null)
 
     override suspend fun reply(
         actor: SocialContentActor,

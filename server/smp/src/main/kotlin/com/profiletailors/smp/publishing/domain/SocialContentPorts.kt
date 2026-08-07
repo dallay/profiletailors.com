@@ -22,16 +22,16 @@ interface SocialContentProvider {
      *
      * @param actor The actor whose posts are fetched.
      * @param cursor The cursor identifying the page to fetch, or `null` for the first page.
+     * @param pageSize The maximum number of posts to fetch.
      * @return A page of posts with optional pagination metadata.
      */
-    suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost>
-
     suspend fun fetchPosts(
         actor: SocialContentActor,
         cursor: PageCursor?,
-        pageSize: Int,
-    ): SocialContentPage<SocialPost> = fetchPosts(actor, cursor)
+        pageSize: Int = 100,
+    ): SocialContentPage<SocialPost>
 
+    /** Fetches posts modified since [modifiedSince] for incremental synchronization. */
     suspend fun fetchPosts(
         actor: SocialContentActor,
         cursor: PageCursor?,
@@ -44,16 +44,15 @@ interface SocialContentProvider {
      * @param actor The actor whose comments are being fetched.
      * @param post The post whose comments are being fetched.
      * @param cursor The cursor identifying the page to fetch, or `null` for the first page.
+     * @param pageSize The maximum number of comments to fetch.
      * @return A page of social comments with optional pagination metadata.
      */
-    suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment>
-
     suspend fun fetchComments(
         actor: SocialContentActor,
         post: SocialPost,
         cursor: PageCursor? = null,
-        pageSize: Int,
-    ): SocialContentPage<SocialComment> = fetchComments(actor, post)
+        pageSize: Int = 100,
+    ): SocialContentPage<SocialComment>
 
     /**
      * Publishes a reply to a parent comment.

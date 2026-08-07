@@ -431,12 +431,17 @@ class SocialContentSyncHandlerTest {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
+            pageSize: Int,
         ): SocialContentPage<SocialPost> = when (val step = steps[index++]) {
             is Throwable -> throw step
             else -> step as SocialContentPage<SocialPost>
         }
-        override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost) =
-            SocialContentPage<com.profiletailors.smp.publishing.domain.SocialComment>(emptyList(), null)
+        override suspend fun fetchComments(
+            actor: SocialContentActor,
+            post: SocialPost,
+            cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
+            pageSize: Int,
+        ) = SocialContentPage<com.profiletailors.smp.publishing.domain.SocialComment>(emptyList(), null)
         override suspend fun reply(
             actor: SocialContentActor,
             parent: com.profiletailors.smp.publishing.domain.SocialComment,
@@ -454,13 +459,18 @@ class SocialContentSyncHandlerTest {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
+            pageSize: Int,
         ): SocialContentPage<SocialPost> {
             calls++
             return response
         }
 
-        override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost) =
-            SocialContentPage<com.profiletailors.smp.publishing.domain.SocialComment>(emptyList(), null)
+        override suspend fun fetchComments(
+            actor: SocialContentActor,
+            post: SocialPost,
+            cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
+            pageSize: Int,
+        ) = SocialContentPage<com.profiletailors.smp.publishing.domain.SocialComment>(emptyList(), null)
 
         override suspend fun reply(
             actor: SocialContentActor,
@@ -482,13 +492,18 @@ class SocialContentSyncHandlerTest {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
+            pageSize: Int,
         ): SocialContentPage<SocialPost> {
             requestedCursors += cursor
             return if (cursor == null) firstPage else secondPage
         }
 
-        override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost) =
-            SocialContentPage<com.profiletailors.smp.publishing.domain.SocialComment>(emptyList(), null)
+        override suspend fun fetchComments(
+            actor: SocialContentActor,
+            post: SocialPost,
+            cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
+            pageSize: Int,
+        ) = SocialContentPage<com.profiletailors.smp.publishing.domain.SocialComment>(emptyList(), null)
 
         override suspend fun reply(
             actor: SocialContentActor,
@@ -509,6 +524,7 @@ class SocialContentSyncHandlerTest {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
+            pageSize: Int,
         ): SocialContentPage<SocialPost> = response
 
         override suspend fun fetchPosts(
@@ -521,8 +537,12 @@ class SocialContentSyncHandlerTest {
             return response
         }
 
-        override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost) =
-            SocialContentPage<com.profiletailors.smp.publishing.domain.SocialComment>(emptyList(), null)
+        override suspend fun fetchComments(
+            actor: SocialContentActor,
+            post: SocialPost,
+            cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
+            pageSize: Int,
+        ) = SocialContentPage<com.profiletailors.smp.publishing.domain.SocialComment>(emptyList(), null)
 
         override suspend fun reply(
             actor: SocialContentActor,

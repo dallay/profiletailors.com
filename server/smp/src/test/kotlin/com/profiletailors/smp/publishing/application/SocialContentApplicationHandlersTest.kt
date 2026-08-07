@@ -310,10 +310,15 @@ class SocialContentApplicationHandlersTest {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: PageCursor?,
+            pageSize: Int,
         ): SocialContentPage<SocialPost> = SocialContentPage(listOf(post), null)
 
-        override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost) =
-            SocialContentPage<com.profiletailors.smp.publishing.domain.SocialComment>(emptyList(), null)
+        override suspend fun fetchComments(
+            actor: SocialContentActor,
+            post: SocialPost,
+            cursor: PageCursor?,
+            pageSize: Int,
+        ) = SocialContentPage<com.profiletailors.smp.publishing.domain.SocialComment>(emptyList(), null)
 
         override suspend fun reply(
             actor: SocialContentActor,

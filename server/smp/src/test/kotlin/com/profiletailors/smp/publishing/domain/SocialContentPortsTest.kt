@@ -49,7 +49,7 @@ class SocialContentPortsTest {
         expiresAt = post.expiresAt,
     )
 
-    /** Stub that implements only the abstract provider methods so default overloads are exercised. */
+    /** Stub that implements the abstract provider methods so the incremental overload is exercised. */
     private fun defaultProvider() = object : SocialContentProvider {
         override suspend fun discoverActors(
             scope: WorkspaceScope,
@@ -60,11 +60,14 @@ class SocialContentPortsTest {
         override suspend fun fetchPosts(
             actor: SocialContentActor,
             cursor: PageCursor?,
+            pageSize: Int,
         ): SocialContentPage<SocialPost> = SocialContentPage(emptyList(), null)
 
         override suspend fun fetchComments(
             actor: SocialContentActor,
             post: SocialPost,
+            cursor: PageCursor?,
+            pageSize: Int,
         ): SocialContentPage<SocialComment> = SocialContentPage(emptyList(), null)
 
         override suspend fun reply(
@@ -142,7 +145,7 @@ class SocialContentPortsTest {
     }
 
     @Test
-    fun `provider default overloads delegate to the two-argument implementations`() = runTest {
+    fun `provider modified since overload delegates to the primary page method`() = runTest {
         val provider = defaultProvider()
         val post = fixturePost(actor, "post-1")
         val comment = fixtureComment(actor, post)
@@ -166,11 +169,14 @@ class SocialContentPortsTest {
             override suspend fun fetchPosts(
                 actor: SocialContentActor,
                 cursor: PageCursor?,
+                pageSize: Int,
             ): SocialContentPage<SocialPost> = SocialContentPage(emptyList(), null)
 
             override suspend fun fetchComments(
                 actor: SocialContentActor,
                 post: SocialPost,
+                cursor: PageCursor?,
+                pageSize: Int,
             ): SocialContentPage<SocialComment> = SocialContentPage(emptyList(), null)
 
             override suspend fun reply(

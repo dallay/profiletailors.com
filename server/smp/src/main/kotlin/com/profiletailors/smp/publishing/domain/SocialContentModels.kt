@@ -372,7 +372,7 @@ data class SyncCheckpoint(
         nextHighWaterMark: Instant? = highWaterMark,
     ): SyncCheckpoint = copy(
         cursor = nextCursor,
-        highWaterMark = nextHighWaterMark,
+        highWaterMark = listOfNotNull(highWaterMark, nextHighWaterMark).maxOrNull(),
         lastSuccessfulAt = successfulAt,
     )
 }

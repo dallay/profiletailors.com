@@ -85,9 +85,6 @@ class LinkedInCommunityManagementAdapter(
         return candidates.take(MAX_DISCOVERED_ACTORS)
     }
 
-    override suspend fun fetchPosts(actor: SocialContentActor, cursor: PageCursor?): SocialContentPage<SocialPost> =
-        fetchPosts(actor, cursor, DEFAULT_PAGE_SIZE, null)
-
     override suspend fun fetchPosts(
         actor: SocialContentActor,
         cursor: PageCursor?,
@@ -128,9 +125,6 @@ class LinkedInCommunityManagementAdapter(
             highWaterMark = posts.maxOfOrNull { it.lastModifiedAt ?: it.publishedAt },
         )
     }
-
-    override suspend fun fetchComments(actor: SocialContentActor, post: SocialPost): SocialContentPage<SocialComment> =
-        fetchComments(actor, post, null, DEFAULT_PAGE_SIZE)
 
     override suspend fun fetchComments(
         actor: SocialContentActor,
