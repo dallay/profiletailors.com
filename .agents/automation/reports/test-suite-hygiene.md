@@ -11,8 +11,6 @@ NO_DRIFT_DETECTED
 ## Scope Inspected
 
 - Test files under `apps/web/app/`
-- Test files under `server/smp/`
-- BDD features under `server/smp/src/test/resources/features/`
 
 ## Changes Applied
 

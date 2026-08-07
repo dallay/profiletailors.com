@@ -95,7 +95,7 @@ describe('test-suite-hygiene automation state (.agents/automation/state/test-sui
   })
 
   it('records a valid, parseable ISO 8601 lastExecution timestamp', () => {
-    expect(state.lastExecution).toBe('2026-08-06T17:58:58Z')
+    expect(state.lastExecution).not.toBeNull()
     expect(new Date(state.lastExecution as string).toString()).not.toBe('Invalid Date')
   })
 
@@ -194,9 +194,11 @@ describe('test-suite-hygiene automation state (.agents/automation/state/test-sui
 
 describe('test-suite-hygiene report (.agents/automation/reports/test-suite-hygiene.md)', () => {
   let report: string
+  let state: AutomationState
 
   beforeAll(() => {
     report = readFileSync(REPORT_PATH, 'utf-8')
+    state = YAML.parse(readFileSync(STATE_PATH, 'utf-8')) as AutomationState
   })
 
   it('uses the expected report title', () => {
@@ -250,9 +252,9 @@ describe('test-suite-hygiene report (.agents/automation/reports/test-suite-hygie
   })
 
   it('cross-references the same lastExecution timestamp, schemaVersion, and task identity as the state file', () => {
-    expect(report).toContain('**Last Execution:** `2026-08-06T17:58:58Z`')
-    expect(report).toContain('**Schema Version:** `1`')
-    expect(report).toContain('**Task Identity:** `test-suite-hygiene`')
+    expect(report).toContain(`**Last Execution:** \`${state.lastExecution}\``)
+    expect(report).toContain(`**Schema Version:** \`${state.schemaVersion}\``)
+    expect(report).toContain(`**Task Identity:** \`${state.task}\``)
   })
 
   it('renders a Validation Table with all checks Passed', () => {
