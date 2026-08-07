@@ -1,5 +1,6 @@
 package com.profiletailors.smp.bdd.fast
 
+import com.profiletailors.smp.bdd.SocialContentBddTestConfiguration
 import com.profiletailors.smp.bdd.glue.BddTestProperties
 import com.profiletailors.smp.bdd.glue.CommonBddTestConfiguration
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
@@ -43,7 +44,11 @@ import org.testcontainers.junit.jupiter.Testcontainers
         BddTestProperties.LINKEDIN_STATE_SIGNING_SECRET,
     ],
 )
-@Import(CommonBddTestConfiguration::class, FastBddTestConfiguration::class)
+@Import(
+    CommonBddTestConfiguration::class,
+    FastBddTestConfiguration::class,
+    SocialContentBddTestConfiguration::class,
+)
 @Testcontainers(disabledWithoutDocker = true)
 @Suppress("UtilityClassWithPublicConstructor")
 class CucumberSpringConfiguration {

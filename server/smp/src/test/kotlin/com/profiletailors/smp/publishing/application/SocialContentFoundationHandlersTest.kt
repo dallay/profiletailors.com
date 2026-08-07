@@ -642,7 +642,7 @@ class SocialContentFoundationHandlersTest {
             handler.handle(actor, parent, "Answer", IdempotencyKey("reply-failed"), now)
         }
 
-        repository.saved.last().failure shouldBe SocialContentProviderFailure.ROLE_FORBIDDEN
+        repository.saved.last().state shouldBe ReplyCommandState.FAILED
     }
 
     @Test
@@ -657,6 +657,26 @@ class SocialContentFoundationHandlersTest {
 
         posts.all() shouldHaveSize 1
         posts.all().single().externalPostId shouldBe post.externalPostId
+    }
+
+    @Test
+    fun `imports all comment pages using the configured provider page size`() = runTest {
+        val post = fixturePost("post-1")
+        val first = fixtureComment(post, "comment-1")
+        val second = fixtureComment(post, "comment-2", first.externalCommentId)
+        val provider = FakeSocialContentProvider(
+            FakeSocialContentFixtures(
+                comments = mapOf(post.externalPostId.value to listOf(first, second)),
+                pageSize = 1,
+            ),
+        )
+        val comments = RecordingCommentRepository()
+        val handler = foundationHandler(provider, RecordingPostRepository(), RecordingCheckpointRepository(), comments)
+
+        handler.importComments(actor, post, now)
+
+        comments.upserted.map { it.externalCommentId } shouldBe
+            listOf(first.externalCommentId, second.externalCommentId)
     }
 
     @Test
@@ -999,6 +1019,12 @@ class SocialContentFoundationHandlersTest {
         val tombstoneCalls = mutableListOf<Set<ExternalPostId>>()
 
         override suspend fun upsert(post: SocialPost): SocialPost {
+            upserted.removeIf { existing ->
+                existing.scope == post.scope &&
+                    existing.provider == post.provider &&
+                    existing.actorId == post.actorId &&
+                    existing.externalPostId == post.externalPostId
+            }
             upserted += post
             return post
         }
@@ -1035,6 +1061,12 @@ class SocialContentFoundationHandlersTest {
     }
 
     private abstract class BaseFakeSocialContentProvider : SocialContentProvider {
+        override suspend fun fetchPosts(
+            actor: SocialContentActor,
+            cursor: PageCursor?,
+            pageSize: Int,
+        ): SocialContentPage<SocialPost> = SocialContentPage(emptyList(), null)
+
         override suspend fun discoverActors(
             scope: WorkspaceScope,
             connectionId: String,
@@ -1150,7 +1182,7 @@ class SocialContentFoundationHandlersTest {
         }
     }
 
-    private class ThrowingSocialContentProvider(private val throwable: Throwable) : SocialContentProvider {
+    private class ThrowingSocialContentProvider(private val throwable: Throwable) : BaseFakeSocialContentProvider() {
         override suspend fun discoverActors(
             scope: WorkspaceScope,
             connectionId: String,

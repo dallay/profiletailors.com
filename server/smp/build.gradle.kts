@@ -73,7 +73,7 @@ tasks.withType<Test>().configureEach {
 // keep it off unit-test JVMs. These task names are not known until after project evaluation.
 afterEvaluate {
     postgresTestPassword.orNull?.takeIf { it.isNotBlank() }?.let { password ->
-        listOf("postgresIntegrationTest", "bddPostgresTest").forEach { name ->
+        listOf("postgresIntegrationTest", "bddPostgresTest", "bddFastTest").forEach { name ->
             tasks.named<Test>(name) { environment("SMP_DB_TEST_PASSWORD", password) }
         }
     }

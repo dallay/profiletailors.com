@@ -52,6 +52,67 @@ enum class CacheKind { ACTIVITY, COMMENTER_PROFILE }
 enum class CapabilityOperation { DISCOVER_ACTORS, READ_POSTS, READ_COMMENTS, REPLY }
 enum class CapabilityFailure { REAUTH_REQUIRED, ROLE_REQUIRED, MISSING_SCOPE, UNSUPPORTED }
 
+private const val MAX_CALENDAR_LIMIT = 100
+
+data class SocialContentCalendarQuery(
+    val scope: WorkspaceScope,
+    val from: Instant,
+    val to: Instant,
+    val actorId: String? = null,
+    val lifecycle: PostLifecycle? = null,
+    val cursor: PageCursor? = null,
+    val limit: Int = 50,
+) {
+    init {
+        require(from.isBefore(to)) { "Calendar range must have a start before its end." }
+        require(limit in 1..MAX_CALENDAR_LIMIT) {
+            "Calendar limit must be between 1 and $MAX_CALENDAR_LIMIT."
+        }
+    }
+}
+
+enum class SocialContentAccessDenial {
+    OPERATION_DISABLED,
+    EVIDENCE_MISSING,
+    COMMUNITY_MANAGEMENT_NOT_APPROVED,
+    WORKSPACE_MISMATCH,
+    ACCOUNT_MISMATCH,
+    ORGANIZATION_PAGE_REQUIRED,
+    ADMIN_ROLE_REQUIRED,
+    REQUIRED_SCOPE_MISSING,
+    API_VERSION_REQUIRED,
+    API_VERSION_UNSUPPORTED,
+    RETENTION_POLICY_VERSION_REQUIRED,
+}
+
+class SocialContentAccessDeniedException(val denial: SocialContentAccessDenial) :
+    IllegalStateException("Social content access denied: $denial")
+
+data class SocialContentApprovalEvidence(
+    val workspaceId: String,
+    val socialAccountId: String,
+    val roleState: ActorRoleState,
+    val grantedScopes: Set<String>,
+    val communityManagementApproved: Boolean,
+    val apiVersion: String,
+    val retentionPolicyVersion: String,
+) {
+    init {
+        require(workspaceId.isNotBlank()) { "Approval evidence workspace is required." }
+        require(socialAccountId.isNotBlank()) { "Approval evidence account is required." }
+    }
+}
+
+data class SocialContentAccessRequest(
+    val scope: WorkspaceScope,
+    val socialAccountId: String,
+    val operation: CapabilityOperation,
+    val actorKind: SocialAccountKind,
+    val roleState: ActorRoleState?,
+    val grantedScopes: Set<String>?,
+    val apiVersion: String?,
+)
+
 data class SocialContentSyncLimits(val pageSize: Int, val maxPages: Int) {
     init {
         require(pageSize in MIN_PAGE_SIZE..MAX_PAGE_SIZE) {
@@ -69,10 +130,10 @@ data class SocialContentSyncLimits(val pageSize: Int, val maxPages: Int) {
 }
 
 data class SocialContentFeatureGates(
-    val discoveryEnabled: Boolean = false,
-    val importEnabled: Boolean = false,
-    val inboxEnabled: Boolean = false,
-    val repliesEnabled: Boolean = false,
+    var discoveryEnabled: Boolean = false,
+    var importEnabled: Boolean = false,
+    var inboxEnabled: Boolean = false,
+    var repliesEnabled: Boolean = false,
 )
 
 sealed interface CapabilityDecision {
@@ -161,6 +222,7 @@ data class SocialContentActorCandidate(
 data class SocialContentActor(
     val id: String,
     val scope: WorkspaceScope,
+    val socialAccountId: String = id,
     val connectionId: String,
     val provider: SocialProvider,
     val externalActorId: ProviderActorId,
@@ -217,6 +279,7 @@ data class SocialPost(
     val externalPostId: ExternalPostId,
     val publishedAt: Instant,
     val body: String? = null,
+    val lastModifiedAt: Instant? = null,
     val origin: PostOrigin = PostOrigin.EXTERNAL_OR_UNKNOWN,
     val localPublicationId: String? = null,
     val lifecycle: PostLifecycle = PostLifecycle.PUBLISHED,
@@ -235,7 +298,6 @@ data class SocialPost(
     /** Whether the post is still considered live in the workspace feed. */
     val isActive: Boolean get() = lifecycle == PostLifecycle.PUBLISHED
 
-    /** Whether local services may mutate the post; true only for posts reconciled with local publications. */
     val mutationAllowed: Boolean get() = origin == PostOrigin.PROFILETAILORS && localPublicationId != null
 
     /** Returns true when [now] is at or past the post expiry instant. */
@@ -288,6 +350,7 @@ data class SyncCheckpoint(
     val highWaterMark: Instant? = null,
     val lastSuccessfulAt: Instant?,
     val postId: ExternalPostId? = null,
+    val provider: SocialProvider = SocialProvider.LINKEDIN,
 ) {
     init {
         require(actorId.isNotBlank()) { "Checkpoint actor ID is required." }
