@@ -216,6 +216,9 @@ test.describe('Recovery accessibility: keyboard navigation, labels, focus, annou
     await page.goto(APP_URL.forgotPassword)
     const recovery = new PasswordRecoveryPage(page)
 
+    // Wait for form to load to avoid race conditions with Tab press
+    await expect(recovery.email).toBeVisible()
+
     // Start from email input using forward Tab traversal
     await page.locator('body').focus()
     await recovery.tabTo('recovery-email')
