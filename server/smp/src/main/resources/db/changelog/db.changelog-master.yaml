@@ -92,7 +92,14 @@ databaseChangeLog:
   - include:
       file: db/changelog/publishing/015-create-recurring-schedules.yaml
   - include:
+      file: db/changelog/publishing/016-create-social-content-foundation.yaml
+  - include:
+      file: db/changelog/publishing/017-social-content-workspace-fks.yaml
+  - include:
+      file: db/changelog/publishing/018-social-content-comment-checkpoints.yaml
+  - include:
       file: db/changelog/ideas/001-create-ideas.yaml
+
   - include:
       file: db/changelog/hashtags/001-create-hashtag-saved-sets.yaml
   - include:

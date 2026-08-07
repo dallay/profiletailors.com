@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-018-isolate-social-comment-checkpoints-by-post
+      author: opencode
+      changes:
+        # post_id stores the provider's external post id (ExternalPostId), which can exceed 64 chars.
+        # No FK is applied because the checkpoint table stores the provider's external id, not the
+        # local social_content_posts(id) primary key; referential integrity is enforced by the
+        # partial unique index uq_social_content_sync_checkpoints_post_identity below.
+        - addColumn:
+            tableName: social_content_sync_checkpoints
+            columns:
+              - column:
+                  name: post_id
+                  type: varchar(255)
+        - dropUniqueConstraint:
+            tableName: social_content_sync_checkpoints
+            constraintName: uq_social_content_sync_checkpoints_identity
+        - sql:
+            sql: >-
+              CREATE UNIQUE INDEX uq_social_content_sync_checkpoints_posts_identity
+              ON social_content_sync_checkpoints (workspace_id, social_account_id, resource)
+              WHERE resource = 'POSTS'
+        - sql:
+            sql: >-
+              CREATE UNIQUE INDEX uq_social_content_sync_checkpoints_post_identity
+              ON social_content_sync_checkpoints (workspace_id, social_account_id, resource, post_id)
+              WHERE resource = 'COMMENTS' AND post_id IS NOT NULL
+      rollback:
+        # Destructive by design: the old schema allowed only ONE comment checkpoint per
+        # (workspace, social_account, resource), so per-post checkpoints cannot be preserved
+        # and must be deleted before restoring the old unique constraint.
+        - sql:
+            sql: >-
+              DELETE FROM social_content_sync_checkpoints WHERE resource = 'COMMENTS'
+        - sql:
+            sql: >-
+              DROP INDEX uq_social_content_sync_checkpoints_post_identity
+        - sql:
+            sql: >-
+              DROP INDEX uq_social_content_sync_checkpoints_posts_identity
+        - addUniqueConstraint:
+            tableName: social_content_sync_checkpoints
+            columnNames: workspace_id, social_account_id, resource
+            constraintName: uq_social_content_sync_checkpoints_identity
+        - dropColumn:
+            tableName: social_content_sync_checkpoints
+            columnName: post_id

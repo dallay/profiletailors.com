@@ -148,6 +148,31 @@ publishing:
   credentials:
     encryption:
       key: ${PUBLISHING_CREDENTIALS_ENCRYPTION_KEY:}  # Sin default — debe configurarse via env var
+  social-content:
+    discovery-enabled: ${SMP_LINKEDIN_SOCIAL_CONTENT_DISCOVERY_ENABLED:false}
+    import-enabled: ${SMP_LINKEDIN_SOCIAL_CONTENT_IMPORT_ENABLED:false}
+    inbox-enabled: ${SMP_LINKEDIN_SOCIAL_CONTENT_INBOX_ENABLED:false}
+    replies-enabled: ${SMP_LINKEDIN_SOCIAL_CONTENT_REPLIES_ENABLED:false}
+    sync-enabled: ${SMP_LINKEDIN_SOCIAL_CONTENT_SYNC_ENABLED:false}
+    api-version: ${SMP_LINKEDIN_SOCIAL_CONTENT_API_VERSION:202606}
+    supported-api-versions: ${SMP_LINKEDIN_SOCIAL_CONTENT_SUPPORTED_API_VERSIONS:202606}
+    retention-policy-version: ${SMP_LINKEDIN_SOCIAL_CONTENT_RETENTION_POLICY_VERSION:}
+    polling:
+      interval: ${SMP_LINKEDIN_SOCIAL_CONTENT_POLL_INTERVAL:PT15M}
+      overlap: ${SMP_LINKEDIN_SOCIAL_CONTENT_POLL_OVERLAP:PT10M}
+      page-size: ${SMP_LINKEDIN_SOCIAL_CONTENT_POLL_PAGE_SIZE:100}
+      max-pages: ${SMP_LINKEDIN_SOCIAL_CONTENT_POLL_MAX_PAGES:10}
+    activity-cache-ttl: ${SMP_LINKEDIN_SOCIAL_CONTENT_ACTIVITY_CACHE_TTL:PT48H}
+    commenter-profile-cache-ttl: ${SMP_LINKEDIN_SOCIAL_CONTENT_COMMENTER_PROFILE_CACHE_TTL:PT24H}
+    quota:
+      requests-per-minute: ${SMP_LINKEDIN_SOCIAL_CONTENT_QUOTA_REQUESTS_PER_MINUTE:60}
+      burst: ${SMP_LINKEDIN_SOCIAL_CONTENT_QUOTA_BURST:10}
+    webhooks:
+      enabled: ${SMP_LINKEDIN_SOCIAL_CONTENT_WEBHOOKS_ENABLED:false}
+      signing-secret: ${SMP_LINKEDIN_SOCIAL_CONTENT_WEBHOOK_SIGNING_SECRET:}
+    purge:
+      enabled: ${SMP_LINKEDIN_SOCIAL_CONTENT_PURGE_ENABLED:false}
+      interval: ${SMP_LINKEDIN_SOCIAL_CONTENT_PURGE_INTERVAL:PT6H}
 
 # Media provider adapters (Hexagonal: ports under media-library.application.port;
 # adapters live under mediaprovider.*).
