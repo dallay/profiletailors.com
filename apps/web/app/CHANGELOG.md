@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.3.1](https://github.com/dallay/profiletailors.com/compare/app@v0.3.0...app@v0.3.1) (2026-08-08)
+
+
+### Features
+
+* **a11y:** add focus trap, heading hierarchy, and semantic navigation ([#542](https://github.com/dallay/profiletailors.com/issues/542)) ([04a0cad](https://github.com/dallay/profiletailors.com/commit/04a0cad04cc97b43bd225d662806af8677217261))
+* Add recurring post scheduling across publishing ([#552](https://github.com/dallay/profiletailors.com/issues/552)) ([b94fdfc](https://github.com/dallay/profiletailors.com/commit/b94fdfcd39b8b65de448b4658c01f26eb6b95c58))
+* **platform-admin:** add waitlist invitation management with transactional boundary fix ([#544](https://github.com/dallay/profiletailors.com/issues/544)) ([841c65c](https://github.com/dallay/profiletailors.com/commit/841c65c4b25de08d856efeb85248b2303e40014f))
+* **platform:** integrate app capabilities and security hardening ([#577](https://github.com/dallay/profiletailors.com/issues/577)) ([c194f7d](https://github.com/dallay/profiletailors.com/commit/c194f7d7e0a2a60311e0ab3613b3f383ec14d365))
+
+
+### Bug Fixes
+
+* **api:** reconcile verified contract drift ([#559](https://github.com/dallay/profiletailors.com/issues/559)) ([348f01d](https://github.com/dallay/profiletailors.com/commit/348f01d347078256de5a43715763b486a4edfa08))
+* **deps:** update tailwind css to ^4.3.3 ([#604](https://github.com/dallay/profiletailors.com/issues/604)) ([d123cc2](https://github.com/dallay/profiletailors.com/commit/d123cc25af557ac2a652617e51594cfc16ec251d))
+* **deps:** update vue core ([#622](https://github.com/dallay/profiletailors.com/issues/622)) ([6c0b9b8](https://github.com/dallay/profiletailors.com/commit/6c0b9b8479142d6626cdfc31efa14a240fc535ec))
+* **e2e:** resolve Playwright strict mode violation on password label ([#541](https://github.com/dallay/profiletailors.com/issues/541)) ([d7396e6](https://github.com/dallay/profiletailors.com/commit/d7396e6cbcae1aa7706e9ca47017e53820589371))
+* raise dialog content above overlay ([#639](https://github.com/dallay/profiletailors.com/issues/639)) ([f6488f3](https://github.com/dallay/profiletailors.com/commit/f6488f39421a3bd40c24cf088ed3dfc4cc937514))
+
+
+### Documentation
+
+* remove dead repository references ([#610](https://github.com/dallay/profiletailors.com/issues/610)) ([2e9fb93](https://github.com/dallay/profiletailors.com/commit/2e9fb93a9882e3e72748ff135a633af092f56a45))
+
 ## [0.3.0](https://github.com/dallay/profiletailors.com/compare/app@v0.2.3...app@v0.3.0) (2026-07-30)
 
 
