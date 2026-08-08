@@ -48,6 +48,22 @@ internal class R2dbcWorkspaceOwnershipRepository(
         .map { it.toSet() }
         .awaitSingle()
 
+    override suspend fun findOwnerIds(workspaceId: String): Set<String> = databaseClient.sql(
+        """
+        SELECT owner_principal_id
+        FROM workspace_ownerships
+        WHERE workspace_id = :workspaceId
+        """.trimIndent(),
+    )
+        .bind(BIND_WORKSPACE_ID, workspaceId)
+        .map { row, _ ->
+            requireNotNull(row.get(COL_OWNER_PRINCIPAL_ID, String::class.java))
+        }
+        .all()
+        .collectList()
+        .map { it.toSet() }
+        .awaitSingle()
+
     override suspend fun add(ownership: WorkspaceOwnership) {
         databaseClient.sql(
             """
