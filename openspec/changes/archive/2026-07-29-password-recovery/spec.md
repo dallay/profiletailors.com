@@ -147,7 +147,7 @@ The capability MUST satisfy these requirements when the system exposes
   token MUST be issued in the response. The response MUST be
   `204 No Content` with no body and no `Set-Cookie` header.
 - **REQ-RP-11** `newPassword` MUST satisfy the same password policy
-  applied at registration: minimum 8 characters, maximum 128 characters,
+  applied at registration: minimum 12 characters, maximum 128 characters,
   not blank. Failing validation MUST return `400` with code
   `INVALID_PASSWORD` and MUST NOT consume the token.
 - **REQ-RP-12** Rate limit per source IP: 10 requests per 15 minutes.
@@ -236,7 +236,7 @@ REQ-NOT-06, retries, and terminal-failure recording are PR 3 hardening.**
 - **REQ-UI-05** A forgot-password `429` response MUST show a localized rate-limit error; a disabled or unknown failure MUST show a localized unavailable or generic error without account disclosure.
 - **REQ-UI-06** `/reset-password?token=...` MUST be accessible to authenticated and unauthenticated visitors. The recovery token is the authorization capability; an existing session MUST NOT redirect away from or block the reset form.
 - **REQ-UI-07** `ResetPasswordView` MUST read the `token` query parameter. A missing or blank token MUST show an invalid-link state linking to `/forgot-password` and MUST NOT render the form.
-- **REQ-UI-08** The reset form MUST provide new-password and confirmation fields and enforce required, 8..128 characters, and equality before submission.
+- **REQ-UI-08** The reset form MUST provide new-password and confirmation fields and enforce required, 12..128 characters, and equality before submission.
 - **REQ-UI-09** Invalid client input MUST NOT be submitted and MUST show localized policy or mismatch feedback. Pending submission MUST disable repeat submission.
 - **REQ-UI-10** Invalid, expired, and used token responses MUST produce one identical localized generic invalid-link state linking to `/forgot-password`; backend detail MUST NOT distinguish token state.
 - **REQ-UI-11** After backend `204`, the frontend MUST show that the password changed and MUST direct the visitor to `/login` to authenticate again. It MUST NOT preserve, restore, or create an authenticated frontend session, because the backend revokes refresh sessions and issues no replacement session.
