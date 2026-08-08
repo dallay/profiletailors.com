@@ -1,6 +1,6 @@
 schemaVersion: 1
 task: feature-flag-auditor
-lastExecution: "2026-08-01T18:15:00Z"
+lastExecution: "2026-08-02T12:00:00Z"
 findings:
   - id: FF-DASHBOARD-STALE
     title: "Stale pt-dashboard-new Feature Flag"
@@ -18,11 +18,11 @@ findings:
     message: "The WAITLIST_ENABLED compilation flag correctly defaults to false in development and configuration, serving as a compliant gate (PA-004) preventing waitlist collection."
   - id: FF-RATE-LIMIT-DRIFT
     title: "Backend Platform Rate Limiting Hook Configuration Drift"
-    status: unresolved
-    classification: INCONSISTENT
+    status: resolved
+    classification: CONSISTENT
     evidence: "server/smp/src/main/resources/application.yaml, .env.example"
     risk: LOW
-    message: "SMP_PLATFORM_RATE_LIMIT_ENABLED defaults to true in application.yaml, but is explicitly set to false in .env.example."
+    message: "SMP_PLATFORM_RATE_LIMIT_ENABLED fallback default has been changed to false in application.yaml to align perfectly with .env.example, eliminating the configuration-default drift."
   - id: FF-AUDIT-METRICS-CONSISTENT
     title: "Consistent Backend Audit and Metrics Hooks"
     status: resolved

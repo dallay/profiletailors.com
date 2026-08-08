@@ -122,7 +122,7 @@ platform:
     metrics:
       enabled: ${SMP_PLATFORM_METRICS_ENABLED:false}
     rate-limit:
-      enabled: ${SMP_PLATFORM_RATE_LIMIT_ENABLED:true}
+      enabled: ${SMP_PLATFORM_RATE_LIMIT_ENABLED:false}
 
 publishing:
   worker:
