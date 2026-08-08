@@ -129,3 +129,6 @@ databaseChangeLog:
   # ── Dev seed data (context: dev only) ──────────────────────────
   - include:
       file: db/changelog/dev/001-seed-test-data.yaml
+  # ── QA seed data (context: dev only) ───────────────────────────
+  - include:
+      file: db/changelog/qa/001-seed-test-data.yaml

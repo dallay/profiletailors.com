@@ -33,6 +33,10 @@ class BddDatabaseSupport(
         const val PRINCIPAL_ID = "principal-1"
         const val RESOURCE_ID = "resource-1"
         const val WORKSPACE_HEADER = "X-Workspace-Id"
+        const val QA_PRINCIPAL_ID = "qa-user-001"
+        const val QA_EMAIL = "qa@profiletailors.com"
+        const val QA_PASSWORD = "FinalQaPassword789!"
+        const val QA_WORKSPACE_ID = "qa-workspace-001"
         const val USER_BEARER = "Bearer valid-token"
         const val VERIFIED_USER_BEARER = "Bearer verified-token"
         const val API_VERSION_MEDIA_TYPE = "application/vnd.api.v1+json"
@@ -70,6 +74,64 @@ class BddDatabaseSupport(
             databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
         }
         restoreRequiredBaselineRoles()
+        seedQaUser()
+    }
+
+    private suspend fun seedQaUser() {
+        val exists: String? = databaseClient.sql(
+            "SELECT principal_id FROM user_identities WHERE principal_id = :id",
+        )
+            .bind("id", QA_PRINCIPAL_ID)
+            .map { row, _ -> row.get("principal_id", String::class.java) as String }
+            .one()
+            .awaitSingleOrNull()
+        if (exists != null) return
+        databaseClient.sql(
+            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) " +
+                "VALUES (:id, 'USER', :email, 'local', 'QA User')",
+        )
+            .bind("id", QA_PRINCIPAL_ID)
+            .bind("email", QA_EMAIL)
+            .fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO user_identities (principal_id, email, username, email_status) " +
+                "VALUES (:id, :email, 'qa', 'VERIFIED')",
+        )
+            .bind("id", QA_PRINCIPAL_ID)
+            .bind("email", QA_EMAIL)
+            .fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO local_password_credentials (principal_id, password_hash) " +
+                "VALUES (:id, :hash)",
+        )
+            .bind("id", QA_PRINCIPAL_ID)
+            .bind(
+                "hash",
+                org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
+                    QA_PASSWORD,
+                    org.springframework.security.crypto.bcrypt.BCrypt.gensalt(),
+                ),
+            )
+            .fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, 'QA Workspace', 'ACTIVE', 'flask')",
+        )
+            .bind("id", QA_WORKSPACE_ID)
+            .fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type, created_by) " +
+                "VALUES (:workspaceId, :ownerId, 'USER', :ownerId)",
+        )
+            .bind("workspaceId", QA_WORKSPACE_ID)
+            .bind("ownerId", QA_PRINCIPAL_ID)
+            .fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) " +
+                "VALUES ('qa-membership-001', :workspaceId, :ownerId, 'USER', 'ACTIVE')",
+        )
+            .bind("workspaceId", QA_WORKSPACE_ID)
+            .bind("ownerId", QA_PRINCIPAL_ID)
+            .fetch().rowsUpdated().awaitSingle()
     }
 
     private suspend fun restoreRequiredBaselineRoles() {
