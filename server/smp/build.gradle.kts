@@ -146,9 +146,12 @@ dependencies {
     testRuntimeOnly(libs.cucumber.junit.platform.engine)
 
     constraints {
+        // BOMs do not manage these — plain constraints win.
         implementation(libs.okio.jvm)
         implementation(libs.bouncycastle.prov)
         implementation(libs.bouncycastle.pgp)
+        implementation("com.ongres.scram:scram-client:3.3")
+        implementation("com.ongres.scram:scram-common:3.3")
     }
 }
 
@@ -167,3 +170,82 @@ dependencyManagement {
         )
     }
 }
+
+// Security overrides — Spring Boot BOM lags behind patched releases. The BOM
+// dependency-management plugin applies its managed versions AFTER Gradle
+// constraints, so plain/strict constraints cannot override it. Configuration-level
+// resolution rules (eachDependency) run at the end of resolution and always win.
+// `verifySecurityVersions` fails the build if any patched dependency ever resolves
+// below its patched version.
+configurations.all {
+    resolutionStrategy {
+        eachDependency {
+            if (requested.group == "io.netty" && requested.name.startsWith("netty-codec")) {
+                useVersion("4.2.16.Final")
+            }
+            if (requested.group.startsWith("com.fasterxml.jackson")) {
+                useVersion(
+                    when (requested.name) {
+                        "jackson-annotations" -> "2.22"
+                        else -> "2.22.1"
+                    },
+                )
+            }
+            if (requested.group == "tools.jackson.core") {
+                useVersion("3.1.5")
+            }
+            if (requested.group == "org.postgresql" && requested.name == "postgresql") {
+                useVersion("42.7.12")
+            }
+        }
+    }
+}
+val verifySecurityVersions =
+    tasks.register("verifySecurityVersions") {
+        val classpathProvider = configurations.named("runtimeClasspath")
+        // Resolving through a Provider turns the classpath into a task input, so the
+        // graph wires the compile dependencies and config cache stays valid.
+        val resolvedVersions: Provider<Map<String, String>> =
+            classpathProvider.map { configuration ->
+                configuration.incoming.resolutionResult.allComponents
+                    .mapNotNull { it.id as? ModuleComponentIdentifier }
+                    .associate { "${it.group}:${it.module}" to it.version }
+            }
+        inputs.property("resolvedVersions", resolvedVersions)
+        doLast {
+            val expected =
+                mapOf(
+                    "com.ongres.scram:scram-client" to "3.3",
+                    "com.ongres.scram:scram-common" to "3.3",
+                    "io.netty:netty-codec-http" to "4.2.16.Final",
+                    "io.netty:netty-codec-http2" to "4.2.16.Final",
+                    "io.netty:netty-codec-http3" to "4.2.16.Final",
+                    "io.netty:netty-codec-dns" to "4.2.16.Final",
+                    "io.netty:netty-codec-compression" to "4.2.16.Final",
+                    "com.fasterxml.jackson:jackson-bom" to "2.22.1",
+                    "com.fasterxml.jackson.core:jackson-annotations" to "2.22",
+                    "com.fasterxml.jackson.core:jackson-core" to "2.22.1",
+                    "com.fasterxml.jackson.core:jackson-databind" to "2.22.1",
+                    "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to "2.22.1",
+                    "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml" to "2.22.1",
+                    "com.fasterxml.jackson.module:jackson-module-kotlin" to "2.22.1",
+                    "tools.jackson.core:jackson-core" to "3.1.5",
+                    "tools.jackson.core:jackson-databind" to "3.1.5",
+                    "org.postgresql:postgresql" to "42.7.12",
+                )
+            val violations =
+                expected.filterNot { (coordinate, version) ->
+                    resolvedVersions.get()[coordinate] == version
+                }
+            if (violations.isNotEmpty()) {
+                throw GradleException(
+                    "Security version check failed — expected patched versions not resolved:\n" +
+                        violations.entries.joinToString("\n") { (coordinate, version) ->
+                            "  $coordinate expected $version, resolved ${resolvedVersions.get()[coordinate] ?: "MISSING"}"
+                        } +
+                        "\nRun: ./gradlew :server:smp:dependencies --configuration runtimeClasspath",
+                )
+            }
+        }
+    }
+tasks.named("check") { dependsOn(verifySecurityVersions) }
