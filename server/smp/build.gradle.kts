@@ -149,6 +149,10 @@ dependencies {
         implementation(libs.okio.jvm)
         implementation(libs.bouncycastle.prov)
         implementation(libs.bouncycastle.pgp)
+
+        // Security updates — scram 3.3 (BOM does not manage it, constraint wins)
+        implementation("com.ongres.scram:scram-client:3.3")
+        implementation("com.ongres.scram:scram-common:3.3")
     }
 }
 
@@ -165,5 +169,26 @@ dependencyManagement {
                 .get()
                 .toString(),
         )
+    }
+}
+
+// Security overrides — Spring Boot BOM lags behind patched releases. Configuration-level
+// resolution rules always win over BOM-managed constraints.
+configurations.all {
+    resolutionStrategy {
+        eachDependency {
+            if (requested.group == "io.netty" && requested.name.startsWith("netty-codec")) {
+                useVersion("4.2.16.Final")
+            }
+            if (requested.group == "com.fasterxml.jackson.core" && requested.name == "jackson-databind") {
+                useVersion("2.21.5")
+            }
+            if (requested.group == "tools.jackson.core") {
+                useVersion("3.1.5")
+            }
+            if (requested.group == "org.postgresql" && requested.name == "postgresql") {
+                useVersion("42.7.12")
+            }
+        }
     }
 }
