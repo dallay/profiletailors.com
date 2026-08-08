@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.1](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.0...smp@v0.4.1) (2026-08-08)
+
+
+### Features
+
+* Add recurring post scheduling across publishing ([#552](https://github.com/dallay/profiletailors.com/issues/552)) ([b94fdfc](https://github.com/dallay/profiletailors.com/commit/b94fdfcd39b8b65de448b4658c01f26eb6b95c58))
+* **identity:** seed dedicated QA user with workspace ([9408485](https://github.com/dallay/profiletailors.com/commit/940848591eccd542001bcbdc09cc5bb2f75d7e66))
+* **mcp:** 4 read tools, error mapping, audit, and rate limiting (PR 3) ([#573](https://github.com/dallay/profiletailors.com/issues/573)) ([83ddcab](https://github.com/dallay/profiletailors.com/commit/83ddcab257c2766ec4c33cf2f1a8a4fcf809c574))
+* **mcp:** BDD, workspace isolation, contract tests, and docs (PR 4) ([#574](https://github.com/dallay/profiletailors.com/issues/574)) ([b8609a3](https://github.com/dallay/profiletailors.com/commit/b8609a3dd04dbdfe8d1b4de544de4eb3d80dfb7c))
+* **mcp:** MCP server security foundation (PR 2) ([#560](https://github.com/dallay/profiletailors.com/issues/560)) ([821e196](https://github.com/dallay/profiletailors.com/commit/821e196861579844826a55c3434c2514943a3738))
+* **mcp:** server module foundation + compatibility spike ([#539](https://github.com/dallay/profiletailors.com/issues/539)) ([2895992](https://github.com/dallay/profiletailors.com/commit/28959924dbfb7863343a2d5995052e4da879d3de))
+* **platform-admin:** add waitlist invitation management with transactional boundary fix ([#544](https://github.com/dallay/profiletailors.com/issues/544)) ([841c65c](https://github.com/dallay/profiletailors.com/commit/841c65c4b25de08d856efeb85248b2303e40014f))
+* **platform:** integrate app capabilities and security hardening ([#577](https://github.com/dallay/profiletailors.com/issues/577)) ([c194f7d](https://github.com/dallay/profiletailors.com/commit/c194f7d7e0a2a60311e0ab3613b3f383ec14d365))
+* **publishing:** add LinkedIn social content foundation ([#624](https://github.com/dallay/profiletailors.com/issues/624)) ([78e467e](https://github.com/dallay/profiletailors.com/commit/78e467e4230ff0294ab564f038ebc8dc1ef2e4ce))
+* **publishing:** add LinkedIn social content sync, discovery and calendar APIs ([#625](https://github.com/dallay/profiletailors.com/issues/625)) ([e1eff7a](https://github.com/dallay/profiletailors.com/commit/e1eff7aaab44323602654c2a152264120fa4737b))
+
 ## [0.4.0](https://github.com/dallay/profiletailors.com/compare/smp@v0.3.5...smp@v0.4.0) (2026-07-30)
 
 
