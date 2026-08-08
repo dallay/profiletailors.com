@@ -10,7 +10,7 @@ The active artifacts have drift after PR 1 reconciliation: `tasks.md` defines on
 ### Affected Areas
 - `apps/web/app/src/modules/auth/infrastructure/auth-api.ts` — add the two public recovery requests using `requestRaw`, preserving empty 202/204 responses and `ApiError` Problem Details.
 - `apps/web/app/src/modules/auth/infrastructure/auth-api.test.ts` — test exact URLs, POST payloads, headers, empty responses, and preservation of `status`/`code`/`detail` for 400/429/503.
-- `apps/web/app/src/shared/lib/validation/schemas.ts` — add dedicated forgot/reset schemas; do not reuse login validation because reset requires 8..128 characters and confirmation equality.
+- `apps/web/app/src/shared/lib/validation/schemas.ts` — add dedicated forgot/reset schemas; do not reuse login validation because reset requires 12..128 characters and confirmation equality.
 - `apps/web/app/src/shared/lib/validation/schemas.test.ts` — test email normalization, blank/invalid email, password boundaries, and mismatch without submitting secrets.
 - `apps/web/app/src/modules/auth/presentation/ForgotPasswordView.vue` — create guest recovery request form and generic success state.
 - `apps/web/app/src/modules/auth/presentation/ForgotPasswordView.spec.ts` — create component tests for validation, loading lock, generic confirmation, localized 429, and fallback errors.

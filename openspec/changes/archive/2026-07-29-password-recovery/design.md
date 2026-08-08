@@ -34,7 +34,7 @@ email URL → /reset-password?token=… [standalone, session-agnostic]
 | `apps/web/app/src/modules/auth/infrastructure/auth-api.ts` | Modify | Add void recovery calls, locale header, preserve empty 202/204 and `ApiError`. |
 | `apps/web/app/src/modules/auth/presentation/{ForgotPasswordView,ResetPasswordView}.vue` | Create | Accessible responsive forms and terminal states; token remains view-local. |
 | `apps/web/app/src/modules/auth/presentation/AuthView.vue` | Modify | Login-only keyboard-reachable forgot-password `RouterLink`; preserve current native form semantics. |
-| `apps/web/app/src/shared/lib/validation/schemas.ts` | Modify | Dedicated normalized email and 8..128/matching-password schemas. |
+| `apps/web/app/src/shared/lib/validation/schemas.ts` | Modify | Dedicated normalized email and 12..128/matching-password schemas. |
 | `apps/web/app/src/router/index.ts`, `apps/web/app/src/App.vue` | Modify | Lazy routes, independent access metadata, metadata-driven shell bypass. |
 | `apps/web/app/src/shared/i18n/locales/{en,es}/passwordRecovery.ts` and locale indexes | Create/Modify | Complete namespace parity; Spanish copy may wrap. |
 | Corresponding `*.test.ts`, `*.spec.ts`, and `e2e/{fixtures,pages,specs}` | Create/Modify | Focused contract, component, guard, shell, localization, and browser coverage. |
