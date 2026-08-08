@@ -193,6 +193,7 @@ Skills provide specialized instructions and workflows for specific tasks. Load w
 |-------|-------------|
 | `gradle` | Gradle build configuration and performance optimization |
 | `hexagonal-architecture` | Hexagonal Architecture (Ports and Adapters) with CQRS patterns |
+| `ddd-architecture` | DDD conformance — aggregate boundaries, identity-only inter-aggregate references, value-object immutability, bounded-context isolation, ADR-backed enforcement |
 | `spring-boot` | Spring Boot 4 infrastructure layer patterns (Kotlin, WebFlux, R2DBC) |
 | `spring-boot/actuator` | Production-grade monitoring and health probes with Actuator |
 | `spring-boot/ai-mcp-server-patterns` | MCP servers with Spring AI for tool calling and function execution |
