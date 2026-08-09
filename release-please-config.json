@@ -28,6 +28,13 @@
       "include-component-in-tag": true,
       "tag-separator": "@"
     },
+    "apps/web/admin": {
+      "release-type": "node",
+      "component": "admin",
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": true,
+      "tag-separator": "@"
+    },
     "server/smp": {
       "release-type": "simple",
       "component": "smp",
