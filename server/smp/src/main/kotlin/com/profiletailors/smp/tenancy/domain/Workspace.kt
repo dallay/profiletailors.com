@@ -1,7 +1,9 @@
 package com.profiletailors.smp.tenancy.domain
 
 import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.ValueObject
 
+@ValueObject
 enum class WorkspaceStatus {
     ACTIVE,
     SUSPENDED,

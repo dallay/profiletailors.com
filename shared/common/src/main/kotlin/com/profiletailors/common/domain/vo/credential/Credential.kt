@@ -1,5 +1,6 @@
 package com.profiletailors.common.domain.vo.credential
 
+import com.profiletailors.common.domain.ValueObject
 import com.profiletailors.common.domain.vo.credential.Credential.Companion.MIN_LENGTH
 import com.profiletailors.common.domain.vo.credential.Credential.Companion.charLowercase
 import com.profiletailors.common.domain.vo.credential.Credential.Companion.charNumbers
@@ -30,6 +31,7 @@ import java.util.UUID
  * @see CredentialValue
  * @see CredentialException
  */
+@ValueObject
 data class Credential(val id: CredentialId, val credentialValue: CredentialValue) {
     companion object {
         private const val REQUIRED_TYPES = 4
@@ -92,6 +94,7 @@ data class Credential(val id: CredentialId, val credentialValue: CredentialValue
  *
  * @since 1.0.0
  */
+@ValueObject
 @JvmInline
 value class CredentialId(val value: UUID) {
     companion object {
@@ -115,6 +118,7 @@ value class CredentialId(val value: UUID) {
  * @throws CredentialException if any validation rule is violated
  * @since 1.0.0
  */
+@ValueObject
 @JvmInline
 value class CredentialValue(val value: String) {
     init {
