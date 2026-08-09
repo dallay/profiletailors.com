@@ -12,6 +12,12 @@ import com.profiletailors.common.domain.ValueObject
 @ValueObject
 @JvmInline
 value class DataSubjectRequestId(val value: String) {
+    init {
+        require(value.startsWith("dsr-")) {
+            "DataSubjectRequestId must start with 'dsr-' prefix but was: $value"
+        }
+    }
+
     companion object {
         /**
          * Creates a new random [DataSubjectRequestId] with a "dsr-" prefix.
