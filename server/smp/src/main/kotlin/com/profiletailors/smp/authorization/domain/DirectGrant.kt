@@ -1,8 +1,10 @@
 package com.profiletailors.smp.authorization.domain
 
+import com.profiletailors.common.domain.AggregateRoot
 import com.profiletailors.common.domain.context.ResourceContext
 import java.time.Instant
 
+@AggregateRoot
 data class DirectGrant(
     val permission: PermissionKey,
     val effect: GrantEffect,

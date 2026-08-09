@@ -1,5 +1,8 @@
 package com.profiletailors.smp.authorization.domain
 
+import com.profiletailors.common.domain.ValueObject
+
+@ValueObject
 data class PermissionKey(val value: String) {
     init {
         require(PATTERN.matches(value)) {
