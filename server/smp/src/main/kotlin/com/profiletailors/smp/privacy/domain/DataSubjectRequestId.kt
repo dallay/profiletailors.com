@@ -1,5 +1,7 @@
 package com.profiletailors.smp.privacy.domain
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * Strongly-typed identifier for a [DataSubjectRequest].
  *
@@ -7,6 +9,7 @@ package com.profiletailors.smp.privacy.domain
  *
  * @since 1.0.0
  */
+@ValueObject
 @JvmInline
 value class DataSubjectRequestId(val value: String) {
     companion object {
