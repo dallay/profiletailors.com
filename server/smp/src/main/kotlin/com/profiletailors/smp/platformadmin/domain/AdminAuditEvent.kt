@@ -1,8 +1,10 @@
 package com.profiletailors.smp.platformadmin.domain
 
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 import java.util.UUID
 
+@ValueObject
 enum class AdminAuditAction {
     PLATFORM_ROLE_ASSIGNED,
     PLATFORM_ROLE_REVOKED,
@@ -14,6 +16,7 @@ enum class AdminAuditAction {
     ADMIN_WAITLIST_ENTRY_VIEWED,
 }
 
+@ValueObject
 enum class AdminAuditResult {
     SUCCEEDED,
     REJECTED,
