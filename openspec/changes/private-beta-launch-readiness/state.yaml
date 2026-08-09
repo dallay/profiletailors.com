@@ -1,0 +1,11 @@
+change: private-beta-launch-readiness
+current_phase: tasks
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - delivery-strategy
+next: apply
+updated: 2026-08-09
