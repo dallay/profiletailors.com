@@ -64,14 +64,14 @@ All 20 automated tasks have been audited, their states parsed, and their finding
 - **Finding ID:** `AUTO-openspec-reconciliation-mcp-server-in-progress` (aggregated from `F-1` under `openspec-reconciliation.yaml`)
 - **Description:** The `mcp-server` active change is in progress and partially implemented. The specifications remain local to the change directory.
 - **Risk:** **LOW**. This is expected for active changes that are in development according to Spec-Driven Development (SDD) rules.
-- **Remediation Plan:** Continue implementation steps (PR2, PR3, PR4) until final merge.
+- **Remediation Plan:** Complete PR1 user-review and merge gate first, then proceed sequentially with PR2, PR3, and PR4 per the stacked-PR chain defined in openspec/changes/mcp-server/state.yaml.
 
 ### 3. Active Change Status: pr-577-quality-gate-remediation Failing
 
 - **Finding ID:** `AUTO-openspec-reconciliation-quality-gate-failing` (aggregated from `F-2` under `openspec-reconciliation.yaml`)
 - **Description:** The `pr-577-quality-gate-remediation` active change is currently in its verify phase but is failing locally because the fresh app LCOV project coverage report is 69.50% (which is below the required 80% project gate).
 - **Risk:** **LOW**. Active work is required to implement the remaining tests to boost code coverage.
-- **Remediation Plan:** Continue implementing additional unit/integration tests to satisfy the coverage gate.
+- **Remediation Plan:** Continue implementing additional unit/integration tests to close the coverage gap (69.50% vs 80% gate), push a new commit once coverage improves, and record and confirm the resulting remote Sonar/Codecov PR check results per openspec/changes/pr-577-quality-gate-remediation/verify-report.md.
 
 ## Blockers
 
