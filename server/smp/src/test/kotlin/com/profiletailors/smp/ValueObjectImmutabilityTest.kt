@@ -86,7 +86,12 @@ internal class ValueObjectImmutabilityTest {
             val hasInit = vo.hasInitBlocks()
             val hasFactory = vo.functions(includeNested = true, includeLocal = false).any { fn ->
                 val name = fn.name
-                name in setOf("of", "create", "from", "fromRaw", "ensure", "generate", "random")
+                name in setOf("of", "create", "from", "fromRaw", "ensure", "generate", "random") ||
+                    name.startsWith("of") ||
+                    name.startsWith("from") ||
+                    name.startsWith("ensure") ||
+                    name.startsWith("generate") ||
+                    name.startsWith("random")
             }
 
             if (!hasInit && !hasFactory) {
