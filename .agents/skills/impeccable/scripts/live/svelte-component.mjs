@@ -1258,7 +1258,7 @@ export function sweepInactiveSvelteComponentSessions(activeIds = [], cwd = proce
 }
 
 export function deferredAcceptsPath(cwd = process.cwd()) {
-  const key = createHash('sha1').update(path.resolve(cwd)).digest('hex').slice(0, 16);
+  const key = createHash('sha256').update(path.resolve(cwd)).digest('hex').slice(0, 16);
   return path.join(os.tmpdir(), 'impeccable-live', key, 'deferred-svelte-component-accepts.json');
 }
 
