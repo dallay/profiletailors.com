@@ -9,7 +9,7 @@ Implement the change as evidence-bounded slices over existing waitlist, platform
 | Decision | Choice | Alternatives / rationale |
 |---|---|---|
 | Delivery order | A: DALLAY-520, then DALLAY-556; B: DALLAY-555 and DALLAY-557 in parallel; C: DALLAY-558 after A plus minimum B; DALLAY-559 last. | A single feature branch would hide operational blockers and increase review size. These slices give each prerequisite a clear finish and rollback. |
-| Invitation ownership | Keep token validation in `platformadmin` (the existing `WaitlistInvitation` aggregate and hashed-token repository); expose acceptance through a Mediator command and explicit application ports to identity and tenancy. | Do not put invitation rules in controllers or infrastructure, and do not let the frontend mutate membership directly. |
+| Invitation ownership | Model `Invitation` as a first-class capability independent from waitlist. It carries `source` (`DIRECT` or `WAITLIST`), optional `sourceReferenceId`, mandatory `workspaceId`, normalized target email, hashed token, semantic lifecycle, issuer, timestamps, and accepted principal metadata. Expose acceptance through a Mediator command and explicit application ports to identity and tenancy. | Do not make `waitlistEntryId` mandatory, couple invitation validity to delivery state, put invitation rules in controllers/infrastructure, or let the frontend mutate membership or choose `workspaceId`. |
 | Tenant safety | Reconcile membership through a tenancy application API keyed by `(workspaceId, principalId)` with a database uniqueness guarantee; every subsequent request still uses `X-Workspace-Id` and existing authorization resolution. | Do not create a second membership model or bypass the existing application-level tenancy boundary. |
 | Worker control | Use the existing `publishing.worker.enabled` gate as the safe-off switch, rendered from managed deployment configuration and verified before provider calls. | No public UI toggle: operator control must be auditable, reversible, and unavailable to ordinary workspace users. |
 | Evidence boundary | Store redacted records with UTC timestamp, environment, release/namespace, scope, operator, outcome, and classification. | Local/CI results cannot prove VPS behavior; VPS observation cannot be called provider verification. |
@@ -28,7 +28,7 @@ Waitlist activation (520)
   -> lifecycle state, safe UI result, operator evidence (555/557)
 ```
 
-Acceptance is one transaction: validate active/unexpired invitation, resolve or create the invited identity through existing identity contracts, reconcile exactly one workspace membership, mark the invitation accepted, and convert the waitlist entry. A consumed, revoked, expired, altered, or concurrently lost token returns the safe error contract and performs no membership mutation. Repeated login or delivery retries use existing identity uniqueness and membership upsert semantics; raw tokens never persist or appear in logs.
+Acceptance is one transaction: validate active/unexpired invitation, resolve or create the identity through existing identity contracts after verifying normalized email, reconcile exactly one membership for the invitation's mandatory `workspaceId`, mark the invitation accepted with the principal identity, and only then update optional waitlist conversion state when `source == WAITLIST`. A consumed, revoked, expired, altered, or concurrently lost token returns a deterministic invalid-or-consumed error contract and performs no membership mutation. Repeated login or delivery retries use existing identity uniqueness and membership upsert semantics; raw tokens never persist or appear in logs. Invitation acceptance MUST NOT mutate email-verification state, and first login is a flow state rather than an Invitation aggregate state.
 
 ## File Changes
 
@@ -45,8 +45,18 @@ Acceptance is one transaction: validate active/unexpired invitation, resolve or 
 ## Interfaces / Contracts
 
 ```kotlin
-data class AcceptInvitationCommand(val rawToken: String, val principalId: String?)
-data class InvitationAcceptanceResult(val workspaceId: String, val membershipStatus: String)
+enum class InvitationSource { DIRECT, WAITLIST }
+enum class InvitationStatus { ACTIVE, ACCEPTED, EXPIRED, REVOKED }
+
+data class AcceptInvitationCommand(
+    val rawToken: String,
+    val authenticatedPrincipalId: String?,
+    val authenticatedEmail: String?,
+)
+data class InvitationAcceptanceResult(
+    val workspaceId: String,
+    val membershipStatus: String,
+)
 interface WorkspaceMembershipProvisioner {
     suspend fun reconcile(workspaceId: String, principalId: String): WorkspaceMembershipSnapshot
 }

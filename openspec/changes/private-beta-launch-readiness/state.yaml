@@ -1,5 +1,5 @@
 change: private-beta-launch-readiness
-current_phase: tasks
+current_phase: apply
 completed:
   - explore
   - propose
@@ -7,5 +7,7 @@ completed:
   - design
   - tasks
   - delivery-strategy
-next: apply
-updated: 2026-08-09
+  - contract-clarification
+  - apply-unit-1-activation-invitation-core
+next: apply-unit-1-bdd-and-http
+updated: 2026-08-10

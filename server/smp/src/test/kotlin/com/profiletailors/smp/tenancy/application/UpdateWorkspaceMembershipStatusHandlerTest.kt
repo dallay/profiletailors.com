@@ -212,5 +212,8 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
             memberships.remove(current)
             memberships.add(current.copy(status = status))
         }
+
+        override suspend fun reconcile(workspaceId: String, principalId: String): WorkspaceMembership =
+            memberships.first { it.workspaceId == workspaceId && it.principalId == principalId }
     }
 }

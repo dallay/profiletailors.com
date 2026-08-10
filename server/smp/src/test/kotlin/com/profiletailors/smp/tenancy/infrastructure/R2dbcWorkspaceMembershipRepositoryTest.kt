@@ -46,6 +46,29 @@ class R2dbcWorkspaceMembershipRepositoryTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `reconcile returns existing membership without inserting a duplicate`() = runTest {
+        val membership = repository.reconcile("ws-1", "member-1")
+
+        assertEquals("m-1", membership.id)
+        assertEquals(1, repository.findByWorkspaceId("ws-1").size)
+    }
+
+    @Test
+    fun `reconcile inserts one active membership for a principal without one`() = runTest {
+        databaseClient.sql(
+            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('member-2', 'USER', 'member-2', NULL, 'Member Two')",
+        ).then().block()
+
+        val membership = repository.reconcile("ws-1", "member-2")
+
+        assertEquals("ws-1", membership.workspaceId)
+        assertEquals("member-2", membership.principalId)
+        assertEquals(PrincipalType.USER, membership.principalType)
+        assertEquals(WorkspaceMembershipStatus.ACTIVE, membership.status)
+        assertEquals(2, repository.findByWorkspaceId("ws-1").size)
+    }
+
+    @Test
     fun `findByWorkspaceId and updateStatus works correctly`() = runTest {
         val memberships = repository.findByWorkspaceId("ws-1")
         assertEquals(1, memberships.size)

@@ -26,10 +26,10 @@ Chain strategy: GitHub stacked PRs
 
 ## Phase 1: Code — Activation and Invitation (DALLAY-520/556)
 
-- [ ] 1.1 RED: add Kotlin tests under `server/smp/src/test/kotlin/com/profiletailors/smp/{platformadmin,tenancy}` for valid/expired/replayed tokens, atomic consume, one membership, and cross-workspace denial.
-- [ ] 1.2 GREEN: add `AcceptInvitationCommand`/handler, identity and `WorkspaceMembershipProvisioner` ports, safe DTOs, and uniqueness-safe reconcile under `server/smp/src/main/kotlin/com/profiletailors/smp/{platformadmin,tenancy}`.
-- [ ] 1.3 REFACTOR: retain hexagonal boundaries, deny-by-default context, hashed secrets, and token/PII-free responses/logs.
-- [ ] 1.4 RED: add `@smoke @fast` Cucumber scenarios/steps in `server/smp/src/test/resources/features/` and `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/` for acceptance, first login, replay, and isolation.
+- [x] 1.1 RED: add Kotlin tests under `server/smp/src/test/kotlin/com/profiletailors/smp/{platformadmin,tenancy}` for direct and waitlist-origin invitations, optional source reference, mandatory workspace, normalized email match, valid/expired/revoked/replayed tokens, atomic consume, one membership, no email-verification mutation, and cross-workspace denial. (Application/domain tests plus repository persistence coverage added; HTTP/BDD scenarios remain.)
+- [x] 1.2 GREEN: add first-class `Invitation` domain model and secure token lifecycle, `AcceptInvitationCommand`/handler, identity and `WorkspaceMembershipProvisioner` ports, safe DTOs, and uniqueness-safe reconcile under `server/smp/src/main/kotlin/com/profiletailors/smp/{platformadmin,tenancy}`. `workspaceId` MUST come from the persisted invitation; `waitlistEntryId` MUST remain optional. First-class repository/schema persistence is included.
+- [x] 1.3 REFACTOR: retain hexagonal boundaries, deny-by-default context, hashed secrets, deterministic consumed/invalid errors, no implicit email-verification or first-login aggregate state changes, and token/PII-free responses/logs. Focused unit, repository, and fast backend suites pass; BDD endpoint coverage remains.
+- [ ] 1.4 RED: add `@smoke @fast` Cucumber scenarios/steps in `server/smp/src/test/resources/features/` and `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/` for direct/waitlist acceptance, new/existing identity, first login, replay, and isolation.
 - [ ] 1.5 GREEN/REFACTOR: wire steps and run `just backend-bdd-fast` plus `just backend-bdd-postgres`.
 
 ## Phase 2: Code — Publishing Controls (DALLAY-555/557)

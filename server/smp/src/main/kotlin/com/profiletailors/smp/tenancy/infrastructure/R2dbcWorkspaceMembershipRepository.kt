@@ -5,8 +5,10 @@ import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipRepository
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 @Repository
 internal class R2dbcWorkspaceMembershipRepository(private val databaseClient: DatabaseClient) :
@@ -50,5 +52,56 @@ internal class R2dbcWorkspaceMembershipRepository(private val databaseClient: Da
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+    }
+
+    override suspend fun reconcile(workspaceId: String, principalId: String): WorkspaceMembership {
+        val existing = databaseClient.sql(
+            """
+            SELECT id, workspace_id, principal_id, principal_type, status
+            FROM workspace_memberships
+            WHERE workspace_id = :workspaceId AND principal_id = :principalId
+            FOR UPDATE
+            """.trimIndent(),
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("principalId", principalId)
+            .map { row, _ ->
+                WorkspaceMembership(
+                    id = requireNotNull(row.get("id", String::class.java)),
+                    workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+                    principalId = requireNotNull(row.get("principal_id", String::class.java)),
+                    principalType = PrincipalType.valueOf(
+                        requireNotNull(row.get("principal_type", String::class.java)),
+                    ),
+                    status = WorkspaceMembershipStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
+                )
+            }
+            .one()
+            .awaitSingleOrNull()
+
+        if (existing != null) return existing
+
+        val id = "wm-${UUID.randomUUID()}"
+        databaseClient.sql(
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES (:id, :workspaceId, :principalId, :principalType, :status)
+            """.trimIndent(),
+        )
+            .bind("id", id)
+            .bind("workspaceId", workspaceId)
+            .bind("principalId", principalId)
+            .bind("principalType", PrincipalType.USER.name)
+            .bind("status", WorkspaceMembershipStatus.ACTIVE.name)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        return WorkspaceMembership(
+            id = id,
+            workspaceId = workspaceId,
+            principalId = principalId,
+            principalType = PrincipalType.USER,
+            status = WorkspaceMembershipStatus.ACTIVE,
+        )
     }
 }
