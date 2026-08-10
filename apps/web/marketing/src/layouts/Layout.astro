@@ -130,6 +130,25 @@ const jsonLdString = JSON.stringify(jsonLd);
         <script is:inline type="application/ld+json" set:html={jsonLdString} />
       )
     }
+
+    <!-- Speculation Rules API for instant page loads -->
+    <script type="speculationrules" is:inline>
+      {
+        "prerender": [
+          {
+            "where": {
+              "and": [
+                { "href_matches": "/*" },
+                { "not": { "href_matches": "/logout" } },
+                { "not": { "selector_matches": "[rel~=nofollow]" } },
+                { "not": { "selector_matches": "[data-no-prerender]" } }
+              ]
+            },
+            "eagerness": "moderate"
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
