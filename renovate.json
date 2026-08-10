@@ -46,12 +46,7 @@
     {
       "description": "Group Spring Framework & Security core",
       "matchManagers": ["gradle"],
-      "matchPackageNames": ["org.springframework{/,}**"],
-      "excludePackageNames": [
-        "org.springframework.boot{/,}**",
-        "org.springframework.modulith{/,}**",
-        "org.springframework.ai{/,}**"
-      ],
+      "matchPackageNames": ["org.springframework{/,}**", "!org.springframework.boot{/,}**", "!org.springframework.modulith{/,}**", "!org.springframework.ai{/,}**"],
       "groupName": "Spring Framework",
       "groupSlug": "spring-framework"
     },
