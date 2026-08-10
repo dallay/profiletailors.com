@@ -43,6 +43,6 @@ overrides:
   undici: ">=7.28.0 <9.0.0"
   hono: ">=4.13.1"
   js-yaml: "4.3.1"
-  devalue: ">=5.8.2"
+  devalue: ">=5.9.0"
   yaml: "^2.9.0"
   "@babel/core": ">=8.0.1"
