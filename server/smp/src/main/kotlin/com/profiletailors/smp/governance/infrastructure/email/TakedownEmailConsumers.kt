@@ -15,7 +15,6 @@ import com.profiletailors.smp.governance.domain.event.TakedownApproved
 import com.profiletailors.smp.governance.domain.event.TakedownRejected
 import com.profiletailors.smp.governance.domain.event.TakedownReported
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipRepository
-import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.time.Clock
@@ -40,8 +39,8 @@ internal class SendTakedownReportedEmailConsumer(
     private val log = LoggerFactory.getLogger(SendTakedownReportedEmailConsumer::class.java)
 
     override suspend fun consume(event: TakedownReported) {
-        val owners = workspaceOwnershipRepository.findByWorkspaceId(event.workspaceId)
-        if (owners.isEmpty()) {
+        val ownerPrincipalIds = workspaceOwnershipRepository.findOwnerIds(event.workspaceId)
+        if (ownerPrincipalIds.isEmpty()) {
             log.warn(
                 "No workspace owners found for workspace '{}'; skipping takedown reported email for report '{}'",
                 event.workspaceId,
@@ -50,17 +49,17 @@ internal class SendTakedownReportedEmailConsumer(
             return
         }
 
-        for (ownership in owners) {
-            sendToOwner(event, ownership)
+        for (ownerPrincipalId in ownerPrincipalIds) {
+            sendToOwner(event, ownerPrincipalId)
         }
     }
 
-    private suspend fun sendToOwner(event: TakedownReported, ownership: WorkspaceOwnership) {
-        val recipient = principalIdentityPort.findEmailByPrincipalId(ownership.ownerPrincipalId)
+    private suspend fun sendToOwner(event: TakedownReported, ownerPrincipalId: String) {
+        val recipient = principalIdentityPort.findEmailByPrincipalId(ownerPrincipalId)
         if (recipient.isNullOrBlank()) {
             log.warn(
                 "Could not resolve email for owner '{}' on workspace '{}'; skipping",
-                ownership.ownerPrincipalId,
+                ownerPrincipalId,
                 event.workspaceId,
             )
             return

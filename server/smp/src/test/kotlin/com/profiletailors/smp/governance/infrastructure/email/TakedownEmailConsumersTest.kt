@@ -1,6 +1,5 @@
 package com.profiletailors.smp.governance.infrastructure.email
 
-import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.notifications.application.ports.EmailDispatchResult
 import com.profiletailors.notifications.application.ports.EmailDispatcher
 import com.profiletailors.notifications.domain.IdempotencyKey
@@ -12,7 +11,6 @@ import com.profiletailors.smp.governance.domain.event.TakedownApproved
 import com.profiletailors.smp.governance.domain.event.TakedownRejected
 import com.profiletailors.smp.governance.domain.event.TakedownReported
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipRepository
-import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -39,18 +37,7 @@ internal class TakedownEmailConsumersTest {
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
         val identityPort = mockk<PrincipalIdentityPort>()
 
-        coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
-            WorkspaceOwnership(
-                workspaceId = "ws-001",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-            WorkspaceOwnership(
-                workspaceId = "ws-001",
-                ownerPrincipalId = "owner-2",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-        )
+        coEvery { ownershipRepository.findOwnerIds("ws-001") } returns setOf("owner-1", "owner-2")
         coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
         coEvery { identityPort.findEmailByPrincipalId("owner-2") } returns "owner2@example.com"
         coEvery { repository.findByIdempotencyKey(any()) } returns null
@@ -79,13 +66,7 @@ internal class TakedownEmailConsumersTest {
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
         val identityPort = mockk<PrincipalIdentityPort>()
 
-        coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
-            WorkspaceOwnership(
-                workspaceId = "ws-001",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-        )
+        coEvery { ownershipRepository.findOwnerIds("ws-001") } returns setOf("owner-1")
         coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns null
         coEvery { repository.findByIdempotencyKey(any()) } returns null
 
@@ -108,13 +89,7 @@ internal class TakedownEmailConsumersTest {
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
         val identityPort = mockk<PrincipalIdentityPort>()
 
-        coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
-            WorkspaceOwnership(
-                workspaceId = "ws-001",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-        )
+        coEvery { ownershipRepository.findOwnerIds("ws-001") } returns setOf("owner-1")
         coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
         coEvery { repository.findByIdempotencyKey(any()) } returns mockk<Notification>(relaxed = true)
 
@@ -138,13 +113,7 @@ internal class TakedownEmailConsumersTest {
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
         val identityPort = mockk<PrincipalIdentityPort>()
 
-        coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
-            WorkspaceOwnership(
-                workspaceId = "ws-001",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-        )
+        coEvery { ownershipRepository.findOwnerIds("ws-001") } returns setOf("owner-1")
         coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
         coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
         val seenKey = slot<IdempotencyKey>()
@@ -172,13 +141,7 @@ internal class TakedownEmailConsumersTest {
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
         val identityPort = mockk<PrincipalIdentityPort>()
 
-        coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
-            WorkspaceOwnership(
-                workspaceId = "ws-001",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-        )
+        coEvery { ownershipRepository.findOwnerIds("ws-001") } returns setOf("owner-1")
         coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
         coEvery { repository.findByIdempotencyKey(any()) } returns null
         coEvery { repository.save(any()) } answers { firstArg() }
@@ -208,7 +171,7 @@ internal class TakedownEmailConsumersTest {
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
         val identityPort = mockk<PrincipalIdentityPort>()
 
-        coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns emptySet()
+        coEvery { ownershipRepository.findOwnerIds("ws-001") } returns emptySet()
 
         val consumer = SendTakedownReportedEmailConsumer(
             emailDispatcher = dispatcher,
@@ -367,13 +330,7 @@ internal class TakedownEmailConsumersTest {
         val ownershipRepository = mockk<WorkspaceOwnershipRepository>()
         val identityPort = mockk<PrincipalIdentityPort>()
 
-        coEvery { ownershipRepository.findByWorkspaceId("ws-001") } returns setOf(
-            WorkspaceOwnership(
-                workspaceId = "ws-001",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-        )
+        coEvery { ownershipRepository.findOwnerIds("ws-001") } returns setOf("owner-1")
         coEvery { identityPort.findEmailByPrincipalId("owner-1") } returns "owner1@example.com"
         coEvery { repository.findByIdempotencyKey(any()) } returns null
         coEvery { repository.save(any()) } answers { firstArg() }

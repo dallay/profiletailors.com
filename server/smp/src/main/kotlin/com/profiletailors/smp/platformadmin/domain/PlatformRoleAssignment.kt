@@ -1,8 +1,10 @@
 package com.profiletailors.smp.platformadmin.domain
 
+import com.profiletailors.common.domain.AggregateRoot
 import java.time.Instant
 import java.util.UUID
 
+@AggregateRoot
 data class PlatformRoleAssignment(
     val id: PlatformRoleAssignmentId,
     val principalId: UUID,

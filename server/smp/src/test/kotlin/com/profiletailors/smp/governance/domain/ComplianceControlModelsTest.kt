@@ -1,6 +1,7 @@
 package com.profiletailors.smp.governance.domain
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -79,5 +80,21 @@ internal class ComplianceControlModelsTest {
         )
         val updated = original.copy(status = ComplianceControlStatus.DEPRECATED)
         assertTrue(updated.version == original.version || updated.version > original.version)
+    }
+
+    @Test
+    fun `value object ids reject blank values`() {
+        assertThrows<IllegalArgumentException> { ComplianceControlId("") }
+        assertThrows<IllegalArgumentException> { ComplianceControlId("   ") }
+        assertThrows<IllegalArgumentException> { ComplianceControlApplicabilityRuleId("") }
+        assertThrows<IllegalArgumentException> { ComplianceControlApplicabilityRuleId("   ") }
+        assertThrows<IllegalArgumentException> { ApplicabilityDimensionId("") }
+        assertThrows<IllegalArgumentException> { ApplicabilityDimensionId("   ") }
+        assertThrows<IllegalArgumentException> { ComplianceControlEvidenceRequirementId("") }
+        assertThrows<IllegalArgumentException> { ComplianceControlEvidenceRequirementId("   ") }
+        assertThrows<IllegalArgumentException> { ComplianceEvidenceId("") }
+        assertThrows<IllegalArgumentException> { ComplianceEvidenceId("   ") }
+        assertThrows<IllegalArgumentException> { ComplianceRiskAcceptanceId("") }
+        assertThrows<IllegalArgumentException> { ComplianceRiskAcceptanceId("   ") }
     }
 }

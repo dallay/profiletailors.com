@@ -1,5 +1,6 @@
 package com.profiletailors.smp.governance.domain
 
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 
 /**
@@ -34,6 +35,7 @@ data class RequirementResult(
     val matchedEvidenceCount: Int,
 )
 
+@ValueObject
 enum class RequirementStatus { SATISFIED, PENDING, MISSING }
 
 /**

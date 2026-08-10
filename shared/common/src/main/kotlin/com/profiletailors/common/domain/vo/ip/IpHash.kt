@@ -1,5 +1,7 @@
 package com.profiletailors.common.domain.vo.ip
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * A validated SHA-256 hash of an IP address, used for privacy-safe tracking.
  *
@@ -13,6 +15,7 @@ package com.profiletailors.common.domain.vo.ip
  * @throws IllegalArgumentException if the value is not a valid SHA-256 hex string
  * @since 1.0.0
  */
+@ValueObject
 @JvmInline
 value class IpHash(val value: String) {
     init {

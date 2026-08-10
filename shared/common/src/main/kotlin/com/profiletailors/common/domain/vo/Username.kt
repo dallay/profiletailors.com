@@ -1,5 +1,8 @@
 package com.profiletailors.common.domain.vo
 
+import com.profiletailors.common.domain.ValueObject
+
+@ValueObject
 @JvmInline
 value class Username(val value: String) {
     init {

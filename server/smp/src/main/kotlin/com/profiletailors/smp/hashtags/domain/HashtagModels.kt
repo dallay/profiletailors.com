@@ -1,9 +1,12 @@
 package com.profiletailors.smp.hashtags.domain
 
+import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 
 const val LINKEDIN_HASHTAG_LIMIT = 30
 
+@ValueObject
 enum class HashtagPopularity { TRENDING, HIGH, MEDIUM, LOW }
 
 data class HashtagSuggestion(
@@ -21,6 +24,7 @@ data class HashtagAnalysis(
     val maxRecommended: Int = 10,
 )
 
+@AggregateRoot
 data class HashtagSavedSet(
     val id: String,
     val workspaceId: String,

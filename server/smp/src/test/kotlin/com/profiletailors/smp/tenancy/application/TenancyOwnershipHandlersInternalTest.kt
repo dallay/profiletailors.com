@@ -565,6 +565,10 @@ class TenancyOwnershipHandlersInternalTest {
         override suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceOwnership> =
             ownerships.filterTo(linkedSetOf()) { it.workspaceId == workspaceId }
 
+        override suspend fun findOwnerIds(workspaceId: String): Set<String> = ownerships
+            .filterTo(linkedSetOf()) { it.workspaceId == workspaceId }
+            .mapTo(linkedSetOf()) { it.ownerPrincipalId }
+
         override suspend fun add(ownership: WorkspaceOwnership) {
             ownerships.add(ownership)
         }

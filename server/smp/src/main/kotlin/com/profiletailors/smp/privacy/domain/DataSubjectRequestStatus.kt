@@ -1,5 +1,7 @@
 package com.profiletailors.smp.privacy.domain
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * Lifecycle status of a [DataSubjectRequest].
  *
@@ -8,6 +10,7 @@ package com.profiletailors.smp.privacy.domain
  *
  * @since 1.0.0
  */
+@ValueObject
 enum class DataSubjectRequestStatus {
     PENDING,
     COMPLETED,

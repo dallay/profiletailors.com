@@ -1,5 +1,7 @@
 package com.profiletailors.smp.identity.domain
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * Email verification status for a user identity.
  *
@@ -8,6 +10,7 @@ package com.profiletailors.smp.identity.domain
  * - [VERIFIED] — user has successfully verified ownership of their email
  * - [BOUNCED] — verification email bounced (invalid address, full mailbox, etc.)
  */
+@ValueObject
 enum class EmailStatus {
     PENDING,
     VERIFIED,

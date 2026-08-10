@@ -1,5 +1,6 @@
 package com.profiletailors.smp.privacy.domain
 
+import com.profiletailors.common.domain.AggregateRoot
 import java.time.Duration
 import java.time.Instant
 
@@ -41,6 +42,7 @@ data class CreateDataSubjectRequest(
  * @property expiresAt Retention expiry (createdAt + 30 days)
  * @since 1.0.0
  */
+@AggregateRoot
 data class DataSubjectRequest(
     val id: DataSubjectRequestId,
     val requestType: RequestType,
