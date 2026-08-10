@@ -35,7 +35,7 @@ RUN --mount=type=cache,id=gradle,target=/root/.gradle/caches \
 # On each target platform the base image is automatically the matching
 # variant. Temurin 21-jre-noble ships multi-arch (linux/amd64,
 # linux/arm64).
-FROM --platform=$TARGETPLATFORM eclipse-temurin:21-jre-noble@sha256:373787d1d45a87f084fda43e7de0e9acf5eedee049446efac738f13587ec4c64 AS runtime
+FROM --platform=$TARGETPLATFORM eclipse-temurin:21-jre-noble@sha256:ca397720325ceefe39ce397f186759fc87d9efafb2dc4ce53315980844c2f4f2 AS runtime
 
 ARG SMP_VERSION="dev"
 LABEL org.opencontainers.image.version=$SMP_VERSION \
