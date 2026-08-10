@@ -19,7 +19,7 @@
 #     --push .
 
 # ── Stage 1: build the executable jar ────────────────────────────────────
-FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk-noble@sha256:35685c7e23352983a48882d97cd9875f5284c228db71d1e2476e5e6c1bab1080 AS builder
+FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk-noble@sha256:a871f3e3caddad75608fd4531ed8bbca5cc42a27dc1da3ea3a2e554772b0ee15 AS builder
 
 WORKDIR /workspace
 
