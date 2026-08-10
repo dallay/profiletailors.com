@@ -8,7 +8,7 @@ springdoc = "3.0.3"
 detekt = "2.0.0-alpha.3"
 spotless = "8.7.0"
 owasp = "13.0.0"
-licenceReport = "2.9"
+licenceReport = "3.1.4"
 jdk = "21"
 
 # Libraries
