@@ -7,7 +7,7 @@ springAi = "2.0.0"
 springdoc = "3.0.3"
 detekt = "2.0.0-alpha.3"
 spotless = "8.7.0"
-owasp = "12.1.9"
+owasp = "13.0.0"
 licenceReport = "2.9"
 jdk = "21"
 
