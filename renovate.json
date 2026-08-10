@@ -19,62 +19,112 @@
   "minimumReleaseAge": "3 days",
   "lockFileMaintenance": {
     "enabled": true,
-      "schedule": ["before 7am on monday"]
+    "schedule": ["before 7am on monday"]
   },
   "packageRules": [
     {
       "description": "Group Kotlin language updates",
       "matchManagers": ["gradle"],
+      "matchPackageNames": ["org.jetbrains.kotlin{/,}**"],
       "groupName": "Kotlin",
-      "groupSlug": "kotlin",
-      "matchPackageNames": [
-        "org.jetbrains.kotlin{/,}**"
-      ]
+      "groupSlug": "kotlin"
     },
     {
       "description": "Group KotlinX coroutines & related",
       "matchManagers": ["gradle"],
+      "matchPackageNames": ["org.jetbrains.kotlinx{/,}**"],
       "groupName": "KotlinX",
-      "groupSlug": "kotlinx",
-      "matchPackageNames": [
-        "org.jetbrains.kotlinx{/,}**"
-      ]
+      "groupSlug": "kotlinx"
     },
     {
-      "description": "Group Cucumber BDD",
+      "description": "Group Spring Boot starters (managed by BOM, single PR)",
       "matchManagers": ["gradle"],
-      "groupName": "Cucumber",
-      "groupSlug": "cucumber",
-      "matchPackageNames": [
-        "io.cucumber{/,}**"
-      ]
+      "matchPackageNames": ["org.springframework.boot{/,}**"],
+      "groupName": "Spring Boot",
+      "groupSlug": "spring-boot"
     },
     {
-      "description": "Group Testcontainers",
+      "description": "Group Spring Framework & Security core",
       "matchManagers": ["gradle"],
-      "groupName": "Testcontainers",
-      "groupSlug": "testcontainers",
-      "matchPackageNames": [
-        "org.testcontainers{/,}**"
-      ]
-    },
-    {
-      "description": "Group Jackson (3.x line)",
-      "matchManagers": ["gradle"],
-      "groupName": "Jackson",
-      "groupSlug": "jackson",
-      "matchPackageNames": [
-        "tools.jackson{/,}**"
-      ]
+      "matchPackageNames": ["org.springframework{/,}**"],
+      "excludePackageNames": [
+        "org.springframework.boot{/,}**",
+        "org.springframework.modulith{/,}**",
+        "org.springframework.ai{/,}**"
+      ],
+      "groupName": "Spring Framework",
+      "groupSlug": "spring-framework"
     },
     {
       "description": "Group Spring Modulith",
       "matchManagers": ["gradle"],
+      "matchPackageNames": ["org.springframework.modulith{/,}**"],
       "groupName": "Spring Modulith",
-      "groupSlug": "spring-modulith",
+      "groupSlug": "spring-modulith"
+    },
+    {
+      "description": "Group Spring AI (managed by BOM)",
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["org.springframework.ai{/,}**"],
+      "groupName": "Spring AI",
+      "groupSlug": "spring-ai"
+    },
+    {
+      "description": "Group Jackson (tools.jackson 3.x + com.fasterxml.jackson 2.x compat)",
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["tools.jackson{/,}**", "com.fasterxml.jackson{/,}**"],
+      "groupName": "Jackson",
+      "groupSlug": "jackson"
+    },
+    {
+      "description": "Group Reactor reactive stack",
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["io.projectreactor{/,}**", "reactor-kotlin-extensions"],
+      "groupName": "Reactor",
+      "groupSlug": "reactor"
+    },
+    {
+      "description": "Group Cucumber BDD",
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["io.cucumber{/,}**"],
+      "groupName": "Cucumber",
+      "groupSlug": "cucumber"
+    },
+    {
+      "description": "Group Testcontainers",
+      "matchManagers": ["gradle"],
+      "matchPackageNames": ["org.testcontainers{/,}**"],
+      "groupName": "Testcontainers",
+      "groupSlug": "testcontainers"
+    },
+    {
+      "description": "Group backend testing libs (JUnit, AssertJ, MockK, Kotest, ArchUnit, Konsist)",
+      "matchManagers": ["gradle"],
       "matchPackageNames": [
-        "org.springframework.modulith{/,}**"
-      ]
+        "org.junit{/,}**",
+        "org.assertj{/,}**",
+        "io.mockk{/,}**",
+        "io.kotest{/,}**",
+        "com.tngtech.archunit{/,}**",
+        "com.lemonappdev{/,}**"
+      ],
+      "groupName": "Backend Testing",
+      "groupSlug": "backend-testing"
+    },
+    {
+      "description": "Group Gradle plugins (detekt, spotless, kover, owasp, licence-report, dependency-management)",
+      "matchManagers": ["gradle"],
+      "matchDepTypes": ["plugin"],
+      "matchPackageNames": [
+        "dev.detekt{/,}**",
+        "com.diffplug.spotless{/,}**",
+        "org.jetbrains.kotlinx{/,}**",
+        "org.owasp{/,}**",
+        "com.github.jk1{/,}**",
+        "io.spring.dependency-management{/,}**"
+      ],
+      "groupName": "Gradle Plugins",
+      "groupSlug": "gradle-plugins"
     },
     {
       "description": "Group Bucket4j + Caffeine (caching)",
@@ -84,60 +134,81 @@
       "groupSlug": "caching"
     },
     {
-      "description": "Group Spring Boot starters (managed by BOM, single PR)",
-      "matchManagers": ["gradle"],
-      "groupName": "Spring Boot",
-      "groupSlug": "spring-boot",
-      "matchPackageNames": [
-        "org.springframework.boot{/,}**"
-      ]
-    },
-    {
       "description": "Group Vue core ecosystem",
-      "matchFileNames": ["apps/web/app/package.json", "shared/web/package.json"],
       "matchPackageNames": [
         "vue",
         "vue-router",
         "vue-i18n",
         "vue-sonner",
         "vue-tsc",
-        "pinia"
+        "pinia",
+        "@vue{/,}**",
+        "@vueuse{/,}**"
       ],
       "groupName": "Vue Core",
       "groupSlug": "vue-core"
     },
     {
+      "description": "Group Vue UI/headless component ecosystem",
+      "matchPackageNames": [
+        "reka-ui",
+        "shadcn-vue",
+        "vaul-vue",
+        "embla-carousel-vue",
+        "driver.js",
+        "@tanstack/vue-table",
+        "@unovis/vue",
+        "@lucide/vue",
+        "@internationalized/date",
+        "@atlaskit/pragmatic-drag-and-drop",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge",
+        "tw-animate-css",
+        "vee-validate"
+      ],
+      "groupName": "Vue UI",
+      "groupSlug": "vue-ui"
+    },
+    {
       "description": "Group Astro & related",
-      "matchFileNames": ["apps/web/marketing/package.json"],
-      "matchPackageNames": ["astro", "@astrojs/check", "@dallay/astro-icon"],
+      "matchPackageNames": ["astro", "@astrojs{/,}**", "@dallay{/,}**", "@iconify-json{/,}**"],
       "groupName": "Astro",
       "groupSlug": "astro"
+    },
+    {
+      "description": "Group Vite + Vitest tooling",
+      "matchPackageNames": [
+        "vite",
+        "@vitejs{/,}**",
+        "vitest",
+        "@vitest{/,}**",
+        "jsdom",
+        "typescript",
+        "@types{/,}**",
+        "@tsconfig{/,}**",
+        "npm-run-all2"
+      ],
+      "groupName": "Frontend Tooling",
+      "groupSlug": "frontend-tooling"
     },
     {
       "description": "Group Tailwind CSS packages",
       "groupName": "Tailwind CSS",
       "groupSlug": "tailwindcss",
-      "matchPackageNames": [
-        "tailwindcss{/,}**",
-        "@tailwindcss{/,}**"
-      ]
+      "matchPackageNames": ["tailwindcss{/,}**", "@tailwindcss{/,}**"]
     },
     {
       "description": "Group Playwright packages",
       "groupName": "Playwright",
       "groupSlug": "playwright",
-      "matchPackageNames": [
-        "@playwright{/,}**",
-        "playwright{/,}**"
-      ]
+      "matchPackageNames": ["@playwright{/,}**", "playwright{/,}**", "@axe-core{/,}**", "@bgotink{/,}**"]
     },
     {
       "description": "Group Biome tooling",
       "groupName": "Biome",
       "groupSlug": "biome",
-      "matchPackageNames": [
-        "@biomejs{/,}**"
-      ]
+      "matchPackageNames": ["@biomejs{/,}**"]
     },
     {
       "description": "Group Zod (shared + app use pinned versions)",
