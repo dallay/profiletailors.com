@@ -22,6 +22,6 @@
   "devDependencies": {
     "vitest": "^3.2.7",
     "@vitest/ui": "^3.2.7",
-    "jsdom": "^25.0.1"
+    "jsdom": "^30.0.0"
   }
 }
