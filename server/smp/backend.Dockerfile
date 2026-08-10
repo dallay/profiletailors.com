@@ -19,7 +19,7 @@
 #     --push .
 
 # ── Stage 1: build the executable jar ────────────────────────────────────
-FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk-noble@sha256:35685c7e23352983a48882d97cd9875f5284c228db71d1e2476e5e6c1bab1080 AS builder
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk-noble@sha256:735baf2edc6cd6485240144a84fa4db142b9a6f47b4eb4080f31058d200f9813 AS builder
 
 WORKDIR /workspace
 
@@ -35,7 +35,7 @@ RUN --mount=type=cache,id=gradle,target=/root/.gradle/caches \
 # On each target platform the base image is automatically the matching
 # variant. Temurin 21-jre-noble ships multi-arch (linux/amd64,
 # linux/arm64).
-FROM --platform=$TARGETPLATFORM eclipse-temurin:21-jre-noble@sha256:373787d1d45a87f084fda43e7de0e9acf5eedee049446efac738f13587ec4c64 AS runtime
+FROM --platform=$TARGETPLATFORM eclipse-temurin:25-jre-noble@sha256:fbcf915c585659b30eb766ada4d6d7cfc9ec1040bf521e95bf61b10a25af73db AS runtime
 
 ARG SMP_VERSION="dev"
 LABEL org.opencontainers.image.version=$SMP_VERSION \
