@@ -230,4 +230,29 @@ test.describe('Performance', () => {
 
     expect(errors).toHaveLength(0);
   });
+
+  test('should include speculationrules script with moderate eagerness', async ({ page }) => {
+    await dismissConsentBanner(page);
+    await page.goto('/');
+
+    const script = page.locator('script[type="speculationrules"]');
+    await expect(script).toHaveCount(1);
+
+    const content = await script.textContent();
+    expect(content).not.toBeNull();
+    const rules = JSON.parse(content || '{}');
+    expect(rules.prerender).toBeDefined();
+    expect(rules.prerender[0].eagerness).toBe('moderate');
+
+    // Also verify on the Spanish locale page
+    await page.goto('/es');
+    const esScript = page.locator('script[type="speculationrules"]');
+    await expect(esScript).toHaveCount(1);
+
+    const esContent = await esScript.textContent();
+    expect(esContent).not.toBeNull();
+    const esRules = JSON.parse(esContent || '{}');
+    expect(esRules.prerender).toBeDefined();
+    expect(esRules.prerender[0].eagerness).toBe('moderate');
+  });
 });
