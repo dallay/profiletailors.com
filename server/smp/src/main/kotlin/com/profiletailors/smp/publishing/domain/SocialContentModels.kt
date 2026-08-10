@@ -1,9 +1,12 @@
 package com.profiletailors.smp.publishing.domain
 
+import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.ValueObject
 import java.time.Duration
 import java.time.Instant
 
 /** Workspace identifier that scopes every social-content read, sync, and reply operation. */
+@ValueObject
 @JvmInline
 value class WorkspaceScope(val value: String) {
     init {
@@ -12,6 +15,7 @@ value class WorkspaceScope(val value: String) {
 }
 
 /** Provider-assigned actor id (e.g. `urn:li:organization:123`) identifying the remote social account. */
+@ValueObject
 @JvmInline
 value class ProviderActorId(val value: String) {
     init {
@@ -20,6 +24,7 @@ value class ProviderActorId(val value: String) {
 }
 
 /** Provider-assigned post id used to reconcile external social posts with local publications. */
+@ValueObject
 @JvmInline
 value class ExternalPostId(val value: String) {
     init {
@@ -28,6 +33,7 @@ value class ExternalPostId(val value: String) {
 }
 
 /** Provider-assigned comment id used to dedupe inbound social comments and replies. */
+@ValueObject
 @JvmInline
 value class ExternalCommentId(val value: String) {
     init {
@@ -36,6 +42,7 @@ value class ExternalCommentId(val value: String) {
 }
 
 /** Caller-supplied key that guarantees a reply command is executed at most once. */
+@ValueObject
 @JvmInline
 value class IdempotencyKey(val value: String) {
     init {
@@ -43,17 +50,33 @@ value class IdempotencyKey(val value: String) {
     }
 }
 
+@ValueObject
 enum class ActorRoleState { ADMIN, MEMBER, UNKNOWN, REVOKED }
+
+@ValueObject
 enum class PostOrigin { EXTERNAL_OR_UNKNOWN, PROFILETAILORS }
+
+@ValueObject
 enum class PostLifecycle { PUBLISHED, TOMBSTONED }
+
+@ValueObject
 enum class ThreadState { OPEN, CLOSED, PROCESSING, DELETED }
+
+@ValueObject
 enum class SyncResource { POSTS, COMMENTS }
+
+@ValueObject
 enum class CacheKind { ACTIVITY, COMMENTER_PROFILE }
+
+@ValueObject
 enum class CapabilityOperation { DISCOVER_ACTORS, READ_POSTS, READ_COMMENTS, REPLY }
+
+@ValueObject
 enum class CapabilityFailure { REAUTH_REQUIRED, ROLE_REQUIRED, MISSING_SCOPE, UNSUPPORTED }
 
 private const val MAX_CALENDAR_LIMIT = 100
 
+@ValueObject
 data class SocialContentCalendarQuery(
     val scope: WorkspaceScope,
     val from: Instant,
@@ -71,6 +94,7 @@ data class SocialContentCalendarQuery(
     }
 }
 
+@ValueObject
 enum class SocialContentAccessDenial {
     OPERATION_DISABLED,
     EVIDENCE_MISSING,
@@ -88,6 +112,7 @@ enum class SocialContentAccessDenial {
 class SocialContentAccessDeniedException(val denial: SocialContentAccessDenial) :
     IllegalStateException("Social content access denied: $denial")
 
+@ValueObject
 data class SocialContentApprovalEvidence(
     val workspaceId: String,
     val socialAccountId: String,
@@ -113,6 +138,7 @@ data class SocialContentAccessRequest(
     val apiVersion: String?,
 )
 
+@ValueObject
 data class SocialContentSyncLimits(val pageSize: Int, val maxPages: Int) {
     init {
         require(pageSize in MIN_PAGE_SIZE..MAX_PAGE_SIZE) {
@@ -141,6 +167,7 @@ sealed interface CapabilityDecision {
     data class Denied(val failure: CapabilityFailure) : CapabilityDecision
 }
 
+@ValueObject
 @JvmInline
 value class PageCursor(val value: String) {
     init {
@@ -185,6 +212,7 @@ data class ProviderCapabilities(
  *
  * Both TTLs must be strictly positive; the values feed payload-cache expiry and tombstone cleanup.
  */
+@ValueObject
 data class RetentionRequirements(val activityTtl: Duration, val commenterProfileTtl: Duration) {
     init {
         require(!activityTtl.isNegative && !activityTtl.isZero) { "Activity TTL must be positive." }
@@ -219,6 +247,7 @@ data class SocialContentActorCandidate(
  * The actor is the unit of capability and import: only organization pages are accepted, and derived
  * capabilities drive every downstream permission check.
  */
+@AggregateRoot
 data class SocialContentActor(
     val id: String,
     val scope: WorkspaceScope,
@@ -272,6 +301,7 @@ data class SocialContentActor(
  * [origin] traces the provenance; [lifecycle] distinguishes published posts from tombstoned ones;
  * [expiresAt] drives automated cleanup once the activity TTL elapses.
  */
+@AggregateRoot
 data class SocialPost(
     val scope: WorkspaceScope,
     val provider: SocialProvider,
@@ -342,6 +372,7 @@ data class SocialPost(
  *
  * [lastSuccessfulAt] records the last successful sync attempt; [highWaterMark] tracks the highest known publishedAt.
  */
+@AggregateRoot
 data class SyncCheckpoint(
     val scope: WorkspaceScope,
     val actorId: String,
@@ -378,6 +409,7 @@ data class SyncCheckpoint(
 }
 
 /** Inbound LinkedIn webhook event whose payload is stored under [payloadCacheKey]. */
+@ValueObject
 data class WebhookEvent(
     val scope: WorkspaceScope,
     val providerEventId: String,
@@ -393,6 +425,7 @@ data class WebhookEvent(
 }
 
 /** Encrypted webhook payload cached for replay within the lifetime of [expiresAt]. */
+@AggregateRoot
 class PayloadCache(
     val scope: WorkspaceScope,
     val key: String,
@@ -472,6 +505,7 @@ class DefaultCapabilityResolver(private val gates: SocialContentFeatureGates) : 
 }
 
 /** Inbound LinkedIn comment eligible for reply when its [state] is [ThreadState.OPEN] and not expired. */
+@AggregateRoot
 data class SocialComment(
     val scope: WorkspaceScope,
     val postId: ExternalPostId,
@@ -527,6 +561,7 @@ data class ReplyCommand(
 }
 
 /** Reasons a [ReplyCommand] can be rejected before being forwarded to the provider. */
+@ValueObject
 enum class ReplyRejectionReason {
     WORKSPACE_MISMATCH,
     ACTOR_MISMATCH,
