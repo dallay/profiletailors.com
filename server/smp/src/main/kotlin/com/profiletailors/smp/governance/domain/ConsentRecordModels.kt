@@ -1,11 +1,19 @@
 package com.profiletailors.smp.governance.domain
 
+import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 
+@ValueObject
 @JvmInline
-value class ConsentRecordId(val value: String)
+value class ConsentRecordId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "ConsentRecordId must not be blank" }
+    }
+}
 
 /** Nature of the legal acceptance being recorded. */
+@ValueObject
 enum class ConsentType {
     /** Freely given, specific, informed and unambiguous consent (RGPD Art. 4.11). */
     CONSENT,
@@ -18,9 +26,11 @@ enum class ConsentType {
 }
 
 /** Lifecycle state of a consent record. */
+@ValueObject
 enum class ConsentStatus { ACTIVE, WITHDRAWN }
 
 /** Kind of subject a consent record refers to. */
+@ValueObject
 enum class SubjectKind { WORKSPACE, USER, ANONYMOUS }
 
 /**
@@ -32,6 +42,7 @@ enum class SubjectKind { WORKSPACE, USER, ANONYMOUS }
  * normalised email hash. Raw IP addresses and full email addresses are
  * deliberately not stored here.
  */
+@ValueObject
 data class SubjectReference(val value: String, val kind: SubjectKind) {
     init {
         require(value.isNotBlank()) { "Subject reference value must not be blank" }
@@ -54,6 +65,7 @@ data class SubjectReference(val value: String, val kind: SubjectKind) {
  * and given timestamp. This satisfies RGPD accountability (Art. 5.2) without
  * destroying the evidence of prior consent.
  */
+@AggregateRoot
 data class ConsentRecord(
     val id: ConsentRecordId,
     val workspaceId: String,

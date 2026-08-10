@@ -1,5 +1,8 @@
 package com.profiletailors.common.domain.model
 
+import com.profiletailors.common.domain.ValueObject
+
+@ValueObject
 enum class Language(val code: String) {
     ENGLISH("en"),
     SPANISH("es"),

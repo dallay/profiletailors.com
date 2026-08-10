@@ -1,5 +1,7 @@
 package com.profiletailors.smp.media.domain
 
+import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 import java.util.UUID
 
@@ -8,6 +10,7 @@ private const val MAX_LICENCE_LENGTH = 64
 /**
  * Source type for media assets.
  */
+@ValueObject
 enum class MediaSourceType {
     /**
      * Asset uploaded through the media library upload flow.
@@ -31,6 +34,7 @@ enum class MediaSourceType {
  * - READY → DELETED (user deletes the asset)
  * - FAILED → UPLOADING → READY (client retries upload)
  */
+@ValueObject
 enum class MediaAssetStatus {
     /**
      * Asset created but upload not yet completed, or upload in progress.
@@ -90,6 +94,7 @@ enum class MediaAssetStatus {
  * - READY_FOR_GC → UPLOADING (retry after last asset deleted)
  * - GARBAGE_COLLECTED → UPLOADING (retry after GC)
  */
+@ValueObject
 enum class BlobStatus {
     /**
      * An upload is in progress for this blob. Only one upload can be UPLOADING
@@ -340,6 +345,7 @@ internal val SHA256_HASH_REGEX = Regex("^[a-f0-9]{64}$")
  * @property createdAt When the blob record was created.
  * @property updatedAt When the blob record was last modified.
  */
+@AggregateRoot
 data class WorkspaceFileBlob(
     val workspaceId: String,
     val fileHash: String,

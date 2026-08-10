@@ -1,5 +1,7 @@
 package com.profiletailors.common.domain.vo.email
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * A validated email address value object.
  *
@@ -16,6 +18,7 @@ package com.profiletailors.common.domain.vo.email
  * @throws IllegalArgumentException if the value is blank, too long, or does not match the email pattern
  * @since 1.0.0
  */
+@ValueObject
 @JvmInline
 value class Email(val value: String) {
     init {

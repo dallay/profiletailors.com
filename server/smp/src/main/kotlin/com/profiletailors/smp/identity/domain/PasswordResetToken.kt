@@ -1,8 +1,10 @@
 package com.profiletailors.smp.identity.domain
 
+import com.profiletailors.common.domain.AggregateRoot
 import java.time.Instant
 import java.util.UUID
 
+@AggregateRoot
 data class PasswordResetToken(
     val id: UUID,
     val principalId: String,

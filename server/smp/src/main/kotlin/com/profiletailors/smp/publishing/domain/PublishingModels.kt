@@ -1,12 +1,16 @@
 package com.profiletailors.smp.publishing.domain
 
+import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 import java.time.LocalDate
 
+@ValueObject
 enum class SocialProvider {
     LINKEDIN,
 }
 
+@ValueObject
 enum class SocialConnectionStatus {
     PENDING,
     ACTIVE,
@@ -20,11 +24,13 @@ enum class SocialConnectionStatus {
     EXPIRED,
 }
 
+@ValueObject
 enum class SocialAccountKind {
     PERSONAL_PROFILE,
     ORGANIZATION_PAGE,
 }
 
+@ValueObject
 enum class PublicationStatus {
     DRAFT,
     QUEUED,
@@ -36,12 +42,14 @@ enum class PublicationStatus {
     CANCELLED,
 }
 
+@ValueObject
 enum class ScheduleMode {
     NOW,
     SCHEDULED_AT,
     NEXT_SLOT,
 }
 
+@ValueObject
 enum class JobStatus {
     PENDING,
     CLAIMED,
@@ -51,22 +59,26 @@ enum class JobStatus {
     CANCELLED,
 }
 
+@ValueObject
 enum class AssetSourceType {
     UPLOADED,
     EXTERNAL_URL,
 }
 
+@ValueObject
 enum class PublicationAssetStatus {
     READY,
     PROCESSING,
     FAILED,
 }
 
+@ValueObject
 enum class DeliveryAttemptOutcome {
     SUCCEEDED,
     FAILED,
 }
 
+@AggregateRoot
 data class SocialConnection(
     val id: String,
     val workspaceId: String,
@@ -79,6 +91,7 @@ data class SocialConnection(
     val createdAt: Instant? = null,
 )
 
+@AggregateRoot
 data class SocialAccount(
     val id: String,
     val socialConnectionId: String,
@@ -95,6 +108,7 @@ data class SocialAccount(
 
 data class ProviderAssetRef(val providerAssetId: String, val mediaType: String, val accessUrl: String? = null)
 
+@AggregateRoot
 data class PublicationAsset(
     val id: String,
     val workspaceId: String,
@@ -122,6 +136,7 @@ data class PublicationAsset(
     }
 }
 
+@AggregateRoot
 data class PublicationDraft(
     val id: String,
     val workspaceId: String,
@@ -156,6 +171,7 @@ data class PublicationDraft(
 
 data class DateCount(val date: LocalDate, val count: Int)
 
+@AggregateRoot
 data class PublicationJob(
     val id: String,
     val publicationId: String,
@@ -182,6 +198,7 @@ data class PublicationJobClaim(
     val claimedAt: Instant,
 )
 
+@AggregateRoot
 data class DeliveryAttempt(
     val id: String,
     val publicationId: String,
@@ -257,6 +274,7 @@ enum class LinkedinCapabilityBundle(
     ),
 }
 
+@ValueObject
 enum class CapabilityMvpStatus {
     SUPPORTED,
     GATED,
@@ -266,6 +284,7 @@ enum class CapabilityMvpStatus {
 /**
  * Tracks which scopes were actually granted during OAuth for a social connection.
  */
+@ValueObject
 data class GrantedScopeBundle(val grantedScopes: Set<String>, val capabilityBundles: Set<LinkedinCapabilityBundle>) {
     companion object {
         fun fromGrantedScopes(scopes: Set<String>): GrantedScopeBundle {

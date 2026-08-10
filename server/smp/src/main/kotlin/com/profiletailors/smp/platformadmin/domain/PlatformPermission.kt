@@ -1,5 +1,8 @@
 package com.profiletailors.smp.platformadmin.domain
 
+import com.profiletailors.common.domain.ValueObject
+
+@ValueObject
 enum class PlatformPermission(val key: String) {
     DASHBOARD_READ("platform.dashboard.read"),
     WAITLIST_READ("platform.waitlist.read"),

@@ -1,5 +1,6 @@
 package com.profiletailors.smp.governance.domain
 
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 import java.util.Base64
 
@@ -76,6 +77,7 @@ data class AuditEventFilter(
     val createdBefore: Instant? = null,
 )
 
+@ValueObject
 data class AuditEventPageRequest(val cursor: AuditEventCursor? = null, val limit: Int = 50) {
     init {
         require(limit > 0) { "limit must be a positive integer, got $limit" }

@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.domain
 
+import com.profiletailors.common.domain.AggregateRoot
 import java.time.Instant
 
 /**
@@ -13,6 +14,7 @@ import java.time.Instant
  * @property expiresAt instant after which the token is no longer valid
  * @property usedAt instant when the token was consumed, or null if still valid
  */
+@AggregateRoot
 data class EmailVerificationToken(
     val email: String,
     val tokenHash: String,

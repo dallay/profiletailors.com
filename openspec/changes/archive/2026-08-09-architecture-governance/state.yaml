@@ -1,0 +1,12 @@
+change: architecture-governance
+current_phase: archive
+completed: [explore, propose, spec, design, tasks, apply, verify, qa, archive]
+next: none
+updated: 2026-08-09
+verify_outcome: PASS_WITH_WARNINGS
+qa_outcome: NOT_TESTED
+archive_outcome: ARCHIVED_WITH_DOCUMENTATION_ONLY_EXCEPTION
+qa_report: openspec/changes/archive/2026-08-09-architecture-governance/qa-report.md
+archive_path: openspec/changes/archive/2026-08-09-architecture-governance
+source_of_truth: openspec/specs/architecture-governance/spec.md
+note: "Archived under the explicit documentation/config-only exception. QA verdict NOT TESTED, its evidence, visible warning, and open-by-design P2 finding are preserved unchanged; no product acceptance is claimed."

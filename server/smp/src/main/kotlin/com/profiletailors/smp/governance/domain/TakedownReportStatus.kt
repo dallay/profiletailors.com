@@ -1,5 +1,7 @@
 package com.profiletailors.smp.governance.domain
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * Lifecycle state of a [TakedownReport].
  *
@@ -8,6 +10,7 @@ package com.profiletailors.smp.governance.domain
  * - APPROVED  → (terminal)
  * - DISMISSED → (terminal)
  */
+@ValueObject
 enum class TakedownReportStatus {
     /** Report has been submitted and is pending review. */
     REPORTED,

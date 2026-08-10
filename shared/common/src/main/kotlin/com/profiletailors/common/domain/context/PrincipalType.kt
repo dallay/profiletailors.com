@@ -1,10 +1,13 @@
 package com.profiletailors.common.domain.context
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * Represents the type of principal (actor) performing an operation in the system.
  *
  * @see PrincipalContext for the full principal description including id and type.
  */
+@ValueObject
 enum class PrincipalType {
     /**
      * Human user — interactive principal authenticating via login.

@@ -1,7 +1,9 @@
 package com.profiletailors.smp.platformadmin.domain
 
+import com.profiletailors.common.domain.ValueObject
 import java.util.UUID
 
+@ValueObject
 @JvmInline
 value class PlatformRoleAssignmentId(val value: UUID) {
     companion object {

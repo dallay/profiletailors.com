@@ -1,5 +1,6 @@
 package com.profiletailors.smp.governance.domain
 
+import com.profiletailors.common.domain.AggregateRoot
 import java.time.Instant
 
 /**
@@ -8,6 +9,7 @@ import java.time.Instant
  * Each report tracks the complete lifecycle from initial filing through
  * reviewer decision, with audit trail for accountability.
  */
+@AggregateRoot
 data class TakedownReport(
     val reportId: String,
     val workspaceId: String,

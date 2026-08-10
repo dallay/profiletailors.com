@@ -137,6 +137,7 @@ dependencies {
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.mockk)
     testImplementation(libs.kotest.assertions.core)
+    testImplementation(libs.konsist)
 
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers.junit.jupiter)

@@ -7,6 +7,19 @@
 **Profile Tailors** — social media management platform (schedule, publish, analyze, engage,
 collaborate). The product name is **Profile Tailors**; `profiletailors.com` is the domain only.
 
+## Product Context
+
+Product truth lives in `PRODUCT.md` files, one per surface. The root file holds shared web truth;
+child files hold surface-specific deltas (same inheritance model as DESIGN.md):
+
+- `apps/web/PRODUCT.md` — shared web product truth
+- `apps/web/marketing/PRODUCT.md` — marketing surface
+- `apps/web/app/PRODUCT.md` — app surface
+- `apps/web/admin/PRODUCT.md` — admin surface
+
+Before design or copy work, read the PRODUCT.md for the surface you are touching. Facts marked
+"Undecided" are deliberately open — never fabricate them.
+
 ## Monorepo Structure
 
 ```text

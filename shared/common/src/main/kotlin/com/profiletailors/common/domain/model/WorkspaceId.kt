@@ -1,5 +1,6 @@
 package com.profiletailors.common.domain.model
 
+import com.profiletailors.common.domain.ValueObject
 import java.util.UUID
 
 /**
@@ -9,6 +10,7 @@ import java.util.UUID
  *
  * @since 1.0.0
  */
+@ValueObject
 @JvmInline
 value class WorkspaceId(val value: UUID) {
     companion object {

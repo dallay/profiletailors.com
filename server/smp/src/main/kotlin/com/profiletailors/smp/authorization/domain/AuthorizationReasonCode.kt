@@ -1,5 +1,8 @@
 package com.profiletailors.smp.authorization.domain
 
+import com.profiletailors.common.domain.ValueObject
+
+@ValueObject
 enum class AuthorizationReasonCode {
     ROLE_PERMISSION,
     DIRECT_ALLOW,

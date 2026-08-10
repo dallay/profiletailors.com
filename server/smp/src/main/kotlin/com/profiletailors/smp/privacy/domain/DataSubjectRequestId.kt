@@ -1,5 +1,7 @@
 package com.profiletailors.smp.privacy.domain
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * Strongly-typed identifier for a [DataSubjectRequest].
  *
@@ -7,8 +9,15 @@ package com.profiletailors.smp.privacy.domain
  *
  * @since 1.0.0
  */
+@ValueObject
 @JvmInline
 value class DataSubjectRequestId(val value: String) {
+    init {
+        require(value.startsWith("dsr-")) {
+            "DataSubjectRequestId must start with 'dsr-' prefix but was: $value"
+        }
+    }
+
     companion object {
         /**
          * Creates a new random [DataSubjectRequestId] with a "dsr-" prefix.

@@ -1,399 +1,228 @@
 ---
 name: ddd-architecture
-description: Use when enforcing DDD conformance — aggregate root boundaries, identity-only inter-aggregate references, value-object immutability, bounded-context isolation, or ADR-backed architectural decisions in the smp backend. Complements hexagonal-architecture (which validates import direction between layers) with intra-domain invariants.
+description: Use when enforcing DDD conformance in the Kotlin backend — aggregate-root boundaries, identity-only inter-aggregate references, value-object immutability, bounded-context isolation, or ADR-backed architectural decisions. Complements hexagonal-architecture (layer/import direction) and Spring Modulith (backend module boundaries).
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
   author: profiletailors
-  version: "0.1"
+  version: "1.0"
 ---
 
 # DDD Architecture Skill
 
-Enforce strategic DDD invariants as executable tests. Complements `hexagonal-architecture`: that
-skill validates *where* code lives (layer import direction); this one validates *what* code
-references (aggregate boundaries, identity-only communication, invariants preserved).
+Use this skill for Kotlin domain invariants inside `server/smp` and the shared Kotlin domain
+contracts. It is the source of guidance for `ARCH-003`, `ARCH-004`, and `ARCH-005` in the shared
+`architecture-governance` skill. It composes, rather than replaces, the repository's existing
+architecture enforcement:
+
+- `hexagonal-architecture` and `ARCH-001` govern layer/import direction with ArchUnit.
+- Spring Modulith and `ARCH-002` govern bounded-context/module isolation.
+- This skill and Konsist govern marked Kotlin DDD/source-shape invariants.
+
+Do not apply this Kotlin guidance to Vue, TypeScript, Astro, or `shared/web`; use
+`frontend-platform/frontend-architecture` for those surfaces.
 
 ## When to Use
 
-- Adding a new bounded context and validating its boundaries
-- Introducing a new Aggregate Root and binding its internal entities
-- Defining new Value Objects with invariants that must survive refactors
-- Reviewing whether an architectural decision from an ADR is still honored
-- Diagnosing "smell of bleed" between contexts that the layer tests didn't catch
-- Triaging whether a refactor crossed aggregate boundaries unnecessarily
+- Adding or marking an aggregate root, internal entity, or value object.
+- Reviewing a cross-context domain reference or aggregate boundary.
+- Reviewing whether an ADR-backed DDD decision remains executable.
+- Diagnosing source-shape drift that layer or module checks cannot express.
+- Planning a replacement of one DDD check (first prove equivalent failure evidence).
 
-## Complements hexagonal-architecture
+## Repository Contracts
 
-| Skill                   | Invariant                                                                 | Level              |
-|-------------------------|---------------------------------------------------------------------------|--------------------|
-| `hexagonal-architecture`| Domain layer has no Spring; application layer has no R2DBC                | Layer (imports)    |
-| `ddd-architecture`      | Aggregate Root is the only entry to the aggregate                         | Domain (refs)      |
-| `ddd-architecture`      | Aggregates communicate by identity only                                   | Domain (types)     |
-| `ddd-architecture`      | Value Objects are immutable and validate invariants in init               | Domain (shape)     |
-| `ddd-architecture`      | Bounded contexts don't import each other's internals                      | Module (boundaries)|
-| `ddd-architecture`      | ADRs are enforced by executable tests                                     | Decision (compliance) |
+| Contract | Invariant | Owner | Scope | ADR |
+|---|---|---|---|---|
+| `ARCH-003` | Aggregate root is the entry point; marked internal entities are not imported from another bounded context and expose no public `set*`/`update*` mutators. | Konsist `AggregateBoundaryTest.kt` | `server/smp` production source | ADR-0015 |
+| `ARCH-004` | Marked aggregate roots and domain entities use identity-only names for cross-context aggregate references. | Konsist `IdentityOnlyAggregateCommunicationTest.kt` | `server/smp` marked production domain classes | ADR-0016 |
+| `ARCH-005` | Marked value objects are immutable and validate at construction or an approved factory. | Konsist `ValueObjectImmutabilityTest.kt` | Marked `server/smp` production domain classes and `shared/common` value objects | ADR-0017 |
 
-**Rule of thumb:** if the violation is about *import direction between layers*, use the
-hexagonal skill. If it is about *references inside the domain*, use this one.
+Every failure must retain the existing ADR-labelled detail and identify the offending class,
+property, function, import, or missing validation. Do not weaken an assertion or hide a failure to
+make a new annotation sweep green.
 
-## Marker Annotations
+## Domain Contracts and Markers
 
-Domain classes need explicit markers so the architecture tests have an anchor. These live in
-`com.profiletailors.common.domain`:
+The repository deliberately has two different aggregate-root contracts:
 
-```kotlin
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class AggregateRoot
+1. `com.profiletailors.common.domain.AggregateRoot` is a runtime-retained **marker annotation**.
+   It opts a class into the marker-driven Konsist checks in `server/smp`.
+2. `com.profiletailors.common.domain.model.AggregateRoot<ID>` is an abstract **base class** that
+   models identity and event recording for aggregates that need inheritance.
 
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class DomainEntity // internal entity of an aggregate
+They are not interchangeable and must not be unified. A plain data class may use the annotation
+without inheriting from the base class; a base-class aggregate may also be marked when it needs the
+Konsist guard rails. Keep the imports separate because the types intentionally live in different
+packages.
 
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class ValueObject
+Other shared markers are in `com.profiletailors.common.domain`:
 
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class DomainEvent
+- `@DomainEntity` marks an entity internal to an aggregate.
+- `@ValueObject` marks an immutable value type whose construction invariants are enforced.
+
+Markers are commitments to the corresponding tests, not decoration. Mark a new aggregate, internal
+entity, or value object in the same change that introduces it.
+
+## Domain Events
+
+`com.profiletailors.common.domain.bus.event.DomainEvent` is an interface, not an annotation. It
+exposes `eventVersion(): Int` and `occurredOn(): LocalDateTime?`. `BaseDomainEvent` provides the
+shared implementation for events that need a default timestamp and version. Domain event classes
+may implement the interface directly or extend the base class according to their existing needs.
+
+Do not invent or document a `DomainEvent` annotation. Cross-context event publication and module
+exposure remain governed by the existing domain/application ports and Spring Modulith rules.
+
+## Aggregate Root Boundary — `ARCH-003`
+
+**Invariant:** external code reaches an aggregate through its root; a `@DomainEntity` is not a
+cross-context public entry point and does not expose public mutators.
+
+The executable owner is:
+
+```text
+server/smp/src/test/kotlin/com/profiletailors/smp/AggregateBoundaryTest.kt
 ```
 
-Apply them once. Tests below depend on them being present.
+It uses `Konsist.scopeFromProduction()`, so test source sets are not scanned for cross-context
+imports. The test currently verifies:
 
-## Rule 1: Aggregate Root as sole entry point
+- production files in another bounded context do not import a marked `@DomainEntity`;
+- marked internal entities do not expose public functions beginning with `set` or `update`.
 
-**Invariant:** Nothing outside the aggregate can directly construct, expose, or mutate an internal
-entity. Only the Aggregate Root can navigate into its members.
+Same-context application ports and persistence adapters may materialise internal entities because
+they must map and persist the aggregate. `ModuleMetadata` is infrastructure wiring and is exempt
+from business architecture rules per ADR-0002.
 
-```kotlin
-// Architecture test: server/smp/src/test/.../architecture/AggregateBoundaryTest.kt
-class AggregateBoundaryTest : StringSpec({
+Failure messages begin with `ADR-0015 violated` and include offending paths. Preserve this
+contract when extending the rule.
 
-    val domains = konsist.scopeFromProject().packages("..domain..")
+## Identity-Only Communication — `ARCH-004`
 
-    "internal entities are only referenced by their Aggregate Root" {
-        domains.forEach { pkg ->
-            val roots = pkg.classes().filter { it.hasAnnotationOf<AggregateRoot>() }
-            val internals = pkg.classes().filter { it.hasAnnotationOf<DomainEntity>() }
-            val allowedPackages = roots.map { pkg.name }.toSet()
+**Invariant:** a marked `@AggregateRoot` or `@DomainEntity` may reference a type from another
+bounded context only through an identity-shaped property name: `Id`, `Ids`, `Identifier`, or a
+nullable `Id?` form.
 
-            internals.forEach { internal ->
-                val outsidePkg = konsist.scopeFromProject()
-                    .files
-                    .filter { !it.packageName.startsWith(pkg.name) || it.packageName == pkg.name }
-                    .filter { it.path != internal.containingFile.path }
+The executable owner is:
 
-                outsidePkg.forEach { file ->
-                    file.imports
-                        .filter { it.name == internal.name }
-                        .assertEmpty(
-                            "Internal entity '${internal.name}' is imported from " +
-                            "'${file.relativePath}' which is outside the aggregate. " +
-                            "ADR-0001: only the Aggregate Root can touch internal entities."
-                        )
-                }
-            }
-        }
-    }
-
-    "internal entities have no public mutators" {
-        konsist.scopeFromProject()
-            .classes()
-            .filter { it.hasAnnotationOf<DomainEntity>() }
-            .forEach { entity ->
-                entity.functions()
-                    .filter { it.hasPublicOrDefaultModifier }
-                    .filter { it.name.startsWith("set") || it.name.startsWith("update") }
-                    .assertEmpty(
-                        "Internal entity '${entity.name}' must not expose public mutators. " +
-                        "Mutations must go through the Aggregate Root."
-                    )
-            }
-    }
-})
+```text
+server/smp/src/test/kotlin/com/profiletailors/smp/IdentityOnlyAggregateCommunicationTest.kt
 ```
 
-**Real example** in `tenancy/domain/`:
-- `Workspace.kt` — mark as `@AggregateRoot`
-- `WorkspaceMembership.kt` — mark as `@DomainEntity`
-- `WorkspaceOwnership.kt` — mark as `@DomainEntity`
-- `WorkspaceOwnershipPolicy.kt` — pure logic, no marker needed
+It scans marked production classes and permits same-context references. It does not scan value
+objects, ports, repositories, policies, resolvers, shared-kernel types, or test fixtures. The
+current Konsist implementation handles direct property source types; generic type arguments such as
+`Set<Workspace>` are a known limitation and require a separate approved test enhancement.
 
-## Rule 2: Aggregates communicate by identity only
-
-**Invariant:** An aggregate holds identity references (`UserId`, `WorkspaceId`) to other
-aggregates — never direct object references. This preserves transactional consistency and prevents
-accidental lazy loads across aggregate boundaries.
+Good:
 
 ```kotlin
-"aggregates reference other aggregates only by identity" {
-    val pkg = "com.profiletailors.smp"
-    konsist.scopeFromPackage("$pkg.*.domain")
-        .classes()
-        .forEach { source ->
-            source.properties.forEach { prop ->
-                val targetType = prop.sourceType ?: return@forEach
-                if (!targetType.startsWith("$pkg.")) return@forEach
-
-                val sourceContext = source.containingFile.packageName
-                    .substringAfter("$pkg.").substringBefore('.')
-                val targetContext = targetType
-                    .substringAfter("$pkg.").substringBefore('.')
-
-                if (sourceContext == targetContext) return@forEach
-
-                val isIdentity = targetType.endsWith("Id") ||
-                                 targetType.endsWith("Identifier") ||
-                                 targetType.endsWith("Id?") ||
-                                 targetType.endsWith("Ids")
-
-                assert(isIdentity) {
-                    "Cross-context reference in '${source.name}' to " +
-                    "'$targetType' must be an identity (Id/Identifier). " +
-                    "ADR-0002: aggregates communicate by identity only."
-                }
-            }
-        }
-}
-```
-
-**Already-good example** in `WorkspaceOwnership.kt`:
-
-```kotlin
-data class WorkspaceOwnership(
-    val workspaceId: String,         // ✅ identity
-    val ownerPrincipalId: String,    // ✅ identity
-    val ownerPrincipalType: PrincipalType,
+@AggregateRoot
+class Workspace(
+    val ownerPrincipalId: String,
 )
 ```
 
-The test **blinds** so nobody can change `workspaceId: String` to `workspace: Workspace` six months
-from now.
-
-## Rule 3: Value Objects preserve invariants
-
-Three invariants: immutability, construction-time validation, no setters.
+Bad:
 
 ```kotlin
-"value objects are immutable" {
-    konsist.scopeFromProject()
-        .classes()
-        .filter { it.hasAnnotationOf<ValueObject>() }
-        .forEach { vo ->
-            vo.properties().assertTrue(
-                predicate = { it.isVal || it.hasPrivateModifier },
-                errorMessage = "VO '${vo.name}' must use only val or private properties"
-            )
-            vo.functions().assertTrue(
-                predicate = { !it.name.startsWith("set") && !it.name.startsWith("mutate") },
-                errorMessage = "VO '${vo.name}' must not expose setters or mutators"
-            )
-        }
-}
-
-"value objects validate invariants in init or factory" {
-    konsist.scopeFromProject()
-        .classes()
-        .filter { it.hasAnnotationOf<ValueObject>() }
-        .forEach { vo ->
-            val primaryCtor = vo.primaryConstructor
-            val hasParamValidation = primaryCtor?.parameters?.any { param ->
-                param.annotations.any { it.name in listOf("field", "require") }
-            } ?: false
-            val hasFactory = vo.functions().any {
-                it.name in listOf("of", "ensure", "create", "from")
-            }
-            val hasInitBlock = vo.primaryConstructor?.hasInitBlock ?: false
-
-            assert(hasParamValidation || hasFactory || hasInitBlock) {
-                "VO '${vo.name}' must validate invariants via init parameters, " +
-                "an init block, or a factory function."
-            }
-        }
-}
+@AggregateRoot
+class Workspace(
+    val owner: com.profiletailors.smp.identity.domain.User,
+)
 ```
 
-**Complement with unit tests** — the static rule catches the shape; the unit test catches the
-semantics. Example:
+Failure messages begin with `ADR-0016 violated` and include `Class.property: TypeName`.
 
-```kotlin
-@Test
-fun `email rejects malformed input`() {
-    assertThrows<IllegalArgumentException> { Email("invalid") }
-}
+## Value-Object Invariants — `ARCH-005`
 
-@Test
-fun `email rejects empty string`() {
-    assertThrows<IllegalArgumentException> { Email("") }
-}
-```
-
-## Rule 4: Bounded contexts don't mix silently
-
-`Spring Modulith` already validates module boundaries. This rule goes further on domain imports
-and event leakage.
-
-```kotlin
-"domain of one context must not depend on infrastructure of another" {
-    val domains = konsist.scopeFromProject().packages("..domain..")
-
-    domains.forEach { sourcePkg ->
-        val sourceContext = sourcePkg.name
-            .substringAfter("com.profiletailors.smp.").substringBefore('.')
-        sourcePkg.containingFile.acceptedDependencies.forEach { dep ->
-            if (dep.hasMatchingPath("com/profiletailors/smp/.*/infrastructure")) {
-                val targetContext = dep.name
-                    .substringAfter("com.profiletailors/smp/").substringBefore('/')
-                assert(sourceContext == targetContext) {
-                    "Domain in '$sourceContext' depends on infrastructure of " +
-                    "'$targetContext'. Cross-context coupling must go through " +
-                    "domain events or shared kernel only."
-                }
-            }
-        }
-    }
-}
-
-"domain events are not directly imported across contexts" {
-    val events = konsist.scopeFromProject()
-        .classes()
-        .filter { it.hasAnnotationOf<DomainEvent>() }
-
-    events.forEach { event ->
-        val sourceContext = event.containingFile.packageName
-            .substringAfter("com.profiletailors.smp.").substringBefore('.')
-        konsist.scopeFromProject()
-            .files
-            .filter { !it.packageName.startsWith("com.profiletailors.smp.$sourceContext") }
-            .forEach { file ->
-                file.imports
-                    .filter { it.containingClass == event }
-                    .assertEmpty(
-                        "Domain event '${event.name}' from '$sourceContext' is " +
-                        "directly imported by another context. Use the integration " +
-                        "contract layer instead."
-                    )
-            }
-    }
-}
-```
-
-## Rule 5: Architectural decisions stay true six months later
-
-**The pattern:** every ADR is born with one or more executable tests that fail the build if the
-decision is violated.
-
-### Structure
+**Invariant:** a marked `@ValueObject` is immutable and rejects invalid state at construction or
+through a recognised factory. The executable owner is:
 
 ```text
-docs/architecture/decisions/
-├── template.md
-├── 0001-aggregate-root-as-sole-entry.md
-├── 0002-aggregate-communication-by-identity.md
-├── 0003-value-object-immutability.md
-├── 0004-bounded-context-isolation.md
-└── 0005-cross-aggregate-via-domain-events.md
+server/smp/src/test/kotlin/com/profiletailors/smp/ValueObjectImmutabilityTest.kt
 ```
 
-### ADR template (Nygard)
+The current Konsist tests verify:
 
-```markdown
-# ADR-NNNN: Title
+- every non-enum property is `val` or private;
+- no public `set*` or `mutate*` function exists;
+- every non-enum value object has an `init` block or recognised factory such as `of`, `create`,
+  `from`, `fromRaw`, `ensure`, `generate`, or `random`.
 
-## Status
-Accepted — YYYY-MM-DD
+Enums are inherently immutable and valid by construction and are exempt from the shape/validation
+scan. Test fixtures are outside `scopeFromProduction()`. A unit test should still cover the
+semantic boundary, for example malformed `Email` input, because the Konsist rule checks source
+shape rather than every runtime invariant.
 
-## Context
-What problem we faced. What forces were in play.
+Failure messages begin with `ADR-0017 violated` and include the offending member or class.
 
-## Decision
-What we chose. Which skill/test enforces this.
+## Relationship to Backend Enforcement
 
-## Consequences
-Pros, cons, and what becomes easier/harder.
+`ARCH-001` and `ARCH-002` are not duplicated here:
 
-## Enforcement
-- Architecture test: `class FooTest : StringSpec({ ... })`
-- Tag: `@Adr("NNNN")`
-- Failure mode: build fails in CI with reason.
-```
+- `HexagonalArchTest.kt` owns domain/application/infrastructure layer direction and framework
+  dependency rules.
+- `ComponentScanArchTest.kt` owns Spring stereotype and nested component-scan guards.
+- `ModularStructureTest.kt` and `ModularityVerificationTest.kt` own Spring Modulith verification.
+  Keep both existing suites and do not add a third identical `ApplicationModules.verify()` test.
 
-### Test tag
+When an issue is about a layer import, use `hexagonal-architecture`. When it is about a backend
+module edge, use Spring Modulith guidance. When it is about a marked domain reference or value
+object shape, use this skill.
 
-```kotlin
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.CLASS)
-annotation class Adr(val id: String)
-```
+## New Bounded Context Checklist
 
-### Failure message convention
-
-```
-ADR-0002 violated: aggregate 'Workspace' directly references 'User' in
-'com.profiletailors.smp.tenancy.application.WorkspaceService.kt:42'.
-Aggregates must communicate by identity only.
-```
-
-This is the contract. The CI failure tells a developer *which* decision is broken and *where*.
-
-## Decision Tree: Where Does This Rule Belong?
-
-```markdown
-Is the rule about *import direction between layers*?
-├── YES → hexagonal-architecture skill
-└── NO → Is the rule about *intra-domain* invariants?
-    ├── Aggregate boundaries → ddd-architecture (this skill)
-    ├── Inter-aggregate references → ddd-architecture
-    ├── Value-object immutability → ddd-architecture
-    ├── Bounded-context isolation → ddd-architecture
-    └── Business decision enforcement → ddd-architecture (ADR-backed tests)
-```
-
-## Test Tagging Convention
-
-| Tag                     | Purpose                          | CI? |
-|-------------------------|----------------------------------|-----|
-| `@Tag("architecture")`  | Hexagonal layer rules            | Yes |
-| `@Tag("modularity")`    | Spring Modulith boundaries       | Yes |
-| `@Tag("ddd-conformance")` | DDD invariants within domain   | Yes |
-| `@Tag("adr-compliance")` | ADR-backed decisions             | Yes |
-
-All four tags run as part of `just backend-test` by default. No special CI wiring.
-
-## Anti-Patterns
-
-❌ **Lazy VO with `var` properties** — value objects must be immutable.
-❌ **Cross-aggregate direct reference** — `workspace: Workspace` in another aggregate.
-❌ **Internal entity with public constructor** — bypasses AR invariants.
-❌ **ADR with no test** — a decision without enforcement is just a wish.
-❌ **Anemic VOs** — no validation logic in `init`/`require` blocks.
-❌ **Cross-context direct imports** — must use domain events or shared kernel.
-❌ **Marker annotation with no enforcement test** — markers without tests are decoration.
+1. Create `server/smp/src/main/kotlin/com/profiletailors/smp/<context>/{domain,application,infrastructure}`
+   according to the existing hexagonal structure.
+2. Keep domain pure Kotlin; application code uses domain ports and the project service marker, not
+   Spring stereotypes; infrastructure contains Spring, HTTP, R2DBC, and adapter code.
+3. Add the context's Modulith metadata where required and let existing module verification cover it.
+4. Mark aggregate roots, internal entities, and value objects in the same change that introduces
+   them.
+5. Add focused domain tests and run the existing architecture/conformance checks.
+6. For cross-context references, expose an approved application/domain contract or event seam and
+   retain identity-only references on marked aggregates.
 
 ## Commands
 
+All repository commands go through `just`:
+
 ```bash
-# Run only DDD conformance tests
-./gradlew :server:smp:test --tests "*DddConformance*"
+# Focused baseline for DDD and backend architecture
+just backend-test-fast
+just backend-check
 
-# Run all architecture tests (hexagonal + modularity + DDD + ADRs)
-./gradlew :server:smp:test --tests "*ArchTest" --tests "*Conformance*"
-
-# Quick manual sweep: cross-context imports in domain
-rg "import com.profiletailors.smp\.[a-z]+\.domain" \
-   server/smp/src/main/kotlin/com/profiletailors/smp/*/domain/
-
-# Quick manual sweep: cross-context imports in application (excluding own context)
-rg "import com.profiletailors.smp\.[a-z]+\.domain" \
-   server/smp/src/main/kotlin/com/profiletailors/smp/*/application/
+# Focused manual verification of the DDD suite, when narrowing a failure
+./gradlew :server:smp:test --tests "*AggregateBoundaryTest*"
+./gradlew :server:smp:test --tests "*IdentityOnlyAggregateCommunicationTest*"
+./gradlew :server:smp:test --tests "*ValueObjectImmutabilityTest*"
 ```
 
-## Resources
+The direct Gradle invocations are for focused diagnosis; normal verification uses the command hub.
+There is no `just architecture-check` recipe in this phase. A future command is unverified and
+must be proposed separately as an opt-in aggregator with labelled output, no duplicate Modulith
+execution, preserved unrelated failures, and a rollback plan before CI adoption.
 
-- [Domain-Driven Design Reference](https://domainlanguage.com/ddd/reference/) — Eric Evans
-- [Implementing DDD](https://www.amazon.com/Implementing-Domain-Driven-Design-Vaughn-Vernon/dp/0321834577) — Vaughn Vernon
-- [Konsist](https://lemonrock.github.io/kotlin-consistent-architecture/) — Kotlin architecture testing
-- `hexagonal-architecture` skill — for layer-level invariants (import direction)
-- `spring-boot` skill — for module-level wiring
-- `kotlin` skill — for language conventions
+## Anti-Patterns
+
+- Replacing Konsist DDD checks with ArchUnit merely to use one tool.
+- Treating `com.profiletailors.common.domain.AggregateRoot` and
+  `com.profiletailors.common.domain.model.AggregateRoot<ID>` as the same contract.
+- Creating a `DomainEvent` annotation; the repository contract is an interface plus
+  `BaseDomainEvent`.
+- Applying Kotlin markers to TypeScript/Vue/Astro code.
+- Importing another bounded context's infrastructure or internal entity to bypass an API seam.
+- Removing an existing ADR or architecture test before focused old/new failure evidence exists.
+- Adding a new command or CI gate without an approved proposal and clean baseline.
+
+## References
+
+- `docs/architecture/adr/0001-use-a-modular-monolith-backend.md`
+- `docs/architecture/adr/0002-adhere-to-hexagonal-architecture.md`
+- `docs/architecture/adr/0015-aggregate-root-as-sole-entry-point.md`
+- `docs/architecture/adr/0016-aggregates-communicate-by-identity-only.md`
+- `docs/architecture/adr/0017-value-objects-are-immutable.md`
+- `.agents/skills/architecture-governance/SKILL.md`
+- `.agents/skills/backend-platform/hexagonal-architecture/SKILL.md`
+- `server/smp/src/test/kotlin/com/profiletailors/smp/`

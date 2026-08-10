@@ -3,6 +3,7 @@ package com.profiletailors.smp.tenancy.infrastructure
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipRepository
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
+import io.r2dbc.spi.Row
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
@@ -32,17 +33,21 @@ internal class R2dbcWorkspaceOwnershipRepository(
         """.trimIndent(),
     )
         .bind(BIND_WORKSPACE_ID, workspaceId)
-        .map { row, _ ->
-            WorkspaceOwnership(
-                workspaceId = requireNotNull(row.get(COL_WORKSPACE_ID, String::class.java)),
-                ownerPrincipalId = requireNotNull(row.get(COL_OWNER_PRINCIPAL_ID, String::class.java)),
-                ownerPrincipalType = PrincipalType.valueOf(
-                    requireNotNull(row.get(COL_OWNER_PRINCIPAL_TYPE, String::class.java)),
-                ),
-                createdBy = row.get(COL_CREATED_BY, String::class.java),
-                createdAt = row.get(COL_CREATED_AT, Instant::class.java),
-            )
-        }
+        .map { row, _ -> mapWorkspaceOwnership(row) }
+        .all()
+        .collectList()
+        .map { it.toSet() }
+        .awaitSingle()
+
+    override suspend fun findOwnerIds(workspaceId: String): Set<String> = databaseClient.sql(
+        """
+        SELECT owner_principal_id
+        FROM workspace_ownerships
+        WHERE workspace_id = :workspaceId
+        """.trimIndent(),
+    )
+        .bind(BIND_WORKSPACE_ID, workspaceId)
+        .map { row, _ -> mapOwnerPrincipalId(row) }
         .all()
         .collectList()
         .map { it.toSet() }
@@ -137,3 +142,15 @@ internal class R2dbcWorkspaceOwnershipRepository(
         return count > 0L
     }
 }
+
+internal fun mapWorkspaceOwnership(row: Row): WorkspaceOwnership = WorkspaceOwnership(
+    workspaceId = requireNotNull(row.get(COL_WORKSPACE_ID, String::class.java)),
+    ownerPrincipalId = requireNotNull(row.get(COL_OWNER_PRINCIPAL_ID, String::class.java)),
+    ownerPrincipalType = PrincipalType.valueOf(
+        requireNotNull(row.get(COL_OWNER_PRINCIPAL_TYPE, String::class.java)),
+    ),
+    createdBy = row.get(COL_CREATED_BY, String::class.java),
+    createdAt = row.get(COL_CREATED_AT, Instant::class.java),
+)
+
+internal fun mapOwnerPrincipalId(row: Row): String = requireNotNull(row.get(COL_OWNER_PRINCIPAL_ID, String::class.java))

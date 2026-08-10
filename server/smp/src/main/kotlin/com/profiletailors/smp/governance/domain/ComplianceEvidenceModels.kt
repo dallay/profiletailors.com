@@ -1,11 +1,15 @@
 package com.profiletailors.smp.governance.domain
 
+import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.DomainEntity
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 
 /**
  * A piece of compliance evidence — a document, attestation, or artifact
  * that demonstrates compliance with one or more controls.
  */
+@AggregateRoot
 data class ComplianceEvidence(
     val id: ComplianceEvidenceId,
     val evidenceType: String,
@@ -33,6 +37,7 @@ data class ComplianceEvidence(
  * Once created, this association cannot be removed.
  * To invalidate evidence coverage, expire or reject the evidence itself.
  */
+@DomainEntity
 data class ComplianceControlEvidence(
     val id: String,
     val controlId: ComplianceControlId,
@@ -46,6 +51,7 @@ data class ComplianceControlEvidence(
  * Generic evidence link to external artifacts (code, tests, documents, operational records).
  * Provides traceability from compliance evidence to concrete implementation.
  */
+@DomainEntity
 data class EvidenceLink(
     val id: String,
     val evidenceId: ComplianceEvidenceId,
@@ -60,6 +66,7 @@ data class EvidenceLink(
 /**
  * Type of artifact linked to compliance evidence.
  */
+@ValueObject
 enum class EvidenceLinkType {
     /** Link to source code file or module (e.g., repo path, GitHub URL) */
     CODE,

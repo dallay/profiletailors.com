@@ -130,6 +130,12 @@ internal class ConsentRecordModelsTest {
     }
 
     @Test
+    fun `consent record id rejects blank values`() {
+        assertThrows<IllegalArgumentException> { ConsentRecordId("") }
+        assertThrows<IllegalArgumentException> { ConsentRecordId("   ") }
+    }
+
+    @Test
     fun `consent record rejects blank purpose and policy version`() {
         assertThrows<IllegalArgumentException> {
             ConsentRecord(

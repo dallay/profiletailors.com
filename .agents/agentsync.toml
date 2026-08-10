@@ -201,3 +201,18 @@ type = "symlink"
 source = "DESIGN.md"
 destination = "DESIGN.md"
 type = "symlink"
+
+# =============================================================================
+# Optional: per-app nested agent instructions
+# =============================================================================
+# PRODUCT.md files stay versioned in-repo (they are the source of truth, not
+# sync targets). When an app defines its own AGENTS.md with app-specific agent
+# instructions, uncomment and activate this target to propagate it to every
+# assistant using the nested-glob type (monorepo-friendly).
+#
+# [agents.claude.targets.app-instructions]
+# source = "."
+# pattern = "apps/web/*/AGENTS.md"
+# destination = "{relative_path}/CLAUDE.md"
+# type = "nested-glob"
+# exclude = [".agents/**", "node_modules/**", "**/target/**", "**/dist/**", "**/.git/**"]

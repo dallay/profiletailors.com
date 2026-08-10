@@ -1,5 +1,7 @@
 package com.profiletailors.common.domain.vo.name
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * A person's full name composed of a required [firstName] and optional [lastName].
  *
@@ -14,6 +16,7 @@ package com.profiletailors.common.domain.vo.name
  *
  * @since 1.0.0
  */
+@ValueObject
 data class Name(val firstName: FirstName, val lastName: LastName?) : Comparable<Name> {
     /**
      * Returns the full name as a formatted string.

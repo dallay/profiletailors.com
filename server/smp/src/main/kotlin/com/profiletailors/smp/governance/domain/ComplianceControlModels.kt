@@ -1,29 +1,64 @@
 package com.profiletailors.smp.governance.domain
 
+import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.DomainEntity
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 
+@ValueObject
 @JvmInline
-value class ComplianceControlId(val value: String)
+value class ComplianceControlId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "ComplianceControlId must not be blank" }
+    }
+}
 
+@ValueObject
 @JvmInline
-value class ComplianceControlApplicabilityRuleId(val value: String)
+value class ComplianceControlApplicabilityRuleId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "ComplianceControlApplicabilityRuleId must not be blank" }
+    }
+}
 
+@ValueObject
 @JvmInline
-value class ApplicabilityDimensionId(val value: String)
+value class ApplicabilityDimensionId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "ApplicabilityDimensionId must not be blank" }
+    }
+}
 
+@ValueObject
 @JvmInline
-value class ComplianceControlEvidenceRequirementId(val value: String)
+value class ComplianceControlEvidenceRequirementId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "ComplianceControlEvidenceRequirementId must not be blank" }
+    }
+}
 
+@ValueObject
 @JvmInline
-value class ComplianceEvidenceId(val value: String)
+value class ComplianceEvidenceId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "ComplianceEvidenceId must not be blank" }
+    }
+}
 
+@ValueObject
 @JvmInline
-value class ComplianceRiskAcceptanceId(val value: String)
+value class ComplianceRiskAcceptanceId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "ComplianceRiskAcceptanceId must not be blank" }
+    }
+}
 
 /** Lifecycle state of a compliance control definition. */
+@ValueObject
 enum class ComplianceControlStatus { ACTIVE, INACTIVE, DEPRECATED }
 
 /** Dimension along which a control's applicability can be scoped. */
+@ValueObject
 enum class ScopeType(val value: String) {
     RELEASE("RELEASE"),
     MARKET("MARKET"),
@@ -34,15 +69,19 @@ enum class ScopeType(val value: String) {
 }
 
 /** Review state of a submitted compliance evidence. */
+@ValueObject
 enum class EvidenceReviewStatus { PENDING, APPROVED, REJECTED }
 
 /** Lifecycle state of a recorded risk acceptance (waiver). */
+@ValueObject
 enum class RiskAcceptanceStatus { ACTIVE, EXPIRED, REVOKED }
 
 /** Result status for a single control within an evaluation. */
+@ValueObject
 enum class ControlStatus { PASS, FAIL, WAIVED, NOT_ASSESSED, NOT_APPLICABLE, WARNING }
 
 /** Overall compliance status for a complete evaluation. */
+@ValueObject
 enum class EvaluationStatus { COMPLIANT, NON_COMPLIANT, PARTIAL, NOT_ASSESSED }
 
 /**
@@ -51,6 +90,7 @@ enum class EvaluationStatus { COMPLIANT, NON_COMPLIANT, PARTIAL, NOT_ASSESSED }
  * Each control has a unique key, a human-readable name, and optional
  * ownership, category, and review scheduling metadata.
  */
+@AggregateRoot
 data class ComplianceControl(
     val id: ComplianceControlId,
     val controlKey: String,
@@ -68,6 +108,7 @@ data class ComplianceControl(
 /**
  * A single scope dimension value that forms part of an applicability rule.
  */
+@DomainEntity
 data class ApplicabilityDimension(
     val id: ApplicabilityDimensionId,
     val ruleId: ComplianceControlApplicabilityRuleId,
@@ -80,6 +121,7 @@ data class ApplicabilityDimension(
 /**
  * Rule that determines when and where a compliance control applies.
  */
+@AggregateRoot
 data class ComplianceControlApplicabilityRule(
     val id: ComplianceControlApplicabilityRuleId,
     val controlId: ComplianceControlId,
@@ -95,6 +137,7 @@ data class ComplianceControlApplicabilityRule(
 /**
  * Requirement linking a compliance control to a specific evidence type.
  */
+@DomainEntity
 data class ComplianceControlEvidenceRequirement(
     val id: ComplianceControlEvidenceRequirementId,
     val controlId: ComplianceControlId,
