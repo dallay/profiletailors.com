@@ -33,7 +33,7 @@ importers:
         specifier: ^9.0.0
         version: 9.0.0(vue@3.5.40(typescript@6.0.3))
       '@vueuse/core':
-        specifier: ^14.3.0
+        specifier: ^14.4.0
         version: 14.4.0(vue@3.5.40(typescript@6.0.3))
       class-variance-authority:
         specifier: ^0.7.1
@@ -127,7 +127,7 @@ importers:
         specifier: ^1.6.7
         version: 1.6.7(@unovis/ts@1.6.7(supports-color@7.2.0))(vue@3.5.40(typescript@6.0.3))
       '@vueuse/core':
-        specifier: ^14.3.0
+        specifier: ^14.4.0
         version: 14.4.0(vue@3.5.40(typescript@6.0.3))
       class-variance-authority:
         specifier: ^0.7.1
