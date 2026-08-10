@@ -88,8 +88,8 @@ importers:
         specifier: ^2.4.6
         version: 2.4.11(@vue/compiler-dom@3.5.40)(@vue/server-renderer@3.5.40)(vue@3.5.40(typescript@6.0.3))
       '@vue/tsconfig':
-        specifier: ^0.7.0
-        version: 0.7.0(typescript@6.0.3)(vue@3.5.40(typescript@6.0.3))
+        specifier: ^0.9.1
+        version: 0.9.1(typescript@6.0.3)(vue@3.5.40(typescript@6.0.3))
       npm-run-all2:
         specifier: ^9.0.3
         version: 9.0.3
@@ -2429,17 +2429,6 @@ packages:
       vue: 3.x
     peerDependenciesMeta:
       '@vue/server-renderer':
-        optional: true
-
-  '@vue/tsconfig@0.7.0':
-    resolution: {integrity: sha512-ku2uNz5MaZ9IerPPUyOHzyjhXoX2kVJaVf7hL315DC17vS6IiZRmmCPfggNbU16QTvM80+uYYy3eYJB59WCtvg==}
-    peerDependencies:
-      typescript: 5.x
-      vue: ^3.4.0
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-      vue:
         optional: true
 
   '@vue/tsconfig@0.9.1':
@@ -8369,11 +8358,6 @@ snapshots:
       vue-component-type-helpers: 3.3.9
     optionalDependencies:
       '@vue/server-renderer': 3.5.40
-
-  '@vue/tsconfig@0.7.0(typescript@6.0.3)(vue@3.5.40(typescript@6.0.3))':
-    optionalDependencies:
-      typescript: 6.0.3
-      vue: 3.5.40(typescript@6.0.3)
 
   '@vue/tsconfig@0.9.1(typescript@6.0.3)(vue@3.5.40(typescript@6.0.3))':
     optionalDependencies:
