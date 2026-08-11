@@ -687,6 +687,7 @@ watch(
                     :key="day.toISOString()"
                     type="button"
                     :disabled="isPastSlot(day, slot.hour)"
+                    :aria-label="`Weekly time slot for ${formatDayName(day)} at ${slot.label}`"
                     @click="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
                     @keydown.enter.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
                     @keydown.space.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"

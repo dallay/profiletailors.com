@@ -9,7 +9,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwind from '@tailwindcss/vite'
 
 const isE2eOrCi = Boolean(
-  process.env.PLAYWRIGHT_BASE_URL || process.env.CI || process.env.NODE_ENV === 'test',
+  process.env.PLAYWRIGHT || process.env.PLAYWRIGHT_BASE_URL || process.env.CI || process.env.NODE_ENV === 'test',
 )
 
 // https://vite.dev/config/

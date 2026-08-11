@@ -69,7 +69,7 @@ export default defineConfig({
 
   /* ── Frontend dev server (no backend required) ─────────── */
   webServer: {
-    command: 'VITE_API_BASE_URL="" pnpm run dev:app',
+    command: 'PLAYWRIGHT=true VITE_API_BASE_URL="" pnpm run dev:app',
     port: 5173,
     reuseExistingServer: true,
     cwd: path.resolve(__dirname, '..'),
