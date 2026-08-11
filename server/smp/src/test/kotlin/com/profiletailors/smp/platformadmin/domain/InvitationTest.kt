@@ -42,6 +42,22 @@ class InvitationTest {
     }
 
     @Test
+    fun `invitation exposes its immutable identity and lifecycle fields`() {
+        val invitation = activeInvitation()
+
+        assertEquals(InvitationSource.DIRECT, invitation.source)
+        assertEquals(workspaceId, invitation.workspaceId)
+        assertEquals("invitee@example.com", invitation.invitedEmailNormalized)
+        assertEquals("hashed-token", invitation.tokenHash)
+        assertEquals(InvitationStatus.ACTIVE, invitation.status)
+        assertEquals(issuer, invitation.issuedBy)
+        assertEquals(now, invitation.createdAt)
+        assertEquals(now.plusSeconds(3600), invitation.expiresAt)
+        assertNull(invitation.acceptedAt)
+        assertNull(invitation.acceptedPrincipalId)
+    }
+
+    @Test
     fun `waitlist invitation rejects a blank source reference`() {
         assertThrows<IllegalArgumentException> {
             Invitation(

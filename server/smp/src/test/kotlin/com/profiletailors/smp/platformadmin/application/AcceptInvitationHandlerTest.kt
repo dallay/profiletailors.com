@@ -14,7 +14,6 @@ import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableExcept
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
-import io.kotest.assertions.throwables.shouldThrow
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -23,6 +22,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -66,7 +66,7 @@ class AcceptInvitationHandlerTest {
             emailStatus = EmailStatus.PENDING,
         )
 
-        shouldThrow<InvitationNotAcceptableException> {
+        assertThrows<InvitationNotAcceptableException> {
             handler().handle(
                 AcceptInvitationCommand(
                     rawToken = "raw-token",
@@ -110,7 +110,7 @@ class AcceptInvitationHandlerTest {
             emailStatus = EmailStatus.PENDING,
         )
 
-        shouldThrow<InvitationNotAcceptableException> {
+        assertThrows<InvitationNotAcceptableException> {
             handler().handle(
                 AcceptInvitationCommand(
                     rawToken = "raw-token",
@@ -136,7 +136,7 @@ class AcceptInvitationHandlerTest {
             clock = clock,
         )
 
-        shouldThrow<InvitationNotAcceptableException> {
+        assertThrows<InvitationNotAcceptableException> {
             handler.handle(
                 AcceptInvitationCommand(
                     rawToken = "raw-token",
@@ -187,7 +187,7 @@ class AcceptInvitationHandlerTest {
             invitationRepository.markAccepted(invitation.id, now, "principal-1")
         } returns false
 
-        shouldThrow<InvitationNotAcceptableException> {
+        assertThrows<InvitationNotAcceptableException> {
             handler().handle(
                 AcceptInvitationCommand(
                     rawToken = "raw-token",
