@@ -24,7 +24,7 @@ data class AcceptInvitationCommand(
 data class InvitationAcceptanceResult(val workspaceId: String, val membershipStatus: String)
 
 interface InvitationAcceptanceRepository {
-    suspend fun findByTokenCandidateKeyForUpdate(candidateKey: String): Invitation?
+    suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation?
     suspend fun markAccepted(invitationId: InvitationId, acceptedAt: Instant, principalId: String): Boolean
 }
 
@@ -41,7 +41,7 @@ class AcceptInvitationHandler(
             val candidateKey = (tokenHasher as? InvitationTokenCandidateKey)
                 ?.candidateKey(command.rawToken)
                 ?: throw invalidInvitation()
-            val invitation = invitationRepository.findByTokenCandidateKeyForUpdate(candidateKey)
+            val invitation = invitationRepository.findByCandidateKeyForUpdate(candidateKey)
                 ?.takeIf { tokenHasher.matches(command.rawToken, it.tokenHash) }
                 ?.takeIf { it.status == InvitationStatus.ACTIVE }
                 ?: throw invalidInvitation()

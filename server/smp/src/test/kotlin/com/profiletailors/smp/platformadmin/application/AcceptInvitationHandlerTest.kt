@@ -53,7 +53,7 @@ class AcceptInvitationHandlerTest {
             expiresAt = now.plusSeconds(3600),
         )
         every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
-        coEvery { invitationRepository.findByTokenCandidateKeyForUpdate("candidate-key") } returns invitation
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
         coEvery { tokenHasher.matches("raw-token", "hashed-token") } returns true
         coEvery { principalIdentityLookup.findByPrincipalId("principal-1") } returns PrincipalIdentityFacts(
             principalId = "principal-1",
@@ -97,7 +97,7 @@ class AcceptInvitationHandlerTest {
             acceptedPrincipalId = "principal-1",
         )
         every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
-        coEvery { invitationRepository.findByTokenCandidateKeyForUpdate("candidate-key") } returns invitation
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
         coEvery { tokenHasher.matches("raw-token", "hashed-token") } returns true
         coEvery { principalIdentityLookup.findByPrincipalId("principal-1") } returns PrincipalIdentityFacts(
             principalId = "principal-1",
@@ -125,6 +125,80 @@ class AcceptInvitationHandlerTest {
     }
 
     @Test
+    fun `rejects an invitation when the token hasher cannot provide a candidate key`() = runTest {
+        val tokenHasherWithoutCandidateKey = mockk<TokenHasher>()
+        val handler = AcceptInvitationHandler(
+            invitationRepository = invitationRepository,
+            tokenHasher = tokenHasherWithoutCandidateKey,
+            principalIdentityLookup = principalIdentityLookup,
+            membershipProvisioner = membershipProvisioner,
+            transactionRunner = transactionRunner,
+            clock = clock,
+        )
+
+        assertThrows<InvitationNotAcceptableException> {
+            handler.handle(
+                AcceptInvitationCommand(
+                    rawToken = "raw-token",
+                    authenticatedPrincipalId = "principal-1",
+                    authenticatedEmail = "invitee@example.com",
+                ),
+            )
+        }
+
+        coVerify(exactly = 0) { invitationRepository.findByCandidateKeyForUpdate(any()) }
+    }
+
+    @Test
+    fun `rejects acceptance when the atomic invitation update reports no row`() = runTest {
+        val invitation = Invitation(
+            id = InvitationId.generate(),
+            source = InvitationSource.DIRECT,
+            sourceReferenceId = null,
+            workspaceId = "workspace-a",
+            invitedEmailNormalized = "invitee@example.com",
+            tokenHash = "hashed-token",
+            status = InvitationStatus.ACTIVE,
+            issuedBy = "issuer-1",
+            createdAt = now.minusSeconds(60),
+            expiresAt = now.plusSeconds(3600),
+        )
+        val membership = com.profiletailors.smp.tenancy.domain.WorkspaceMembership(
+            workspaceId = "workspace-a",
+            principalId = "principal-1",
+            principalType = PrincipalType.USER,
+            status = WorkspaceMembershipStatus.ACTIVE,
+        )
+        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
+        coEvery { tokenHasher.matches("raw-token", "hashed-token") } returns true
+        coEvery { principalIdentityLookup.findByPrincipalId("principal-1") } returns PrincipalIdentityFacts(
+            principalId = "principal-1",
+            principalType = PrincipalType.USER,
+            subject = "local:invitee@example.com",
+            provider = null,
+            displayIdentity = "invitee",
+            email = "invitee@example.com",
+            username = "invitee",
+            emailStatus = EmailStatus.PENDING,
+        )
+        coEvery { membershipProvisioner.reconcile("workspace-a", "principal-1") } returns membership
+        coEvery {
+            invitationRepository.markAccepted(invitation.id, now, "principal-1")
+        } returns false
+
+        assertThrows<InvitationNotAcceptableException> {
+            handler().handle(
+                AcceptInvitationCommand(
+                    rawToken = "raw-token",
+                    authenticatedPrincipalId = "principal-1",
+                    authenticatedEmail = "invitee@example.com",
+                ),
+            )
+        }
+    }
+
+    @Test
     fun `accepts an existing user using invitation workspace and reconciles one membership`() = runTest {
         val invitation = Invitation(
             id = InvitationId.generate(),
@@ -145,7 +219,7 @@ class AcceptInvitationHandlerTest {
             status = WorkspaceMembershipStatus.ACTIVE,
         )
         every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
-        coEvery { invitationRepository.findByTokenCandidateKeyForUpdate("candidate-key") } returns invitation
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
         coEvery { tokenHasher.matches("raw-token", "hashed-token") } returns true
         coEvery { principalIdentityLookup.findByPrincipalId("principal-1") } returns PrincipalIdentityFacts(
             principalId = "principal-1",

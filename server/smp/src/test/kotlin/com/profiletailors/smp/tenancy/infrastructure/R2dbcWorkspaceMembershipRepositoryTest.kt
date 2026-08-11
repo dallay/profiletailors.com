@@ -46,6 +46,18 @@ class R2dbcWorkspaceMembershipRepositoryTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `reconcile returns an existing suspended membership without changing its status`() = runTest {
+        databaseClient.sql(
+            "UPDATE workspace_memberships SET status = 'SUSPENDED' WHERE id = 'm-1'",
+        ).then().block()
+
+        val membership = repository.reconcile("ws-1", "member-1")
+
+        assertEquals(WorkspaceMembershipStatus.SUSPENDED, membership.status)
+        assertEquals(1, repository.findByWorkspaceId("ws-1").size)
+    }
+
+    @Test
     fun `reconcile returns existing membership without inserting a duplicate`() = runTest {
         val membership = repository.reconcile("ws-1", "member-1")
 
@@ -56,7 +68,10 @@ class R2dbcWorkspaceMembershipRepositoryTest : PostgresDatabaseTestBase() {
     @Test
     fun `reconcile inserts one active membership for a principal without one`() = runTest {
         databaseClient.sql(
-            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('member-2', 'USER', 'member-2', NULL, 'Member Two')",
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('member-2', 'USER', 'member-2', NULL, 'Member Two')
+            """.trimIndent(),
         ).then().block()
 
         val membership = repository.reconcile("ws-1", "member-2")

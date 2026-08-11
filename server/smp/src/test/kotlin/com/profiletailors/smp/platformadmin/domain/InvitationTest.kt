@@ -15,6 +15,13 @@ class InvitationTest {
     private val workspaceId = "workspace-a"
 
     @Test
+    fun `creates an invitation ID from a UUID string`() {
+        val value = UUID.randomUUID()
+
+        assertEquals(InvitationId(value), InvitationId.fromString(value.toString()))
+    }
+
+    @Test
     fun `direct invitation does not require a waitlist source reference`() {
         val invitation = Invitation(
             id = InvitationId.generate(),
@@ -32,6 +39,24 @@ class InvitationTest {
         assertNull(invitation.sourceReferenceId)
         assertEquals(workspaceId, invitation.workspaceId)
         assertTrue(invitation.isActive(now))
+    }
+
+    @Test
+    fun `waitlist invitation rejects a blank source reference`() {
+        assertThrows<IllegalArgumentException> {
+            Invitation(
+                id = InvitationId.generate(),
+                source = InvitationSource.WAITLIST,
+                sourceReferenceId = " ",
+                workspaceId = workspaceId,
+                invitedEmailNormalized = "invitee@example.com",
+                tokenHash = "hashed-token",
+                status = InvitationStatus.ACTIVE,
+                issuedBy = issuer,
+                createdAt = now,
+                expiresAt = now.plusSeconds(3600),
+            )
+        }
     }
 
     @Test
@@ -66,6 +91,25 @@ class InvitationTest {
                 issuedBy = issuer,
                 createdAt = now,
                 expiresAt = now.plusSeconds(3600),
+            )
+        }
+    }
+
+    @Test
+    fun `accepted invitation requires acceptance metadata`() {
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(status = InvitationStatus.ACCEPTED)
+        }
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(
+                status = InvitationStatus.ACCEPTED,
+                acceptedAt = now,
+            )
+        }
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(
+                status = InvitationStatus.ACCEPTED,
+                acceptedPrincipalId = "principal-1",
             )
         }
     }

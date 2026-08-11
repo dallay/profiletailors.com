@@ -16,7 +16,7 @@ import java.util.UUID
 @Repository
 class R2dbcInvitationAcceptanceRepository(private val databaseClient: DatabaseClient) : InvitationAcceptanceRepository {
 
-    override suspend fun findByTokenCandidateKeyForUpdate(candidateKey: String): Invitation? = databaseClient.sql(
+    override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? = databaseClient.sql(
         SELECT_BY_CANDIDATE_KEY_FOR_UPDATE,
     )
         .bind("candidateKey", candidateKey)
