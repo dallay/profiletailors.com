@@ -33,6 +33,11 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
         subject = "subject-owner-1",
     )
 
+    private val workspaceContext = ResourceContext(
+        type = ResourceContextType.WORKSPACE,
+        workspaceId = "workspace-1",
+    )
+
     @Test
     fun `membership provisioner adapter delegates reconciliation to repository`() = runTest {
         val repository = mockk<WorkspaceMembershipRepository>()
@@ -48,11 +53,6 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
         assertEquals(expected, provisioner.reconcile("workspace-1", "principal-1"))
         coVerify(exactly = 1) { repository.reconcile("workspace-1", "principal-1") }
     }
-
-    private val workspaceContext = ResourceContext(
-        type = ResourceContextType.WORKSPACE,
-        workspaceId = "workspace-1",
-    )
 
     @Test
     fun `prevents suspending last active owner membership`() = runTest {
