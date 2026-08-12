@@ -57,6 +57,20 @@ class SpringBootApplicationPluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":test")?.outcome) { "test task outcome should be SUCCESS — test lifecycle must execute" }
     }
 
+    @Test
+    fun `check task runs detekt and koverHtmlReport successfully`() {
+        writeProject()
+
+        val result: BuildResult = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withPluginClasspath()
+            .withArguments("check", "koverHtmlReport", "--stacktrace")
+            .build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":detekt")?.outcome) { "detekt task outcome should be SUCCESS — detekt analysis must execute" }
+        assertEquals(TaskOutcome.SUCCESS, result.task(":koverHtmlReport")?.outcome) { "koverHtmlReport task outcome should be SUCCESS — kover HTML report must be generated" }
+    }
+
     private fun writeProject(testSource: String = "class PlaceholderTest") {
         val versionCatalog = File(projectDir, "gradle/libs.versions.toml")
         versionCatalog.parentFile.mkdirs()
@@ -93,6 +107,27 @@ class SpringBootApplicationPluginTest {
                     testImplementation("org.junit.jupiter:junit-jupiter")
                     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
                 }
+            """.trimIndent(),
+        )
+        val detektConfig = File(projectDir, "config/detekt/detekt.yml")
+        detektConfig.parentFile.mkdirs()
+        detektConfig.writeText(
+            """
+                build:
+                  maxIssues: 0
+
+                config:
+                  validation: true
+                  warningsAsErrors: false
+
+                complexity:
+                  active: true
+
+                exceptions:
+                  active: true
+
+                style:
+                  active: true
             """.trimIndent(),
         )
         File(projectDir, "src/test/kotlin").mkdirs()
