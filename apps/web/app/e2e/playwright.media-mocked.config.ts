@@ -46,7 +46,7 @@ export default defineConfig({
   },
 
   webServer: {
-    command: 'VITE_API_BASE_URL="" MEDIA_HAR=off pnpm run dev:app',
+    command: 'PLAYWRIGHT=true VITE_API_BASE_URL="" MEDIA_HAR=off pnpm run dev:app',
     port: 5173,
     reuseExistingServer: true,
     cwd: path.resolve(__dirname, '..'),
