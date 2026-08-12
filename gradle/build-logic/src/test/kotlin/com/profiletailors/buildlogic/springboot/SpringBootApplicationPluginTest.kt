@@ -29,6 +29,21 @@ class SpringBootApplicationPluginTest {
     }
 
     @Test
+    fun `registers detekt and kover tasks with upgraded plugin versions`() {
+        writeProject()
+
+        val output = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withPluginClasspath()
+            .withArguments("tasks", "--all")
+            .build()
+            .output
+
+        assertTrue(output.contains("detekt"), "detekt task should be registered with detekt 2.0.0-alpha.5")
+        assertTrue(output.contains("koverXmlReport"), "koverXmlReport task should be registered with kover 0.9.9")
+    }
+
+    @Test
     fun `fast test command can exclude postgres tag through gradle property`() {
         writeProject(
             testSource = """
@@ -63,15 +78,15 @@ class SpringBootApplicationPluginTest {
         versionCatalog.writeText(
             """
                 [versions]
-                kotlin = "2.2.21"
+                kotlin = "2.4.0"
 
                 [plugins]
                 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
                 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
                 spring-boot = { id = "org.springframework.boot", version = "4.0.0" }
                 spring-dependency-management = { id = "io.spring.dependency-management", version = "1.1.7" }
-                detekt = { id = "dev.detekt", version = "1.23.8" }
-                kover = { id = "org.jetbrains.kotlinx.kover", version = "0.9.3" }
+                detekt = { id = "dev.detekt", version = "2.0.0-alpha.5" }
+                kover = { id = "org.jetbrains.kotlinx.kover", version = "0.9.9" }
             """.trimIndent(),
         )
         File(projectDir, "settings.gradle.kts").writeText(
