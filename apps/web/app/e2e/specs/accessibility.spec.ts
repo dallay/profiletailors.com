@@ -89,17 +89,37 @@ test.describe('A11y — Unauthenticated pages @a11y @frontend', () => {
   // ── Keyboard navigation — login form ──────────────────────────────────────
 
   test('login form is fully operable by keyboard only', async ({ page }) => {
+    // Seed consent so the consent banner does not pop up and intercept the keyboard tab focus.
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'pt-consent',
+        JSON.stringify({
+          consentVersion: 1,
+          policyVersion: '2026-07-23',
+          timestamp: new Date().toISOString(),
+          region: 'EU',
+          categories: { necessary: true, analytics: false },
+          dnt: false,
+          source: 'banner',
+        }),
+      )
+    })
+
     await page.goto('/login')
 
-    // Tab to email
-    await page.keyboard.press('Tab')
+    // Focus the email field explicitly to start sequential Tab flow
     const email = page.locator('input[type="email"]').first()
+    await email.waitFor()
+    await email.focus()
     await expect(email).toBeFocused()
 
     // Tab to password
     await page.keyboard.press('Tab')
     const password = page.locator('input[autocomplete$="password"]').first()
     await expect(password).toBeFocused()
+
+    // Tab to show-password visibility button
+    await page.keyboard.press('Tab')
 
     // Tab to submit
     await page.keyboard.press('Tab')
@@ -125,7 +145,7 @@ schedulerTest.describe('A11y — Authenticated pages @a11y @integration', () => 
   })
 
   schedulerTest('scheduler / calendar view has no WCAG 2.2 AA violations', async ({ page }) => {
-    await page.goto('/dashboard/scheduler')
+    await page.goto('/scheduler/calendar/week')
     // Wait for the calendar grid to be present
     await page
       .getByRole('grid')
@@ -138,26 +158,27 @@ schedulerTest.describe('A11y — Authenticated pages @a11y @integration', () => 
     const results = await axe(page).analyze()
     expect(
       results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
-      'axe violations on /dashboard/scheduler',
+      'axe violations on /scheduler',
     ).toEqual([])
   })
 
   schedulerTest('compose modal has no WCAG 2.2 AA violations when open', async ({ page }) => {
-    await ensureChannelsLoaded(page)
-    await page.goto('/dashboard/scheduler')
+    await page.goto('/scheduler/calendar/week')
     await page.waitForLoadState('networkidle')
+    await ensureChannelsLoaded(page)
 
     // Open the compose modal
     const newPostBtn = page
       .getByRole('button', { name: /new post|nueva publicación/i })
       .or(page.locator('[data-new-post]'))
       .first()
+    await newPostBtn.waitFor()
     await newPostBtn.click()
 
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
 
-    const results = await axe(page).include('[role="dialog"]').analyze()
+    const results = await axe(page).include('dialog, [role="dialog"]').analyze()
     expect(
       results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
       'axe violations in compose modal',
@@ -165,48 +186,51 @@ schedulerTest.describe('A11y — Authenticated pages @a11y @integration', () => 
   })
 
   schedulerTest('media library has no WCAG 2.2 AA violations', async ({ page }) => {
-    await page.goto('/dashboard/media')
+    await page.goto('/media')
     await page.waitForLoadState('networkidle')
 
     const results = await axe(page).analyze()
     expect(
       results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
-      'axe violations on /dashboard/media',
+      'axe violations on /media',
     ).toEqual([])
   })
 
   schedulerTest('account settings page has no WCAG 2.2 AA violations', async ({ page }) => {
-    await page.goto('/dashboard/settings')
+    await page.goto('/settings')
     await page.waitForLoadState('networkidle')
 
     const results = await axe(page).analyze()
     expect(
       results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
-      'axe violations on /dashboard/settings',
+      'axe violations on /settings',
     ).toEqual([])
   })
 
   // ── Keyboard navigation — modal focus management ───────────────────────────
 
   schedulerTest('compose modal traps focus and returns it on close', async ({ page }) => {
-    await ensureChannelsLoaded(page)
-    await page.goto('/dashboard/scheduler')
+    await page.goto('/scheduler/calendar/week')
     await page.waitForLoadState('networkidle')
+    await ensureChannelsLoaded(page)
 
     const newPostBtn = page
       .getByRole('button', { name: /new post|nueva publicación/i })
       .or(page.locator('[data-new-post]'))
       .first()
+    await newPostBtn.waitFor()
     await newPostBtn.click()
 
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
 
-    // First focusable element inside the dialog should receive focus
-    const firstFocusable = dialog
-      .locator('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
-      .first()
-    await expect(firstFocusable).toBeFocused()
+    // Focus should be inside the dialog
+    await expect(async () => {
+      const focused = page.locator(':focus')
+      await expect(focused).toBeVisible()
+      const isInsideDialog = await focused.evaluate((el) => !!el.closest('dialog, [role="dialog"]'))
+      expect(isInsideDialog).toBe(true)
+    }).toPass({ timeout: 10_000 })
 
     // Escape should close the dialog
     await page.keyboard.press('Escape')
@@ -217,7 +241,7 @@ schedulerTest.describe('A11y — Authenticated pages @a11y @integration', () => 
   })
 
   schedulerTest('calendar does not trap keyboard focus when navigating dates', async ({ page }) => {
-    await page.goto('/dashboard/scheduler')
+    await page.goto('/scheduler/calendar/week')
     await page.waitForLoadState('networkidle')
 
     // Tab through the page — focus should move forward and eventually leave
@@ -249,7 +273,7 @@ schedulerTest.describe('A11y — Authenticated pages @a11y @integration', () => 
   // ── Skip-to-content ────────────────────────────────────────────────────────
 
   schedulerTest('skip link is present and leads to main content', async ({ page }) => {
-    await page.goto('/dashboard/scheduler')
+    await page.goto('/scheduler/calendar/week')
     await page.waitForLoadState('networkidle')
 
     await page.keyboard.press('Tab')

@@ -1184,12 +1184,14 @@ async function handleCreateSubmit(
       <dialog
         ref="modalContainer"
         open
+        tabindex="-1"
         aria-modal="true"
         aria-labelledby="create-post-title"
-        class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row"
+        class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row focus:outline-none"
       >
         <button type="button"
           @click="emit('close')"
+          aria-label="Close"
           class="absolute top-4 right-4 z-50 flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display lg:hidden"
         >
           <X class="size-4" />
@@ -1202,6 +1204,7 @@ async function handleCreateSubmit(
               </h3>
             <button type="button"
               @click="emit('close')"
+              aria-label="Close"
               class="hidden lg:flex size-7 items-center justify-center rounded-xl border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display cursor-pointer"
             >
               <X class="size-3.5" />
@@ -1329,6 +1332,7 @@ async function handleCreateSubmit(
                     type="button"
                     class="flex h-10 w-10 items-center justify-center rounded-xl border border-border-visible bg-bg-surface transition hover:border-text-display hover:text-text-display"
                     data-testid="composer-upload-trigger"
+                    aria-label="Upload media"
                     @click="openUploadPicker"
                   >
                     <ImageIcon class="size-4" />
@@ -1340,6 +1344,7 @@ async function handleCreateSubmit(
                         type="button"
                         class="flex h-10 w-10 items-center justify-center rounded-xl border border-border-visible bg-bg-surface transition hover:border-text-display hover:text-text-display"
                         data-testid="composer-sources-trigger"
+                        aria-label="Toggle media sources"
                       >
                         <ChevronDown class="size-4" />
                       </button>
@@ -1371,6 +1376,7 @@ async function handleCreateSubmit(
                     @click="handleEmojiPicker"
                     class="flex h-10 w-10 items-center justify-center rounded-xl text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
                     title="Open emoji picker"
+                    aria-label="Open emoji picker"
                   >
                     <Smile class="size-4" />
                   </button>
@@ -1388,6 +1394,7 @@ async function handleCreateSubmit(
                     :disabled="isAiGenerating"
                     class="flex h-10 items-center gap-1 rounded-xl px-2 text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
                     :title="t('composer.ai.button')"
+                    aria-label="Open AI Assistant"
                     data-testid="composer-ai-assist"
                   >
                     <Sparkles class="size-4" />
@@ -1616,7 +1623,7 @@ async function handleCreateSubmit(
                     </button>
                   </div>
 
-                  <div v-else class="rounded-2xl border border-border-visible bg-bg-primary p-4">
+                  <div class="rounded-2xl border border-border-visible bg-bg-primary p-4">
                     <p class="mb-2 text-[9px] font-bold uppercase tracking-[0.24em] text-text-secondary">
                       {{ t('composer.ai.reviewTitle') }}
                     </p>
