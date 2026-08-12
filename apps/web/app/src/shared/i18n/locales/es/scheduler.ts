@@ -35,4 +35,7 @@ export default {
   pause: 'Pausar',
   resume: 'Reanudar',
   cancel: 'Cancelar',
+  previousPeriod: 'Período anterior',
+  nextPeriod: 'Período siguiente',
+  slotFor: 'Espacio para {day} a las {time}',
 }

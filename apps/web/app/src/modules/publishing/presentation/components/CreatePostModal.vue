@@ -179,11 +179,19 @@ onMounted(() => {
   timer = setInterval(() => {
     now.value = new Date()
   }, 60_000)
+
+  // Activate focus trap if modal is initially open
+  if (props.isOpen) {
+    nextTick(() => {
+      activateFocusTrap()
+    })
+  }
 })
 
 onUnmounted(() => {
   clearInterval(timer)
   picker.stopAllReconciliationPollers()
+  deactivateFocusTrap()
 })
 
 const todayDateValue = computed(() => today(getLocalTimeZone()))
@@ -1187,11 +1195,11 @@ async function handleCreateSubmit(
         tabindex="-1"
         aria-modal="true"
         aria-labelledby="create-post-title"
-        class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row focus:outline-none"
+        class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
       >
         <button type="button"
           @click="emit('close')"
-          aria-label="Close"
+          :aria-label="t('composer.closeModal')"
           class="absolute top-4 right-4 z-50 flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display lg:hidden"
         >
           <X class="size-4" />
@@ -1204,7 +1212,7 @@ async function handleCreateSubmit(
               </h3>
             <button type="button"
               @click="emit('close')"
-              aria-label="Close"
+              :aria-label="t('composer.closeModal')"
               class="hidden lg:flex size-7 items-center justify-center rounded-xl border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display cursor-pointer"
             >
               <X class="size-3.5" />
@@ -1332,7 +1340,7 @@ async function handleCreateSubmit(
                     type="button"
                     class="flex h-10 w-10 items-center justify-center rounded-xl border border-border-visible bg-bg-surface transition hover:border-text-display hover:text-text-display"
                     data-testid="composer-upload-trigger"
-                    aria-label="Upload media"
+                    :aria-label="t('composer.uploadMedia')"
                     @click="openUploadPicker"
                   >
                     <ImageIcon class="size-4" />
@@ -1344,7 +1352,7 @@ async function handleCreateSubmit(
                         type="button"
                         class="flex h-10 w-10 items-center justify-center rounded-xl border border-border-visible bg-bg-surface transition hover:border-text-display hover:text-text-display"
                         data-testid="composer-sources-trigger"
-                        aria-label="Toggle media sources"
+                        :aria-label="t('composer.toggleMediaSources')"
                       >
                         <ChevronDown class="size-4" />
                       </button>
@@ -1375,8 +1383,8 @@ async function handleCreateSubmit(
                   <button type="button"
                     @click="handleEmojiPicker"
                     class="flex h-10 w-10 items-center justify-center rounded-xl text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
-                    title="Open emoji picker"
-                    aria-label="Open emoji picker"
+                    :title="t('composer.openEmojiPicker')"
+                    :aria-label="t('composer.openEmojiPicker')"
                   >
                     <Smile class="size-4" />
                   </button>
@@ -1394,7 +1402,7 @@ async function handleCreateSubmit(
                     :disabled="isAiGenerating"
                     class="flex h-10 items-center gap-1 rounded-xl px-2 text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
                     :title="t('composer.ai.button')"
-                    aria-label="Open AI Assistant"
+                    :aria-label="t('composer.ai.button')"
                     data-testid="composer-ai-assist"
                   >
                     <Sparkles class="size-4" />

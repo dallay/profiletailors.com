@@ -52,6 +52,10 @@ export default {
   },
   templates: 'Templates',
   aiAssistant: 'AI Assistant',
+  closeModal: 'Close',
+  uploadMedia: 'Upload media',
+  toggleMediaSources: 'Toggle media sources',
+  openEmojiPicker: 'Open emoji picker',
   ai: {
     button: 'AI Assistant',
     title: 'AI content generator',

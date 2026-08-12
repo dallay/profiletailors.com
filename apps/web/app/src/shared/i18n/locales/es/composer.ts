@@ -52,6 +52,10 @@ export default {
   },
   templates: 'Plantillas',
   aiAssistant: 'Asistente IA',
+  closeModal: 'Cerrar',
+  uploadMedia: 'Subir medios',
+  toggleMediaSources: 'Mostrar u ocultar fuentes de medios',
+  openEmojiPicker: 'Abrir selector de emojis',
   ai: {
     button: 'Asistente IA',
     title: 'Generador de contenido con IA',

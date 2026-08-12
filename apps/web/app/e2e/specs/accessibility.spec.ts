@@ -50,7 +50,7 @@ function axe(page: Parameters<typeof AxeBuilder>[0]['page']) {
 
 test.describe('A11y — Unauthenticated pages @a11y @frontend', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => localStorage.removeItem('pt-consent'))
+    await page.addInitScript((): void => localStorage.removeItem('pt-consent'))
   })
 
   test('login page has no WCAG 2.2 AA violations', async ({ page }) => {
@@ -76,62 +76,74 @@ test.describe('A11y — Unauthenticated pages @a11y @frontend', () => {
   })
 
   test('password reset page has no WCAG 2.2 AA violations', async ({ page }) => {
-    await page.goto('/reset-password?token=opaque')
+    await page.goto('/password-reset')
     await page.getByRole('heading').first().waitFor()
 
     const results = await axe(page).analyze()
     expect(
       results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
-      'axe violations on /reset-password',
+      'axe violations on /password-reset',
     ).toEqual([])
   })
 
   // ── Keyboard navigation — login form ──────────────────────────────────────
 
   test('login form is fully operable by keyboard only', async ({ page }) => {
-    // Seed consent so the consent banner does not pop up and intercept the keyboard tab focus.
-    await page.addInitScript(() => {
-      localStorage.setItem(
-        'pt-consent',
-        JSON.stringify({
-          consentVersion: 1,
-          policyVersion: '2026-07-23',
-          timestamp: new Date().toISOString(),
-          region: 'EU',
-          categories: { necessary: true, analytics: false },
-          dnt: false,
-          source: 'banner',
-        }),
-      )
+    await test.step('Seed consent to prevent banner interference', async () => {
+      // Seed consent so the consent banner does not pop up and intercept the keyboard tab focus.
+      await page.addInitScript((): void => {
+        localStorage.setItem(
+          'pt-consent',
+          JSON.stringify({
+            consentVersion: 1,
+            policyVersion: '2026-07-23',
+            timestamp: new Date().toISOString(),
+            region: 'EU',
+            categories: { necessary: true, analytics: false },
+            dnt: false,
+            source: 'banner',
+          }),
+        )
+      })
     })
 
-    await page.goto('/login')
+    await test.step('Navigate to login page', async () => {
+      await page.goto('/login')
+    })
 
-    // Focus the email field explicitly to start sequential Tab flow
-    const email = page.locator('input[type="email"]').first()
-    await email.waitFor()
-    await email.focus()
-    await expect(email).toBeFocused()
+    await test.step('Focus email field and verify', async () => {
+      // Focus the email field explicitly to start sequential Tab flow
+      const email = page.getByLabel(/email/i)
+      await expect(email).toBeVisible()
+      await email.focus()
+      await expect(email).toBeFocused()
+    })
 
-    // Tab to password
-    await page.keyboard.press('Tab')
-    const password = page.locator('input[autocomplete$="password"]').first()
-    await expect(password).toBeFocused()
+    await test.step('Tab to password field', async () => {
+      // Tab to password
+      await page.keyboard.press('Tab')
+      const password = page.getByLabel(/password/i)
+      await expect(password).toBeFocused()
+    })
 
-    // Tab to show-password visibility button
-    await page.keyboard.press('Tab')
+    await test.step('Tab to show-password button', async () => {
+      // Tab to show-password visibility button
+      await page.keyboard.press('Tab')
+    })
 
-    // Tab to submit
-    await page.keyboard.press('Tab')
-    const submit = page.locator('button[type="submit"]')
-    await expect(submit).toBeFocused()
+    await test.step('Tab to submit button and trigger validation', async () => {
+      // Tab to submit
+      await page.keyboard.press('Tab')
+      const submit = page.locator('button[type="submit"]')
+      await expect(submit).toBeFocused()
 
-    // Submitting with Enter triggers validation (no credentials entered)
-    await page.keyboard.press('Enter')
-    // Expect an error message or required-field indication to appear
-    await expect(
-      page.getByRole('alert').or(page.locator('[aria-invalid="true"]')).first(),
-    ).toBeVisible()
+      // Submitting with Enter triggers validation (no credentials entered)
+      await page.keyboard.press('Enter')
+      // Expect an error message or required-field indication to appear
+      await expect(
+        page.getByRole('alert').or(page.locator('[aria-invalid="true"]')).first(),
+      ).toBeVisible()
+    })
   })
 })
 
@@ -147,47 +159,52 @@ schedulerTest.describe('A11y — Authenticated pages @a11y @integration', () => 
   schedulerTest('scheduler / calendar view has no WCAG 2.2 AA violations', async ({ page }) => {
     await page.goto('/scheduler/calendar/week')
     // Wait for the calendar grid to be present
-    await page
+    const calendarGrid = page
       .getByRole('grid')
       .or(page.locator('[data-scheduler]'))
       .first()
-      .waitFor({ timeout: 10_000 })
-      .catch(() => {})
-    await page.waitForLoadState('networkidle')
+    await expect(calendarGrid).toBeVisible({ timeout: 10_000 })
 
     const results = await axe(page).analyze()
     expect(
       results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
-      'axe violations on /scheduler',
+      'axe violations on /scheduler/calendar/week',
     ).toEqual([])
   })
 
   schedulerTest('compose modal has no WCAG 2.2 AA violations when open', async ({ page }) => {
-    await page.goto('/scheduler/calendar/week')
-    await page.waitForLoadState('networkidle')
-    await ensureChannelsLoaded(page)
+    await test.step('Navigate to scheduler and ensure channels loaded', async () => {
+      await page.goto('/scheduler/calendar/week')
+      await ensureChannelsLoaded(page)
 
-    // Open the compose modal
-    const newPostBtn = page
-      .getByRole('button', { name: /new post|nueva publicación/i })
-      .or(page.locator('[data-new-post]'))
-      .first()
-    await newPostBtn.waitFor()
-    await newPostBtn.click()
+      const newPostBtn = page.getByRole('button', { name: /new post|nueva publicación/i })
+      await expect(newPostBtn).toBeVisible()
+      await expect(newPostBtn).toBeEnabled()
+    })
 
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
+    await test.step('Open compose modal', async () => {
+      // Open the compose modal
+      const newPostBtn = page.getByRole('button', { name: /new post|nueva publicación/i })
+      await newPostBtn.click()
 
-    const results = await axe(page).include('dialog, [role="dialog"]').analyze()
-    expect(
-      results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
-      'axe violations in compose modal',
-    ).toEqual([])
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible()
+    })
+
+    await test.step('Run axe on compose modal', async () => {
+      const results = await axe(page).include('dialog, [role="dialog"]').analyze()
+      expect(
+        results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
+        'axe violations in compose modal',
+      ).toEqual([])
+    })
   })
 
   schedulerTest('media library has no WCAG 2.2 AA violations', async ({ page }) => {
     await page.goto('/media')
-    await page.waitForLoadState('networkidle')
+
+    const mediaHeading = page.getByRole('heading', { name: /media/i })
+    await expect(mediaHeading).toBeVisible()
 
     const results = await axe(page).analyze()
     expect(
@@ -198,7 +215,9 @@ schedulerTest.describe('A11y — Authenticated pages @a11y @integration', () => 
 
   schedulerTest('account settings page has no WCAG 2.2 AA violations', async ({ page }) => {
     await page.goto('/settings')
-    await page.waitForLoadState('networkidle')
+
+    const settingsHeading = page.getByRole('heading', { name: /settings|account/i })
+    await expect(settingsHeading).toBeVisible()
 
     const results = await axe(page).analyze()
     expect(
@@ -210,34 +229,44 @@ schedulerTest.describe('A11y — Authenticated pages @a11y @integration', () => 
   // ── Keyboard navigation — modal focus management ───────────────────────────
 
   schedulerTest('compose modal traps focus and returns it on close', async ({ page }) => {
-    await page.goto('/scheduler/calendar/week')
-    await page.waitForLoadState('networkidle')
-    await ensureChannelsLoaded(page)
+    await test.step('Navigate to scheduler and ensure channels loaded', async () => {
+      await page.goto('/scheduler/calendar/week')
+      await ensureChannelsLoaded(page)
 
-    const newPostBtn = page
-      .getByRole('button', { name: /new post|nueva publicación/i })
-      .or(page.locator('[data-new-post]'))
-      .first()
-    await newPostBtn.waitFor()
-    await newPostBtn.click()
+      const newPostBtn = page.getByRole('button', { name: /new post|nueva publicación/i })
+      await expect(newPostBtn).toBeVisible()
+      await expect(newPostBtn).toBeEnabled()
+    })
 
-    const dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
+    await test.step('Open compose modal and verify dialog visibility', async () => {
+      const newPostBtn = page.getByRole('button', { name: /new post|nueva publicación/i })
+      await newPostBtn.click()
 
-    // Focus should be inside the dialog
-    await expect(async () => {
-      const focused = page.locator(':focus')
-      await expect(focused).toBeVisible()
-      const isInsideDialog = await focused.evaluate((el) => !!el.closest('dialog, [role="dialog"]'))
-      expect(isInsideDialog).toBe(true)
-    }).toPass({ timeout: 10_000 })
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible()
+    })
 
-    // Escape should close the dialog
-    await page.keyboard.press('Escape')
-    await expect(dialog).toBeHidden()
+    await test.step('Verify focus is trapped inside dialog', async () => {
+      // Focus should be inside the dialog
+      await expect(async (): Promise<void> => {
+        const focused = page.locator(':focus')
+        await expect(focused).toBeVisible()
+        const isInsideDialog = await focused.evaluate((el: Element): boolean => !!el.closest('dialog, [role="dialog"]'))
+        expect(isInsideDialog).toBe(true)
+      }).toPass({ timeout: 10_000 })
+    })
 
-    // Focus should return to the trigger button
-    await expect(newPostBtn).toBeFocused()
+    await test.step('Close modal and verify focus restoration', async () => {
+      const newPostBtn = page.getByRole('button', { name: /new post|nueva publicación/i })
+      const dialog = page.getByRole('dialog')
+
+      // Escape should close the dialog
+      await page.keyboard.press('Escape')
+      await expect(dialog).toBeHidden()
+
+      // Focus should return to the trigger button
+      await expect(newPostBtn).toBeFocused()
+    })
   })
 
   schedulerTest('calendar does not trap keyboard focus when navigating dates', async ({ page }) => {
@@ -254,7 +283,7 @@ schedulerTest.describe('A11y — Authenticated pages @a11y @integration', () => 
       const focused = page.locator(':focus')
       const isInCalendar = await focused
         .evaluate(
-          (el) =>
+          (el: Element): boolean =>
             !!el.closest(
               '[data-scheduler],[role="grid"],[aria-label*="calendar" i],[aria-label*="calendario" i]',
             ),
