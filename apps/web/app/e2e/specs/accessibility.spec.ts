@@ -76,13 +76,13 @@ test.describe('A11y — Unauthenticated pages @a11y @frontend', () => {
   })
 
   test('password reset page has no WCAG 2.2 AA violations', async ({ page }) => {
-    await page.goto('/password-reset')
+    await page.goto('/reset-password?token=opaque')
     await page.getByRole('heading').first().waitFor()
 
     const results = await axe(page).analyze()
     expect(
       results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
-      'axe violations on /password-reset',
+      'axe violations on /reset-password',
     ).toEqual([])
   })
 
