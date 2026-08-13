@@ -10,14 +10,19 @@
  * HAR replay handles auth; consent API is intercepted via page.route()
  * for the sync endpoint.
  *
- * @see ConsentBanner.vue — Dialog-based consent banner with data-testid selectors
+ * @see ConsentBanner.vue — Inline non-modal consent banner with data-testid selectors
  * @see CookieSettings.vue — Standalone settings panel with Switch controls
  * @see consent.store.ts — Pinia store under test
  */
 
 import { test, expect } from '../fixtures/base-test'
 import { mockAuthenticatedSession } from '../fixtures/auth-helpers'
-import { clearConsent, setConsentReceipt, mockConsentSync } from '../fixtures/consent-helpers'
+import {
+  clearConsent,
+  setConsentReceipt,
+  mockConsentSync,
+  expectNoOverlay,
+} from '../fixtures/consent-helpers'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -59,6 +64,8 @@ test.describe('Consent Management — App', () => {
     // Banner should be visible (no valid consent stored)
     const banner = page.getByTestId('consent-banner')
     await expect(banner).toBeVisible()
+    await expectNoOverlay(page)
+    await expect(page.getByTestId('cookie-settings-link')).toBeVisible()
 
     // Click Accept All button
     await page.getByTestId('accept-all-btn').click()
