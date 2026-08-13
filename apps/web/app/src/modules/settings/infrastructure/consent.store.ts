@@ -18,7 +18,6 @@ import {
 export const useConsentStore = defineStore('consent', () => {
   // ── State ──────────────────────────────────────────────────────────────
   const receipt = ref<ConsentReceipt | null>(null)
-  const forceOpen = ref(false)
   const syncError = ref<string | null>(null)
 
   // ── Getters ────────────────────────────────────────────────────────────
@@ -121,23 +120,12 @@ export const useConsentStore = defineStore('consent', () => {
     }
   }
 
-  /** Open consent settings (force banner visibility). */
-  function openSettings(): void {
-    forceOpen.value = true
-  }
-
-  /** Close consent settings. */
-  function closeSettings(): void {
-    forceOpen.value = false
-  }
-
   // Initialize from storage
   loadFromStorage()
 
   return {
     // State
     receipt,
-    forceOpen,
     syncError,
     // Getters
     hasValidConsent,
@@ -146,8 +134,6 @@ export const useConsentStore = defineStore('consent', () => {
     loadFromStorage,
     saveConsent,
     syncToBackend,
-    openSettings,
-    closeSettings,
   }
 })
 

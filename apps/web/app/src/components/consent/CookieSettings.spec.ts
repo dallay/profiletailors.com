@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 
 // ---------------------------------------------------------------------------
@@ -8,21 +9,14 @@ import { createPinia, setActivePinia } from 'pinia'
 
 const mockSaveConsent = vi.fn()
 
-let mockHasValidConsent = false
-let mockForceOpen = false
 let mockAnalyticsEnabled = false
-let mockReceipt: unknown = null
 
-vi.mock('@modules/settings/infrastructure/consent.store', () => ({
-  useConsentStore: () => ({
-    receipt: mockReceipt,
-    hasValidConsent: mockHasValidConsent,
-    forceOpen: mockForceOpen,
-    analyticsEnabled: mockAnalyticsEnabled,
-    saveConsent: mockSaveConsent,
-    openSettings: vi.fn(),
-    closeSettings: vi.fn(),
-    loadFromStorage: vi.fn(),
+vi.mock('./useConsent', () => ({
+  useConsent: () => ({
+    analyticsEnabled: ref(mockAnalyticsEnabled),
+    acceptAll: () => mockSaveConsent({ analytics: true, source: 'settings-panel' }),
+    rejectAll: () => mockSaveConsent({ analytics: false, source: 'settings-panel' }),
+    save: (analytics: boolean) => mockSaveConsent({ analytics, source: 'settings-panel' }),
   }),
 }))
 
@@ -69,10 +63,7 @@ describe('CookieSettings', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     mockSaveConsent.mockReset()
-    mockHasValidConsent = false
-    mockForceOpen = false
     mockAnalyticsEnabled = false
-    mockReceipt = null
   })
 
   it('shows the dialog when open prop is true', async () => {

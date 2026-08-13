@@ -1,0 +1,15 @@
+change: consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior
+current_phase: qa
+completed: [init, explore, propose, spec, design, tasks, apply, verify, qa]
+next: archive (pending outstanding warnings)
+decisions_approved:
+  - delivery: single PR with size:exception (user approved)
+  - i18n_copy: "Customize"/"Customizar", "Back"/"Volver" (approved)
+  - forceOpen: remove forceOpen/openSettings/closeSettings from store (approved)
+warnings:
+  - DNT/GPC dedicated E2E scenario still missing
+  - Full app E2E suite not executed in this pass
+  - Manual Brave Shields ON/OFF and Safari/WebKit matrix not run
+defects_fixed_in_qa:
+  - AppShell.test.ts: re-added useConsentStore mock with new minimal API (P0)
+updated: 2026-08-12

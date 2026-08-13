@@ -124,3 +124,23 @@ export async function mockConsentSync(page: Page): Promise<void> {
     }
   })
 }
+
+/** Assert that the consent experience has no blocking overlay. */
+export async function expectNoOverlay(page: Page): Promise<void> {
+  await page
+    .locator('[data-slot="dialog-overlay"]')
+    .count()
+    .then((count) => {
+      if (count !== 0) {
+        throw new Error(`Expected no dialog overlay, found ${count}`)
+      }
+    })
+  await page
+    .locator('[data-testid="consent-overlay"], [data-testid="consent-backdrop"]')
+    .count()
+    .then((count) => {
+      if (count !== 0) {
+        throw new Error(`Expected no consent backdrop, found ${count}`)
+      }
+    })
+}

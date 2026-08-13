@@ -1,7 +1,8 @@
 import { computed } from 'vue'
 import { useConsentStore } from '@modules/settings/infrastructure/consent.store'
+import type { ConsentSource } from '@profiletailors/shared-web'
 
-export function useConsent() {
+export function useConsent(source: ConsentSource = 'banner') {
   const store = useConsentStore()
 
   const analyticsEnabled = computed(() => store.analyticsEnabled)
@@ -9,19 +10,15 @@ export function useConsent() {
   const receipt = computed(() => store.receipt)
 
   function acceptAll() {
-    store.saveConsent({ analytics: true, source: 'banner' })
+    store.saveConsent({ analytics: true, source })
   }
 
   function rejectAll() {
-    store.saveConsent({ analytics: false, source: 'banner' })
+    store.saveConsent({ analytics: false, source })
   }
 
   function save(analytics: boolean) {
-    store.saveConsent({ analytics, source: 'banner' })
-  }
-
-  function openSettings() {
-    store.openSettings()
+    store.saveConsent({ analytics, source })
   }
 
   return {
@@ -31,6 +28,5 @@ export function useConsent() {
     acceptAll,
     rejectAll,
     save,
-    openSettings,
   }
 }
