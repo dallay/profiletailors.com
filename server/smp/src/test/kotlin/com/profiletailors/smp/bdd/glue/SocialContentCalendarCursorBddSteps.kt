@@ -52,6 +52,9 @@ class SocialContentCalendarCursorBddSteps {
         runBlocking { bddDatabaseSupport.resetDatabase() }
     }
 
+    /**
+     * Resets the social-content calendar BDD state and database for a scenario.
+     */
     @Given("the social-content calendar cursor BDD state is reset")
     fun givenSocialContentCalendarCursorBddStateIsReset() {
         state.reset()
@@ -59,6 +62,12 @@ class SocialContentCalendarCursorBddSteps {
         runBlocking { bddDatabaseSupport.resetDatabase() }
     }
 
+    /**
+     * Seeds an imported, published LinkedIn Page post in the specified workspace.
+     *
+     * @param workspaceId The workspace in which to create the post.
+     * @param publishedAt The post publication timestamp in ISO-8601 format.
+     */
     @Given(
         "an imported LinkedIn Page post exists in workspace {string} via the production repository " +
             "with publishedAt {string}",
@@ -97,6 +106,13 @@ class SocialContentCalendarCursorBddSteps {
         }
     }
 
+    /**
+     * Requests the social-content calendar for a date range with a result limit.
+     *
+     * @param from The start of the calendar date range.
+     * @param to The end of the calendar date range.
+     * @param limit The maximum number of calendar items to request.
+     */
     @When(
         "the cursor client requests social-content calendar from {string} to {string} with limit {int}",
     )
@@ -108,6 +124,13 @@ class SocialContentCalendarCursorBddSteps {
         extractNextCursor()
     }
 
+    /**
+     * Requests the next social-content calendar page using the cursor from the previous response.
+     *
+     * @param from The start of the calendar date range.
+     * @param to The end of the calendar date range.
+     * @throws AssertionError If the previous response did not contain a cursor.
+     */
     @When(
         "the cursor client requests social-content calendar from {string} to {string} " +
             "with the last received cursor",
@@ -122,6 +145,14 @@ class SocialContentCalendarCursorBddSteps {
         extractNextCursor()
     }
 
+    /**
+     * Requests the social-content calendar for a date range using a cursor and workspace.
+     *
+     * @param from The start of the calendar range.
+     * @param to The end of the calendar range.
+     * @param cursor The pagination cursor.
+     * @param workspaceId The workspace identifier.
+     */
     @When(
         "the client requests social-content calendar from {string} to {string} " +
             "with cursor {string} for workspace {string}",
@@ -138,6 +169,13 @@ class SocialContentCalendarCursorBddSteps {
         )
     }
 
+    /**
+     * Requests the social-content calendar for the specified date range using a cursor.
+     *
+     * @param from The start of the calendar range.
+     * @param to The end of the calendar range.
+     * @param cursor The pagination cursor to use.
+     */
     @When(
         "the cursor client requests social-content calendar from {string} to {string} " +
             "with cursor {string}",
@@ -149,31 +187,57 @@ class SocialContentCalendarCursorBddSteps {
         )
     }
 
+    /**
+     * Verifies that the social-content calendar contains the expected number of posts.
+     *
+     * @param expectedCount The expected number of posts.
+     */
     @Then("the social-content calendar should contain {int} posts")
     fun thenCalendarShouldContainCount(expectedCount: Int) {
         assertCalendarContainsCount(expectedCount)
     }
 
+    /**
+     * Verifies that the social-content calendar contains one post.
+     */
     @Then("the social-content calendar should contain 1 post")
     fun thenCalendarShouldContainOnePost() {
         assertCalendarContainsCount(1)
     }
 
+    /**
+     * Verifies that the latest cursor-based social-content response has the expected HTTP status.
+     *
+     * @param status The expected HTTP status code.
+     */
     @Then("the cursor social-content response status should be {int}")
     fun thenCursorResponseStatusShouldBe(status: Int) {
         assertEquals(status, latestResponse?.status?.value(), responseBody())
     }
 
+    /**
+     * Verifies that the cursor problem response contains the expected denial code.
+     *
+     * @param denial The expected denial code.
+     */
     @Then("the cursor social-content problem should contain denial {string}")
     fun thenCursorProblemShouldContainDenial(denial: String) {
         assertEquals(denial, json().path("errorCode").asText(), responseBody())
     }
 
+    /**
+     * Verifies that the calendar response contains the expected number of items.
+     *
+     * @param expectedCount The expected number of calendar items.
+     */
     private fun assertCalendarContainsCount(expectedCount: Int) {
         val actualCount = json().path("items").size()
         assertEquals(expectedCount, actualCount, responseBody())
     }
 
+    /**
+     * Verifies that the social-content calendar response contains a nonblank next cursor.
+     */
     @Then("the cursor social-content response should contain a nextCursor")
     fun thenResponseShouldContainNextCursor() {
         val cursorNode = json().path("nextCursor")
@@ -181,17 +245,30 @@ class SocialContentCalendarCursorBddSteps {
         assertTrue(cursorNode.asText().isNotBlank(), "nextCursor should not be blank")
     }
 
+    /**
+     * Verifies that the social-content calendar response does not contain a next cursor.
+     */
     @Then("the cursor social-content response should not contain a nextCursor")
     fun thenResponseShouldNotContainNextCursor() {
         val cursorNode = json().path("nextCursor")
         assertTrue(cursorNode.isMissingNode || cursorNode.isNull, "Expected no nextCursor but got: ${responseBody()}")
     }
 
+    /**
+     * Stores the response's next-page cursor, or clears it when no cursor is present.
+     */
     private fun extractNextCursor() {
         val cursorNode = json().path("nextCursor")
         lastNextCursor = if (cursorNode.isMissingNode || cursorNode.isNull) null else cursorNode.asText()
     }
 
+    /**
+     * Executes an authenticated GET request for the social-content calendar.
+     *
+     * @param uri The request URI.
+     * @param workspaceId The workspace identifier to include in the request.
+     * @return The raw HTTP response body and response metadata.
+     */
     private fun socialContentCalendarGet(uri: String, workspaceId: String): EntityExchangeResult<ByteArray> {
         val request = webTestClient.get()
             .uri(uri)
@@ -201,7 +278,17 @@ class SocialContentCalendarCursorBddSteps {
         return request.exchange().expectBody().returnResult()
     }
 
-    private fun responseBody(): String = String(latestResponse?.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
+    /**
+ * Decodes the latest response body as UTF-8 text.
+ *
+ * @return The decoded response body, or an empty string when no response body is available.
+ */
+private fun responseBody(): String = String(latestResponse?.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
 
-    private fun json(): JsonNode = objectMapper.readTree(responseBody())
+    /**
+ * Parses the current response body as JSON.
+ *
+ * @return The parsed JSON response.
+ */
+private fun json(): JsonNode = objectMapper.readTree(responseBody())
 }
