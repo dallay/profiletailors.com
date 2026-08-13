@@ -5,6 +5,8 @@ export default {
       'We use cookies and similar technologies to enhance your browsing experience and analyze our traffic. You can customize your preferences below.',
     acceptAll: 'Accept All',
     rejectAll: 'Reject All',
+    customize: 'Customize',
+    back: 'Back',
     save: 'Save Preferences',
   },
   categories: {

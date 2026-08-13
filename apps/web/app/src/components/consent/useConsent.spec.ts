@@ -6,7 +6,6 @@ import { createPinia, setActivePinia } from 'pinia'
 // ---------------------------------------------------------------------------
 
 const mockSaveConsent = vi.fn()
-const mockOpenSettings = vi.fn()
 
 let mockAnalyticsEnabled = false
 let mockHasValidConsent = false
@@ -18,7 +17,6 @@ vi.mock('@modules/settings/infrastructure/consent.store', () => ({
     hasValidConsent: mockHasValidConsent,
     receipt: mockReceipt,
     saveConsent: mockSaveConsent,
-    openSettings: mockOpenSettings,
   }),
 }))
 
@@ -26,7 +24,6 @@ describe('useConsent', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     mockSaveConsent.mockReset()
-    mockOpenSettings.mockReset()
     mockAnalyticsEnabled = false
     mockHasValidConsent = false
     mockReceipt = null
@@ -53,7 +50,7 @@ describe('useConsent', () => {
     expect(receipt.value).toEqual({ version: 1 })
   })
 
-  it('acceptAll calls store.saveConsent with analytics=true', async () => {
+  it('acceptAll defaults to source banner', async () => {
     const { useConsent } = await import('./useConsent')
     const { acceptAll } = useConsent()
     acceptAll()
@@ -63,7 +60,17 @@ describe('useConsent', () => {
     })
   })
 
-  it('rejectAll calls store.saveConsent with analytics=false', async () => {
+  it('acceptAll uses the given source', async () => {
+    const { useConsent } = await import('./useConsent')
+    const { acceptAll } = useConsent('settings-panel')
+    acceptAll()
+    expect(mockSaveConsent).toHaveBeenCalledWith({
+      analytics: true,
+      source: 'settings-panel',
+    })
+  })
+
+  it('rejectAll defaults to source banner', async () => {
     const { useConsent } = await import('./useConsent')
     const { rejectAll } = useConsent()
     rejectAll()
@@ -73,7 +80,17 @@ describe('useConsent', () => {
     })
   })
 
-  it('save delegates to store.saveConsent with the given value', async () => {
+  it('rejectAll uses the given source', async () => {
+    const { useConsent } = await import('./useConsent')
+    const { rejectAll } = useConsent('settings-panel')
+    rejectAll()
+    expect(mockSaveConsent).toHaveBeenCalledWith({
+      analytics: false,
+      source: 'settings-panel',
+    })
+  })
+
+  it('save delegates to store.saveConsent with the given value and default source', async () => {
     const { useConsent } = await import('./useConsent')
     const { save } = useConsent()
     save(true)
@@ -83,10 +100,13 @@ describe('useConsent', () => {
     })
   })
 
-  it('openSettings delegates to store.openSettings', async () => {
+  it('save uses the given source', async () => {
     const { useConsent } = await import('./useConsent')
-    const { openSettings } = useConsent()
-    openSettings()
-    expect(mockOpenSettings).toHaveBeenCalledOnce()
+    const { save } = useConsent('settings-panel')
+    save(false)
+    expect(mockSaveConsent).toHaveBeenCalledWith({
+      analytics: false,
+      source: 'settings-panel',
+    })
   })
 })

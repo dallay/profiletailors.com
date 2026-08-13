@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { useConsentStore } from '@modules/settings/infrastructure/consent.store'
+import { useConsent } from './useConsent'
 
 const props = defineProps<{
   open: boolean
@@ -18,33 +18,32 @@ const props = defineProps<{
 const emit = defineEmits<(e: 'update:open', val: boolean) => void>()
 
 const { t } = useI18n()
-const store = useConsentStore()
-
-const analyticsEnabled = ref(store.analyticsEnabled)
+const { analyticsEnabled, acceptAll: saveAll, rejectAll: rejectAllConsent, save: saveConsent } = useConsent('settings-panel')
+const consentAnalyticsEnabled = ref(analyticsEnabled.value)
 
 watch(
   () => props.open,
   (val) => {
     if (val) {
-      analyticsEnabled.value = store.analyticsEnabled
+      consentAnalyticsEnabled.value = analyticsEnabled.value
     }
   },
 )
 
 function acceptAll() {
-  analyticsEnabled.value = true
-  store.saveConsent({ analytics: true, source: 'settings-panel' })
+  consentAnalyticsEnabled.value = true
+  saveAll()
   emit('update:open', false)
 }
 
 function rejectAll() {
-  analyticsEnabled.value = false
-  store.saveConsent({ analytics: false, source: 'settings-panel' })
+  consentAnalyticsEnabled.value = false
+  rejectAllConsent()
   emit('update:open', false)
 }
 
 function save() {
-  store.saveConsent({ analytics: analyticsEnabled.value, source: 'settings-panel' })
+  saveConsent(consentAnalyticsEnabled.value)
   emit('update:open', false)
 }
 </script>
@@ -76,7 +75,7 @@ function save() {
             {{ t('consent.categories.analyticsDesc') }}
           </p>
         </div>
-        <Switch v-model="analyticsEnabled" :aria-labelledby="'consent-label-analytics'" />
+        <Switch v-model="consentAnalyticsEnabled" :aria-labelledby="'consent-label-analytics'" />
       </div>
 
       <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-end">
