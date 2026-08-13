@@ -52,6 +52,14 @@ class CommonBddTestConfiguration {
         connectedSocialChannelReadRepository: ConnectedSocialChannelReadRepository,
     ): BddProviderCatalogPolicyControl = BddProviderCatalogPolicyControl(connectedSocialChannelReadRepository)
 
+    /**
+     * Creates database support for BDD tests using Liquibase configuration from the environment.
+     *
+     * @param databaseClient The client used to access the database.
+     * @param environment The environment containing the Liquibase JDBC URL, username, and optional password.
+     * @param transactionalOperator The operator used to execute database operations transactionally.
+     * @return Configured BDD database support.
+     */
     @Bean
     fun bddDatabaseSupport(
         databaseClient: org.springframework.r2dbc.core.DatabaseClient,
@@ -65,6 +73,11 @@ class CommonBddTestConfiguration {
         transactionalOperator = transactionalOperator,
     )
 
+    /**
+     * Provides an audit hook that captures audit events for BDD tests.
+     *
+     * @return The capturing audit hook.
+     */
     @Bean
     @Primary
     fun testAuditHook(): CapturingAuditHook = CapturingAuditHook()

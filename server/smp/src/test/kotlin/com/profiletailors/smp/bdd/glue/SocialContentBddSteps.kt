@@ -51,12 +51,18 @@ class SocialContentBddSteps {
     @Given("the default social-content feature gates are disabled")
     fun givenDefaultSocialContentFeatureGatesAreDisabled() = Unit
 
+    /**
+     * Resets the social-content BDD state and database.
+     */
     @Given("the social-content BDD state is reset")
     fun givenSocialContentBddStateIsReset() {
         state.reset()
         runBlocking { bddDatabaseSupport.resetDatabase() }
     }
 
+    /**
+     * Configures the BDD state with an active personal LinkedIn account as the only social-content account.
+     */
     @Given("a personal LinkedIn social account is the only social-content account")
     fun givenPersonalLinkedInSocialAccountIsOnlySocialContentAccount() {
         state.gates.importEnabled = true
@@ -125,6 +131,12 @@ class SocialContentBddSteps {
         )
     }
 
+    /**
+     * Requests the social-content calendar for the specified date range.
+     *
+     * @param from The start date of the calendar range.
+     * @param to The end date of the calendar range.
+     */
     @When("the client requests social-content calendar from {string} to {string}")
     fun whenClientRequestsCalendar(from: String, to: String) {
         latestResponse = socialContentGet(
@@ -133,6 +145,13 @@ class SocialContentBddSteps {
         )
     }
 
+    /**
+     * Requests the social-content calendar for a date range using the specified pagination cursor.
+     *
+     * @param from The start date of the calendar range.
+     * @param to The end date of the calendar range.
+     * @param cursor The pagination cursor.
+     */
     @When("the client requests social-content calendar from {string} to {string} with cursor {string}")
     fun whenClientRequestsCalendarWithCursor(from: String, to: String, cursor: String) {
         latestResponse = socialContentGet(
@@ -141,6 +160,13 @@ class SocialContentBddSteps {
         )
     }
 
+    /**
+     * Requests the social-content calendar for a date range with a maximum item limit.
+     *
+     * @param from The start date of the calendar range.
+     * @param to The end date of the calendar range.
+     * @param limit The maximum number of calendar items to request.
+     */
     @When("the client requests social-content calendar from {string} to {string} with limit {int}")
     fun whenClientRequestsCalendarWithLimit(from: String, to: String, limit: Int) {
         latestResponse = socialContentGet(
@@ -150,6 +176,11 @@ class SocialContentBddSteps {
         extractNextCursor()
     }
 
+    /**
+     * Requests social-content post details for the specified external post.
+     *
+     * @param externalPostId The external identifier of the post to retrieve.
+     */
     @When("the client requests social-content post detail for {string}")
     fun whenClientRequestsPostDetail(externalPostId: String) {
         latestResponse = socialContentGet(
@@ -254,13 +285,27 @@ class SocialContentBddSteps {
 
     private fun responseBody(): String = String(latestResponse?.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
 
-    private fun json(): JsonNode = objectMapper.readTree(responseBody())
+    /**
+ * Parses the latest response body as JSON.
+ *
+ * @return The parsed JSON response.
+ */
+private fun json(): JsonNode = objectMapper.readTree(responseBody())
 
+    /**
+     * Extracts the next pagination cursor from the response and stores it for later assertions.
+     */
     private fun extractNextCursor() {
         val cursorNode = json().path("nextCursor")
         lastNextCursor = if (cursorNode.isMissingNode || cursorNode.isNull) null else cursorNode.asText()
     }
 
+    /**
+     * Extracts the external post ID from a JSON node.
+     *
+     * @param node The JSON node containing the external post ID.
+     * @return The external post ID value.
+     */
     private fun externalPostIdOf(node: JsonNode): String = node.path("externalPostId").let {
         if (it.isObject) it.path("value").asText() else it.asText()
     }

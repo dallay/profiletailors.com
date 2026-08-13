@@ -86,6 +86,13 @@ class SocialContentBddTestConfiguration {
     @Primary
     fun socialContentBddProvider(state: SocialContentBddState): SocialContentProvider = state.provider
 
+    /**
+     * Provides the social content reader configured for BDD tests.
+     *
+     * @param state Mutable BDD state containing the content store.
+     * @param repositoryProvider Provider for optional production social content repositories.
+     * @return The configured social content reader.
+     */
     @Bean
     @Primary
     fun socialContentBddReader(
@@ -96,6 +103,12 @@ class SocialContentBddTestConfiguration {
         return state.content
     }
 
+    /**
+     * Provides the feature gates used by social-content BDD tests.
+     *
+     * @param state The shared BDD test state containing the feature gates.
+     * @return The social-content feature gates.
+     */
     @Bean("socialContentFeatureGates")
     @Primary
     fun socialContentBddFeatureGates(state: SocialContentBddState): SocialContentFeatureGates = state.gates
@@ -257,6 +270,9 @@ class BddContentStore :
 
     fun lastCursor(): PageCursor? = lastCursor
 
+    /**
+     * Clears stored posts and checkpoints and resets calendar query state.
+     */
     fun clear() {
         posts.clear()
         checkpoints.clear()
@@ -265,6 +281,12 @@ class BddContentStore :
         useProductionReaderForCalendar = false
     }
 
+    /**
+     * Stores a social post and returns it.
+     *
+     * @param post The post to store.
+     * @return The stored post.
+     */
     override suspend fun upsert(post: SocialPost): SocialPost {
         posts[PostKey(post)] = post
         return post
@@ -310,6 +332,13 @@ class BddContentStore :
         return checkpoint
     }
 
+    /**
+     * Finds imported posts matching the calendar query.
+     *
+     * @param query The scope, date range, optional actor and lifecycle filters, and page size.
+     * @return A page containing matching posts and the latest publication timestamp as its marker.
+     * @throws IllegalStateException If production-reader mode is enabled without an available reader.
+     */
     override suspend fun findImportedPosts(
         query: com.profiletailors.smp.publishing.domain.SocialContentCalendarQuery,
     ): SocialContentPage<SocialPost> {
