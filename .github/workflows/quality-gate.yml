@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
+    # Stacked PR layers can target another feature branch.
     types: [opened, synchronize, reopened]
 
 concurrency:
