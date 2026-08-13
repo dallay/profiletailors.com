@@ -9,11 +9,11 @@ import { createPinia, setActivePinia } from 'pinia'
 
 const mockSaveConsent = vi.fn()
 
-let mockAnalyticsEnabled = false
+const mockAnalyticsEnabled = ref(false)
 
 vi.mock('./useConsent', () => ({
   useConsent: () => ({
-    analyticsEnabled: ref(mockAnalyticsEnabled),
+    analyticsEnabled: mockAnalyticsEnabled,
     acceptAll: () => mockSaveConsent({ analytics: true, source: 'settings-panel' }),
     rejectAll: () => mockSaveConsent({ analytics: false, source: 'settings-panel' }),
     save: (analytics: boolean) => mockSaveConsent({ analytics, source: 'settings-panel' }),
@@ -63,7 +63,7 @@ describe('CookieSettings', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     mockSaveConsent.mockReset()
-    mockAnalyticsEnabled = false
+    mockAnalyticsEnabled.value = false
   })
 
   it('shows the dialog when open prop is true', async () => {
@@ -110,7 +110,7 @@ describe('CookieSettings', () => {
   })
 
   it('calls saveConsent with current toggle state on Save and source=settings-panel', async () => {
-    mockAnalyticsEnabled = false
+    mockAnalyticsEnabled.value = false
     const wrapper = await mountSettings({ open: true })
     await flushPromises()
 
@@ -142,5 +142,15 @@ describe('CookieSettings', () => {
     // All three buttons should exist (rendered via ButtonStub)
     const buttons = wrapper.findAll('[data-testid="button-stub"]')
     expect(buttons).toHaveLength(3)
+  })
+
+  it('resynchronizes the analytics toggle when reopened', async () => {
+    const wrapper = await mountSettings({ open: false })
+    await flushPromises()
+
+    mockAnalyticsEnabled.value = true
+    await wrapper.setProps({ open: true })
+
+    expect(wrapper.find('input[type="checkbox"]').element).toHaveProperty('checked', true)
   })
 })
