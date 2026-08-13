@@ -9,5 +9,5 @@ object AppConfiguration {
 
     val jvmTarget = KtJvmTarget.JVM_21
     val jvmTargetStr = "21"
-    val kotlinVersion = KtVersion.KOTLIN_2_0
+    val kotlinVersion = KtVersion.KOTLIN_2_4
 }
