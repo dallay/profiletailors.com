@@ -3,39 +3,31 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { useConsentStore } from '@modules/settings/infrastructure/consent.store'
+import { useConsent } from './useConsent'
 
 const { t } = useI18n()
-const store = useConsentStore()
+const { hasValidConsent, analyticsEnabled, acceptAll, rejectAll, save } = useConsent('banner')
 const customizeOpen = ref(false)
-const analyticsEnabled = ref(store.analyticsEnabled)
-
-function acceptAll(): void {
-  store.saveConsent({ analytics: true, source: 'banner' })
-}
-
-function rejectAll(): void {
-  store.saveConsent({ analytics: false, source: 'banner' })
-}
+const analyticsEnabledDraft = ref(analyticsEnabled.value)
 
 function openCustomize(): void {
-  analyticsEnabled.value = store.analyticsEnabled
+  analyticsEnabledDraft.value = analyticsEnabled.value
   customizeOpen.value = true
 }
 
 function back(): void {
-  analyticsEnabled.value = store.analyticsEnabled
+  analyticsEnabledDraft.value = analyticsEnabled.value
   customizeOpen.value = false
 }
 
-function save(): void {
-  store.saveConsent({ analytics: analyticsEnabled.value, source: 'banner' })
+function saveCustomize(): void {
+  save(analyticsEnabledDraft.value)
 }
 </script>
 
 <template>
   <aside
-    v-if="!store.hasValidConsent"
+    v-if="!hasValidConsent"
     data-testid="consent-banner"
     class="fixed inset-x-0 bottom-0 z-40 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-[min(40rem,calc(100vw-3rem))] sm:px-0 sm:pb-[calc(env(safe-area-inset-bottom)+1.5rem)]"
     aria-labelledby="consent-banner-title"
@@ -109,7 +101,7 @@ function save(): void {
             </div>
             <Switch
               data-testid="analytics-toggle"
-              v-model="analyticsEnabled"
+              v-model="analyticsEnabledDraft"
               aria-labelledby="consent-label-analytics"
             />
           </div>
@@ -129,7 +121,7 @@ function save(): void {
               type="button"
               variant="default"
               class="min-h-11 w-full"
-              @click="save"
+              @click="saveCustomize"
             >
               {{ t('consent.banner.save') }}
             </Button>

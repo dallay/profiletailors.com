@@ -9,7 +9,7 @@ The app's first-run consent prompt is a blocking reka-ui Dialog: full-screen ove
 ### In Scope
 - `ConsentBanner.vue` → fixed non-modal banner: bottom viewport, `~560–680px` max-width centered desktop, bottom-sheet mobile with safe-area padding; no overlay/portal, no focus trap, no close while undecided.
 - Keyboard: **Escape ignored while undecided**; focus stays in document on mount; reachable in tab order. "Customize" stays inline in banner; `CookieSettings` remains the only consent modal, opened solely by `showCookieSettings` — no orphaned overlay.
-- Preserve store contract: `source: 'banner'`, validation, `pt-consent`, DNT/GPC capture, async backend sync; `forceOpen` re-prompt retained.
+- Preserve store contract: `source: 'banner'`, validation, `pt-consent`, DNT/GPC capture, async backend sync. `forceOpen` is removed alongside `openSettings`/`closeSettings` (no production caller; footer re-open goes through `showCookieSettings` only).
 - Rewrite `ConsentBanner.spec.ts`; update E2E `consent.spec.ts` (banner visible + app interactable); keep `consent-banner` testid.
 - Browser matrix: Chrome/Chromium, Safari/WebKit, Brave Shields ON/OFF × states A–D (A no receipt→banner; B valid→hidden; C stale→re-prompt; D DNT/GPC→restrictive); verify no backdrop/overflow/orphaned overlay, themes, EN/ES.
 
@@ -26,7 +26,7 @@ None — `privacy-compliance` receipt/source/version contract unchanged; marketi
 
 ## Approach
 
-Rework `ConsentBanner.vue` to an inline `section` fixed at viewport bottom (no dialog portal), scoped z-index, gated on `!hasValidConsent || forceOpen`, zero dismiss paths while undecided. `CookieSettings.vue` and dialog primitives unchanged. Update unit/E2E tests; verify states A–D across the matrix.
+Rework `ConsentBanner.vue` to an inline `section` fixed at viewport bottom (no dialog portal), scoped z-index, gated on `!hasValidConsent`, zero dismiss paths while undecided. `CookieSettings.vue` and dialog primitives unchanged. Update unit/E2E tests; verify states A–D across the matrix.
 
 ## Affected Areas
 

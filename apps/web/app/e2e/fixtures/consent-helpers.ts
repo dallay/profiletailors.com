@@ -7,7 +7,7 @@
  * @see auth-helpers.ts — similar pattern for auth state management
  */
 
-import type { Page, Route } from '@playwright/test'
+import { expect, type Page, type Route } from '@playwright/test'
 
 // ---------------------------------------------------------------------------
 // Constants — matching shared/web/types/consent.ts
@@ -132,20 +132,8 @@ export async function mockConsentSync(page: Page): Promise<void> {
  * @throws If a dialog overlay, consent overlay, or consent backdrop is present
  */
 export async function expectNoOverlay(page: Page): Promise<void> {
-  await page
-    .locator('[data-slot="dialog-overlay"]')
-    .count()
-    .then((count) => {
-      if (count !== 0) {
-        throw new Error(`Expected no dialog overlay, found ${count}`)
-      }
-    })
-  await page
-    .locator('[data-testid="consent-overlay"], [data-testid="consent-backdrop"]')
-    .count()
-    .then((count) => {
-      if (count !== 0) {
-        throw new Error(`Expected no consent backdrop, found ${count}`)
-      }
-    })
+  await expect(page.locator('[data-slot="dialog-overlay"]')).toHaveCount(0)
+  await expect(
+    page.locator('[data-testid="consent-overlay"], [data-testid="consent-backdrop"]'),
+  ).toHaveCount(0)
 }

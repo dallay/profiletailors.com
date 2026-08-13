@@ -125,6 +125,25 @@ describe('ConsentBanner', () => {
     expect(wrapper.find('[data-testid="consent-banner"]').exists()).toBe(true)
   })
 
+  it('keeps the app interactable while the banner is visible', async () => {
+    const clickSpy = vi.fn()
+    const wrapper = await mountBanner()
+    const bannerEl = wrapper.element
+    bannerEl.insertAdjacentHTML(
+      'beforebegin',
+      '<button data-testid="behind-control" type="button">Behind</button>',
+    )
+    const behind = bannerEl.parentElement?.querySelector(
+      '[data-testid="behind-control"]',
+    ) as HTMLButtonElement
+    behind.addEventListener('click', clickSpy)
+
+    behind.click()
+
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('[data-testid="consent-banner"]').exists()).toBe(true)
+  })
+
   it('keeps the Necessary switch disabled', async () => {
     const wrapper = await mountBanner()
 

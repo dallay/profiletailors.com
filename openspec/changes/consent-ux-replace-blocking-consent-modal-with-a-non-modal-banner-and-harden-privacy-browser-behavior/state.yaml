@@ -4,7 +4,7 @@ completed: [init, explore, propose, spec, design, tasks, apply, verify, qa]
 next: archive (pending outstanding warnings)
 decisions_approved:
   - delivery: single PR with size:exception (user approved)
-  - i18n_copy: "Customize"/"Customizar", "Back"/"Volver" (approved)
+  - i18n_copy: '"Customize"/"Customizar", "Back"/"Volver" (approved)'
   - forceOpen: remove forceOpen/openSettings/closeSettings from store (approved)
 warnings:
   - DNT/GPC dedicated E2E scenario still missing
