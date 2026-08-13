@@ -1,29 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
-
-// ---------------------------------------------------------------------------
-// Mocks
-// ---------------------------------------------------------------------------
+import { mount } from '@vue/test-utils'
+import { ref } from 'vue'
 
 const mockSaveConsent = vi.fn()
-const mockCloseSettings = vi.fn()
-
-let mockHasValidConsent = false
-let mockForceOpen = false
-let mockAnalyticsEnabled = false
-let mockReceipt: unknown = null
+const mockHasValidConsent = ref(false)
+const mockAnalyticsEnabled = ref(false)
 
 vi.mock('@modules/settings/infrastructure/consent.store', () => ({
   useConsentStore: () => ({
-    receipt: mockReceipt,
-    hasValidConsent: mockHasValidConsent,
-    forceOpen: mockForceOpen,
-    analyticsEnabled: mockAnalyticsEnabled,
+    hasValidConsent: mockHasValidConsent.value,
+    analyticsEnabled: mockAnalyticsEnabled.value,
     saveConsent: mockSaveConsent,
-    openSettings: vi.fn(),
-    closeSettings: mockCloseSettings,
-    loadFromStorage: vi.fn(),
   }),
 }))
 
@@ -33,21 +20,15 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-// Stub Dialog so it simply renders the slot when open, nothing when closed.
-const DialogStub = {
-  props: ['open'],
-  template:
-    '<div data-testid="consent-dialog" v-if="open"><slot name="default" /><slot name="content" /></div>',
-}
 const ButtonStub = {
   emits: ['click'],
-  template: '<button data-testid="button-stub" @click="$emit(\'click\')"><slot /></button>',
+  template: '<button @click="$emit(\'click\')"><slot /></button>',
 }
 const SwitchStub = {
   props: ['modelValue', 'disabled'],
   emits: ['update:modelValue'],
   template:
-    '<label data-testid="switch-stub"><input type="checkbox" :checked="modelValue" :disabled="disabled" @change="$emit(\'update:modelValue\', ($event.target).checked)" /></label>',
+    '<label data-testid="switch-stub"><input type="checkbox" :checked="modelValue" :disabled="disabled" @change="$emit(\'update:modelValue\', $event.target.checked)" /></label>',
 }
 
 async function mountBanner() {
@@ -55,10 +36,6 @@ async function mountBanner() {
   return mount(ConsentBanner, {
     global: {
       stubs: {
-        Dialog: DialogStub,
-        DialogContent: { template: '<div data-testid="dialog-content"><slot /></div>' },
-        DialogTitle: { template: '<div data-testid="dialog-title"><slot /></div>' },
-        DialogDescription: { template: '<div data-testid="dialog-description"><slot /></div>' },
         Switch: SwitchStub,
         Button: ButtonStub,
       },
@@ -68,105 +45,112 @@ async function mountBanner() {
 
 describe('ConsentBanner', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     mockSaveConsent.mockReset()
-    mockCloseSettings.mockReset()
-    mockHasValidConsent = false
-    mockForceOpen = false
-    mockAnalyticsEnabled = false
-    mockReceipt = null
+    mockHasValidConsent.value = false
+    mockAnalyticsEnabled.value = false
   })
 
-  it('shows the banner dialog when consent is missing', async () => {
+  it('shows a non-modal aside when consent is missing', async () => {
     const wrapper = await mountBanner()
-    await flushPromises()
+    const banner = wrapper.find('[data-testid="consent-banner"]')
 
-    expect(wrapper.find('[data-testid="consent-dialog"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('consent.banner.title')
+    expect(banner.exists()).toBe(true)
+    expect(banner.element.tagName).toBe('ASIDE')
+    expect(banner.attributes('role')).not.toBe('dialog')
+    expect(banner.attributes('aria-modal')).toBeUndefined()
+    expect(wrapper.find('[data-slot="dialog-overlay"]').exists()).toBe(false)
   })
 
-  it('does NOT show the banner when valid consent exists and forceOpen is false', async () => {
-    mockHasValidConsent = true
-    mockForceOpen = false
+  it('does not show the banner when valid consent exists', async () => {
+    mockHasValidConsent.value = true
 
     const wrapper = await mountBanner()
-    await flushPromises()
 
-    expect(wrapper.find('[data-testid="consent-dialog"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="consent-banner"]').exists()).toBe(false)
   })
 
-  it('shows the banner when forceOpen is true even if consent exists', async () => {
-    mockHasValidConsent = true
-    mockForceOpen = true
-
+  it('keeps all first-level actions immediately available', async () => {
     const wrapper = await mountBanner()
-    await flushPromises()
 
-    expect(wrapper.find('[data-testid="consent-dialog"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="reject-all-btn"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="customize-btn"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="accept-all-btn"]').exists()).toBe(true)
   })
 
   it('calls saveConsent with analytics=true on Accept All', async () => {
     const wrapper = await mountBanner()
-    await flushPromises()
 
-    const acceptButton = wrapper.find('[data-testid="accept-all-btn"]')
-    expect(acceptButton.exists()).toBe(true)
-    await acceptButton.trigger('click')
+    await wrapper.find('[data-testid="accept-all-btn"]').trigger('click')
 
-    expect(mockSaveConsent).toHaveBeenCalledWith({
-      analytics: true,
-      source: 'banner',
-    })
+    expect(mockSaveConsent).toHaveBeenCalledWith({ analytics: true, source: 'banner' })
   })
 
   it('calls saveConsent with analytics=false on Reject All', async () => {
     const wrapper = await mountBanner()
-    await flushPromises()
 
-    const rejectButton = wrapper.find('[data-testid="reject-all-btn"]')
-    expect(rejectButton.exists()).toBe(true)
-    await rejectButton.trigger('click')
+    await wrapper.find('[data-testid="reject-all-btn"]').trigger('click')
 
-    expect(mockSaveConsent).toHaveBeenCalledWith({
-      analytics: false,
-      source: 'banner',
-    })
+    expect(mockSaveConsent).toHaveBeenCalledWith({ analytics: false, source: 'banner' })
   })
 
-  it('calls saveConsent with current toggle state on Save — analytics on', async () => {
-    mockAnalyticsEnabled = true
+  it('does not write a receipt when Escape is pressed', async () => {
     const wrapper = await mountBanner()
-    await flushPromises()
 
-    const saveButton = wrapper.find('[data-testid="save-btn"]')
-    await saveButton.trigger('click')
+    await wrapper.trigger('keydown', { key: 'Escape' })
 
-    expect(mockSaveConsent).toHaveBeenCalledWith({
-      analytics: true,
-      source: 'banner',
-    })
+    expect(mockSaveConsent).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="consent-banner"]').exists()).toBe(true)
   })
 
-  it('calls saveConsent with current toggle state on Save — analytics off', async () => {
-    mockAnalyticsEnabled = false
+  it('expands Customize inline and saves the analytics toggle', async () => {
     const wrapper = await mountBanner()
-    await flushPromises()
 
-    const saveButton = wrapper.find('[data-testid="save-btn"]')
-    await saveButton.trigger('click')
+    await wrapper.find('[data-testid="customize-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="customize-panel"]').exists()).toBe(true)
 
-    expect(mockSaveConsent).toHaveBeenCalledWith({
-      analytics: false,
-      source: 'banner',
-    })
+    await wrapper.find('[data-testid="analytics-toggle"]').find('input').setValue(true)
+    await wrapper.find('[data-testid="save-btn"]').trigger('click')
+
+    expect(mockSaveConsent).toHaveBeenCalledWith({ analytics: true, source: 'banner' })
   })
 
-  it('renders Accept, Reject, and Save buttons', async () => {
+  it('returns from Customize without writing a receipt', async () => {
     const wrapper = await mountBanner()
-    await flushPromises()
 
-    expect(wrapper.find('[data-testid="accept-all-btn"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="reject-all-btn"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="save-btn"]').exists()).toBe(true)
+    await wrapper.find('[data-testid="customize-btn"]').trigger('click')
+    await wrapper.find('[data-testid="back-btn"]').trigger('click')
+
+    expect(mockSaveConsent).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="customize-panel"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="consent-banner"]').exists()).toBe(true)
+  })
+
+  it('keeps the app interactable while the banner is visible', async () => {
+    const clickSpy = vi.fn()
+    const wrapper = await mountBanner()
+    const bannerEl = wrapper.element
+    bannerEl.insertAdjacentHTML(
+      'beforebegin',
+      '<button data-testid="behind-control" type="button">Behind</button>',
+    )
+    const behind = bannerEl.parentElement?.querySelector(
+      '[data-testid="behind-control"]',
+    ) as HTMLButtonElement
+    behind.addEventListener('click', clickSpy)
+
+    behind.click()
+
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('[data-testid="consent-banner"]').exists()).toBe(true)
+  })
+
+  it('keeps the Necessary switch disabled', async () => {
+    const wrapper = await mountBanner()
+
+    await wrapper.find('[data-testid="customize-btn"]').trigger('click')
+
+    expect(
+      wrapper.find('[data-testid="necessary-toggle"]').find('input').attributes('disabled'),
+    ).toBeDefined()
   })
 })

@@ -171,7 +171,10 @@ vi.mock('@shared/lib/provider-styles', () => ({
 
 vi.mock('@modules/settings/infrastructure/consent.store', () => ({
   useConsentStore: () => ({
-    openSettings: vi.fn(),
+    receipt: null,
+    hasValidConsent: false,
+    analyticsEnabled: false,
+    saveConsent: vi.fn(),
   }),
 }))
 

@@ -5,6 +5,8 @@ export const consent = {
       'Utilizamos cookies y tecnologías similares para mejorar tu experiencia de navegación y analizar nuestro tráfico. Puedes personalizar tus preferencias a continuación.',
     acceptAll: 'Aceptar todo',
     rejectAll: 'Rechazar todo',
+    customize: 'Customizar',
+    back: 'Volver',
     save: 'Guardar preferencias',
   },
   categories: {

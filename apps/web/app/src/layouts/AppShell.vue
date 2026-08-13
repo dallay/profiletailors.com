@@ -37,7 +37,6 @@ import { startAppTour } from '@/lib/app-tour'
 import { Toaster } from '@/components/ui/sonner'
 import ConsentBanner from '@/components/consent/ConsentBanner.vue'
 import CookieSettings from '@/components/consent/CookieSettings.vue'
-import { useConsentStore } from '@modules/settings/infrastructure/consent.store'
 import { useQueuedCounts } from '@modules/publishing/application/useQueuedCounts'
 
 // ---------------------------------------------------------------------------
@@ -47,7 +46,6 @@ import { useQueuedCounts } from '@modules/publishing/application/useQueuedCounts
 const auth = useAuthStore()
 const workspace = useWorkspaceStore()
 const publishingStore = usePublishingStore()
-const _consentStore = useConsentStore()
 const showCookieSettings = ref(false)
 const router = useRouter()
 const route = useRoute()

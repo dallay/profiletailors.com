@@ -275,28 +275,6 @@ describe('consent store', () => {
     expect(mockToastError).toHaveBeenCalledWith(expect.stringContaining('sync failed'))
   })
 
-  // ── openSettings / closeSettings ──────────────────────────────────────
-
-  it('openSettings sets forceOpen to true', async () => {
-    const { useConsentStore } = await import('./consent.store')
-    const store = useConsentStore()
-
-    store.openSettings()
-
-    expect(store.forceOpen).toBe(true)
-  })
-
-  it('closeSettings sets forceOpen to false', async () => {
-    const { useConsentStore } = await import('./consent.store')
-    const store = useConsentStore()
-
-    store.openSettings()
-    expect(store.forceOpen).toBe(true)
-
-    store.closeSettings()
-    expect(store.forceOpen).toBe(false)
-  })
-
   // ── loadFromStorage (explicit) ────────────────────────────────────────
 
   it('loadFromStorage re-reads from localStorage after external change', async () => {
