@@ -85,7 +85,12 @@ export const useConsentStore = defineStore('consent', () => {
     }
   }
 
-  /** Sync consent receipt to backend governance API. */
+  /**
+   * Synchronizes the user's analytics consent decision with the backend governance API.
+   *
+   * @param receipt - The consent receipt containing the analytics decision and policy metadata.
+   * @returns Resolves when the consent decision has been synchronized.
+   */
   async function syncToBackend(receipt: ConsentReceipt): Promise<void> {
     const auth = useAuthStore()
 
