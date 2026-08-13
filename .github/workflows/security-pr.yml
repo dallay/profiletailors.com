@@ -2,8 +2,8 @@ name: Security PR
 
 on:
   pull_request:
-    branches:
-      - main
+    # Run security validation for every stacked PR layer, not only the layer
+    # whose base is main.
     types:
       - opened
       - synchronize
