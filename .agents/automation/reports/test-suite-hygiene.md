@@ -11,11 +11,15 @@ NO_DRIFT_DETECTED
 ## Scope Inspected
 
 - Test files under `apps/web/app/`
+- Test files under `apps/web/marketing/`
+- Test files under `server/smp/`
+- Test files under `shared/`
 
 ## Changes Applied
 
 - Re-verified the test suite for any active test suite hygiene issues (such as `it.todo`, `it.skip`, `describe.skip`, `xit`, `xdescribe`, `@Disabled`, commented-out assertions, or obsolete suppressions).
 - Confirmed zero active test suite hygiene issues are present across both frontend and backend test configurations.
+- Verified that existing `@Disabled` annotations in `ModularStructureTest` are manual utility diagnostics rather than production regression tests.
 
 ## Evidence Table
 
@@ -42,7 +46,7 @@ None
 ## Automation State
 
 State successfully updated in `.agents/automation/state/test-suite-hygiene.yaml`.
-- **Last Execution:** `2026-08-06T17:58:58Z`
+- **Last Execution:** `2026-08-07T12:00:00Z`
 - **Schema Version:** `1`
 - **Task Identity:** `test-suite-hygiene`
 
