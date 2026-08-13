@@ -37,22 +37,25 @@ class SocialContentBddSteps {
     private lateinit var bddDatabaseSupport: BddDatabaseSupport
 
     private var latestResponse: EntityExchangeResult<ByteArray>? = null
+    private var lastNextCursor: String? = null
     private val objectMapper = jacksonObjectMapper()
 
     @Before("@linkedin-social-content")
     fun resetSocialContentState() {
         latestResponse = null
+        lastNextCursor = null
         state.reset()
         runBlocking { bddDatabaseSupport.resetDatabase() }
     }
 
+    @Given("the default social-content feature gates are disabled")
+    fun givenDefaultSocialContentFeatureGatesAreDisabled() = Unit
+
     @Given("the social-content BDD state is reset")
     fun givenSocialContentBddStateIsReset() {
         state.reset()
+        runBlocking { bddDatabaseSupport.resetDatabase() }
     }
-
-    @Given("the default social-content feature gates are disabled")
-    fun givenDefaultSocialContentFeatureGatesAreDisabled() = Unit
 
     @Given("a personal LinkedIn social account is the only social-content account")
     fun givenPersonalLinkedInSocialAccountIsOnlySocialContentAccount() {
@@ -130,20 +133,21 @@ class SocialContentBddSteps {
         )
     }
 
-    @When("the client requests social-content calendar from {string} to {string} with limit {int}")
-    fun whenClientRequestsCalendarWithLimit(from: String, to: String, limit: Int) {
-        latestResponse = socialContentGet(
-            "/api/publishing/social-content/calendar?from=$from&to=$to&limit=$limit",
-            BddDatabaseSupport.WORKSPACE_ID,
-        )
-    }
-
     @When("the client requests social-content calendar from {string} to {string} with cursor {string}")
     fun whenClientRequestsCalendarWithCursor(from: String, to: String, cursor: String) {
         latestResponse = socialContentGet(
             "/api/publishing/social-content/calendar?from=$from&to=$to&cursor=$cursor",
             BddDatabaseSupport.WORKSPACE_ID,
         )
+    }
+
+    @When("the client requests social-content calendar from {string} to {string} with limit {int}")
+    fun whenClientRequestsCalendarWithLimit(from: String, to: String, limit: Int) {
+        latestResponse = socialContentGet(
+            "/api/publishing/social-content/calendar?from=$from&to=$to&limit=$limit",
+            BddDatabaseSupport.WORKSPACE_ID,
+        )
+        extractNextCursor()
     }
 
     @When("the client requests social-content post detail for {string}")
@@ -251,6 +255,11 @@ class SocialContentBddSteps {
     private fun responseBody(): String = String(latestResponse?.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
 
     private fun json(): JsonNode = objectMapper.readTree(responseBody())
+
+    private fun extractNextCursor() {
+        val cursorNode = json().path("nextCursor")
+        lastNextCursor = if (cursorNode.isMissingNode || cursorNode.isNull) null else cursorNode.asText()
+    }
 
     private fun externalPostIdOf(node: JsonNode): String = node.path("externalPostId").let {
         if (it.isObject) it.path("value").asText() else it.asText()

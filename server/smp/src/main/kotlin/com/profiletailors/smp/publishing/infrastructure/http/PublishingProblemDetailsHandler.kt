@@ -8,6 +8,7 @@ import com.profiletailors.smp.publishing.application.SocialContentPostIsolationE
 import com.profiletailors.smp.publishing.application.SocialContentPostNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
+import com.profiletailors.smp.publishing.domain.InvalidSocialContentCursorException
 import com.profiletailors.smp.publishing.domain.ProviderConnectionNotAvailableException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAlreadyTerminalException
@@ -117,6 +118,14 @@ class PublishingProblemDetailsHandler {
             title = "OAuth state invalid"
         }
 
+    @ExceptionHandler(InvalidSocialContentCursorException::class)
+    @Suppress("UNUSED_PARAMETER")
+    fun handle(exception: InvalidSocialContentCursorException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_SOCIAL_CONTENT_CURSOR_DETAIL).apply {
+            title = "Invalid social content cursor"
+            setProperty("errorCode", INVALID_SOCIAL_CONTENT_CURSOR_ERROR_CODE)
+        }
+
     /**
      * Returns HTTP 503 Service Unavailable when the media context is unavailable.
      *
@@ -170,6 +179,8 @@ class PublishingProblemDetailsHandler {
             "The social content post crossed a workspace boundary."
         private const val OAUTH_STATE_EXPIRED_DETAIL = "OAuth state has expired."
         private const val OAUTH_STATE_INVALID_DETAIL = "OAuth state is invalid."
+        private const val INVALID_SOCIAL_CONTENT_CURSOR_DETAIL = "The social content calendar cursor is invalid."
+        private const val INVALID_SOCIAL_CONTENT_CURSOR_ERROR_CODE = "INVALID_SOCIAL_CONTENT_CURSOR"
         private const val MEDIA_SERVICE_UNAVAILABLE_DETAIL = "Media service is unavailable."
         private const val ASSET_NOT_READY_DETAIL = "One or more assets are not ready for publishing."
     }
