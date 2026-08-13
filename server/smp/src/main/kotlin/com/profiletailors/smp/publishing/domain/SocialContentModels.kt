@@ -2,8 +2,13 @@ package com.profiletailors.smp.publishing.domain
 
 import com.profiletailors.common.domain.AggregateRoot
 import com.profiletailors.common.domain.ValueObject
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.CodingErrorAction
 import java.time.Duration
 import java.time.Instant
+import java.time.format.DateTimeParseException
+import java.util.Base64
 
 /** Workspace identifier that scopes every social-content read, sync, and reply operation. */
 @ValueObject
@@ -172,6 +177,113 @@ sealed interface CapabilityDecision {
 value class PageCursor(val value: String) {
     init {
         require(value.isNotBlank()) { "Page cursor is required." }
+    }
+}
+
+@JvmInline
+value class CalendarCursorVersion(val value: String) {
+    init {
+        require(value in SUPPORTED_VERSIONS) { "Unsupported calendar cursor version: $value" }
+    }
+
+    companion object {
+        const val V1 = "1"
+        val SUPPORTED_VERSIONS = setOf(V1)
+    }
+}
+
+data class SocialContentCalendarCursor(
+    val version: CalendarCursorVersion,
+    val workspaceId: String,
+    val publishedAt: Instant,
+    val provider: SocialProvider,
+    val socialAccountId: String,
+    val externalPostId: String,
+) {
+    init {
+        require(workspaceId.isNotBlank()) { "Calendar cursor workspace is required." }
+        require(socialAccountId.isNotBlank()) { "Calendar cursor social account is required." }
+        require(externalPostId.isNotBlank()) { "Calendar cursor external post is required." }
+        require(listOf(workspaceId, socialAccountId, externalPostId).none { it.contains(CALENDAR_CURSOR_DELIMITER) }) {
+            "Calendar cursor fields cannot contain the delimiter."
+        }
+    }
+
+    private companion object {
+        const val CALENDAR_CURSOR_DELIMITER: Char = '\u001F'
+    }
+}
+
+class InvalidSocialContentCursorException(
+    message: String = "Invalid social content cursor",
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
+
+object SocialContentCalendarCursorCodec {
+    private const val DELIMITER: Char = '\u001F'
+    private const val FIELD_COUNT = 6
+    private const val VERSION_INDEX = 0
+    private const val WORKSPACE_INDEX = 1
+    private const val PUBLISHED_AT_INDEX = 2
+    private const val PROVIDER_INDEX = 3
+    private const val SOCIAL_ACCOUNT_INDEX = 4
+    private const val EXTERNAL_POST_INDEX = 5
+    private val BASE64_URL_TOKEN = Regex("[A-Za-z0-9_-]+")
+
+    fun encode(cursor: SocialContentCalendarCursor): String = Base64.getUrlEncoder()
+        .withoutPadding()
+        .encodeToString(
+            listOf(
+                cursor.version.value,
+                cursor.workspaceId,
+                cursor.publishedAt.toString(),
+                cursor.provider.name,
+                cursor.socialAccountId,
+                cursor.externalPostId,
+            ).joinToString(DELIMITER.toString()).toByteArray(Charsets.UTF_8),
+        )
+
+    @Suppress("ThrowsCount")
+    fun decode(value: String): SocialContentCalendarCursor {
+        val token = value.trim()
+        if (token.isBlank() || !BASE64_URL_TOKEN.matches(token)) throw InvalidSocialContentCursorException()
+
+        return try {
+            val fields = decodePayload(token).split(DELIMITER)
+            if (fields.size != FIELD_COUNT) throw InvalidSocialContentCursorException()
+            val version = try {
+                CalendarCursorVersion(fields[VERSION_INDEX])
+            } catch (exception: IllegalArgumentException) {
+                throw InvalidSocialContentCursorException(cause = exception)
+            }
+            SocialContentCalendarCursor(
+                version = version,
+                workspaceId = fields[WORKSPACE_INDEX],
+                publishedAt = Instant.parse(fields[PUBLISHED_AT_INDEX]),
+                provider = SocialProvider.entries.singleOrNull { it.name == fields[PROVIDER_INDEX] }
+                    ?: throw InvalidSocialContentCursorException(),
+                socialAccountId = fields[SOCIAL_ACCOUNT_INDEX],
+                externalPostId = fields[EXTERNAL_POST_INDEX],
+            )
+        } catch (exception: InvalidSocialContentCursorException) {
+            throw exception
+        } catch (exception: DateTimeParseException) {
+            throw InvalidSocialContentCursorException(cause = exception)
+        } catch (exception: IllegalArgumentException) {
+            throw InvalidSocialContentCursorException(cause = exception)
+        }
+    }
+
+    private fun decodePayload(token: String): String = try {
+        Charsets.UTF_8.newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .decode(ByteBuffer.wrap(Base64.getUrlDecoder().decode(token)))
+            .toString()
+    } catch (exception: CharacterCodingException) {
+        throw InvalidSocialContentCursorException(cause = exception)
+    } catch (exception: IllegalArgumentException) {
+        throw InvalidSocialContentCursorException(cause = exception)
     }
 }
 

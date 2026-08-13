@@ -3,6 +3,7 @@ package com.profiletailors.smp.publishing.infrastructure.persistence
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class SocialContentLiquibaseChangelogTest {
@@ -67,6 +68,27 @@ class SocialContentLiquibaseChangelogTest {
         migration shouldContain "referencedColumnNames: workspace_id, id"
         migration shouldContain "baseColumnNames: workspace_id, post_id"
         migration shouldContain "referencedTableName: social_content_posts"
+    }
+
+    @Test
+    fun `calendar keyset changelog is included after comment checkpoints and rolls back its covering index`() {
+        val master = resourceText("db/changelog/db.changelog-master.yaml")
+        val changelog = resourceText("db/changelog/publishing/019-add-social-content-calendar-keyset-index.yaml")
+
+        master shouldContain "file: db/changelog/publishing/018-social-content-comment-checkpoints.yaml"
+        master shouldContain "file: db/changelog/publishing/019-add-social-content-calendar-keyset-index.yaml"
+        assertTrue(
+            master.indexOf("file: db/changelog/publishing/018-social-content-comment-checkpoints.yaml") <
+                master.indexOf("file: db/changelog/publishing/019-add-social-content-calendar-keyset-index.yaml"),
+        )
+        changelog shouldContain "idx_social_content_posts_calendar_keyset"
+        changelog shouldContain "name: workspace_id"
+        changelog shouldContain "name: published_at"
+        changelog shouldContain "name: provider"
+        changelog shouldContain "name: social_account_id"
+        changelog shouldContain "name: external_post_id"
+        changelog shouldContain "dropIndex:"
+        changelog shouldContain "indexName: idx_social_content_posts_calendar_keyset"
     }
 
     @Test
