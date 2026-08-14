@@ -492,7 +492,7 @@ private fun isStandaloneLinkedInHashtag(text: String, index: Int): Boolean {
     val next = text.getOrNull(index + 1) ?: return false
     if (!next.isLetterOrDigit()) return false
     val previous = text.getOrNull(index - 1)
-    return previous == null || previous.isWhitespace()
+    return previous == null || !previous.isLetterOrDigit()
 }
 
 private val LINKEDIN_COMMENTARY_RESERVED_CHARACTERS = setOf(

@@ -29,6 +29,7 @@ import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.infrastructure.AttachmentsStorageBindingFactory
 import com.profiletailors.storage.infrastructure.ProviderConfig
 import com.profiletailors.storage.infrastructure.StorageProperties
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -727,30 +728,85 @@ class LinkedInPublishingAdaptersTest {
         )
 
         val payload = objectMapper.readTree(transport.capturedBodies.single())
-        assertEquals(
-            """
+        payload["commentary"].asText() shouldBe """
             Spring Boot 4.x \(el cambio más grande\)
 
             - Spring Boot 4.0 \(noviembre 2025\) y 4.1 \(junio 2026\) ya están disponibles.
 
-            #springboot""".trimIndent(),
-            payload["commentary"].asText(),
-        )
-        assertEquals("https://cdn.example.com/spring.png", payload["content"]["media"]["id"].asText())
+            #springboot
+        """.trimIndent()
+        payload["content"]["media"]["id"].asText() shouldBe "https://cdn.example.com/spring.png"
     }
 
     @Test
     fun `escape little text preserves unicode apostrophes and hashtags while escaping reserved characters`() {
         val source = """
             A (B) [C] {D} <E> @user *bold* _italic_ ~strike~ | slash\ C# #springboot
-            Línea d'apostrophe""".trimIndent()
+            Línea d'apostrophe
+        """.trimIndent()
 
-        assertEquals(
-            """
+        escapeLinkedInCommentary(source) shouldBe """
             A \(B\) \[C\] \{D\} \<E\> \@user \*bold\* \_italic\_ \~strike\~ \| slash\\ C\# #springboot
-            Línea d'apostrophe""".trimIndent(),
-            escapeLinkedInCommentary(source),
+            Línea d'apostrophe
+        """.trimIndent()
+    }
+
+    @Test
+    fun `escape little text preserves hashtags after punctuation`() {
+        escapeLinkedInCommentary("(#springboot)") shouldBe "\\(#springboot\\)"
+    }
+
+    @Suppress("LongMethod")
+    @Test
+    fun `real publisher preserves raw article content while escaping commentary`() = runTest {
+        val transport = RecordingTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    201,
+                    headersOf("x-restli-id" to "post-article-escaped"),
+                    """{"id":"post-article-escaped"}""",
+                ),
+            ),
         )
+        val credentialGateway = FakeCredentialGateway()
+        val credentialReference = UUID.randomUUID()
+        credentialGateway.store(
+            credentialReference,
+            LinkedInCredentials("access-token-123", null, null, scope = null),
+        )
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = credentialReference,
+        )
+        val body = "Read this (important) *now* https://example.com/article #springboot"
+        val publication = PublicationDraft(
+            id = "pub-article-escaped",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = body,
+        )
+
+        publisher.publish(
+            ProviderPublishCommand(
+                publicationId = publication.id,
+                workspaceId = publication.workspaceId,
+                socialAccount = testSocialAccount(),
+                publication = publication,
+                assets = emptyList(),
+            ),
+        )
+
+        val payload = objectMapper.readTree(transport.capturedBodies.single())
+        payload["commentary"].asText() shouldBe
+            """Read this \(important\) \*now\* https://example.com/article #springboot"""
+        payload["content"]["article"]["source"].asText() shouldBe "https://example.com/article"
+        payload["content"]["article"]["description"].asText() shouldBe body
     }
 
     @Test
