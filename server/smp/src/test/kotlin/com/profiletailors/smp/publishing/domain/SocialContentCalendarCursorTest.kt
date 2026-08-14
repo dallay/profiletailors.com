@@ -1,39 +1,39 @@
 package com.profiletailors.smp.publishing.domain
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import java.time.Instant
 
 class SocialContentCalendarCursorTest {
     @Test
     fun `accepts the current cursor version`() {
-        assertEquals(CalendarCursorVersion.V1, CalendarCursorVersion(CalendarCursorVersion.V1).value)
+        CalendarCursorVersion(CalendarCursorVersion.V1).value shouldBe CalendarCursorVersion.V1
     }
 
     @Test
     fun `rejects unsupported cursor versions`() {
-        assertThrows(IllegalArgumentException::class.java) {
+        shouldThrow<IllegalArgumentException> {
             CalendarCursorVersion("2")
         }
     }
 
     @Test
     fun `rejects blank cursor identity values`() {
-        val arguments = listOf(
+        val constructors: List<() -> SocialContentCalendarCursor> = listOf(
             { validCursor().copy(workspaceId = " ") },
             { validCursor().copy(socialAccountId = "") },
             { validCursor().copy(externalPostId = "\t") },
         )
 
-        arguments.forEach { constructor ->
-            assertThrows(IllegalArgumentException::class.java) { constructor() }
+        constructors.forEach { constructor ->
+            shouldThrow<IllegalArgumentException> { constructor() }
         }
     }
 
     @Test
     fun `rejects the internal delimiter in cursor fields`() {
-        assertThrows(IllegalArgumentException::class.java) {
+        shouldThrow<IllegalArgumentException> {
             validCursor().copy(externalPostId = "post\u001Fid")
         }
     }

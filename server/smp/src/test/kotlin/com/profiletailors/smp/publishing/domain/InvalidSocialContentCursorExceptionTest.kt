@@ -1,6 +1,6 @@
 package com.profiletailors.smp.publishing.domain
 
-import org.junit.jupiter.api.Assertions.assertEquals
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 
 class InvalidSocialContentCursorExceptionTest {
@@ -9,7 +9,7 @@ class InvalidSocialContentCursorExceptionTest {
         val cause = IllegalArgumentException("underlying cause")
         val exception = InvalidSocialContentCursorException("invalid calendar cursor", cause)
 
-        assertEquals("invalid calendar cursor", exception.message)
-        assertEquals(cause, exception.cause)
+        exception.message shouldBe "invalid calendar cursor"
+        exception.cause shouldBe cause
     }
 }
