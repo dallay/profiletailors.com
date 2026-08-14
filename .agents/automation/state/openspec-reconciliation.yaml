@@ -1,6 +1,7 @@
 schemaVersion: 1
 task: openspec-reconciliation
 lastExecution: "2026-08-16T10:00:00Z"
+lastExecutionNote: "Timestamps in this file (including lastExecution and 2026-08-16 entries below) are fixture/planned data for automation testing and do not necessarily reflect real wall-clock execution."
 findings:
   - id: F-1
     title: "mcp-server Active Change Implementation Status"
@@ -16,7 +17,7 @@ findings:
     detectedAt: "2026-08-07T18:40:00Z"
   - id: F-3
     title: "consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior Active Change Implementation Status"
-    description: "The consent-ux change is in QA phase. Implementation and QA defects are applied, pending full E2E suite verification and final archive phase."
+    description: "The consent-ux change is in QA phase. Implementation and QA defects are applied. Outstanding conditions: DNT/GPC E2E scenario missing (store-level covered, no dedicated Playwright scenario for mockPrivacySignals), browser matrix (Brave Shields ON/OFF, Safari/WebKit) not run, full E2E suite not yet executed, and root-cause ADR/note for Brave portal-overlay issue recommended (non-blocking)."
     status: unresolved
     severity: LOW
     detectedAt: "2026-08-16T10:00:00Z"

@@ -33,7 +33,7 @@ The audit concluded with **CHANGES_APPLIED** (for state and report files). The r
 |:---|:---|:---|:---|
 | `mcp-server` | `PARTIALLY_IMPLEMENTED` | Aligning with phase `apply` | `McpWiringTest.kt` passes; Spring Modulith module is integrated |
 | `pr-577-quality-gate-remediation` | `IMPLEMENTED_NOT_VERIFIED` | Aligning with phase `verify` | Remediations (labels, IDs, `fun interface`, `deleteSet` ResponseEntity) present |
-| `consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior` | `IMPLEMENTED_NOT_VERIFIED` | Aligning with phase `qa` | Non-modal consent banner implemented and store simplified; pending full E2E run |
+| `consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior` | `IMPLEMENTED_NOT_VERIFIED` | Aligning with phase `qa` | Non-modal consent banner implemented and store simplified; DNT/GPC E2E scenario missing, browser matrix (Brave Shields/Safari/WebKit) not run, full E2E suite not yet executed, root-cause ADR/note for Brave portal-overlay issue recommended (non-blocking) |
 | `private-beta-launch-readiness` | `PARTIALLY_IMPLEMENTED` | Aligning with phase `apply` | Invitation & activation core applied and BDD fast suite green |
 | Archived Changes (57 total) | `IMPLEMENTED` | Aligning with phase `archive` | Correctly organized under `openspec/changes/archive/` |
 
@@ -54,7 +54,13 @@ The audit concluded with **CHANGES_APPLIED** (for state and report files). The r
    - Source-level accessibility and Kotlin signature fixes are fully present.
    - Local verification failed because the fresh app LCOV coverage report was 69.50% (below the required 80% project gate).
 3. **`consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior` active change in QA phase (LOW risk)**:
-   - Non-modal banner implemented; QA fixes applied. Awaiting full E2E execution before archiving.
+   - Non-modal banner implemented; QA fixes applied.
+   - Blocking conditions before archive:
+     - DNT/GPC E2E scenario missing (store-level covered, no dedicated Playwright scenario for mockPrivacySignals)
+     - Full E2E suite not yet executed
+     - Browser matrix (Brave Shields ON/OFF x states A-D, Safari/WebKit) not run
+   - Recommended (non-blocking):
+     - Root-cause ADR/note for Brave portal-overlay issue should be written but requires only explicit policy acceptance to proceed
 4. **`private-beta-launch-readiness` active change in apply phase (LOW risk)**:
    - Activation & invitation core implemented; awaiting BDD postgres verification step.
 
