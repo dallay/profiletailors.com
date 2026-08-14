@@ -1,14 +1,14 @@
 # Delta for Publishing
 
-## ADDED Requirements
+## Overview
+
+This delta defines observable and reversible publishing operations for DALLAY-555 while preserving safe-off, idempotency, bounded retry, typed failure, stale-work, and redaction contracts. Publishing evidence and publication claim status remain distinct from generic evidence classification.
+
+## Changes
 
 ### Requirement: Publishing Beta Operations Are Observable and Reversible (DALLAY-555)
 
-Publishing MUST expose sufficient durable state for an operator to distinguish queued, processing,
-successful, blocked, failed, retryable, and stale work without reading raw exceptions or provider
-secrets. The worker MUST honor existing claim, idempotency, bounded-retry, typed-failure, and diagnostic
-redaction contracts. Publishing acceptance MUST be classified `USER_REPORTED_OPERATIONAL`; it MUST NOT
-be labeled provider-verified, production-verified, or `MULTI_USER_VERIFIED`.
+Publishing MUST expose sufficient durable state for an operator to distinguish queued, processing, successful, blocked, failed, retryable, and stale work without reading raw exceptions or provider secrets. The worker MUST honor existing claim, idempotency, bounded-retry, typed-failure, and diagnostic redaction contracts. Publishing acceptance MUST be classified `USER_REPORTED_OPERATIONAL`; it MUST NOT be labeled provider-verified, production-verified, or `MULTI_USER_VERIFIED`.
 
 #### Scenario: Failure is visible and safe
 
@@ -33,11 +33,7 @@ be labeled provider-verified, production-verified, or `MULTI_USER_VERIFIED`.
 
 ### Requirement: Live Publishing Evidence Is Separated From Code Evidence
 
-Focused tests, BDD, WireMock, and E2E results MAY establish code and contract behavior only. A managed
-VPS run MAY establish that the deployed instance produced the recorded user-visible result at a stated
-time. Neither class establishes provider-side delivery unless the evidence explicitly comes from the
-provider; this change MUST NOT make that claim. Missing timestamps, deployment identity, or scope MUST
-block the publishing acceptance record.
+Focused tests, BDD, WireMock, and E2E results MAY establish code and contract behavior only. A managed VPS run MAY establish that the deployed instance produced the recorded user-visible result at a stated time. Neither class establishes provider-side delivery unless the evidence explicitly comes from the provider; this change MUST NOT make that claim. Missing timestamps, deployment identity, or scope MUST block the publishing acceptance record.
 
 #### Scenario: User-reported publish result is classified correctly
 
@@ -45,3 +41,20 @@ block the publishing acceptance record.
 - WHEN the evidence ledger is updated
 - THEN the result MUST be stored as `USER_REPORTED_OPERATIONAL`
 - AND the DALLAY-559 gate MUST retain the provider-verification limitation
+
+## Usage
+
+### Operational Controls
+
+Use the supported worker control to safe-off new provider delivery while preserving persisted jobs for review or controlled re-enable. Record lifecycle and stale-work outcomes using canonical states and allowlisted failure categories.
+
+## Troubleshooting
+
+### Blockers
+
+Raw secrets or provider payloads, silently published stale work, missing recovery action, absent timestamps or deployment identity, or provider claims without provider evidence blocks publishing acceptance.
+
+## References
+
+- DALLAY-555.
+- Existing publishing worker, lifecycle, idempotency, retry, typed-failure, and redaction contracts.

@@ -1,21 +1,21 @@
 # Delta for E2E
 
-## ADDED Requirements
+## Overview
+
+This delta defines the DALLAY-558 invitee journey from invitation acceptance through first login, workspace loading, scheduler/composer access, and a publish or schedule attempt. It requires user-visible assertions and a clear evidence boundary.
+
+## Changes
 
 ### Requirement: Invitee Journey Covers Activation Through First Publish (DALLAY-558)
 
-The application E2E suite MUST cover the invitee journey from invitation acceptance through first
-login, workspace loading, scheduler/composer access, and a publish or schedule attempt. Tests MUST
-assert user-visible outcomes, requested effects, workspace context, and safe errors rather than relying
-on snapshots alone. Backend behavior introduced by this change MUST also have required Cucumber BDD
-coverage with `@smoke` and `@fast` tags.
+The application E2E suite MUST cover the invitee journey from invitation acceptance through first login, workspace loading, scheduler/composer access, and a publish or schedule attempt. Tests MUST assert user-visible outcomes, requested effects, workspace context, and safe errors rather than relying on snapshots alone. Backend behavior introduced by this change MUST also have required Cucumber BDD coverage with `@smoke` and `@fast` tags.
 
 #### Scenario: Invitee reaches the workspace
 
 - GIVEN a valid invitation fixture for workspace A
 - WHEN the invitee accepts it and completes first login
 - THEN the dashboard MUST load workspace A
-- AND the UI MUST NOT show another workspace’s data or controls
+- AND the UI MUST NOT show another workspace's data or controls
 
 #### Scenario: Invitee schedules with an unavailable capability
 
@@ -33,10 +33,7 @@ coverage with `@smoke` and `@fast` tags.
 
 ### Requirement: E2E Evidence Has a Defined Boundary
 
-Mocked provider tests, local browser runs, and CI results MUST be labeled code/test evidence. A browser
-run against the managed VPS MAY be labeled operator-observed user journey evidence, with UTC timestamp,
-deployment identity, and scope. E2E evidence MUST NOT be described as provider verification or
-multi-user verification.
+Mocked provider tests, local browser runs, and CI results MUST be labeled code/test evidence. A browser run against the managed VPS MAY be labeled operator-observed user journey evidence, with UTC timestamp, deployment identity, and scope. E2E evidence MUST NOT be described as provider verification or multi-user verification.
 
 #### Scenario: Missing dependency is reported as a blocker
 
@@ -44,3 +41,20 @@ multi-user verification.
 - WHEN acceptance evidence is reviewed
 - THEN DALLAY-558 MUST be marked blocked
 - AND DALLAY-559 MUST NOT be eligible for GO
+
+## Usage
+
+### Test Evidence
+
+Use focused Playwright assertions for visible outcomes, requested effects, workspace context, and safe errors. Use fixtures for invitation and provider conditions; retain managed-VPS runs as separately classified operator evidence.
+
+## Troubleshooting
+
+### Blockers
+
+Failure to reach first login or workspace context, an unsupported provider request, unsafe error content, missing backend BDD tags, or missing managed-environment provenance blocks the E2E prerequisite.
+
+## References
+
+- DALLAY-558.
+- Existing Playwright, Cucumber, workspace-context, and publishing contracts.

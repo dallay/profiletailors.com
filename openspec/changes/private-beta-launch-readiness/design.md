@@ -1,10 +1,12 @@
 # Design: Private Beta Launch Readiness
 
-## Technical Approach
+## Overview
 
 Implement the change as evidence-bounded slices over existing waitlist, platform-admin, identity, tenancy, publishing, and deployment primitives. Keep code evidence (unit/BDD/WireMock/E2E) separate from managed-VPS observations. The final DALLAY-559 record is a gate over classified prerequisites, not a new runtime subsystem.
 
-## Architecture Decisions
+## Changes
+
+### Architecture Decisions
 
 | Decision | Choice | Alternatives / rationale |
 |---|---|---|
@@ -14,7 +16,7 @@ Implement the change as evidence-bounded slices over existing waitlist, platform
 | Worker control | Use the existing `publishing.worker.enabled` gate as the safe-off switch, rendered from managed deployment configuration and verified before provider calls. | No public UI toggle: operator control must be auditable, reversible, and unavailable to ordinary workspace users. |
 | Evidence boundary | Store redacted records with UTC timestamp, environment, release/namespace, scope, operator, outcome, and classification. | Local/CI results cannot prove VPS behavior; VPS observation cannot be called provider verification. |
 
-## Data Flow
+### Data Flow
 
 ```text
 Waitlist activation (520)
@@ -30,7 +32,7 @@ Waitlist activation (520)
 
 Acceptance is one transaction: validate active/unexpired invitation, resolve or create the identity through existing identity contracts after verifying normalized email, reconcile exactly one membership for the invitation's mandatory `workspaceId`, mark the invitation accepted with the principal identity, and only then update optional waitlist conversion state when `source == WAITLIST`. A consumed, revoked, expired, altered, or concurrently lost token returns a deterministic invalid-or-consumed error contract and performs no membership mutation. Repeated login or delivery retries use existing identity uniqueness and membership upsert semantics; raw tokens never persist or appear in logs. Invitation acceptance MUST NOT mutate email-verification state, and first login is a flow state rather than an Invitation aggregate state.
 
-## File Changes
+### File Changes
 
 | File | Action | Description |
 |---|---|---|
@@ -42,7 +44,7 @@ Acceptance is one transaction: validate active/unexpired invitation, resolve or 
 | `server/smp/src/test/{kotlin,resources/features}` and `apps/web/app/src/modules/**` tests | Modify/Create | Mandatory backend BDD plus focused unit/integration and frontend tests. |
 | `infra/apps/smp/swarm/stack.yaml`, `docs/infrastructure/private-beta-launch-readiness-runbook.md` | Modify/Create | Configurable worker safe-off, managed route/readiness, backup/restore, rollback, failure/stale-job and operator procedures. |
 
-## Interfaces / Contracts
+### Interfaces / Contracts
 
 ```kotlin
 enum class InvitationSource { DIRECT, WAITLIST }
@@ -64,7 +66,9 @@ interface WorkspaceMembershipProvisioner {
 
 The acceptance endpoint returns only a safe result/error; invitation summaries expose status and timestamps, never token material. Publishing responses expose canonical lifecycle states and allowlisted failure categories only.
 
-## Testing Strategy
+## Usage
+
+### Testing Strategy
 
 | Layer | What to Test | Approach |
 |---|---|---|
@@ -72,17 +76,26 @@ The acceptance endpoint returns only a safe result/error; invitation summaries e
 | Integration/BDD | Transactional acceptance, email-verification boundary, workspace isolation, publication lifecycle and disabled worker | Add tagged Cucumber scenarios (`@smoke`, `@fast`) and Postgres/Testcontainers coverage; use WireMock for provider outcomes. |
 | E2E | Invitee first login, workspace context, scheduler/composer, unavailable provider, safe failure | Focused Playwright spec with fixtures and user-visible assertions; managed-VPS run is separately classified operator evidence. |
 
-## Migration / Rollout
-
-Use existing invitation, membership, publication-job, and audit tables; add only uniqueness/index changes required by the membership reconcile contract. Roll out A before invitations, keep worker safe-off during deployment, enable only after DALLAY-557 minimum evidence, and rollback by disabling invitations/worker, restoring the last known-good Swarm release, and using the documented database/media backup rehearsal.
-
-## Observability and Evidence
+### Observability and Evidence
 
 Reuse `PublishingLifecycleLogger` events and canonical failure taxonomy; add stale-job/operator summaries without exposing exceptions, provider bodies, credentials, storage paths, raw invitation tokens, or full invitee email addresses. Managed-VPS evidence must identify hostname, active namespace, release identity, UTC time, operator, scope, result, and limitation. Route checks cover public API plus private readiness/management access; PostgreSQL, direct origin listeners, and port 9091 must remain externally blocked.
 
-All live publishing claims remain `USER_REPORTED_OPERATIONAL`. Code, VPS observation, provider-verified evidence, production-verified evidence, and `MULTI_USER_VERIFIED` are distinct classifications; this change produces no provider verification and must not infer it from a successful user report.
+All live publishing claims remain `USER_REPORTED_OPERATIONAL`. Evidence classification (`CODE_VERIFIED`, `TEST_VERIFIED`, `VPS_OBSERVED`, `OPERATOR_REPORTED`, or `UNVERIFIED`) is separate from publication claim status. This change produces no provider verification and must not infer it from a successful user report; it must not create `MULTI_USER_VERIFIED` claims.
 
-## Open Questions
+## Troubleshooting
+
+### Migration / Rollout
+
+`server/smp/src/main/resources/db/changelog/platform-admin/004-create-invitations.yaml` creates the first-class `invitations` table. Liquibase applies it after the existing workspace and principal prerequisites, so invitation persistence is available before invitation acceptance is enabled. The current code introduces this table without a legacy invitation source, therefore no data backfill is required for the new table; any existing waitlist state remains in its existing tables and is converted only through the explicit invitation flow.
+
+Keep the publishing worker safe-off during deployment and enable it only after the minimum DALLAY-557 managed-environment evidence is recorded. If rollout fails, stop before enablement, disable invitations and worker execution, roll back the deployment/change set using the last-known-good release and documented backup/restore rehearsal, and do not perform destructive operations against active beta data. Historical evidence remains retained.
+
+### Open Questions
 
 - [ ] Confirm the managed beta hostname, release identifier format, and evidence retention location before the operator run.
-- [ ] Confirm the approved restore target and test-data scope for the VPS rehearsal.
+- [ ] Confirm the approved isolated restore target and test-data scope for the VPS rehearsal.
+
+## References
+
+- DALLAY-520, DALLAY-555, DALLAY-556, DALLAY-557, DALLAY-558, and DALLAY-559.
+- Existing waitlist, invitation, IAM/tenancy, publishing, deployment, monitoring, and test infrastructure.

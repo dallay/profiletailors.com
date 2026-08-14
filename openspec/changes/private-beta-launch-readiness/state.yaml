@@ -9,5 +9,6 @@ completed:
   - delivery-strategy
   - contract-clarification
   - apply-unit-1-activation-invitation-core
-next: apply-unit-1-bdd-and-http
-updated: 2026-08-10
+  - apply-unit-1-bdd-fast-green
+next: apply-unit-1-bdd-postgres-verify
+updated: 2026-08-14
