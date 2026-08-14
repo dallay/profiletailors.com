@@ -50,7 +50,7 @@ The audit concluded with **CHANGES_APPLIED**. Instances of documentation drift i
 
 | Check Name | Command | Outcome | Details |
 | :--- | :--- | :--- | :--- |
-| Markdown Link Validity Check | Custom local parser | **Passed** | 0 broken local relative links across all active skill documents. |
+| Markdown Link Validity Check | Custom local parser | **Passed** | 0 broken local relative links across all skill documents in .agents/skills/. |
 | Frontend Linter and Checker | `just frontend-lint && just frontend-check` | **Passed** | Biome linter and Astro types check passed with zero errors or warnings. |
 | Frontend Unit Tests | `just frontend-test` | **Passed** | Vitest suite passes completely with 85/85 assertions passing. |
 | Backend Fast Unit Tests | `just backend-test-fast` | **Passed** | Full Gradle unit test suite passes cleanly. |

@@ -13,7 +13,7 @@ findings:
     title: "Broken relative links in skill documentation under .agents/skills"
     status: resolved
     classification: VERIFIED
-    evidence: "Relative links in .agents/skills/ referenced non-existent relative paths for error-testing.md, service-workers.md, fixtures-hooks.md, assertions-waiting.md, cqrs-handlers.md, and kotlin/SKILL.md."
+    evidence: "Relative links in .agents/skills/ referenced non-existent relative paths for error-testing.md, service-workers.md, fixtures-hooks.md, assertions-waiting.md, hexagonal-architecture/SKILL.md, and kotlin/SKILL.md."
     risk: LOW
     message: "Corrected relative target paths across .agents/skills documentation files."
 checks:
