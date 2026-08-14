@@ -1003,6 +1003,7 @@ class BddDatabaseSupport(
 
     private fun cleanupStatements(): List<String> = listOf(
         "DELETE FROM platform_admin_audit_events",
+        "DELETE FROM invitations",
         "DELETE FROM waitlist_invitations",
         "DELETE FROM platform_role_assignments",
         "DELETE FROM waitlist_entries",

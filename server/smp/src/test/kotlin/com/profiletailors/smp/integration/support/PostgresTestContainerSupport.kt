@@ -73,6 +73,7 @@ object PostgresDatabaseCleanup {
         "DELETE FROM ideas",
         "DELETE FROM idea_board_configs",
         "DELETE FROM platform_admin_audit_events",
+        "DELETE FROM invitations",
         "DELETE FROM waitlist_invitations",
         "DELETE FROM platform_role_assignments",
         "DELETE FROM waitlist_entries",

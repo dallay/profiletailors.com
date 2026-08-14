@@ -1,5 +1,9 @@
 package com.profiletailors.smp.platformadmin.infrastructure
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
+import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceRepository
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
@@ -11,6 +15,9 @@ import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssign
 import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
 import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
 import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisionerAdapter
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -22,6 +29,27 @@ class PlatformAdminBootstrapConfiguration {
 
     @Bean
     fun tokenHasher(): TokenHasher = BCryptTokenHasher()
+
+    @Bean
+    fun workspaceMembershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
+        WorkspaceMembershipProvisionerAdapter(repository)
+
+    @Bean
+    fun acceptInvitationHandler(
+        invitationRepository: InvitationAcceptanceRepository,
+        tokenHasher: TokenHasher,
+        principalIdentityLookup: PrincipalIdentityLookup,
+        membershipProvisioner: WorkspaceMembershipProvisioner,
+        transactionRunner: AtomicTransactionRunner,
+        clock: Clock,
+    ): AcceptInvitationHandler = AcceptInvitationHandler(
+        invitationRepository = invitationRepository,
+        tokenHasher = tokenHasher,
+        principalIdentityLookup = principalIdentityLookup,
+        membershipProvisioner = membershipProvisioner,
+        transactionRunner = transactionRunner,
+        clock = clock,
+    )
 
     @Bean
     fun inviteWaitlistEntryHandler(

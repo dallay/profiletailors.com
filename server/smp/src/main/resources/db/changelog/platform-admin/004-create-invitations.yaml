@@ -1,0 +1,88 @@
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-004-create-invitations
+      author: platform-admin
+      changes:
+        - createTable:
+            tableName: invitations
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: source
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source_reference_id
+                  type: varchar(128)
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_invitations_workspace
+                    references: workspaces(id)
+              - column:
+                  name: invited_email_normalized
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: candidate_key
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_invitations_candidate_key
+              - column:
+                  name: token_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_invitations_token_hash
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: issued_by
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_invitations_issued_by
+                    references: principals(id)
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: accepted_at
+                  type: timestamp with time zone
+              - column:
+                  name: accepted_principal_id
+                  type: varchar(64)
+                  constraints:
+                    foreignKeyName: fk_invitations_accepted_principal
+                    references: principals(id)
+        - createIndex:
+            tableName: invitations
+            indexName: idx_invitations_candidate_key_status
+            columns:
+              - column:
+                  name: candidate_key
+              - column:
+                  name: status

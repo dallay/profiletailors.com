@@ -1,0 +1,14 @@
+change: private-beta-launch-readiness
+current_phase: apply
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - delivery-strategy
+  - contract-clarification
+  - apply-unit-1-activation-invitation-core
+  - apply-unit-1-bdd-fast-green
+next: apply-unit-1-bdd-postgres-verify
+updated: 2026-08-14

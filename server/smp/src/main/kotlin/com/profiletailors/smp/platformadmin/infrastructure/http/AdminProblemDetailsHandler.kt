@@ -1,6 +1,7 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
+import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotFoundException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotResendableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableException
@@ -43,6 +44,10 @@ class AdminProblemDetailsHandler {
     @ExceptionHandler(InvitationNotFoundException::class)
     fun handle(ex: InvitationNotFoundException): ProblemDetail =
         problem(HttpStatus.NOT_FOUND, "INVITATION_NOT_FOUND", ex.message)
+
+    @ExceptionHandler(InvitationNotAcceptableException::class)
+    fun handle(@Suppress("UNUSED_PARAMETER") ex: InvitationNotAcceptableException): ProblemDetail =
+        problem(HttpStatus.BAD_REQUEST, "INVITATION_NOT_ACCEPTABLE", "Invitation is unavailable.")
 
     @ExceptionHandler(InvitationAlreadyActiveException::class)
     fun handle(ex: InvitationAlreadyActiveException): ProblemDetail =

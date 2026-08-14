@@ -126,6 +126,8 @@ databaseChangeLog:
       file: db/changelog/platform-admin/002-create-waitlist-invitations.yaml
   - include:
       file: db/changelog/platform-admin/003-create-platform-admin-audit-events.yaml
+  - include:
+      file: db/changelog/platform-admin/004-create-invitations.yaml
   # ── Dev seed data (context: dev only) ──────────────────────────
   - include:
       file: db/changelog/dev/001-seed-test-data.yaml

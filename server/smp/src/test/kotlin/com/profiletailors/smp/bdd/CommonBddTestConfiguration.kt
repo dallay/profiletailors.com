@@ -193,6 +193,7 @@ class CommonBddTestConfiguration {
                     .claim("sub", "subject-123")
                     .claim("iss", "https://issuer.example")
                     .claim("principal_id", "principal-1")
+                    .claim("email", "jwt-user@example.com")
                     .claim(
                         "emailStatus",
                         if (token.startsWith("verified-")) "VERIFIED" else "PENDING",
