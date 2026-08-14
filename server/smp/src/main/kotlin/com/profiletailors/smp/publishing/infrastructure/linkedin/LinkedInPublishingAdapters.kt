@@ -490,7 +490,8 @@ internal fun escapeLinkedInCommentary(text: String): String = buildString(text.l
  *
  * @param text The text containing the hashtag.
  * @param index The index of the potential hashtag character.
- * @return `true` if the character is preceded by whitespace or text start and followed by a letter or digit, `false` otherwise.
+ * @return `true` if the character is preceded by whitespace or text start and followed by a letter or
+ *   digit, `false` otherwise.
  */
 private fun isStandaloneLinkedInHashtag(text: String, index: Int): Boolean {
     val next = text.getOrNull(index + 1) ?: return false
