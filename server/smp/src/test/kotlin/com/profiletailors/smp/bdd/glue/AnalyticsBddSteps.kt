@@ -16,6 +16,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.test.web.reactive.server.EntityExchangeResult
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class AnalyticsBddSteps {
     @Autowired
@@ -52,7 +53,7 @@ class AnalyticsBddSteps {
             socialAccountId = "social-acc-analytics-1",
             title = "Analytics Test Post",
             bodyText = "Post body for analytics testing",
-            publishedAt = Instant.parse("2026-07-15T10:00:00Z"),
+            publishedAt = Instant.now().minus(7, ChronoUnit.DAYS),
         )
     }
 
