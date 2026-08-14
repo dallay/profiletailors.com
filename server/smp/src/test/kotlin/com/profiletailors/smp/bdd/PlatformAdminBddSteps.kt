@@ -18,6 +18,7 @@ import org.springframework.http.MediaType
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.web.reactive.server.EntityExchangeResult
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.security.MessageDigest
 import java.util.UUID
 
 private const val ADMIN_PRINCIPAL_ID = BDD_ADMIN_PRINCIPAL_ID
@@ -38,6 +39,7 @@ class PlatformAdminBddSteps {
     private var lastResponse: EntityExchangeResult<ByteArray>? = null
     private var lastEntryId: String? = null
     private var lastInvitationId: String? = null
+    private var invitationToken: String? = null
 
     // ── Setup ────────────────────────────────────────────────────────────────
 
@@ -46,6 +48,7 @@ class PlatformAdminBddSteps {
         lastResponse = null
         lastEntryId = null
         lastInvitationId = null
+        invitationToken = null
         cleanupPlatformAdminData()
     }
 
@@ -88,6 +91,87 @@ class PlatformAdminBddSteps {
         val invitationId = seedActiveInvitation(entryId)
         lastInvitationId = invitationId
     }
+
+    // ── Invitation acceptance ────────────────────────────────────────────────
+
+    @Given("an active direct invitation exists for {string}")
+    fun activeDirectInvitationExists(email: String) = runBlocking {
+        lastInvitationId = null
+        seedInvitation(
+            email = email,
+            source = "DIRECT",
+            sourceReferenceId = null,
+            workspaceId = "invitation-workspace",
+        )
+        lastInvitationId = latestInvitationId(email)
+    }
+
+    @Then("the invitation acceptance workspace should be {string}")
+    fun invitationAcceptanceWorkspaceShouldBe(workspaceId: String) {
+        lastResponseJson().path("workspaceId").asText().let { assertEquals(workspaceId, it) }
+    }
+
+    @Then("the invitation acceptance membership status should be {string}")
+    fun invitationAcceptanceMembershipStatusShouldBe(status: String) {
+        assertEquals(status, lastResponseJson().path("membershipStatus").asText())
+    }
+
+    @Then("the invitation response should not contain the token")
+    fun invitationResponseShouldNotContainToken() {
+        assertTrue(!lastResponseJson().has("token"))
+    }
+
+    @When("an unauthenticated principal accepts the invitation")
+    fun unauthenticatedInvitationAcceptance() {
+        lastResponse = webTestClient.post()
+            .uri("/api/invitations/accept")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .bodyValue("""{"token":"${invitationToken ?: "unused-token"}"}""")
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the authenticated principal accepts the invitation with an empty token")
+    fun authenticatedInvitationAcceptanceWithEmptyToken() {
+        lastResponse = webTestClient.post()
+            .uri("/api/invitations/accept")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .bodyValue("""{"token":"   "}""")
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the authenticated principal accepts the invitation")
+    fun authenticatedInvitationAcceptance() = authenticatedInvitationAcceptanceWithToken(
+        invitationToken ?: "unavailable-token",
+    )
+
+    @When("the authenticated principal accepts the invitation with an unavailable token")
+    fun authenticatedInvitationAcceptanceWithUnavailableToken() = authenticatedInvitationAcceptanceWithToken(
+        "unavailable-token",
+    )
+
+    private fun authenticatedInvitationAcceptanceWithToken(token: String) {
+        lastResponse = webTestClient.post()
+            .uri("/api/invitations/accept")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .bodyValue("""{"token":"$token"}""")
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the authenticated principal accepts the invitation again")
+    fun authenticatedInvitationAcceptanceAgain() = authenticatedInvitationAcceptance()
 
     // ── Actions ──────────────────────────────────────────────────────────────
 
@@ -183,6 +267,8 @@ class PlatformAdminBddSteps {
 
     // ── Assertions ───────────────────────────────────────────────────────────
 
+    private fun lastResponseJson() = json.readTree(requireNotNull(lastResponse).responseBody)
+
     @Then("the admin response status should be {int}")
     fun adminResponseStatus(expected: Int) {
         assertEquals(expected, lastResponse?.status?.value())
@@ -239,6 +325,9 @@ class PlatformAdminBddSteps {
         assertEquals(expected, status)
     }
 
+    @And("the invitation status should become {string}")
+    fun invitationStatusBecomes(expected: String) = invitationStatusIs(expected)
+
     @And("an audit event with action {string} should be recorded")
     fun auditEventRecorded(action: String) = runBlocking {
         val count = databaseClient.sql(
@@ -268,12 +357,13 @@ class PlatformAdminBddSteps {
     private suspend fun cleanupPlatformAdminData() {
         listOf(
             "DELETE FROM platform_admin_audit_events",
+            "DELETE FROM invitations",
             "DELETE FROM waitlist_invitations",
             "DELETE FROM platform_role_assignments WHERE principal_id = '$ADMIN_PRINCIPAL_ID'::uuid",
             "DELETE FROM waitlist_entries WHERE waitlist_id = 'admin-bdd-waitlist'",
             "DELETE FROM waitlists WHERE id = 'admin-bdd-waitlist'",
-            "DELETE FROM user_identities WHERE principal_id = '$ADMIN_PRINCIPAL_ID'",
-            "DELETE FROM principals WHERE id = '$ADMIN_PRINCIPAL_ID'",
+            "DELETE FROM user_identities WHERE principal_id IN ('$ADMIN_PRINCIPAL_ID', 'principal-1')",
+            "DELETE FROM principals WHERE id IN ('$ADMIN_PRINCIPAL_ID', 'principal-1')",
         ).forEach { sql ->
             runCatching { databaseClient.sql(sql).fetch().rowsUpdated().awaitSingle() }
         }
@@ -296,8 +386,24 @@ class PlatformAdminBddSteps {
 
         databaseClient.sql(
             """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'jwt-user@example.com')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        databaseClient.sql(
+            """
             INSERT INTO user_identities (principal_id, email, username)
             VALUES ('$ADMIN_PRINCIPAL_ID', 'admin@platform.example', 'platform-admin')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        databaseClient.sql(
+            """
+            INSERT INTO user_identities (principal_id, email, username, email_status)
+            VALUES ('principal-1', 'jwt-user@example.com', 'jwt-user', 'VERIFIED')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -367,6 +473,67 @@ class PlatformAdminBddSteps {
         return invId.toString()
     }
 
+    private suspend fun seedInvitation(
+        email: String,
+        source: String,
+        sourceReferenceId: String?,
+        workspaceId: String,
+    ) {
+        val token = "bdd-invitation-token-${UUID.randomUUID()}"
+        val invitationId = UUID.randomUUID()
+        val candidateKey = MessageDigest.getInstance("SHA-256")
+            .digest(token.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        val tokenHash = org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
+            token,
+            org.springframework.security.crypto.bcrypt.BCrypt.gensalt(),
+        )
+        seedInvitationWorkspace(workspaceId)
+        databaseClient.sql(
+            """
+            INSERT INTO invitations (
+                id, source, source_reference_id, workspace_id, invited_email_normalized,
+                candidate_key, token_hash, status, issued_by, created_at, expires_at
+            ) VALUES (
+                :id, :source, :sourceReferenceId, :workspaceId, :email,
+                :candidateKey, :tokenHash, 'ACTIVE', :issuedBy, NOW(), NOW() + interval '7 days'
+            )
+            """.trimIndent(),
+        )
+            .bind("id", invitationId)
+            .bind("source", source)
+            .let { spec ->
+                if (sourceReferenceId == null) {
+                    spec.bindNull("sourceReferenceId", String::class.java)
+                } else {
+                    spec.bind("sourceReferenceId", sourceReferenceId)
+                }
+            }
+            .bind("workspaceId", workspaceId)
+            .bind("email", email.trim().lowercase())
+            .bind("candidateKey", candidateKey)
+            .bind("tokenHash", tokenHash)
+            .bind("issuedBy", ADMIN_PRINCIPAL_ID)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        invitationToken = token
+    }
+
+    private suspend fun seedInvitationWorkspace(workspaceId: String) {
+        databaseClient.sql(
+            """
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES (:id, 'Invitation BDD Workspace', 'ACTIVE', NULL)
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        )
+            .bind("id", workspaceId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
     private suspend fun entryStatus(entryId: String): String? =
         databaseClient.sql("SELECT status FROM waitlist_entries WHERE id = :id")
             .bind("id", entryId)
@@ -382,10 +549,25 @@ class PlatformAdminBddSteps {
         .one()
         .awaitSingle()
 
-    private suspend fun invitationStatus(invitationId: String): String? =
-        databaseClient.sql("SELECT status FROM waitlist_invitations WHERE id = :id")
-            .bind("id", UUID.fromString(invitationId))
+    private suspend fun latestInvitationId(email: String): String = databaseClient.sql(
+        "SELECT id FROM invitations WHERE invited_email_normalized = :email ORDER BY created_at DESC LIMIT 1",
+    )
+        .bind("email", email.trim().lowercase())
+        .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)).toString() }
+        .one()
+        .awaitSingle()
+
+    private suspend fun invitationStatus(invitationId: String): String? {
+        val id = UUID.fromString(invitationId)
+        return databaseClient.sql("SELECT status FROM invitations WHERE id = :id")
+            .bind("id", id)
             .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
             .first()
             .awaitSingleOrNull()
+            ?: databaseClient.sql("SELECT status FROM waitlist_invitations WHERE id = :id")
+                .bind("id", id)
+                .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
+                .first()
+                .awaitSingleOrNull()
+    }
 }

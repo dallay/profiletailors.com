@@ -10,3 +10,7 @@ interface TokenHasher {
     fun hash(rawToken: String): String
     fun matches(rawToken: String, storedHash: String): Boolean
 }
+
+interface InvitationTokenCandidateKey {
+    fun candidateKey(rawToken: String): String
+}
