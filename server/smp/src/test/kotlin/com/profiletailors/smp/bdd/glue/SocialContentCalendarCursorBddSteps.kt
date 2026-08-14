@@ -166,7 +166,12 @@ class SocialContentCalendarCursorBddSteps {
 
     @Then("the cursor social-content problem should contain denial {string}")
     fun thenCursorProblemShouldContainDenial(denial: String) {
-        assertEquals(denial, json().path("errorCode").asText(), responseBody())
+        val problem = json()
+        assertEquals(
+            denial,
+            problem.path("errorCode").asText(),
+            "Expected errorCode=$denial, response=${responseBody()}",
+        )
     }
 
     private fun assertCalendarContainsCount(expectedCount: Int) {
