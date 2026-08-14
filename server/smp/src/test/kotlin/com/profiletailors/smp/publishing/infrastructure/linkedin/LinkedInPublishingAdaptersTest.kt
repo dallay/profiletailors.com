@@ -195,6 +195,50 @@ class LinkedInPublishingAdaptersTest {
     }
 
     @Test
+    fun `real publisher escapes little text reserved characters in multiline commentary`() = runTest {
+        val transport = RecordingTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    201,
+                    headersOf("x-restli-id" to "post-little-text"),
+                    """{"id":"post-little-text"}""",
+                ),
+            ),
+        )
+        val credentialGateway = FakeCredentialGateway()
+        val accountId = "abcd1234"
+        val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
+        )
+        val account = testSocialAccount().copy(providerAccountId = accountId)
+        val body = """Spring Boot 4.x (el cambio más grande)
+
+La migración exige cuidado con (paréntesis), [corchetes] y {llaves}."""
+
+        publisher.publish(
+            ProviderPublishCommand(
+                publicationId = "pub-little-text",
+                workspaceId = "workspace-1",
+                socialAccount = account,
+                publication = testPublication(bodyText = body),
+                assets = emptyList(),
+            ),
+        )
+
+        val payload = transport.capturedBodies.single()
+        assertEquals(
+            """Spring Boot 4.x \(el cambio más grande\)
+
+La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
+            payload["commentary"].asText(),
+        )
+    }
+
+    @Test
     fun `real publisher builds article post and publishes with resolved token`() = runTest {
         val transport = StubTransport(
             responses = listOf(
@@ -1439,6 +1483,18 @@ class LinkedInPublishingAdaptersTest {
 
     // ===== Helper methods =====
 
+    private fun testPublication(bodyText: String): PublicationDraft = PublicationDraft(
+        id = "pub-1",
+        workspaceId = "workspace-1",
+        authorPrincipalId = "principal-1",
+        provider = SocialProvider.LINKEDIN,
+        socialAccountId = "account-1",
+        status = PublicationStatus.QUEUED,
+        scheduleMode = ScheduleMode.NOW,
+        priority = false,
+        bodyText = bodyText,
+    )
+
     private fun testSocialAccount(): SocialAccount = SocialAccount(
         id = "account-1",
         socialConnectionId = "connection-1",
@@ -1537,9 +1593,35 @@ class LinkedInPublishingAdaptersTest {
      */
     private class RecordingTransport(private val responses: List<LinkedInHttpResponse>) : LinkedInHttpTransport {
         val capturedRequests: MutableList<java.net.http.HttpRequest> = mutableListOf()
+        val capturedBodies: MutableList<com.fasterxml.jackson.databind.JsonNode> = mutableListOf()
         private var index = 0
         override suspend fun send(request: java.net.http.HttpRequest): LinkedInHttpResponse {
             capturedRequests += request
+            request.bodyPublisher().ifPresent { publisher ->
+                val bytes = java.io.ByteArrayOutputStream()
+                val subscription = java.util.concurrent.CountDownLatch(1)
+                publisher.subscribe(object : java.util.concurrent.Flow.Subscriber<java.nio.ByteBuffer> {
+                    override fun onSubscribe(subscriptionValue: java.util.concurrent.Flow.Subscription) {
+                        subscriptionValue.request(Long.MAX_VALUE)
+                    }
+                    override fun onNext(item: java.nio.ByteBuffer) {
+                        val copy = item.duplicate()
+                        val data = ByteArray(copy.remaining())
+                        copy.get(data)
+                        bytes.write(data)
+                    }
+                    override fun onError(throwable: Throwable) {
+                        subscription.countDown()
+                    }
+                    override fun onComplete() {
+                        subscription.countDown()
+                    }
+                })
+                check(subscription.await(1, java.util.concurrent.TimeUnit.SECONDS))
+                if (request.headers().firstValue("Content-Type").orElse("").contains("application/json")) {
+                    capturedBodies.add(ObjectMapper().readTree(bytes.toByteArray()))
+                }
+            }
             return responses.getOrElse(index++) {
                 throw IllegalStateException("No stub response configured for call ${capturedRequests.size}")
             }

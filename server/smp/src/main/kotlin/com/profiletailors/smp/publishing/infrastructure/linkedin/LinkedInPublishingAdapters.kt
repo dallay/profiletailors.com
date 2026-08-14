@@ -306,6 +306,7 @@ class RealLinkedInPublisher(
             )
         val commentary = command.publication.bodyText.orEmpty()
         val articleLink = extractFirstUrl(commentary)
+        val littleTextCommentary = escapeLittleText(commentary)
 
         val assetContent = buildAssetContent(command, command.assets)
 
@@ -325,7 +326,7 @@ class RealLinkedInPublisher(
 
         return linkedMapOf(
             "author" to authorUrn,
-            "commentary" to commentary,
+            "commentary" to littleTextCommentary,
             "visibility" to "PUBLIC",
             "distribution" to mapOf(
                 "feedDistribution" to "MAIN_FEED",
@@ -340,6 +341,9 @@ class RealLinkedInPublisher(
             }
         }
     }
+
+    private fun escapeLittleText(commentary: String): String =
+        commentary.replace(Regex("""([\\()\[\]{}])"""), """\\${'$'}1""")
 
     /**
      * Constructs the asset content structure for a LinkedIn post.
