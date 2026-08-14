@@ -15,7 +15,7 @@
     "monorepo"
   ],
   "engines": {
-    "node": ">=22.23.2",
+    "node": ">=24.19.0",
     "pnpm": ">=11.20.0"
   },
   "packageManager": "pnpm@11.20.0",
@@ -49,6 +49,6 @@
     "prepare": "node scripts/prepare-workspace.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.6"
+    "@biomejs/biome": "2.5.7"
   }
 }

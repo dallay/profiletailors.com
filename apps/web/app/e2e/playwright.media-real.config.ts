@@ -38,7 +38,7 @@ export default defineConfig({
   },
 
   webServer: {
-    command: 'pnpm run dev:app',
+    command: 'PLAYWRIGHT=true pnpm run dev:app',
     port: 5173,
     reuseExistingServer: true,
     cwd: path.resolve(__dirname, '..'),

@@ -22,6 +22,39 @@ async function dismissConsentBanner(page: Page): Promise<void> {
   });
 }
 
+/**
+ * Speculation rules shape with type validation.
+ */
+interface SpeculationRules {
+  prerender?: Array<{
+    eagerness?: string;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
+
+/**
+ * Parse and validate speculation rules JSON.
+ * @param value - Unknown value to parse
+ * @returns Validated SpeculationRules object
+ * @throws Error if validation fails
+ */
+function parseSpeculationRules(value: unknown): SpeculationRules {
+  if (typeof value !== 'object' || value === null) {
+    throw new Error('Invalid speculation rules: expected an object');
+  }
+
+  const rules = value as Record<string, unknown>;
+
+  if ('prerender' in rules) {
+    if (!Array.isArray(rules.prerender)) {
+      throw new Error('Invalid speculation rules: prerender must be an array');
+    }
+  }
+
+  return rules as SpeculationRules;
+}
+
 test.describe('Landing Page - Hero Section', () => {
   test('should display hero section with value proposition', async ({ page }) => {
     await dismissConsentBanner(page);
@@ -229,5 +262,30 @@ test.describe('Performance', () => {
     await page.waitForLoadState('networkidle');
 
     expect(errors).toHaveLength(0);
+  });
+
+  test('should include speculationrules script with moderate eagerness', async ({ page }: { page: Page }): Promise<void> => {
+    await dismissConsentBanner(page);
+    await page.goto('/');
+
+    const script = page.locator('script[type="speculationrules"]');
+    await expect(script).toHaveCount(1);
+
+    const content = await script.textContent();
+    expect(content).not.toBeNull();
+    const rules = parseSpeculationRules(JSON.parse(content || '{}') as unknown);
+    expect(rules.prerender).toBeDefined();
+    expect(rules.prerender?.[0]?.eagerness).toBe('moderate');
+
+    // Also verify on the Spanish locale page
+    await page.goto('/es');
+    const esScript = page.locator('script[type="speculationrules"]');
+    await expect(esScript).toHaveCount(1);
+
+    const esContent = await esScript.textContent();
+    expect(esContent).not.toBeNull();
+    const esRules = parseSpeculationRules(JSON.parse(esContent || '{}') as unknown);
+    expect(esRules.prerender).toBeDefined();
+    expect(esRules.prerender?.[0]?.eagerness).toBe('moderate');
   });
 });

@@ -28,7 +28,7 @@
 
 - name: "type:dependency"
   color: "e3e3e3"
-  description: "Dependency updates (Dependabot or manual)"
+  description: "Dependency updates (Renovate or manual)"
 
 - name: "type:security"
   color: "d93f0b"
