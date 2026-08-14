@@ -295,7 +295,9 @@ class RealLinkedInPublisher(
      *
      * @param command The publication command containing the account, text, title, and assets.
      * @return The request fields for the published post, including optional media or article content.
-     * @throws IllegalStateException If the social account has no profile URN.
+     * @throws IllegalStateException If the social account has no profile URN, or if an asset has invalid metadata
+     *   (e.g., uploaded asset missing storage key, external URL asset missing URL).
+     * @throws PublishingFailureException If asset storage is unavailable when downloading asset binaries.
      */
     private suspend fun buildPostBody(command: ProviderPublishCommand): Map<String, Any> {
         val authorUrn = command.socialAccount.profileUrn
