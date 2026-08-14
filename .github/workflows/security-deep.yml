@@ -58,7 +58,7 @@ jobs:
             --exit-code 0
       - name: Upload Gitleaks SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           sarif_file: reports/gitleaks/gitleaks-history.sarif
           category: gitleaks-history
@@ -107,7 +107,7 @@ jobs:
             --output reports/semgrep/semgrep-full.sarif
       - name: Upload Semgrep SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           sarif_file: reports/semgrep/semgrep-full.sarif
           category: semgrep-full
@@ -145,7 +145,7 @@ jobs:
           java-version: '21'
           cache: gradle
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           languages: java-kotlin
           config-file: ./.github/codeql/codeql-config.yml
@@ -159,7 +159,7 @@ jobs:
           -x bddFastTest
           --no-daemon
       - name: Analyze with CodeQL
-        uses: github/codeql-action/analyze@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           category: codeql-full-backend
       - name: Summarize CodeQL reporting channel
@@ -224,7 +224,7 @@ jobs:
           fi
       - name: Upload Trivy SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
         with:
           sarif_file: reports/trivy/trivy-full.sarif
           category: trivy-full
