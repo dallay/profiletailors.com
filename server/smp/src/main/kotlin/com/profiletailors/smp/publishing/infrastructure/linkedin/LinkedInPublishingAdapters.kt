@@ -304,8 +304,9 @@ class RealLinkedInPublisher(
             ?: throw IllegalStateException(
                 "LinkedIn social account is missing a person URN for authoring.",
             )
-        val commentary = command.publication.bodyText.orEmpty()
-        val articleLink = extractFirstUrl(commentary)
+        val rawCommentary = command.publication.bodyText.orEmpty()
+        val commentary = escapeLinkedInCommentary(rawCommentary)
+        val articleLink = extractFirstUrl(rawCommentary)
 
         val assetContent = buildAssetContent(command, command.assets)
 
@@ -316,7 +317,7 @@ class RealLinkedInPublisher(
                 "article" to mapOf(
                     "source" to articleLink,
                     "title" to (command.publication.title ?: articleLink),
-                    "description" to commentary,
+                    "description" to rawCommentary,
                 ),
             )
         } else {
@@ -467,6 +468,36 @@ class RealLinkedInPublisher(
         val HTTP_SERVER_ERROR_RANGE = 500..599
     }
 }
+
+/**
+ * Escapes plain publication text for LinkedIn's `little` commentary format.
+ *
+ * LinkedIn interprets several punctuation characters as syntax even when the
+ * product user entered them as ordinary text. An unescaped opening parenthesis
+ * can therefore make the provider render only the commentary prefix. Hashtags
+ * intentionally remain unescaped when they look like standalone hashtags so
+ * the existing hashtag composer feature keeps its provider semantics.
+ */
+internal fun escapeLinkedInCommentary(text: String): String = buildString(text.length) {
+    text.forEachIndexed { index, character ->
+        val isStandaloneHashtag = character == '#' && isStandaloneLinkedInHashtag(text, index)
+        if (!isStandaloneHashtag && character in LINKEDIN_COMMENTARY_RESERVED_CHARACTERS) {
+            append('\\')
+        }
+        append(character)
+    }
+}
+
+private fun isStandaloneLinkedInHashtag(text: String, index: Int): Boolean {
+    val next = text.getOrNull(index + 1) ?: return false
+    if (!next.isLetterOrDigit()) return false
+    val previous = text.getOrNull(index - 1)
+    return previous == null || previous.isWhitespace()
+}
+
+private val LINKEDIN_COMMENTARY_RESERVED_CHARACTERS = setOf(
+    '\\', '|', '{', '}', '@', '[', ']', '(', ')', '<', '>', '#', '*', '_', '~',
+)
 
 internal const val CONTENT_TYPE = "Content-Type"
 

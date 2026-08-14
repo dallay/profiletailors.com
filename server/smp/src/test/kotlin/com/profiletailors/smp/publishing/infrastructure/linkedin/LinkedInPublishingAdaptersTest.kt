@@ -39,8 +39,41 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.io.ByteArrayOutputStream
 import java.net.http.HttpHeaders
+import java.net.http.HttpRequest
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Flow as JvmFlow
+
+private fun readBody(bodyPublisher: HttpRequest.BodyPublisher): String {
+    val bytes = ByteArrayOutputStream()
+    val result = CompletableFuture<String>()
+    bodyPublisher.subscribe(
+        object : JvmFlow.Subscriber<ByteBuffer> {
+            override fun onSubscribe(subscription: JvmFlow.Subscription) {
+                subscription.request(Long.MAX_VALUE)
+            }
+
+            override fun onNext(item: ByteBuffer) {
+                val chunk = ByteArray(item.remaining())
+                item.get(chunk)
+                bytes.write(chunk)
+            }
+
+            override fun onError(throwable: Throwable) {
+                result.completeExceptionally(throwable)
+            }
+
+            override fun onComplete() {
+                result.complete(bytes.toByteArray().toString(StandardCharsets.UTF_8))
+            }
+        },
+    )
+    return result.join()
+}
 
 class LinkedInPublishingAdaptersTest {
 
@@ -632,6 +665,92 @@ class LinkedInPublishingAdaptersTest {
         )
 
         assertEquals("post-456", result.externalPublicationId)
+    }
+
+    @Suppress("LongMethod")
+    @Test
+    fun `real publisher escapes little text syntax for multiline image commentary`() = runTest {
+        val transport = RecordingTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    201,
+                    headersOf("x-restli-id" to "post-escaped"),
+                    """{"id":"post-escaped"}""",
+                ),
+            ),
+        )
+        val credentialGateway = FakeCredentialGateway()
+        val accountId = "abcd1234"
+        val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
+        )
+        val commentary = """
+            Spring Boot 4.x (el cambio más grande)
+
+            - Spring Boot 4.0 (noviembre 2025) y 4.1 (junio 2026) ya están disponibles.
+
+            #springboot
+        """.trimIndent()
+        val publication = PublicationDraft(
+            id = "pub-escaped",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = commentary,
+        )
+        val asset = PublicationAsset(
+            id = "asset-1",
+            workspaceId = "workspace-1",
+            sourceType = AssetSourceType.EXTERNAL_URL,
+            mediaType = "image/png",
+            externalUrl = "https://cdn.example.com/spring.png",
+            status = PublicationAssetStatus.READY,
+            createdByPrincipalId = "principal-1",
+        )
+
+        publisher.publish(
+            ProviderPublishCommand(
+                publicationId = publication.id,
+                workspaceId = publication.workspaceId,
+                socialAccount = testSocialAccount(),
+                publication = publication,
+                assets = listOf(asset),
+            ),
+        )
+
+        val payload = objectMapper.readTree(transport.capturedBodies.single())
+        assertEquals(
+            """
+            Spring Boot 4.x \(el cambio más grande\)
+
+            - Spring Boot 4.0 \(noviembre 2025\) y 4.1 \(junio 2026\) ya están disponibles.
+
+            #springboot""".trimIndent(),
+            payload["commentary"].asText(),
+        )
+        assertEquals("https://cdn.example.com/spring.png", payload["content"]["media"]["id"].asText())
+    }
+
+    @Test
+    fun `escape little text preserves unicode apostrophes and hashtags while escaping reserved characters`() {
+        val source = """
+            A (B) [C] {D} <E> @user *bold* _italic_ ~strike~ | slash\ C# #springboot
+            Línea d'apostrophe""".trimIndent()
+
+        assertEquals(
+            """
+            A \(B\) \[C\] \{D\} \<E\> \@user \*bold\* \_italic\_ \~strike\~ \| slash\\ C\# #springboot
+            Línea d'apostrophe""".trimIndent(),
+            escapeLinkedInCommentary(source),
+        )
     }
 
     @Test
@@ -1537,9 +1656,11 @@ class LinkedInPublishingAdaptersTest {
      */
     private class RecordingTransport(private val responses: List<LinkedInHttpResponse>) : LinkedInHttpTransport {
         val capturedRequests: MutableList<java.net.http.HttpRequest> = mutableListOf()
+        val capturedBodies: MutableList<String> = mutableListOf()
         private var index = 0
         override suspend fun send(request: java.net.http.HttpRequest): LinkedInHttpResponse {
             capturedRequests += request
+            request.bodyPublisher().ifPresent { capturedBodies += readBody(it) }
             return responses.getOrElse(index++) {
                 throw IllegalStateException("No stub response configured for call ${capturedRequests.size}")
             }
