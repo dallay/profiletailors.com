@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.2](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.1...smp@v0.4.2) (2026-08-14)
+
+
+### Features
+
+* **ddd:** annotate Kotlin domain across contexts and add architecture governance skills ([#680](https://github.com/dallay/profiletailors.com/issues/680)) ([2d279fa](https://github.com/dallay/profiletailors.com/commit/2d279fa2bda598f82e88a1402baa2934e0cc9a73))
+
+
+### Bug Fixes
+
+* **linkedin:** escape commentary syntax before publishing ([#783](https://github.com/dallay/profiletailors.com/issues/783)) ([e9b0b45](https://github.com/dallay/profiletailors.com/commit/e9b0b451c00e380d1c49ece82745362306854a85))
+
+
+### Documentation
+
+* 📝 Add docstrings to `feat/corrige-dallay582-en-linkedin` ([#784](https://github.com/dallay/profiletailors.com/issues/784)) ([62d275d](https://github.com/dallay/profiletailors.com/commit/62d275dbe5071bd11aef60a27dc6e22c71596777))
+
 ## [0.4.1](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.0...smp@v0.4.1) (2026-08-08)
 
 

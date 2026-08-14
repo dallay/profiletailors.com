@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.2](https://github.com/dallay/profiletailors.com/compare/app@v0.3.1...app@v0.3.2) (2026-08-14)
+
+
+### Features
+
+* **consent:** replace blocking consent modal with non-modal banner and harden privacy-browser behavior ([#775](https://github.com/dallay/profiletailors.com/issues/775)) ([26b10a8](https://github.com/dallay/profiletailors.com/commit/26b10a8da1d27b3a6357e8fbc977bca380f812ca))
+* **ddd:** annotate Kotlin domain across contexts and add architecture governance skills ([#680](https://github.com/dallay/profiletailors.com/issues/680)) ([2d279fa](https://github.com/dallay/profiletailors.com/commit/2d279fa2bda598f82e88a1402baa2934e0cc9a73))
+
+
+### Bug Fixes
+
+* **deps:** update dependency @tanstack/vue-table to v9 ([#758](https://github.com/dallay/profiletailors.com/issues/758)) ([cabfa38](https://github.com/dallay/profiletailors.com/commit/cabfa380d71e0b660dc91393ae019fc271374602))
+* **deps:** update dependency driver.js to ^1.8.0 ([#714](https://github.com/dallay/profiletailors.com/issues/714)) ([c40c28c](https://github.com/dallay/profiletailors.com/commit/c40c28c2a8ad58c5c4680a3ff7b24e9b9a895352))
+* **deps:** update vue core ([#718](https://github.com/dallay/profiletailors.com/issues/718)) ([899e686](https://github.com/dallay/profiletailors.com/commit/899e68665bfd5379a6fcbe00360e8f0f8e3880c9))
+* local E2E accessibility and landmark landmark findings ([#769](https://github.com/dallay/profiletailors.com/issues/769)) ([f620b59](https://github.com/dallay/profiletailors.com/commit/f620b59caf8018bae3e8682dd3600fad015fa44c))
+
+
+### Documentation
+
+* Remediate WCAG 2.2 AA / European Accessibility Act Conformance ([#771](https://github.com/dallay/profiletailors.com/issues/771)) ([d9ef2c8](https://github.com/dallay/profiletailors.com/commit/d9ef2c8ddee0705577988efe4ecfeb5b50a870f6))
+
 ## [0.3.1](https://github.com/dallay/profiletailors.com/compare/app@v0.3.0...app@v0.3.1) (2026-08-08)
 
 
