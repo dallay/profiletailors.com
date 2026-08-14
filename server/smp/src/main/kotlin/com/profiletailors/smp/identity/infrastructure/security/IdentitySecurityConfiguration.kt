@@ -146,6 +146,7 @@ class IdentitySecurityConfiguration {
                 "/api/capabilities/public",
                 "/api/media/assets/*/preview",
                 "/api/media/assets/*/content",
+                "/api/media/proxy",
             ).permitAll()
                 .pathMatchers(
                     HttpMethod.POST,
