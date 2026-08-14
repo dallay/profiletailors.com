@@ -291,13 +291,13 @@ class RealLinkedInPublisher(
     }
 
     /**
-     * Constructs the request body for publishing a post to LinkedIn.
+     * Builds the LinkedIn request body for a publication.
      *
-     * Requires the social account to have a profile URN; throws [IllegalStateException] if missing.
-     *
-     * @return A map containing the post author, commentary, visibility settings,
-     * and optional media or article content formatted for the LinkedIn API.
-     * @throws IllegalStateException If the social account is missing a profile URN.
+     * @param command The publication command containing the account, text, title, and assets.
+     * @return The request fields for the published post, including optional media or article content.
+     * @throws IllegalStateException If the social account has no profile URN, or if an asset has invalid metadata
+     *   (e.g., uploaded asset missing storage key, external URL asset missing URL).
+     * @throws PublishingFailureException If asset storage is unavailable when downloading asset binaries.
      */
     private suspend fun buildPostBody(command: ProviderPublishCommand): Map<String, Any> {
         val authorUrn = command.socialAccount.profileUrn
@@ -470,13 +470,10 @@ class RealLinkedInPublisher(
 }
 
 /**
- * Escapes plain publication text for LinkedIn's `little` commentary format.
+ * Escapes reserved punctuation in publication text for LinkedIn commentary while preserving standalone hashtags.
  *
- * LinkedIn interprets several punctuation characters as syntax even when the
- * product user entered them as ordinary text. An unescaped opening parenthesis
- * can therefore make the provider render only the commentary prefix. Hashtags
- * intentionally remain unescaped when they look like standalone hashtags so
- * the existing hashtag composer feature keeps its provider semantics.
+ * @param text The publication text to escape.
+ * @return The escaped commentary text.
  */
 internal fun escapeLinkedInCommentary(text: String): String = buildString(text.length) {
     text.forEachIndexed { index, character ->
@@ -488,6 +485,14 @@ internal fun escapeLinkedInCommentary(text: String): String = buildString(text.l
     }
 }
 
+/**
+ * Determines whether the character at the specified index starts a standalone hashtag.
+ *
+ * @param text The text containing the hashtag.
+ * @param index The index of the potential hashtag character.
+ * @return `true` if the character is preceded by whitespace or text start and followed by a letter or
+ *   digit, `false` otherwise.
+ */
 private fun isStandaloneLinkedInHashtag(text: String, index: Int): Boolean {
     val next = text.getOrNull(index + 1) ?: return false
     if (!next.isLetterOrDigit()) return false
