@@ -147,12 +147,19 @@ when release-please creates an `smp@*` tag:
 2. **Release creation**: If a new version is ready, release-please creates the tag
    (e.g., `smp@0.1.0`)
 3. **Automatic build**: The `release-image.yml` workflow is invoked:
-    - Builds backend via Spring Boot buildpacks (`bootBuildImage`)
+    - Builds the multi-architecture backend via `server/smp/backend.Dockerfile`
     - Builds dashboard via `infra/apps/smp/production/dashboard.Dockerfile`
     - Pushes both to `ghcr.io/dallay/profiletailors-smp:<version>` and `:latest`
     - Pushes `ghcr.io/dallay/profiletailors-dashboard:<version>` and `:latest`
     - Runs a non-blocking smoke test against the published images
 4. **Result**: Images are available in GitHub Container Registry for deployment
+
+Both images publish the standard OCI metadata labels for title, description, URL, source,
+documentation, version, revision, build time, license, and vendor. The workflow also publishes
+those values as annotations on each image manifest and the multi-architecture image index so that
+registries such as GHCR can display the package description. The Docker Hub mirror uses `crane`
+to copy the manifests without pulling and re-pushing individual platform images, preserving the
+same annotations.
 
 **Manual Verification** (if needed for testing or rollback):
 
@@ -162,8 +169,8 @@ just release-backend-image 0.1.0 ghcr.io/dallay/profiletailors-smp
 just release-backend-verify ghcr.io/dallay/profiletailors-smp:0.1.0-<git-sha>
 ```
 
-The manual commands produce the same artifacts locally. The verification command
-uses ephemeral containers to prove production-profile startup, Liquibase
+The manual commands produce equivalent local images with the same OCI metadata contract. The
+verification command uses ephemeral containers to prove production-profile startup, Liquibase
 execution, exclusion of development seeds, and readiness/liveness checks.
 
 **Deployment Validation**: The supported self-hosted deployment is validated with:
