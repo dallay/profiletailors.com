@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.3](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.2...smp@v0.4.3) (2026-08-15)
+
+
+### Features
+
+* add OCI metadata to release images ([#798](https://github.com/dallay/profiletailors.com/issues/798)) ([1b1101d](https://github.com/dallay/profiletailors.com/commit/1b1101de62c3327b93435e12e903aa848be9c223))
+* **platform-admin:** add invitation acceptance core ([#767](https://github.com/dallay/profiletailors.com/issues/767)) ([5f48454](https://github.com/dallay/profiletailors.com/commit/5f4845481f81dbe784c9869fde90341496aa8ff6))
+
+
+### Bug Fixes
+
+* **linkedin:** restore avatar proxy and release image build ([#792](https://github.com/dallay/profiletailors.com/issues/792)) ([032f2f4](https://github.com/dallay/profiletailors.com/commit/032f2f46fb6b8042f43217318217384f25087a99))
+
 ## [0.4.2](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.1...smp@v0.4.2) (2026-08-14)
 
 
