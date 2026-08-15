@@ -6,7 +6,7 @@ The Feature Flag Auditor Agent has audited the feature flags, platform hooks, an
 
 ## Execution Result
 
-The audit concluded with **CHANGES_APPLIED**. All state and report files have been successfully updated to record the status of the repository's feature flags. The stale `pt-dashboard-new` feature flag and toggle were successfully removed from the codebase.
+The audit concluded with **CHANGES_APPLIED**. All state and report files have been successfully updated to record the status of the repository's feature flags. The stale `pt-dashboard-new` feature flag and toggle were previously resolved and removed. The default fallback configuration drift for `SMP_PLATFORM_RATE_LIMIT_ENABLED` was successfully resolved by aligning the default value in `application.yaml` to `false` (matching `.env.example`).
 
 ## Scope Inspected
 
@@ -22,17 +22,18 @@ The audit concluded with **CHANGES_APPLIED**. All state and report files have be
 
 ## Changes Applied
 
+- Aligned the backend rate-limiting default fallback mismatch (`SMP_PLATFORM_RATE_LIMIT_ENABLED`) in `server/smp/src/main/resources/application.yaml` to default to `false` to match `.env.example`.
 - Reconciled and removed stale local storage feature flag and dead toggle UI for `pt-dashboard-new` in `apps/web/app/src/modules/dashboard/presentation/views/HomeView.vue`.
 - Updated the compact machine-readable audit state file: `.agents/automation/state/feature-flag-audit.yaml`
-- Created the comprehensive audit report: `.agents/automation/reports/feature-flag-audit.md`
+- Created/updated the comprehensive audit report: `.agents/automation/reports/feature-flag-audit.md`
 
 ## Evidence Table
 
 | Feature Flag ID | Flag Name / Key | Scope | Expected Behavior / Intent | Observed Behavior | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FF-DASHBOARD-STALE** | `pt-dashboard-new` | Frontend (Vue) | Toggle to restore old legacy dashboard layout during development | **Pre-remediation**: Legacy dashboard was completely deleted, leaving the UI toggle as a dead/stale control rendering a static text block. **Current state**: Flag and toggle code have been removed; HomeView.vue now unconditionally renders DashboardLayout. | **RESOLVED** |
+| **FF-DASHBOARD-STALE** | `pt-dashboard-new` | Frontend (Vue) | Toggle to restore old legacy dashboard layout during development | Legacy dashboard was completely deleted, leaving the UI toggle as a dead/stale control rendering a static text block. Flag and toggle code have been removed; HomeView.vue unconditionally renders DashboardLayout. | **RESOLVED** |
 | **FF-WAITLIST-CONSISTENT** | `WAITLIST_ENABLED` | Frontend (Astro) | Controls waitlist capture form; must be `false` until compliance is approved | Compliant. Defaults to `false` in `.env.example` and `astro.config.mjs` and successfully verified against the marketing site. | **CONSISTENT** |
-| **FF-RATE-LIMIT-DRIFT** | `SMP_PLATFORM_RATE_LIMIT_ENABLED` | Backend (Spring) | Toggle platform-wide rate-limiting hook | Defaults to `true` in `application.yaml` if omitted, but explicitly set to `false` in `.env.example`. | **INCONSISTENT** |
+| **FF-RATE-LIMIT-DRIFT** | `SMP_PLATFORM_RATE_LIMIT_ENABLED` | Backend (Spring) | Toggle platform-wide rate-limiting hook | Fallback default aligned to `false` in `application.yaml` matching `.env.example` to ensure local environments behave consistently. | **RESOLVED** |
 | **FF-AUDIT-METRICS-CONSISTENT** | `SMP_PLATFORM_AUDIT_ENABLED`, `SMP_PLATFORM_METRICS_ENABLED` | Backend (Spring) | Control audit event logging and prometheus metrics exporter hooks | Consistent. Both default to `false` in `application.yaml` when not configured, and are explicitly `false` in `.env.example`. | **CONSISTENT** |
 | **FF-UNSPLASH-CONSISTENT** | `SMP_MEDIAPROVIDER_UNSPLASH_ENABLED`, `provider` | Backend & Frontend | Gated Unsplash integration (data inventory PA-008) | Consistent. Disabled by default in both backend YAML and frontend post-composer configuration. | **CONSISTENT** |
 | **FF-REGISTRATION-CONSISTENT** | `SMP_REGISTRATION_ENABLED` | Backend (Spring) | Controls public self-service registration endpoint | Consistent. Defaults to `false` in `application.yaml` (line 51) and explicitly set to `false` in `.env.example` (line 114). | **CONSISTENT** |
@@ -47,10 +48,11 @@ The audit concluded with **CHANGES_APPLIED**. All state and report files have be
 | Environment Template Alignment Check | `.env.example` / Comparative Review | **Passed** | Compared `.env.example` default values with backend defaults. |
 | Data Inventory Compliance Verification | `docs/compliance/data-inventory.yaml` / Verification | **Passed** | Cross-referenced client-side cookie and local storage registers. |
 | Frontend Unit Testing Check | `apps/web/app` / `pnpm --filter app run test:run` | **Passed** | Full Vitest suite executes and passes cleanly. |
+| Backend Fast Testing Check | `server/smp` / `just backend-test-fast` | **Passed** | Backend fast test suite executes and passes cleanly with configuration aligned. |
 
 ## Unresolved Findings
 
-- **FF-RATE-LIMIT-DRIFT**: Configuration-default drift detected. `SMP_PLATFORM_RATE_LIMIT_ENABLED` defaults to `true` in `application.yaml`, but is explicitly defined as `false` in `.env.example`. This should be unified to prevent unintended behavior in non-standard run environments.
+None.
 
 ## Blockers
 
@@ -60,13 +62,13 @@ None.
 
 - **schemaVersion**: `1`
 - **Task**: `feature-flag-auditor`
-- **lastExecution**: `2026-08-01T18:15:00Z`
+- **lastExecution**: `2026-08-02T12:00:00Z`
 - **Result Status**: `CHANGES_APPLIED`
 
 ## Risk Assessment
 
-- **Overall Risk**: **LOW** (Changes are strictly limited to the state, report, and stale toggle code deletion, preserving existing codebase behavior and rollout intent).
+- **Overall Risk**: **LOW** (Changes are strictly limited to resolving configuration-default drift in backend YAML, plus state and report alignment, preserving rollout intent).
 
 ## Human Review Notes
 
-All major feature flags (such as the waitlist compliance gate and Unsplash media provider hooks) are highly consistent with documentation. The stale frontend toggle (`pt-dashboard-new`) was successfully resolved and removed; HomeView.vue now unconditionally renders DashboardLayout with no legacy toggle or flag check remaining. The backend rate-limiting default mismatch (`SMP_PLATFORM_RATE_LIMIT_ENABLED`) remains as an unresolved finding to be addressed in subsequent maintenance.
+All major feature flags (such as the waitlist compliance gate and Unsplash media provider hooks) are highly consistent with documentation. The stale frontend toggle (`pt-dashboard-new`) was previously resolved and removed. The backend rate-limiting default mismatch (`SMP_PLATFORM_RATE_LIMIT_ENABLED`) has now been fully resolved by setting the default fallback value in `application.yaml` to `false` to align with `.env.example`.

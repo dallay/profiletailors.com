@@ -5,9 +5,9 @@ Feature: Endpoint authorization security controls
   So that unauthenticated clients cannot access protected functionality
 
   @sec-001
-  Scenario: Unauthenticated request to media proxy path is rejected with 401
+  Scenario: Unauthenticated request to media proxy path reaches the public proxy
     When an unauthenticated client sends GET "/api/media/proxy"
-    Then the security response status should be 401
+    Then the security response status should be 400
 
   @sec-001
   Scenario: Unauthenticated request to a protected media asset endpoint is rejected with 401

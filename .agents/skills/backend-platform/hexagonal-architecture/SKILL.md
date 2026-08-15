@@ -667,7 +667,11 @@ Run tests to verify rules apply to your feature:
 - [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/)
 - [spring-boot skill](../spring-boot/SKILL.md) - Framework patterns for Infrastructure
   layer
-- [kotlin skill](../kotlin/SKILL.md) - Kotlin conventions for all layers
+- [kotlin skill](../../languages-typing/kotlin/SKILL.md) - Kotlin conventions for all layers
+- [ddd-architecture skill](../ddd-architecture/SKILL.md) - DDD conformance inside the domain:
+  aggregate boundaries, identity-only inter-aggregate references, value-object immutability,
+  bounded-context isolation, ADR-backed decision enforcement. Complements this skill — that one
+  validates *intra-domain* references, this one validates *inter-layer* imports.
 
 ## References
 

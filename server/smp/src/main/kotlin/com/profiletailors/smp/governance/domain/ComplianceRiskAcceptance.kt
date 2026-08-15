@@ -1,7 +1,9 @@
 package com.profiletailors.smp.governance.domain
 
+import com.profiletailors.common.domain.AggregateRoot
 import java.time.Instant
 
+@AggregateRoot
 data class ComplianceRiskAcceptance(
     val id: ComplianceRiskAcceptanceId,
     val controlId: ComplianceControlId,

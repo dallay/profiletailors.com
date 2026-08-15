@@ -201,12 +201,14 @@ const statusIcon = computed(() => {
   <div class="flex items-center justify-between bg-bg-surface border border-border-subtle p-3 rounded-xl">
     <div class="flex items-center gap-1">
       <button type="button"
+        :aria-label="$t('scheduler.previousPeriod') || 'Previous period'"
         @click="emit('change:date', 'backward')"
         class="size-8 flex items-center justify-center rounded-lg border border-border-visible hover:border-text-secondary hover:text-text-display bg-bg-primary transition-colors cursor-pointer text-text-secondary"
       >
         <ChevronLeft class="size-4" />
       </button>
       <button type="button"
+        :aria-label="$t('scheduler.nextPeriod') || 'Next period'"
         @click="emit('change:date', 'forward')"
         class="size-8 flex items-center justify-center rounded-lg border border-border-visible hover:border-text-secondary hover:text-text-display bg-bg-primary transition-colors cursor-pointer text-text-secondary"
       >

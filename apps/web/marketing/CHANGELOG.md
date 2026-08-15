@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.2.4](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.3...landing@v0.2.4) (2026-08-14)
+
+
+### Features
+
+* **ddd:** annotate Kotlin domain across contexts and add architecture governance skills ([#680](https://github.com/dallay/profiletailors.com/issues/680)) ([2d279fa](https://github.com/dallay/profiletailors.com/commit/2d279fa2bda598f82e88a1402baa2934e0cc9a73))
+* **marketing:** integrate speculation rules api with moderate eagerness ([#768](https://github.com/dallay/profiletailors.com/issues/768)) ([2b0bc42](https://github.com/dallay/profiletailors.com/commit/2b0bc42943322cb82e7893ffcd92a4aeb1ce3102))
+
+
+### Bug Fixes
+
+* **deps:** update astro ([#711](https://github.com/dallay/profiletailors.com/issues/711)) ([f4aad3b](https://github.com/dallay/profiletailors.com/commit/f4aad3be04f104b0068b27ce99eababb1f476b3d))
+* **deps:** update dependency @iconify-json/lucide to ^1.2.121 ([#581](https://github.com/dallay/profiletailors.com/issues/581)) ([f1ba02e](https://github.com/dallay/profiletailors.com/commit/f1ba02ede1cc77ec01d782e00c5fc9dfaf96489c))
+
+## [0.2.3](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.2...landing@v0.2.3) (2026-08-08)
+
+
+### Features
+
+* **a11y:** add focus trap, heading hierarchy, and semantic navigation ([#542](https://github.com/dallay/profiletailors.com/issues/542)) ([04a0cad](https://github.com/dallay/profiletailors.com/commit/04a0cad04cc97b43bd225d662806af8677217261))
+* Add recurring post scheduling across publishing ([#552](https://github.com/dallay/profiletailors.com/issues/552)) ([b94fdfc](https://github.com/dallay/profiletailors.com/commit/b94fdfcd39b8b65de448b4658c01f26eb6b95c58))
+* **platform-admin:** add waitlist invitation management with transactional boundary fix ([#544](https://github.com/dallay/profiletailors.com/issues/544)) ([841c65c](https://github.com/dallay/profiletailors.com/commit/841c65c4b25de08d856efeb85248b2303e40014f))
+* **platform:** integrate app capabilities and security hardening ([#577](https://github.com/dallay/profiletailors.com/issues/577)) ([c194f7d](https://github.com/dallay/profiletailors.com/commit/c194f7d7e0a2a60311e0ab3613b3f383ec14d365))
+
+
+### Bug Fixes
+
+* **deps:** update dependency yaml to ^2.9.0 ([#621](https://github.com/dallay/profiletailors.com/issues/621)) ([d78da71](https://github.com/dallay/profiletailors.com/commit/d78da714af61b549aa4096f4d5960325ba08d1e4))
+* **deps:** update tailwind css to ^4.3.3 ([#604](https://github.com/dallay/profiletailors.com/issues/604)) ([d123cc2](https://github.com/dallay/profiletailors.com/commit/d123cc25af557ac2a652617e51594cfc16ec251d))
+
 ## [0.2.2](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.1...landing@v0.2.2) (2026-07-29)
 
 

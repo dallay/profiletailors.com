@@ -291,21 +291,22 @@ class RealLinkedInPublisher(
     }
 
     /**
-     * Constructs the request body for publishing a post to LinkedIn.
+     * Builds the LinkedIn request body for a publication.
      *
-     * Requires the social account to have a profile URN; throws [IllegalStateException] if missing.
-     *
-     * @return A map containing the post author, commentary, visibility settings,
-     * and optional media or article content formatted for the LinkedIn API.
-     * @throws IllegalStateException If the social account is missing a profile URN.
+     * @param command The publication command containing the account, text, title, and assets.
+     * @return The request fields for the published post, including optional media or article content.
+     * @throws IllegalStateException If the social account has no profile URN, or if an asset has invalid metadata
+     *   (e.g., uploaded asset missing storage key, external URL asset missing URL).
+     * @throws PublishingFailureException If asset storage is unavailable when downloading asset binaries.
      */
     private suspend fun buildPostBody(command: ProviderPublishCommand): Map<String, Any> {
         val authorUrn = command.socialAccount.profileUrn
             ?: throw IllegalStateException(
                 "LinkedIn social account is missing a person URN for authoring.",
             )
-        val commentary = command.publication.bodyText.orEmpty()
-        val articleLink = extractFirstUrl(commentary)
+        val rawCommentary = command.publication.bodyText.orEmpty()
+        val commentary = escapeLinkedInCommentary(rawCommentary)
+        val articleLink = extractFirstUrl(rawCommentary)
 
         val assetContent = buildAssetContent(command, command.assets)
 
@@ -316,7 +317,7 @@ class RealLinkedInPublisher(
                 "article" to mapOf(
                     "source" to articleLink,
                     "title" to (command.publication.title ?: articleLink),
-                    "description" to commentary,
+                    "description" to rawCommentary,
                 ),
             )
         } else {
@@ -467,6 +468,41 @@ class RealLinkedInPublisher(
         val HTTP_SERVER_ERROR_RANGE = 500..599
     }
 }
+
+/**
+ * Escapes reserved punctuation in publication text for LinkedIn commentary while preserving standalone hashtags.
+ *
+ * @param text The publication text to escape.
+ * @return The escaped commentary text.
+ */
+internal fun escapeLinkedInCommentary(text: String): String = buildString(text.length) {
+    text.forEachIndexed { index, character ->
+        val isStandaloneHashtag = character == '#' && isStandaloneLinkedInHashtag(text, index)
+        if (!isStandaloneHashtag && character in LINKEDIN_COMMENTARY_RESERVED_CHARACTERS) {
+            append('\\')
+        }
+        append(character)
+    }
+}
+
+/**
+ * Determines whether the character at the specified index starts a standalone hashtag.
+ *
+ * @param text The text containing the hashtag.
+ * @param index The index of the potential hashtag character.
+ * @return `true` if the character is preceded by whitespace or text start and followed by a letter or
+ *   digit, `false` otherwise.
+ */
+private fun isStandaloneLinkedInHashtag(text: String, index: Int): Boolean {
+    val next = text.getOrNull(index + 1) ?: return false
+    if (!next.isLetterOrDigit()) return false
+    val previous = text.getOrNull(index - 1)
+    return previous == null || !previous.isLetterOrDigit()
+}
+
+private val LINKEDIN_COMMENTARY_RESERVED_CHARACTERS = setOf(
+    '\\', '|', '{', '}', '@', '[', ']', '(', ')', '<', '>', '#', '*', '_', '~',
+)
 
 internal const val CONTENT_TYPE = "Content-Type"
 

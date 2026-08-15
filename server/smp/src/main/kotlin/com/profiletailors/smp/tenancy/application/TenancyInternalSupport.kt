@@ -11,6 +11,13 @@ import com.profiletailors.smp.tenancy.domain.WorkspaceOwnershipPolicy
 internal interface WorkspaceOwnershipRepository {
     suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceOwnership>
 
+    /**
+     * Returns the principal IDs of every workspace owner without materialising the full
+     * [WorkspaceOwnership] entity. Use this from contexts that only need identity to send
+     * notifications or run lookups — the entity itself MUST stay inside the tenancy aggregate.
+     */
+    suspend fun findOwnerIds(workspaceId: String): Set<String>
+
     suspend fun add(ownership: WorkspaceOwnership)
 
     suspend fun remove(workspaceId: String, principalId: String)
@@ -42,7 +49,7 @@ internal fun interface WorkspaceMembershipAccessChecker {
     suspend fun isActiveMember(principalId: String, resourceContext: ResourceContext): Boolean
 }
 
-internal interface WorkspaceMembershipRepository {
+interface WorkspaceMembershipRepository {
     suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceMembership>
 
     suspend fun updateStatus(
@@ -50,6 +57,8 @@ internal interface WorkspaceMembershipRepository {
         principalId: String,
         status: com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus,
     )
+
+    suspend fun reconcile(workspaceId: String, principalId: String): WorkspaceMembership
 }
 
 internal fun ResourceContextProvider.requireWorkspaceContext(): ResourceContext {

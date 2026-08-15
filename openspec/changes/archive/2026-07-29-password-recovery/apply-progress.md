@@ -227,7 +227,7 @@ Renamed the misleading PR 1 notification `telemetry` scenario to notification-co
 ### Completed
 
 - Added typed `requestPasswordReset` and `resetPassword` API functions using `requestRaw`, active EN/ES `Accept-Language`, empty 202/204 handling, and retained RFC 9457 status/code.
-- Added normalized recovery-email and matching 8..128 password schemas.
+- Added normalized recovery-email and matching 12..128 password schemas.
 - Added standalone, accessible forgot/reset views with local state, safe generic error mapping, duplicate locks, terminal reset success, and no auth-store mutation.
 - Added `forgot-password` guest-only and `reset-password` session-agnostic routes; both bypass `AppShell` through `meta.standalone`.
 - Added the login-only forgot link, EN/ES strict parity, safe E2E mocks/data/POM, and core/accessibility/mobile/i18n/authenticated/storage-secrecy Playwright coverage.

@@ -1,11 +1,15 @@
 package com.profiletailors.smp.ideas.domain
 
+import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.DomainEntity
 import java.time.Instant
 
 data class IdeaLink(val url: String, val label: String? = null)
 
+@DomainEntity
 data class IdeaColumn(val id: String, val name: String, val color: String? = null, val order: Int)
 
+@AggregateRoot
 data class Idea(
     val id: String,
     val workspaceId: String,
@@ -20,6 +24,7 @@ data class Idea(
     val updatedAt: Instant,
 )
 
+@AggregateRoot
 data class IdeaBoardConfig(val workspaceId: String, val columns: List<IdeaColumn>)
 
 object IdeaBoardDefaults {

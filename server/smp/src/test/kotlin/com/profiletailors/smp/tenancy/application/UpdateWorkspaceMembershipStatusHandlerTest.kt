@@ -15,6 +15,9 @@ import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.tenancy.domain.OwnerMustRemainActiveMemberException
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -29,10 +32,27 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
         principalType = PrincipalType.USER,
         subject = "subject-owner-1",
     )
+
     private val workspaceContext = ResourceContext(
         type = ResourceContextType.WORKSPACE,
         workspaceId = "workspace-1",
     )
+
+    @Test
+    fun `membership provisioner adapter delegates reconciliation to repository`() = runTest {
+        val repository = mockk<WorkspaceMembershipRepository>()
+        val provisioner = WorkspaceMembershipProvisionerAdapter(repository)
+        val expected = com.profiletailors.smp.tenancy.domain.WorkspaceMembership(
+            workspaceId = "workspace-1",
+            principalId = "principal-1",
+            principalType = PrincipalType.USER,
+            status = WorkspaceMembershipStatus.ACTIVE,
+        )
+        coEvery { repository.reconcile("workspace-1", "principal-1") } returns expected
+
+        assertEquals(expected, provisioner.reconcile("workspace-1", "principal-1"))
+        coVerify(exactly = 1) { repository.reconcile("workspace-1", "principal-1") }
+    }
 
     @Test
     fun `prevents suspending last active owner membership`() = runTest {
@@ -176,6 +196,10 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
         override suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceOwnership> =
             ownerships.filterTo(linkedSetOf()) { it.workspaceId == workspaceId }
 
+        override suspend fun findOwnerIds(workspaceId: String): Set<String> = ownerships
+            .filterTo(linkedSetOf()) { it.workspaceId == workspaceId }
+            .mapTo(linkedSetOf()) { it.ownerPrincipalId }
+
         override suspend fun add(ownership: WorkspaceOwnership) {
             ownerships.add(ownership)
         }
@@ -208,5 +232,8 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
             memberships.remove(current)
             memberships.add(current.copy(status = status))
         }
+
+        override suspend fun reconcile(workspaceId: String, principalId: String): WorkspaceMembership =
+            memberships.first { it.workspaceId == workspaceId && it.principalId == principalId }
     }
 }

@@ -115,6 +115,7 @@ com.profiletailors.smp
 - **Handlers**: `{CommandOrQuery}Handler` (e.g., `UpdateWorkspaceMembershipStatusHandler`)
 - **Repositories**: `{Aggregate}Repository` (e.g., `WorkspaceMembershipRepository`)
 - **Adapters**: `R2dbc{Aggregate}Repository` (e.g., `R2dbcWorkspaceMembershipRepository`)
+- **Identifiers**: Mixed strategy across contexts. Most aggregates use prefixed UUID v4 strings stored as `varchar(64)` (e.g., `user-`, `ws-`, `wm-`, `pub-`, `pa-`, `idea-`, `nevt-`, `pjob-`, `recur-`, `htset-`, `ra-`, `cs-`, `ev-`, `ctrl-`). Some tables use raw `uuid` type without prefixes (e.g., `secure_credentials`, `platform_invitations`, `waitlist_invitations`).
 
 ### Testing Conventions
 
@@ -127,32 +128,38 @@ com.profiletailors.smp
 
 ## Current Implementation Status
 
-**Implemented**:
+**Implemented Bounded Contexts** (19 total):
 
-- ✅ Identity Context (authentication flow)
-- ✅ Authorization Context (permission checking)
-- ✅ Tenancy Context (workspace management)
-- ✅ Credentials Context (API key validation)
-- ✅ Governance Context (audit logging)
-- ✅ Platform Context (request context, mediator)
-- ✅ Audit Context (request outcome tracking, authorization decisions)
+- ✅ Analytics Context (engagement metrics & reporting)
+- ✅ Audit Context (request outcomes, authorization decisions, mutations)
+- ✅ Authorization Context (permission checking, RBAC, direct grants)
+- ✅ Config Context (application & system configuration)
+- ✅ Credentials Context (API key validation, secret management)
+- ✅ Governance Context (audit logging, compliance)
+- ✅ Hashtags Context (hashtag group management & tracking)
+- ✅ Ideas Context (content ideas & draft brainstorming)
+- ✅ Identity Context (native JWT + API key authentication)
+- ✅ Lead Capture Context (waitlist joins, consent capture)
+- ✅ MCP Context (Model Context Protocol AI tool integrations)
+- ✅ Media Context (media asset management, CAS deduplication)
+- ✅ Notifications Context (transactional email & notifications)
 - ✅ Observability Context (metrics hooks, rate limiting)
+- ✅ Platform Context (request context, mediator pattern)
+- ✅ Platformadmin Context (global platform administration)
+- ✅ Privacy Context (data subject requests, DSAR, erasure)
+- ✅ Publishing Context (posts, schedules, OAuth channel connections)
+- ✅ Tenancy Context (workspace management, memberships)
 
 **Code Quality**:
 
-- ✅ Hexagonal architecture
-- ✅ CQRS pattern
-- ✅ Repository pattern
+- ✅ Hexagonal architecture (domain/application/infrastructure layers)
+- ✅ CQRS pattern via mediator (`SpringMediator`)
+- ✅ Repository pattern with R2DBC reactive database persistence
+- ✅ Prefixed UUID v4 entity identifiers (`varchar(64)`)
+- ✅ Resource creation via POST endpoints
 - ✅ Reactive programming (coroutines + R2DBC)
-- ✅ Unit tests (domain logic)
-- ✅ Integration tests (R2DBC repositories)
-
-**Planned**:
-
-- 🔲 Content Context implementation
-- 🔲 Analytics Context implementation
-- 🔲 Integrations Context implementation
+- ✅ Unit tests (domain logic) & Integration tests (R2DBC repositories)
 
 ---
 
-Last updated: 2026-07-16
+Last updated: 2026-08-14

@@ -1,0 +1,78 @@
+databaseChangeLog:
+  - changeSet:
+      id: qa-001-seed-test-data
+      author: opencode
+      context: "@dev"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: principals
+      changes:
+        - loadData:
+            file: db/changelog/data/qa/principals_qa.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
+            tableName: principals
+            columns:
+              - column:
+                  name: created_at
+                  type: STRING
+
+        - loadData:
+            file: db/changelog/data/qa/user_identities_qa.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
+            tableName: user_identities
+            columns:
+              - column:
+                  name: created_at
+                  type: STRING
+
+        - loadData:
+            file: db/changelog/data/qa/local_password_credentials_qa.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
+            tableName: local_password_credentials
+            columns:
+              - column:
+                  name: created_at
+                  type: STRING
+              - column:
+                  name: updated_at
+                  type: STRING
+
+        - loadData:
+            file: db/changelog/data/qa/workspaces_qa.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
+            tableName: workspaces
+            columns:
+              - column:
+                  name: created_at
+                  type: STRING
+
+        - loadData:
+            file: db/changelog/data/qa/workspace_ownerships_qa.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
+            tableName: workspace_ownerships
+            columns:
+              - column:
+                  name: created_at
+                  type: STRING
+
+        - loadData:
+            file: db/changelog/data/qa/workspace_memberships_qa.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
+            tableName: workspace_memberships
+            columns:
+              - column:
+                  name: created_at
+                  type: STRING

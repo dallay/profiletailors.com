@@ -1,5 +1,7 @@
 package com.profiletailors.common.domain.vo.name
 
+import com.profiletailors.common.domain.ValueObject
+
 /**
  * A validated first name value object.
  *
@@ -7,6 +9,7 @@ package com.profiletailors.common.domain.vo.name
  *
  * @since 1.0.0
  */
+@ValueObject
 @JvmInline
 value class FirstName(val value: String) {
     init {

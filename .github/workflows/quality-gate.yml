@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
+    # Stacked PR layers can target another feature branch.
     types: [opened, synchronize, reopened]
 
 concurrency:
@@ -66,12 +66,12 @@ jobs:
 
       # Frontend: Node.js setup and tests
       - name: Setup pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '22.23.2'
+          node-version: '24.19.0'
           cache: 'pnpm'
 
       - name: Install frontend dependencies
@@ -105,7 +105,7 @@ jobs:
       # Uses sonar-project.properties from repo root — do NOT override projectKey here
       # unless the secret matches the value in sonar-project.properties.
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@2f77a1ec69fb1d595b06f35ab27e97605bdef703 # v5.3.2
+        uses: sonarsource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -118,7 +118,7 @@ jobs:
       # Upload coverage in granular steps to ensure monorepo flags are correctly
       # attributed. Flags are aligned with codecov.yml.
       - name: Upload Backend coverage (shared)
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           files: |
             shared/common/build/reports/kover/report.xml
@@ -134,7 +134,7 @@ jobs:
           verbose: true
 
       - name: Upload SMP coverage (server)
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           files: server/smp/build/reports/kover/report.xml
           flags: smp
@@ -143,7 +143,7 @@ jobs:
           verbose: true
 
       - name: Upload Frontend coverage
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           files: |
             apps/web/marketing/coverage/lcov.info
@@ -154,7 +154,7 @@ jobs:
           verbose: true
 
       - name: SonarQube Quality Gate check
-        uses: sonarsource/sonarqube-quality-gate-action@cf038b0e0cdecfa9e56c198bbb7d21d751d62c3b # v1.2.0
+        uses: sonarsource/sonarqube-quality-gate-action@7a5fffe8e523c40e0c740b6bc2712ab503e52efa # v1.2.1
         timeout-minutes: 15
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

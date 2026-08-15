@@ -1,40 +1,49 @@
 schemaVersion: 1
 task: openspec-reconciliation
-lastExecution: "2026-08-07T18:40:00Z"
+lastExecution: "2026-08-16T10:00:00Z"
+lastExecutionNote: "Timestamps in this file (including lastExecution and 2026-08-16 entries below) are fixture/planned data for automation testing and do not necessarily reflect real wall-clock execution."
 findings:
   - id: F-1
     title: "mcp-server Active Change Implementation Status"
-    description: "The mcp-server change is in progress and partially implemented (foundation slice PR1 is complete and passing, PR2/PR3/PR4 are pending). Specifications remain local to the change directory as expected before final merge and archive."
+    description: "The mcp-server change is in progress and partially implemented (foundation slice PR1 is complete, PR2/PR3/PR4 are pending). Specifications remain local to the change directory as expected before final merge and archive."
     status: unresolved
     severity: LOW
     detectedAt: "2026-08-07T18:40:00Z"
   - id: F-2
     title: "pr-577-quality-gate-remediation Active Change Implementation Status"
-    description: "The pr-577-quality-gate-remediation change is in progress (verify phase). Source-level remediations are present and valid, but verification failed locally because the fresh app LCOV project coverage report is 69.50% (below the required 80% project gate). Task 5.3 is incomplete."
+    description: "The pr-577-quality-gate-remediation change is in progress (verify phase). Source-level remediations are present and valid, but verification failed locally because the fresh app LCOV project coverage report is 69.50% (below the required 80% project gate)."
     status: unresolved
     severity: LOW
     detectedAt: "2026-08-07T18:40:00Z"
   - id: F-3
+    title: "consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior Active Change Implementation Status"
+    description: "The consent-ux change is in QA phase. Implementation and QA defects are applied. Outstanding conditions: DNT/GPC E2E scenario missing (store-level covered, no dedicated Playwright scenario for mockPrivacySignals), browser matrix (Brave Shields ON/OFF, Safari/WebKit) not run, full E2E suite not yet executed, and root-cause ADR/note for Brave portal-overlay issue recommended (non-blocking)."
+    status: unresolved
+    severity: LOW
+    detectedAt: "2026-08-16T10:00:00Z"
+  - id: F-4
+    title: "private-beta-launch-readiness Active Change Implementation Status"
+    description: "The private-beta-launch-readiness change is in apply phase. Activation and invitation core unit 1 applied and BDD fast green, awaiting BDD postgres verification."
+    status: unresolved
+    severity: LOW
+    detectedAt: "2026-08-16T10:00:00Z"
+  - id: F-5
     title: "Archived Changes Compliance Audit"
-    description: "All archived changes under openspec/changes/archive/ are correctly marked as archived, with state.yaml files indicating current_phase: archive. No zombie or uncoordinated active changes were found."
+    description: "All 57 archived changes under openspec/changes/archive/ are correctly organized in archive history. No zombie or uncoordinated active changes were found."
     status: resolved
     severity: LOW
     detectedAt: "2026-08-07T18:40:00Z"
-    resolvedAt: "2026-08-07T18:40:00Z"
+    resolvedAt: "2026-08-16T10:00:00Z"
 checks:
   - id: C-1
     name: "Active Change State File Scan"
     status: PASSED
-    executedAt: "2026-08-07T18:40:00Z"
+    executedAt: "2026-08-16T10:00:00Z"
   - id: C-2
     name: "Archived Changes Index Verification"
     status: PASSED
-    executedAt: "2026-08-07T18:40:00Z"
+    executedAt: "2026-08-16T10:00:00Z"
   - id: C-3
     name: "Global Specification Directory Completeness"
     status: PASSED
-    executedAt: "2026-08-07T18:40:00Z"
-  - id: C-4
-    name: "MCP Bounded Context Unit and Integration Tests"
-    status: PASSED
-    executedAt: "2026-08-07T18:40:00Z"
+    executedAt: "2026-08-16T10:00:00Z"
