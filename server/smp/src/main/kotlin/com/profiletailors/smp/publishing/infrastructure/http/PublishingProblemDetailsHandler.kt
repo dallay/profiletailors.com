@@ -114,14 +114,26 @@ class PublishingProblemDetailsHandler {
             title = "OAuth state expired"
         }
 
-    @ExceptionHandler(InvalidOAuthStateException::class)
+    /**
+         * Creates a problem detail response for an invalid OAuth state.
+         *
+         * @param exception The invalid OAuth state exception being handled.
+         * @return A bad-request problem detail describing the invalid OAuth state.
+         */
+        @ExceptionHandler(InvalidOAuthStateException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: InvalidOAuthStateException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, OAUTH_STATE_INVALID_DETAIL).apply {
             title = "OAuth state invalid"
         }
 
-    @ExceptionHandler(InvalidSocialContentCursorException::class)
+    /**
+         * Creates a bad-request problem detail for an invalid social content cursor.
+         *
+         * @param exception The invalid social content cursor exception.
+         * @return A problem detail with the invalid-cursor message and error code.
+         */
+        @ExceptionHandler(InvalidSocialContentCursorException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: InvalidSocialContentCursorException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_SOCIAL_CONTENT_CURSOR_DETAIL).apply {

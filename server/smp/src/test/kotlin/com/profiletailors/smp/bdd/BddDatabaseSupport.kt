@@ -69,6 +69,9 @@ class BddDatabaseSupport(
         const val WORKSPACE_ACCESS_ENTITLEMENT = "workspace.access.summary"
     }
 
+    /**
+     * Resets the BDD database to the Liquibase baseline and restores required test data.
+     */
     suspend fun resetDatabase() {
         applyLiquibaseBaseline()
         cleanupStatements().forEach { statement ->
@@ -738,14 +741,14 @@ class BddDatabaseSupport(
     }
 
     /**
-     * Seeds a [social_accounts] row linked to an existing social connection.
+     * Creates a social account associated with an existing social connection.
      *
-     * @param accountId         Unique account identifier.
-     * @param connectionId      Foreign key to [seedSocialConnection].
-     * @param provider          Social provider name (e.g. "LINKEDIN").
-     * @param providerAccountId Account ID on the provider side.
-     * @param accountKind       Type of account (e.g. "PERSONAL_PROFILE", "COMPANY_PAGE").
-     * @param displayName       Human-readable display name.
+     * @param accountId Unique account identifier.
+     * @param connectionId Identifier of the associated social connection.
+     * @param provider Social provider name.
+     * @param providerAccountId Account identifier assigned by the provider.
+     * @param accountKind Type of social account.
+     * @param displayName Human-readable account name.
      */
     suspend fun seedSocialAccount(
         accountId: String,
@@ -776,6 +779,14 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
+    /**
+     * Ensures that a social connection exists for a workspace.
+     *
+     * @param connectionId The social connection identifier.
+     * @param workspaceId The workspace identifier.
+     * @param provider The social provider.
+     * @param status The connection status.
+     */
     suspend fun ensureSocialConnection(connectionId: String, workspaceId: String, provider: String, status: String) {
         databaseClient.sql(
             """
@@ -797,8 +808,15 @@ class BddDatabaseSupport(
     }
 
     /**
-     * Seeds a [social_accounts] row for an arbitrary workspace, creating the connection
-     * if it does not exist.
+     * Ensures that a social account exists for the specified workspace and connection.
+     *
+     * @param accountId The social account identifier.
+     * @param connectionId The social connection identifier.
+     * @param workspaceId The workspace identifier.
+     * @param provider The social provider name.
+     * @param providerAccountId The account identifier assigned by the provider.
+     * @param accountKind The type of social account.
+     * @param displayName The account's display name.
      */
     suspend fun ensureSocialAccount(
         accountId: String,
@@ -833,7 +851,9 @@ class BddDatabaseSupport(
     }
 
     /**
-     * Seeds a [social_content_posts] row from a [SocialPost] domain object.
+     * Seeds a social content post from a [SocialPost] domain object.
+     *
+     * @param post The social post to persist.
      */
     suspend fun seedSocialContentPost(post: SocialPost) {
         val lastModified = post.lastModifiedAt ?: post.publishedAt
@@ -1075,6 +1095,11 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
+    /**
+     * Seeds an API key credential with the specified status.
+     *
+     * @param status The credential status to store.
+     */
     private suspend fun seedApiKeyCredential(status: String) {
         val verifier = org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
             "secret-value",
@@ -1177,6 +1202,9 @@ class BddDatabaseSupport(
         "DELETE FROM principals",
     )
 
+    /**
+     * Applies the Liquibase database schema baseline.
+     */
     private fun applyLiquibaseBaseline() {
         DriverManager.getConnection(
             liquibaseJdbcUrl,
