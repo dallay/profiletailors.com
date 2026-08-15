@@ -6,7 +6,7 @@ Implementation completed for the source policy, immutable consumer pin, and stat
 
 ## Completed Tasks
 
-- [x] 1.1 Updated `/Users/acosta/Dev/dallay/common-actions/.github/workflows/semantic-pr.yml` to preserve the existing PR-scoped concurrency group and set `cancel-in-progress: false`. Added `test/semantic-pr-workflow.test.mjs` and observed RED before the workflow change, then GREEN after it.
+- [x] 1.1 Updated `dallay/common-actions/.github/workflows/semantic-pr.yml` to preserve the existing PR-scoped concurrency group and set `cancel-in-progress: false`. Added `test/semantic-pr-workflow.test.mjs` and observed RED before the workflow change, then GREEN after it.
 - [x] 1.2 Committed and pushed source fix as `87129475c06d9f3354d398426926ba4345a4644d`; semantic-release published `v2.2.3` at the same immutable SHA. Source focused test and `actionlint` passed. No separate `@dallay/infra` review evidence was available; the repository administrator pushed directly after the remote reported a bypassed pull-request rule.
 - [x] 2.1 Updated `.github/workflows/semantic-pull-request.yml` to pin `87129475c06d9f3354d398426926ba4345a4644d # v2.2.3`; observed RED before editing and GREEN after editing with a focused caller contract test.
 - [x] 2.2 Confirmed the caller retains only `pull_request_target` events `opened`, `edited`, and `synchronize`, existing `contents: read` and `pull-requests: write` permissions, one reusable-workflow job, and no caller-side concurrency.
