@@ -115,7 +115,7 @@ com.profiletailors.smp
 - **Handlers**: `{CommandOrQuery}Handler` (e.g., `UpdateWorkspaceMembershipStatusHandler`)
 - **Repositories**: `{Aggregate}Repository` (e.g., `WorkspaceMembershipRepository`)
 - **Adapters**: `R2dbc{Aggregate}Repository` (e.g., `R2dbcWorkspaceMembershipRepository`)
-- **Identifiers**: Prefixed UUID v4 strings stored as `varchar(64)` in database (e.g., `user-`, `ws-`, `wm-`, `pub-`, `pa-`).
+- **Identifiers**: Mixed strategy across contexts. Most aggregates use prefixed UUID v4 strings stored as `varchar(64)` (e.g., `user-`, `ws-`, `wm-`, `pub-`, `pa-`, `idea-`, `nevt-`, `pjob-`, `recur-`, `htset-`, `ra-`, `cs-`, `ev-`, `ctrl-`). Some tables use raw `uuid` type without prefixes (e.g., `secure_credentials`, `platform_invitations`, `waitlist_invitations`).
 
 ### Testing Conventions
 
@@ -128,7 +128,7 @@ com.profiletailors.smp
 
 ## Current Implementation Status
 
-**Implemented Bounded Contexts**:
+**Implemented Bounded Contexts** (19 total):
 
 - ✅ Analytics Context (engagement metrics & reporting)
 - ✅ Audit Context (request outcomes, authorization decisions, mutations)

@@ -57,15 +57,16 @@ framework-agnostic domain primitives and shared infrastructure:
 | `shared:spring-boot-common` | Spring Boot integration, exception handlers, filters, presenters   | ✅ Yes       |
 | `shared:storage`            | Storage abstractions (S3/R2)                                       | ✅ Yes       |
 | `shared:shield:ratelimit`   | Rate limiting with Bucket4j + Caffeine / Redis                     | ✅ Yes       |
+| `shared:notifications`      | Notification abstractions and domain models                        | ❌ None      |
 
 > **Full dependency graph:** See [Shared Module Dependencies](../shared/dependencies.md) for
 > the complete module dependency diagram with all `api` vs `implementation` edges.
 
 ---
 
-## Bounded Contexts (17 Bounded Contexts)
+## Bounded Contexts (19 Bounded Contexts)
 
-The backend `server:smp` comprises 17 modular bounded contexts:
+The backend `server:smp` comprises 19 modular bounded contexts:
 
 1. **Analytics Context**: Engagement metrics collection, aggregation, and reporting.
 2. **Audit Context**: Request outcomes, authorization decision auditing, and mutation event capture.
@@ -173,17 +174,18 @@ The backend `server:smp` comprises 17 modular bounded contexts:
 
 Profile Tailors utilizes **Docker Swarm** for backend orchestration (`infra/apps/smp/swarm/` and `docs/infrastructure/production-docker-swarm.md`):
 
-```
+```text
 CDN (Cloudflare / Vercel)
 ├── Marketing Site (Astro static)
 └── Web Application (Vue 3 SPA)
         ↓
-Docker Swarm
-└── API Application (`infra/apps/smp/swarm/`)
+Docker Swarm (`infra/apps/smp/swarm/stack.yaml`)
+├── Dashboard Service (Vue 3 SPA, port 8080)
+└── Backend Service (API Application, Spring Boot, port 7638)
         ↓
-Managed Services
+Managed & Local Storage
 ├── PostgreSQL 18 (R2DBC reactive driver)
-└── S3-compatible Storage (AWS S3 / Cloudflare R2)
+└── Local Storage (bind-mounted /var/lib/profiletailors/media)
 ```
 
 ---
@@ -236,7 +238,7 @@ Managed Services
 
 - **API latency**: p50, p95, p99
 - **Database query time**: per bounded context
-- **Cache hit rate**: Redis
+- **Cache hit rate**: Caffeine (local) or Redis (when enabled)
 - **Event throughput**: Reactor Channel publishers
 - **Social media API rate limits**: per platform
 - **Error rate**: per endpoint

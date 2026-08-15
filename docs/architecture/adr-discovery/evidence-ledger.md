@@ -59,24 +59,27 @@ Yes.
 
 ---
 
-## Finding: Event Bus (In-Process Reactor Channels)
+## Finding: Event Bus (In-Process Event Dispatch)
 
-- **Claim**: Internal domain event dispatching uses reactive channel publishers rather than external AMQP/Kafka brokers.
+- **Claim**: Internal event dispatching uses in-process publishers rather than external AMQP/Kafka brokers. ChannelEvent delivery uses ReactorChannelEventPublisher (Reactor Sinks), while DomainEvent delivery uses SpringDomainEventPublisher (fanning out to EventEmitter/EventMultiplexer and Spring's ApplicationEventPublisher).
 - **Evidence**:
-  - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/events/ReactorChannelEventPublisher.kt:12`: Implements `ChannelEventPublisher`.
+  - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/events/ReactorChannelEventPublisher.kt:12`: Implements `ChannelEventPublisher` for `ChannelEvent` SSE updates via Reactor Sinks.
   - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/domain/OAuthConnectionPorts.kt:18`: Interface `ChannelEventPublisher`.
+  - `server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/bus/SpringDomainEventPublisher.kt:11`: Primary `EventPublisher<DomainEvent>` that fans out to both Spring's ApplicationEventPublisher and EventEmitter.
+  - `shared/spring-boot-common/src/main/kotlin/com/profiletailors/spring/boot/bus/event/EventEmitter.kt:17`: Component wrapping EventMultiplexer for @Subscribe-annotated EventConsumer beans.
+  - `shared/bus/src/main/kotlin/com/profiletailors/common/domain/bus/event/EventMultiplexer.kt`: Core event routing for DomainEvent consumers.
 - **Verification Result**: VERIFIED.
-- **Drift Action**: Corrected C4 Container & Component models to remove RabbitMQ/Kafka claims.
+- **Drift Action**: Corrected C4 Container & Component models to remove RabbitMQ/Kafka claims and distinguish ChannelEvent (Reactor Sinks SSE) from DomainEvent (EventEmitter/EventMultiplexer) dispatch.
 
 ---
 
-## Finding: 17 Backend Bounded Contexts
+## Finding: 19 Backend Bounded Contexts
 
-- **Claim**: Backend `server:smp` comprises 17 bounded contexts following hexagonal architecture.
+- **Claim**: Backend `server:smp` comprises 19 bounded contexts following hexagonal architecture.
 - **Evidence**:
   - `server/smp/src/main/kotlin/com/profiletailors/smp/`: Directory structure containing `analytics`, `audit`, `authorization`, `config`, `credentials`, `governance`, `hashtags`, `ideas`, `identity`, `leadcapture`, `mcp`, `media`, `notifications`, `observability`, `platform`, `platformadmin`, `privacy`, `publishing`, `tenancy`.
-- **Verification Result**: VERIFIED.
-- **Drift Action**: Updated C4 Component & Code documents to include all 17 contexts.
+- **Verification Result**: VERIFIED (count corrected from 17 to 19). Config is infrastructure/cross-cutting configuration, not a separate bounded context in the DDD sense, but is organized as a module. Observability is retained among the contexts.
+- **Drift Action**: Updated C4 Component & Code documents to include all 19 contexts and corrected CANDIDATE-013 synchronization records.
 
 ### Open questions
 

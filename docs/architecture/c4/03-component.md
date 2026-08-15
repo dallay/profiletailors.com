@@ -669,7 +669,7 @@ graph TB
 
 ### Post Scheduling Flow
 
-```
+```text
 1. HTTP Request → HTTP Layer
 2. HTTP Layer → Publishing Context (create/schedule post)
 3. Publishing Context → Media Context (validate and resolve attachments)
@@ -865,7 +865,7 @@ framework features, it belongs in `shared/spring-boot-common` instead.
 
 ## Current Implementation Status
 
-**Implemented Contexts**:
+**Implemented Contexts** (19 total):
 
 - ✅ Analytics Context (engagement metrics & reporting)
 - ✅ Audit Context (request outcomes, authorization decisions, mutations)

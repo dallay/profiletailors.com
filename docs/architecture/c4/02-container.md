@@ -28,7 +28,7 @@ System_Boundary(profile_tailors, "Profile Tailors") {
     
     Container(spa, "Web Application", "Vue 3, TypeScript", "Single-page application for content management, scheduling, and analytics")
     
-    Container(api, "API Application", "Spring Boot 4, Kotlin, WebFlux", "Reactive REST API with 17 bounded contexts including Identity, Tenancy, Publishing, Media, Privacy, etc.")
+    Container(api, "API Application", "Spring Boot 4, Kotlin, WebFlux", "Reactive REST API with 19 bounded contexts including Identity, Tenancy, Publishing, Media, Privacy, etc.")
     
     ContainerDb(db, "Database", "PostgreSQL 18", "Stores user data, workspaces, posts, schedules, credentials, and audit logs. R2DBC for reactive access.")
     
@@ -154,11 +154,11 @@ graph TB
 - **Purpose**: Rate limiting (Bucket4j) and ephemeral caching.
 - **Use Cases**: Rate limiting for public and waitlist endpoints (defaults to Caffeine). Session management relies on stateless signed JWT cookies rather than central session cache storage.
 
-#### Event Bus (In-Process Reactor Channels)
+#### Event Bus (In-Process Event Dispatch)
 
-- **Technology**: Reactor / Coroutine Channels (`ReactorChannelEventPublisher`)
+- **Technology**: Reactor Sinks (`ReactorChannelEventPublisher`) for ChannelEvent SSE updates; EventEmitter/EventMultiplexer and Spring ApplicationEventPublisher (`SpringDomainEventPublisher`) for DomainEvent dispatch
 - **Deployment**: In-process within `server:smp`
-- **Purpose**: Asynchronous internal event publishing and domain event dispatching.
+- **Purpose**: Asynchronous internal event publishing. `ReactorChannelEventPublisher` handles channel-change events (ChannelEvent) for Server-Sent Events (SSE) updates only. `SpringDomainEventPublisher` dispatches DomainEvent instances to @Subscribe-annotated consumers and @EventListener methods.
 
 ---
 
@@ -227,8 +227,6 @@ graph TB
 │ • Marketing Site: localhost:4321 (Astro dev server)    │
 │ • API Application: localhost:7638 (Spring Boot)        │
 │ • PostgreSQL: localhost:5432 (Docker Compose)          │
-│ • Redis: localhost:6379 (Docker Compose)               │
-│ • PostgreSQL: localhost:5432 (Docker Compose)          │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -243,15 +241,16 @@ graph TB
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────┐
-│ Docker Swarm                                            │
-│ • API Application (`infra/apps/smp/swarm/`)             │
+│ Docker Swarm (`infra/apps/smp/swarm/stack.yaml`)        │
+│ • Dashboard Service (Vue 3 SPA, port 8080)              │
+│ • Backend Service (API Application, port 7638)          │
 └─────────────────────────────────────────────────────────┘
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────┐
-│ Managed Infrastructure                                  │
+│ Managed & Local Storage                                 │
 │ • PostgreSQL (PostgreSQL 18 + R2DBC)                    │
-│ • S3-compatible Storage (AWS S3 / Cloudflare R2)        │
+│ • Local Storage (/var/lib/profiletailors/media)         │
 └─────────────────────────────────────────────────────────┘
 ```
 

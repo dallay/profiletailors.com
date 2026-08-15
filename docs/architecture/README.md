@@ -43,7 +43,7 @@ architecture at different levels of abstraction.
 ┌─────────────────────────────────────────────────────────────┐
 │ Level 3: Component (API Application)                        │
 │ ┌─────────────────────────────────────────────────────┐   │
-│ │  17 Bounded Contexts: Identity, Authorization,      │   │
+│ │  19 Bounded Contexts: Identity, Authorization,      │   │
 │ │  Tenancy, Credentials, Publishing, Governance, etc. │   │
 │ └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
@@ -69,7 +69,7 @@ architecture at different levels of abstraction.
 
 ### 2. Domain-Driven Design (DDD)
 
-- **Bounded Contexts**: 17 modular bounded contexts in `server/smp` (Analytics, Audit, Authorization,
+- **Bounded Contexts**: 19 modular bounded contexts in `server/smp` (Analytics, Audit, Authorization,
   Config, Credentials, Governance, Hashtags, Ideas, Identity, Lead Capture, MCP, Media,
   Notifications, Observability, Platform, Platformadmin, Privacy, Publishing, Tenancy)
 - **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md)
@@ -181,4 +181,4 @@ architecture at different levels of abstraction.
 
 ---
 
-Last updated: 2026-06-13
+Last updated: 2026-08-14
