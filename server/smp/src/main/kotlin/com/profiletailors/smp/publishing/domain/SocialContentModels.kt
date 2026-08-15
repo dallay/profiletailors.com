@@ -231,12 +231,12 @@ object SocialContentCalendarCursorCodec {
     private val BASE64_URL_TOKEN = Regex("[A-Za-z0-9_-]+")
 
     /**
-         * Encodes a social content calendar cursor as an unpadded URL-safe Base64 token.
-         *
-         * @param cursor The calendar cursor to encode.
-         * @return The encoded cursor token.
-         */
-        fun encode(cursor: SocialContentCalendarCursor): String = Base64.getUrlEncoder()
+     * Encodes a social content calendar cursor as an unpadded URL-safe Base64 token.
+     *
+     * @param cursor The calendar cursor to encode.
+     * @return The encoded cursor token.
+     */
+    fun encode(cursor: SocialContentCalendarCursor): String = Base64.getUrlEncoder()
         .withoutPadding()
         .encodeToString(
             listOf(

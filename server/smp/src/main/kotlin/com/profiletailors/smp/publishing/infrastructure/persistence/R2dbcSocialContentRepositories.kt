@@ -180,7 +180,8 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
     /**
      * Updates the synchronization checkpoint for a workspace and social account.
      *
-     * @param checkpoint The checkpoint containing the resource, optional post identifier, cursor, and timestamps to store.
+     * @param checkpoint The checkpoint containing the resource, optional post identifier,
+     *   cursor, and timestamps to store.
      */
     private suspend fun updateCheckpoint(checkpoint: SyncCheckpoint) {
         val matchesPost = checkpoint.resource != SyncResource.POSTS && checkpoint.postId != null
@@ -210,9 +211,12 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
     /**
      * Retrieves imported social posts within the requested calendar range.
      *
-     * @param query The calendar query defining the workspace, time range, filters, page size, and optional cursor.
-     * @return A page of matching posts, with an optional cursor for the next page and the latest publication time in the page.
-     * @throws InvalidSocialContentCursorException If the cursor is invalid or belongs to a different workspace.
+     * @param query The calendar query defining the workspace, time range, filters, page size,
+     *   and optional cursor.
+     * @return A page of matching posts, with an optional cursor for the next page and the latest
+     *   publication time in the page.
+     * @throws InvalidSocialContentCursorException If the cursor is invalid or belongs to a
+     *   different workspace.
      */
     override suspend fun findImportedPosts(query: SocialContentCalendarQuery): SocialContentPage<SocialPost> {
         val cursor = query.cursor?.let { decodeCursor(it, query.scope.value) }

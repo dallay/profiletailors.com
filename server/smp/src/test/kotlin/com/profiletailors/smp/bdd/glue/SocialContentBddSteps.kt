@@ -286,11 +286,11 @@ class SocialContentBddSteps {
     private fun responseBody(): String = String(latestResponse?.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
 
     /**
- * Parses the latest response body as JSON.
- *
- * @return The parsed JSON response.
- */
-private fun json(): JsonNode = objectMapper.readTree(responseBody())
+     * Parses the latest response body as JSON.
+     *
+     * @return The parsed JSON response.
+     */
+    private fun json(): JsonNode = objectMapper.readTree(responseBody())
 
     /**
      * Extracts the next pagination cursor from the response and stores it for later assertions.
