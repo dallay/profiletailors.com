@@ -1,7 +1,25 @@
 # Shared Module Dependencies
 
 > Quick-reference dependency graph for the `shared/` Gradle modules in the Profile Tailors monorepo.
-> Last updated: 2026-07-18
+> Last updated: 2026-08-14
+
+## Shared Kernel Modules
+
+The monorepo contains 11 shared Gradle modules under `shared/`:
+
+| Module                          | Path                            | Type                    | Consumed By                  |
+|---------------------------------|---------------------------------|-------------------------|------------------------------|
+| `:shared:common`                | `shared/common/`                | Foundation              | All modules                  |
+| `:shared:bus`                   | `shared/bus/`                   | CQRS & Event Bus        | SBC, storage, ratelimit, smp |
+| `:shared:presentation`          | `shared/presentation/`          | Presentation DTOs       | SBC, smp                     |
+| `:shared:security`              | `shared/security/`              | Security & Hashing      | SBC, smp                     |
+| `:shared:spring-boot-common`    | `shared/spring-boot-common/`    | Spring Boot Integration | ratelimit, smp               |
+| `:shared:storage`               | `shared/storage/`               | Storage (S3/R2)         | smp                          |
+| `:shared:shield:ratelimit`      | `shared/shield/ratelimit/`      | Rate Limiting           | storage, smp                 |
+| `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (Lead Capture)| waitlist, smp                |
+| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | smp                          |
+| `:shared:notifications`         | `shared/notifications/`         | Notifications           | smp                          |
+| `:shared:assets` / `:shared:web`| `shared/assets/`, `shared/web/` | Web & Asset utilities   | apps/web/*                   |
 
 ## Lead Capture Modules
 
@@ -89,6 +107,7 @@ graph TB
 | `:shared:shield:ratelimit`      | `shared/shield/ratelimit/`      | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:spring-boot-common`               | storage                      |
 | `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (no deps)    | —                                                                           | waitlist, smp                |
 | `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | `:shared:lead-capture:common`                                               | smp                          |
+| `:shared:notifications`         | `shared/notifications/`         | Shared                  | `:shared:common`                                                            | smp                          |
 | `:server:smp`                   | `server/smp/`                   | Application             | All `shared:*` modules                                                      | —                            |
 
 ## Layer Rules

@@ -46,17 +46,11 @@ Diagrams are written in:
 
 **What's implemented**:
 
-- Marketing site (Astro 7, static)
-- Backend foundation (Spring Boot 4, Kotlin, WebFlux)
-- Core bounded contexts: Identity, Authorization, Tenancy, Credentials, Governance, Platform
-
-**What's planned**:
-
-- Social media integrations (Twitter, LinkedIn, Instagram, Facebook, TikTok)
-- Content scheduling and publishing
-- Analytics and reporting
-- Team collaboration features
+- Marketing site (Astro 7, bilingual static site)
+- Web Application Dashboard (Vue 3, Pinia, TypeScript)
+- Backend Modular Monolith (Spring Boot 4, Kotlin, WebFlux, R2DBC)
+- 17 Bounded Contexts: Analytics, Audit, Authorization, Config, Credentials, Governance, Hashtags, Ideas, Identity, Leadcapture, MCP, Media, Notifications, Observability, Platform, Platformadmin, Privacy, Publishing, Tenancy
 
 ---
 
-Last updated: 2026-05-19
+Last updated: 2026-08-14

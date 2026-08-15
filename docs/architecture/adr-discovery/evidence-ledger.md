@@ -46,6 +46,38 @@ High.
 
 Yes.
 
+---
+
+## Finding: Deployment Architecture (Docker Swarm)
+
+- **Claim**: Production infrastructure uses Docker Swarm for deployment.
+- **Evidence**:
+  - `infra/apps/smp/swarm/docker-compose.yml:1-30`: Docker Swarm stack configuration for `smp`.
+  - `docs/infrastructure/production-docker-swarm.md:1-50`: Docker Swarm deployment guide.
+- **Verification Result**: VERIFIED.
+- **Drift Action**: Corrected C4 Container diagram and summary to eliminate Kubernetes/Cloud Run references.
+
+---
+
+## Finding: Event Bus (In-Process Reactor Channels)
+
+- **Claim**: Internal domain event dispatching uses reactive channel publishers rather than external AMQP/Kafka brokers.
+- **Evidence**:
+  - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/events/ReactorChannelEventPublisher.kt:12`: Implements `ChannelEventPublisher`.
+  - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/domain/OAuthConnectionPorts.kt:18`: Interface `ChannelEventPublisher`.
+- **Verification Result**: VERIFIED.
+- **Drift Action**: Corrected C4 Container & Component models to remove RabbitMQ/Kafka claims.
+
+---
+
+## Finding: 17 Backend Bounded Contexts
+
+- **Claim**: Backend `server:smp` comprises 17 bounded contexts following hexagonal architecture.
+- **Evidence**:
+  - `server/smp/src/main/kotlin/com/profiletailors/smp/`: Directory structure containing `analytics`, `audit`, `authorization`, `config`, `credentials`, `governance`, `hashtags`, `ideas`, `identity`, `leadcapture`, `mcp`, `media`, `notifications`, `observability`, `platform`, `platformadmin`, `privacy`, `publishing`, `tenancy`.
+- **Verification Result**: VERIFIED.
+- **Drift Action**: Updated C4 Component & Code documents to include all 17 contexts.
+
 ### Open questions
 
 - What is the remediation plan for the current Modulith violation?

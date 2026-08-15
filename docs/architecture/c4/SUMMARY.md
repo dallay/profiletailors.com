@@ -1,5 +1,5 @@
 ---
-date: 2026-05-19
+date: 2026-08-14
 status: 🔄 In Progress
 ---
 
@@ -11,8 +11,6 @@ Profile Tailors is a social media management platform built with a modern, react
 The system enables teams to schedule, publish, analyze, and collaborate on social media content
 across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 
-**Current Status**: Early development (v0.0.1-SNAPSHOT)
-
 ---
 
 ## Architecture Overview
@@ -20,8 +18,8 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 ### System Context
 
 - **Users**: Content creators, team administrators, analysts
-- **Core System**: Profile Tailors (marketing site + backend API)
-- **External Integrations**: Social media platforms, auth providers, email services, cloud storage
+- **Core System**: Profile Tailors (marketing site + dashboard app + backend API)
+- **External Integrations**: Social media platforms, email services, cloud storage
 
 ### Technology Stack
 
@@ -30,8 +28,7 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 | **Frontend** | Astro 7 (marketing), Vue 3 (dashboard app) |
 | **Backend**  | Spring Boot 4, Kotlin, WebFlux (reactive)  |
 | **Database** | PostgreSQL 18 with R2DBC (reactive driver) |
-| **Cache**    | Redis                                      |
-| **Queue**    | RabbitMQ / Kafka                           |
+| **Cache**    | Caffeine (local) / Redis (optional)        |
 | **Storage**  | S3-compatible (Cloudflare R2, AWS S3)      |
 
 ### Architecture Style
@@ -55,118 +52,40 @@ framework-agnostic domain primitives and shared infrastructure:
 | `shared:bus`                | Event bus abstractions (CQRS mediator)                             | ❌ None      |
 | `shared:security`           | Security primitives (Hasher interface + implementations)           | ❌ None      |
 | `shared:presentation`       | Presentation layer utilities (PageResponse, pagination)            | ❌ None      |
+| `shared:lead-capture:common`| Framework-free lead capture primitives                              | ❌ None      |
+| `shared:lead-capture:waitlist`| Framework-free waitlist aggregates & ports                        | ❌ None      |
 | `shared:spring-boot-common` | Spring Boot integration, exception handlers, filters, presenters   | ✅ Yes       |
 | `shared:storage`            | Storage abstractions (S3/R2)                                       | ✅ Yes       |
-| `shared:shield:ratelimit`   | Rate limiting with Bucket4j + Caffeine                             | ✅ Yes       |
+| `shared:shield:ratelimit`   | Rate limiting with Bucket4j + Caffeine / Redis                     | ✅ Yes       |
 
 > **Full dependency graph:** See [Shared Module Dependencies](../shared/dependencies.md) for
 > the complete module dependency diagram with all `api` vs `implementation` edges.
 
 ---
 
-## Bounded Contexts (Implemented)
+## Bounded Contexts (17 Bounded Contexts)
 
-### 1. Identity Context
+The backend `server:smp` comprises 17 modular bounded contexts:
 
-**Purpose**: User authentication and principal management
-
-**Key Features**:
-
-- JWT and API Key authentication
-- Principal materialization
-- OAuth2 token validation
-
-### 2. Authorization Context
-
-**Purpose**: Permission checks and access control
-
-**Key Features**:
-
-- Role-based access control (RBAC)
-- Direct grants (explicit permissions)
-- Workspace entitlements (feature flags)
-- Resource preview (what user can do)
-
-### 3. Tenancy Context
-
-**Purpose**: Workspace and membership management
-
-**Key Features**:
-
-- Multi-tenant workspaces
-- Membership lifecycle (invite, activate, suspend, remove)
-- Ownership transfers
-- Active workspace resolution
-
-### 4. Credentials Context
-
-**Purpose**: API keys, OAuth tokens, and secret management
-
-**Key Features**:
-
-- API key generation and validation
-- OAuth token storage and refresh
-- Service account credentials
-- Credential lifecycle management
-
-### 5. Governance Context
-
-**Purpose**: Audit logging, compliance, and data retention
-
-**Key Features**:
-
-- Mutation audit trails
-- Compliance reporting
-- Data retention policies
-
-### 6. Platform Context
-
-**Purpose**: Cross-cutting concerns and infrastructure
-
-**Key Features**:
-
-- Request context management (principal, workspace, trace ID)
-- Mediator pattern for command/query dispatch
-- Common contracts and abstractions
-
----
-
-## Bounded Contexts (Planned)
-
-### 7. Content Context
-
-**Purpose**: Post creation, scheduling, and draft management
-
-**Planned Features**:
-
-- Multi-platform post creation
-- Scheduling engine
-- Draft and revision management
-- Media asset handling
-
-### 8. Analytics Context
-
-**Purpose**: Metrics aggregation and reporting
-
-**Planned Features**:
-
-- Engagement metrics collection
-- Performance reports
-- KPI tracking
-- Data export
-
-### 9. Integrations Context
-
-**Purpose**: Social media platform adapters
-
-**Planned Features**:
-
-- Twitter/X integration
-- LinkedIn integration
-- Instagram integration
-- Facebook integration
-- TikTok integration
-- Rate limiting and retry logic
+1. **Analytics Context**: Engagement metrics collection, aggregation, and reporting.
+2. **Audit Context**: Request outcomes, authorization decision auditing, and mutation event capture.
+3. **Authorization Context**: RBAC, direct permission grants, workspace permissions, and entitlements.
+4. **Config Context**: Dynamic platform and system configuration.
+5. **Credentials Context**: API keys, OAuth tokens, and credential encryption (`PublishingCredentialsProperties`).
+6. **Governance Context**: Mutation audit logging, policy enforcement, and compliance tracking.
+7. **Hashtags Context**: Hashtag group management, aggregation, and performance tracking.
+8. **Ideas Context**: Content brainstorming and draft idea management.
+9. **Identity Context**: Native JWT and HttpOnly cookie authentication, principal management.
+10. **Lead Capture Context**: Public waitlist joins, lead capture storage, and consent collection.
+11. **MCP Context**: Model Context Protocol integration for platform AI tooling.
+12. **Media Context**: Media asset storage, Content-Addressable Storage (CAS) deduplication.
+13. **Notifications Context**: Transactional email delivery and notification channels.
+14. **Observability Context**: Request monitoring, metrics collection, and rate limiting hooks.
+15. **Platform Context**: Request context management (`PrincipalContext`), mediator pattern (`SpringMediator`).
+16. **Platformadmin Context**: Global platform administration and feature flags.
+17. **Privacy Context**: Data Subject Access Requests (DSAR), erasure, and privacy export operations.
+18. **Publishing Context**: Post creation, scheduling, platform channel connections, and publishing execution.
+19. **Tenancy Context**: Workspaces, memberships, ownership transfers, and tenant isolation (ADR-0008).
 
 ---
 
@@ -248,58 +167,23 @@ framework-agnostic domain primitives and shared infrastructure:
 
 ---
 
-## Scalability Strategy
+## Scalability & Deployment Architecture
 
-### Horizontal Scaling
+### Deployment Architecture
 
-- **API Application**: Stateless, can scale horizontally
-- **Scheduler Service**: Partitioned by workspace or time slot
-- **Analytics Service**: Partitioned by platform or metric type
-
-### Database Scaling
-
-- **Read replicas**: For analytics queries
-- **Connection pooling**: R2DBC with reactive backpressure
-- **Partitioning**: By workspace or time range (future)
-
-### Caching Strategy
-
-- **Session cache**: Redis (TTL: 15 min)
-- **API response cache**: Redis (TTL: 1-5 min)
-- **OAuth token cache**: Redis (TTL: token expiry - 5 min)
-
----
-
-## Deployment Architecture
-
-### Current (Development)
-
-```
-Local Development
-├── Marketing Site: localhost:4321 (Astro)
-├── API Application: localhost:7638 (Spring Boot)
-├── PostgreSQL: localhost:5432 (Docker Compose)
-├── Redis: localhost:6379 (Docker Compose)
-└── RabbitMQ: localhost:5672 (Docker Compose)
-```
-
-### Target (Production)
+Profile Tailors utilizes **Docker Swarm** for backend orchestration (`infra/apps/smp/swarm/` and `docs/infrastructure/production-docker-swarm.md`):
 
 ```
 CDN (Cloudflare / Vercel)
-├── Marketing Site (static)
-└── Web Application (static)
+├── Marketing Site (Astro static)
+└── Web Application (Vue 3 SPA)
         ↓
-Kubernetes / Cloud Run
-├── API Application (3+ replicas)
-├── Scheduler Service (2+ replicas)
-└── Analytics Service (2+ replicas)
+Docker Swarm
+└── API Application (`infra/apps/smp/swarm/`)
         ↓
 Managed Services
-├── PostgreSQL (AWS RDS / Google Cloud SQL / Neon)
-├── Redis (AWS ElastiCache / Upstash)
-├── RabbitMQ (CloudAMQP) / Kafka (Confluent Cloud)
-└── S3 (AWS S3 / Cloudflare R2)
+├── PostgreSQL 18 (R2DBC reactive driver)
+└── S3-compatible Storage (AWS S3 / Cloudflare R2)
 ```
 
 ---
@@ -353,7 +237,7 @@ Managed Services
 - **API latency**: p50, p95, p99
 - **Database query time**: per bounded context
 - **Cache hit rate**: Redis
-- **Queue depth**: RabbitMQ / Kafka
+- **Event throughput**: Reactor Channel publishers
 - **Social media API rate limits**: per platform
 - **Error rate**: per endpoint
 
@@ -391,4 +275,4 @@ Managed Services
 
 ---
 
-Last updated: 2026-06-13
+Last updated: 2026-08-14

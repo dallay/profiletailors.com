@@ -28,21 +28,14 @@ System_Boundary(profile_tailors, "Profile Tailors") {
     
     Container(spa, "Web Application", "Vue 3, TypeScript", "Single-page application for content management, scheduling, and analytics")
     
-    Container(api, "API Application", "Spring Boot 4, Kotlin, WebFlux", "Reactive REST API with bounded contexts: Identity, Authorization, Tenancy, Credentials, Governance, Platform")
-    
-    Container(scheduler, "Scheduler Service", "Spring Boot 4, Kotlin", "Background service for publishing scheduled posts to social media platforms")
-    
-    Container(analytics, "Analytics Service", "Spring Boot 4, Kotlin", "Collects and aggregates engagement metrics from social media platforms")
+    Container(api, "API Application", "Spring Boot 4, Kotlin, WebFlux", "Reactive REST API with 17 bounded contexts including Identity, Tenancy, Publishing, Media, Privacy, etc.")
     
     ContainerDb(db, "Database", "PostgreSQL 18", "Stores user data, workspaces, posts, schedules, credentials, and audit logs. R2DBC for reactive access.")
     
-    ContainerDb(cache, "Cache", "Redis (follow-up)", "Session cache and future distributed rate limiting; not the MVP waitlist limiter")
-    
-    Container(queue, "Message Queue", "RabbitMQ / Kafka", "Asynchronous job processing and event streaming")
+    ContainerDb(cache, "Cache", "Redis / Caffeine (optional)", "Optional rate limiting cache store (default Caffeine local)")
 }
 
 System_Ext(social_media, "Social Media APIs", "Twitter, LinkedIn, Instagram, Facebook, TikTok")
-System_Ext(auth_provider, "Auth Provider", "OAuth2/OIDC (Auth0, Clerk)")
 System_Ext(email, "Email Service", "Resend, SendGrid")
 System_Ext(storage, "Cloud Storage", "S3, Cloudflare R2")
 
@@ -53,20 +46,9 @@ Rel(spa, api, "Makes API calls", "HTTPS/REST, JSON")
 Rel(web_app, api, "Submits waitlist", "HTTPS/REST, JSON")
 
 Rel(api, db, "Reads/writes", "R2DBC, PostgreSQL wire protocol")
-Rel(api, cache, "Reads/writes when enabled", "Redis protocol")
-Rel(api, queue, "Publishes events", "AMQP / Kafka protocol")
-Rel(api, auth_provider, "Authenticates users", "HTTPS/OAuth2")
+Rel(api, cache, "Reads/writes when enabled", "Redis/In-memory")
 Rel(api, storage, "Stores/retrieves media", "HTTPS/S3 API")
-
-Rel(scheduler, queue, "Consumes jobs", "AMQP / Kafka protocol")
-Rel(scheduler, db, "Reads schedules", "R2DBC")
-Rel(scheduler, social_media, "Publishes posts", "HTTPS/REST")
-Rel(scheduler, storage, "Retrieves media", "HTTPS/S3 API")
-
-Rel(analytics, queue, "Consumes events", "AMQP / Kafka protocol")
-Rel(analytics, db, "Writes metrics", "R2DBC")
-Rel(analytics, social_media, "Fetches engagement", "HTTPS/REST")
-
+Rel(api, social_media, "Publishes posts, fetches engagement", "HTTPS/REST")
 Rel(api, email, "Sends notifications", "HTTPS/REST")
 
 @enduml
@@ -83,17 +65,13 @@ graph TB
     subgraph "Profile Tailors Platform"
         WEB[Marketing Site<br/>Astro 7, TypeScript<br/>Static, Bilingual]
         SPA[Web Application<br/>Vue 3, TypeScript<br/>SPA]
-        API[API Application<br/>Spring Boot 4, Kotlin, WebFlux<br/>Reactive REST API]
-        SCHED[Scheduler Service<br/>Spring Boot 4, Kotlin<br/>Background Jobs]
-        ANALYTICS[Analytics Service<br/>Spring Boot 4, Kotlin<br/>Metrics Collection]
+        API[API Application<br/>Spring Boot 4, Kotlin, WebFlux<br/>Reactive Modular Monolith]
         
         DB[(Database<br/>PostgreSQL 18<br/>R2DBC)]
-        CACHE[(Cache<br/>Redis follow-up)]
-        QUEUE[Message Queue<br/>RabbitMQ/Kafka]
+        CACHE[(Cache<br/>Caffeine local / Redis optional)]
     end
 
     SOCIAL[Social Media APIs<br/>Twitter, LinkedIn, etc.]
-    AUTH[Auth Provider<br/>OAuth2/OIDC]
     EMAIL[Email Service<br/>Resend/SendGrid]
     STORAGE[Cloud Storage<br/>S3/R2]
 
@@ -104,28 +82,18 @@ graph TB
     WEB -->|REST/JSON| API
     
     API -->|R2DBC| DB
-    API -->|Redis Protocol when enabled| CACHE
-    API -->|Publish Events| QUEUE
-    API -->|OAuth2| AUTH
+    API -->|Optional Cache| CACHE
     API -->|S3 API| STORAGE
     API -->|REST| EMAIL
-    
-    SCHED -->|Consume Jobs| QUEUE
-    SCHED -->|R2DBC| DB
-    SCHED -->|REST| SOCIAL
-    SCHED -->|S3 API| STORAGE
-    
-    ANALYTICS -->|Consume Events| QUEUE
-    ANALYTICS -->|R2DBC| DB
-    ANALYTICS -->|REST| SOCIAL
+    API -->|REST| SOCIAL
 
     classDef container fill:#1168BD,stroke:#0B4884,color:#fff
     classDef database fill:#438DD5,stroke:#2E6295,color:#fff
     classDef external fill:#999999,stroke:#6B6B6B,color:#fff
 
-    class WEB,SPA,API,SCHED,ANALYTICS container
-    class DB,CACHE,QUEUE database
-    class SOCIAL,AUTH,EMAIL,STORAGE external
+    class WEB,SPA,API container
+    class DB,CACHE database
+    class SOCIAL,EMAIL,STORAGE external
 ```
 
 ---
@@ -155,32 +123,18 @@ graph TB
 #### API Application
 
 - **Technology**: Spring Boot 4, Kotlin, WebFlux (reactive)
-- **Deployment**: Container (Docker) on Kubernetes or Cloud Run
+- **Deployment**: Container (Docker) on Docker Swarm (`infra/apps/smp/swarm/`)
 - **Purpose**: Core business logic and REST API
 - **Architecture**: Hexagonal architecture with bounded contexts
-- **Composition**: `shared:common` (Shared Kernel), `shared:bus`, `shared:spring-boot-common`,
-  `shared:security`, `shared:presentation`, `shared:storage`, and `server:smp` (application
-  assembly).
-- **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform,
-  Audit, Observability.
-- **Key Features**: Reactive programming with Kotlin coroutines, JWT/API key authentication,
-  non-blocking R2DBC access, OpenAPI docs with SpringDoc, Spring Modulith modular monolith.
-
-#### Scheduler Service
-
-- **Technology**: Spring Boot 4, Kotlin
-- **Deployment**: Container (Docker) on Kubernetes or Cloud Run
-- **Purpose**: Background job processing for scheduled posts
-- **Key Features**: Consumes scheduling jobs from the queue, publishes posts at scheduled times,
-  handles retries and recovery, respects platform rate limits.
-
-#### Analytics Service
-
-- **Technology**: Spring Boot 4, Kotlin
-- **Deployment**: Container (Docker) on Kubernetes or Cloud Run
-- **Purpose**: Collects and aggregates engagement metrics
-- **Key Features**: Polls social APIs for engagement data, processes analytics events from queue,
-  aggregates metrics for reporting, stores time-series data.
+- **Composition**: Shared modules (`shared:common`, `shared:bus`, `shared:spring-boot-common`,
+  `shared:security`, `shared:presentation`, `shared:storage`, `shared:shield:ratelimit`,
+  `shared:lead-capture:*`) and `server:smp` (application assembly).
+- **Bounded Contexts**: Analytics, Audit, Authorization, Config, Credentials, Governance, Hashtags,
+  Ideas, Identity, Leadcapture, MCP, Media, Notifications, Observability, Platform, Platformadmin, Privacy,
+  Publishing, Tenancy.
+- **Key Features**: Reactive programming with Kotlin coroutines, native JWT/cookie authentication,
+  non-blocking R2DBC access, internal in-process event publishing via Reactor (`ChannelEventPublisher`),
+  Spring Modulith modular monolith.
 
 ### Data Containers
 
@@ -193,26 +147,18 @@ graph TB
   credentials/tokens, audit logs, analytics metrics.
 - **Access Pattern**: Reactive via R2DBC (non-blocking)
 
-#### Cache (Redis — follow-up)
+#### Cache (Caffeine Local / Redis Optional)
 
-- **Technology**: Redis 7+
-- **Deployment**: Managed service (AWS ElastiCache, Upstash)
-- **Purpose**: Session cache and future distributed data; not the MVP waitlist rate-limit backend
-- **Use Cases**: Session storage, OAuth token cache, API response cache, and future distributed
-  rate-limit counters after the relevant production blockers are resolved.
+- **Technology**: Caffeine local in-memory cache, optional Redis via `shared:shield:ratelimit`
+- **Deployment**: Embedded JVM in-memory / optional container
+- **Purpose**: Rate limiting (Bucket4j) and ephemeral caching.
+- **Use Cases**: Rate limiting for public and waitlist endpoints (defaults to Caffeine). Session management relies on stateless signed JWT cookies rather than central session cache storage.
 
-The current SMP waitlist limiter is intentionally different: it uses a bounded per-JVM Caffeine
-cache for Bucket4j buckets, and `application.rate-limit.waitlist.enabled` defaults to `false`.
-Redis/distributed waitlist rate limiting is deferred out of MVP until DALLAY-512 (distributed
-bucket backend) and DALLAY-513 (trusted proxy/client identity) are resolved.
+#### Event Bus (In-Process Reactor Channels)
 
-#### Message Queue (RabbitMQ / Kafka)
-
-- **Technology**: RabbitMQ or Apache Kafka
-- **Deployment**: Managed service (CloudAMQP, Confluent Cloud)
-- **Purpose**: Asynchronous job processing and event streaming
-- **Use Cases**: Scheduling jobs (publishing), analytics events (engagement updates), audit
-  events (governance), notification events (email/webhooks).
+- **Technology**: Reactor / Coroutine Channels (`ReactorChannelEventPublisher`)
+- **Deployment**: In-process within `server:smp`
+- **Purpose**: Asynchronous internal event publishing and domain event dispatching.
 
 ---
 
@@ -224,19 +170,14 @@ bucket backend) and DALLAY-513 (trusted proxy/client identity) are resolved.
 | ----------------- | ----------------- | ------------ | -------------------------- |
 | Web App / SPA     | API Application   | HTTPS/REST   | User actions, data queries |
 | API Application   | Database          | R2DBC        | Data persistence           |
-| API Application   | Auth Provider     | HTTPS/OAuth2 | User authentication        |
 | API Application   | Cloud Storage     | HTTPS/S3     | Media upload/download      |
-| Scheduler Service | Social Media APIs | HTTPS/REST   | Post publishing            |
-| Analytics Service | Social Media APIs | HTTPS/REST   | Engagement data fetching   |
+| API Application   | Social Media APIs | HTTPS/REST   | Post publishing & metrics  |
 
 ### Asynchronous (Event-Driven)
 
 | From              | To                | Via           | Purpose                    |
 | ----------------- | ----------------- | ------------- | -------------------------- |
-| API Application   | Scheduler Service | Message Queue | Schedule post publishing   |
-| API Application   | Analytics Service | Message Queue | Trigger metrics collection |
-| Scheduler Service | Analytics Service | Message Queue | Post published event       |
-| API Application   | Email Service     | Message Queue | Send notifications         |
+| Publishing Context| Channel Subscribers| In-process Reactor Channel| OAuth connection / channel events |
 
 ---
 
@@ -269,7 +210,7 @@ bucket backend) and DALLAY-513 (trusted proxy/client identity) are resolved.
 | ------------ | ---------------- | ------------------------------------------- |
 | **Database** | PostgreSQL 18    | Robust, ACID, JSON support, mature          |
 | **Cache**    | Redis            | Fast, simple, widely supported              |
-| **Queue**    | RabbitMQ / Kafka | Reliable message delivery, event streaming  |
+| **Event Bus**| Reactor Channels | Reactive in-process event publishing        |
 | **Storage**  | S3-compatible    | Standard API, multiple providers            |
 | **Auth**     | OAuth2/OIDC      | Industry standard, delegated authentication |
 
@@ -287,7 +228,7 @@ bucket backend) and DALLAY-513 (trusted proxy/client identity) are resolved.
 │ • API Application: localhost:7638 (Spring Boot)        │
 │ • PostgreSQL: localhost:5432 (Docker Compose)          │
 │ • Redis: localhost:6379 (Docker Compose)               │
-│ • RabbitMQ: localhost:5672 (Docker Compose)            │
+│ • PostgreSQL: localhost:5432 (Docker Compose)          │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -302,19 +243,15 @@ bucket backend) and DALLAY-513 (trusted proxy/client identity) are resolved.
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────┐
-│ Kubernetes / Cloud Run                                  │
-│ • API Application (3+ replicas)                         │
-│ • Scheduler Service (2+ replicas)                       │
-│ • Analytics Service (2+ replicas)                       │
+│ Docker Swarm                                            │
+│ • API Application (`infra/apps/smp/swarm/`)             │
 └─────────────────────────────────────────────────────────┘
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────┐
-│ Managed Services                                        │
-│ • PostgreSQL (AWS RDS / Google Cloud SQL / Neon)       │
-│ • Redis (AWS ElastiCache / Upstash)                    │
-│ • RabbitMQ (CloudAMQP) / Kafka (Confluent Cloud)       │
-│ • S3 (AWS S3 / Cloudflare R2)                          │
+│ Managed Infrastructure                                  │
+│ • PostgreSQL (PostgreSQL 18 + R2DBC)                    │
+│ • S3-compatible Storage (AWS S3 / Cloudflare R2)        │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -381,17 +318,11 @@ bucket backend) and DALLAY-513 (trusted proxy/client identity) are resolved.
 **In Progress**:
 
 - 🔄 Web Application (Vue 3, design phase)
-- 🔄 Scheduler Service (architecture defined)
-- 🔄 Analytics Service (architecture defined)
+**Planned / In Progress**:
 
-**Planned**:
-
-- 🔲 Redis/distributed bucket backend for production-safe waitlist rate limiting (follow-up after
-  DALLAY-512/DALLAY-513; explicitly out of MVP)
-- 🔲 Message queue integration
-- 🔲 Social media API integrations
-- 🔲 Cloud storage integration
+- 🔲 Social media platform publishing execution
+- 🔲 Advanced analytics aggregation
 
 ---
 
-Last updated: 2026-07-18
+Last updated: 2026-08-14
