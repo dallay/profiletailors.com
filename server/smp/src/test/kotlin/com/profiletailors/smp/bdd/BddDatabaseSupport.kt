@@ -1,5 +1,6 @@
 package com.profiletailors.smp.bdd.glue
 
+import com.profiletailors.smp.publishing.domain.SocialPost
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import liquibase.Contexts
@@ -68,6 +69,9 @@ class BddDatabaseSupport(
         const val WORKSPACE_ACCESS_ENTITLEMENT = "workspace.access.summary"
     }
 
+    /**
+     * Resets the BDD database to the Liquibase baseline and restores required test data.
+     */
     suspend fun resetDatabase() {
         applyLiquibaseBaseline()
         cleanupStatements().forEach { statement ->
@@ -737,14 +741,14 @@ class BddDatabaseSupport(
     }
 
     /**
-     * Seeds a [social_accounts] row linked to an existing social connection.
+     * Creates a social account associated with an existing social connection.
      *
-     * @param accountId         Unique account identifier.
-     * @param connectionId      Foreign key to [seedSocialConnection].
-     * @param provider          Social provider name (e.g. "LINKEDIN").
-     * @param providerAccountId Account ID on the provider side.
-     * @param accountKind       Type of account (e.g. "PERSONAL_PROFILE", "COMPANY_PAGE").
-     * @param displayName       Human-readable display name.
+     * @param accountId Unique account identifier.
+     * @param connectionId Identifier of the associated social connection.
+     * @param provider Social provider name.
+     * @param providerAccountId Account identifier assigned by the provider.
+     * @param accountKind Type of social account.
+     * @param displayName Human-readable account name.
      */
     suspend fun seedSocialAccount(
         accountId: String,
@@ -770,6 +774,128 @@ class BddDatabaseSupport(
             .bind("accountKind", accountKind)
             .bind("displayName", displayName)
             .bind("profileUrn", providerSocialProfileUrn(provider, providerAccountId))
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
+     * Ensures that a social connection exists for a workspace.
+     *
+     * @param connectionId The social connection identifier.
+     * @param workspaceId The workspace identifier.
+     * @param provider The social provider.
+     * @param status The connection status.
+     */
+    suspend fun ensureSocialConnection(connectionId: String, workspaceId: String, provider: String, status: String) {
+        databaseClient.sql(
+            """
+            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status,
+                                            credential_reference, connected_at, last_synced_at, created_at)
+            VALUES (:id, :workspaceId, :provider, :providerConnectionRef, :status,
+                    NULL, NOW(), NOW(), NOW())
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        )
+            .bind("id", connectionId)
+            .bind("workspaceId", workspaceId)
+            .bind("provider", provider)
+            .bind("providerConnectionRef", "ref-$connectionId")
+            .bind("status", status)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
+     * Ensures that a social account exists for the specified workspace and connection.
+     *
+     * @param accountId The social account identifier.
+     * @param connectionId The social connection identifier.
+     * @param workspaceId The workspace identifier.
+     * @param provider The social provider name.
+     * @param providerAccountId The account identifier assigned by the provider.
+     * @param accountKind The type of social account.
+     * @param displayName The account's display name.
+     */
+    suspend fun ensureSocialAccount(
+        accountId: String,
+        connectionId: String,
+        workspaceId: String,
+        provider: String,
+        providerAccountId: String,
+        accountKind: String,
+        displayName: String,
+    ) {
+        ensureSocialConnection(connectionId, workspaceId, provider, "ACTIVE")
+        databaseClient.sql(
+            """
+            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id,
+                                         account_type, display_name, profile_urn, status, created_at)
+            VALUES (:id, :connectionId, :workspaceId, :provider, :providerAccountId,
+                    :accountKind, :displayName, :profileUrn, 'ACTIVE', NOW())
+            ON CONFLICT (id, workspace_id) DO NOTHING
+            """.trimIndent(),
+        )
+            .bind("id", accountId)
+            .bind("connectionId", connectionId)
+            .bind("workspaceId", workspaceId)
+            .bind("provider", provider)
+            .bind("providerAccountId", providerAccountId)
+            .bind("accountKind", accountKind)
+            .bind("displayName", displayName)
+            .bind("profileUrn", providerSocialProfileUrn(provider, providerAccountId))
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
+     * Seeds a social content post from a [SocialPost] domain object.
+     *
+     * @param post The social post to persist.
+     */
+    suspend fun seedSocialContentPost(post: SocialPost) {
+        val lastModified = post.lastModifiedAt ?: post.publishedAt
+        databaseClient.sql(
+            """
+            INSERT INTO social_content_posts (
+                id, workspace_id, social_account_id, provider, external_post_id,
+                published_at, last_modified_at, body, origin, local_publication_id,
+                lifecycle, expires_at, created_at, updated_at
+            ) VALUES (
+                :id, :workspaceId, :socialAccountId, :provider, :externalPostId,
+                :publishedAt, :lastModifiedAt, :body, :origin, :localPublicationId,
+                :lifecycle, :expiresAt, :createdAt, :updatedAt
+            )
+            ON CONFLICT (workspace_id, provider, social_account_id, external_post_id)
+            DO UPDATE SET published_at = EXCLUDED.published_at
+            """.trimIndent(),
+        )
+            .bind("id", java.util.UUID.randomUUID().toString())
+            .bind("workspaceId", post.scope.value)
+            .bind("socialAccountId", post.actorId)
+            .bind("provider", post.provider.name)
+            .bind("externalPostId", post.externalPostId.value)
+            .bind("publishedAt", post.publishedAt)
+            .bind("lastModifiedAt", lastModified)
+            .let { spec ->
+                val body = post.body
+                if (body != null) spec.bind("body", body) else spec.bindNull("body", String::class.java)
+            }
+            .bind("origin", post.origin.name)
+            .let { spec ->
+                val localPubId = post.localPublicationId
+                if (localPubId != null) {
+                    spec.bind("localPublicationId", localPubId)
+                } else {
+                    spec.bindNull("localPublicationId", String::class.java)
+                }
+            }
+            .bind("lifecycle", post.lifecycle.name)
+            .bind("expiresAt", post.expiresAt)
+            .bind("createdAt", Instant.now())
+            .bind("updatedAt", Instant.now())
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -969,6 +1095,11 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
+    /**
+     * Seeds an API key credential with the specified status.
+     *
+     * @param status The credential status to store.
+     */
     private suspend fun seedApiKeyCredential(status: String) {
         val verifier = org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
             "secret-value",
@@ -1044,6 +1175,13 @@ class BddDatabaseSupport(
         "DELETE FROM publication_assets",
         "DELETE FROM publications",
         // Social
+        "DELETE FROM social_content_reply_commands",
+        "DELETE FROM social_content_webhook_events",
+        "DELETE FROM social_content_sync_checkpoints",
+        "DELETE FROM social_content_payload_cache",
+        "DELETE FROM social_content_comments",
+        "DELETE FROM social_content_posts",
+        "DELETE FROM social_content_actor_capabilities",
         "DELETE FROM social_accounts",
         "DELETE FROM social_connections",
         // Media
@@ -1064,6 +1202,9 @@ class BddDatabaseSupport(
         "DELETE FROM principals",
     )
 
+    /**
+     * Applies the Liquibase database schema baseline.
+     */
     private fun applyLiquibaseBaseline() {
         DriverManager.getConnection(
             liquibaseJdbcUrl,
