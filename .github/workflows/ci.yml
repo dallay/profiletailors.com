@@ -4,7 +4,8 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
+    # Do not restrict by base branch: stacked PR layers target the preceding
+    # feature branch rather than main/develop.
   merge_group:
     branches: [main]
 

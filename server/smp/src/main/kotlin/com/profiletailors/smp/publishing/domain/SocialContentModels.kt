@@ -217,7 +217,7 @@ data class SocialContentCalendarCursor(
 class InvalidSocialContentCursorException(
     message: String = "Invalid social content cursor",
     cause: Throwable? = null,
-) : RuntimeException(message, cause)
+) : IllegalArgumentException(message, cause)
 
 object SocialContentCalendarCursorCodec {
     private const val DELIMITER: Char = '\u001F'

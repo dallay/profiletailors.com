@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.persistence
 
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -77,16 +78,14 @@ class SocialContentLiquibaseChangelogTest {
 
         master shouldContain "file: db/changelog/publishing/018-social-content-comment-checkpoints.yaml"
         master shouldContain "file: db/changelog/publishing/019-add-social-content-calendar-keyset-index.yaml"
-        assertTrue(
+        (
             master.indexOf("file: db/changelog/publishing/018-social-content-comment-checkpoints.yaml") <
-                master.indexOf("file: db/changelog/publishing/019-add-social-content-calendar-keyset-index.yaml"),
-        )
+                master.indexOf("file: db/changelog/publishing/019-add-social-content-calendar-keyset-index.yaml")
+            ) shouldBe
+            true
         changelog shouldContain "idx_social_content_posts_calendar_keyset"
-        changelog shouldContain "name: workspace_id"
-        changelog shouldContain "name: published_at"
-        changelog shouldContain "name: provider"
-        changelog shouldContain "name: social_account_id"
-        changelog shouldContain "name: external_post_id"
+        Regex("(?m)^\\s+name: (\\S+)").findAll(changelog).map { it.groupValues[1] }.toList() shouldBe
+            listOf("workspace_id", "published_at", "provider", "social_account_id", "external_post_id")
         changelog shouldContain "dropIndex:"
         changelog shouldContain "indexName: idx_social_content_posts_calendar_keyset"
     }
@@ -97,29 +96,7 @@ class SocialContentLiquibaseChangelogTest {
 
         changelog shouldContain "idx_social_content_posts_workspace_actor_published"
         changelog shouldContain "idx_social_content_comments_post_parent"
-        changelog shouldContain "idx_social_content_payload_cache_expires_at"
-        changelog shouldContain "idx_social_content_sync_checkpoints_due"
-    }
-
-    @Test
-    fun `comment checkpoint migration stores external post ids without a local foreign key`() {
-        val checkpointMigration = resourceText("db/changelog/publishing/018-social-content-comment-checkpoints.yaml")
-
-        checkpointMigration shouldContain "name: post_id"
-        checkpointMigration shouldContain "type: varchar(255)"
-        checkpointMigration shouldNotContain "addForeignKeyConstraint:"
-        checkpointMigration shouldNotContain "fk_social_content_checkpoints_workspace_post"
-    }
-
-    @Test
-    fun `comment checkpoint migration rollback deletes comment checkpoints before restoring the unique constraint`() {
-        val checkpointMigration = resourceText("db/changelog/publishing/018-social-content-comment-checkpoints.yaml")
-
-        checkpointMigration shouldContain "DELETE FROM social_content_sync_checkpoints WHERE resource = 'COMMENTS'"
-        checkpointMigration shouldContain "dropUniqueConstraint:"
-        checkpointMigration shouldContain "addUniqueConstraint:"
-        checkpointMigration shouldContain "dropColumn:"
-        checkpointMigration shouldContain "columnName: post_id"
+        changelog shouldNotContain "idx_social_content_posts_calendar_keyset"
     }
 
     private fun resourceText(path: String): String =

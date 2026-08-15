@@ -9,6 +9,7 @@
     ":prNotPending"
   ],
   "labels": ["dependencies"],
+  "dependencyDashboardLabels": ["type:dependency", "dependencies"],
   "osvVulnerabilityAlerts": true,
   "rangeStrategy": "bump",
   "prHourlyLimit": 3,

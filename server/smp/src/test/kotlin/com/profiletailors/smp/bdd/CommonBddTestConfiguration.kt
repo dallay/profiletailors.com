@@ -21,7 +21,6 @@ import org.springframework.core.task.TaskExecutor
 import org.springframework.security.oauth2.jwt.BadJwtException
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
-import org.springframework.transaction.reactive.TransactionalOperator
 import reactor.core.publisher.Mono
 import java.time.Instant
 
@@ -64,13 +63,11 @@ class CommonBddTestConfiguration {
     fun bddDatabaseSupport(
         databaseClient: org.springframework.r2dbc.core.DatabaseClient,
         environment: org.springframework.core.env.Environment,
-        transactionalOperator: TransactionalOperator,
     ): BddDatabaseSupport = BddDatabaseSupport(
         databaseClient = databaseClient,
         liquibaseJdbcUrl = requireNotNull(environment.getProperty("bdd.liquibase.jdbc-url")),
         liquibaseUsername = requireNotNull(environment.getProperty("bdd.liquibase.username")),
         liquibasePassword = environment.getProperty("bdd.liquibase.password") ?: "",
-        transactionalOperator = transactionalOperator,
     )
 
     /**
@@ -209,6 +206,7 @@ class CommonBddTestConfiguration {
                     .claim("sub", "subject-123")
                     .claim("iss", "https://issuer.example")
                     .claim("principal_id", "principal-1")
+                    .claim("email", "jwt-user@example.com")
                     .claim(
                         "emailStatus",
                         if (token.startsWith("verified-")) "VERIFIED" else "PENDING",

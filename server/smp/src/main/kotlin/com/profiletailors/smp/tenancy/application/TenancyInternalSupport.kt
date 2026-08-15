@@ -49,7 +49,7 @@ internal fun interface WorkspaceMembershipAccessChecker {
     suspend fun isActiveMember(principalId: String, resourceContext: ResourceContext): Boolean
 }
 
-internal interface WorkspaceMembershipRepository {
+interface WorkspaceMembershipRepository {
     suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceMembership>
 
     suspend fun updateStatus(
@@ -57,6 +57,8 @@ internal interface WorkspaceMembershipRepository {
         principalId: String,
         status: com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus,
     )
+
+    suspend fun reconcile(workspaceId: String, principalId: String): WorkspaceMembership
 }
 
 internal fun ResourceContextProvider.requireWorkspaceContext(): ResourceContext {

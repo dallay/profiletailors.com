@@ -10,7 +10,6 @@ import liquibase.database.DatabaseFactory
 import liquibase.database.jvm.JdbcConnection
 import liquibase.resource.ClassLoaderResourceAccessor
 import org.springframework.r2dbc.core.DatabaseClient
-import org.springframework.transaction.reactive.TransactionalOperator
 import java.sql.DriverManager
 import java.time.Instant
 
@@ -20,7 +19,6 @@ class BddDatabaseSupport(
     private val liquibaseJdbcUrl: String,
     private val liquibaseUsername: String,
     private val liquibasePassword: String,
-    private val transactionalOperator: TransactionalOperator,
 ) {
     data class LocalAuthSession(val accessToken: String, val refreshCookie: String)
 
@@ -76,7 +74,7 @@ class BddDatabaseSupport(
      */
     suspend fun resetDatabase() {
         applyLiquibaseBaseline()
-        BddDatabaseCleanup.statements.forEach { statement ->
+        cleanupStatements().forEach { statement ->
             databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
         }
         restoreRequiredBaselineRoles()
@@ -1134,77 +1132,75 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
-    internal object BddDatabaseCleanup {
-        val statements: List<String> = listOf(
-            "DELETE FROM platform_admin_audit_events",
-            "DELETE FROM waitlist_invitations",
-            "DELETE FROM platform_role_assignments",
-            "DELETE FROM waitlist_entries",
-            "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
-            "DELETE FROM compliance_risk_acceptances",
-            "DELETE FROM compliance_control_evidences",
-            // evidence_links FK references compliance_evidences, must be deleted first
-            "DELETE FROM evidence_links",
-            "DELETE FROM compliance_evidences",
-            "DELETE FROM compliance_control_evidence_requirements",
-            "DELETE FROM compliance_control_applicability_dimensions",
-            "DELETE FROM compliance_control_applicability_rules",
-            "DELETE FROM compliance_controls",
-            // Audit
-            "DELETE FROM audit_events",
-            "DELETE FROM notification_events",
-            // Authorization
-            "DELETE FROM workspace_target_scopes",
-            "DELETE FROM workspace_direct_grants",
-            "DELETE FROM workspace_entitlements",
-            "DELETE FROM membership_roles",
-            "DELETE FROM role_permissions",
-            "DELETE FROM roles",
-            "DELETE FROM permissions",
-            // Auth / Session
-            "DELETE FROM refresh_sessions",
-            "DELETE FROM local_password_credentials",
-            "DELETE FROM api_key_credentials",
-            "DELETE FROM service_account_credentials",
-            // Ideas (reference publications + workspaces — must be deleted before both)
-            "DELETE FROM ideas",
-            "DELETE FROM idea_board_configs",
-            // Publishing
-            "DELETE FROM recurring_schedules",
-            "DELETE FROM publication_asset_links",
-            "DELETE FROM delivery_attempts",
-            "DELETE FROM publication_jobs",
-            "DELETE FROM publication_assets",
-            "DELETE FROM publications",
-            // Social
-            "DELETE FROM social_content_reply_commands",
-            "DELETE FROM social_content_webhook_events",
-            "DELETE FROM social_content_sync_checkpoints",
-            "DELETE FROM social_content_payload_cache",
-            "DELETE FROM social_content_comments",
-            "DELETE FROM social_content_posts",
-            "DELETE FROM social_content_actor_capabilities",
-            "DELETE FROM social_accounts",
-            "DELETE FROM social_connections",
-
-            // Media
-            "DELETE FROM media_assets",
-            "DELETE FROM workspace_file_blobs",
-            "DELETE FROM workspace_upload_slots",
-            "DELETE FROM media_rate_limits",
-            // Hashtags
-            "DELETE FROM hashtag_saved_sets",
-            // Workspace
-            "DELETE FROM workspace_memberships",
-            "DELETE FROM workspace_ownerships",
-            "DELETE FROM workspaces",
-            // Identity
-            "DELETE FROM password_reset_notification_failures",
-            "DELETE FROM password_reset_tokens",
-            "DELETE FROM user_identities",
-            "DELETE FROM principals",
-        )
-    }
+    private fun cleanupStatements(): List<String> = listOf(
+        "DELETE FROM platform_admin_audit_events",
+        "DELETE FROM invitations",
+        "DELETE FROM waitlist_invitations",
+        "DELETE FROM platform_role_assignments",
+        "DELETE FROM waitlist_entries",
+        "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
+        "DELETE FROM compliance_risk_acceptances",
+        "DELETE FROM compliance_control_evidences",
+        // evidence_links FK references compliance_evidences, must be deleted first
+        "DELETE FROM evidence_links",
+        "DELETE FROM compliance_evidences",
+        "DELETE FROM compliance_control_evidence_requirements",
+        "DELETE FROM compliance_control_applicability_dimensions",
+        "DELETE FROM compliance_control_applicability_rules",
+        "DELETE FROM compliance_controls",
+        // Audit
+        "DELETE FROM audit_events",
+        "DELETE FROM notification_events",
+        // Authorization
+        "DELETE FROM workspace_target_scopes",
+        "DELETE FROM workspace_direct_grants",
+        "DELETE FROM workspace_entitlements",
+        "DELETE FROM membership_roles",
+        "DELETE FROM role_permissions",
+        "DELETE FROM roles",
+        "DELETE FROM permissions",
+        // Auth / Session
+        "DELETE FROM refresh_sessions",
+        "DELETE FROM local_password_credentials",
+        "DELETE FROM api_key_credentials",
+        "DELETE FROM service_account_credentials",
+        // Ideas (reference publications + workspaces — must be deleted before both)
+        "DELETE FROM ideas",
+        "DELETE FROM idea_board_configs",
+        // Publishing
+        "DELETE FROM recurring_schedules",
+        "DELETE FROM publication_asset_links",
+        "DELETE FROM delivery_attempts",
+        "DELETE FROM publication_jobs",
+        "DELETE FROM publication_assets",
+        "DELETE FROM publications",
+        // Social
+        "DELETE FROM social_content_reply_commands",
+        "DELETE FROM social_content_webhook_events",
+        "DELETE FROM social_content_sync_checkpoints",
+        "DELETE FROM social_content_payload_cache",
+        "DELETE FROM social_content_comments",
+        "DELETE FROM social_content_posts",
+        "DELETE FROM social_content_actor_capabilities",
+        "DELETE FROM social_accounts",
+        "DELETE FROM social_connections",
+        // Media
+        "DELETE FROM media_assets",
+        "DELETE FROM workspace_file_blobs",
+        "DELETE FROM workspace_upload_slots",
+        "DELETE FROM media_rate_limits",
+        // Hashtags
+        "DELETE FROM hashtag_saved_sets",
+        // Workspace
+        "DELETE FROM workspace_memberships",
+        "DELETE FROM workspace_ownerships",
+        "DELETE FROM workspaces",
+        // Identity
+        "DELETE FROM password_reset_notification_failures",
+        "DELETE FROM password_reset_tokens",
+        "DELETE FROM user_identities",
+        "DELETE FROM principals",
+    )
 
     /**
      * Applies the Liquibase database schema baseline.

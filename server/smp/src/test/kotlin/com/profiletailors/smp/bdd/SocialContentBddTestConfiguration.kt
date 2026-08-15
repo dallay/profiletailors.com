@@ -32,8 +32,6 @@ import com.profiletailors.smp.publishing.domain.SyncCheckpoint
 import com.profiletailors.smp.publishing.domain.SyncResource
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialAccountRepository
-import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialContentRepositories
-import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
@@ -95,13 +93,7 @@ class SocialContentBddTestConfiguration {
      */
     @Bean
     @Primary
-    fun socialContentBddReader(
-        state: SocialContentBddState,
-        repositoryProvider: ObjectProvider<R2dbcSocialContentRepositories>,
-    ): SocialContentReader {
-        state.content.productionReader = repositoryProvider.getIfAvailable()
-        return state.content
-    }
+    fun socialContentBddReader(state: SocialContentBddState): SocialContentReader = state.content
 
     /**
      * Provides the feature gates used by social-content BDD tests.
@@ -255,8 +247,6 @@ class BddContentStore :
     SocialContentCheckpointRepository,
     SocialContentReader,
     SocialContentBatchWriter {
-    var productionReader: SocialContentReader? = null
-    var useProductionReaderForCalendar = false
     private val posts = linkedMapOf<PostKey, SocialPost>()
     private val checkpoints = linkedMapOf<CheckpointKey, SyncCheckpoint>()
     private var readerCallCount = 0
@@ -278,7 +268,6 @@ class BddContentStore :
         checkpoints.clear()
         readerCallCount = 0
         lastCursor = null
-        useProductionReaderForCalendar = false
     }
 
     /**
@@ -342,9 +331,6 @@ class BddContentStore :
     override suspend fun findImportedPosts(
         query: com.profiletailors.smp.publishing.domain.SocialContentCalendarQuery,
     ): SocialContentPage<SocialPost> {
-        if (useProductionReaderForCalendar) {
-            return requireNotNull(productionReader).findImportedPosts(query)
-        }
         readerCallCount++
         lastCursor = query.cursor
         val items = posts.values

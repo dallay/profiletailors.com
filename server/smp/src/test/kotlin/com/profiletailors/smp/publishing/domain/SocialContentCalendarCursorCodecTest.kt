@@ -1,9 +1,8 @@
 package com.profiletailors.smp.publishing.domain
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.Base64
@@ -25,9 +24,13 @@ class SocialContentCalendarCursorCodecTest {
             Charsets.UTF_8,
         )
 
-        assertEquals(
-            listOf("1", "workspace-1", "2026-08-01T10:00:00Z", "LINKEDIN", "soacc-1", "post|with|pipes"),
-            payload.split('\u001F'),
+        payload.split('\u001F') shouldBe listOf(
+            "1",
+            "workspace-1",
+            "2026-08-01T10:00:00Z",
+            "LINKEDIN",
+            "soacc-1",
+            "post|with|pipes",
         )
     }
 
@@ -35,9 +38,10 @@ class SocialContentCalendarCursorCodecTest {
     fun `encodes six fields as unpadded url safe base64`() {
         val encoded = SocialContentCalendarCursorCodec.encode(cursor)
 
-        assertFalse(encoded.endsWith('='))
-        assertTrue(encoded.matches(Regex("[A-Za-z0-9_-]+")))
-        assertEquals(cursor, SocialContentCalendarCursorCodec.decode(encoded))
+        encoded shouldNotBe ""
+        encoded.endsWith('=') shouldBe false
+        encoded.matches(Regex("[A-Za-z0-9_-]+")) shouldBe true
+        SocialContentCalendarCursorCodec.decode(encoded) shouldBe cursor
     }
 
     @Test
@@ -46,17 +50,17 @@ class SocialContentCalendarCursorCodecTest {
             SocialContentCalendarCursorCodec.encode(cursor),
         )
 
-        assertEquals("workspace-1", decoded.workspaceId)
-        assertEquals("post|with|pipes", decoded.externalPostId)
-        assertEquals(cursor.publishedAt, decoded.publishedAt)
+        decoded.workspaceId shouldBe "workspace-1"
+        decoded.externalPostId shouldBe "post|with|pipes"
+        decoded.publishedAt shouldBe cursor.publishedAt
     }
 
     @Test
     fun `rejects padded base64 tokens`() {
         val padded = "${SocialContentCalendarCursorCodec.encode(cursor)}="
 
-        assertTrue(padded.endsWith('='))
-        assertThrows(InvalidSocialContentCursorException::class.java) {
+        padded.endsWith('=') shouldBe true
+        shouldThrow<InvalidSocialContentCursorException> {
             SocialContentCalendarCursorCodec.decode(padded)
         }
     }
@@ -72,7 +76,7 @@ class SocialContentCalendarCursorCodecTest {
             "post\u001Fid",
         )
 
-        assertThrows(InvalidSocialContentCursorException::class.java) {
+        shouldThrow<InvalidSocialContentCursorException> {
             SocialContentCalendarCursorCodec.decode(token)
         }
     }
@@ -85,7 +89,7 @@ class SocialContentCalendarCursorCodecTest {
             .withoutPadding()
             .encodeToString(validPrefix + byteArrayOf(0xC3.toByte(), 0x28))
 
-        assertThrows(InvalidSocialContentCursorException::class.java) {
+        shouldThrow<InvalidSocialContentCursorException> {
             SocialContentCalendarCursorCodec.decode(token)
         }
     }
@@ -98,7 +102,7 @@ class SocialContentCalendarCursorCodecTest {
             "!!!not-base64!!!",
             encodePayload("1", "workspace-1", "2026-08-01T10:00:00Z"),
         ).forEach { token ->
-            assertThrows(InvalidSocialContentCursorException::class.java) {
+            shouldThrow<InvalidSocialContentCursorException> {
                 SocialContentCalendarCursorCodec.decode(token)
             }
         }
@@ -113,7 +117,7 @@ class SocialContentCalendarCursorCodecTest {
             encodePayload("1", "workspace-1", "2026-08-01T10:00:00Z", "LINKEDIN", "", "post-1"),
             encodePayload("1", "workspace-1", "2026-08-01T10:00:00Z", "LINKEDIN", "soacc-1", ""),
         ).forEach { token ->
-            assertThrows(InvalidSocialContentCursorException::class.java) {
+            shouldThrow<InvalidSocialContentCursorException> {
                 SocialContentCalendarCursorCodec.decode(token)
             }
         }
