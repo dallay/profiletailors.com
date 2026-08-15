@@ -33,7 +33,6 @@ System_Ext(instagram, "Instagram Graph API", "Photo and video sharing platform")
 System_Ext(facebook, "Facebook Graph API", "Social networking platform")
 System_Ext(tiktok, "TikTok API", "Short-form video platform")
 
-System_Ext(auth_provider, "Auth Provider", "OAuth2/OIDC identity provider (e.g., Auth0, Clerk)")
 System_Ext(email_service, "Email Service", "Transactional email delivery (e.g., Resend, SendGrid)")
 System_Ext(storage, "Cloud Storage", "Media asset storage (e.g., S3, Cloudflare R2)")
 
@@ -47,7 +46,6 @@ Rel(profile_tailors, instagram, "Publishes posts, fetches engagement", "HTTPS/RE
 Rel(profile_tailors, facebook, "Publishes posts, fetches engagement", "HTTPS/REST")
 Rel(profile_tailors, tiktok, "Publishes posts, fetches engagement", "HTTPS/REST")
 
-Rel(profile_tailors, auth_provider, "Authenticates users", "HTTPS/OAuth2")
 Rel(profile_tailors, email_service, "Sends notifications", "HTTPS/REST")
 Rel(profile_tailors, storage, "Stores and retrieves media", "HTTPS/S3")
 
@@ -77,7 +75,6 @@ graph TB
     end
 
     subgraph "External Services"
-        AUTH[Auth Provider<br/>OAuth2/OIDC]
         EMAIL[Email Service<br/>Transactional]
         STORAGE[Cloud Storage<br/>Media Assets]
     end
@@ -92,7 +89,6 @@ graph TB
     PT -->|Publishes posts, fetches engagement| FB
     PT -->|Publishes posts, fetches engagement| TT
 
-    PT -->|Authenticates users| AUTH
     PT -->|Sends notifications| EMAIL
     PT -->|Stores and retrieves media| STORAGE
 
@@ -102,7 +98,7 @@ graph TB
 
     class CC,TA,AN userStyle
     class PT systemStyle
-    class TW,LI,IG,FB,TT,AUTH,EMAIL,STORAGE externalStyle
+    class TW,LI,IG,FB,TT,EMAIL,STORAGE externalStyle
 ```
 
 ---
@@ -127,7 +123,6 @@ graph TB
 | **Instagram Graph API** | External | Photo and video sharing platform                                                                                          | REST API                                |
 | **Facebook Graph API**  | External | Social networking platform                                                                                                | REST API                                |
 | **TikTok API**          | External | Short-form video platform                                                                                                 | REST API                                |
-| **Auth Provider**       | External | OAuth2/OIDC identity provider (e.g., Auth0, Clerk)                                                                        | OAuth2/OIDC                             |
 | **Email Service**       | External | Transactional email delivery (e.g., Resend, SendGrid)                                                                     | SMTP/REST API                           |
 | **Cloud Storage**       | External | Media asset storage (e.g., S3, Cloudflare R2)                                                                             | S3-compatible API                       |
 
@@ -150,7 +145,6 @@ graph TB
 
 #### Supporting Services
 
-- **Auth Provider** handles user authentication and identity management.
 - **Email Service** sends transactional emails (invitations, notifications, reports).
 - **Cloud Storage** stores uploaded media assets (images, videos) before publishing.
 
@@ -194,4 +188,4 @@ Profile Tailors enables teams to:
 - Team collaboration enhancements
 - Media asset management improvements
 
-Last updated: 2026-07-31
+Last updated: 2026-08-14

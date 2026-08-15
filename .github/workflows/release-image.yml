@@ -41,6 +41,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Determine release version
+        id: version
         env:
           RELEASE_TAG: ${{ inputs.release-tag || '' }}
         run: |
@@ -49,18 +50,54 @@ jobs:
           else
             ref_name="${GITHUB_REF_NAME}"
           fi
-          echo "RELEASE_VERSION=${ref_name#smp@}" >> "$GITHUB_ENV"
+          release_version="${ref_name#smp@}"
+          echo "RELEASE_VERSION=$release_version" >> "$GITHUB_ENV"
+          echo "release_version=$release_version" >> "$GITHUB_OUTPUT"
+
+      - name: Extract backend image metadata
+        id: metadata
+        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
+        with:
+          images: ghcr.io/dallay/profiletailors-smp
+          tags: |
+            type=raw,value=${{ steps.version.outputs.release_version }},priority=1000
+            type=raw,value=latest,priority=900
+          labels: |
+            org.opencontainers.image.title=Profile Tailors SMP
+            org.opencontainers.image.description=Backend service for the Profile Tailors social media management platform.
+            org.opencontainers.image.url=https://profiletailors.com
+            org.opencontainers.image.source=https://github.com/dallay/profiletailors.com
+            org.opencontainers.image.documentation=https://github.com/dallay/profiletailors.com/tree/main/server/smp
+            org.opencontainers.image.licenses=AGPL-3.0-only
+            org.opencontainers.image.authors=Dallay
+            org.opencontainers.image.vendor=Dallay
+          annotations: |
+            org.opencontainers.image.title=Profile Tailors SMP
+            org.opencontainers.image.description=Backend service for the Profile Tailors social media management platform.
+            org.opencontainers.image.url=https://profiletailors.com
+            org.opencontainers.image.source=https://github.com/dallay/profiletailors.com
+            org.opencontainers.image.documentation=https://github.com/dallay/profiletailors.com/tree/main/server/smp
+            org.opencontainers.image.version=${{ steps.version.outputs.release_version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created={{date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.licenses=AGPL-3.0-only
+            org.opencontainers.image.authors=Dallay
+            org.opencontainers.image.vendor=Dallay
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
 
       - name: Build and push backend image (multi-arch)
-        run: |
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            -f server/smp/backend.Dockerfile \
-            --build-arg SMP_VERSION="$RELEASE_VERSION" \
-            -t "ghcr.io/dallay/profiletailors-smp:$RELEASE_VERSION" \
-            -t "ghcr.io/dallay/profiletailors-smp:latest" \
-            --push \
-            .
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: server/smp/backend.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SMP_VERSION=${{ steps.version.outputs.release_version }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          annotations: ${{ steps.metadata.outputs.annotations }}
+          push: true
 
   build-dashboard:
     name: Build Dashboard Image
@@ -72,6 +109,9 @@ jobs:
 
       - uses: ./.github/actions/setup-frontend
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
@@ -80,6 +120,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Determine release version
+        id: version
         env:
           RELEASE_TAG: ${{ inputs.release-tag || '' }}
         run: |
@@ -88,20 +129,54 @@ jobs:
           else
             ref_name="${GITHUB_REF_NAME}"
           fi
-          echo "RELEASE_VERSION=${ref_name#smp@}" >> "$GITHUB_ENV"
+          release_version="${ref_name#smp@}"
+          echo "RELEASE_VERSION=$release_version" >> "$GITHUB_ENV"
+          echo "release_version=$release_version" >> "$GITHUB_OUTPUT"
+
+      - name: Extract dashboard image metadata
+        id: metadata
+        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
+        with:
+          images: ghcr.io/dallay/profiletailors-dashboard
+          tags: |
+            type=raw,value=${{ steps.version.outputs.release_version }},priority=1000
+            type=raw,value=latest,priority=900
+          labels: |
+            org.opencontainers.image.title=Profile Tailors Dashboard
+            org.opencontainers.image.description=Web dashboard for scheduling, publishing, analyzing, and collaborating across social networks with Profile Tailors.
+            org.opencontainers.image.url=https://profiletailors.com
+            org.opencontainers.image.source=https://github.com/dallay/profiletailors.com
+            org.opencontainers.image.documentation=https://github.com/dallay/profiletailors.com/tree/main/apps/web/app
+            org.opencontainers.image.licenses=AGPL-3.0-only
+            org.opencontainers.image.authors=Dallay
+            org.opencontainers.image.vendor=Dallay
+          annotations: |
+            org.opencontainers.image.title=Profile Tailors Dashboard
+            org.opencontainers.image.description=Web dashboard for scheduling, publishing, analyzing, and collaborating across social networks with Profile Tailors.
+            org.opencontainers.image.url=https://profiletailors.com
+            org.opencontainers.image.source=https://github.com/dallay/profiletailors.com
+            org.opencontainers.image.documentation=https://github.com/dallay/profiletailors.com/tree/main/apps/web/app
+            org.opencontainers.image.version=${{ steps.version.outputs.release_version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created={{date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.licenses=AGPL-3.0-only
+            org.opencontainers.image.authors=Dallay
+            org.opencontainers.image.vendor=Dallay
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
 
       - name: Build and push dashboard image
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-        run: |
-          docker build \
-            -f infra/apps/smp/production/dashboard.Dockerfile \
-            -t "ghcr.io/dallay/profiletailors-dashboard:$RELEASE_VERSION" \
-            -t "ghcr.io/dallay/profiletailors-dashboard:latest" \
-            --build-arg VITE_API_BASE_URL="${VITE_API_BASE_URL}" \
-            .
-          docker push "ghcr.io/dallay/profiletailors-dashboard:$RELEASE_VERSION"
-          docker push "ghcr.io/dallay/profiletailors-dashboard:latest"
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: infra/apps/smp/production/dashboard.Dockerfile
+          platforms: linux/amd64
+          build-args: |
+            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          annotations: ${{ steps.metadata.outputs.annotations }}
+          push: true
 
   publish-dockerhub:
     name: Publish to Docker Hub
@@ -147,14 +222,10 @@ jobs:
           ./crane copy "ghcr.io/dallay/profiletailors-smp:${RELEASE_VERSION}" "dallay/profiletailors-smp:${RELEASE_VERSION}"
           ./crane copy "ghcr.io/dallay/profiletailors-smp:latest" "dallay/profiletailors-smp:latest"
 
-      - name: Mirror dashboard image to Docker Hub
+      - name: Mirror dashboard image to Docker Hub (preserve OCI metadata)
         run: |
-          docker pull "ghcr.io/dallay/profiletailors-dashboard:${RELEASE_VERSION}"
-          docker pull "ghcr.io/dallay/profiletailors-dashboard:latest"
-          docker tag "ghcr.io/dallay/profiletailors-dashboard:${RELEASE_VERSION}" "dallay/profiletailors-dashboard:${RELEASE_VERSION}"
-          docker tag "ghcr.io/dallay/profiletailors-dashboard:latest" "dallay/profiletailors-dashboard:latest"
-          docker push "dallay/profiletailors-dashboard:${RELEASE_VERSION}"
-          docker push "dallay/profiletailors-dashboard:latest"
+          ./crane copy "ghcr.io/dallay/profiletailors-dashboard:${RELEASE_VERSION}" "dallay/profiletailors-dashboard:${RELEASE_VERSION}"
+          ./crane copy "ghcr.io/dallay/profiletailors-dashboard:latest" "dallay/profiletailors-dashboard:latest"
 
   smoke-test:
     name: Smoke Test

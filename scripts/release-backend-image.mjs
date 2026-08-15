@@ -21,6 +21,19 @@ if (!revision) {
 
 const shortRevision = revision.slice(0, 12)
 const imageName = `${imageRepository}:${version}-${shortRevision}`
+const imageMetadata = {
+  BP_OCI_AUTHORS: 'Dallay',
+  BP_OCI_CREATED: new Date().toISOString(),
+  BP_OCI_DESCRIPTION: 'Backend service for the Profile Tailors social media management platform.',
+  BP_OCI_DOCUMENTATION: 'https://github.com/dallay/profiletailors.com/tree/main/server/smp',
+  BP_OCI_LICENSES: 'AGPL-3.0-only',
+  BP_OCI_REVISION: revision,
+  BP_OCI_SOURCE: 'https://github.com/dallay/profiletailors.com',
+  BP_OCI_TITLE: 'Profile Tailors SMP',
+  BP_OCI_URL: 'https://profiletailors.com',
+  BP_OCI_VENDOR: 'Dallay',
+  BP_OCI_VERSION: version,
+}
 
 const build = spawnSync(
   gradleWrapper,
@@ -35,8 +48,7 @@ const build = spawnSync(
     shell: isWin,
     env: {
       ...process.env,
-      BP_OCI_REVISION: revision,
-      BP_OCI_VERSION: version,
+      ...imageMetadata,
     },
   },
 )
