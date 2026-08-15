@@ -33,15 +33,24 @@ RUN --mount=type=cache,id=gradle,target=/root/.gradle/caches \
 
 # ── Stage 2: multi-arch runtime ───────────────────────────────────────────
 # On each target platform the base image is automatically the matching
-# variant. Temurin 21-jre-noble ships multi-arch (linux/amd64,
+# variant. Temurin 25-jre-noble ships multi-arch (linux/amd64,
 # linux/arm64).
-FROM --platform=$TARGETPLATFORM eclipse-temurin:25-jre-noble@sha256:fbcf915c585659b30eb766ada4d6d7cfc9ec1040bf521e95bf61b10a25af73db AS runtime
+FROM eclipse-temurin:25-jre-noble@sha256:fbcf915c585659b30eb766ada4d6d7cfc9ec1040bf521e95bf61b10a25af73db AS runtime
 
 ARG SMP_VERSION="dev"
-LABEL org.opencontainers.image.version=$SMP_VERSION \
-      org.opencontainers.image.title="Profile Tailors SMP" \
+ARG IMAGE_CREATED=""
+ARG IMAGE_REVISION=""
+LABEL org.opencontainers.image.title="Profile Tailors SMP" \
+      org.opencontainers.image.description="Backend service for the Profile Tailors social media management platform." \
+      org.opencontainers.image.url="https://profiletailors.com" \
       org.opencontainers.image.source="https://github.com/dallay/profiletailors.com" \
-      org.opencontainers.image.licenses="Apache-2.0"
+      org.opencontainers.image.documentation="https://github.com/dallay/profiletailors.com/tree/main/server/smp" \
+      org.opencontainers.image.version=$SMP_VERSION \
+      org.opencontainers.image.revision=$IMAGE_REVISION \
+      org.opencontainers.image.created=$IMAGE_CREATED \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.authors="Dallay" \
+      org.opencontainers.image.vendor="Dallay"
 
 WORKDIR /app
 

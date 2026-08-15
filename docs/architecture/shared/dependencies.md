@@ -1,7 +1,24 @@
 # Shared Module Dependencies
 
 > Quick-reference dependency graph for the `shared/` Gradle modules in the Profile Tailors monorepo.
-> Last updated: 2026-07-18
+> Last updated: 2026-08-14
+
+## Shared Kernel Modules
+
+The monorepo contains 10 registered Gradle modules under `shared/` (excluding `shared:assets` and `shared:web` which are asset directories, not Gradle modules):
+
+| Module                          | Path                            | Type                    | Consumed By                  |
+|---------------------------------|---------------------------------|-------------------------|------------------------------|
+| `:shared:common`                | `shared/common/`                | Foundation              | All modules                  |
+| `:shared:bus`                   | `shared/bus/`                   | CQRS & Event Bus        | SBC, storage, ratelimit, smp |
+| `:shared:presentation`          | `shared/presentation/`          | Presentation DTOs       | SBC, smp                     |
+| `:shared:security`              | `shared/security/`              | Security & Hashing      | SBC, smp                     |
+| `:shared:spring-boot-common`    | `shared/spring-boot-common/`    | Spring Boot Integration | ratelimit, smp               |
+| `:shared:storage`               | `shared/storage/`               | Storage (S3/R2)         | smp                          |
+| `:shared:shield:ratelimit`      | `shared/shield/ratelimit/`      | Rate Limiting           | storage, smp                 |
+| `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (Lead Capture)| waitlist, smp                |
+| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | smp                          |
+| `:shared:notifications`         | `shared/notifications/`         | Notifications           | smp                          |
 
 ## Lead Capture Modules
 
@@ -33,6 +50,7 @@ graph TB
     RATELIMIT["<b>shared:shield:ratelimit</b><br/>Rate limiting with Bucket4j + Caffeine"]
     LC_COMMON["<b>shared:lead-capture:common</b><br/>EmailAddress, NormalizedEmail,<br/>CaptureSource, CaptureLocale, LeadMetadata<br/>Framework-free value objects"]
     LC_WAITLIST["<b>shared:lead-capture:waitlist</b><br/>Waitlist + WaitlistEntry aggregates,<br/>JoinWaitlistHandler, repository ports<br/>Framework-free domain + application"]
+    NOTIFICATIONS["<b>shared:notifications</b><br/>Notification abstractions and ports<br/>Email notification domain models"]
 
     %% CLIENT NODES
     SMP["<b>server:smp</b><br/>Spring Boot API Application<br/>All bounded contexts"]
@@ -52,6 +70,10 @@ graph TB
     RATELIMIT -->|impl| BUS
     RATELIMIT -->|impl| SBC
     LC_WAITLIST -->|impl| LC_COMMON
+    NOTIFICATIONS -->|api| COMMON
+    NOTIFICATIONS -->|api| BUS
+    NOTIFICATIONS -->|api| LC_COMMON
+    NOTIFICATIONS -->|api| LC_WAITLIST
     SMP -->|impl| COMMON
     SMP -->|impl| BUS
     SMP -->|impl| SECURITY
@@ -60,6 +82,7 @@ graph TB
     SMP -->|impl| STORAGE
     SMP -->|impl| LC_COMMON
     SMP -->|impl| LC_WAITLIST
+    SMP -->|impl| NOTIFICATIONS
 
     %% STYLING
     classDef foundation fill:#1a1a2e,stroke:#4a4a6a,color:#e0e0e0,rx:4px
@@ -72,7 +95,7 @@ graph TB
     class BUS,PRESENTATION,SECURITY shared
     class SBC spring
     class STORAGE,RATELIMIT infra
-    class LC_COMMON,LC_WAITLIST foundation
+    class LC_COMMON,LC_WAITLIST,NOTIFICATIONS foundation
     class SMP client
 ```
 
@@ -86,9 +109,10 @@ graph TB
 | `:shared:security`              | `shared/security/`              | Shared                  | `:shared:common`                                                            | SBC, smp                     |
 | `:shared:spring-boot-common`    | `shared/spring-boot-common/`    | Spring Boot integration | `:shared:common`, `:shared:bus`, `:shared:security`, `:shared:presentation` | ratelimit, smp               |
 | `:shared:storage`               | `shared/storage/`               | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:shield:ratelimit`                 | smp                          |
-| `:shared:shield:ratelimit`      | `shared/shield/ratelimit/`      | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:spring-boot-common`               | storage                      |
-| `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (no deps)    | —                                                                           | waitlist, smp                |
-| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | `:shared:lead-capture:common`                                               | smp                          |
+| `:shared:shield:ratelimit`      | `shared/shield/ratelimit/`      | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:spring-boot-common`               | storage, smp                 |
+| `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (no deps)    | —                                                                           | waitlist, notifications, smp |
+| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | `:shared:lead-capture:common`                                               | notifications, smp           |
+| `:shared:notifications`         | `shared/notifications/`         | Shared                  | `:shared:common`, `:shared:bus`, `:shared:lead-capture:common`, `:shared:lead-capture:waitlist` | smp                          |
 | `:server:smp`                   | `server/smp/`                   | Application             | All `shared:*` modules                                                      | —                            |
 
 ## Layer Rules
@@ -105,7 +129,7 @@ graph TB
 │ shared:bus       │  shared:presentation     │
 │ shared:security  │  shared:storage          │
 │ shared:lead-capture:waitlist                 │
-│                  │  shared:shield:ratelimit │
+│ shared:notifications │  shared:shield:ratelimit │
 ├──────────────────┴──────────────────────────┤
 │  shared:common   │  shared:lead-capture:common │
 │  Pure domain primitives, zero Spring deps   │
