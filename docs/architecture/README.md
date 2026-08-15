@@ -35,17 +35,16 @@ architecture at different levels of abstraction.
 ┌─────────────────────────────────────────────────────────────┐
 │ Level 2: Container                                          │
 │ ┌─────────────────────────────────────────────────────┐   │
-│ │  Marketing Site | Web App | API | Scheduler |       │   │
-│ │  Analytics | Database | Cache | Queue               │   │
+│ │  Marketing Site | Web App | API Application         │   │
+│ │  Database (PostgreSQL) | Cache (Caffeine/Redis)     │   │
 │ └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Level 3: Component (API Application)                        │
 │ ┌─────────────────────────────────────────────────────┐   │
-│ │  Identity | Authorization | Tenancy | Credentials | │   │
-│ │  Governance | Platform | Content | Analytics |      │   │
-│ │  Integrations                                       │   │
+│ │  19 Bounded Contexts: Identity, Authorization,      │   │
+│ │  Tenancy, Credentials, Publishing, Governance, etc. │   │
 │ └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                         ↓
@@ -70,8 +69,9 @@ architecture at different levels of abstraction.
 
 ### 2. Domain-Driven Design (DDD)
 
-- **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform, Lead
-  Capture
+- **Bounded Contexts**: 19 modular bounded contexts in `server/smp` (Analytics, Audit, Authorization,
+  Config, Credentials, Governance, Hashtags, Ideas, Identity, Lead Capture, MCP, Media,
+  Notifications, Observability, Platform, Platformadmin, Privacy, Publishing, Tenancy)
 - **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md)
   for all `api` and `implementation` relationships
 - **Foundation**: [`shared:common`](../../shared/common/) and [
@@ -181,4 +181,4 @@ architecture at different levels of abstraction.
 
 ---
 
-Last updated: 2026-06-13
+Last updated: 2026-08-14

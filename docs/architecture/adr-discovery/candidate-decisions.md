@@ -12,6 +12,9 @@
 | CANDIDATE-008 | **Application-Level Multi-tenancy** | Implemented   | High              | Yes                      | None (RLS not used)                   | Create ADR      |
 | CANDIDATE-009 | **JWT + HttpOnly Cookie Auth**      | Implemented   | High              | Yes                      | None                                  | Create ADR      |
 | CANDIDATE-010 | **Shared Kernel Strategy**          | Implemented   | High              | Yes                      | None                                  | Create ADR      |
+| CANDIDATE-011 | **Docker Swarm Deployment**         | Implemented   | High              | Yes                      | C4 referenced Kubernetes/Cloud Run    | Documented      |
+| CANDIDATE-012 | **In-Process Reactor Event Bus**    | Implemented   | High              | Yes                      | C4 referenced RabbitMQ/Kafka          | Documented      |
+| CANDIDATE-013 | **17 Backend Bounded Contexts**     | Implemented   | High              | Yes                      | C4 missing 11 contexts                | Documented      |
 
 ## Decision Groups
 
