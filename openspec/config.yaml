@@ -1,52 +1,143 @@
 schema: spec-driven
 
 context: |
-  Monorepo: profiletailors.com with Astro marketing app, Vue 3/Vite SPA, shared libraries, and Kotlin backend at server/smp.
-  Tech stack: Kotlin 2.3, Spring Boot 4, WebFlux, Spring Security, Spring Modulith, PostgreSQL/R2DBC, Liquibase, Astro 7, Tailwind CSS 4, Vue 3, pnpm 11.
-  Architecture: backend dependency direction domain <- application <- infrastructure, package-by-context, CQRS/mediator-style handlers; frontend feature modules and shared web libraries.
-  Testing: JUnit 5, Spring WebFlux/Security tests, Kotlin coroutines, Modulith, Cucumber BDD, Testcontainers, Kover, Vitest, Playwright, Astro check, and vue-tsc.
-  Style: Gradle Kotlin DSL, strict Kotlin JSR-305 nullability, Biome, Detekt, Spotless, English documentation, and just command recipes.
+  Monorepo: profiletailors.com — Profile Tailors social media management platform.
+  Workspaces: apps/web/marketing (Astro 7 static), apps/web/app (Vue 3/Vite dashboard SPA),
+  apps/web/admin (Vue 3/Vite platform-admin SPA), tools/compliance (TypeScript/Zod validator),
+  shared/web (@profiletailors/shared-web framework-neutral consent contract).
+  Backend: Kotlin 2.4.0, JDK 21, Spring Boot 4.0.7, Spring WebFlux, Spring Security, Spring Modulith
+  2.1.0, Spring AI 2.0.0 (MCP server), PostgreSQL + R2DBC + Liquibase, server/smp + shared/
+  (assets, bus, common, lead-capture, notifications, presentation, security, shield,
+  spring-boot-common, storage, web) Gradle modules.
+  Frontend: Astro 7.2.0 + Tailwind CSS 4.3.3, Vue 3.5.41 + Vite 7.3.6 + Pinia 4 + shadcn-vue
+  (reka-ui, lucide, vee-validate, zod 4.4.3), pnpm 11.20.0 catalog with workspace:*
+  @profiletailors/shared-web. Local dev runs through portless: pt-app, pt-admin, profiletailors.
+  Architecture: backend dependency direction domain <- application <- infrastructure
+  (hexagonal + Spring Modulith + DDD aggregates/value-objects/identity-only); per-context package
+  boundaries; frontend feature modules at apps/web/app/src/modules/<feature>; admin SPA is a
+  separate flatter bundle; marketing is static-first Astro with bilingual (en/es) locale files.
+  Testing: JUnit 6.1.2, Spring WebFlux/Security tests, Kotlin coroutines, MockK, Reactor Test,
+  ArchUnit 1.5, Konsist 0.17, Kotest 6, Kover 0.9, Cucumber 7 BDD (@smoke/@fast/@postgres),
+  Testcontainers (Postgres + Localstack), Vitest 3, Playwright 1.62, Astro check, vue-tsc 3.3.
+  Style: Gradle Kotlin DSL, strict Kotlin nullability, Biome 2.5.8, Detekt 2.0, Spotless 8.9,
+  English-only lowercase-kebab-case docs, conventional commits (feat/fix/docs/chore).
+  Command hub: `just` recipes wrap every pnpm/Gradle/Compose/Playwright entry point — start with
+  `just -l` instead of inventing commands.
 
 testing:
   strict_tdd: true
-  runners:
-    backend_unit: "just backend-test-fast"
-    backend_bdd_fast: "just backend-bdd-fast"
-    backend_postgres: "just backend-test-postgres"
-    backend_bdd_postgres: "just backend-bdd-postgres"
-    marketing_unit: "just frontend-test"
-    app_unit: "pnpm --filter app test:run"
-    marketing_e2e: "pnpm --filter marketing test:e2e"
-    app_e2e: "pnpm --filter app test:e2e:scheduler"
-  quality: ["just backend-lint", "just frontend-lint", "just frontend-check", "pnpm --filter app type-check"]
-  coverage: ["just frontend-test-cov", "just backend-coverage", "quality-gate.yml Kover/LCOV checks"]
-  full_gate: "just ci"
-  rationale: "Strict TDD is explicit in this config and repository instructions; multiple backend and frontend runners are available."
+  rationale: "Strict TDD is mandated by repository instructions (.agents/AGENTS.md § TDD) and
+    proven by active changes (mcp-server, consent-ux). RED → GREEN → REFACTOR is mandatory for
+    every implementation task; bugfixes start with a failing regression test."
+  layers:
+    unit:
+      backend: "just backend-test-fast"
+      marketing: "just frontend-test"
+      app: "pnpm --filter app test:run"
+      admin: "just admin-test"
+      shared_web: "pnpm --filter @profiletailors/shared-web test:run"
+    bdd:
+      fast: "just backend-bdd-fast"
+      postgres: "just backend-bdd-postgres"
+    integration_postgres: "just backend-test-postgres"
+    e2e:
+      marketing: "pnpm --filter marketing test:e2e"
+      app_scheduler: "pnpm --filter app test:e2e:scheduler"
+      app_media_mocked: "pnpm --filter app test:e2e:media:mocked"
+      app_media_real: "pnpm --filter app test:e2e:media:real"
+    coverage:
+      marketing: "just frontend-test-cov"
+      app: "pnpm --filter app test:coverage"
+      admin: "pnpm --filter admin test:coverage"
+      backend: "just backend-coverage"
+      gate: ".github/workflows/quality-gate.yml (Kover + LCOV thresholds)"
+    quality:
+      backend: "just backend-lint"
+      marketing_lint: "just frontend-lint"
+      marketing_check: "just frontend-check"
+      app_lint: "pnpm --filter app lint"
+      app_typecheck: "pnpm --filter app type-check"
+      admin_check: "just admin-check"
+    full_gate: "just ci"
 
 rules:
   proposal:
     - Include rollback plan for risky changes
-    - Identify affected modules/packages
+    - Identify affected modules/packages and shared kernel
+    - Link relevant ADRs (docs/architecture/adr/) and OpenSpec specs
   specs:
     - Use Given/When/Then format for scenarios
     - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Surface cross-surface impact (marketing, app, admin, shared/web, backend)
   design:
     - Include sequence diagrams for complex flows
-    - Document architecture decisions with rationale
+    - Document architecture decisions with rationale and link ADR
+    - Respect hexagonal dependency direction (domain <- application <- infrastructure)
+    - Respect DDD aggregate-root, identity-only, value-object immutability rules
+    - Respect Spring Modulith module boundaries
   tasks:
     - Group tasks by phase (infrastructure, implementation, testing)
     - Use hierarchical numbering (1.1, 1.2, etc.)
     - Keep tasks small enough to complete in one session
+    - Add Cucumber BDD scenarios for user-visible backend behavior
+    - Add Playwright/Playwright-Vitest coverage for critical frontend flows
   apply:
     - Follow existing code patterns and conventions
     - Load relevant coding skills for the project stack
+    - Write the failing test FIRST (RED) → minimum code to pass (GREEN) → refactor
+    - Keep changes minimal, reversible, reviewable; do not mix unrelated work
     tdd: true
-    test_command: "./gradlew test"
+    test_command: "just backend-test-fast"
   verify:
     - Run tests if test infrastructure exists
     - Compare implementation against every spec scenario
-    test_command: "./gradlew test"
-    build_command: "./gradlew build"
+    - Record passed/failed/skipped/not-run status honestly
+    - Distinguish local evidence from GitHub Actions / remote / deployed evidence
+    test_command: "just backend-test-fast"
+    build_command: "just backend-build"
     coverage_threshold: 0
   archive:
     - Warn before merging destructive deltas (large removals)
+    - Archive uses YYYY-MM-DD-{change-name}/ under openspec/changes/archive/
+    - Require verify-report.md and qa-report.md; verify is PASS or PASS WITH WARNINGS;
+      QA is policy-allowed; no unresolved CRITICAL/P0/P1 findings
+
+frontend_surfaces:
+  marketing:
+    framework: Astro 7.2.0 static
+    portless_name: profiletailors
+    i18n: bilingual en/es, locale files; ES copy can be longer — no fixed-width containers
+    design: read apps/web/marketing/PRODUCT.md and .agents/DESIGN.md first
+  app:
+    framework: Vue 3 + Vite + Pinia
+    portless_name: pt-app
+    modules: apps/web/app/src/modules/<feature>
+    design: read apps/web/app/PRODUCT.md and .agents/DESIGN.md first
+  admin:
+    framework: Vue 3 + Vite + Pinia (flatter, separate SPA)
+    portless_name: pt-admin
+    design: read apps/web/admin/PRODUCT.md and .agents/DESIGN.md first
+  shared_web:
+    package: "@profiletailors/shared-web"
+    role: framework-neutral, browser-safe; consent, validation, storage, DNT/GPC detection
+    consumers: marketing, app, admin (must NOT import surface-specific code)
+
+backend:
+  language: Kotlin 2.4.0 (JDK 21)
+  framework: Spring Boot 4.0.7, Spring Security, Spring Modulith 2.1.0, Spring AI 2.0.0 (MCP)
+  persistence: PostgreSQL + R2DBC, Liquibase migrations
+  layout: domain <- application <- infrastructure per bounded context
+  media_type: "application/vnd.api.v1+json"
+  test_helpers: "scripts/with-db-password-gradle.mjs (sourced from .env via SMP_DB_TEST_PASSWORD)"
+
+delivery:
+  pr_review_budget: 400 changed lines (additions + deletions)
+  default_strategy: ask-on-risk
+  forecast_required_lines:
+    - "Decision needed before apply: Yes|No"
+    - "Chained PRs recommended: Yes|No"
+    - "400-line budget risk: Low|Medium|High"
+  rules:
+    - sdd-tasks MUST forecast review-load risk and recommend chained/stacked PR slices when high
+    - sdd-apply MUST NOT start oversized work without an explicit size:exception or stacked strategy
+    - Each chained slice MUST have clear start, finish, autonomous scope, verification, rollback
