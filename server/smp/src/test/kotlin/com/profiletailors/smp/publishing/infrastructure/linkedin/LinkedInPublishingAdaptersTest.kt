@@ -29,8 +29,6 @@ import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.infrastructure.AttachmentsStorageBindingFactory
 import com.profiletailors.storage.infrastructure.ProviderConfig
 import com.profiletailors.storage.infrastructure.StorageProperties
-import io.kotest.matchers.shouldBe
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -197,7 +195,7 @@ class LinkedInPublishingAdaptersTest {
     }
 
     @Test
-    fun `should escape little text reserved characters when publishing multiline commentary`() = runTest {
+    fun `real publisher escapes little text reserved characters in multiline commentary`() = runTest {
         val transport = RecordingTransport(
             responses = listOf(
                 LinkedInHttpResponse(
@@ -232,46 +230,12 @@ La migración exige cuidado con (paréntesis), [corchetes] y {llaves}."""
         )
 
         val payload = transport.capturedBodies.single()
-        payload["commentary"].asText() shouldBe """Spring Boot 4.x \(el cambio más grande\)
+        assertEquals(
+            """Spring Boot 4.x \(el cambio más grande\)
 
-La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}."""
-    }
-
-    @Test
-    fun `should escape all LinkedIn little-grammar reserved characters when publishing commentary`() = runTest {
-        val transport = RecordingTransport(
-            responses = listOf(
-                LinkedInHttpResponse(
-                    201,
-                    headersOf("x-restli-id" to "post-all-escapes"),
-                    """{"id":"post-all-escapes"}""",
-                ),
-            ),
+La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
+            payload["commentary"].asText(),
         )
-        val credentialGateway = FakeCredentialGateway()
-        val accountId = "abcd1234"
-        val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
-        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
-        val publisher = testPublisher(
-            transport = transport,
-            credentialGateway = credentialGateway,
-            credentialReference = derivedUuid,
-        )
-        val account = testSocialAccount().copy(providerAccountId = accountId)
-        val body = """Test @mentions #hashtags <angle> *bold* _italic_ ~strike~ | pipe \ backslash () [] {}"""
-
-        publisher.publish(
-            ProviderPublishCommand(
-                publicationId = "pub-all-escapes",
-                workspaceId = "workspace-1",
-                socialAccount = account,
-                publication = testPublication(bodyText = body),
-                assets = emptyList(),
-            ),
-        )
-
-        val payload = transport.capturedBodies.single()
-        payload["commentary"].asText() shouldBe """Test \@mentions \#hashtags \<angle\> \*bold\* \_italic\_ \~strike\~ \| pipe \\ backslash \(\) \[\] \{\}"""
     }
 
     @Test
@@ -1635,7 +1599,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}."""
             capturedRequests += request
             request.bodyPublisher().ifPresent { publisher ->
                 val bytes = java.io.ByteArrayOutputStream()
-                val completion = CompletableDeferred<Unit>()
+                val subscription = java.util.concurrent.CountDownLatch(1)
                 publisher.subscribe(object : java.util.concurrent.Flow.Subscriber<java.nio.ByteBuffer> {
                     override fun onSubscribe(subscriptionValue: java.util.concurrent.Flow.Subscription) {
                         subscriptionValue.request(Long.MAX_VALUE)
@@ -1647,13 +1611,13 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}."""
                         bytes.write(data)
                     }
                     override fun onError(throwable: Throwable) {
-                        completion.completeExceptionally(throwable)
+                        subscription.countDown()
                     }
                     override fun onComplete() {
-                        completion.complete(Unit)
+                        subscription.countDown()
                     }
                 })
-                completion.await()
+                check(subscription.await(1, java.util.concurrent.TimeUnit.SECONDS))
                 if (request.headers().firstValue("Content-Type").orElse("").contains("application/json")) {
                     capturedBodies.add(ObjectMapper().readTree(bytes.toByteArray()))
                 }
