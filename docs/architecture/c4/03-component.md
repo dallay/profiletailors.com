@@ -23,11 +23,9 @@ LAYOUT_WITH_LEGEND()
 title Component Diagram for Profile Tailors API Application
 
 Container(spa, "Web Application", "Vue 3, TypeScript", "User interface")
-Container(scheduler, "Scheduler Service", "Spring Boot 4, Kotlin", "Background jobs")
-ContainerDb(db, "Database", "PostgreSQL 16", "Data store")
-ContainerDb(cache, "Cache", "Redis", "Session cache")
+ContainerDb(db, "Database", "PostgreSQL 18", "Data store")
+ContainerDb(cache, "Cache", "Caffeine / Redis (optional)", "Rate limiting store")
 System_Ext(social_media, "Social Media APIs", "External platforms")
-System_Ext(auth_provider, "Auth Provider", "OAuth2/OIDC")
 
 Container_Boundary(api, "API Application") {
     
@@ -44,18 +42,30 @@ Container_Boundary(api, "API Application") {
     Component(governance, "Governance Context", "Bounded Context", "Audit logging, compliance, data retention, mutation tracking")
     
     Component(platform, "Platform Context", "Bounded Context", "Request context, mediator pattern, cross-cutting concerns")
+
+    Component(platformadmin, "Platformadmin Context", "Bounded Context", "Global platform administration, feature flag management")
     
     Component(audit, "Audit Context", "Bounded Context", "Request outcome tracking, authorization decision auditing, mutation event capture")
     
     Component(observability, "Observability Context", "Bounded Context", "Metrics collection, rate limiting hooks, request monitoring")
     
-    Component(content, "Content Context", "Bounded Context", "Post creation, scheduling, draft management (planned)")
+    Component(publishing, "Publishing Context", "Bounded Context", "Post creation, scheduling, OAuth channel connections, publishing handlers")
     
-    Component(analytics, "Analytics Context", "Bounded Context", "Metrics aggregation, reporting (planned)")
+    Component(analytics, "Analytics Context", "Bounded Context", "Metrics aggregation, reporting")
     
-    Component(integrations, "Integrations Context", "Bounded Context", "Social media platform adapters (planned)")
+    Component(media, "Media Context", "Bounded Context", "Media asset storage, CAS deduplication")
 
     Component(lead_capture, "Lead Capture Context", "Bounded Context", "Public waitlist joins, lead storage, consent capture, rate-limited endpoint")
+
+    Component(privacy, "Privacy Context", "Bounded Context", "Data subject privacy requests, erasure, export")
+
+    Component(notifications, "Notifications Context", "Bounded Context", "Transactional email and user notification channels")
+
+    Component(hashtags, "Hashtags Context", "Bounded Context", "Hashtag group management and performance tracking")
+
+    Component(ideas, "Ideas Context", "Bounded Context", "Content ideas and draft brainstorming")
+
+    Component(mcp, "MCP Context", "Bounded Context", "Model Context Protocol tools and platform AI integration")
 }
 
 Rel(spa, http_layer, "Makes API calls", "HTTPS/REST, JSON")
@@ -64,7 +74,7 @@ Rel(http_layer, identity, "Authenticates requests")
 Rel(http_layer, authorization, "Checks permissions")
 Rel(http_layer, tenancy, "Manages workspaces")
 Rel(http_layer, credentials, "Manages credentials")
-Rel(http_layer, content, "Manages posts")
+Rel(http_layer, publishing, "Manages posts & channels")
 Rel(http_layer, analytics, "Queries metrics")
 Rel(http_layer, lead_capture, "Joins waitlists")
 
@@ -72,7 +82,7 @@ Rel(identity, platform, "Uses request context")
 Rel(authorization, platform, "Uses request context")
 Rel(tenancy, platform, "Uses request context")
 Rel(credentials, platform, "Uses request context")
-Rel(content, platform, "Uses request context")
+Rel(publishing, platform, "Uses request context")
 Rel(analytics, platform, "Uses request context")
 
 Rel(identity, governance, "Logs authentication events")
@@ -95,26 +105,19 @@ Rel(authorization, tenancy, "Resolves workspace membership")
 Rel(authorization, identity, "Resolves principal identity")
 Rel(credentials, identity, "Validates API keys and tokens")
 
-Rel(content, integrations, "Publishes posts")
-Rel(analytics, integrations, "Fetches engagement")
+Rel(publishing, social_media, "Publishes posts")
+Rel(analytics, social_media, "Fetches engagement")
 
 Rel(identity, db, "Reads/writes", "R2DBC")
 Rel(authorization, db, "Reads/writes", "R2DBC")
 Rel(tenancy, db, "Reads/writes", "R2DBC")
 Rel(credentials, db, "Reads/writes", "R2DBC")
 Rel(governance, db, "Writes", "R2DBC")
-Rel(content, db, "Reads/writes", "R2DBC")
+Rel(publishing, db, "Reads/writes", "R2DBC")
 Rel(analytics, db, "Reads/writes", "R2DBC")
 Rel(lead_capture, db, "Reads/writes", "R2DBC")
 
-Rel(identity, cache, "Caches sessions", "Redis")
-Rel(credentials, cache, "Caches tokens", "Redis")
-
-Rel(identity, auth_provider, "Validates JWT", "HTTPS/OAuth2")
-Rel(integrations, social_media, "Calls APIs", "HTTPS/REST")
-
-Rel(scheduler, content, "Reads schedules", "Internal API")
-Rel(scheduler, integrations, "Publishes posts", "Internal API")
+Rel(observability, cache, "Enforces rate limits", "In-memory/Redis")
 
 @enduml
 ```
@@ -126,11 +129,9 @@ Rel(scheduler, integrations, "Publishes posts", "Internal API")
 ```mermaid
 graph TB
     SPA[Web Application]
-    SCHED[Scheduler Service]
     DB[(Database)]
     CACHE[(Cache)]
     SOCIAL[Social Media APIs]
-    AUTH[Auth Provider]
 
     subgraph "API Application"
         HTTP[HTTP Layer<br/>WebFlux Controllers]
@@ -551,7 +552,7 @@ graph TB
 - Schedule posts for publishing
 - Manage drafts and revisions
 - Handle multi-platform post variants
-- Coordinate with scheduler service
+- Publish via platform channels
 
 **Key Components** (planned):
 
@@ -666,19 +667,17 @@ graph TB
 10. Domain Context → Governance Context (log mutation)
 ```
 
-### Post Scheduling Flow (Planned)
+### Post Scheduling Flow
 
-```
+```text
 1. HTTP Request → HTTP Layer
-2. HTTP Layer → Content Context (create post)
-3. Content Context → Integrations Context (validate format)
-4. Content Context → Database (save post and schedule)
-5. Content Context → Governance Context (log creation)
-6. Scheduler Service → Content Context (fetch due posts)
-7. Scheduler Service → Integrations Context (publish post)
-8. Integrations Context → Social Media API (POST)
-9. Integrations Context → Analytics Context (record publish event)
-10. Analytics Context → Database (save event)
+2. HTTP Layer → Publishing Context (create/schedule post)
+3. Publishing Context → Media Context (validate and resolve attachments)
+4. Publishing Context → Database (save post and schedule)
+5. Publishing Context → Governance Context (log creation)
+6. Publishing Context → Social Media API (publish via channel connection)
+7. Publishing Context → Analytics Context (record publish event)
+8. Analytics Context → Database (save event)
 ```
 
 ---
@@ -866,24 +865,28 @@ framework features, it belongs in `shared/spring-boot-common` instead.
 
 ## Current Implementation Status
 
-**Implemented Contexts**:
+**Implemented Contexts** (19 total):
 
-- ✅ Identity Context (JWT + API Key auth)
-- ✅ Authorization Context (RBAC, direct grants, entitlements)
-- ✅ Tenancy Context (workspaces, memberships, ownership)
-- ✅ Credentials Context (API keys, token validation)
-- ✅ Governance Context (audit logging, mutation tracking)
-- ✅ Platform Context (request context, mediator)
+- ✅ Analytics Context (engagement metrics & reporting)
 - ✅ Audit Context (request outcomes, authorization decisions, mutations)
-- ✅ Observability Context (metrics hooks, rate limiting)
+- ✅ Authorization Context (RBAC, direct grants, workspace permissions)
+- ✅ Config Context (system & application configuration)
+- ✅ Credentials Context (API keys, token validation, secret management)
+- ✅ Governance Context (audit logging, mutation tracking, compliance)
+- ✅ Hashtags Context (hashtag group management & tracking)
+- ✅ Ideas Context (content ideas & draft brainstorming)
+- ✅ Identity Context (native JWT + API Key auth)
 - ✅ Lead Capture Context (public waitlist joins, consent, rate-limited endpoint)
-
-**Planned Contexts**:
-
-- 🔲 Content Context (posts, scheduling, drafts)
-- 🔲 Analytics Context (metrics, reporting)
-- 🔲 Integrations Context (social media adapters)
+- ✅ MCP Context (Model Context Protocol integration for AI tools)
+- ✅ Media Context (media asset storage, CAS deduplication)
+- ✅ Notifications Context (transactional email & user notification channels)
+- ✅ Observability Context (metrics hooks, rate limiting)
+- ✅ Platform Context (request context, mediator pattern, cross-cutting concerns)
+- ✅ Platformadmin Context (global platform administration, feature flags)
+- ✅ Privacy Context (data subject privacy requests, DSAR, erasure)
+- ✅ Publishing Context (posts, schedules, OAuth channel connections)
+- ✅ Tenancy Context (workspaces, memberships, ownership)
 
 ---
 
-Last updated: 2026-07-18
+Last updated: 2026-08-14
