@@ -1,6 +1,6 @@
 {
   "name": "@profiletailors/admin",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "portless": {
@@ -24,7 +24,7 @@
     "@profiletailors/shared-web": "workspace:*",
     "@lucide/vue": "1.25.0",
     "@tanstack/vue-table": "^9.0.0",
-    "@vueuse/core": "^14.3.0",
+    "@vueuse/core": "^14.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "2.1.1",
     "pinia": "4.0.2",
@@ -43,12 +43,12 @@
     "@tailwindcss/vite": "4.3.3",
     "@tsconfig/node24": "24.0.4",
     "@vitejs/plugin-vue": "^6.0.8",
-    "@vue/test-utils": "^2.4.6",
-    "@vue/tsconfig": "^0.7.0",
+    "@vue/test-utils": "^2.4.11",
+    "@vue/tsconfig": "^0.9.1",
     "npm-run-all2": "^9.0.3",
     "typescript": "~6.0.3",
     "vite": "7.3.6",
     "vitest": "^3.2.7",
-    "vue-tsc": "3.3.7"
+    "vue-tsc": "3.3.9"
   }
 }

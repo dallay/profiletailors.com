@@ -60,6 +60,44 @@ Feature: Platform administration access control and waitlist management
     Then the admin response status should be 409
     And the admin response code should be "WAITLIST_ENTRY_ALREADY_CONVERTED"
 
+  # ── Invitation acceptance ─────────────────────────────────────────────────
+
+  Scenario: Unauthenticated principal cannot accept an invitation
+    Given an active direct invitation exists for "jwt-user@example.com"
+    When an unauthenticated principal accepts the invitation
+    Then the admin response status should be 401
+
+  Scenario: Authenticated principal must provide an invitation token
+    When the authenticated principal accepts the invitation with an empty token
+    Then the admin response status should be 400
+
+  Scenario: Authenticated principal receives a safe error for an unavailable invitation
+    Given an active direct invitation exists for "jwt-user@example.com"
+    When the authenticated principal accepts the invitation with an unavailable token
+    Then the admin response status should be 400
+    And the admin response code should be "INVITATION_NOT_ACCEPTABLE"
+
+  Scenario: Authenticated principal accepts a direct invitation and receives a safe result
+    Given an active direct invitation exists for "jwt-user@example.com"
+    When the authenticated principal accepts the invitation
+    Then the admin response status should be 200
+    And the invitation acceptance workspace should be "invitation-workspace"
+    And the invitation acceptance membership status should be "ACTIVE"
+    And the invitation response should not contain the token
+    And the invitation status should become "ACCEPTED"
+
+  Scenario: Replaying an accepted invitation is denied
+    Given an active direct invitation exists for "jwt-user@example.com"
+    When the authenticated principal accepts the invitation
+    And the authenticated principal accepts the invitation again
+    Then the admin response status should be 400
+    And the admin response code should be "INVITATION_NOT_ACCEPTABLE"
+
+  Scenario: Invitation acceptance is isolated from the request workspace
+    Given an active direct invitation exists for "jwt-user@example.com"
+    When the authenticated principal accepts the invitation
+    Then the invitation acceptance workspace should be "invitation-workspace"
+
   # ── Invitation operations ─────────────────────────────────────────────────
 
   Scenario: Revoking an active invitation marks it as revoked

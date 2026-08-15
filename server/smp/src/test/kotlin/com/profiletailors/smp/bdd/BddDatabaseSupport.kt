@@ -1,6 +1,5 @@
 package com.profiletailors.smp.bdd.glue
 
-import com.profiletailors.smp.publishing.domain.SocialPost
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import liquibase.Contexts
@@ -10,7 +9,6 @@ import liquibase.database.DatabaseFactory
 import liquibase.database.jvm.JdbcConnection
 import liquibase.resource.ClassLoaderResourceAccessor
 import org.springframework.r2dbc.core.DatabaseClient
-import org.springframework.transaction.reactive.TransactionalOperator
 import java.sql.DriverManager
 import java.time.Instant
 
@@ -20,7 +18,6 @@ class BddDatabaseSupport(
     private val liquibaseJdbcUrl: String,
     private val liquibaseUsername: String,
     private val liquibasePassword: String,
-    private val transactionalOperator: TransactionalOperator,
 ) {
     data class LocalAuthSession(val accessToken: String, val refreshCookie: String)
 
@@ -73,7 +70,7 @@ class BddDatabaseSupport(
 
     suspend fun resetDatabase() {
         applyLiquibaseBaseline()
-        BddDatabaseCleanup.statements.forEach { statement ->
+        cleanupStatements().forEach { statement ->
             databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
         }
         restoreRequiredBaselineRoles()
@@ -778,111 +775,6 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
-    suspend fun ensureSocialConnection(connectionId: String, workspaceId: String, provider: String, status: String) {
-        databaseClient.sql(
-            """
-            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status,
-                                            credential_reference, connected_at, last_synced_at, created_at)
-            VALUES (:id, :workspaceId, :provider, :providerConnectionRef, :status,
-                    NULL, NOW(), NOW(), NOW())
-            ON CONFLICT DO NOTHING
-            """.trimIndent(),
-        )
-            .bind("id", connectionId)
-            .bind("workspaceId", workspaceId)
-            .bind("provider", provider)
-            .bind("providerConnectionRef", "ref-$connectionId")
-            .bind("status", status)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
-
-    /**
-     * Seeds a [social_accounts] row for an arbitrary workspace, creating the connection
-     * if it does not exist.
-     */
-    suspend fun ensureSocialAccount(
-        accountId: String,
-        connectionId: String,
-        workspaceId: String,
-        provider: String,
-        providerAccountId: String,
-        accountKind: String,
-        displayName: String,
-    ) {
-        ensureSocialConnection(connectionId, workspaceId, provider, "ACTIVE")
-        databaseClient.sql(
-            """
-            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id,
-                                         account_type, display_name, profile_urn, status, created_at)
-            VALUES (:id, :connectionId, :workspaceId, :provider, :providerAccountId,
-                    :accountKind, :displayName, :profileUrn, 'ACTIVE', NOW())
-            ON CONFLICT (id, workspace_id) DO NOTHING
-            """.trimIndent(),
-        )
-            .bind("id", accountId)
-            .bind("connectionId", connectionId)
-            .bind("workspaceId", workspaceId)
-            .bind("provider", provider)
-            .bind("providerAccountId", providerAccountId)
-            .bind("accountKind", accountKind)
-            .bind("displayName", displayName)
-            .bind("profileUrn", providerSocialProfileUrn(provider, providerAccountId))
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
-
-    /**
-     * Seeds a [social_content_posts] row from a [SocialPost] domain object.
-     */
-    suspend fun seedSocialContentPost(post: SocialPost) {
-        val lastModified = post.lastModifiedAt ?: post.publishedAt
-        databaseClient.sql(
-            """
-            INSERT INTO social_content_posts (
-                id, workspace_id, social_account_id, provider, external_post_id,
-                published_at, last_modified_at, body, origin, local_publication_id,
-                lifecycle, expires_at, created_at, updated_at
-            ) VALUES (
-                :id, :workspaceId, :socialAccountId, :provider, :externalPostId,
-                :publishedAt, :lastModifiedAt, :body, :origin, :localPublicationId,
-                :lifecycle, :expiresAt, :createdAt, :updatedAt
-            )
-            ON CONFLICT (workspace_id, provider, social_account_id, external_post_id)
-            DO UPDATE SET published_at = EXCLUDED.published_at
-            """.trimIndent(),
-        )
-            .bind("id", java.util.UUID.randomUUID().toString())
-            .bind("workspaceId", post.scope.value)
-            .bind("socialAccountId", post.actorId)
-            .bind("provider", post.provider.name)
-            .bind("externalPostId", post.externalPostId.value)
-            .bind("publishedAt", post.publishedAt)
-            .bind("lastModifiedAt", lastModified)
-            .let { spec ->
-                val body = post.body
-                if (body != null) spec.bind("body", body) else spec.bindNull("body", String::class.java)
-            }
-            .bind("origin", post.origin.name)
-            .let { spec ->
-                val localPubId = post.localPublicationId
-                if (localPubId != null) {
-                    spec.bind("localPublicationId", localPubId)
-                } else {
-                    spec.bindNull("localPublicationId", String::class.java)
-                }
-            }
-            .bind("lifecycle", post.lifecycle.name)
-            .bind("expiresAt", post.expiresAt)
-            .bind("createdAt", Instant.now())
-            .bind("updatedAt", Instant.now())
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
-
     /**
      * Seeds a [publications] row in **DRAFT** status with **NOW** schedule mode.
      *
@@ -1109,77 +1001,68 @@ class BddDatabaseSupport(
             .awaitSingle()
     }
 
-    internal object BddDatabaseCleanup {
-        val statements: List<String> = listOf(
-            "DELETE FROM platform_admin_audit_events",
-            "DELETE FROM waitlist_invitations",
-            "DELETE FROM platform_role_assignments",
-            "DELETE FROM waitlist_entries",
-            "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
-            "DELETE FROM compliance_risk_acceptances",
-            "DELETE FROM compliance_control_evidences",
-            // evidence_links FK references compliance_evidences, must be deleted first
-            "DELETE FROM evidence_links",
-            "DELETE FROM compliance_evidences",
-            "DELETE FROM compliance_control_evidence_requirements",
-            "DELETE FROM compliance_control_applicability_dimensions",
-            "DELETE FROM compliance_control_applicability_rules",
-            "DELETE FROM compliance_controls",
-            // Audit
-            "DELETE FROM audit_events",
-            "DELETE FROM notification_events",
-            // Authorization
-            "DELETE FROM workspace_target_scopes",
-            "DELETE FROM workspace_direct_grants",
-            "DELETE FROM workspace_entitlements",
-            "DELETE FROM membership_roles",
-            "DELETE FROM role_permissions",
-            "DELETE FROM roles",
-            "DELETE FROM permissions",
-            // Auth / Session
-            "DELETE FROM refresh_sessions",
-            "DELETE FROM local_password_credentials",
-            "DELETE FROM api_key_credentials",
-            "DELETE FROM service_account_credentials",
-            // Ideas (reference publications + workspaces — must be deleted before both)
-            "DELETE FROM ideas",
-            "DELETE FROM idea_board_configs",
-            // Publishing
-            "DELETE FROM recurring_schedules",
-            "DELETE FROM publication_asset_links",
-            "DELETE FROM delivery_attempts",
-            "DELETE FROM publication_jobs",
-            "DELETE FROM publication_assets",
-            "DELETE FROM publications",
-            // Social
-            "DELETE FROM social_content_reply_commands",
-            "DELETE FROM social_content_webhook_events",
-            "DELETE FROM social_content_sync_checkpoints",
-            "DELETE FROM social_content_payload_cache",
-            "DELETE FROM social_content_comments",
-            "DELETE FROM social_content_posts",
-            "DELETE FROM social_content_actor_capabilities",
-            "DELETE FROM social_accounts",
-            "DELETE FROM social_connections",
-
-            // Media
-            "DELETE FROM media_assets",
-            "DELETE FROM workspace_file_blobs",
-            "DELETE FROM workspace_upload_slots",
-            "DELETE FROM media_rate_limits",
-            // Hashtags
-            "DELETE FROM hashtag_saved_sets",
-            // Workspace
-            "DELETE FROM workspace_memberships",
-            "DELETE FROM workspace_ownerships",
-            "DELETE FROM workspaces",
-            // Identity
-            "DELETE FROM password_reset_notification_failures",
-            "DELETE FROM password_reset_tokens",
-            "DELETE FROM user_identities",
-            "DELETE FROM principals",
-        )
-    }
+    private fun cleanupStatements(): List<String> = listOf(
+        "DELETE FROM platform_admin_audit_events",
+        "DELETE FROM invitations",
+        "DELETE FROM waitlist_invitations",
+        "DELETE FROM platform_role_assignments",
+        "DELETE FROM waitlist_entries",
+        "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
+        "DELETE FROM compliance_risk_acceptances",
+        "DELETE FROM compliance_control_evidences",
+        // evidence_links FK references compliance_evidences, must be deleted first
+        "DELETE FROM evidence_links",
+        "DELETE FROM compliance_evidences",
+        "DELETE FROM compliance_control_evidence_requirements",
+        "DELETE FROM compliance_control_applicability_dimensions",
+        "DELETE FROM compliance_control_applicability_rules",
+        "DELETE FROM compliance_controls",
+        // Audit
+        "DELETE FROM audit_events",
+        "DELETE FROM notification_events",
+        // Authorization
+        "DELETE FROM workspace_target_scopes",
+        "DELETE FROM workspace_direct_grants",
+        "DELETE FROM workspace_entitlements",
+        "DELETE FROM membership_roles",
+        "DELETE FROM role_permissions",
+        "DELETE FROM roles",
+        "DELETE FROM permissions",
+        // Auth / Session
+        "DELETE FROM refresh_sessions",
+        "DELETE FROM local_password_credentials",
+        "DELETE FROM api_key_credentials",
+        "DELETE FROM service_account_credentials",
+        // Ideas (reference publications + workspaces — must be deleted before both)
+        "DELETE FROM ideas",
+        "DELETE FROM idea_board_configs",
+        // Publishing
+        "DELETE FROM recurring_schedules",
+        "DELETE FROM publication_asset_links",
+        "DELETE FROM delivery_attempts",
+        "DELETE FROM publication_jobs",
+        "DELETE FROM publication_assets",
+        "DELETE FROM publications",
+        // Social
+        "DELETE FROM social_accounts",
+        "DELETE FROM social_connections",
+        // Media
+        "DELETE FROM media_assets",
+        "DELETE FROM workspace_file_blobs",
+        "DELETE FROM workspace_upload_slots",
+        "DELETE FROM media_rate_limits",
+        // Hashtags
+        "DELETE FROM hashtag_saved_sets",
+        // Workspace
+        "DELETE FROM workspace_memberships",
+        "DELETE FROM workspace_ownerships",
+        "DELETE FROM workspaces",
+        // Identity
+        "DELETE FROM password_reset_notification_failures",
+        "DELETE FROM password_reset_tokens",
+        "DELETE FROM user_identities",
+        "DELETE FROM principals",
+    )
 
     private fun applyLiquibaseBaseline() {
         DriverManager.getConnection(
