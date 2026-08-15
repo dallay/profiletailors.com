@@ -258,5 +258,5 @@ When finished, summarize:
 - [`../SKILL.md`](../SKILL.md) — core Spring Boot 4 reactive rules
 - [`../../hexagonal-architecture/SKILL.md`](../../hexagonal-architecture/SKILL.md) —
   domain/application/infrastructure boundaries
-- [`../../languages-typing/kotlin/SKILL.md`](../../languages-typing/kotlin/SKILL.md) — Kotlin
+- [`../../../languages-typing/kotlin/SKILL.md`](../../../languages-typing/kotlin/SKILL.md) — Kotlin
   conventions and test style

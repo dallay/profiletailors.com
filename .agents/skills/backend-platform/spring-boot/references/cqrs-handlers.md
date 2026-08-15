@@ -267,5 +267,5 @@ class CreateUserCommandHandler(
 
 - [controllers.md](./controllers.md) - How controllers dispatch to handlers
 - [configuration.md](./configuration.md) - How services are wired as beans
-- [../hexagonal-architecture/SKILL.md](../hexagonal-architecture/SKILL.md) - Application layer
+- [../../hexagonal-architecture/SKILL.md](../../hexagonal-architecture/SKILL.md) - Application layer
   patterns
