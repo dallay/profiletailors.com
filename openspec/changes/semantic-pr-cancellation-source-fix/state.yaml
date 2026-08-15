@@ -13,6 +13,6 @@ completed:
 next: archive
 updated: 2026-08-15
 warnings:
-  - QA is BLOCKED: no post-fix overlapping PR-event evidence was available.
-  - The local consumer SHA pin is unpushed; remote main still exposes v2.2.2.
+  - QA re-run verdict is FAIL: post-fix overlapping edited events still produced a cancelled Semantic PR workflow run.
+  - PR #801 remains open; do not archive until QA-001 is resolved and QA is rerun.
   - No separate @dallay/infra review evidence was available for the direct source release.
