@@ -196,7 +196,7 @@ backend-build:
 
 # Build a local OCI backend image from the current source tree
 backend-image image_name="profiletailors/smp:local" version="0.0.1-SNAPSHOT":
-    BP_OCI_VERSION="{{version}}" {{gradle-root}} :server:smp:bootBuildImage -PreleaseVersion="{{version}}" --imageName="{{image_name}}" --no-daemon
+    BP_OCI_AUTHORS="Dallay" BP_OCI_CREATED="$(date -u +%Y-%m-%dT%H:%M:%SZ)" BP_OCI_DESCRIPTION="Backend service for the Profile Tailors social media management platform." BP_OCI_DOCUMENTATION="https://github.com/dallay/profiletailors.com/tree/main/server/smp" BP_OCI_LICENSES="AGPL-3.0-only" BP_OCI_REVISION="$(git rev-parse HEAD)" BP_OCI_SOURCE="https://github.com/dallay/profiletailors.com" BP_OCI_TITLE="Profile Tailors SMP" BP_OCI_URL="https://profiletailors.com" BP_OCI_VENDOR="Dallay" BP_OCI_VERSION="{{version}}" {{gradle-root}} :server:smp:bootBuildImage -PreleaseVersion="{{version}}" --imageName="{{image_name}}" --no-daemon
 
 # Verify production startup, Liquibase migrations, and health with ephemeral infrastructure
 release-backend-verify image_name:
