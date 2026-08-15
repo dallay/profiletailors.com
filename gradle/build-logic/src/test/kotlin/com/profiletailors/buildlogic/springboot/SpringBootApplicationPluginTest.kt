@@ -39,7 +39,7 @@ class SpringBootApplicationPluginTest {
             .build()
             .output
 
-        assertTrue(output.contains("detekt"), "detekt task should be registered with detekt 2.0.0-alpha.5")
+        assertTrue(output.contains("detekt"), "detekt task should be registered with detekt 2.0.0-alpha.6")
         assertTrue(output.contains("koverXmlReport"), "koverXmlReport task should be registered with kover 0.9.9")
     }
 
@@ -86,27 +86,47 @@ class SpringBootApplicationPluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":koverHtmlReport")?.outcome) { "koverHtmlReport task outcome should be SUCCESS — kover HTML report must be generated" }
     }
 
-    private fun writeProject(testSource: String = "class PlaceholderTest") {
+    private fun writeProject(
+        testSource: String = """
+            import org.junit.jupiter.api.Test
+
+            class FastTagBoundaryTest {
+                @Test
+                fun placeholderTest() = Unit
+            }
+
+        """.trimIndent(),
+    ) {
         val versionCatalog = File(projectDir, "gradle/libs.versions.toml")
         versionCatalog.parentFile.mkdirs()
         versionCatalog.writeText(
             """
                 [versions]
-                kotlin = "2.4.0"
+                kotlin = "2.4.10"
 
                 [plugins]
                 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
                 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
                 spring-boot = { id = "org.springframework.boot", version = "4.0.0" }
                 spring-dependency-management = { id = "io.spring.dependency-management", version = "1.1.7" }
-                detekt = { id = "dev.detekt", version = "2.0.0-alpha.5" }
+                detekt = { id = "dev.detekt", version = "2.0.0-alpha.6" }
                 kover = { id = "org.jetbrains.kotlinx.kover", version = "0.9.9" }
             """.trimIndent(),
         )
         File(projectDir, "settings.gradle.kts").writeText(
             """
-                pluginManagement { repositories { gradlePluginPortal(); mavenCentral() } }
-                dependencyResolutionManagement { repositories { mavenCentral() } }
+                pluginManagement {
+                    repositories {
+                        gradlePluginPortal()
+                        mavenCentral()
+                    }
+                }
+                dependencyResolutionManagement {
+                    repositories {
+                        mavenCentral()
+                    }
+                }
+
             """.trimIndent(),
         )
         File(projectDir, "build.gradle.kts").writeText(
@@ -122,15 +142,13 @@ class SpringBootApplicationPluginTest {
                     testImplementation("org.junit.jupiter:junit-jupiter")
                     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
                 }
+
             """.trimIndent(),
         )
         val detektConfig = File(projectDir, "config/detekt/detekt.yml")
         detektConfig.parentFile.mkdirs()
         detektConfig.writeText(
             """
-                build:
-                  maxIssues: 0
-
                 config:
                   validation: true
                   warningsAsErrors: false
