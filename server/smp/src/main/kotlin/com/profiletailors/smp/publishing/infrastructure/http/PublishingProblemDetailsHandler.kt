@@ -8,6 +8,7 @@ import com.profiletailors.smp.publishing.application.SocialContentPostIsolationE
 import com.profiletailors.smp.publishing.application.SocialContentPostNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
+import com.profiletailors.smp.publishing.domain.InvalidSocialContentCursorException
 import com.profiletailors.smp.publishing.domain.ProviderConnectionNotAvailableException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAlreadyTerminalException
@@ -17,12 +18,15 @@ import com.profiletailors.smp.publishing.domain.PublicationEditNotAllowedExcepti
 import com.profiletailors.smp.publishing.domain.PublicationRetryNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationStateTransitionException
 import com.profiletailors.smp.publishing.domain.SocialContentAccessDeniedException
+import org.springframework.core.Ordered
+import org.springframework.core.annotation.Order
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @Suppress("TooManyFunctions")
 class PublishingProblemDetailsHandler {
 
@@ -110,11 +114,31 @@ class PublishingProblemDetailsHandler {
             title = "OAuth state expired"
         }
 
+    /**
+     * Creates a problem detail response for an invalid OAuth state.
+     *
+     * @param exception The invalid OAuth state exception being handled.
+     * @return A bad-request problem detail describing the invalid OAuth state.
+     */
     @ExceptionHandler(InvalidOAuthStateException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: InvalidOAuthStateException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, OAUTH_STATE_INVALID_DETAIL).apply {
             title = "OAuth state invalid"
+        }
+
+    /**
+     * Creates a bad-request problem detail for an invalid social content cursor.
+     *
+     * @param exception The invalid social content cursor exception.
+     * @return A problem detail with the invalid-cursor message and error code.
+     */
+    @ExceptionHandler(InvalidSocialContentCursorException::class)
+    @Suppress("UNUSED_PARAMETER")
+    fun handle(exception: InvalidSocialContentCursorException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_SOCIAL_CONTENT_CURSOR_DETAIL).apply {
+            title = "Invalid social content cursor"
+            setProperty("errorCode", INVALID_SOCIAL_CONTENT_CURSOR_ERROR_CODE)
         }
 
     /**
@@ -170,6 +194,8 @@ class PublishingProblemDetailsHandler {
             "The social content post crossed a workspace boundary."
         private const val OAUTH_STATE_EXPIRED_DETAIL = "OAuth state has expired."
         private const val OAUTH_STATE_INVALID_DETAIL = "OAuth state is invalid."
+        private const val INVALID_SOCIAL_CONTENT_CURSOR_DETAIL = "The social content calendar cursor is invalid."
+        private const val INVALID_SOCIAL_CONTENT_CURSOR_ERROR_CODE = "INVALID_SOCIAL_CONTENT_CURSOR"
         private const val MEDIA_SERVICE_UNAVAILABLE_DETAIL = "Media service is unavailable."
         private const val ASSET_NOT_READY_DETAIL = "One or more assets are not ready for publishing."
     }
