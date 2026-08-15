@@ -343,7 +343,7 @@ class RealLinkedInPublisher(
     }
 
     private fun escapeLittleText(commentary: String): String =
-        commentary.replace(Regex("""([\\()\[\]{}])"""), """\\${'$'}1""")
+        commentary.replace(Regex("""([\\()\[\]{}@#<>*_~|])"""), """\\${'$'}1""")
 
     /**
      * Constructs the asset content structure for a LinkedIn post.
