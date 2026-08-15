@@ -2,10 +2,14 @@ package com.profiletailors.smp.publishing.infrastructure.persistence
 
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import com.profiletailors.smp.publishing.domain.CalendarCursorVersion
 import com.profiletailors.smp.publishing.domain.ExternalPostId
+import com.profiletailors.smp.publishing.domain.InvalidSocialContentCursorException
 import com.profiletailors.smp.publishing.domain.PageCursor
 import com.profiletailors.smp.publishing.domain.PostLifecycle
 import com.profiletailors.smp.publishing.domain.PostOrigin
+import com.profiletailors.smp.publishing.domain.SocialContentCalendarCursor
+import com.profiletailors.smp.publishing.domain.SocialContentCalendarCursorCodec
 import com.profiletailors.smp.publishing.domain.SocialContentCalendarQuery
 import com.profiletailors.smp.publishing.domain.SocialPost
 import com.profiletailors.smp.publishing.domain.SocialProvider
@@ -297,6 +301,122 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `findImportedPosts walks keyset pages without overlap and omits final cursor`() = runTest {
+        val publishedAt = Instant.parse("2026-08-01T10:00:00Z")
+        listOf("calendar-page-1", "calendar-page-2", "calendar-page-3").forEach { externalId ->
+            repository.upsert(samplePost(externalId).copy(publishedAt = publishedAt))
+        }
+
+        val query = SocialContentCalendarQuery(
+            scope = WorkspaceScope("workspace-1"),
+            from = Instant.parse("2026-08-01T00:00:00Z"),
+            to = Instant.parse("2026-08-02T00:00:00Z"),
+            limit = 2,
+        )
+        val firstPage = repository.findImportedPosts(query)
+        val secondPage = repository.findImportedPosts(query.copy(cursor = firstPage.nextCursor))
+
+        assertEquals(listOf("calendar-page-1", "calendar-page-2"), firstPage.items.map { it.externalPostId.value })
+        assertNotNull(firstPage.nextCursor)
+        assertEquals(listOf("calendar-page-3"), secondPage.items.map { it.externalPostId.value })
+        assertNull(secondPage.nextCursor)
+        assertEquals(3, (firstPage.items + secondPage.items).map { it.externalPostId.value }.distinct().size)
+    }
+
+    @Test
+    fun `findImportedPosts rejects a cursor bound to another workspace before querying`() = runTest {
+        val cursor = SocialContentCalendarCursor(
+            version = CalendarCursorVersion(CalendarCursorVersion.V1),
+            workspaceId = "workspace-foreign",
+            publishedAt = Instant.parse("2026-08-01T10:00:00Z"),
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "soacc-1",
+            externalPostId = "calendar-page-1",
+        )
+
+        val exception = org.junit.jupiter.api.Assertions.assertThrows(InvalidSocialContentCursorException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                repository.findImportedPosts(
+                    SocialContentCalendarQuery(
+                        scope = WorkspaceScope("workspace-1"),
+                        from = Instant.parse("2026-08-01T00:00:00Z"),
+                        to = Instant.parse("2026-08-02T00:00:00Z"),
+                        cursor = PageCursor(SocialContentCalendarCursorCodec.encode(cursor)),
+                    ),
+                )
+            }
+        }
+
+        assertEquals("Invalid social content cursor", exception.message)
+    }
+
+    @Test
+    fun `findImportedPosts preserves cursor pagination for actor and lifecycle filters`() = runTest {
+        val publishedAt = Instant.parse("2026-08-01T10:00:00Z")
+        repository.upsert(
+            samplePost("filtered-1").copy(publishedAt = publishedAt, lifecycle = PostLifecycle.PUBLISHED),
+        )
+        repository.upsert(
+            samplePost("filtered-2").copy(publishedAt = publishedAt, lifecycle = PostLifecycle.TOMBSTONED),
+        )
+        repository.upsert(
+            samplePost("filtered-3").copy(publishedAt = publishedAt, lifecycle = PostLifecycle.PUBLISHED),
+        )
+        repository.upsert(
+            samplePost("other-actor").copy(
+                publishedAt = publishedAt,
+                actorId = "soacc-2",
+                lifecycle = PostLifecycle.PUBLISHED,
+            ),
+        )
+
+        val query = SocialContentCalendarQuery(
+            scope = WorkspaceScope("workspace-1"),
+            from = Instant.parse("2026-08-01T00:00:00Z"),
+            to = Instant.parse("2026-08-02T00:00:00Z"),
+            actorId = "soacc-1",
+            lifecycle = PostLifecycle.PUBLISHED,
+            limit = 1,
+        )
+        val firstPage = repository.findImportedPosts(query)
+        val secondPage = repository.findImportedPosts(query.copy(cursor = firstPage.nextCursor))
+
+        assertEquals(listOf("filtered-1"), firstPage.items.map { it.externalPostId.value })
+        assertEquals(listOf("filtered-3"), secondPage.items.map { it.externalPostId.value })
+        assertNull(secondPage.nextCursor)
+    }
+
+    @Test
+    fun `findImportedPosts uses every tuple field as a strict boundary`() = runTest {
+        val before = Instant.parse("2026-08-01T10:00:00Z")
+        val boundary = Instant.parse("2026-08-01T11:00:00Z")
+        val after = Instant.parse("2026-08-01T12:00:00Z")
+        repository.upsert(samplePost("strict-before").copy(publishedAt = before))
+        repository.upsert(samplePost("strict-boundary").copy(publishedAt = boundary))
+        repository.upsert(samplePost("strict-after").copy(publishedAt = after))
+
+        val cursor = SocialContentCalendarCursor(
+            version = CalendarCursorVersion(CalendarCursorVersion.V1),
+            workspaceId = "workspace-1",
+            publishedAt = boundary,
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "soacc-1",
+            externalPostId = "strict-boundary",
+        )
+
+        val page = repository.findImportedPosts(
+            SocialContentCalendarQuery(
+                scope = WorkspaceScope("workspace-1"),
+                from = Instant.parse("2026-08-01T00:00:00Z"),
+                to = Instant.parse("2026-08-02T00:00:00Z"),
+                cursor = PageCursor(SocialContentCalendarCursorCodec.encode(cursor)),
+            ),
+        )
+
+        assertEquals(listOf("strict-after"), page.items.map { it.externalPostId.value })
+    }
+
+    @Test
     fun `findImportedPosts filters by lifecycle`() = runTest {
         repository.upsert(samplePost("linkedin-life-1"))
         repository.upsert(samplePost("linkedin-life-2").copy(lifecycle = PostLifecycle.TOMBSTONED))
@@ -339,27 +459,59 @@ class R2dbcSocialContentRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             VALUES ('workspace-1', 'Workspace 1', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
+        seedSocialAccount(
+            accountId = "soacc-1",
+            connectionId = "soconn-1",
+            providerAccountId = "linkedin-account-1",
+            displayName = "Yuniel",
+        )
+        seedSocialAccount(
+            accountId = "soacc-2",
+            connectionId = "soconn-2",
+            providerAccountId = "linkedin-account-2",
+            displayName = "Other actor",
+        )
+    }
+
+    private suspend fun seedSocialAccount(
+        accountId: String,
+        connectionId: String,
+        providerAccountId: String,
+        displayName: String,
+    ) {
         databaseClient.sql(
             """
             INSERT INTO social_connections (
                 id, workspace_id, provider, provider_connection_ref, status, credential_reference
             ) VALUES (
-                'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1',
+                :connectionId, 'workspace-1', 'LINKEDIN', :connectionRef,
                 'ACTIVE', '00000000-0000-0000-0000-000000000000'
             )
             """.trimIndent(),
-        ).fetch().rowsUpdated().awaitSingle()
+        )
+            .bind("connectionId", connectionId)
+            .bind("connectionRef", "linkedin-conn-$connectionId")
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO social_accounts (
                 id, social_connection_id, workspace_id, provider, provider_account_id,
                 account_type, display_name, status
             ) VALUES (
-                'soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN',
-                'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
+                :accountId, :connectionId, 'workspace-1', 'LINKEDIN',
+                :providerAccountId, 'PERSONAL_PROFILE', :displayName, 'ACTIVE'
             )
             """.trimIndent(),
-        ).fetch().rowsUpdated().awaitSingle()
+        )
+            .bind("accountId", accountId)
+            .bind("connectionId", connectionId)
+            .bind("providerAccountId", providerAccountId)
+            .bind("displayName", displayName)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
     }
 
     companion object {
