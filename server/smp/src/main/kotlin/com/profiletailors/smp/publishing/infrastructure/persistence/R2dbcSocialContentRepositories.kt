@@ -1,9 +1,13 @@
 package com.profiletailors.smp.publishing.infrastructure.persistence
 
+import com.profiletailors.smp.publishing.domain.CalendarCursorVersion
 import com.profiletailors.smp.publishing.domain.ExternalPostId
+import com.profiletailors.smp.publishing.domain.InvalidSocialContentCursorException
 import com.profiletailors.smp.publishing.domain.PageCursor
 import com.profiletailors.smp.publishing.domain.PostLifecycle
 import com.profiletailors.smp.publishing.domain.PostOrigin
+import com.profiletailors.smp.publishing.domain.SocialContentCalendarCursor
+import com.profiletailors.smp.publishing.domain.SocialContentCalendarCursorCodec
 import com.profiletailors.smp.publishing.domain.SocialContentCalendarQuery
 import com.profiletailors.smp.publishing.domain.SocialContentCheckpointRepository
 import com.profiletailors.smp.publishing.domain.SocialContentPage
@@ -173,6 +177,12 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
         return checkpoint
     }
 
+    /**
+     * Updates the synchronization checkpoint for a workspace and social account.
+     *
+     * @param checkpoint The checkpoint containing the resource, optional post identifier,
+     *   cursor, and timestamps to store.
+     */
     private suspend fun updateCheckpoint(checkpoint: SyncCheckpoint) {
         val matchesPost = checkpoint.resource != SyncResource.POSTS && checkpoint.postId != null
         val postIdClause = if (matchesPost) "AND post_id = :postId" else "AND post_id IS NULL"
@@ -198,7 +208,18 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
         statement.fetch().rowsUpdated().awaitSingle()
     }
 
+    /**
+     * Retrieves imported social posts within the requested calendar range.
+     *
+     * @param query The calendar query defining the workspace, time range, filters, page size,
+     *   and optional cursor.
+     * @return A page of matching posts, with an optional cursor for the next page and the latest
+     *   publication time in the page.
+     * @throws InvalidSocialContentCursorException If the cursor is invalid or belongs to a
+     *   different workspace.
+     */
     override suspend fun findImportedPosts(query: SocialContentCalendarQuery): SocialContentPage<SocialPost> {
+        val cursor = query.cursor?.let { decodeCursor(it, query.scope.value) }
         val statement = databaseClient.sql(
             """
             SELECT workspace_id, social_account_id, provider, external_post_id, published_at,
@@ -209,7 +230,12 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
               AND published_at < :toAt
               AND (:actorId IS NULL OR social_account_id = :actorId)
               AND (:lifecycle IS NULL OR lifecycle = :lifecycle)
-            ORDER BY published_at, external_post_id
+              AND (
+                    :cursorPublishedAt IS NULL
+                    OR (published_at, provider, social_account_id, external_post_id) >
+                       (:cursorPublishedAt, :cursorProvider, :cursorSocialAccountId, :cursorExternalPostId)
+              )
+            ORDER BY published_at ASC, provider ASC, social_account_id ASC, external_post_id ASC
             LIMIT :limit
             """.trimIndent(),
         )
@@ -218,11 +244,59 @@ class R2dbcSocialContentRepositories(private val databaseClient: DatabaseClient)
             .bind("toAt", query.to)
             .bindNullable("actorId", query.actorId, String::class.java)
             .bindNullable("lifecycle", query.lifecycle?.name, String::class.java)
-            .bind("limit", query.limit)
-        val items = statement.map { row, _ -> row.toSocialPost() }.all().collectList().awaitSingle()
-        return SocialContentPage(items, null, items.maxOfOrNull { it.publishedAt })
+            .bindNullable("cursorPublishedAt", cursor?.publishedAt, Instant::class.java)
+            .bindNullable("cursorProvider", cursor?.provider?.name, String::class.java)
+            .bindNullable("cursorSocialAccountId", cursor?.socialAccountId, String::class.java)
+            .bindNullable("cursorExternalPostId", cursor?.externalPostId, String::class.java)
+            .bind("limit", query.limit + 1)
+        val fetched = statement.map { row, _ -> row.toSocialPost() }.all().collectList().awaitSingle()
+        val items = fetched.take(query.limit)
+        val nextCursor = if (fetched.size > query.limit) {
+            PageCursor(SocialContentCalendarCursorCodec.encode(items.last().toCalendarCursor()))
+        } else {
+            null
+        }
+        return SocialContentPage(items, nextCursor, items.maxOfOrNull { it.publishedAt })
     }
 
+    /**
+     * Decodes a calendar cursor and verifies that it belongs to the specified workspace.
+     *
+     * @param cursor The cursor to decode.
+     * @param workspaceId The workspace identifier the cursor must belong to.
+     * @return The decoded calendar cursor.
+     * @throws InvalidSocialContentCursorException If the cursor belongs to a different workspace.
+     */
+    private fun decodeCursor(cursor: PageCursor, workspaceId: String): SocialContentCalendarCursor {
+        val decoded = SocialContentCalendarCursorCodec.decode(cursor.value)
+        if (decoded.workspaceId != workspaceId) {
+            throw InvalidSocialContentCursorException()
+        }
+        return decoded
+    }
+
+    /**
+     * Creates a version 1 calendar cursor for this post.
+     *
+     * @return A cursor containing the post's workspace, publication time, provider, account, and external ID.
+     */
+    private fun SocialPost.toCalendarCursor() = SocialContentCalendarCursor(
+        version = CalendarCursorVersion(CalendarCursorVersion.V1),
+        workspaceId = scope.value,
+        publishedAt = publishedAt,
+        provider = provider,
+        socialAccountId = actorId,
+        externalPostId = externalPostId.value,
+    )
+
+    /**
+     * Maps a database row to a social post.
+     *
+     * @receiver The database row containing social post columns.
+     * @return The social post represented by the row.
+     * @throws IllegalStateException If a required column is missing.
+     * @throws IllegalArgumentException If a provider, origin, or lifecycle value is invalid.
+     */
     private fun io.r2dbc.spi.Readable.toSocialPost(): SocialPost = SocialPost(
         scope = WorkspaceScope(get("workspace_id", String::class.java) ?: error("workspace_id missing")),
         provider = SocialProvider.valueOf(get("provider", String::class.java) ?: error("provider missing")),

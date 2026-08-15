@@ -6,6 +6,7 @@ import com.profiletailors.smp.publishing.application.SocialContentPostIsolationE
 import com.profiletailors.smp.publishing.application.SocialContentPostNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
+import com.profiletailors.smp.publishing.domain.InvalidSocialContentCursorException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAlreadyTerminalException
 import com.profiletailors.smp.publishing.domain.PublicationCancellationNotAllowedException
@@ -53,6 +54,16 @@ class PublishingProblemDetailsHandlerTest {
         problem.status shouldBe HttpStatus.BAD_REQUEST.value()
         problem.title shouldBe "OAuth state invalid"
         problem.detail shouldBe "OAuth state is invalid."
+    }
+
+    @Test
+    fun `maps InvalidSocialContentCursorException to 400 BAD_REQUEST with error code`() {
+        val problem = handler.handle(InvalidSocialContentCursorException("malformed cursor"))
+
+        problem.status shouldBe HttpStatus.BAD_REQUEST.value()
+        problem.title shouldBe "Invalid social content cursor"
+        problem.detail shouldBe "The social content calendar cursor is invalid."
+        problem.properties?.get("errorCode") shouldBe "INVALID_SOCIAL_CONTENT_CURSOR"
     }
 
     @Test

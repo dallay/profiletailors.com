@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-019-add-social-content-calendar-keyset-index
+      author: opencode
+      changes:
+        - createIndex:
+            tableName: social_content_posts
+            indexName: idx_social_content_posts_calendar_keyset
+            columns:
+              - column:
+                  name: workspace_id
+              - column:
+                  name: published_at
+              - column:
+                  name: provider
+              - column:
+                  name: social_account_id
+              - column:
+                  name: external_post_id
+      rollback:
+        - dropIndex:
+            tableName: social_content_posts
+            indexName: idx_social_content_posts_calendar_keyset

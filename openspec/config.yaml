@@ -7,46 +7,48 @@ context: |
   Testing: JUnit 5, Spring WebFlux/Security tests, Kotlin coroutines, Modulith, Cucumber BDD, Testcontainers, Kover, Vitest, Playwright, Astro check, and vue-tsc.
   Style: Gradle Kotlin DSL, strict Kotlin JSR-305 nullability, Biome, Detekt, Spotless, English documentation, and just command recipes.
 
+persistence:
+  mode: openspec
+  artifact_policy: openspec-only
+  main_specs: openspec/specs
+  active_changes: openspec/changes
+  archive: openspec/changes/archive
+
 testing:
   strict_tdd: true
-  runners:
-    backend_unit: "just backend-test-fast"
-    backend_bdd_fast: "just backend-bdd-fast"
-    backend_postgres: "just backend-test-postgres"
-    backend_bdd_postgres: "just backend-bdd-postgres"
-    marketing_unit: "just frontend-test"
-    app_unit: "pnpm --filter app test:run"
-    marketing_e2e: "pnpm --filter marketing test:e2e"
-    app_e2e: "pnpm --filter app test:e2e:scheduler"
-  quality: ["just backend-lint", "just frontend-lint", "just frontend-check", "pnpm --filter app type-check"]
-  coverage: ["just frontend-test-cov", "just backend-coverage", "quality-gate.yml Kover/LCOV checks"]
-  full_gate: "just ci"
-  rationale: "Strict TDD is explicit in this config and repository instructions; multiple backend and frontend runners are available."
+  rationale: "Repository instructions explicitly require TDD, and backend/frontend test runners are available."
+  capabilities:
+    backend_unit:
+      runner: "JUnit Platform with Kotlin test, MockK, Kotest assertions, WebFlux/Security tests"
+      command: "just backend-test-fast"
+    backend_architecture:
+      runner: "ArchUnit and Spring Modulith tests"
+      command: "just backend-test-fast"
+    backend_bdd_fast:
+      runner: "Cucumber on JUnit Platform with Testcontainers PostgreSQL"
+      command: "just backend-bdd-fast"
+    backend_postgres_integration:
+      runner: "JUnit Platform with Testcontainers/PostgreSQL"
+      command: "just backend-test-postgres"
+    backend_coverage:
+      runner: "Kover verification/reporting"
+      command: "just backend-coverage"
+    frontend_unit:
+      runner: "Vitest"
+      command: "just frontend-test"
+    frontend_e2e:
+      runner: "Playwright"
+      command: "just frontend-test-e2e"
+    frontend_lint:
+      runner: "Biome"
+      command: "just frontend-lint"
+    full_ci:
+      runner: "Repository CI orchestration"
+      command: "just ci"
 
-rules:
-  proposal:
-    - Include rollback plan for risky changes
-    - Identify affected modules/packages
-  specs:
-    - Use Given/When/Then format for scenarios
-    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
-  design:
-    - Include sequence diagrams for complex flows
-    - Document architecture decisions with rationale
-  tasks:
-    - Group tasks by phase (infrastructure, implementation, testing)
-    - Use hierarchical numbering (1.1, 1.2, etc.)
-    - Keep tasks small enough to complete in one session
-  apply:
-    - Follow existing code patterns and conventions
-    - Load relevant coding skills for the project stack
-    tdd: true
-    test_command: "./gradlew test"
-  verify:
-    - Run tests if test infrastructure exists
-    - Compare implementation against every spec scenario
-    test_command: "./gradlew test"
-    build_command: "./gradlew build"
-    coverage_threshold: 0
-  archive:
-    - Warn before merging destructive deltas (large removals)
+qa:
+  acceptance_required_for_behavior_changes: true
+  evidence_policy: "Do not infer product acceptance from unit, integration, BDD, or static checks alone."
+  archive_blockers:
+    - "Unresolved CRITICAL, P0, or P1 findings"
+    - "Acceptance-relevant BLOCKED or NOT TESTED scenarios"
