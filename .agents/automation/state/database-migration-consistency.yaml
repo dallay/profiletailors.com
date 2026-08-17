@@ -7,7 +7,9 @@ findings: []
 checks:
   - name: liquibase-schema-r2dbc-mapping-audit
     status: PASSED
-    details: Verified Liquibase database migration changelogs against R2DBC repository implementations and mappings. No schema or persistence drift detected.
+    details: >
+      Verified Liquibase database migration changelogs against R2DBC repository implementations and mappings for 6 modules
+      (tenancy, governance, publishing, identity, credentials, media). No schema or persistence drift detected in verified modules.
   - name: backend-test-fast
     status: PASSED
     details: Executed backend unit tests excluding postgres/modularity integration tags.
