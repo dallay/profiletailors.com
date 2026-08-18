@@ -1,6 +1,6 @@
 schemaVersion: 1
 task: maintenance-coordinator
-lastExecution: "2026-08-09T04:14:00Z"
+lastExecution: "2026-08-16T12:00:00Z"
 outcome: CHANGES_APPLIED
 findings:
   - id: AUTO-security-configuration-drift-unresolved
@@ -24,6 +24,20 @@ findings:
     evidence: "The pr-577-quality-gate-remediation change is in progress (verify phase) but failing due to app coverage (69.50% vs required 80% project gate) in openspec-reconciliation.yaml."
     risk: LOW
     message: "pr-577-quality-gate-remediation is currently unresolved as fresh app LCOV project coverage remains below 80% quality gate."
+  - id: AUTO-openspec-reconciliation-consent-ux-qa
+    title: "Active Change Status: consent-ux In QA"
+    status: unresolved
+    classification: PARTIALLY_COMPLETED
+    evidence: "The consent-ux change is in QA phase with outstanding conditions (DNT/GPC E2E scenario, browser matrix execution) in openspec-reconciliation.yaml."
+    risk: LOW
+    message: "consent-ux is active in QA phase. Implementation and QA defects are applied."
+  - id: AUTO-openspec-reconciliation-private-beta-launch-readiness-apply
+    title: "Active Change Status: private-beta-launch-readiness In Apply"
+    status: unresolved
+    classification: PARTIALLY_COMPLETED
+    evidence: "The private-beta-launch-readiness change is in apply phase awaiting BDD postgres verification in openspec-reconciliation.yaml."
+    risk: LOW
+    message: "private-beta-launch-readiness is active in apply phase."
 checks:
   - name: "Task States Verification"
     status: Passed
