@@ -1,42 +1,77 @@
 schemaVersion: 1
 task: dependency-maintenance
-lastExecution: 2026-08-12T18:10:00Z
+lastExecution: 2026-08-12T18:30:00Z
 outcome: CHANGES_APPLIED
 findings:
-  - id: biome-patch-drift
-    dependency: "@biomejs/biome"
+  - id: iconify-lucide-patch-drift
+    dependency: "@iconify-json/lucide"
     type: patch-drift
-    currentVersion: 2.5.6
-    resolvedVersion: 2.5.7
+    currentVersion: 1.2.121
+    resolvedVersion: 1.2.123
     status: resolved
-    evidence: "Biome upgraded from 2.5.6 to 2.5.7 as a conservative dependency maintenance patch."
-  - id: vue-patch-drift
-    dependency: "vue"
+    evidence: "Upgraded @iconify-json/lucide from 1.2.121 to 1.2.123 in apps/web/marketing."
+  - id: astro-patch-drift
+    dependency: "astro"
     type: patch-drift
-    currentVersion: 3.5.40
-    resolvedVersion: 3.5.41
+    currentVersion: 7.2.0
+    resolvedVersion: 7.2.2
     status: resolved
-    evidence: "Vue upgraded from 3.5.40 to 3.5.41 in the workspace as a conservative dependency maintenance patch."
-  - id: vue-i18n-alignment-drift
-    dependency: "vue-i18n"
+    evidence: "Upgraded astro from 7.2.0 to 7.2.2 in apps/web/marketing."
+  - id: tsconfig-node24-patch-drift
+    dependency: "@tsconfig/node24"
+    type: patch-drift
+    currentVersion: 24.0.4
+    resolvedVersion: 24.0.5
+    status: resolved
+    evidence: "Upgraded @tsconfig/node24 from 24.0.4 to 24.0.5 in app and admin apps."
+  - id: pinia-patch-drift
+    dependency: "pinia"
+    type: patch-drift
+    currentVersion: 4.0.2
+    resolvedVersion: 4.0.3
+    status: resolved
+    evidence: "Upgraded pinia from 4.0.2 to 4.0.3 in app and admin apps."
+  - id: reka-ui-patch-drift
+    dependency: "reka-ui"
+    type: patch-drift
+    currentVersion: 2.10.1
+    resolvedVersion: 2.10.3
+    status: resolved
+    evidence: "Upgraded reka-ui from 2.10.1 to 2.10.3 in app and admin apps."
+  - id: shadcn-vue-alignment-drift
+    dependency: "shadcn-vue"
     type: version-drift
-    currentVersion: 11.4.7
-    resolvedVersion: 11.4.8
+    currentVersion: 2.7.4
+    resolvedVersion: 2.8.0
     status: resolved
-    evidence: "Vue-i18n in apps/web/admin upgraded from 11.4.7 to 11.4.8 to align with apps/web/app version."
-  - id: internationalized-date-patch-drift
-    dependency: "@internationalized/date"
+    evidence: "Upgraded shadcn-vue from 2.7.4 to 2.8.0 in admin to align with app version."
+  - id: lucide-vue-alignment-drift
+    dependency: "@lucide/vue"
+    type: version-drift
+    currentVersion: 1.25.0
+    resolvedVersion: 1.27.0
+    status: resolved
+    evidence: "Upgraded @lucide/vue from 1.25.0 to 1.27.0 in admin to align with app version."
+  - id: vue-tsc-patch-drift
+    dependency: "vue-tsc"
     type: patch-drift
-    currentVersion: 3.12.2
-    resolvedVersion: 3.12.3
+    currentVersion: 3.3.9
+    resolvedVersion: 3.3.10
     status: resolved
-    evidence: "@internationalized/date in apps/web/app upgraded from 3.12.2 to 3.12.3 as a conservative dependency maintenance patch."
+    evidence: "Upgraded vue-tsc from 3.3.9 to 3.3.10 in app and admin apps."
+  - id: admin-types-node-drift
+    dependency: "@types/node"
+    type: missing-dev-dependency
+    currentVersion: null
+    resolvedVersion: 25.9.5
+    status: resolved
+    evidence: "Added @types/node 25.9.5 devDependency to apps/web/admin to resolve missing node type definitions during vue-tsc type checking."
 checks:
   - name: backend-build-check
     status: Passed
   - name: frontend-biome-check
     status: Passed
-  - name: frontend-build-check
+  - name: frontend-type-check
     status: Passed
-  - name: frontend-test-check
+  - name: frontend-unit-test-check
     status: Passed
