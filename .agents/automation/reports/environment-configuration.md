@@ -1,12 +1,12 @@
 # Environment Configuration Audit Report
 
 ## Purpose
-The purpose of this audit was to identify and reconcile configuration drift between the canonical `.env.example` template and the active Spring Boot application properties (`application.yaml`). Reconciled settings maintain high environmental consistency across dev, test, and production stages.
+The purpose of this audit was to identify and reconcile configuration drift between the canonical `.env.example` template and active Spring Boot application properties (`application.yaml` and `application-dev.yaml`). Reconciled settings maintain high environmental consistency across dev, test, and production stages.
 
 ## Execution Result
-**NO_DRIFT_DETECTED**
+**CHANGES_APPLIED**
 
-All environmental configuration variables declared across Spring Boot configuration files (`application.yaml`, `application-dev.yaml`) are fully aligned and accounted for in `.env.example`.
+Missing environment variables referenced across Spring Boot configuration files (`application.yaml`, `application-dev.yaml`) were identified and reconciled into `.env.example`.
 
 ## Scope Inspected
 - Canonical `.env.example` template
@@ -15,7 +15,7 @@ All environmental configuration variables declared across Spring Boot configurat
 - Frontend application configurations and variables
 
 ## Changes Applied
-No code or configuration changes required. State and report updated to record successful audit revalidation.
+Added missing LinkedIn Social Content settings, LinkedIn OAuth State Signing secret, Media Context Integration toggle, Publishing Blocked Recovery Interval, Liquibase Contexts, and SMTP host/port/credentials variables to `.env.example`.
 
 ## Evidence Table
 
@@ -27,6 +27,7 @@ No code or configuration changes required. State and report updated to record su
 | **ENV-STORAGE-DRIFT** | Default Storage Provider | `application.yaml` | `SMP_STORAGE_DEFAULT` | **RESOLVED** (template updated) |
 | **ENV-DEDUP-DRIFT** | Media Deduplication Toggle | `application.yaml` | `SMP_MEDIA_DEDUP_ENABLED` | **RESOLVED** (template updated) |
 | **ENV-LINKEDIN-VERSION-DRIFT** | LinkedIn Integration Versions | `application.yaml` | `SMP_LINKEDIN_*API_VERSION*` | **RESOLVED** (template updated) |
+| **ENV-SOCIAL-CONTENT-DRIFT** | LinkedIn Social Content & SMTP | `application.yaml`, `application-dev.yaml` | `SMP_LINKEDIN_SOCIAL_CONTENT_*`, `SMP_SMTP_*`, `SMP_MEDIA_CONTEXT_INTEGRATION_ENABLED`, `SMP_LINKEDIN_STATE_SIGNING_SECRET`, `SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL`, `SMP_LIQUIBASE_CONTEXTS` | **RESOLVED** (template updated) |
 
 ## Validation Table
 
@@ -38,6 +39,7 @@ No code or configuration changes required. State and report updated to record su
 | **Storage Default Variable Verification** | `.env.example` vs `application.yaml` | Python Script Verification | **PASSED** |
 | **Media Deduplication Variable Verification** | `.env.example` vs `application.yaml` | Python Script Verification | **PASSED** |
 | **LinkedIn API Version Variable Verification** | `.env.example` vs `application.yaml` | Python Script Verification | **PASSED** |
+| **LinkedIn Social Content & SMTP Verification** | `.env.example` vs `application.yaml` | Python Script Verification | **PASSED** |
 | **Spring Boot Application Yaml Match Verification** | `application.yaml` & `application-dev.yaml` | Python Script Verification | **PASSED** |
 
 ## Unresolved Findings
@@ -48,7 +50,7 @@ None.
 
 ## Automation State
 - State updated in: `.agents/automation/state/environment-configuration.yaml`
-- Execution Timestamp: `2026-08-14T19:16:51Z`
+- Execution Timestamp: `2026-08-14T19:40:00Z`
 - Target Branch: `task-environment-configuration-auditor`
 
 ## Risk Assessment
