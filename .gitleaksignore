@@ -1,0 +1,5 @@
+# Test fixtures with intentionally fake API key patterns
+# These are local test-only values, not real secrets
+
+# ResendEmailConfigurationTest.kt - fake test API keys
+1fbf8eff03557046b2aba1b1e039225647a82d91:server/smp/src/test/kotlin/com/profiletailors/smp/identity/infrastructure/email/ResendEmailConfigurationTest.kt:generic-api-key:46
