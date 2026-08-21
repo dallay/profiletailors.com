@@ -31,9 +31,11 @@ NO_DRIFT_DETECTED
 
 | Check | Scope / Command | Result |
 |---|---|---|
-| Linter / Formatter | `pnpm --filter app lint` & `pnpm --filter app format` | Passed |
-| Unit Tests (Focused) | `pnpm --filter app run test:run src/modules/governance/views/GovernanceTakedownView.test.ts` | Passed |
-| Unit Tests (All) | `pnpm --filter app run test:run` | Passed |
+| App Linter / Formatter | `pnpm --filter app lint` | Passed |
+| Marketing Linter / Formatter | `pnpm --filter marketing lint` | Passed |
+| App Unit Tests | `pnpm --filter app run test:run` | Passed |
+| Marketing Unit Tests | `pnpm --filter marketing run test` | Passed |
+| Server Unit Tests | `./gradlew :server:smp:test -PexcludeTags=postgres,modularity` | Passed |
 
 ## Unresolved Findings
 
@@ -46,7 +48,7 @@ None
 ## Automation State
 
 State successfully updated in `.agents/automation/state/test-suite-hygiene.yaml`.
-- **Last Execution:** `2026-08-07T12:00:00Z`
+- **Last Execution:** `2026-08-07T18:00:00Z`
 - **Schema Version:** `1`
 - **Task Identity:** `test-suite-hygiene`
 
