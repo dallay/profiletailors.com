@@ -63,9 +63,9 @@ findings:
     dependency: "@types/node"
     type: missing-dev-dependency
     currentVersion: null
-    resolvedVersion: 25.9.5
+    resolvedVersion: "^24.0.0"
     status: resolved
-    evidence: "Added @types/node 25.9.5 devDependency to apps/web/admin to resolve missing node type definitions during vue-tsc type checking."
+    evidence: "Added @types/node ^24.0.0 devDependency to apps/web/admin to resolve missing node type definitions matching Node 24 target during vue-tsc type checking."
 checks:
   - name: backend-build-check
     status: Passed
