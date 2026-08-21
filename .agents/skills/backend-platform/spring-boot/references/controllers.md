@@ -33,7 +33,7 @@ private val messageSource: MessageSource,  // For localized messages
 ## Real Example: WaitlistController
 
 From
-`server/engine/src/main/kotlin/com/profiletailors/waitlist/infrastructure/http/WaitlistController.kt`:
+`server/smp/src/main/kotlin/com/profiletailors/smp/leadcapture/infrastructure/http/WaitlistController.kt`:
 
 ```kotlin
 @Validated
@@ -120,7 +120,7 @@ infrastructure/http/
 ```
 
 From
-`server/engine/src/main/kotlin/com/profiletailors/resume/infrastructure/http/CreateResumeController.kt`:
+`server/smp/src/main/kotlin/com/profiletailors/smp/resume/infrastructure/http/CreateResumeController.kt`:
 
 ```kotlin
 @Validated
