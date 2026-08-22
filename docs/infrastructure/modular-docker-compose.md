@@ -61,19 +61,19 @@ This allows containers to communicate using their service names (e.g., `promethe
 From the root of the project:
 
 ```bash
-docker compose -f infra/apps/smp/compose.yaml up -d
+node scripts/compose-run.mjs --file infra/apps/smp/compose.yaml up -d
 ```
 
 ### Starting Individual Services
 
 ```bash
-docker compose -f infra/monitoring/compose.yaml up -d
+node scripts/compose-run.mjs --file infra/monitoring/compose.yaml up -d
 ```
 
 ### Stopping Services
 
 ```bash
-docker compose -f infra/apps/smp/compose.yaml down
+node scripts/compose-run.mjs --file infra/apps/smp/compose.yaml down
 ```
 
 ## Environment Variables
@@ -83,12 +83,12 @@ or by passing them directly.
 
 | Variable            | Default Value        | Description                       |
 |:--------------------|:---------------------|:----------------------------------|
-| `POSTGRES_PORT`     | `5432`               | External port for PostgreSQL      |
+| `POSTGRES_PORT`     | `0`                  | Dynamic external port for PostgreSQL |
 | `POSTGRES_DB`       | `profiletailors_smp` | Database name                     |
 | `POSTGRES_USER`     | `pt_user`            | Database user                     |
-| `MANAGEMENT_PORT`   | `9091`               | Port for internal metrics         |
-| `MAILPIT_SMTP_PORT` | `1025`               | SMTP port for local email capture |
-| `MAILPIT_UI_PORT`   | `8025`               | Mailpit web UI port               |
+| `MANAGEMENT_PORT`   | dynamic              | Per-worktree backend management port |
+| `MAILPIT_SMTP_PORT` | `0`                  | Dynamic host port for local email capture |
+| `MAILPIT_UI_PORT`   | `0`                  | Dynamic Mailpit web UI host port          |
 
 ## Local Email Capture with Mailpit
 
@@ -99,17 +99,17 @@ messages without delivering them to real inboxes.
 ### How it works
 
 ```text
-SmtpEmailSender → localhost:1025 (Mailpit) → captured, never delivered
+SmtpEmailSender → dynamically mapped Mailpit SMTP port → captured, never delivered
 ```
 
-Mailpit is activated automatically when the stack starts. The `dev` profile already sets
-`spring.mail.host=localhost` and `spring.mail.port=1025`, which causes `SmtpEmailSender` to be
-preferred over `MockEmailSender`.
+Mailpit is activated automatically when the stack starts. The worktree-aware backend launcher
+resolves its dynamic host port and sets the local SMTP connection, which causes `SmtpEmailSender`
+to be preferred over `MockEmailSender`.
 
 ### Accessing the web UI
 
 ```bash
-open http://localhost:8025
+just infra-info
 ```
 
 Every email sent by the backend (e.g. registration verification links) appears there in real time.
@@ -118,13 +118,13 @@ Every email sent by the backend (e.g. registration verification links) appears t
 
 ```bash
 # 1. Start all services (PostgreSQL + Mailpit + WireMock)
-docker compose up -d
+just infra-up
 
 # 2. Start the backend in dev mode
-./gradlew :server:smp:bootRun --args='--spring.profiles.active=dev'
+just backend-run
 
 # 3. Register a user, then check emails at:
-open http://localhost:8025
+just infra-info
 ```
 
 ### Environment overrides for Mailpit

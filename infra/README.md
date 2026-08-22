@@ -41,8 +41,8 @@ infra/
 just infra-up
 ```
 
-Mailpit is available at `http://localhost:8025`, Prometheus at `http://localhost:9090`, and Grafana
-at `http://localhost:3000` with their default local settings. Loki is available internally at
+Host ports are allocated dynamically per worktree. Run `just infra-info` to inspect Mailpit,
+Prometheus, and Grafana. Loki is available internally at
 `http://loki:3100`; use Grafana's pre-provisioned **Loki** datasource to query logs.
 
 ### Loki and Alloy with Compose
@@ -50,13 +50,13 @@ at `http://localhost:3000` with their default local settings. Loki is available 
 The SMP development Compose file already includes the monitoring services:
 
 ```bash
-docker compose -f infra/apps/smp/compose.yaml up -d loki alloy grafana
+node scripts/compose-run.mjs --file infra/apps/smp/compose.yaml up -d loki alloy grafana
 ```
 
 To run only the reusable monitoring example:
 
 ```bash
-docker compose -f infra/monitoring/compose.yaml up -d
+node scripts/compose-run.mjs --file infra/monitoring/compose.yaml up -d
 ```
 
 Alloy needs read-only access to the Docker socket and container metadata. This setup is intended for

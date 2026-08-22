@@ -106,13 +106,17 @@ just dev-frontend
 
 This starts both the marketing site and the dashboard application in parallel.
 
-- Marketing site: [http://localhost:4321](http://localhost:4321)
+- Marketing site: [https://profiletailors.localhost](https://profiletailors.localhost)
 - Dashboard app: [https://pt-app.localhost](https://pt-app.localhost) (
   requires [Portless](portless-setup.md))
 
 **Prerequisite for dashboard access**: The dashboard app requires Portless to be installed and
 running. See [Portless Setup](portless-setup.md) for installation instructions. Run
-`portless proxy start` before accessing the dashboard URL.
+`pnpm exec portless proxy start` before accessing the dashboard URL.
+
+When working in a linked Git worktree, Portless prefixes the branch name to these URLs. The
+backend and infrastructure recipes also derive a unique Compose project and dynamic host ports;
+run `just worktree-info` for the namespace and `just infra-info` to inspect assigned ports.
 
 Run the full frontend CI subset:
 
@@ -128,7 +132,8 @@ This runs Biome lint, Vitest unit tests, and a production build.
 just backend-run
 ```
 
-The server starts in dev profile. API endpoints will be available at `http://localhost:7638`.
+The server starts in dev profile. The backend receives an available per-worktree port; inspect the
+startup output or `SMP_BACKEND_PORT` when using a custom launcher.
 
 Run fast tests:
 

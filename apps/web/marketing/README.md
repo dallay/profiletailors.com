@@ -17,7 +17,7 @@ validation.
 just dev-frontend
 ```
 
-This starts the marketing site at `http://localhost:4321` and the dashboard through Portless. To
+This starts the marketing site and dashboard through worktree-aware Portless URLs. To
 start only the marketing site from the repository root:
 
 ```bash
@@ -80,8 +80,8 @@ consent contract.
 ## Troubleshooting
 
 - Spanish copy is often longer than English; avoid fixed-width containers when changing layouts.
-- If the named dashboard URL is unavailable while running both apps, install/start Portless; the
-  marketing server itself remains available on port 4321.
+- If the named dashboard URL is unavailable while running both apps, install/start Portless with
+  `pnpm exec portless proxy start`.
 - If dependencies are missing, run `just install` from the repository root.
 
 ## References

@@ -5,6 +5,7 @@ import { createCoverageConfig } from './coverage-config'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const appPort = Number(process.env.PLAYWRIGHT_PORT || '5173')
 
 /**
  * Playwright config for Media Library mocked UI tests.
@@ -37,7 +38,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${appPort}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: process.env.CI ? 'retain-on-failure' : 'off',
@@ -46,9 +47,9 @@ export default defineConfig({
   },
 
   webServer: {
-    command: 'PLAYWRIGHT=true VITE_API_BASE_URL="" MEDIA_HAR=off pnpm run dev:app',
-    port: 5173,
-    reuseExistingServer: true,
+    command: `PLAYWRIGHT=true VITE_API_BASE_URL="" MEDIA_HAR=off PORT=${appPort} pnpm run dev:app`,
+    port: appPort,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'true',
     cwd: path.resolve(__dirname, '..'),
     timeout: 30_000,
   },

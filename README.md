@@ -83,8 +83,9 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 just dev-frontend  # starts both Astro and Vue dev servers
 ```
 
-- Marketing site: [http://localhost:4321](http://localhost:4321)
+- Marketing site: [https://profiletailors.localhost](https://profiletailors.localhost)
 - Dashboard app: [https://pt-app.localhost](https://pt-app.localhost) (requires [Portless](docs/portless-setup.md))
+- Linked worktrees prefix these names with the branch, for example `https://fix-ui.pt-app.localhost`.
 
 ### Command Hub
 

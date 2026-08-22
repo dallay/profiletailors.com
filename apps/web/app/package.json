@@ -20,13 +20,13 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "test:e2e:scheduler": "playwright test -c e2e/playwright.scheduler.config.ts",
-    "test:e2e:scheduler:headed": "playwright test -c e2e/playwright.scheduler.config.ts --headed",
-    "test:e2e:scheduler:debug": "playwright test -c e2e/playwright.scheduler.config.ts --debug",
-    "test:e2e:media:mocked": "sh -c 'if [ \"$1\" = -- ]; then shift; fi; playwright test -c e2e/playwright.media-mocked.config.ts \"$@\"' --",
-    "test:e2e:media:mocked:headed": "playwright test -c e2e/playwright.media-mocked.config.ts --headed",
-    "test:e2e:media:real": "sh -c 'if [ \"$1\" = -- ]; then shift; fi; playwright test -c e2e/playwright.media-real.config.ts \"$@\"' --",
-    "test:e2e:media:real:headed": "playwright test -c e2e/playwright.media-real.config.ts --headed"
+    "test:e2e:scheduler": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.scheduler.config.ts",
+    "test:e2e:scheduler:headed": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.scheduler.config.ts --headed",
+    "test:e2e:scheduler:debug": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.scheduler.config.ts --debug",
+    "test:e2e:media:mocked": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.media-mocked.config.ts",
+    "test:e2e:media:mocked:headed": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.media-mocked.config.ts --headed",
+    "test:e2e:media:real": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.media-real.config.ts",
+    "test:e2e:media:real:headed": "node ../../../scripts/run-playwright.mjs -c e2e/playwright.media-real.config.ts --headed"
   },
   "dependencies": {
     "@profiletailors/shared-web": "workspace:*",

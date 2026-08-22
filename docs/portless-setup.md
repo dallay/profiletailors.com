@@ -1,6 +1,6 @@
 # Portless — Local Development URLs
 
-**Date:** 2026-06-12
+**Date:** 2026-08-22
 **Status:** Active
 
 ## Overview
@@ -9,13 +9,13 @@
 development servers — eliminating port conflicts and making URLs predictable for CORS, OAuth
 redirects, API clients, and tooling.
 
-Instead of remembering `http://localhost:4321` (Astro) and `http://localhost:5173` (Vite), you get
-consistent HTTPS URLs:
+Instead of remembering fixed Vite and Astro ports, you get consistent HTTPS URLs:
 
 | Project           | URL                                |
 | ----------------- | ---------------------------------- |
 | Marketing (Astro) | `https://profiletailors.localhost` |
 | App (Vue 3)       | `https://pt-app.localhost`         |
+| Admin (Vue 3)     | `https://pt-admin.localhost`       |
 
 Portless auto-discovers packages through `pnpm-workspace.yaml` and respects per-package
 `"portless"` config in each `package.json`. Name resolution uses the closest config, with this
@@ -23,13 +23,13 @@ precedence: CLI flags > `package.json` > `portless.json` > defaults.
 
 ## Changes
 
-### 2026-06-12 — Portless installed and configured
+### 2026-08-22 — Portless installed and configured
 
-- Installed portless globally (`npm install -g portless` v0.14.0)
-- Created root `portless.json` with explicit app name map for both frontend projects
-- Updated `apps/web/app/package.json`: added `"portless"` config block (`name: pt-app`, `script:
-  dev:app`), changed dev script to run through portless
-- `apps/web/marketing/package.json` was already configured — no changes needed
+- Added Portless `0.15.5` as a workspace development dependency so every worktree uses the same
+  version through the lockfile.
+- Added explicit app name resolution for the marketing, dashboard, and admin workspaces.
+- Portless detects linked Git worktrees and prefixes the branch name to each hostname.
+- The worktree-aware launchers use the same URLs and avoid global process termination.
 
 ## Usage
 
@@ -38,7 +38,7 @@ precedence: CLI flags > `package.json` > `portless.json` > defaults.
 Start the portless proxy (requires sudo for port 443):
 
 ```bash
-portless proxy start
+pnpm exec portless proxy start
 ```
 
 This creates a loopback network interface and installs a local TLS certificate authority. After
@@ -47,25 +47,29 @@ the initial setup, the proxy runs in the background.
 Optionally, install it as a persistent launchd service (survives reboots):
 
 ```bash
-portless service install
+pnpm exec portless service install
 ```
 
 ### Daily workflow
 
-Run any frontend project with `pnpm dev` — portless transparently redirects to the underlying dev
-server:
+Run the repository command hub or any frontend project with `pnpm dev` — Portless transparently
+redirects to the underlying dev server:
 
 ```bash
-# Marketing site (Astro 7)
-cd apps/web/marketing
-pnpm dev
+# All frontend apps
+just dev-frontend
 # → https://profiletailors.localhost
+# → https://pt-app.localhost
 
-# App (Vue 3 + Vite 8)
+# A single package
 cd apps/web/app
 pnpm dev
 # → https://pt-app.localhost
 ```
+
+In a linked worktree on branch `fix-ui`, the same commands expose
+`https://fix-ui.pt-app.localhost` and `https://fix-ui.profiletailors.localhost`. The main
+worktree keeps the unprefixed URLs.
 
 ### How it works
 
@@ -107,28 +111,29 @@ The root `portless.json` provides additional name resolution for the monorepo:
 {
   "apps": {
     "apps/web/app": { "name": "pt-app" },
-    "apps/web/marketing": { "name": "profiletailors" }
+    "apps/web/marketing": { "name": "profiletailors" },
+    "apps/web/admin": { "name": "pt-admin" }
   }
 }
 ```
 
 ### Useful commands
 
-| Command                      | Description                                     |
-| ---------------------------- | ----------------------------------------------- |
-| `portless proxy start`       | Start the HTTPS proxy (sudo for port 443)       |
-| `portless proxy stop`        | Stop the proxy                                  |
-| `portless service install`   | Install as launchd service (auto-start on boot) |
-| `portless service uninstall` | Remove launchd service                          |
-| `portless list`              | Show active routes                              |
-| `portless get <name>`        | Resolve a named app URL                         |
-| `portless clean`             | Clean local TLS state                           |
+| Command                             | Description                                     |
+| ----------------------------------- | ----------------------------------------------- |
+| `pnpm exec portless proxy start`    | Start the HTTPS proxy (sudo for port 443)       |
+| `pnpm exec portless proxy stop`     | Stop the proxy                                  |
+| `pnpm exec portless service install`| Install as launchd service (auto-start on boot) |
+| `pnpm exec portless list`           | Show active routes                              |
+| `pnpm exec portless get <name>`     | Resolve a named app URL                         |
+| `pnpm exec portless doctor`         | Check proxy, routes, and DNS                    |
+| `pnpm exec portless clean`          | Clean local TLS state                           |
 
 ## Troubleshooting
 
 ### Proxy won't start — permission denied
 
-Portless needs sudo access for port 443. Run `portless proxy start` in a terminal where you can
+Portless needs sudo access for port 443. Run `pnpm exec portless proxy start` in a terminal where you can
 enter your password. If sudo is not available, portless falls back to a high port (e.g. `:1355`).
 
 ### Certificate warnings
@@ -137,8 +142,8 @@ Portless installs a local CA and generates certificates for `.localhost` domains
 browser warnings, the CA certificate may not be trusted. Re-run:
 
 ```bash
-portless clean
-portless proxy start
+pnpm exec portless clean
+pnpm exec portless proxy start
 ```
 
 ### Port conflicts

@@ -94,6 +94,14 @@ setup:
 hooks-install:
     node scripts/hooks-install.mjs
 
+# Verify worktree identity, runtime environment, and dynamic port allocation
+worktree-check:
+    node --test scripts/worktree-isolation.test.mjs
+
+# Print the derived worktree namespace and local URLs
+worktree-info:
+    node scripts/worktree-context.mjs --json
+
 # ═══════════════════════════════════════════════════════════════
 # FRONTEND  (pnpm / Astro / Biome / Vitest / Playwright)
 # ═══════════════════════════════════════════════════════════════
@@ -104,11 +112,11 @@ dev-frontend $force="":
 
 # Start only the Vue 3 app (dashboard SPA)
 app:
-    cd {{app-dir}} && pnpm dev
+    node scripts/frontend-run.mjs app
 
 # Start the platform admin SPA
 admin:
-    cd {{admin-dir}} && pnpm dev
+    node scripts/frontend-run.mjs admin
 
 # Build frontend for production
 frontend-build:
@@ -230,7 +238,7 @@ backend-lint-shared:
 
 # Start Spring Boot dev server (dev profile)
 backend-run:
-    {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev'
+    node scripts/gradle-run.mjs :server:smp:bootRun --args=--spring.profiles.active=dev
 
 # ═══════════════════════════════════════════════════════════════
 # SERVE  (Backend + Frontend App)
@@ -244,7 +252,7 @@ serve $force="":
 serve-force:
     just serve --force
 
-# Kill running dev servers (backend, frontend, Gradle daemons)
+# Kill only the dev processes owned by this worktree
 kill-servers:
     node scripts/kill-servers.mjs
 
@@ -270,19 +278,23 @@ backend-bdd-postgres:
 
 # Start infrastructure services (Postgres, etc.)
 infra-up:
-    {{docker-compose}} up -d
+    node scripts/compose-run.mjs up -d
 
 # Stop and remove infrastructure containers
 infra-down:
-    {{docker-compose}} down
+    node scripts/compose-run.mjs down
 
 # Tail infrastructure service logs (optionally filter by service name)
 infra-logs *service="":
-    {{docker-compose}} logs -f {{service}}
+    node scripts/compose-run.mjs logs -f {{service}}
 
 # Restart all infrastructure services
 infra-restart:
-    {{docker-compose}} restart
+    node scripts/compose-run.mjs restart
+
+# Show host ports assigned to this worktree's infrastructure services
+infra-info:
+    node scripts/compose-run.mjs ports
 
 # Generate local files required by the production Compose stack
 production-prepare:
@@ -480,5 +492,5 @@ ci:
 
 # Clean all build artifacts and caches
 clean:
-    node -e "const fs=require('fs');for(const p of ['{{frontend-dir}}/dist','{{frontend-dir}}/coverage','.gradle/build-cache']){fs.rmSync(p,{recursive:true,force:true});}"
-    -{{gradle-root}} clean --no-daemon
+    node scripts/kill-servers.mjs
+    node scripts/workspace-clean.mjs

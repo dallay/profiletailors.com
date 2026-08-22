@@ -5,7 +5,7 @@ services:
   prometheus:
     image: prom/prometheus:v3.13.2
     ports:
-      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
+      - "${PROMETHEUS_HOST_PORT:-0}:9090"
     volumes:
       - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -22,7 +22,7 @@ services:
   grafana:
     image: grafana/grafana:13.1.3
     ports:
-      - "${GRAFANA_HOST_PORT:-3000}:3000"
+      - "${GRAFANA_HOST_PORT:-0}:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
