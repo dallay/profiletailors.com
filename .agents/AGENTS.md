@@ -26,6 +26,18 @@ every agent unless a more specific nested instruction is present:
 6. Report what was actually verified. Distinguish local results from GitHub Actions, remote, or
    deployed evidence; never describe an unrun check as passing.
 
+## Fix Simplicity and Zero-Comment Policy
+
+Fixes should make the system simpler, not more complex.
+
+Prefer removing or consolidating code over adding a new layer, flag, or special case. If a fix
+grows the system's surface area, look for the version that shrinks it.
+
+Never leave comments in the repo. The standard is zero comments: no explanatory comments or
+docblocks, TODO/FIXME notes, lint/type suppression directives, or commented-out code. Express
+intent through names, structure, and tests; put rationale in commit messages or PR descriptions.
+Interpreter shebangs are executable directives, not comments.
+
 ## Project Identity
 
 **Profile Tailors** is a social media management platform for scheduling, publishing, analyzing,
@@ -277,38 +289,10 @@ Apply DRY pragmatically:
 
 ## KDoc and TSDoc Contract
 
-Use KDoc for Kotlin and TSDoc-compatible `/** ... */` documentation for TypeScript. Documentation
-is required for APIs and methods whose contract is not obvious from the signature—not for comment
-volume.
-
-### Document these
-
-- exported TypeScript types, functions, classes, composables, public component contracts, and
-  package/barrel exports;
-- public Kotlin domain types, value objects, domain events, ports, application use cases/handlers,
-  and adapter contracts;
-- public methods whose behavior, validation, exceptions, side effects, persistence, network calls,
-  retry/idempotency, ordering, cancellation, or security assumptions are not obvious;
-- types with invariants, lifecycle/state transitions, units, nullable semantics, versioning, or
-  compatibility constraints;
-- public API request/response models and controller operations when OpenAPI annotations alone do
-  not explain business semantics.
-
-### What good KDoc/TSDoc contains
-
-Explain intent and the contract: preconditions/invariants, meaningful parameters and return values,
-failure modes, side effects, async/concurrency behavior, ownership/lifecycle, and examples when
-usage is easy to get wrong. Use `@param`, `@property`, `@return`/`@returns`, `@throws`, `@since`,
-and `@deprecated` where they add information. Link to the relevant ADR, OpenSpec, or API contract
-when the rule is external to the declaration.
-
-Do not restate a method name, type, or parameter literally. Do not use KDoc/TSDoc to claim future
-behavior. Private trivial helpers, obvious accessors, tests, and generated files need no redundant
-documentation. Generated code must be regenerated rather than hand-edited.
-
-Comments remain exceptional: no inline comments explaining *what* the code already says, no
-commented-out code, and no untracked `TODO`, `FIXME`, or `HACK`. A short comment is allowed only to
-explain *why* a non-obvious implementation exists or to link an authoritative external reference.
+The zero-comment policy above is authoritative. Do not add KDoc, TSDoc, docblocks, inline comments,
+TODO/FIXME/HACK notes, lint/type suppression directives, or commented-out code. Express public
+contracts through names, types, structure, and tests. Generated code must be regenerated rather than
+hand-edited.
 
 ## Frontend Architecture and Contracts
 
@@ -426,11 +410,9 @@ Before reporting completion, the agent must be able to answer yes to all applica
 
 ## Code Comments Policy
 
-Comments are exceptional and must follow the KDoc/TSDoc contract above.
-
-**Allowed:** useful KDoc/TSDoc on public/relevant APIs and a brief inline explanation of *why* a
-non-obvious approach or external constraint exists. **Prohibited:** comments explaining *what* the
-code already expresses, commented-out code, and untracked `TODO`/`FIXME`/`HACK` markers.
+Comments are prohibited. Do not add explanatory comments or docblocks, TODO/FIXME notes, lint/type
+suppression directives, or commented-out code. Interpreter shebangs are executable directives, not
+comments.
 
 ## Key Gotchas
 
