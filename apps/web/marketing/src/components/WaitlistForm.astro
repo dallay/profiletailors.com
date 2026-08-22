@@ -33,7 +33,7 @@ const wl = t.waitlist
     success: wl.success,
   })}
   novalidate
-  class="flex flex-col gap-3 max-w-md border-l-2 border-border pl-4"
+  class="flex flex-col gap-3 max-w-md border-l border-border pl-4"
 >
   <div class="flex flex-col gap-1">
     <span class="font-mono text-xs tracking-[0.2em] text-text-muted">
@@ -48,7 +48,7 @@ const wl = t.waitlist
       required
       aria-describedby="waitlist-email-error"
       aria-label={wl.emailInput.ariaLabel}
-      class="bg-transparent border-b border-border focus:outline-none focus:border-text-display py-2 text-text-display"
+      class="bg-transparent border-b border-border focus:border-text-display py-2 text-text-display"
     />
   </div>
 
@@ -58,7 +58,7 @@ const wl = t.waitlist
       data-waitlist-consent-early
       type="checkbox"
       required
-      class="mt-1"
+      class="mt-1 min-h-[20px] min-w-[20px] cursor-pointer"
     />
     <label for="waitlist-consent-early" class="cursor-pointer">{wl.consentEarly.label}</label>
   </div>
@@ -68,7 +68,7 @@ const wl = t.waitlist
       id="waitlist-consent-marketing"
       data-waitlist-consent-marketing
       type="checkbox"
-      class="mt-1"
+      class="mt-1 min-h-[20px] min-w-[20px] cursor-pointer"
     />
     <label for="waitlist-consent-marketing" class="cursor-pointer">{wl.consentMarketing.label}</label>
   </div>
@@ -78,7 +78,7 @@ const wl = t.waitlist
     id="waitlist-email-error"
     role="alert"
     aria-live="polite"
-    class="hidden text-sm text-red-400"
+    class="hidden text-sm text-error-text"
   ></p>
 
   <p
@@ -93,7 +93,7 @@ const wl = t.waitlist
   <button
     data-waitlist-submit
     type="submit"
-    class="font-mono text-xs tracking-[0.2em] text-text-display border border-border px-4 py-2 hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
+    class="font-mono text-xs tracking-[0.2em] text-text-display border border-border rounded-full px-6 py-3 min-h-[44px] hover:bg-bg-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
   >
     {wl.submit}
   </button>
@@ -152,7 +152,6 @@ const wl = t.waitlist
       const raw = form.dataset.waitlistMessages
       if (raw) messages = JSON.parse(raw) as WaitlistMessages
     } catch {
-      // fall back to defaults
     }
 
     form.addEventListener('submit', (event) => {

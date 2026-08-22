@@ -1,30 +1,13 @@
 ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import {Icon} from "@dallay/astro-icon/components";
 ---
 
 <button
   id="theme-toggle"
   aria-label="Switch to light mode"
-  class="font-mono text-xs tracking-widest text-text-muted hover:text-text-display transition-colors duration-200 flex items-center gap-1.5 cursor-pointer"
+  class="font-mono text-xs tracking-widest text-text-muted hover:text-text-display transition-colors duration-200 flex items-center gap-1.5 cursor-pointer min-h-[44px]"
 >
-  <!-- Moon icon — visible in dark mode -->
   <Icon id="icon-moon" name="lucide:moon" width="14" height="14" aria-hidden="true" />
-  <!-- Sun icon — visible in light mode -->
   <Icon id="icon-sun" name="lucide:sun" width="14" height="14" aria-hidden="true" />
 </button>
 
@@ -62,26 +45,23 @@ import {Icon} from "@dallay/astro-icon/components";
   }
 
   function animateThemeChange(next: 'dark' | 'light') {
-    // Directional wipe: dark→light from top, light→dark from bottom
     const fromTop = next === 'light';
     const clipStart = fromTop ? 'inset(0 0 100% 0)' : 'inset(100% 0 0 0)';
     const clipEnd = 'inset(0 0 0% 0)';
 
-// Graceful degradation — View Transitions not supported in Firefox < 126, Safari < 18
-  if (!document.startViewTransition) {
-    applyTheme(next);
-    return;
-  }
+    if (!document.startViewTransition) {
+      applyTheme(next);
+      return;
+    }
 
-  // Respect reduced motion — skip the clip-path wipe
-  if (globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    applyTheme(next);
-    return;
-  }
+    if (globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      applyTheme(next);
+      return;
+    }
 
-  const transition = document.startViewTransition(() => {
-    applyTheme(next);
-  });
+    const transition = document.startViewTransition(() => {
+      applyTheme(next);
+    });
 
     transition.ready.then(() => {
       document.documentElement.animate(
@@ -95,7 +75,6 @@ import {Icon} from "@dallay/astro-icon/components";
     });
   }
 
-  // Sync icon state on load (theme may already be set by anti-FOUC script)
   syncUI(getTheme());
 
   toggle.addEventListener('click', () => {
