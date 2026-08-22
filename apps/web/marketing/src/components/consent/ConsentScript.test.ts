@@ -19,7 +19,6 @@ function runConsentScript(): void {
   if (!match) {
     throw new Error('Could not find the inline <script> block in ConsentScript.astro')
   }
-  // eslint-disable-next-line no-new-func
   new Function(match[1])()
 }
 

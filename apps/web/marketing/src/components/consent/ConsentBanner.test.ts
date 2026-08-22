@@ -82,7 +82,6 @@ function extractConsentBannerScript(): string {
 }
 
 function runConsentBannerScript(): void {
-  // eslint-disable-next-line no-new-func
   new Function(extractConsentBannerScript())()
 }
 

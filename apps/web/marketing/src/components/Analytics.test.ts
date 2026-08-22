@@ -25,7 +25,6 @@ function runAnalyticsScript(ahrefsAnalyticsKey: string | undefined): void {
   if (!match) {
     throw new Error('Could not find the <script> block in Analytics.astro')
   }
-  // eslint-disable-next-line no-new-func
   new Function('AHREFS_ANALYTICS_KEY', match[1])(ahrefsAnalyticsKey)
 }
 
