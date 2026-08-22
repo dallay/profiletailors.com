@@ -1,6 +1,7 @@
 schemaVersion: 1
 task: adr-consistency-auditor
-lastExecution: "2026-07-22T18:00:00Z"
+lastExecution: "2026-08-09T12:00:00Z"
+outcome: NO_DRIFT_DETECTED
 findings:
   - id: ADR-0001-CONSISTENCY
     title: "Modular Monolith Backend Enforced"
@@ -100,12 +101,39 @@ findings:
     evidence: "docs/architecture/adr/0014-future-billing-architecture.md"
     risk: LOW
     message: "Deferred billing domain boundaries are strictly documented without any implementation leakages."
+  - id: ADR-0015-CONSISTENCY
+    title: "Aggregate Root As Sole Entry Point"
+    status: resolved
+    classification: CONSISTENT
+    evidence: "server/smp/src/test/kotlin/com/profiletailors/smp/AggregateBoundaryTest.kt"
+    risk: LOW
+    message: "Konsist tests enforce that internal domain entities are not imported cross-context and do not expose public mutators."
+  - id: ADR-0016-CONSISTENCY
+    title: "Aggregates Communicate By Identity Only"
+    status: resolved
+    classification: CONSISTENT
+    evidence: "server/smp/src/test/kotlin/com/profiletailors/smp/IdentityOnlyAggregateCommunicationTest.kt"
+    risk: LOW
+    message: "Konsist tests enforce cross-context aggregate references are by identity type only."
+  - id: ADR-0017-CONSISTENCY
+    title: "Value Objects Are Immutable and Validate at Construction"
+    status: resolved
+    classification: CONSISTENT
+    evidence: "server/smp/src/test/kotlin/com/profiletailors/smp/ValueObjectImmutabilityTest.kt"
+    risk: LOW
+    message: "Konsist tests enforce immutability and invariant validation for annotated value objects."
 checks:
   - name: Spring Modulith Check
     status: Passed
   - name: ArchUnit Hexagonal Check
     status: Passed
   - name: ArchUnit ComponentScan Check
+    status: Passed
+  - name: Aggregate Boundary Check
+    status: Passed
+  - name: Identity-Only Aggregate Communication Check
+    status: Passed
+  - name: Value Object Immutability Check
     status: Passed
   - name: Frontend Separation Check
     status: Passed

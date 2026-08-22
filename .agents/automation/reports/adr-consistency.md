@@ -6,14 +6,14 @@ The ADR Consistency Auditor has audited the accepted Architecture Decision Recor
 
 ## Execution Result
 
-The audit concluded with **NO_DRIFT_DETECTED**. The system exhibits exceptionally high structural integrity and fully adheres to the 14 documented ADRs.
+The audit concluded with **NO_DRIFT_DETECTED**. The system exhibits exceptionally high structural integrity and fully adheres to all 17 documented ADRs.
 
 ## Scope Inspected
 
 - **Backend Monolith (`server/smp`)**: Analyzed packages, imports, configurations, and verification tests.
 - **Shared Primitives (`shared/`)**: Checked modularity, framework-isolation, and dependencies.
 - **Frontend Applications (`apps/web/`)**: Verified framework split between Astro 6 and Vue 3, including clean-up of any stale React references.
-- **Architectural Records**: Audited `docs/architecture/adr/` (ADR-0001 to ADR-0014).
+- **Architectural Records**: Audited `docs/architecture/adr/` (ADR-0001 to ADR-0017).
 
 ## Evidence Table
 
@@ -33,6 +33,9 @@ The audit concluded with **NO_DRIFT_DETECTED**. The system exhibits exceptionall
 | **ADR-0012** | AGPL-3.0 Commercial Strategy | CONSISTENT | `docs/architecture/adr/0012-agpl-commercial-strategy.md` | Passed (Postures, CLA policies and SPDX tags deferred) |
 | **ADR-0013** | RateLimitTier vs SubscriptionPlan | CONSISTENT | Identity module contains no billing leakage | Passed (Technical rate limiting separated from commercial plans) |
 | **ADR-0014** | Future Billing Architecture | CONSISTENT | `docs/architecture/adr/0014-future-billing-architecture.md` | Passed (Planned hexagonal boundaries strictly documented) |
+| **ADR-0015** | Aggregate Root Entry Point | CONSISTENT | `AggregateBoundaryTest.kt` | Passed (Konsist cross-context import and mutator guards) |
+| **ADR-0016** | Aggregates Communicate by Identity | CONSISTENT | `IdentityOnlyAggregateCommunicationTest.kt` | Passed (Konsist cross-context identity reference guards) |
+| **ADR-0017** | Value Objects Immutable & Validated | CONSISTENT | `ValueObjectImmutabilityTest.kt` | Passed (Konsist immutability and constructor validation guards) |
 
 ## Validation Table
 
@@ -41,6 +44,9 @@ The audit concluded with **NO_DRIFT_DETECTED**. The system exhibits exceptionall
 | Spring Modulith Boundary Check | `:server:smp` / `ModularityVerificationTest` | **Passed** | Package boundaries are encapsulated and correct. |
 | Hexagonal Layer Check | `:server:smp` / `HexagonalArchTest` | **Passed** | Pure Domain and framework-agnostic Application layers are checked. |
 | Component-Scan Guards Check | `:server:smp` / `ComponentScanArchTest` | **Passed** | No raw `@Component` or `@Repository` annotations are present in Application. |
+| Aggregate Boundary Check | `:server:smp` / `AggregateBoundaryTest` | **Passed** | Internal entities are guarded from cross-context imports and public mutators. |
+| Identity-Only Communication Check | `:server:smp` / `IdentityOnlyAggregateCommunicationTest` | **Passed** | Cross-context aggregate properties use identity types only. |
+| Value Object Immutability Check | `:server:smp` / `ValueObjectImmutabilityTest` | **Passed** | Value objects enforce immutability and constructor validation. |
 | Frontend Separation & Type Check | `apps/web/marketing` / `just frontend-check` | **Passed** | No errors/warnings in Astro marketing codebase. |
 | Frontend Unit Testing Check | `apps/web/app` / `pnpm --filter app run test:run` | **Passed** | Vitest suite of 975+ assertions executes cleanly. |
 
@@ -63,4 +69,4 @@ None.
 
 ## Human Review Notes
 
-All systems are fully compliant with existing architecture decision records. There are no pending technical debts or alignment drifts between implementation and documentation.
+All systems are fully compliant with existing architecture decision records (ADR-0001 through ADR-0017). There are no pending technical debts or alignment drifts between implementation and documentation.
