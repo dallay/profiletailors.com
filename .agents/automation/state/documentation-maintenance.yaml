@@ -1,6 +1,7 @@
 schemaVersion: 1
 task: documentation-maintainer
-lastExecution: "2026-08-14T17:45:00Z"
+outcome: CHANGES_APPLIED
+lastExecution: "2026-08-14T20:30:00Z"
 findings:
   - id: DOC-DRIFT-001
     title: "Outdated Landing Page path in CONTRIBUTING.md"
@@ -16,10 +17,15 @@ findings:
     evidence: "Relative links in .agents/skills/ referenced non-existent relative paths for error-testing.md, service-workers.md, fixtures-hooks.md, assertions-waiting.md, hexagonal-architecture/SKILL.md, and kotlin/SKILL.md."
     risk: LOW
     message: "Corrected relative target paths across .agents/skills documentation files."
+  - id: DOC-DRIFT-003
+    title: "Stale server/engine directory paths and make verify-all command references"
+    status: resolved
+    classification: VERIFIED
+    evidence: "Outdated paths referencing non-existent server/engine and make verify-all command found in .agents/skills/backend-platform/spring-boot/."
+    risk: LOW
+    message: "Reconciled server/engine paths to server/smp and make verify-all references to just backend-test-fast in Spring Boot skill documentation and helper scripts."
 checks:
   - name: Markdown Link Validity
-    status: Passed
-  - name: Frontend Linter and Checker
     status: Passed
   - name: Frontend Unit Tests
     status: Passed
