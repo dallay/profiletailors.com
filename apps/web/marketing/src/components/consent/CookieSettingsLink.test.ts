@@ -18,7 +18,6 @@ function runCookieSettingsLinkScript(): void {
   if (!match) {
     throw new Error('Could not find the <script> block in CookieSettingsLink.astro')
   }
-  // eslint-disable-next-line no-new-func
   new Function(match[1])()
 }
 
