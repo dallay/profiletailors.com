@@ -9,7 +9,7 @@
 
 ### 1. Backend: API Versioning Implementation
 
-#### ✅ Controllers Updated (7 total)
+#### ✅ Controllers Updated (15 total)
 
 All controllers now have complete Swagger/OpenAPI documentation and use `version = "1"`:
 
@@ -20,6 +20,14 @@ All controllers now have complete Swagger/OpenAPI documentation and use `version
 5. `AuditEventController` - 1 endpoint (GET audit events)
 6. `WorkspaceAccessSummaryController` - 1 endpoint (GET access summary)
 7. `ResourcePreviewController` - 1 endpoint (GET preview)
+8. `AnalyticsController` - analytics endpoints
+9. `HashtagsController` - hashtag endpoints
+10. `IdeasController` - 9 endpoints (list, create, get, update, move, delete, convert, columns)
+11. `PublicCapabilitiesController` - public capability endpoint
+12. `MediaAssetController` - media asset endpoints
+13. `HealthcheckController` - health check endpoint
+14. `PublishingControllers` - publishing endpoints
+15. `WorkspaceController` - workspace endpoints
 
 #### ✅ Media Type Versioning Configuration
 

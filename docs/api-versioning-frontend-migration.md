@@ -75,6 +75,15 @@ All REST endpoints now require the versioned media type:
 - `GET /api/authorization/resources/{resourceId}/preview`
 - `GET /api/governance/audit-events`
 - `PATCH /api/tenancy/workspaces/{workspaceId}/memberships/{membershipId}/status`
+- `GET /api/ideas` — list ideas
+- `POST /api/ideas` — create idea
+- `GET /api/ideas/{ideaId}` — get idea
+- `PATCH /api/ideas/{ideaId}` — update idea
+- `PATCH /api/ideas/{ideaId}/move` — move idea
+- `DELETE /api/ideas/{ideaId}` — delete idea
+- `POST /api/ideas/{ideaId}/convert` — convert idea to publication
+- `GET /api/ideas/columns` — get column config
+- `PUT /api/ideas/columns` — update column config
 - All other API endpoints
 
 ## Future Versions
