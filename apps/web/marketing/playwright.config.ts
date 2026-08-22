@@ -65,7 +65,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: `WAITLIST_ENABLED=true WAITLIST_API_BASE=http://localhost:${backendPort} pnpm build && pnpm preview -- --port ${previewPort}`,
+    command: `WAITLIST_ENABLED=true WAITLIST_API_BASE=http://localhost:${backendPort} pnpm build && PORT=${previewPort} pnpm preview`,
     url: `http://localhost:${previewPort}`,
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'true',
     timeout: 120 * 1000,

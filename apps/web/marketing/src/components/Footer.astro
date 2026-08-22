@@ -1,5 +1,4 @@
 ---
-
 import CookieSettingsLink from '@components/consent/CookieSettingsLink.astro'
 import type { Locale } from '@i18n/utils'
 
@@ -22,9 +21,9 @@ const { tagline, copy, legalLinks, locale = 'en' } = Astro.props
     <p class="font-mono text-xs text-text-muted">{copy}</p>
   </div>
   {(legalLinks && legalLinks.length > 0) && (
-    <nav aria-label="Legal" class="border-t border-bg-surface mt-6 pt-6 flex flex-wrap gap-x-6 gap-y-2">
+    <nav aria-label="Legal" class="border-t border-border mt-6 pt-6 flex flex-wrap gap-x-6 gap-y-2">
       {legalLinks.map((link) => (
-        <a href={link.href} class="font-mono text-xs text-text-muted hover:text-text-display transition-colors duration-200">
+        <a href={link.href} class="font-mono text-xs text-text-muted hover:text-text-display transition-colors duration-200 inline-flex items-center min-h-[44px]">
           {link.label}
         </a>
       ))}

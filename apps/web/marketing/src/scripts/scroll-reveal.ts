@@ -1,12 +1,7 @@
-// src/scripts/scroll-reveal.ts
-// Adds .is-visible to elements tagged [data-animate-scroll] when they enter the viewport.
-// CSS in global.css handles the actual transition.
-
 export function initScrollReveal(): void {
   const prefersReduced = globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   if (prefersReduced) {
-    // CSS already makes them visible via the media query — nothing to do.
     return
   }
 
@@ -19,7 +14,7 @@ export function initScrollReveal(): void {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           entry.target.classList.add('is-visible')
-          observer.unobserve(entry.target) // one-shot: stop watching once visible
+          observer.unobserve(entry.target)
         }
       })
     },

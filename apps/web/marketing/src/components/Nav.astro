@@ -1,19 +1,4 @@
 ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import ThemeToggle from './ThemeToggle.astro'
 import Logo from './Logo.astro'
 
@@ -32,7 +17,7 @@ const { langSwitch, langHref, langLabel } = Astro.props
     <ThemeToggle />
     <a
       href={langHref}
-      class="font-mono text-xs tracking-widest text-text-muted hover:text-text-display transition-colors duration-200"
+      class="font-mono text-xs tracking-widest text-text-muted hover:text-text-display transition-colors duration-200 inline-flex items-center min-h-[44px]"
       aria-label={langLabel}
     >
       {langSwitch}

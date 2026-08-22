@@ -1,19 +1,4 @@
 ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import Layout from '@layouts/Layout.astro'
 import Nav from '@components/Nav.astro'
 import Hero from '@components/Hero.astro'
@@ -34,7 +19,7 @@ const langLabel = locale === 'en' ? 'Cambiar a español' : 'Switch to English'
 ---
 
 <Layout title={t.meta.title} description={t.meta.description} lang={locale}>
-  <div id="main-content" class="fade-in" tabindex="-1">
+  <main id="main-content" class="fade-in" tabindex="-1">
     <Nav
       langSwitch={t.nav.langSwitch}
       langHref={langHref}
@@ -49,12 +34,12 @@ const langLabel = locale === 'en' ? 'Cambiar a español' : 'Switch to English'
       locale={locale}
     />
 
-    <div class="border-t border-[#1a1a1a] max-w-4xl mx-auto"></div>
+    <div class="border-t border-border max-w-4xl mx-auto"></div>
 
     <Features label={t.features.label} items={t.features.items} />
 
-    <div class="border-t border-[#1a1a1a] max-w-4xl mx-auto"></div>
+    <div class="border-t border-border max-w-4xl mx-auto"></div>
 
     <Footer tagline={t.footer.tagline} copy={t.footer.copy} legalLinks={t.footer.legalLinks} locale={locale} />
-  </div>
+  </main>
 </Layout>
