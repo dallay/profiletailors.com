@@ -5,8 +5,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$SCRIPT_DIR/../../.."
-CONTROLLERS_DIR="$PROJECT_ROOT/server/engine/src/main/kotlin"
+PROJECT_ROOT="$SCRIPT_DIR/../../../.."
+CONTROLLERS_DIR="$PROJECT_ROOT/server/smp/src/main/kotlin"
 
 echo "🔍 Finding controllers without proper Swagger documentation..."
 
@@ -103,6 +103,6 @@ echo "   1. Add @Tag annotation to each controller class"
 echo "   2. Add Content(schema = Schema(implementation = ...)) to all @ApiResponse"
 echo "   3. Use ProblemDetail::class for error responses"
 echo "   4. Run: ./gradlew detektAll"
-echo "   5. Run: make verify-all"
+echo "   5. Run: just backend-test-fast"
 echo ""
 echo "See: .agents/skills/backend-platform/spring-boot/references/swagger-standard.md for the complete standard"
