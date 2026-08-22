@@ -7,7 +7,7 @@ spring:
       enabled: true
   liquibase:
     contexts: ${SMP_LIQUIBASE_CONTEXTS:dev}
-  # Mailpit local SMTP — no auth, no TLS. Web UI: http://localhost:8025
+  # Mailpit local SMTP — no auth, no TLS. The launcher resolves its dynamic host ports.
   mail:
     host: ${SMP_SMTP_HOST:localhost}
     port: ${SMP_SMTP_PORT:1025}
@@ -20,7 +20,7 @@ spring:
 
 logging:
   file:
-    name: ../../logs/smp.log
+    name: ${LOGGING_FILE_NAME:logs/smp.log}
   logback:
     rollingpolicy:
       max-file-size: 50MB
@@ -47,18 +47,14 @@ publishing:
 
 management:
   server:
-    port: ${MANAGEMENT_PORT:9091}  # En dev, mismo puerto que la app
+    port: ${MANAGEMENT_PORT:9091}
 
 app:
   email:
-    publicAppUrl: "https://pt-app.localhost:1355"
+    publicAppUrl: ${SMP_PUBLIC_APP_URL:https://pt-app.localhost}
   security:
     cors:
-      allowed-origins:
-        - "http://localhost:5173"
-        - "http://pt-admin.localhost:5174"
-        - "https://pt-app.localhost:1355"
-        - "https://pt-app.localhost"
+      allowed-origins: ${SMP_CORS_ALLOWED_ORIGINS:https://pt-app.localhost,https://pt-admin.localhost,http://localhost:5173,http://localhost:5174}
 
 profile-tailors:
   features:

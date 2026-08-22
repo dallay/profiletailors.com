@@ -5,6 +5,7 @@ import { createCoverageConfig } from './coverage-config'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const appPort = Number(process.env.PLAYWRIGHT_PORT || '5173')
 
 /**
  * Playwright config for real CAS media smoke tests.
@@ -29,7 +30,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://media-library.pt-app.localhost:1355',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${appPort}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -38,9 +39,9 @@ export default defineConfig({
   },
 
   webServer: {
-    command: 'PLAYWRIGHT=true pnpm run dev:app',
-    port: 5173,
-    reuseExistingServer: true,
+    command: `PLAYWRIGHT=true VITE_API_BASE_URL="" PORT=${appPort} pnpm run dev:app`,
+    port: appPort,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'true',
     cwd: path.resolve(__dirname, '..'),
     timeout: 30_000,
   },

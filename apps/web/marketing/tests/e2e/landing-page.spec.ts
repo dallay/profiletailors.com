@@ -157,7 +157,7 @@ test.describe('Waitlist Form — Hero Container (enabled)', () => {
     await expect(form).toBeVisible();
 
     const apiBase = await form.getAttribute('data-waitlist-api-base');
-    expect(apiBase).toBe('http://localhost:7638');
+    expect(apiBase).toBe(`http://localhost:${process.env.SMP_BACKEND_PORT || '7638'}`);
   });
 });
 

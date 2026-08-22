@@ -1,4 +1,4 @@
-name: profile-tailors
+name: ${COMPOSE_PROJECT_NAME:-profile-tailors}
 # Compose configuration that imports infrastructure services
 # This file is used by Spring Boot Docker Compose support during local development
 include:
@@ -12,7 +12,7 @@ services:
   linkedin-wiremock:
     image: wiremock/wiremock:3.13.2
     ports:
-      - "${WIREMOCK_HOST_PORT:-8089}:8080"
+      - "${WIREMOCK_HOST_PORT:-0}:8080"
     volumes:
       - ./infra/wiremock/linkedin:/home/wiremock:ro
     command:
@@ -24,7 +24,7 @@ services:
       service: postgres
       file: ./infra/postgres/compose.yaml
     ports: !override
-      - '${SMP_POSTGRES_PORT:-5432}:5432'
+      - '${SMP_POSTGRES_PORT:-0}:5432'
     environment:
       POSTGRES_DB: ${SMP_POSTGRES_DB:-profiletailors_smp}
       POSTGRES_USER: ${SMP_POSTGRES_USER:-profiletailors}

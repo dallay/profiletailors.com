@@ -9,6 +9,7 @@ export default defineConfig({
   envDir: '../../..',
   server: {
     port: Number.parseInt(process.env.PORT || '5174', 10),
+    strictPort: Boolean(process.env.WORKTREE_ID),
     host: true,
     allowedHosts: ['.localhost', 'pt-admin.localhost'],
     proxy: {

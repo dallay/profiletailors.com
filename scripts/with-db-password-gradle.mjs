@@ -2,6 +2,8 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 
+import { getRuntimeEnvironment, getWorktreeContext } from './worktree-context.mjs'
+
 const args = process.argv.slice(2)
 const isWin = process.platform === 'win32'
 const wrapper = isWin ? 'gradlew.bat' : './gradlew'
@@ -11,7 +13,8 @@ if (!existsSync(wrapper)) {
   process.exit(1)
 }
 
-const env = { ...process.env }
+const context = getWorktreeContext()
+const env = getRuntimeEnvironment(context)
 if (!env.SMP_DB_TEST_PASSWORD && existsSync('.env')) {
   const lines = readFileSync('.env', 'utf8').split(/\r?\n/)
   for (const line of lines) {
@@ -30,6 +33,7 @@ if (!env.SMP_DB_TEST_PASSWORD) {
 const result = spawnSync(wrapper, args, {
   stdio: 'inherit',
   shell: isWin,
+  cwd: context.root,
   env,
 })
 

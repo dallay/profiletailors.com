@@ -4,8 +4,7 @@ const tags = '@real-cas @media'
 
 /**
  * Real CAS smoke tests against local Spring Boot backend.
- * Requires: backend on http://localhost:7638, Vite app on http://localhost:5173,
- * portless proxy at https://media-library.pt-app.localhost:1355
+ * Requires a backend and worktree-aware app runtime with real media credentials.
  */
 test.describe(`Media Library real CAS smoke ${tags}`, () => {
   test('ML-SMOKE-001 upload fresh content: PUT 201, POST, READY card appears', async ({

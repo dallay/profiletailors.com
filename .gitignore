@@ -1,4 +1,5 @@
 /tmp
+/.worktree/
 .playwright-mcp/
 .superpowers/
 # CodeGraph daemon metadata

@@ -65,7 +65,8 @@ frontend skills under `.agents/skills/`.
 
 ## Troubleshooting
 
-- If the `.localhost` URL does not resolve, install/start Portless and run `portless proxy start`.
+- If the `.localhost` URL does not resolve, install/start Portless and run
+  `pnpm exec portless proxy start`.
 - If Node 22 tests fail because `localStorage.clear` is unavailable, use the repository's documented
   Node 22 local-storage file workaround before `just ci-local`.
 - If an E2E lane needs backend data, start the required services with `just infra-up` and
