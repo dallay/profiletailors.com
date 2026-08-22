@@ -272,12 +272,11 @@ For endpoints that require authentication:
 8. **ProblemDetail**: Use Spring's `ProblemDetail` for error responses
 9. **Headers**: Document special headers (e.g., `Retry-After` for 429)
 
-## Complete Example: WaitlistController
+## Reference Implementation
 
-See
-`server/smp/src/main/kotlin/com/profiletailors/smp/leadcapture/infrastructure/http/WaitlistController.kt`
-
-This controller is an example of Swagger documentation in the project.
+The complete annotated pattern described in this document represents the standard to progressively
+apply across all controllers. Controllers in `server/smp/src/main/kotlin` may not yet fully implement
+this standard and should be enhanced during feature work or dedicated documentation sprints.
 
 ## Verification
 

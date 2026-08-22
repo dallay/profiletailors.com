@@ -30,10 +30,11 @@ private val messageSource: MessageSource,  // For localized messages
 }
 ```
 
-## Real Example: WaitlistController
+## Illustrative Example: Handler-Based Controller
 
-From
-`server/smp/src/main/kotlin/com/profiletailors/smp/leadcapture/infrastructure/http/WaitlistController.kt`:
+The following example demonstrates the standard structure using a handler-based pattern (note: this is
+an illustrative example showing the documented Swagger standard; actual controllers in the codebase
+may vary in their current implementation):
 
 ```kotlin
 @Validated

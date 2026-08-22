@@ -40,7 +40,7 @@ The audit concluded with **CHANGES_APPLIED**. Instances of documentation drift i
 | :--- | :--- | :--- | :--- |
 | Markdown Link Validity Check | Custom local parser | **Passed** | All relative and route links verified. |
 | Frontend Unit Tests | `pnpm --filter app test && pnpm --filter marketing test` | **Passed** | 1354 app unit tests and 85 marketing unit tests passed cleanly. |
-| Backend Fast Unit Tests | `node scripts/with-db-password-gradle.mjs :server:smp:test` | **Passed** | Full Gradle unit test suite passed cleanly. |
+| Backend Fast Unit Tests | `node scripts/with-db-password-gradle.mjs :server:smp:test` | **Passed** | SMP backend unit test suite passed cleanly. |
 
 ## Unresolved Findings
 

@@ -5,7 +5,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$SCRIPT_DIR/../../.."
+PROJECT_ROOT="$SCRIPT_DIR/../../../.."
 CONTROLLERS_DIR="$PROJECT_ROOT/server/smp/src/main/kotlin"
 
 echo "🔍 Finding controllers without proper Swagger documentation..."
