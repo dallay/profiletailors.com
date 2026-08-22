@@ -21,7 +21,7 @@ const env = getRuntimeEnvironment(context, {
 
 let result
 try {
-  result = spawnSync('pnpm', ['exec', 'playwright', ...args], {
+  result = spawnSync('pnpm', ['exec', 'playwright', 'test', ...args], {
     cwd: process.cwd(),
     env,
     stdio: 'inherit',

@@ -1,9 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
 @import "tailwindcss";
 
-/* ─── Design tokens ────────────────────────────────────────────────────────── */
-
-/* Dark mode (default) */
 :root {
   --bg-primary:     #0a0a0a;
   --bg-secondary:   #111111;
@@ -11,12 +8,12 @@
   --text-display:   #ffffff;
   --text-body:      #e5e5e5;
   --text-secondary: #a3a3a3;
-  --text-muted:     #7a7a7a;   /* 4.60:1 on bg-primary (#0a0a0a) — was #525252 (2.53:1 FAIL) */
-  --border:         #404040;  /* 1.91:1 on bg-primary (#0a0a0a) — decorative; was #262626 (1.31:1) */
+  --text-muted:     #7a7a7a;
+  --border:         #404040;
   --accent:         #ffffff;
+  --error-text:     #f87171;
 }
 
-/* Light mode — designed, not inverted */
 :root[data-theme="light"] {
   --bg-primary:     #f5f5f0;
   --bg-secondary:   #ebebeb;
@@ -24,12 +21,12 @@
   --text-display:   #0a0a0a;
   --text-body:      #1a1a1a;
   --text-secondary: #525252;
-  --text-muted:     #6e6e6e;   /* 4.66:1 on bg-primary (#f5f5f0) — was #a3a3a3 (2.31:1 FAIL) */
-  --border:         #b8b8b0;  /* 1.87:1 on bg-primary (#f5f5f0) — decorative; was #d4d4ce (1.36:1) */
+  --text-muted:     #6e6e6e;
+  --border:         #b8b8b0;
   --accent:         #0a0a0a;
+  --error-text:     #b91c1c;
 }
 
-/* Tailwind theme bridge — exposes tokens to Tailwind utilities */
 @theme {
   --color-bg-primary:     var(--bg-primary);
   --color-bg-secondary:   var(--bg-secondary);
@@ -40,12 +37,11 @@
   --color-text-muted:     var(--text-muted);
   --color-border:         var(--border);
   --color-accent:         var(--accent);
+  --color-error-text:     var(--error-text);
 
   --font-display: 'Space Grotesk', sans-serif;
   --font-mono:    'Space Mono', monospace;
 }
-
-/* ─── Base ──────────────────────────────────────────────────────────────────── */
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -65,8 +61,6 @@ body {
   background-color: var(--bg-primary);
 }
 
-/* ─── Animations ────────────────────────────────────────────────────────────── */
-
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -77,8 +71,6 @@ body {
     animation: fade-in 0.6s ease forwards;
   }
 }
-
-/* ─── Scroll reveal ─────────────────────────────────────────────────────────── */
 
 [data-animate-scroll] {
   opacity: 0;
@@ -99,24 +91,15 @@ body {
   }
 }
 
-/* ─── View Transition — theme switch ───────────────────────────────────────── */
-/*
-  Disable the default cross-fade so our clip-path animation is the only effect.
-  mix-blend-mode: normal prevents old/new snapshots from compositing oddly.
-*/
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
 }
 
-/* ─── Input reset ───────────────────────────────────────────────────────────── */
-
 input {
   font-family: inherit;
 }
-
-/* ─── Skip link ──────────────────────────────────────────────────────────────── */
 
 .skip-link {
   position: absolute;
@@ -139,14 +122,11 @@ input {
   outline-offset: 2px;
 }
 
-/* ─── Focus visible ─────────────────────────────────────────────────────────── */
-
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
-/* Remove focus outline for mouse/pointer users — keyboard only */
 :focus:not(:focus-visible) {
   outline: none;
 }
