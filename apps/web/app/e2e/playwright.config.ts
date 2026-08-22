@@ -5,6 +5,7 @@ import { createCoverageConfig } from './coverage-config'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const appPort = Number(process.env.PLAYWRIGHT_PORT || '5173')
 
 /**
  * Playwright E2E configuration for the Profile Tailors SPA (apps/web/app).
@@ -59,16 +60,16 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${appPort}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
 
   /* ── Frontend dev server only (no backend) ────────────── */
   webServer: {
-    command: 'PLAYWRIGHT=true pnpm run dev:app',
-    port: 5173,
-    reuseExistingServer: !process.env.CI,
+    command: `PLAYWRIGHT=true PORT=${appPort} pnpm run dev:app`,
+    port: appPort,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'true',
     cwd: path.resolve(__dirname, '..'),
     timeout: 30_000,
   },

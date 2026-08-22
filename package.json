@@ -49,6 +49,7 @@
     "prepare": "node scripts/prepare-workspace.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.8"
+    "@biomejs/biome": "2.5.8",
+    "portless": "0.15.5"
   }
 }

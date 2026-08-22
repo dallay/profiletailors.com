@@ -7,6 +7,7 @@ const paths = [
   'apps/web/marketing/coverage',
   'apps/web/app/dist',
   '.gradle/build-cache',
+  '.worktree',
 ]
 
 for (const path of paths) {

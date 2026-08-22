@@ -1,18 +1,10 @@
 #!/usr/bin/env node
-import { execSync } from 'node:child_process'
+import { getWorktreeContext } from './worktree-context.mjs'
+import { listProcessRecords, terminateProcessRecord } from './process-supervisor.mjs'
 
-const isWin = process.platform === 'win32'
-console.log('Stopping dev servers...')
+const context = getWorktreeContext()
+console.log(`Stopping dev servers owned by ${context.worktreeId}...`)
 
-try {
-  if (isWin) {
-    execSync('taskkill /F /IM java.exe /T', { stdio: 'ignore' })
-    execSync('taskkill /F /IM node.exe /T', { stdio: 'ignore' })
-  } else {
-    execSync('pkill -f bootRun', { stdio: 'ignore' })
-    execSync('pkill -f vite', { stdio: 'ignore' })
-    execSync('pkill -f GradleDaemon', { stdio: 'ignore' })
-  }
-} catch {}
+for (const path of listProcessRecords(context)) terminateProcessRecord(path)
 
 console.log('Servers stopped')
