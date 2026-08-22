@@ -1,7 +1,7 @@
 schemaVersion: 1
 task: environment-configuration-auditor
-lastExecution: "2026-08-14T19:16:51Z"
-outcome: NO_DRIFT_DETECTED
+lastExecution: "2026-08-14T19:40:00Z"
+outcome: CHANGES_APPLIED
 findings:
   - id: ENV-CORS-DRIFT
     title: "CORS Allow-Credentials Configuration Alignment"
@@ -45,6 +45,13 @@ findings:
     evidence: "Added SMP_LINKEDIN_API_VERSION, SMP_LINKEDIN_SOCIAL_CONTENT_API_VERSION, SMP_LINKEDIN_SOCIAL_CONTENT_SUPPORTED_API_VERSIONS to .env.example matching application.yaml"
     risk: LOW
     message: "reconciled LinkedIn API version variables."
+  - id: ENV-SOCIAL-CONTENT-DRIFT
+    title: "LinkedIn Social Content & SMTP Configuration Alignment"
+    status: resolved
+    classification: DRIFT
+    evidence: "Added LinkedIn Social Content toggles/polling/cache settings, SMP_MEDIA_CONTEXT_INTEGRATION_ENABLED, SMP_LINKEDIN_STATE_SIGNING_SECRET, SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL, SMP_LIQUIBASE_CONTEXTS, and SMP_SMTP_* variables to .env.example matching application.yaml / application-dev.yaml"
+    risk: LOW
+    message: "reconciled LinkedIn social content and SMTP environment variables."
 checks:
   - name: "CORS Variable Verification"
     status: Passed
@@ -57,6 +64,8 @@ checks:
   - name: "Media Deduplication Variable Verification"
     status: Passed
   - name: "LinkedIn API Version Variable Verification"
+    status: Passed
+  - name: "LinkedIn Social Content & SMTP Variable Verification"
     status: Passed
   - name: "Spring Boot Application Yaml Match Verification"
     status: Passed
