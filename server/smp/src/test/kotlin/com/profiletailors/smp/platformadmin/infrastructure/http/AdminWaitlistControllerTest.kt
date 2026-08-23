@@ -12,12 +12,14 @@ import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntry
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.ports.WaitlistQueryTelemetryPort
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -34,6 +36,7 @@ class AdminWaitlistControllerTest {
     private val inviteHandler = mockk<InviteWaitlistEntryHandler>(relaxed = true)
     private val cancelHandler = mockk<CancelWaitlistEntryHandler>(relaxed = true)
     private val roleAssignmentRepository = mockk<PlatformRoleAssignmentRepository>()
+    private val waitlistQueryTelemetry = mockk<WaitlistQueryTelemetryPort>(relaxed = true)
 
     @Test
     fun `listEntries returns 401 without principal context`() {
@@ -75,6 +78,12 @@ class AdminWaitlistControllerTest {
         coVerify {
             waitlistQuery.list(
                 match { query -> query.status == "PENDING" && query.waitlistId == "waitlist-1" },
+            )
+        }
+        verify {
+            waitlistQueryTelemetry.recordListQuery(
+                statusFilter = "PENDING",
+                emailSearch = false,
             )
         }
     }
@@ -171,6 +180,7 @@ class AdminWaitlistControllerTest {
                 cancelHandler = cancelHandler,
                 roleAssignmentRepository = roleAssignmentRepository,
                 requestContextStore = FakeRequestContextStore(principal),
+                waitlistQueryTelemetry = waitlistQueryTelemetry,
             ),
         )
         .controllerAdvice(AdminProblemDetailsHandler())

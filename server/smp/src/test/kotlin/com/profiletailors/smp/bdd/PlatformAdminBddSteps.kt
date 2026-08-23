@@ -207,6 +207,36 @@ class PlatformAdminBddSteps {
             .returnResult()
     }
 
+    @When("the platform operator searches the waitlist for {string}")
+    fun operatorSearchesWaitlistByEmail(email: String) {
+        lastResponse = webTestClient.get()
+            .uri { builder ->
+                builder.path("/api/admin/waitlist-entries")
+                    .queryParam("email", email)
+                    .build()
+            }
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the platform operator filters the waitlist by status {string}")
+    fun operatorFiltersWaitlistByStatus(status: String) {
+        lastResponse = webTestClient.get()
+            .uri { builder ->
+                builder.path("/api/admin/waitlist-entries")
+                    .queryParam("status", status)
+                    .build()
+            }
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
     @When("the auditor attempts to invite the waitlist entry")
     fun auditorAttemptsInvite() {
         val entryId = requireNotNull(lastEntryId)
@@ -288,6 +318,25 @@ class PlatformAdminBddSteps {
         assertNotNull(body?.get("items"))
         assertNotNull(body?.get("totalElements"))
         assertNotNull(body?.get("page"))
+    }
+
+    @And("the waitlist result should contain {int} entries")
+    fun waitlistResultContainsEntryCount(expected: Int) {
+        val body = lastResponse?.responseBody?.let { json.readTree(it) }
+        assertNotNull(body?.get("items"))
+        assertEquals(expected, body!!.get("items").size())
+        assertEquals(expected.toLong(), body.get("totalElements").asLong())
+    }
+
+    @And("the waitlist result should contain an entry with email {string}")
+    fun waitlistResultContainsEntryWithEmail(email: String) {
+        val body = lastResponse?.responseBody?.let { json.readTree(it) }
+        assertNotNull(body?.get("items"))
+        val items = body!!.get("items")
+        val match = (0 until items.size()).any { i ->
+            email.equals(items[i].get("email")?.asText(), ignoreCase = true)
+        }
+        assertTrue(match, "Expected an entry with email $email in the waitlist result")
     }
 
     @And("the waitlist entry status should become {string}")
