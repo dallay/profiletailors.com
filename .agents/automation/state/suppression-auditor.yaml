@@ -1,0 +1,5 @@
+schemaVersion: 1
+task: suppression-auditor
+lastExecution: null
+findings: []
+checks: []

@@ -26,7 +26,7 @@ accepted ADRs, implementation, tests, configuration, OpenSpec, references
 
 ## Previous State
 
-Read ../state/adr-consistency.yaml as context and revalidate every finding.
+Read ../state/adr-consistency-auditor.yaml as context and revalidate every finding.
 
 ## Inspection Procedure
 
@@ -62,8 +62,9 @@ modify another task state.
 
 ## Risk Rules
 
-Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported
-by default.
+LOW: apply autonomously, validate, Draft PR. MEDIUM: apply with strong evidence and tests, Draft
+PR. HIGH deterministic: MAY implement remediation in the Draft PR; human merge is the approval
+gate. HIGH ambiguous: persist the finding, do not guess. See framework.md.
 
 ## Validation
 
@@ -72,12 +73,12 @@ Prefer just. Record Passed, Failed, or Not run only.
 
 ## State
 
-Owns ../state/adr-consistency.yaml; use the framework schema and never set execution data without an
+Owns ../state/adr-consistency-auditor.yaml; use the framework schema and never set execution data without an
 actual run.
 
 ## Report
 
-Owns ../reports/adr-consistency.md; report facts, evidence, result, validation, unresolved findings,
+Owns ../reports/adr-consistency-auditor.md; report facts, evidence, result, validation, unresolved findings,
 and risks without chain-of-thought or secrets.
 
 ## Pull Request
