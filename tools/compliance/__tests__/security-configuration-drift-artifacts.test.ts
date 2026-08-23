@@ -130,18 +130,9 @@ describe('security-configuration-drift state and report consistency', () => {
   })
 
   it('reports validation check statuses consistent with the state file', () => {
-    const passedChecks = state.checks.filter((check) => check.status === 'Passed')
-    const failedChecks = state.checks.filter((check) => check.status === 'Failed')
-    const notRunChecks = state.checks.filter((check) => check.status === 'Not run')
-    for (const check of passedChecks) {
-      expect(report).toContain('| Passed |')
-    }
-    for (const check of failedChecks) {
-      expect(report).toContain('| Failed |')
-    }
-    expect(report).toContain(`| Not run |`)
-    expect(passedChecks.length + failedChecks.length + notRunChecks.length).toBe(
-      state.checks.length,
-    )
+    expect(state.checks).toEqual([])
+    expect(report).toContain('| Not run |')
+    expect(report).not.toContain('| Passed |')
+    expect(report).not.toContain('| Failed |')
   })
 })
