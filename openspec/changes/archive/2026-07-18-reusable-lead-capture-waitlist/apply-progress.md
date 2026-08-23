@@ -256,8 +256,8 @@
 
 ### Remaining Tasks
 
-- Phase 9.4 remains deferred to `sdd-archive`: sync canonical specs to
-  `openspec/specs/lead-capture-common/spec.md` and `openspec/specs/lead-capture-waitlist/spec.md`.
+- Phase 9.4 remains deferred to `sdd-archive`: sync the canonical waitlist spec to
+  `openspec/specs/lead-capture-waitlist/spec.md`.
 - Run `sdd-verify` for the full change before archive.
 - The DALLAY-512 distributed bucket backend and DALLAY-513 trusted-proxy / `ForwardedHeaderFilter`
   allowlist remain separate production-safety follow-up changes before enabling WAITLIST rate

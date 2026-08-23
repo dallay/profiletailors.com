@@ -38,7 +38,7 @@ production-safety warnings remain mitigated by WAITLIST rate limiting being defa
 
 | Task                                                                                                                                              | Severity | Verification judgment                                                                       |
 |---------------------------------------------------------------------------------------------------------------------------------------------------|----------|---------------------------------------------------------------------------------------------|
-| 9.4 — After `sdd-archive`, add canonical specs at `openspec/specs/lead-capture-common/spec.md` and `openspec/specs/lead-capture-waitlist/spec.md` | WARNING  | Correctly deferred. Canonical spec sync is archive-phase work, not an apply/verify blocker. |
+| 9.4 — After `sdd-archive`, add the canonical `openspec/specs/lead-capture-waitlist/spec.md` | WARNING  | Correctly deferred. Canonical spec sync is archive-phase work, not an apply/verify blocker. |
 
 ## Build and Test Evidence
 
@@ -144,8 +144,8 @@ production rate-limit blockers are mitigated by the limiter being default-off.
 
 ### SUGGESTION
 
-1. When archiving, copy/sync the delta specs into `openspec/specs/lead-capture-common/spec.md` and
-   `openspec/specs/lead-capture-waitlist/spec.md`, then close task 9.4 as part of archive evidence.
+1. When archiving, copy/sync the waitlist delta into `openspec/specs/lead-capture-waitlist/spec.md`,
+   then close task 9.4 as part of archive evidence.
 2. Track DALLAY-512 and DALLAY-513 as separate follow-up changes before any non-test environment
    enables `SMP_WAITLIST_RATE_LIMIT_ENABLED=true`.
 

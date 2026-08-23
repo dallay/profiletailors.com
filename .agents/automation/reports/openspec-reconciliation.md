@@ -1,82 +1,46 @@
-# OpenSpec Implementation Reconciliation Report
+# OpenSpec Scope Reconciliation Report
 
 ## Purpose
 
-The OpenSpec Implementation Reconciliation Agent has conducted a comprehensive audit of active and archived change specifications against the current codebase, tests, and configuration in accordance with the repository framework.
+Reconcile the OpenSpec inventory with the repository rule that OpenSpec contains product and
+business contracts, not standalone engineering-task specifications.
 
 ## Execution Result
 
-The audit concluded with **NO_DRIFT_DETECTED**. The repository maintains strong alignment with the Spec-Driven Development (SDD) process:
-1. Four active changes (`mcp-server`, `pr-577-quality-gate-remediation`, `consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior`, and `private-beta-launch-readiness`) are currently tracked under `openspec/changes/`.
-2. All 59 archived changes under `openspec/changes/archive/` are in a completed, valid archive state.
-3. No zombie or uncoordinated changes are present in the `openspec/changes/` directory.
+The audit completed with **SCOPE_CLEANUP_APPLIED**.
 
-## Scope Inspected
+- Three active changes remain: `mcp-server`, the consent UX change, and
+  `private-beta-launch-readiness`.
+- Thirty-eight archived changes remain after removing technical-only history.
+- Forty canonical specification directories remain under `openspec/specs/`.
+- The removed artifacts covered quality gates, dependency policy, architecture governance,
+  frontend refactors, type-check remediation, E2E harness plans, storage adapters/deduplication,
+  deployment ingress, release pipeline work, and semantic PR workflow behavior.
 
-- **Global Specifications (`openspec/specs/`)**: Verified existence of 53 capability contract documents.
-- **Active Changes (`openspec/changes/`)**:
-  - `mcp-server`: Audited `state.yaml`, `tasks.md`, and local specs.
-  - `pr-577-quality-gate-remediation`: Audited `state.yaml`, `apply-progress.md`, `verify-report.md`, and local specs.
-  - `consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior`: Audited `state.yaml`, `tasks.md`, `verify-report.md`, `qa-report.md`, and local spec.
-  - `private-beta-launch-readiness`: Audited `state.yaml`, `tasks.md`, `design.md`, and local specs.
-- **Archived Changes (`openspec/changes/archive/`)**: Validated organization and completeness of 59 archived change directories.
-- **Implementation & Tests (`server/smp`, `apps/web/app`)**: Cross-referenced implementations and tests against spec state files.
+## Scope Rule
 
-## Changes Applied
+OpenSpec is reserved for product, domain, user-facing, legal, privacy, security, accessibility,
+and business-readiness contracts. Technical design and verification evidence may accompany a
+product change, but CI/quality, architecture, refactor, test-harness, and deployment-only work
+belongs in workflows, ADRs, skills, testing documentation, or operational documentation.
 
-- Updated `.agents/automation/state/openspec-reconciliation.yaml` with compiled findings, outcome `NO_DRIFT_DETECTED`, and completed checks.
-- Updated `.agents/automation/reports/openspec-reconciliation.md` with the full factual report.
+## Preserved Product Areas
 
-## Evidence Table
+Authentication and registration, waitlist and private beta, publishing and social content,
+channels and OAuth, media authoring and attribution/takedown, dashboards, calendar and scheduler
+behavior, email verification and recovery, legal/privacy/consent, IAM authorization, MCP
+integration, and public capability contracts remain represented.
 
-| OpenSpec Identity | Status Classification | State Alignment | Codebase Evidence |
-|:---|:---|:---|:---|
-| `mcp-server` | `PARTIALLY_IMPLEMENTED` | Aligning with phase `apply` | `McpWiringTest.kt` passes; Spring Modulith module is integrated |
-| `pr-577-quality-gate-remediation` | `IMPLEMENTED_NOT_VERIFIED` | Aligning with phase `verify` | Remediations (labels, IDs, `fun interface`, `deleteSet` ResponseEntity) present |
-| `consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior` | `IMPLEMENTED_NOT_VERIFIED` | Aligning with phase `qa` | Non-modal consent banner implemented and store simplified; DNT/GPC E2E scenario missing, browser matrix (Brave Shields/Safari/WebKit) not run, full E2E suite not yet executed, root-cause ADR/note for Brave portal-overlay issue recommended (non-blocking) |
-| `private-beta-launch-readiness` | `PARTIALLY_IMPLEMENTED` | Aligning with phase `apply` | Invitation & activation core applied and BDD fast suite green |
-| Archived Changes (59 total) | `IMPLEMENTED` | Aligning with phase `archive` | Correctly organized under `openspec/changes/archive/` |
+## Validation
 
-## Validation Table
+| Check | Result |
+|---|---|
+| Active change directory inventory | Passed: 3 active changes |
+| Archived change directory inventory | Passed: 38 retained product/business changes |
+| Canonical spec directory inventory | Passed: 40 retained contracts |
+| Deleted-path reference review | Passed after updating maintained reports/docs |
 
-| Check Name | Target / Command | Outcome | Details |
-|:---|:---|:---|:---|
-| Active Change State File Scan | File System / YAML | **Passed** | Reads and verifies state files across all active changes in `openspec/changes/`. |
-| Archived Changes Index Verification | File System / YAML | **Passed** | Confirms 59 archived changes are organized in `openspec/changes/archive/`. |
-| Global Specification Directory Completeness | File System | **Passed** | 53 specification directories under `openspec/specs/` successfully identified. |
+## Follow-up
 
-## Unresolved Findings
-
-1. **`mcp-server` active change in progress (LOW risk)**:
-   - PR1 (foundation) is complete. PR2, PR3, and PR4 are pending.
-   - Specs remain localized in active change directory until completion.
-2. **`pr-577-quality-gate-remediation` active change verification pending (LOW risk)**:
-   - Source-level accessibility and Kotlin signature fixes are fully present.
-   - Local verification failed because the fresh app LCOV coverage report was 69.50% (below the required 80% project gate).
-3. **`consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior` active change in QA phase (LOW risk)**:
-   - Non-modal banner implemented; QA fixes applied.
-   - Blocking conditions before archive:
-     - DNT/GPC E2E scenario missing (store-level covered, no dedicated Playwright scenario for mockPrivacySignals)
-     - Full E2E suite not yet executed
-     - Browser matrix (Brave Shields ON/OFF x states A-D, Safari/WebKit) not run
-   - Recommended (non-blocking):
-     - Root-cause ADR/note for Brave portal-overlay issue should be written but requires only explicit policy acceptance to proceed
-4. **`private-beta-launch-readiness` active change in apply phase (LOW risk)**:
-   - Activation & invitation core implemented; awaiting BDD postgres verification step.
-
-## Blockers
-
-None.
-
-## Automation State
-
-- **Task**: `openspec-reconciliation`
-- **Result Status**: `NO_DRIFT_DETECTED`
-
-## Risk Assessment
-
-- **Overall Risk**: **LOW** (Changes are strictly limited to the state and report artifacts of this audit task).
-
-## Human Review Notes
-
-The SDD workflow is functioning as designed across active changes and archived specifications. Localized specifications remain active within their change folders until implementation and verification phases complete.
+Future standalone technical work must use the repository's workflows, ADRs, skills, testing docs,
+or operational docs rather than adding a new OpenSpec capability.

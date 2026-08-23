@@ -165,8 +165,8 @@ None required for MVP — there is no legacy waitlist data. The existing client-
 
 ## Follow-up actions
 
-- [ ] Add `openspec/specs/lead-capture-common` and `openspec/specs/lead-capture-waitlist` as
-  archived canonical specs after `sdd-archive`.
+- [ ] Add `openspec/specs/lead-capture-waitlist` as the archived canonical product spec after
+  `sdd-archive`.
 - [ ] Re-evaluate extraction to a separate microservice after at least two products adopt the
   capability.
 - [ ] Revisit once `forms` module is introduced; map `WaitlistEntry` capture to `FormSubmission`.

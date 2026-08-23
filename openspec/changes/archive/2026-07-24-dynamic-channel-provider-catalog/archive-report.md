@@ -13,7 +13,6 @@ The verification report records no critical issues. Its two warnings are pre-exi
 
 | Domain | Action | Details |
 |---|---|---|
-| `app-shell` | Updated | Added 1 requirement; modified 1 requirement; removed 0 requirements. |
 | `oauth-initiation-api` | Updated | Added 0 requirements; modified 1 requirement; removed 0 requirements. |
 | `publishing` | Updated | Added 1 requirement; modified 0 requirements; removed 0 requirements. |
 
@@ -25,6 +24,5 @@ The verification report records no critical issues. Its two warnings are pre-exi
 
 ## Source of Truth Updated
 
-- `openspec/specs/app-shell/spec.md`
 - `openspec/specs/oauth-initiation-api/spec.md`
 - `openspec/specs/publishing/spec.md`

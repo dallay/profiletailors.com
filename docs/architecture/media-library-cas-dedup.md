@@ -1,6 +1,6 @@
 # Media Library — Content-Addressed Storage (CAS) Deduplication
 
-> **Status:** Implemented (archived as `media-asset-dedup`)
+> **Status:** Implemented internal storage architecture
 > **Last Updated:** 2026-06-27
 
 ## Overview
@@ -268,10 +268,3 @@ CREATE INDEX idx_blobs_gc_candidates
 - [Architecture Overview](./README.md)
 - [ADR: Media Library Storage Configuration](./adr-media-library-storage.md) — bucket-level
   decisions
-- [Spec: Media Asset Dedup](../../openspec/specs/media-asset-dedup/spec.md) — full specification
-  with
-  all scenarios
-- [Design: Media Asset Dedup](../../openspec/changes/archive/2026-06-25-media-asset-dedup/design.md) —
-  technical design with data flow diagrams
-- [Verify Report](../../openspec/changes/archive/2026-06-25-media-asset-dedup/verify-report.md) —
-  implementation verification results

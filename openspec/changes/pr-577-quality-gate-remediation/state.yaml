@@ -1,6 +1,0 @@
-change: pr-577-quality-gate-remediation
-current_phase: verify
-completed: [init, explore, propose, spec, design, tasks, apply, verify]
-next: apply
-note: "Verification FAIL after blocker fixes: all 14 Sonar source fixes are present; Detekt is clean; Ideas E2E is 9/9; app/backend suites and just ci pass; and quality-gate config is unchanged. Task 5.3 remains incomplete because fresh app LCOV is 69.50% versus the unchanged 80% target, and remote Sonar/Codecov checks cannot be confirmed until a new commit is pushed."
-updated: 2026-08-03

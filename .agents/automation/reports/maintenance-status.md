@@ -66,21 +66,14 @@ All 20 automated tasks have been audited, their states parsed, and their finding
 - **Risk:** **LOW**. This is expected for active changes that are in development according to Spec-Driven Development (SDD) rules.
 - **Remediation Plan:** Complete PR1 user-review and merge gate first, then proceed sequentially with PR2, PR3, and PR4 per the stacked-PR chain defined in openspec/changes/mcp-server/state.yaml.
 
-### 3. Active Change Status: pr-577-quality-gate-remediation Failing
-
-- **Finding ID:** `AUTO-openspec-reconciliation-quality-gate-failing` (aggregated from `F-2` under `openspec-reconciliation.yaml`)
-- **Description:** The `pr-577-quality-gate-remediation` active change is currently in its verify phase but is failing locally because the fresh app LCOV project coverage report is 69.50% (which is below the required 80% project gate).
-- **Risk:** **LOW**. Active work is required to implement the remaining tests to boost code coverage.
-- **Remediation Plan:** Continue implementing additional unit/integration tests to close the coverage gap (69.50% vs 80% gate), push a new commit once coverage improves, and record and confirm the resulting remote Sonar/Codecov PR check results per openspec/changes/pr-577-quality-gate-remediation/verify-report.md.
-
-### 4. Active Change Status: consent-ux In QA
+### 3. Active Change Status: consent-ux In QA
 
 - **Finding ID:** `AUTO-openspec-reconciliation-consent-ux-qa` (aggregated from `F-3` under `openspec-reconciliation.yaml`)
 - **Description:** The `consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior` change is in QA phase. Outstanding conditions: DNT/GPC E2E scenario missing, browser matrix not run, full E2E suite not yet executed.
 - **Risk:** **LOW**. QA testing and verification in progress.
 - **Remediation Plan:** Complete DNT/GPC Playwright test scenario and execute cross-browser matrix verification.
 
-### 5. Active Change Status: private-beta-launch-readiness In Apply
+### 4. Active Change Status: private-beta-launch-readiness In Apply
 
 - **Finding ID:** `AUTO-openspec-reconciliation-private-beta-launch-readiness-apply` (aggregated from `F-4` under `openspec-reconciliation.yaml`)
 - **Description:** The `private-beta-launch-readiness` active change is in apply phase, awaiting BDD postgres verification.
@@ -105,4 +98,5 @@ State tracking is maintained in `.agents/automation/state/maintenance-coordinato
 
 1. **Verify Security Drift Remediation:** Coordinate with DevOps/Security to confirm Prometheus scraper compatibility with HTTP basic auth or Bearer tokens before enforcing authentication on management port 9091.
 2. **Review State Directory:** Ensure no rogue YAML files exist outside the 20 registered task definitions.
-3. **Monitor Active Changes:** Follow progress of `mcp-server`, `consent-ux`, `private-beta-launch-readiness`, and test-coverage enhancement for `pr-577-quality-gate-remediation`.
+3. **Monitor Active Changes:** Follow progress of `mcp-server`, `consent-ux`, and
+   `private-beta-launch-readiness`.

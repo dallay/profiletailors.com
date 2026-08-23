@@ -33,7 +33,7 @@ Convert Profile Tailors foundations into a reversible, evidence-backed private-b
 - `iam`: preserve authentication, membership, and tenancy boundaries during invited activation.
 - `publishing`: add operational controls and evidence boundaries to beta acceptance.
 - `e2e`: add the coordinated invitee journey and publish/schedule failure coverage.
-- `cloudflare-tunnel-ingress`: identify the managed production route in acceptance evidence.
+- Managed ingress and readiness documentation: identify the production route in acceptance evidence.
 
 ### Approach
 
