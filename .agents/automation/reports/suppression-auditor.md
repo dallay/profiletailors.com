@@ -2,38 +2,31 @@
 
 ## Purpose
 
-Audit linter suppression drift across the repository and remove obsolete or unjustified suppressions.
+Audit linter suppressions, ignore directives, and bypass comments for staleness and unjustified use.
 
 ## Execution Result
 
-`CHANGES_APPLIED`
+No automation execution has been recorded yet. This report is awaiting its first scheduled run.
 
 ## Scope Inspected
 
-- `apps/web/marketing/src/components/**/*.test.ts`
-- `apps/web/app/src/**/*`
-- `server/smp/src/**/*`
-- `shared/**/*`
+Not yet inspected.
+
+## Changes Applied
+
+None.
 
 ## Evidence Table
 
-| File | Suppression Type | Classification | Action Taken |
-| --- | --- | --- | --- |
-| `apps/web/marketing/src/components/Analytics.test.ts` | `eslint-disable-next-line no-new-func` | Obsolete | Removed |
-| `apps/web/marketing/src/components/consent/ConsentScript.test.ts` | `eslint-disable-next-line no-new-func` | Obsolete | Removed |
-| `apps/web/marketing/src/components/consent/CookieSettingsLink.test.ts` | `eslint-disable-next-line no-new-func` | Obsolete | Removed |
-| `apps/web/marketing/src/components/consent/ConsentBanner.test.ts` | `eslint-disable-next-line no-new-func` | Obsolete | Removed |
-| `apps/web/app/src/components/ui/carousel/CarouselContent.vue` (+9 more, see SUP-002 evidence in suppression-auditor.yaml) | `biome-ignore lint/correctness/noUnusedVariables` | Required | Retained |
-| `server/smp` and `shared` Kotlin modules (see SUP-003 evidence in suppression-auditor.yaml) | Detekt `@Suppress` | Required | Retained |
+No evidence collected yet.
 
-## Validation
+## Validation Table
 
-| Check | Scope | Result |
-| --- | --- | --- |
-| Marketing Biome Linter | `apps/web/marketing` | Passed |
-| Marketing Vitest Unit Tests | `apps/web/marketing` | Passed |
-| App SPA Biome Linter | `apps/web/app` | Passed |
-| Backend Detekt Static Analysis | `:server:smp:detekt` | Passed |
+No validation checks have been run.
+
+| Check Name | Target | Status | Notes |
+| :--- | :--- | :--- | :--- |
+| (none) | — | Not run | Awaiting first execution. |
 
 ## Unresolved Findings
 
@@ -45,12 +38,14 @@ None.
 
 ## Automation State
 
-Updated `.agents/automation/state/suppression-auditor.yaml` with state schema version 1.
+- **Last Execution:** `null`
+- **Schema Version:** `1`
+- **Task Identity:** `suppression-auditor`
 
 ## Risk Assessment
 
-`LOW` — Removed only stale/obsolete ESLint comments in test files where ESLint is no longer part of the toolchain.
+- **Overall Risk:** N/A (no execution yet).
 
 ## Human Review Notes
 
-No action required. All checks pass cleanly.
+No execution has been recorded. The task will run on its next scheduled execution.

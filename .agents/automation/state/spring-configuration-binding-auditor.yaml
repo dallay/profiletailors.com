@@ -1,13 +1,5 @@
 schemaVersion: 1
 task: spring-configuration-binding-auditor
-lastExecution: "2026-08-05T01:00:00Z"
+lastExecution: null
 findings: []
-checks:
-  - name: Configuration Properties Mapping Check
-    status: Passed
-  - name: Production Credentials Validator Check
-    status: Passed
-  - name: Environment Example Alignment Check
-    status: Passed
-  - name: Fast Backend Integration
-    status: Passed
+checks: []

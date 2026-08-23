@@ -1,40 +1,5 @@
 schemaVersion: 1
 task: maintenance-coordinator
-lastExecution: "2026-08-25T12:00:00Z"
-outcome: CHANGES_APPLIED
-findings:
-  - id: AUTO-security-configuration-drift-unresolved
-    title: "Unresolved Security Drift: Actuator Prometheus Public Exposure"
-    status: unresolved
-    classification: HAS_UNRESOLVED_FINDINGS
-    evidence: "The endpoint `/actuator/prometheus` is permitted without authentication in `IdentitySecurityConfiguration.kt` (lines 133-142), whereas `docs/monitoring/actuator-security.md` specifies that only `/actuator/health` is public and other endpoints require authentication."
-    risk: HIGH
-    message: "Public exposure of Actuator Prometheus remains unresolved in security-configuration-drift-auditor.yaml. Remediation requires VPC/scraper check."
-  - id: AUTO-openspec-reconciliation-mcp-server-in-progress
-    title: "Active Change Status: mcp-server In Progress"
-    status: unresolved
-    classification: PARTIALLY_COMPLETED
-    evidence: "The mcp-server change is in progress (foundation slice PR1 is complete and passing, PR2/PR3/PR4 are pending) in openspec-reconciliation.yaml."
-    risk: LOW
-    message: "mcp-server is active and partially implemented. Specifications remain local to the change directory."
-  - id: AUTO-openspec-reconciliation-consent-ux-qa
-    title: "Active Change Status: consent-ux In QA"
-    status: unresolved
-    classification: PARTIALLY_COMPLETED
-    evidence: "The consent-ux change is in QA phase with outstanding conditions (DNT/GPC E2E scenario, browser matrix execution) in openspec-reconciliation.yaml."
-    risk: LOW
-    message: "consent-ux is active in QA phase. Implementation and QA defects are applied."
-  - id: AUTO-openspec-reconciliation-private-beta-launch-readiness-apply
-    title: "Active Change Status: private-beta-launch-readiness In Apply"
-    status: unresolved
-    classification: PARTIALLY_COMPLETED
-    evidence: "The private-beta-launch-readiness change is in apply phase awaiting BDD postgres verification in openspec-reconciliation.yaml."
-    risk: LOW
-    message: "private-beta-launch-readiness is active in apply phase."
-checks:
-  - name: "Task States Verification"
-    status: Passed
-  - name: "Reports Consistency Check"
-    status: Passed
-  - name: "Drift Status Reconciler"
-    status: Passed
+lastExecution: null
+findings: []
+checks: []

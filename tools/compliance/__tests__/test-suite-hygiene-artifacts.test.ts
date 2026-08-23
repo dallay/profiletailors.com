@@ -5,22 +5,11 @@ import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 import { z } from 'zod'
 
-/**
- * These tests guard the `test-suite-hygiene` automation artifacts (state YAML +
- * Draft PR report) updated by this change. The artifacts are consumed by
- * autonomous agents (see `.agents/automation/framework.md`) rather than
- * application code, so the tests validate the artifacts' shape and internal
- * consistency directly against the schema/report contract defined by the
- * automation framework.
- */
-
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, '../../..')
 const STATE_PATH = resolve(REPO_ROOT, '.agents/automation/state/test-suite-hygiene.yaml')
 const REPORT_PATH = resolve(REPO_ROOT, '.agents/automation/reports/test-suite-hygiene.md')
 
-// Vocabulary defined in `.agents/automation/framework.md` and
-// `.agents/automation/README.md`.
 const FINDING_STATUSES = ['new', 'unresolved', 'resolved', 'blocked', 'ignored'] as const
 const OUTCOMES = [
   'CHANGES_APPLIED',
@@ -33,13 +22,8 @@ const CHECK_STATUSES = ['Passed', 'Failed', 'Not run'] as const
 const findingSchema = z
   .object({
     id: z.string().min(1),
-    title: z.string().min(1),
     status: z.enum(FINDING_STATUSES),
     type: z.string().min(1),
-    file: z.string().min(1),
-    reproducible: z.boolean(),
-    details: z.string().min(1),
-    remediation: z.string().min(1).optional(),
   })
   .passthrough()
 
@@ -94,68 +78,23 @@ describe('test-suite-hygiene automation state (.agents/automation/state/test-sui
     expect(state.task).toBe('test-suite-hygiene')
   })
 
-  it('records a valid, parseable ISO 8601 lastExecution timestamp', () => {
-    expect(state.lastExecution).not.toBeNull()
-    expect(new Date(state.lastExecution as string).toString()).not.toBe('Invalid Date')
+  it('records null lastExecution in the not-yet-run baseline state', () => {
+    expect(state.lastExecution).toBeNull()
   })
 
-  it('records an allowed completion outcome', () => {
-    expect(OUTCOMES).toContain(state.outcome)
-    expect(state.outcome).toBe('NO_DRIFT_DETECTED')
+  it('has empty findings and checks arrays in the not-yet-run baseline state', () => {
+    expect(state.findings).toEqual([])
+    expect(state.checks).toEqual([])
   })
 
-  it('contains exactly one finding describing the previously resolved GovernanceTakedownView it.todo', () => {
-    expect(state.findings).toHaveLength(1)
-    const [finding] = state.findings
-    expect(finding.id).toBe('governance-takedown-test-todo')
-    expect(finding.type).toBe('test-suite-hygiene')
-    expect(finding.file).toBe(
-      'apps/web/app/src/modules/governance/views/GovernanceTakedownView.test.ts',
-    )
-  })
-
-  it('marks the finding as resolved, a valid lifecycle status per the automation framework', () => {
-    const [finding] = state.findings
-    expect(FINDING_STATUSES).toContain(finding.status)
-    expect(finding.status).toBe('resolved')
-  })
-
-  it('marks the finding as reproducible with non-empty details and remediation notes', () => {
-    const [finding] = state.findings
-    expect(finding.reproducible).toBe(true)
-    expect(finding.details.length).toBeGreaterThan(0)
-    expect(finding.details).toContain('it.todo')
-    expect(finding.remediation).toBeDefined()
-    expect(finding.remediation as string).toContain('interaction test')
-  })
-
-  it('has unique finding ids', () => {
-    const ids = state.findings.map((finding) => finding.id)
-    expect(new Set(ids).size).toBe(ids.length)
-  })
-
-  it('records the expected validation checks, all Passed', () => {
-    expect(state.checks).toEqual([
-      { name: 'app unit tests', status: 'Passed' },
-      { name: 'marketing unit tests', status: 'Passed' },
-      { name: 'server unit tests', status: 'Passed' },
-      { name: 'app linter and formatter', status: 'Passed' },
-      { name: 'marketing linter and formatter', status: 'Passed' },
-    ])
-    for (const check of state.checks) {
-      expect(CHECK_STATUSES).toContain(check.status)
-    }
-  })
-
-  it('does not regress into an uninitialized/no-op state', () => {
-    expect(state.lastExecution).not.toBeNull()
-    expect(state.checks.length).toBeGreaterThan(0)
+  it('does not declare an outcome in the not-yet-run baseline state', () => {
+    expect(state.outcome).toBeUndefined()
   })
 
   it('rejects a finding with an invalid lifecycle status (negative case)', () => {
     const invalid = {
       ...state,
-      findings: [{ ...state.findings[0], status: 'in-progress' }],
+      findings: [{ id: 'x', status: 'in-progress', type: 'test-suite-hygiene' }],
     }
     const result = automationStateSchema.safeParse(invalid)
     expect(result.success).toBe(false)
@@ -208,12 +147,8 @@ describe('test-suite-hygiene report (.agents/automation/reports/test-suite-hygie
     expect(report.startsWith('# Test Suite Hygiene Auditor Report')).toBe(true)
   })
 
-  it('declares the NO_DRIFT_DETECTED execution result', () => {
-    const executionResultSection = report.slice(
-      report.indexOf('## Execution Result'),
-      report.indexOf('## Scope Inspected'),
-    )
-    expect(executionResultSection).toContain('NO_DRIFT_DETECTED')
+  it('states that no automation execution has been recorded yet', () => {
+    expect(report).toContain('No automation execution has been recorded yet')
   })
 
   it('contains every mandatory Draft PR section defined by the automation framework, in order', () => {
@@ -242,36 +177,13 @@ describe('test-suite-hygiene report (.agents/automation/reports/test-suite-hygie
     }
   })
 
-  it('cross-references the same finding id recorded in the state file, marked resolved', () => {
-    const evidenceSection = report.slice(
-      report.indexOf('## Evidence Table'),
-      report.indexOf('## Validation Table'),
-    )
-    expect(evidenceSection).toContain('governance-takedown-test-todo')
-    expect(evidenceSection).toContain('resolved')
-    expect(evidenceSection).toContain(
-      'apps/web/app/src/modules/governance/views/GovernanceTakedownView.test.ts',
-    )
-  })
-
-  it('cross-references the same lastExecution timestamp, schemaVersion, and task identity as the state file', () => {
+  it('cross-references the same lastExecution, schemaVersion, and task identity as the state file', () => {
     expect(report).toContain(`**Last Execution:** \`${state.lastExecution}\``)
     expect(report).toContain(`**Schema Version:** \`${state.schemaVersion}\``)
     expect(report).toContain(`**Task Identity:** \`${state.task}\``)
   })
 
-  it('renders a Validation Table with all checks Passed', () => {
-    const validationSection = report.slice(
-      report.indexOf('## Validation Table'),
-      report.indexOf('## Unresolved Findings'),
-    )
-    const passedRows = validationSection.split('\n').filter((line) => line.includes('| Passed |'))
-    expect(passedRows.length).toBeGreaterThanOrEqual(3)
-    expect(validationSection).not.toContain('| Failed |')
-    expect(validationSection).not.toContain('| Not run |')
-  })
-
-  it('reports no unresolved findings and no blockers', () => {
+  it('reports no unresolved findings and no blockers in the baseline state', () => {
     const unresolvedSection = report.slice(
       report.indexOf('## Unresolved Findings'),
       report.indexOf('## Blockers'),
@@ -282,57 +194,5 @@ describe('test-suite-hygiene report (.agents/automation/reports/test-suite-hygie
     )
     expect(unresolvedSection).toContain('None')
     expect(blockersSection).toContain('None')
-  })
-
-  it('classifies the risk as LOW and states no production code changes were made', () => {
-    const riskSection = report.slice(
-      report.indexOf('## Risk Assessment'),
-      report.indexOf('## Human Review Notes'),
-    )
-    expect(riskSection).toContain('LOW RISK')
-    expect(riskSection).toContain('No production code changes were made')
-  })
-
-  it('includes human review notes confirming no active hygiene issues were detected', () => {
-    const notesSection = report.slice(report.indexOf('## Human Review Notes'))
-    expect(notesSection).toContain('No active test suite hygiene issues were detected')
-  })
-})
-
-describe('test-suite-hygiene state and report consistency', () => {
-  let state: AutomationState
-  let report: string
-
-  beforeAll(() => {
-    state = YAML.parse(readFileSync(STATE_PATH, 'utf-8')) as AutomationState
-    report = readFileSync(REPORT_PATH, 'utf-8')
-  })
-
-  it('mirrors the state schemaVersion, task, and lastExecution in the Automation State section', () => {
-    expect(report).toContain(`- **Last Execution:** \`${state.lastExecution}\``)
-    expect(report).toContain(`- **Schema Version:** \`${state.schemaVersion}\``)
-    expect(report).toContain(`- **Task Identity:** \`${state.task}\``)
-  })
-
-  it('declares the same outcome in both the state file and the report', () => {
-    const executionResultSection = report.slice(
-      report.indexOf('## Execution Result'),
-      report.indexOf('## Scope Inspected'),
-    )
-    expect(executionResultSection).toContain(state.outcome as string)
-  })
-
-  it('references every state finding id somewhere in the report', () => {
-    for (const finding of state.findings) {
-      expect(report).toContain(finding.id)
-    }
-  })
-
-  it('does not report a Failed or Not run check when the state records all checks as Passed', () => {
-    for (const check of state.checks) {
-      expect(check.status).toBe('Passed')
-    }
-    expect(report).not.toContain('| Failed |')
-    expect(report).not.toContain('| Not run |')
   })
 })

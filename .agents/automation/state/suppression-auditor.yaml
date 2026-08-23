@@ -1,35 +1,5 @@
 schemaVersion: 1
 task: suppression-auditor
-lastExecution: "2026-08-14T23:10:00Z"
-outcome: CHANGES_APPLIED
-findings:
-  - id: SUP-001
-    title: "Obsolete eslint-disable-next-line directives in marketing component tests"
-    status: resolved
-    classification: OBSOLETE
-    evidence: "Found 4 eslint-disable-next-line no-new-func comments in Analytics.test.ts, ConsentScript.test.ts, CookieSettingsLink.test.ts, and ConsentBanner.test.ts. ESLint is not used in the project (Biome is the standard linter) and Biome does not flag `new Function()` in test files."
-    risk: LOW
-    message: "Removed 4 obsolete eslint-disable comments across marketing test files. Linter and tests pass cleanly."
-  - id: SUP-002
-    title: "Biome ignore directives in app SPA components"
-    status: resolved
-    classification: REQUIRED
-    evidence: "CarouselContent.vue, AudienceGrowthChart.vue, CalendarCell.vue, PostDetailModal.vue, CreatePostModal.vue, SchedulerView.vue, WorkspaceAvatar.vue, media-mocked-test.ts, scheduler-mocks.ts, hero-animations.test.ts."
-    risk: LOW
-    message: "Biome ignore directives in apps/web/app and marketing are valid and required to prevent lint errors or preserve template ref / A11Y / mock behavior."
-  - id: SUP-003
-    title: "Kotlin Detekt @Suppress annotations in server and shared modules"
-    status: resolved
-    classification: REQUIRED
-    evidence: "@Suppress annotations in server/smp and shared Kotlin modules."
-    risk: LOW
-    message: "Detekt @Suppress annotations are required for complex framework handlers, parameter counts, or specific Reactor idioms."
-checks:
-  - name: Marketing Biome Linter
-    status: Passed
-  - name: Marketing Unit Tests
-    status: Passed
-  - name: App SPA Biome Linter
-    status: Passed
-  - name: Backend Detekt Static Analysis
-    status: Passed
+lastExecution: null
+findings: []
+checks: []

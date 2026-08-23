@@ -1,71 +1,51 @@
 # Dead Documentation and Reference Cleaner Report
 
-## Overview
+## Purpose
 
-### Purpose
+Detect and clean dead documentation references, stale paths, and obsolete links.
 
-The Dead Documentation and Reference Cleaner has audited the codebase for nonexistent files, incorrect relative markdown paths, outdated anchors, and incorrect command reference links in accordance with the repository framework.
+## Execution Result
 
-### Execution Result
+No automation execution has been recorded yet. This report is awaiting its first scheduled run.
 
-The audit concluded with **CHANGES_APPLIED**. The cleaner detected stale references to password-recovery change artifacts that have been archived, incorrect casing in relative command hub file references, and incorrect relative paths to standardized AI agent guidelines, and corrected them safely.
+## Scope Inspected
 
-### Scope Inspected
+Not yet inspected.
 
-- **Documentation Surfaces (`docs/`)**: Inspected runbooks, compliance documents, and getting-started guides.
-- **Specification Surfaces (`openspec/`)**: Checked root READMEs and specifications for any broken internal relative paths.
-- **Frontend Codebase (`apps/web/app/`)**: Inspected package README files for correct relative documentation link structures.
+## Changes Applied
 
-## Changes
+None.
 
-### Changes Applied
+## Evidence Table
 
-- Updated `docs/runbooks/password-recovery.md` to point to correct archived password-recovery change files (spec, design) and corrected casing of relative Justfile path (`../../Justfile`).
-- Updated `openspec/README.md` to point to correct archived password-recovery state, spec, progress, and verify-report artifacts under `changes/archive/2026-07-29-password-recovery/`.
-- Updated `apps/web/app/README.md` to reference the correct relative path to standardized AI agent guidelines (`../../../.agents/AGENTS.md`).
+No evidence collected yet.
 
-### Evidence Table
+## Validation Table
 
-| Target File | Finding ID | Description | Original Link | Corrected Link / Status | Outcome |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `docs/runbooks/password-recovery.md` | PASSWORD-RECOVERY-DOC-DRIFT | Points to active `changes/password-recovery/` spec and design files, which have been archived. | `../../openspec/changes/password-recovery/spec.md` | `../../openspec/changes/archive/2026-07-29-password-recovery/spec.md` | **Resolved** |
-| `docs/runbooks/password-recovery.md` | JUSTFILE-PATH-CASING | Reference to `justfile` uses lowercase path which mismatches the actual file `Justfile`. | `../../justfile` | `../../Justfile` | **Resolved** |
-| `openspec/README.md` | OPENSPEC-README-PASSWORD-RECOVERY | Password recovery files are referenced under active `changes/password-recovery/` instead of `changes/archive/2026-07-29-password-recovery/`. | `changes/password-recovery/spec.md` | `changes/archive/2026-07-29-password-recovery/spec.md` | **Resolved** |
-| `apps/web/app/README.md` | APP-AGENTS-DOC-LINK | Reference points to `../../../AGENTS.md` which is not present/tracked at root in git. | `../../../AGENTS.md` | `../../../.agents/AGENTS.md` | **Resolved** |
-| `docs/compliance/README.md` | MARKETING-PAGE-INTENTIONAL-ROUTES | Links to deployed web routes (`/privacy`, `/terms`, `/acceptable-use`, `/cookies`) are reported as missing filesystem files. | `/privacy` etc. | Ignored (intentional marketing routes per README definition) | **Ignored** |
+No validation checks have been run.
 
-## Usage
-
-### Validation Table
-
-| Check Name | Target/Command | Outcome | Details |
+| Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| File Casing Check | `Justfile` vs `justfile` | **Passed** | Upper-case `Justfile` matches filesystem exactly. |
-| Relative Path Check | Archive Password-Recovery Paths | **Passed** | Paths correctly resolve to existing archived files in `openspec/changes/archive/2026-07-29-password-recovery/`. |
-| AI Agent Guide Check | Standard AGENTS.md Path | **Passed** | Path correctly resolves to `.agents/AGENTS.md` from dashboard. |
-| Test Suite Validation | `just ci-local` | **Passed** | Verification that documentation corrections do not impact execution or linting. |
+| (none) | — | Not run | Awaiting first execution. |
 
-## Troubleshooting
-
-### Unresolved Findings
+## Unresolved Findings
 
 None.
 
-### Blockers
+## Blockers
 
 None.
 
-## References
+## Automation State
 
-### Automation State
+- **Last Execution:** `null`
+- **Schema Version:** `1`
+- **Task Identity:** `dead-reference-cleaner`
 
-- **Task**: `dead-reference-cleaner`
-- **Result Status**: `CHANGES_APPLIED`
+## Risk Assessment
 
-### Risk Assessment
+- **Overall Risk:** N/A (no execution yet).
 
-- **Overall Risk**: **LOW** (Changes are strictly limited to documentation, relative links, and markdown reference files).
+## Human Review Notes
 
-### Human Review Notes
-
-All corrections conform exactly to the existing state of the repository. All resolved links have been manually verified to exist on the filesystem. No unguessable references have been modified, in adherence to the safety rules of the maintenance framework.
+No execution has been recorded. The task will run on its next scheduled execution.

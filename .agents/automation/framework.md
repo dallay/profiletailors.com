@@ -34,16 +34,22 @@ BLOCKED. Even no-op audits update state and report and create exactly one Draft 
 
 ## Idempotent Draft PR Lifecycle
 
-Each task run establishes a deterministic branch name from its task identity and a run identifier
-persisted in state before execution. Reuse that run identifier for deterministic branch naming and
-Draft PR lookup across retries and concurrent runs. Before creating a new branch, check for an
-existing remote branch and matching Draft PR from a prior or concurrent run of the same task. If one
-exists, reuse and update it instead of creating a duplicate. On retry, update the same branch and PR.
-On concurrent runs, serialize updates: the second run rebases onto the first run's latest pushed state
-(not the task's base branch) and pushes its own updates to the same branch. If the push is rejected
-because the branch moved, rebase onto the current remote tip and retry. Exactly one Draft PR is
-pushed per run, including no-op outcomes. Never leave orphan branches or duplicate PRs for the same
-run. Force-push is prohibited; resolve push conflicts by rebase and retry.
+Each task run establishes a deterministic branch name from its task identity and a run identifier.
+Before any state write or Draft PR lookup, the run acquires an atomic claim on that run identifier
+using create-if-absent, compare-and-swap, or lease semantics so concurrent runs cannot persist
+different identifiers for the same task. The winner is the run whose claim succeeds first; it owns
+the run identifier, the associated branch, and the Draft PR, and persists the identifier in state
+before execution. Losers are runs whose claim fails: they reuse the winner's run identifier and
+associated branch and Draft PR instead of creating their own, then serialize their updates onto
+that branch. Reuse that run identifier for deterministic branch naming and Draft PR lookup across
+retries and concurrent runs. Before creating a new branch, check for an existing remote branch and
+matching Draft PR from a prior or concurrent run of the same task. If one exists, reuse and update
+it instead of creating a duplicate. On retry, update the same branch and PR. On concurrent runs,
+serialize updates: the second run rebases onto the first run's latest pushed state (not the task's
+base branch) and pushes its own updates to the same branch. If the push is rejected because the
+branch moved, rebase onto the current remote tip and retry. Exactly one Draft PR is pushed per run,
+including no-op outcomes. Never leave orphan branches or duplicate PRs for the same run. Force-push
+is prohibited; resolve push conflicts by rebase and retry.
 
 ## Evidence-First Policy
 
