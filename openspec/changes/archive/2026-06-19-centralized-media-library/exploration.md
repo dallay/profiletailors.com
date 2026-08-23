@@ -218,14 +218,9 @@ and selecting uploaded assets for publications, without turning this change into
 - `openspec/changes/archive/2026-06-13-connect-spa-channels-to-linkedin/exploration.md`
     - good pattern for distinguishing backend reality, frontend gaps, workspace-scoped conventions,
       and proposal shape
-- `openspec/changes/archive/2026-05-26-pluggable-storage-providers/exploration.md`
-    - good reference for storage capability inventory
 - `openspec/changes/archive/linkedin-media-upload/specs/publishing-media-upload.md`
     - important requirement precedent showing the repository already adopted `PublicationAsset`,
       asset uploader, and storage-backed upload semantics
-- `openspec/changes/archive/2026-06-11-r2-storage-dedicated-adapter/spec.md`
-    - useful storage-specific precedent when proposal/design need concrete R2/browser-upload
-      decisions
 
 ## Risks / Decisions to Clarify in Proposal
 

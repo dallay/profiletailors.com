@@ -112,8 +112,8 @@ focus is Phase 5 (DALLAY-439).
 - [x] **9.1**: Flip ADR-0011 status from Proposed to Accepted.
 - [x] **9.2**: Update `docs/architecture/shared/dependencies.md` to include new modules.
 - [x] **9.3**: Update C4 container and component diagrams.
-- [ ] **9.4**: After `sdd-archive`, add canonical specs at
-  `openspec/specs/lead-capture-common/spec.md` and `openspec/specs/lead-capture-waitlist/spec.md`.
+- [ ] **9.4**: After `sdd-archive`, add the canonical
+  `openspec/specs/lead-capture-waitlist/spec.md`.
 - [x] **9.5**: Add ADR-0011 entry to architecture README index.
 - [x] **9.6**: Reference ADR-0011 from `docs/architecture/adr/README.md`.
 

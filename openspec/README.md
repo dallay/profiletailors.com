@@ -6,6 +6,13 @@
 contains durable product specifications plus the proposal, design, task, application, and
 verification artifacts for individual changes.
 
+OpenSpec is limited to product, domain, user-facing, legal, privacy, security, and business
+readiness contracts. CI and quality gates, dependency policy, architecture governance, refactors,
+test-harness plans, and deployment plumbing belong in the repository's workflows, ADRs, skills,
+testing documentation, or operational documentation instead of `openspec/specs/`. A change may
+include technical design and verification evidence when it implements a product contract, but a
+purely technical task must not create a standalone OpenSpec capability.
+
 Use the repository [documentation index](../docs/README.md) for operational, architecture,
 security, infrastructure, and onboarding documentation. Use this directory when you need to
 understand what the product must do, why a change was made, or what evidence verifies it.
