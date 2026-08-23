@@ -26,7 +26,7 @@ declarations, defaults, backend/frontend use, configuration, tests, documentatio
 
 ## Previous State
 
-Read ../state/feature-flag-audit.yaml as context and revalidate every finding.
+Read ../state/feature-flag-auditor.yaml as context and revalidate every finding.
 
 ## Inspection Procedure
 
@@ -61,8 +61,9 @@ modify another task state.
 
 ## Risk Rules
 
-Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported
-by default.
+LOW: apply autonomously, validate, Draft PR. MEDIUM: apply with strong evidence and tests, Draft
+PR. HIGH deterministic: MAY implement remediation in the Draft PR; human merge is the approval
+gate. HIGH ambiguous: persist the finding, do not guess. See framework.md.
 
 ## Validation
 
@@ -71,12 +72,12 @@ Prefer just. Record Passed, Failed, or Not run only.
 
 ## State
 
-Owns ../state/feature-flag-audit.yaml; use the framework schema and never set execution data without
+Owns ../state/feature-flag-auditor.yaml; use the framework schema and never set execution data without
 an actual run.
 
 ## Report
 
-Owns ../reports/feature-flag-audit.md; report facts, evidence, result, validation, unresolved
+Owns ../reports/feature-flag-auditor.md; report facts, evidence, result, validation, unresolved
 findings, and risks without chain-of-thought or secrets.
 
 ## Pull Request

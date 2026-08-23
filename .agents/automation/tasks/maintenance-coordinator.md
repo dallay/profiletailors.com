@@ -53,7 +53,7 @@ persists, record it and continue safe unrelated work.
 ## Allowed Changes
 
 Minimal evidence-backed corrections only. Update only ../state/maintenance-coordinator.yaml and
-../reports/maintenance-status.md.
+../reports/maintenance-coordinator.md.
 
 ## Prohibited Changes
 
@@ -62,8 +62,9 @@ modify another task state.
 
 ## Risk Rules
 
-Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported
-by default.
+LOW: apply autonomously, validate, Draft PR. MEDIUM: apply with strong evidence and tests, Draft
+PR. HIGH deterministic: MAY implement remediation in the Draft PR; human merge is the approval
+gate. HIGH ambiguous: persist the finding, do not guess. See framework.md.
 
 ## Validation
 
@@ -77,7 +78,7 @@ without an actual run.
 
 ## Report
 
-Owns ../reports/maintenance-status.md; report facts, evidence, result, validation, unresolved
+Owns ../reports/maintenance-coordinator.md; report facts, evidence, result, validation, unresolved
 findings, and risks without chain-of-thought or secrets.
 
 ## Pull Request

@@ -19,7 +19,7 @@ understand what the product must do, why a change was made, or what evidence ver
 
 ## Changes
 
-- **2026-08-03**: Updated password-recovery artifact references from `changes/password-recovery/...` to `changes/archive/2026-07-29-password-recovery/...` (dead-reference-cleanup automation).
+- **2026-08-03**: Updated password-recovery artifact references from `changes/password-recovery/...` to `changes/archive/2026-07-29-password-recovery/...` (dead-reference-cleaner automation).
 
 ## Structure
 

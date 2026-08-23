@@ -5,29 +5,19 @@ import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 import { z } from 'zod'
 
-/**
- * These tests guard the `security-configuration-drift-auditor` automation
- * artifacts (state YAML + Draft PR report) introduced by this change. The
- * artifacts are consumed by autonomous agents (see `.agents/automation/framework.md`)
- * rather than application code, so the tests validate the artifacts' shape and
- * internal consistency directly against the schema/report contract defined by
- * the automation framework.
- */
-
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, '../../..')
 const STATE_PATH = resolve(
   REPO_ROOT,
-  '.agents/automation/state/security-configuration-drift.yaml',
+  '.agents/automation/state/security-configuration-drift-auditor.yaml',
 )
 const REPORT_PATH = resolve(
   REPO_ROOT,
-  '.agents/automation/reports/security-configuration-drift.md',
+  '.agents/automation/reports/security-configuration-drift-auditor.md',
 )
 
-// Vocabulary defined in `.agents/automation/framework.md` and
-// `.agents/automation/README.md`.
 const FINDING_STATUSES = ['new', 'unresolved', 'resolved', 'blocked', 'ignored'] as const
+const REMEDIATION_STATUSES = ['none', 'proposed', 'implemented', 'verified'] as const
 const OUTCOMES = [
   'CHANGES_APPLIED',
   'NO_DRIFT_DETECTED',
@@ -36,12 +26,24 @@ const OUTCOMES = [
 ] as const
 const CHECK_STATUSES = ['Passed', 'Failed', 'Not run'] as const
 
+const remediationSchema = z
+  .object({
+    status: z.enum(REMEDIATION_STATUSES),
+    description: z.string().min(1),
+    pullRequest: z.union([z.number().int().positive(), z.null()]),
+  })
+  .passthrough()
+
 const findingSchema = z
   .object({
     id: z.string().min(1),
     type: z.string().min(1),
     status: z.enum(FINDING_STATUSES),
+    firstDetected: z.string().datetime(),
+    lastVerified: z.string().datetime(),
+    occurrences: z.number().int().positive(),
     evidence: z.string().min(1),
+    remediation: remediationSchema,
   })
   .passthrough()
 
@@ -61,7 +63,7 @@ const automationStateSchema = z.object({
 
 type AutomationState = z.infer<typeof automationStateSchema>
 
-describe('security-configuration-drift automation state (.agents/automation/state/security-configuration-drift.yaml)', () => {
+describe('security-configuration-drift automation state (.agents/automation/state/security-configuration-drift-auditor.yaml)', () => {
   let rawYaml: string
   let state: AutomationState
 
@@ -95,50 +97,54 @@ describe('security-configuration-drift automation state (.agents/automation/stat
     expect(state.task).toBe('security-configuration-drift-auditor')
   })
 
-  it('records a valid ISO 8601 lastExecution timestamp', () => {
-    expect(state.lastExecution).toBe('2026-07-23T12:00:00Z')
-    expect(new Date(state.lastExecution as string).toString()).not.toBe('Invalid Date')
+  it('records null lastExecution in the not-yet-run baseline state', () => {
+    expect(state.lastExecution).toBeNull()
   })
 
-  it('records an allowed completion outcome', () => {
-    expect(OUTCOMES).toContain(state.outcome)
-    expect(state.outcome).toBe('PARTIALLY_COMPLETED')
+  it('has empty findings and checks arrays in the not-yet-run baseline state', () => {
+    expect(state.findings).toEqual([])
+    expect(state.checks).toEqual([])
   })
 
-  it('contains exactly one finding describing the actuator/prometheus drift', () => {
-    expect(state.findings).toHaveLength(1)
-    const [finding] = state.findings
-    expect(finding.id).toBe('actuator-prometheus-exposure-drift')
-    expect(finding.type).toBe('security-configuration-drift')
-  })
-
-  it('marks the finding as unresolved, a valid lifecycle status per the automation framework', () => {
-    const [finding] = state.findings
-    expect(FINDING_STATUSES).toContain(finding.status)
-    expect(finding.status).toBe('unresolved')
-  })
-
-  it('provides non-empty evidence referencing the affected configuration file and endpoint', () => {
-    const [finding] = state.findings
-    expect(finding.evidence.length).toBeGreaterThan(0)
-    expect(finding.evidence).toContain('IdentitySecurityConfiguration.kt')
-    expect(finding.evidence).toContain('/actuator/prometheus')
-  })
-
-  it('records the three expected validation checks, all Passed', () => {
-    expect(state.checks).toHaveLength(3)
-    const names = state.checks.map((check) => check.name)
-    expect(names).toEqual(['backend-build-check', 'backend-test-check', 'frontend-biome-check'])
-    for (const check of state.checks) {
-      expect(CHECK_STATUSES).toContain(check.status)
-      expect(check.status).toBe('Passed')
-    }
+  it('does not declare an outcome in the not-yet-run baseline state', () => {
+    expect(state.outcome).toBeUndefined()
   })
 
   it('rejects a finding with an invalid lifecycle status (negative case)', () => {
     const invalid = {
       ...state,
-      findings: [{ ...state.findings[0], status: 'in-progress' }],
+      findings: [
+        {
+          id: 'x',
+          type: 'security-configuration-drift',
+          status: 'in-progress',
+          firstDetected: '2026-07-23T18:45:32Z',
+          lastVerified: '2026-07-23T18:45:32Z',
+          occurrences: 1,
+          evidence: 'evidence',
+          remediation: { status: 'proposed', description: 'desc', pullRequest: null },
+        },
+      ],
+    }
+    const result = automationStateSchema.safeParse(invalid)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects a finding with an invalid remediation status (negative case)', () => {
+    const invalid = {
+      ...state,
+      findings: [
+        {
+          id: 'x',
+          type: 'security-configuration-drift',
+          status: 'unresolved',
+          firstDetected: '2026-07-23T18:45:32Z',
+          lastVerified: '2026-07-23T18:45:32Z',
+          occurrences: 1,
+          evidence: 'evidence',
+          remediation: { status: 'approved', description: 'desc', pullRequest: null },
+        },
+      ],
     }
     const result = automationStateSchema.safeParse(invalid)
     expect(result.success).toBe(false)
@@ -172,19 +178,17 @@ describe('security-configuration-drift automation state (.agents/automation/stat
   })
 })
 
-describe('security-configuration-drift report (.agents/automation/reports/security-configuration-drift.md)', () => {
+describe('security-configuration-drift report (.agents/automation/reports/security-configuration-drift-auditor.md)', () => {
   let report: string
+  let state: AutomationState
 
   beforeAll(() => {
     report = readFileSync(REPORT_PATH, 'utf-8')
+    state = YAML.parse(readFileSync(STATE_PATH, 'utf-8')) as AutomationState
   })
 
-  it('replaces the placeholder "no execution recorded" content from before the audit ran', () => {
-    expect(report).not.toContain('No automation execution has been recorded yet')
-  })
-
-  it('declares the audit outcome consistently with the state file', () => {
-    expect(report).toContain('**Outcome:** `PARTIALLY_COMPLETED`')
+  it('states that no automation execution has been recorded yet', () => {
+    expect(report).toContain('No automation execution has been recorded yet')
   })
 
   it('contains every mandatory Draft PR section defined by the automation framework, in order', () => {
@@ -213,46 +217,22 @@ describe('security-configuration-drift report (.agents/automation/reports/securi
     }
   })
 
-  it('cross-references the same finding id recorded in the state file', () => {
-    expect(report).toContain('**Finding ID:** `actuator-prometheus-exposure-drift`')
-  })
-
-  it('cross-references the same lastExecution timestamp, schemaVersion, and task identity as the state file', () => {
-    expect(report).toContain('**Last Execution:** `2026-07-23T12:00:00Z`')
+  it('cross-references the same lastExecution, schemaVersion, and task identity as the state file', () => {
+    expect(report).toContain(`**Last Execution:** \`${state.lastExecution}\``)
     expect(report).toContain('**Schema Version:** `1`')
     expect(report).toContain('**Task Identity:** `security-configuration-drift-auditor`')
   })
 
-  it('renders an Evidence Table row classifying the drift as HIGH risk and Unresolved', () => {
-    const evidenceSection = report.slice(
-      report.indexOf('## Evidence Table'),
-      report.indexOf('## Validation Table'),
-    )
-    expect(evidenceSection).toContain('| HIGH |')
-    expect(evidenceSection).toContain('Unresolved')
-    expect(evidenceSection).toContain('/actuator/prometheus')
-  })
-
-  it('renders a Validation Table with three Passed checks matching the state file checks', () => {
-    const validationSection = report.slice(
-      report.indexOf('## Validation Table'),
+  it('reports no unresolved findings and no blockers in the baseline state', () => {
+    const unresolvedSection = report.slice(
       report.indexOf('## Unresolved Findings'),
+      report.indexOf('## Blockers'),
     )
-    const passedRows = validationSection.split('\n').filter((line) => line.includes('| Passed |'))
-    expect(passedRows).toHaveLength(3)
-  })
-
-  it('reports no blockers for this partially-completed audit', () => {
     const blockersSection = report.slice(
       report.indexOf('## Blockers'),
       report.indexOf('## Automation State'),
     )
+    expect(unresolvedSection).toContain('None')
     expect(blockersSection).toContain('None')
-  })
-
-  it('includes human review notes prompting verification before remediation', () => {
-    const notesSection = report.slice(report.indexOf('## Human Review Notes'))
-    expect(notesSection).toContain('Review Prometheus Scraper Authentication')
-    expect(notesSection).toContain('Port Separation Enforcement')
   })
 })

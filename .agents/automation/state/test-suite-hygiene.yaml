@@ -1,24 +1,5 @@
 schemaVersion: 1
 task: test-suite-hygiene
-lastExecution: "2026-08-07T18:00:00Z"
-outcome: NO_DRIFT_DETECTED
-findings:
-  - id: governance-takedown-test-todo
-    title: "GovernanceTakedownView test has pre-existing it.todo"
-    status: resolved
-    type: test-suite-hygiene
-    file: "apps/web/app/src/modules/governance/views/GovernanceTakedownView.test.ts"
-    reproducible: true
-    details: "The it.todo test 'calls rejectTakedown with rejection reason after opening reject dialog' was unimplemented."
-    remediation: "Replaced the it.todo with a real interaction test asserting on the mockReject call with the typed rejection reason."
-checks:
-  - name: "app unit tests"
-    status: Passed
-  - name: "marketing unit tests"
-    status: Passed
-  - name: "server unit tests"
-    status: Passed
-  - name: "app linter and formatter"
-    status: Passed
-  - name: "marketing linter and formatter"
-    status: Passed
+lastExecution: null
+findings: []
+checks: []
