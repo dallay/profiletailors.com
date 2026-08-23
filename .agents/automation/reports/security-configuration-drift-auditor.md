@@ -8,7 +8,7 @@ Audit the codebase to detect any drift between the specified security architectu
 
 **Outcome:** `PARTIALLY_COMPLETED`
 
-A security configuration drift has been successfully identified, verified, and documented. Because correcting this drift involves modifying core runtime security rules that may disrupt operational metrics collection (classified as HIGH RISK), the finding has been safely persisted as unresolved rather than applying speculative modifications.
+A security configuration drift has been successfully identified, verified, and documented. The finding is classified as HIGH ambiguous: removing `permitAll` from `/actuator/prometheus` is a candidate remediation, but the correct action depends on whether internal VPC Prometheus scrapers can supply authentication — operational context not conclusively supported by repository evidence. Per the framework remediation policy, the agent does not guess and persists the finding with a proposed remediation.
 
 ## Scope Inspected
 
@@ -20,15 +20,15 @@ A security configuration drift has been successfully identified, verified, and d
 
 ## Changes Applied
 
-- State file updated: `.agents/automation/state/security-configuration-drift.yaml`
-- Report file updated: `.agents/automation/reports/security-configuration-drift.md`
-- *No runtime code modifications were applied* to avoid violating high-risk runtime security boundaries.
+- State file updated: `.agents/automation/state/security-configuration-drift-auditor.yaml`
+- Report file updated: `.agents/automation/reports/security-configuration-drift-auditor.md`
+- *No runtime code modifications were applied* — the finding is HIGH ambiguous and the correct remediation is not conclusively supported by repository evidence.
 
 ## Evidence Table
 
 | Spec / Doc Reference | Actual Code / Behavior | Identified Drift | Risk Level | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `docs/monitoring/actuator-security.md`: Only basic health status `/actuator/health` is public. Everything else requires authentication. | `IdentitySecurityConfiguration.kt` (lines 133-142): Excludes `/actuator/prometheus` via `permitAll()` under `HttpMethod.GET` | Unauthenticated public access to Prometheus metrics is permitted on the dedicated management port `9091`. (Note: Actuator endpoints are bound only to port 9091 per `application.yaml` management.server.port configuration and are not exposed on the main application port 7638.) | HIGH | Unresolved (Persisted due to VPC operational dependencies) |
+| `docs/monitoring/actuator-security.md`: Only basic health status `/actuator/health` is public. Everything else requires authentication. | `IdentitySecurityConfiguration.kt` (lines 133-142): Excludes `/actuator/prometheus` via `permitAll()` under `HttpMethod.GET` | Unauthenticated public access to Prometheus metrics is permitted on the dedicated management port `9091`. (Note: Actuator endpoints are bound only to port 9091 per `application.yaml` management.server.port configuration and are not exposed on the main application port 7638.) | HIGH ambiguous | Unresolved (remediation proposed) |
 
 ## Validation Table
 
@@ -44,8 +44,9 @@ A security configuration drift has been successfully identified, verified, and d
 
 - **Finding ID:** `actuator-prometheus-exposure-drift`
 - **Description:** The `/actuator/prometheus` endpoint is matched under `permitAll()` in the main Spring Security filter chain. While the endpoint is only bound to the dedicated management port 9091 (not the main application port 7638) per `application.yaml`, it remains unauthenticated on that management port.
-- **Risk:** High. Allows unauthenticated access to system metrics, process properties, and internal paths on management port 9091.
-- **Why Unresolved:** Modifying this rule to enforce HTTP-level authentication would break Prometheus scraping if existing scrapers expect unauthenticated access inside isolated VPC environments on port `9091`. Remediation requires safe, synchronized verification of deployment environments and confirmation that network-level restrictions (firewall rules) are sufficient.
+- **Risk:** HIGH ambiguous. Allows unauthenticated access to system metrics, process properties, and internal paths on management port 9091.
+- **Remediation Status:** `proposed` — remove `permitAll` from `/actuator/prometheus` to enforce authentication.
+- **Why Not Implemented:** The correct action depends on whether internal VPC Prometheus scrapers can supply authentication. This is operational context not conclusively supported by repository evidence. Per the framework, the agent does not guess on HIGH ambiguous findings. The proposed remediation is included for human review.
 
 ## Blockers
 
@@ -60,7 +61,7 @@ A security configuration drift has been successfully identified, verified, and d
 ## Risk Assessment
 
 - **Low Risk Actions:** Documenting identified configuration drift and auditing properties. (Passed)
-- **High Risk Actions:** Changing Spring Security filter chains or requiring authentication for `/actuator/prometheus` (removing `permitAll()`). (Avoided/Persisted)
+- **High Risk Actions:** Removing `permitAll()` from `/actuator/prometheus` is HIGH ambiguous — a proposed remediation exists but the correct action requires operational context (VPC scraper authentication) not available in repository evidence. Not implemented; persisted for human review.
 
 ## Human Review Notes
 

@@ -22,8 +22,8 @@ The audit concluded with **NO_DRIFT_DETECTED**. All state and report files have 
 
 ## Changes Applied
 
-- Updated the compact machine-readable audit state file: `.agents/automation/state/feature-flag-audit.yaml`
-- Updated the comprehensive audit report: `.agents/automation/reports/feature-flag-audit.md`
+- Updated the compact machine-readable audit state file: `.agents/automation/state/feature-flag-auditor.yaml`
+- Updated the comprehensive audit report: `.agents/automation/reports/feature-flag-auditor.md`
 
 ## Evidence Table
 

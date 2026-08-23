@@ -41,7 +41,7 @@ None.
 None.
 
 ## Automation State
-Updated `.agents/automation/state/compliance-evidence.yaml` with `lastExecution: "2026-08-18T10:00:00Z"` and `outcome: NO_DRIFT_DETECTED`.
+Updated `.agents/automation/state/compliance-evidence-synchronizer.yaml` with `lastExecution: "2026-08-18T10:00:00Z"` and `outcome: NO_DRIFT_DETECTED`.
 
 ## Risk Assessment
 - **Classification**: LOW

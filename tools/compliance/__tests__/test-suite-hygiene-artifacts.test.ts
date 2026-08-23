@@ -134,10 +134,13 @@ describe('test-suite-hygiene automation state (.agents/automation/state/test-sui
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('records the two expected validation checks, all Passed', () => {
+  it('records the expected validation checks, all Passed', () => {
     expect(state.checks).toEqual([
       { name: 'app unit tests', status: 'Passed' },
+      { name: 'marketing unit tests', status: 'Passed' },
+      { name: 'server unit tests', status: 'Passed' },
       { name: 'app linter and formatter', status: 'Passed' },
+      { name: 'marketing linter and formatter', status: 'Passed' },
     ])
     for (const check of state.checks) {
       expect(CHECK_STATUSES).toContain(check.status)

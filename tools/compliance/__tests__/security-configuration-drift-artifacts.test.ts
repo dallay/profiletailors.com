@@ -8,11 +8,11 @@ const currentDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(currentDir, '../../..')
 const statePath = resolve(
   repoRoot,
-  '.agents/automation/state/security-configuration-drift.yaml',
+  '.agents/automation/state/security-configuration-drift-auditor.yaml',
 )
 const reportPath = resolve(
   repoRoot,
-  '.agents/automation/reports/security-configuration-drift.md',
+  '.agents/automation/reports/security-configuration-drift-auditor.md',
 )
 
 const ALLOWED_OUTCOMES = [
@@ -30,11 +30,26 @@ const ALLOWED_FINDING_STATUSES = [
   'ignored',
 ]
 
+const ALLOWED_REMEDIATION_STATUSES = [
+  'none',
+  'proposed',
+  'implemented',
+  'verified',
+]
+
 interface AutomationFinding {
   id: string
   type: string
   status: string
+  firstDetected: string
+  lastVerified: string
+  occurrences: number
   evidence: string
+  remediation: {
+    status: string
+    description: string
+    pullRequest: number | null
+  }
 }
 
 interface AutomationCheck {
@@ -69,7 +84,7 @@ describe('security-configuration-drift automation state file', () => {
   })
 
   it('records a parseable ISO 8601 lastExecution timestamp', () => {
-    expect(state.lastExecution).toBe('2026-07-23T12:00:00Z')
+    expect(state.lastExecution).toBe('2026-07-23T18:45:32Z')
     expect(state.lastExecution).not.toBeNull()
     const parsedDate = new Date(state.lastExecution as string)
     expect(Number.isNaN(parsedDate.getTime())).toBe(false)
@@ -94,13 +109,27 @@ describe('security-configuration-drift automation state file', () => {
     }
   })
 
+  it('records finding lifecycle fields firstDetected, lastVerified, and occurrences', () => {
+    const [finding] = state.findings
+    expect(finding.firstDetected).toBe('2026-07-23T18:45:32Z')
+    expect(finding.lastVerified).toBe('2026-07-23T18:45:32Z')
+    expect(finding.occurrences).toBe(1)
+  })
+
   it('provides non-empty, specific evidence explaining the unresolved finding', () => {
     const [finding] = state.findings
     expect(typeof finding.evidence).toBe('string')
     expect(finding.evidence.length).toBeGreaterThan(0)
     expect(finding.evidence).toContain('/actuator/prometheus')
     expect(finding.evidence).toContain('IdentitySecurityConfiguration.kt')
-    expect(finding.evidence).toContain('permitAll')
+  })
+
+  it('records a remediation with proposed status and a HIGH ambiguous description', () => {
+    const [finding] = state.findings
+    expect(ALLOWED_REMEDIATION_STATUSES).toContain(finding.remediation.status)
+    expect(finding.remediation.status).toBe('proposed')
+    expect(finding.remediation.description).toContain('HIGH ambiguous')
+    expect(finding.remediation.pullRequest).toBeNull()
   })
 
   it('has unique finding ids', () => {
@@ -108,11 +137,11 @@ describe('security-configuration-drift automation state file', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('lists the expected validation checks, all passing', () => {
+  it('lists the expected validation checks, all Not run', () => {
     expect(state.checks).toEqual([
-      { name: 'backend-build-check', status: 'Passed' },
-      { name: 'backend-test-check', status: 'Passed' },
-      { name: 'frontend-biome-check', status: 'Passed' },
+      { name: 'backend-build-check', status: 'Not run' },
+      { name: 'backend-test-check', status: 'Not run' },
+      { name: 'frontend-biome-check', status: 'Not run' },
     ])
   })
 
@@ -171,37 +200,37 @@ describe('security-configuration-drift automation report file', () => {
     expect(report).toContain('## Blockers\n\n- **None.**')
   })
 
-  it('renders the evidence table row with a HIGH risk classification', () => {
+  it('renders the evidence table row with a HIGH ambiguous risk classification', () => {
     expect(report).toContain(
       '| `docs/monitoring/actuator-security.md`: Only basic health status `/actuator/health` is public. Everything else requires authentication. |',
     )
-    expect(report).toContain('| HIGH |')
+    expect(report).toContain('HIGH ambiguous')
   })
 
-  it('renders the validation table with all checks passing', () => {
+  it('renders the validation table with all checks as Not run', () => {
     expect(report).toContain(
-      '| **Backend Build** | `just backend-build` | Passed | Application compiles successfully. |',
+      '| **Backend Build** | `just backend-build` | Not run | Verification pending. |',
     )
     expect(report).toContain(
-      '| **Backend Fast Tests** | `just backend-test-fast` | Passed | Unit/integration test suites pass without regression. |',
+      '| **Backend Fast Tests** | `just backend-test-fast` | Not run | Verification pending. |',
     )
     expect(report).toContain(
-      '| **Frontend Biome Check** | `just frontend-lint` | Passed | Frontend formatting and linting rules are fully satisfied. |',
+      '| **Frontend Biome Check** | `just frontend-lint` | Not run | Verification pending. |',
     )
   })
 
-  it('describes the unresolved finding with an id, risk, and rationale', () => {
+  it('describes the unresolved finding with an id, risk, and remediation status', () => {
     expect(report).toContain('- **Finding ID:** `actuator-prometheus-exposure-drift`')
-    expect(report).toContain('- **Risk:** High.')
-    expect(report).toContain('- **Why Unresolved:**')
+    expect(report).toContain('HIGH ambiguous')
+    expect(report).toContain('**Remediation Status:** `proposed`')
   })
 
   it('lists both artifact files under Changes Applied', () => {
     expect(report).toContain(
-      'State file updated: `.agents/automation/state/security-configuration-drift.yaml`',
+      'State file updated: `.agents/automation/state/security-configuration-drift-auditor.yaml`',
     )
     expect(report).toContain(
-      'Report file updated: `.agents/automation/reports/security-configuration-drift.md`',
+      'Report file updated: `.agents/automation/reports/security-configuration-drift-auditor.md`',
     )
   })
 })
@@ -227,11 +256,10 @@ describe('security-configuration-drift state and report consistency', () => {
     }
   })
 
-  it('does not report a Failed or Not run check when the state records all checks as Passed', () => {
+  it('does not report a Passed check when the state records all checks as Not run', () => {
     for (const check of state.checks) {
-      expect(check.status).toBe('Passed')
+      expect(check.status).toBe('Not run')
     }
-    expect(report).not.toContain('| Failed |')
-    expect(report).not.toContain('| Not run |')
+    expect(report).not.toContain('| Passed |')
   })
 })

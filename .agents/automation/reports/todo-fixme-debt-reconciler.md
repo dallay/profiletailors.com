@@ -51,7 +51,7 @@ None.
 
 ## Automation State
 
-The automation state is persisted in `.agents/automation/state/todo-fixme-debt.yaml` with schemaVersion 1.
+The automation state is persisted in `.agents/automation/state/todo-fixme-debt-reconciler.yaml` with schemaVersion 1.
 
 ## Risk Assessment
 

@@ -9,7 +9,7 @@ findings:
     classification: HAS_UNRESOLVED_FINDINGS
     evidence: "The endpoint `/actuator/prometheus` is permitted without authentication in `IdentitySecurityConfiguration.kt` (lines 133-142), whereas `docs/monitoring/actuator-security.md` specifies that only `/actuator/health` is public and other endpoints require authentication."
     risk: HIGH
-    message: "Public exposure of Actuator Prometheus remains unresolved in security-configuration-drift.yaml. Remediation requires VPC/scraper check."
+    message: "Public exposure of Actuator Prometheus remains unresolved in security-configuration-drift-auditor.yaml. Remediation requires VPC/scraper check."
   - id: AUTO-openspec-reconciliation-mcp-server-in-progress
     title: "Active Change Status: mcp-server In Progress"
     status: unresolved

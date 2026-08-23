@@ -23,8 +23,8 @@ Audit linter suppression drift across the repository and remove obsolete or unju
 | `apps/web/marketing/src/components/consent/ConsentScript.test.ts` | `eslint-disable-next-line no-new-func` | Obsolete | Removed |
 | `apps/web/marketing/src/components/consent/CookieSettingsLink.test.ts` | `eslint-disable-next-line no-new-func` | Obsolete | Removed |
 | `apps/web/marketing/src/components/consent/ConsentBanner.test.ts` | `eslint-disable-next-line no-new-func` | Obsolete | Removed |
-| `apps/web/app/src/components/ui/carousel/CarouselContent.vue` (+9 more, see SUP-002 evidence in suppression-audit.yaml) | `biome-ignore lint/correctness/noUnusedVariables` | Required | Retained |
-| `server/smp` and `shared` Kotlin modules (see SUP-003 evidence in suppression-audit.yaml) | Detekt `@Suppress` | Required | Retained |
+| `apps/web/app/src/components/ui/carousel/CarouselContent.vue` (+9 more, see SUP-002 evidence in suppression-auditor.yaml) | `biome-ignore lint/correctness/noUnusedVariables` | Required | Retained |
+| `server/smp` and `shared` Kotlin modules (see SUP-003 evidence in suppression-auditor.yaml) | Detekt `@Suppress` | Required | Retained |
 
 ## Validation
 
@@ -45,7 +45,7 @@ None.
 
 ## Automation State
 
-Updated `.agents/automation/state/suppression-audit.yaml` with state schema version 1.
+Updated `.agents/automation/state/suppression-auditor.yaml` with state schema version 1.
 
 ## Risk Assessment
 

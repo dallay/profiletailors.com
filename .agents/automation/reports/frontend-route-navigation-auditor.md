@@ -51,7 +51,7 @@ None.
 
 ## Automation State
 
-State updated correctly in `.agents/automation/state/frontend-route-navigation.yaml`.
+State updated correctly in `.agents/automation/state/frontend-route-navigation-auditor.yaml`.
 
 ## Risk Assessment
 

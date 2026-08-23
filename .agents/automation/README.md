@@ -2,8 +2,22 @@
 
 ## Purpose
 
-This is the internal control plane for scheduled autonomous maintenance agents. It is outside docs
-because docs serves contributors, users, operators, and public documentation.
+`.agents/automation` is a provider-agnostic repository maintenance framework.
+
+It does not provide scheduling, agent execution, queues, orchestration, or runtime infrastructure.
+Those capabilities belong to the external agent provider — for example Jules Scheduled Tasks, Codex,
+GitHub Copilot agents, or another online autonomous coding agent.
+
+This repository provides:
+
+- execution contracts;
+- maintenance procedures;
+- risk boundaries;
+- evidence rules;
+- validation rules;
+- persistent task context;
+- reporting conventions;
+- Pull Request completion requirements.
 
 ## Directory Structure
 
@@ -22,7 +36,8 @@ validates, self-corrects or reverts, updates state/report, commits, pushes, and 
 per the Idempotent Draft PR Lifecycle defined in framework.md. No-op runs are observable and also
 result in exactly one reusable Draft PR. Tasks own only matching state/report; cross-task artifacts
 are signals needing independent verification. Standard results are CHANGES_APPLIED,
-NO_DRIFT_DETECTED, PARTIALLY_COMPLETED, and BLOCKED. Risk boundaries are defined by framework.md.
+NO_DRIFT_DETECTED, PARTIALLY_COMPLETED, and BLOCKED. Risk boundaries, remediation policy, and finding
+lifecycle are defined by framework.md.
 
 ## Adding a Task
 
@@ -32,12 +47,19 @@ deterministic rules, risk boundaries, validation, and Draft PR completion.
 ## Scheduler Prompt
 
 Execute the autonomous repository maintenance task defined in:
+
 .agents/automation/tasks/<task-name>.md
-You must follow the shared automation framework defined in:
+
+Follow:
+
 .agents/automation/framework.md
-Read both files before repository work. Operate autonomously. Do not ask for confirmation, approval,
-or implementation decisions. Complete state/report updates, validation, commit, push, and Draft Pull
-Request creation. Follow the Idempotent Draft PR Lifecycle: use a deterministic branch name from the
-task identity and run timestamp; check for an existing matching Draft PR to reuse or update instead
-of creating duplicates; handle retries and concurrent runs by updating the same branch; push exactly
-one Draft PR per run, including no-op outcomes.
+
+Read both files completely before making changes.
+
+This is a zero-interaction scheduled execution. Do not ask for confirmation, approval, or
+implementation decisions. Detect, remediate when permitted, validate, update task state/report,
+commit, push, and create the required Draft Pull Request. Follow the Idempotent Draft PR Lifecycle:
+use a deterministic branch name from the task identity and run timestamp; check for an existing
+matching Draft PR to reuse or update instead of creating duplicates; handle retries and concurrent
+runs by updating the same branch; push exactly one Draft PR per run, including no-op outcomes. The
+human will review the Pull Request after execution.

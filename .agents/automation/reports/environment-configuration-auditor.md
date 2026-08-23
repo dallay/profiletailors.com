@@ -49,7 +49,7 @@ None. All identified drift findings have been fully resolved.
 None.
 
 ## Automation State
-- State updated in: `.agents/automation/state/environment-configuration.yaml`
+- State updated in: `.agents/automation/state/environment-configuration-auditor.yaml`
 - Execution Timestamp: `2026-08-14T19:40:00Z`
 - Target Branch: `task-environment-configuration-auditor`
 

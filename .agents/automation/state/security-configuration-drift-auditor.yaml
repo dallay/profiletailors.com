@@ -1,0 +1,23 @@
+schemaVersion: 1
+task: security-configuration-drift-auditor
+lastExecution: 2026-07-23T18:45:32Z
+outcome: PARTIALLY_COMPLETED
+findings:
+  - id: actuator-prometheus-exposure-drift
+    type: security-configuration-drift
+    status: unresolved
+    firstDetected: 2026-07-23T18:45:32Z
+    lastVerified: 2026-07-23T18:45:32Z
+    occurrences: 1
+    evidence: "The endpoint `/actuator/prometheus` is permitted without authentication in `IdentitySecurityConfiguration.kt` (lines 133-142), whereas `docs/monitoring/actuator-security.md` specifies that only `/actuator/health` is public and other endpoints require authentication. The endpoint is bound only to the dedicated management port 9091 (not the main application port 7638) per `application.yaml` management.server.port configuration."
+    remediation:
+      status: proposed
+      description: "Remove `permitAll` from `/actuator/prometheus` to enforce authentication. This is HIGH ambiguous: the correct action depends on whether internal VPC Prometheus scrapers can supply authentication, which is operational context not conclusively supported by repository evidence. Do not guess; persist the finding until deployment context is verified."
+      pullRequest: null
+checks:
+  - name: backend-build-check
+    status: Not run
+  - name: backend-test-check
+    status: Not run
+  - name: frontend-biome-check
+    status: Not run

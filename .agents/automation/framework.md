@@ -1,5 +1,14 @@
 # Autonomous Repository Maintenance Framework
 
+## Scope
+
+This is a provider-agnostic repository maintenance framework. It does not provide scheduling, agent
+execution, queues, orchestration, or runtime infrastructure. Those capabilities belong to the
+external agent provider — for example Jules Scheduled Tasks, Codex, GitHub Copilot agents, or
+another online autonomous coding agent. This repository provides execution contracts, maintenance
+procedures, risk boundaries, evidence rules, validation rules, persistent task context, reporting
+conventions, and Pull Request completion requirements.
+
 ## Core Operating Principle
 
 Agents are constrained maintenance workers, not architects, product managers, or autonomous feature
@@ -40,13 +49,49 @@ migrations; HTTP adapters/controllers/routes; tests; accepted ADRs; active speci
 documentation; issues/roadmaps; archived material. Never change code based solely on assumptions,
 roadmap intent, stale documentation, naming, or plausible behavior.
 
+## Remediation Policy
+
+Audit tasks are maintenance tasks, not read-only audits. Detecting a problem is not sufficient
+completion when a safe evidence-backed remediation can be implemented. When a finding can be
+corrected within the task scope, the agent must implement the correction, validate it, and include
+it in the Draft Pull Request. Reporting a finding without attempting remediation is allowed only
+when the task explicitly forbids the change, repository evidence is insufficient, or the finding is
+ambiguous.
+
 ## Risk Classification
 
 LOW RISK includes documentation, links, stale paths, commands, example configuration alignment,
-obsolete comments or suppressions, and mechanical cleanup. MEDIUM RISK requires unambiguous
-behavior, direct evidence, tests, narrow scope, and validation. HIGH RISK is reported by default:
-domain models, migrations, authentication, authorization, security, API redesign, architecture,
-persistence, concurrency, event ordering, and major upgrades.
+obsolete comments or suppressions, and mechanical cleanup. Apply autonomously, validate, and push a
+Draft PR.
+
+MEDIUM RISK requires unambiguous behavior, direct evidence, tests, narrow scope, and validation.
+Apply autonomously only with strong evidence and tests, then push a Draft PR.
+
+HIGH RISK covers domain models, migrations, authentication, authorization, security, API redesign,
+architecture, persistence, concurrency, event ordering, and major upgrades. Split into two cases:
+
+- HIGH deterministic: the expected invariant, the defect, and the smallest correction are
+  conclusively supported by repository evidence and validation. The agent MAY implement the
+  remediation and include it in the Draft PR. The resulting change must remain Draft and must never
+  be considered approved merely because the agent implemented it. Human merge is the approval gate.
+- HIGH ambiguous: the correct action is not conclusively supported by evidence, or the decision is
+  architectural. Do not guess. Persist the finding and include it in the Draft PR. If the finding
+  cannot be corrected, record why and continue safe unrelated work.
+
+## Finding Lifecycle
+
+Finding statuses: new, unresolved, resolved, blocked, ignored. Ignored requires a reason.
+
+Remediation statuses: none, proposed, implemented, verified.
+
+- none: no remediation exists or the finding was just detected.
+- proposed: a remediation is described but not implemented.
+- implemented: the agent applied the correction in the current Draft PR but it is not yet merged.
+- verified: the correction was merged and a subsequent run confirmed the drift is gone.
+
+Every finding records firstDetected, lastVerified, and occurrences. These fields persist across
+runs so persistent debt is visible without an escalation system. When a finding reappears after being
+resolved, reset status to new and increment occurrences.
 
 ## Minimum Change, Validation, and Self-Correction
 
