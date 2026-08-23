@@ -100,6 +100,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/publishing/019-add-social-content-calendar-keyset-index.yaml
   - include:
+      file: db/changelog/publishing/020-add-publishing-claim-fencing-and-idempotency.yaml
+  - include:
       file: db/changelog/ideas/001-create-ideas.yaml
 
   - include:

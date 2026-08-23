@@ -15,9 +15,8 @@ completed:
   - apply-unit-1-bdd-postgres-verify
   - apply-unit-2-publishing-controls
   - verify
-  - qa
 next: archive (blocked by acceptance QA)
-note: "Phase 2 technical verification passed, but QA is BLOCKED until managed-beta acceptance evidence is supplied. Do not archive yet."
+note: "Phase 2 technical verification passed, but acceptance QA remains BLOCKED until managed-beta evidence is supplied. QA is active, not completed; do not archive yet."
 warnings:
   - "Fenix production is reachable read-only, but no approved production change window or mutation permissions are available."
   - "The deployed v0.4.1 image is a confirmed pre-change/mismatched release; its ancestor tag lacks ListStaleJobsQuery and PUBLISHING_STALE_READ."

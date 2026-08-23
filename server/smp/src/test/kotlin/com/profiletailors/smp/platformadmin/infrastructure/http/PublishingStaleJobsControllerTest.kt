@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platform.infrastructure.http.WebFluxConfiguration
 import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
@@ -15,6 +16,8 @@ import com.profiletailors.smp.platformadmin.infrastructure.http.AdminProblemDeta
 import com.profiletailors.smp.publishing.application.ListStaleJobsQuery
 import com.profiletailors.smp.publishing.application.StaleJobItem
 import com.profiletailors.smp.publishing.application.StaleJobsResponse
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -22,6 +25,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.web.bind.annotation.GetMapping
 import java.time.Instant
 import java.util.UUID
 
@@ -89,6 +93,39 @@ class PublishingStaleJobsControllerTest {
             .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
 
         coVerify(exactly = 0) { mediator.send(any<ListStaleJobsQuery>()) }
+    }
+
+    @Test
+    fun `returns 403 when authenticated principal identifier is not a UUID`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OPERATOR))
+
+        webClient(defaultPrincipal.copy(principalId = "principal-not-a-uuid"))
+            .get()
+            .uri("/api/admin/publishing/stale-jobs")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
+
+        coVerify(exactly = 0) { roleAssignmentRepository.findActiveByPrincipalId(any()) }
+        coVerify(exactly = 0) { mediator.send(any<ListStaleJobsQuery>()) }
+    }
+
+    @Test
+    fun `stale jobs endpoint is versioned and documents problem responses`() {
+        val method = PublishingStaleJobsController::class.java
+            .declaredMethods
+            .single { it.name == "listStaleJobs" }
+        val mapping = method.getAnnotation(GetMapping::class.java)
+        val responseCodes = method
+            .getAnnotation(io.swagger.v3.oas.annotations.responses.ApiResponses::class.java)
+            .value
+            .map { it.responseCode }
+
+        mapping.version shouldBe "1"
+        responseCodes shouldContain "400"
+        responseCodes shouldContain "401"
+        responseCodes shouldContain "403"
     }
 
     @Test
@@ -188,6 +225,10 @@ class PublishingStaleJobsControllerTest {
                 requestContextStore = FakeRequestContextStore(principal),
             ),
         )
+            .apiVersioning {
+                it.useVersionResolver(WebFluxConfiguration.MediaTypeVersionResolver())
+                    .setDefaultVersion("1")
+            }
             .controllerAdvice(AdminProblemDetailsHandler())
             .build()
 

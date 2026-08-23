@@ -180,9 +180,9 @@ internal class ListStaleJobsHandler(
         }
 
         val now = clock.instant()
-        val stale = publicationJobRepository.findStaleClaims(now, query.leaseStaleThreshold)
-        val items = stale.take(query.limit).map { it.toItem(now) }
-        return StaleJobsResponse(staleJobs = items, total = stale.size)
+        val stale = publicationJobRepository.findStaleClaims(now, query.leaseStaleThreshold, query.limit)
+        val items = stale.jobs.map { it.toItem(now) }
+        return StaleJobsResponse(staleJobs = items, total = stale.total)
     }
 
     private fun StaleJob.toItem(now: java.time.Instant): StaleJobItem = StaleJobItem(

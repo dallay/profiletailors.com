@@ -1,6 +1,8 @@
 # Acceptance QA Report: private-beta-launch-readiness
 
-## Identity
+## Overview
+
+### Identity
 
 - **Change:** `private-beta-launch-readiness`
 - **Unit:** `apply-unit-2-publishing-controls` — DALLAY-555/557
@@ -12,7 +14,7 @@
 - **Release state:** The current Phase 2 implementation is uncommitted in the worktree; no deployment was performed.
 - **Mutation boundary:** No deploy, restart, environment edit, migration, provider call, publish, data mutation, commit, or push was performed.
 
-## Sources of Truth and Technical Verification Handoff
+### Sources of Truth and Technical Verification Handoff
 
 ### Sources
 
@@ -22,12 +24,14 @@
 - Design: `openspec/changes/private-beta-launch-readiness/design.md`
 - Tasks: `openspec/changes/private-beta-launch-readiness/tasks.md`
 - Technical verification: `openspec/changes/private-beta-launch-readiness/verify-report.md`
-- Phase state: `openspec/changes/private-beta-launch-readiness/state.yaml` (read only; not modified)
+- Phase state: `openspec/changes/private-beta-launch-readiness/state.yaml` (read during QA; acceptance remains active while the verdict is `BLOCKED`)
 - Configuration: `openspec/config.yaml`
 - Product truth: `apps/web/PRODUCT.md`, `apps/web/app/PRODUCT.md`, and `apps/web/admin/PRODUCT.md`
 - Operational contract: `docs/infrastructure/private-beta-launch-readiness-runbook.md`
 - Production inspection evidence: authorized read-only `ssh -o BatchMode=yes -o ConnectTimeout=10 fenix` transcript, observed at `2026-08-23T10:27:18Z`
 - Release-provenance evidence: read-only Fenix image-label observation plus local `smp@v0.4.1` tag, ancestry, and tagged-tree inspection recorded below
+
+## Changes
 
 ### Technical evidence handed off by `sdd-verify`
 
@@ -54,6 +58,7 @@ The inspection produced `VPS_OBSERVED` environment evidence. It is not an accept
 | Deployed backend release | Service image was `ghcr.io/dallay/profiletailors-smp:v0.4.1@sha256:990c7341441c7362b4a29b2d933b8438b4b1dc137c603f99bc125fbcacaba165`; service updated `2026-08-14`; local image created `2026-08-08T21:52:44.851150213Z`. | Release identity was observed, but the deployed artifact has not been proven to contain the current uncommitted Phase 2 code. |
 | Fenix image labels | Read-only image metadata reported `org.opencontainers.image.version=v0.4.1` and `org.opencontainers.image.source=https://github.com/dallay/profiletailors.com`. | The labels identify the deployed release and source repository, but do not by themselves prove the image digest-to-commit mapping. |
 | Local release tag | `smp@v0.4.1` resolves to commit `50429460991d81205dbafbf6f664b945fd89ace5`, dated `2026-08-08 23:48:43 +0200`, subject `chore: release main (#545)`. | The tagged release predates the current Phase 2 stale-jobs endpoint and permission changes. |
+| Registry SLSA provenance | Read-only GHCR inspection of the deployed OCI index `sha256:990c7341441c7362b4a29b2d933b8438b4b1dc137c603f99bc125fbcacaba165` mapped `linux/amd64` manifest `sha256:27e17279952316f514288bedd33e628050c0ebcbb04255220d6b7d36400cb21f` to config `sha256:2d3cfbe0461d23bd57f0106f49d8ed0d56fa0fe927e7cb772916612a38111860` and provenance blob `sha256:4921f7f64bf5b406878bd63d98b805002eb2e11e0e99cdfbb1b7ab2659644579`; `linux/arm64` manifest `sha256:b9ecb1892651266a42f7cab36de97c6b2a4d34c7d404fffac930eac16bb1dcb7` maps to config `sha256:6a83a9c67e1ca74d7642e582344ea5e76db5da6350287959322cee8491a75db7` and provenance blob `sha256:975e446a729ea109cea0329e63f0cbf3590154d41aff752f5ad2edbfe8300b2d`. Both attest `vcs.revision=50429460991d81205dbafbf6f664b945fd89ace5`. | The registry provenance maps both platform manifests to the `v0.4.1` release commit, confirming the deployed digest is the pre-change release. |
 | Tag ancestry and tagged-tree inspection | `smp@v0.4.1` is an ancestor of current `HEAD`. `git grep` at the tag finds `lease_expires_at` schema/persistence references, but no `ListStaleJobsQuery` and no `PUBLISHING_STALE_READ`. | Together with the v0.4.1 image labels, the tag evidence confirms a release mismatch/pre-change deployment for this QA gate; the current Phase 2 implementation is not present in the tagged tree. |
 | Current implementation/deployment state | Phase 2 changes are uncommitted in the local worktree; no deployment was performed. | No claim is made that the observed Fenix image contains the current Phase 2 implementation. |
 | Publishing worker environment | Service inspection printed only `SMP_PUBLISHING_WORKER_ENABLED=true`; no other publishing worker environment values were set in the service. | Effective values for omitted settings were not validated and are not inferred. |
@@ -61,16 +66,18 @@ The inspection produced `VPS_OBSERVED` environment evidence. It is not an accept
 | API connectivity check | A request to localhost port `8080` was not made successfully; the connection was refused. | No successful API response or live stale-jobs endpoint behavior was observed. |
 | Mutation audit | No deploy, restart, environment edit, migration, provider call, publish, or data mutation was performed. | Read-only scope was preserved; safe-off/re-enable and recovery could not be exercised. |
 
-## Target, Environment, Permissions, and Limitations
+## Usage
+
+### Target, Environment, Permissions, and Limitations
 
 - **Target:** Fenix production, reached through the `fenix` SSH alias; host reported `fenix-icloud`. This resolves the prior report's inaccurate claim that no acceptance target existed, but it provides only a read-only production target, not an acceptance window.
 - **Environment:** Docker Swarm stack `profiletailors-smp-dz2yer` with backend, Cloudflare tunnel, and PostgreSQL services observed at `1/1`. Backend readiness was `UP`. The local checkout is macOS/Darwin at `/Users/acosta/Dev/dallay/worktrees/p0`, branch `p0`, HEAD `e4795ca4`.
-- **Deployed release/provenance:** `ghcr.io/dallay/profiletailors-smp:v0.4.1@sha256:990c7341441c7362b4a29b2d933b8438b4b1dc137c603f99bc125fbcacaba165`, updated `2026-08-14`, with reported OCI labels `org.opencontainers.image.version=v0.4.1` and `org.opencontainers.image.source=https://github.com/dallay/profiletailors.com`. The local `smp@v0.4.1` tag resolves to `50429460991d81205dbafbf6f664b945fd89ace5` (`2026-08-08 23:48:43 +0200`, `chore: release main (#545)`), is an ancestor of current `HEAD`, and lacks `ListStaleJobsQuery` and `PUBLISHING_STALE_READ` while retaining `lease_expires_at` schema/persistence references. QA therefore treats the observed v0.4.1 release as a confirmed mismatch/pre-change deployment for Phase 2; the exact image-digest-to-commit mapping was not captured.
+- **Deployed release/provenance:** `ghcr.io/dallay/profiletailors-smp:v0.4.1@sha256:990c7341441c7362b4a29b2d933b8438b4b1dc137c603f99bc125fbcacaba165`, updated `2026-08-14`, with reported OCI labels `org.opencontainers.image.version=v0.4.1` and `org.opencontainers.image.source=https://github.com/dallay/profiletailors.com`. Read-only GHCR SLSA provenance maps both platform manifests (`linux/amd64` `sha256:27e17279952316f514288bedd33e628050c0ebcbb04255220d6b7d36400cb21f`; `linux/arm64` `sha256:b9ecb1892651266a42f7cab36de97c6b2a4d34c7d404fffac930eac16bb1dcb7`) to `vcs.revision=50429460991d81205dbafbf6f664b945fd89ace5`, the local `smp@v0.4.1` tag. That tag is an ancestor of current `HEAD` and lacks `ListStaleJobsQuery` and `PUBLISHING_STALE_READ` while retaining `lease_expires_at` schema/persistence references. QA therefore treats the observed v0.4.1 release as a confirmed mismatch/pre-change deployment for Phase 2. The current Phase 2 implementation remains uncommitted and no deployment was performed.
 - **Credentials/permissions:** BatchMode SSH over Tailscale was authorized for read-only inspection. No production change window or permission to deploy, restart, edit environment, mutate data, invoke a provider, publish, rehearse rollback, or perform backup/restore was available for this QA run.
 - **Observed configuration:** Only `SMP_PUBLISHING_WORKER_ENABLED=true` was set in the inspected service. No other publishing worker environment values were set, and their effective values were not inferred.
 - **Limitations:** Fenix is production. Safe-off/re-enable, stale recovery, provider delivery, backup/restore, rollback, user acceptance, and operator acceptance require an explicit production change window and a separately approved release procedure proving the deployed release contains this change. The readiness probe is environment evidence only. The refused localhost `8080` connection means no live API response was observed. The current Phase 2 implementation is uncommitted and no deployment was performed. This QA report does not recommend a deployment or restart without that explicit production change window and separately approved release procedure. `sdd-quality-runner` and its strict-TDD module were unavailable, so this report uses `fallback` execution.
 
-## Capability Inventory
+### Capability Inventory
 
 | Capability | Availability | Selected? | Rationale / rejection reason |
 |---|---|---|---|
@@ -92,7 +99,7 @@ The inspection produced `VPS_OBSERVED` environment evidence. It is not an accept
 | `sdd-quality-runner`/FSM | unavailable | rejected | Not present in the repository/session; direct commands ran in explicit `fallback` mode. |
 | Static inspection | available | rejected as sole acceptance capability | Used to map target and limitations only. Static inspection cannot produce a QA `PASS`. |
 
-## Scenario Matrix
+### Scenario Matrix
 
 The results below are acceptance results. The Fenix observations are cited as environment evidence only. Local passing tests are not converted into product acceptance, and no static or readiness observation is reported as `PASS`.
 
@@ -117,13 +124,15 @@ The results below are acceptance results. The Fenix observations are cited as en
 | P2-QA-17 | Manual/exploratory operator workflow | An operator follows the runbook, captures UTC/release/scope/classification evidence, and records safe-off, stale recovery, and re-enable outcomes. | **BLOCKED** | The read-only inspection captured UTC, host, stack, release labels/tag provenance, and readiness, but not the required operational transitions. Fenix is production; no explicit change window or separately approved release procedure was supplied. |
 | P2-QA-18 | Managed boundary | Public/private route restrictions, provider delivery, backup/restore, rollback rehearsal, operator acceptance, and user acceptance are proven with live evidence. | **BLOCKED** | These require explicit production operations and separately classified provider/operator/user evidence. None was authorized or supplied; the read-only inventory is not acceptance. |
 
-## Untested Scope
+## Troubleshooting
+
+### Untested Scope
 
 - **Scope:** Managed worker safe-off/re-enable, live stale visibility and recovery, deployed persistence/restart behavior, endpoint authorization/validation/redaction/empty-state behavior, provider delivery, public/private routing and origin exposure, backup/restore, rollback rehearsal, runbook execution, operator acceptance, user acceptance, browser behavior, accessibility, responsive behavior, and locale behavior.
 - **Reason:** A production target now exists and was observed read-only; the remaining constraint is not target availability. Fenix is production, no explicit change window or separately approved release procedure was supplied, the current Phase 2 code is uncommitted, and the observed v0.4.1 image is confirmed as a pre-change/mismatched release because its corresponding ancestor tag lacks `ListStaleJobsQuery` and `PUBLISHING_STALE_READ`. Only the worker-enabled env value was observed, and the live API check on localhost `8080` was refused. No production mutation, provider call, publish, or data inspection requiring broader permission was performed. Local Swarm rendering also remains unavailable because `DASHBOARD_IMAGE` is not set.
 - **Re-run prerequisite:** Obtain an approved production change window, least-privilege operator permissions, and a separately approved release procedure. The release owner must produce and prove an artifact containing the current Phase 2 code before any controlled deployment or restart; QA must not recommend or perform either action outside that approval. Then validate effective publishing configuration rather than inferring omitted environment values, and run the runbook's safe-off, re-enable, stale-visibility, stale-recovery, route, backup/restore, and rollback checks with redacted provenance. Capture separate provider-side, operator, and user outcomes, retaining `USER_REPORTED_OPERATIONAL` where no provider evidence exists. If local rendered-stack evidence is required, provide the approved non-secret `DASHBOARD_IMAGE`/stack inputs and rerun `just swarm-config`.
 
-## Findings
+### Findings
 
 | ID | Severity | Scenario / location | Evidence | Status |
 |---|---|---|---|---|
@@ -137,7 +146,7 @@ The results below are acceptance results. The Fenix observations are cited as en
 
 No product failure was observed in the read-only inventory/readiness inspection, but that observation is not acceptance evidence. No `CRITICAL` or `P0` finding is asserted; the unresolved P1 findings prevent acceptance closure.
 
-## Verdict
+### Verdict
 
 **BLOCKED**
 
@@ -145,7 +154,7 @@ No product failure was observed in the read-only inventory/readiness inspection,
 
 The prior target-availability statement was incorrect: Fenix is a reachable production target, and the authorized read-only inspection produced auditable `VPS_OBSERVED` environment evidence for the host, stack, service convergence, release identity, worker-enabled setting, and readiness. That resolves QA-001 only. New provenance evidence refines QA-004 from merely unproven provenance to a confirmed release mismatch/pre-change deployment for this gate: the Fenix image is labeled v0.4.1, while the corresponding local ancestor tag predates and lacks the current Phase 2 `ListStaleJobsQuery` and `PUBLISHING_STALE_READ` changes. The current Phase 2 implementation remains uncommitted and no deployment was performed. The attempted localhost `8080` connection was refused, and omitted publishing settings were not validated. Because Fenix is production and no explicit change window or separately approved release procedure was available, safe-off/re-enable, stale recovery, provider delivery, backup/restore, rollback, route/privacy, operator acceptance, and user acceptance remain `BLOCKED` or `NOT TESTED`. This QA report does not recommend a deployment or restart without that explicit production change window and separately approved release procedure. The correct gate result remains `BLOCKED`, not `PASS` or `PASS WITH WARNINGS`.
 
-## Limitations and Implementation Handoff
+### Limitations and Implementation Handoff
 
 - QA did not modify production/test source, deploy configuration, `state.yaml`, or the implementation, and did not fix findings.
 - The read-only inspection was performed through `ssh -o BatchMode=yes -o ConnectTimeout=10 fenix` over Tailscale; no deploy, restart, env edit, migration, provider call, publish, data mutation, commit, or push occurred.
@@ -154,7 +163,7 @@ The prior target-availability statement was incorrect: Fenix is a reachable prod
 - Keep the Phase 2 implementation handoff as technical/test evidence plus `VPS_OBSERVED` environment evidence. Preserve `USER_REPORTED_OPERATIONAL` for any live publishing result without provider evidence.
 - Resolve the confirmed release-mismatch provenance and production-change-window prerequisites through the separately approved release procedure, execute the runbook with redacted provenance, and rerun this QA phase. Keep the local `just swarm-config` warning visible; remote service inventory does not replace rendered-stack or acceptance evidence. Do not advance to `sdd-archive` while acceptance-relevant `BLOCKED`/`NOT TESTED` scope and P1 findings remain.
 
-### Phase handoff
+#### Phase handoff
 
 - **Status:** blocked
 - **Executive summary:** Fenix production is confirmed as a read-only target with healthy service inventory and backend readiness, but its labeled v0.4.1 release is a confirmed pre-change/mismatched deployment for the current Phase 2 stale-jobs endpoint and permission work. Acceptance remains blocked because the current implementation is uncommitted, no deployment was performed, and no explicit production change window or separately approved release procedure exists for any deployment/restart, safe-off, recovery, provider, rollback, or user/operator acceptance.
@@ -162,3 +171,9 @@ The prior target-availability statement was incorrect: Fenix is a reachable prod
 - **Next recommended:** obtain the separately approved release procedure and explicit production change window, prove the release artifact contains Phase 2, then rerun `sdd-qa`; do not recommend or perform a deployment/restart outside that approval, and do not run `sdd-archive` yet.
 - **Risks:** Confirmed pre-change/mismatched deployed artifact, unvalidated effective publishing configuration, no safe-off or recovery rehearsal, unavailable provider/backup/restore/rollback/route/user/operator evidence, local Swarm rendering warning, pending change-wide phases, and unavailable deterministic runner enforcement.
 - **Skill resolution:** `fallback-path` — the `sdd-qa` executor prompt was provided in the launch context and the executor skill file was read directly; no additional project skill was required.
+
+## References
+
+- `openspec/changes/private-beta-launch-readiness/specs/publishing/spec.md`
+- `openspec/changes/private-beta-launch-readiness/verify-report.md`
+- `docs/infrastructure/private-beta-launch-readiness-runbook.md`

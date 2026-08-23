@@ -9,8 +9,13 @@ import com.profiletailors.smp.platformadmin.domain.effectivePermissions
 import com.profiletailors.smp.publishing.application.ListStaleJobsQuery
 import com.profiletailors.smp.publishing.application.StaleJobsResponse
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
+import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -51,15 +56,42 @@ class PublishingStaleJobsController(
             "claimedAt, leaseExpiresAt, ageSeconds, attemptNumber, suggestedAction). No raw exceptions, " +
             "tokens, provider payloads, or storage paths are exposed.",
     )
-    @GetMapping("/stale-jobs")
+    @ApiResponses(
+        value = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Stale publication-job claims returned",
+                content = [Content(schema = Schema(implementation = StaleJobsResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "Invalid stale threshold or limit",
+                content = [Content(schema = Schema(implementation = ProblemDetail::class))],
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "Authentication is required",
+                content = [Content(schema = Schema(implementation = ProblemDetail::class))],
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "The principal lacks PUBLISHING_STALE_READ",
+                content = [Content(schema = Schema(implementation = ProblemDetail::class))],
+            ),
+        ],
+    )
+    @GetMapping("/stale-jobs", version = "1")
     suspend fun listStaleJobs(
-        @RequestParam(defaultValue = "PT5M") leaseStaleThreshold: String = "PT5M",
-        @RequestParam(defaultValue = "50") limit: Int = 50,
+        @RequestParam(defaultValue = DEFAULT_LEASE_STALE_THRESHOLD) leaseStaleThreshold: String,
+        @RequestParam(defaultValue = DEFAULT_LIMIT) limit: Int,
     ): ResponseEntity<StaleJobsResponse> {
         val ctx = requestContextStore.currentPrincipalContext()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
 
-        val operatorId = UUID.fromString(ctx.principalId)
+        val operatorId = runCatching { UUID.fromString(ctx.principalId) }
+            .getOrElse {
+                throw PlatformAccessDeniedException(PlatformPermission.PUBLISHING_STALE_READ)
+            }
         val assignments = roleAssignmentRepository.findActiveByPrincipalId(operatorId)
         val operatorRoles = assignments.map { it.role }.toSet()
 
@@ -92,8 +124,10 @@ class PublishingStaleJobsController(
     }
 
     private companion object {
+        const val DEFAULT_LEASE_STALE_THRESHOLD = "PT5M"
         const val MIN_LIMIT = 1
         const val MAX_LIMIT = 100
+        const val DEFAULT_LIMIT = "50"
         const val INVALID_THRESHOLD_MESSAGE =
             "leaseStaleThreshold must be a positive ISO-8601 duration."
     }

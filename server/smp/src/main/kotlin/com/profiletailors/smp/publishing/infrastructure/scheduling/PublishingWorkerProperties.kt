@@ -14,6 +14,7 @@ class PublishingWorkerProperties(
     val pollInterval: Duration = Duration.parse("PT30S"),
     val blockedRecoveryInterval: Duration = Duration.parse("PT5M"),
     val claimLease: Duration = Duration.parse("PT2M"),
+    val staleGrace: Duration = Duration.parse("PT5M"),
     val maxRetries: Int = 3,
     val retryBackoff: Duration = Duration.parse("PT5M"),
 )

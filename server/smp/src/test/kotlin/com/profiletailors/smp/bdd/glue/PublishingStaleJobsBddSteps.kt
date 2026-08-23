@@ -11,7 +11,6 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
@@ -154,26 +153,29 @@ class PublishingStaleJobsBddSteps {
     @Then("the stale jobs response should contain the workspaceId for the publication")
     fun staleResponseContainsWorkspaceId() {
         val body = lastResponseJson()
-        val first = body.path("staleJobs").firstOrNull()
-        assertNotNull(first, "Expected the stale jobs response to contain at least one entry")
-        assertEquals(BddDatabaseSupport.WORKSPACE_ID, first!!.path("workspaceId").asText())
+        val first = requireNotNull(body.path("staleJobs").firstOrNull()) {
+            "Expected the stale jobs response to contain at least one entry"
+        }
+        assertEquals(BddDatabaseSupport.WORKSPACE_ID, first.path("workspaceId").asText())
     }
 
     @Then("the stale jobs entry should expose ageSeconds greater than or equal to 0")
     fun staleResponseContainsNonNegativeAge() {
         val body = lastResponseJson()
-        val first = body.path("staleJobs").firstOrNull()
-        assertNotNull(first, "Expected the first stale job to be present")
-        val age = first!!.path("ageSeconds").asLong()
+        val first = requireNotNull(body.path("staleJobs").firstOrNull()) {
+            "Expected the first stale job to be present"
+        }
+        val age = first.path("ageSeconds").asLong()
         assertTrue(age >= 0L, "Expected ageSeconds >= 0, got $age")
     }
 
     @Then("the stale jobs entry should expose suggestedAction {string}")
     fun staleResponseContainsSuggestedAction(expected: String) {
         val body = lastResponseJson()
-        val first = body.path("staleJobs").firstOrNull()
-        assertNotNull(first)
-        assertEquals(expected, first!!.path("suggestedAction").asText())
+        val first = requireNotNull(body.path("staleJobs").firstOrNull()) {
+            "Expected the first stale job to be present"
+        }
+        assertEquals(expected, first.path("suggestedAction").asText())
     }
 
     @Then("the publication status should remain {string}")

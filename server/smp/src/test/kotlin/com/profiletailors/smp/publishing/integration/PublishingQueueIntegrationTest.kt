@@ -122,8 +122,16 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             nextSlotAfter = Instant.parse("2026-05-27T08:00:00Z"),
         )
 
+        val initialClaim = requireNotNull(
+            jobRepository.claimNextDue(
+                now = Instant.parse("2026-05-27T08:01:00Z"),
+                workerId = "worker-1",
+                claimLease = Duration.ofMinutes(2),
+            ),
+        )
         jobRepository.rescheduleRetry(
             jobId = "job-next-slot",
+            claimVersion = initialClaim.claimVersion,
             nextAttemptAt = Instant.parse("2026-05-27T09:30:00Z"),
             attemptNumber = 2,
         )
@@ -161,7 +169,11 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             "worker-1",
             Duration.ofMinutes(2),
         )
-        jobRepository.complete("job-completed", Instant.parse("2026-05-27T08:02:00Z"))
+        jobRepository.complete(
+            "job-completed",
+            requireNotNull(firstClaim).claimVersion,
+            Instant.parse("2026-05-27T08:02:00Z"),
+        )
         val secondClaim = jobRepository.claimNextDue(
             Instant.parse("2026-05-27T08:03:00Z"),
             "worker-2",

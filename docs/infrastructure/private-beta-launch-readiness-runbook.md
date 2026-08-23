@@ -42,9 +42,18 @@ Scope limits: this runbook governs publishing controls only. Activation and
 invitation procedures live with the platform-admin runbook; invitee-journey and
 E2E rehearsal evidence live with the Phase 3 change record.
 
-## Operational controls
+## Changes
 
-### Safe-off
+Phase 2 adds a safe-off worker gate, lease fencing and stale-claim recovery,
+global stale-job visibility for authorized platform operators, and reversible
+managed-Swarm configuration. The deployment file supplies environment values;
+the procedures and evidence requirements remain here in the operator runbook.
+
+## Usage
+
+### Operational controls
+
+#### Safe-off
 
 The publishing worker is safe-off by default at the application layer:
 `PublishingWorkerProperties.enabled` defaults to `false` and is rendered from
@@ -56,15 +65,24 @@ The managed-VPS deployment overrides that default through `SMP_PUBLISHING_WORKER
 in `infra/apps/smp/swarm/stack.yaml`. Safe-off at the managed layer is therefore a
 single-line change followed by a rolling restart.
 
+Before running the commands below, set the deployed stack and backend service names.
+The defaults reflect the stack observed during the read-only QA inspection; use the
+actual names for the target environment:
+
+```sh
+STACK_NAME="${STACK_NAME:-profiletailors-smp-dz2yer}"
+BACKEND_SERVICE="${BACKEND_SERVICE:-${STACK_NAME}_backend}"
+```
+
 Procedure:
 
 1. Confirm the worker is currently enabled by reading
    `SMP_PUBLISHING_WORKER_ENABLED` from the deployed service:
-   `docker service inspect smp_backend --format '{{ .Spec.TaskTemplate.ContainerSpec.Env }}' | tr ' ' '\n' | grep SMP_PUBLISHING_WORKER_ENABLED`.
+   `docker service inspect "$BACKEND_SERVICE" --format '{{ .Spec.TaskTemplate.ContainerSpec.Env }}' | tr ' ' '\n' | grep SMP_PUBLISHING_WORKER_ENABLED`.
 2. Set `SMP_PUBLISHING_WORKER_ENABLED="false"` in the Swarm env source
    (`infra/apps/smp/swarm/.env` or the equivalent secrets-backed config).
-3. Re-render and re-deploy the stack: `docker stack deploy -c infra/apps/smp/swarm/stack.yaml smp`.
-4. Wait for `docker service ps smp_backend` to show the new task as `Running` with no
+3. Re-render and re-deploy the stack: `docker stack deploy -c infra/apps/smp/swarm/stack.yaml "$STACK_NAME"`.
+4. Wait for `docker service ps "$BACKEND_SERVICE"` to show the new task as `Running` with no
    startup errors.
 5. Confirm the worker is no longer polling by tailing the backend logs and confirming
    absence of `"Polling for next due publication job"` debug entries and absence of
@@ -79,7 +97,7 @@ Effect of safe-off:
 - The lifecycle early-return at `PublishingWorker.kt:704` means no `pollOnce` invocation
   is scheduled; therefore `releaseExpiredClaims` does not run while safe-off is in effect.
 
-### Re-enable
+#### Re-enable
 
 Procedure:
 
@@ -92,8 +110,8 @@ Procedure:
 
 Effect of re-enable:
 
-- The first poll calls `releaseExpiredClaims(now, claimLease)`. Any `CLAIMED` row whose
-  `lease_expires_at` is older than `claimLease` is reset to `PENDING` with the claim
+- The first poll calls `releaseExpiredClaims(now, staleGrace)`. Any `CLAIMED` row whose
+  `lease_expires_at` is earlier than `now - staleGrace` is reset to `PENDING` with the claim
   columns cleared (`R2dbcPublishingRepositories.kt:931-937`). The number of released
   rows is logged without PII.
 - After release, `claimNextDue` picks up due `PENDING` jobs and the worker resumes
@@ -102,7 +120,7 @@ Effect of re-enable:
   stay at `PENDING` and are eligible for the next claim — no jobs are silently treated
   as published.
 
-### Stale visibility
+#### Stale visibility
 
 The admin stale-jobs endpoint surfaces stale claims for a platform operator or diagnostic
 check without exposing raw provider diagnostics:
@@ -114,8 +132,9 @@ The caller must have the `PUBLISHING_STALE_READ` permission. Unauthenticated cal
 `PLATFORM_ACCESS_DENIED` problem code.
 
 - Query parameters:
-  - `leaseStaleThreshold: Duration` — minimum age of the expired lease before a row is
-    reported stale. Default `Duration.ofMinutes(5)` (`PublishingApi.kt:260`).
+  - `leaseStaleThreshold: string` — ISO-8601 duration string representing the minimum
+    age of the expired lease before a row is reported stale. Default/example: `PT5M`
+    (`PublishingStaleJobsController.kt:127`).
   - `limit: Int` — cap on returned items. Default `50` (`PublishingApi.kt:261`).
 - Response fields per `StaleJobItem` (`PublishingApi.kt:266-276`):
   - `jobId`, `publicationId`, `workspaceId` — identifiers.
@@ -133,14 +152,14 @@ through the Mediator bus. Invalid threshold or limit values return `400` with th
 `PublicationJobRepository.findStaleClaims(now, leaseStaleThreshold)` and applies the
 bounded result limit before returning the safe response.
 
-### Stale recovery
+#### Stale recovery
 
 Stale recovery is automatic and does not require a manual reclaim command.
 
 - The worker calls `releaseExpiredClaims` at the start of every poll
   (`PublishingWorker.kt:619`), immediately before `claimNextDue` (`:628`).
 - A single structured info log line records the count:
-  `"Released expired publication-job claims released={} leaseThresholdSeconds={}"`
+  `"Released expired publication-job claims released={} staleGraceSeconds={}"`
   (`PublishingWorker.kt:621-625`). The log carries no tokens, secrets, URLs, or
   worker UUIDs.
 - If `releaseExpiredClaims` itself fails, the exception is propagated and the poll
@@ -152,7 +171,7 @@ a manual reclaim command. The first check for a stale-claim investigation should
 the `publication_jobs.lease_expires_at` SQL snapshot (see Troubleshooting) and the
 matching `PublishingWorker` info log line.
 
-### Rollback-safe config
+#### Rollback-safe config
 
 Publishing behavior is fully controlled by the env vars consumed by
 `server/smp/src/main/resources/application.yaml`. Each var has an operator-readable
@@ -162,7 +181,8 @@ default and is overridable through the Swarm stack.
 |---|---|---|
 | `SMP_PUBLISHING_WORKER_ENABLED` | `false` | Master switch. `false` short-circuits `PublishingWorkerLifecycle.start()` so no poll is ever scheduled. |
 | `SMP_PUBLISHING_WORKER_POLL_INTERVAL` | `PT30S` | Cadence at which the lifecycle calls `pollOnce`. |
-| `SMP_PUBLISHING_WORKER_CLAIM_LEASE` | `PT2M` | Window during which a `CLAIMED` row is considered in-flight. Past this window the next poll resets it to `PENDING`. |
+| `SMP_PUBLISHING_WORKER_CLAIM_LEASE` | `PT2M` | In-flight lease written as `lease_expires_at = now + claimLease` when a job is claimed. |
+| `SMP_PUBLISHING_WORKER_STALE_GRACE` | `PT5M` | Additional age required after lease expiry; recovery releases only when `lease_expires_at < now - staleGrace`. |
 | `SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL` | `PT5M` | Cadence at which `BLOCKED` jobs are promoted back to `PENDING`. |
 | `SMP_PUBLISHING_MAX_RETRIES` | `3` | Capped delivery attempts before a job moves to `BLOCKED`. |
 | `SMP_PUBLISHING_RETRY_BACKOFF` | `PT5M` | Delay between retryable delivery attempts. |
@@ -172,8 +192,8 @@ Lease-aware claim contract (per `publication_jobs` schema):
 - `claimed_by_worker` — opaque UUID in the form `worker-<UUID>`. Never a hostname or
   a secret.
 - `claimed_at` — `Instant` the row was claimed by a worker.
-- `lease_expires_at` — `Instant` past which the claim is stale and eligible for
-  `releaseExpiredClaims`.
+- `lease_expires_at` — `Instant` after which the claim can become stale; recovery
+  releases it only when `lease_expires_at < now - staleGrace`.
 
 Rollback safety:
 
@@ -184,7 +204,7 @@ Rollback safety:
   loss because `publication_jobs` is the source of truth and rows are never deleted
   by the worker.
 
-## Evidence capture (Phase 4)
+### Evidence capture (Phase 4)
 
 Every operator-observed entry that supports the DALLAY-555 / DALLAY-557 acceptance
 record MUST carry the following fields. A row missing any of them blocks acceptance.
@@ -193,7 +213,7 @@ record MUST carry the following fields. A row missing any of them blocks accepta
 |---|---|---|
 | UTC time | ISO-8601 with `Z` | E.g. `2026-08-22T18:30:00Z`. No local-time entries. |
 | Hostname | FQDN or Swarm node label | E.g. `prod-1.eu-west.internal`. |
-| Namespace | Swarm stack name | `smp`. |
+| Namespace | Swarm stack name | `STACK_NAME` (the observed QA default was `profiletailors-smp-dz2yer`). |
 | Release | Image tag or digest | E.g. `profiletailors/smp:v2026.08.22-rc1` or `@sha256:...`. |
 | Operator | Operator handle | First-name + role; no email addresses. |
 | Scope | One of `safe-off`, `re-enable`, `stale-visibility`, `stale-recovery`, `rollback`, `backup-restore` | |
@@ -232,6 +252,7 @@ record MUST carry the following fields. A row missing any of them blocks accepta
 happens the operator should:
 
 1. Read the persisted lease state directly:
+
    ```sql
    SELECT id, publication_id, workspace_id, claimed_by_worker, claimed_at, lease_expires_at
    FROM publication_jobs
@@ -241,7 +262,7 @@ happens the operator should:
    ```
 2. Compare against the most recent `claim-lease` config to confirm the threshold is
    being honored.
-3. If the schema migration for `publication_jobs` (`006-create-publication-jobs.yaml`)
+3. If the schema migration for `publication_jobs` (`020-add-publishing-claim-fencing-and-idempotency.yaml`)
    has not been applied against the target database, the claim columns are missing
    and `releaseExpiredClaims` will fail with a SQL error. Re-run Liquibase against
    the `prod` context.
