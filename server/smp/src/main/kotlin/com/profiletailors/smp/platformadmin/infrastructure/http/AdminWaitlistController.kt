@@ -77,7 +77,7 @@ class AdminWaitlistController(
         )
         val result = waitlistQuery.list(query)
         waitlistQueryTelemetry.recordListQuery(
-            statusFilter = status,
+            statusFilterApplied = !status.isNullOrBlank(),
             emailSearch = !email.isNullOrBlank(),
         )
         return ResponseEntity.ok(result)

@@ -8,28 +8,28 @@ import org.junit.jupiter.api.Test
 class WaitlistQueryObservabilityAdapterTest {
 
     @Test
-    fun `recordListQuery increments counter tagged with status filter and email search`() {
+    fun `recordListQuery increments counter tagged with status filter applied and email search`() {
         val meterRegistry = SimpleMeterRegistry()
         val adapter = WaitlistQueryObservabilityAdapter(meterRegistry)
 
-        adapter.recordListQuery(statusFilter = "PENDING", emailSearch = true)
+        adapter.recordListQuery(statusFilterApplied = true, emailSearch = true)
 
         val counter = meterRegistry.find(METRIC_NAME)
-            .tag("status.filter", "PENDING")
+            .tag("status.filter", "true")
             .tag("email.search", "true")
             .counter()
         assertEquals(1.0, requireNotNull(counter).count())
     }
 
     @Test
-    fun `recordListQuery tags absent status filter as none`() {
+    fun `recordListQuery tags absent status filter as false`() {
         val meterRegistry = SimpleMeterRegistry()
         val adapter = WaitlistQueryObservabilityAdapter(meterRegistry)
 
-        adapter.recordListQuery(statusFilter = null, emailSearch = false)
+        adapter.recordListQuery(statusFilterApplied = false, emailSearch = false)
 
         val counter = meterRegistry.find(METRIC_NAME)
-            .tag("status.filter", "none")
+            .tag("status.filter", "false")
             .tag("email.search", "false")
             .counter()
         assertEquals(1.0, requireNotNull(counter).count())
@@ -40,12 +40,12 @@ class WaitlistQueryObservabilityAdapterTest {
         val meterRegistry = SimpleMeterRegistry()
         val adapter = WaitlistQueryObservabilityAdapter(meterRegistry)
 
-        adapter.recordListQuery(statusFilter = "INVITED", emailSearch = false)
-        adapter.recordListQuery(statusFilter = "INVITED", emailSearch = false)
-        adapter.recordListQuery(statusFilter = "INVITED", emailSearch = false)
+        adapter.recordListQuery(statusFilterApplied = true, emailSearch = false)
+        adapter.recordListQuery(statusFilterApplied = true, emailSearch = false)
+        adapter.recordListQuery(statusFilterApplied = true, emailSearch = false)
 
         val counter = meterRegistry.find(METRIC_NAME)
-            .tag("status.filter", "INVITED")
+            .tag("status.filter", "true")
             .tag("email.search", "false")
             .counter()
         assertEquals(3.0, requireNotNull(counter).count())
@@ -56,23 +56,23 @@ class WaitlistQueryObservabilityAdapterTest {
         val meterRegistry = SimpleMeterRegistry()
         val adapter = WaitlistQueryObservabilityAdapter(meterRegistry)
 
-        adapter.recordListQuery(statusFilter = "PENDING", emailSearch = false)
-        adapter.recordListQuery(statusFilter = "CANCELLED", emailSearch = true)
+        adapter.recordListQuery(statusFilterApplied = true, emailSearch = false)
+        adapter.recordListQuery(statusFilterApplied = false, emailSearch = true)
 
         assertEquals(
             2,
             meterRegistry.meters.count { it.id.name == METRIC_NAME },
         )
-        val pendingCounter = meterRegistry.find(METRIC_NAME)
-            .tag("status.filter", "PENDING")
+        val filteredCounter = meterRegistry.find(METRIC_NAME)
+            .tag("status.filter", "true")
             .tag("email.search", "false")
             .counter()
-        val cancelledCounter = meterRegistry.find(METRIC_NAME)
-            .tag("status.filter", "CANCELLED")
+        val unfilteredCounter = meterRegistry.find(METRIC_NAME)
+            .tag("status.filter", "false")
             .tag("email.search", "true")
             .counter()
-        assertEquals(1.0, requireNotNull(pendingCounter).count())
-        assertEquals(1.0, requireNotNull(cancelledCounter).count())
+        assertEquals(1.0, requireNotNull(filteredCounter).count())
+        assertEquals(1.0, requireNotNull(unfilteredCounter).count())
     }
 
     @Test
@@ -80,7 +80,7 @@ class WaitlistQueryObservabilityAdapterTest {
         val meterRegistry = SimpleMeterRegistry()
         val adapter = WaitlistQueryObservabilityAdapter(meterRegistry)
 
-        adapter.recordListQuery(statusFilter = "PENDING", emailSearch = true)
+        adapter.recordListQuery(statusFilterApplied = true, emailSearch = true)
 
         val tagValues = meterRegistry.meters
             .filter { it.id.name == METRIC_NAME }

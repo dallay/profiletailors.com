@@ -7,16 +7,18 @@ search by email, filter by status, sort by creation date, and pagination over wa
 without database access, exposing enough invitation/conversion state to support invite-only
 onboarding workflows.
 
-## Intent
+## Changes
+
+### Intent
 
 Waitlist remains independent from identity and invitation. Query results reflect
 invitation/conversion linkage without collapsing concepts. Read access requires explicit
 administrative authorization; only operationally necessary fields are exposed. Read queries are
 not individually audited as mutations.
 
-## Scope
+### Scope
 
-### In Scope
+#### In Scope
 
 - List waitlist entries with pagination.
 - Search waitlist entries by email.
@@ -25,24 +27,24 @@ not individually audited as mutations.
 - Expose invitation/conversion references needed for admin workflows.
 - Aggregate-level observability of query performance and filter usage.
 
-### Out of Scope
+#### Out of Scope
 
 - Bulk invitation commands (DALLAY-569).
 - Full admin UI.
 - Tags, scoring, notes, or campaign attribution.
 
-## Capabilities
+### Capabilities
 
-### New Capabilities
+#### New Capabilities
 
 - `platform-admin-waitlist-queries`: operational read access over waitlist entries.
 
-### Modified Capabilities
+#### Modified Capabilities
 
 - `lead-capture-waitlist`: admin query projections read existing waitlist entry and invitation
   state without mutating the aggregate.
 
-## Approach
+### Approach
 
 - Explicit admin query endpoints under `/api/admin/waitlist-entries` for list and detail access.
 - Query semantics support pagination (page/size bounded), safe filtering (status, email,
@@ -53,7 +55,7 @@ not individually audited as mutations.
 - Observability records query count with low-cardinality filter tags (status filter present,
   email search used); HTTP-level performance is covered by existing Actuator meters.
 
-## Affected Areas
+### Affected Areas
 
 | Area | Impact | Description |
 |---|---|---|
@@ -63,7 +65,9 @@ not individually audited as mutations.
 | `server/smp/src/main/kotlin/.../platformadmin/infrastructure/observability/` | New | Micrometer telemetry adapter |
 | `server/smp/src/test/` | Modified | Unit, integration, and BDD coverage |
 
-## Risks
+## Usage
+
+### Risks
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
@@ -71,17 +75,12 @@ not individually audited as mutations.
 | Filter cardinality explosion in metrics | Low | Telemetry uses low-cardinality boolean/enum tags, not raw values |
 | Confusing waitlist entry status with invitation status | Medium | Detail returns invitation history as a separate concept |
 
-## Rollback Plan
-
-Revert the controller, query, and telemetry changes. The waitlist aggregate and join endpoint are
-unaffected; admin operators fall back to prior read paths.
-
-## Dependencies
+### Dependencies
 
 - DALLAY-436, DALLAY-438, DALLAY-439 (existing waitlist capture and persistence).
 - Existing platform-admin bounded context and `WAITLIST_READ` permission.
 
-## Success Criteria
+### Success Criteria
 
 - [ ] Administrators can list waitlist entries with pagination.
 - [ ] Administrators can search waitlist entries by email.
@@ -89,6 +88,13 @@ unaffected; admin operators fall back to prior read paths.
 - [ ] Query results expose enough state to support invitation workflows.
 - [ ] BDD scenarios for list, search, and filter pass.
 - [ ] Query performance and filter usage are measurable at aggregate level.
+
+## Troubleshooting
+
+### Rollback Plan
+
+Revert the controller, query, and telemetry changes. The waitlist aggregate and join endpoint are
+unaffected; admin operators fall back to prior read paths.
 
 ## References
 

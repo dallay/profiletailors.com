@@ -26,7 +26,7 @@ Feature: Platform administration access control and waitlist management
 
   Scenario: Platform operator can search waitlist entries by email
     Given a pending waitlist entry exists for "search-test@example.com"
-    When the platform operator searches the waitlist for "search-test@example.com"
+    When the platform operator searches the waitlist for "Search-Test@example.com"
     Then the admin response status should be 200
     And the waitlist result should contain 1 entries
     And the waitlist result should contain an entry with email "search-test@example.com"

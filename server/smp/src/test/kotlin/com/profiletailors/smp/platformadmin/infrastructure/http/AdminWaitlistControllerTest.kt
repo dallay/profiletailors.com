@@ -82,7 +82,26 @@ class AdminWaitlistControllerTest {
         }
         verify {
             waitlistQueryTelemetry.recordListQuery(
-                statusFilter = "PENDING",
+                statusFilterApplied = true,
+                emailSearch = false,
+            )
+        }
+    }
+
+    @Test
+    fun `listEntries records telemetry for unfiltered request`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { waitlistQuery.list(any()) } returns PagedResult.of(emptyList(), 0, 25, 0)
+
+        webClient()
+            .get()
+            .uri("/api/admin/waitlist-entries")
+            .exchange()
+            .expectStatus().isOk
+
+        verify {
+            waitlistQueryTelemetry.recordListQuery(
+                statusFilterApplied = false,
                 emailSearch = false,
             )
         }
@@ -114,7 +133,7 @@ class AdminWaitlistControllerTest {
 
         verify {
             waitlistQueryTelemetry.recordListQuery(
-                statusFilter = null,
+                statusFilterApplied = false,
                 emailSearch = true,
             )
         }
@@ -133,7 +152,7 @@ class AdminWaitlistControllerTest {
 
         verify {
             waitlistQueryTelemetry.recordListQuery(
-                statusFilter = null,
+                statusFilterApplied = false,
                 emailSearch = false,
             )
         }

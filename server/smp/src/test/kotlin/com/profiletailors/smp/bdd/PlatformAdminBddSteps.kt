@@ -323,16 +323,15 @@ class PlatformAdminBddSteps {
     @And("the waitlist result should contain {int} entries")
     fun waitlistResultContainsEntryCount(expected: Int) {
         val body = lastResponse?.responseBody?.let { json.readTree(it) }
-        assertNotNull(body?.get("items"))
-        assertEquals(expected, body!!.get("items").size())
-        assertEquals(expected.toLong(), body.get("totalElements").asLong())
+        val items = requireNotNull(body?.get("items"))
+        assertEquals(expected, items.size())
+        assertEquals(expected.toLong(), requireNotNull(body.get("totalElements")).asLong())
     }
 
     @And("the waitlist result should contain an entry with email {string}")
     fun waitlistResultContainsEntryWithEmail(email: String) {
         val body = lastResponse?.responseBody?.let { json.readTree(it) }
-        assertNotNull(body?.get("items"))
-        val items = body!!.get("items")
+        val items = requireNotNull(body?.get("items"))
         val match = (0 until items.size()).any { i ->
             email.equals(items[i].get("email")?.asText(), ignoreCase = true)
         }
