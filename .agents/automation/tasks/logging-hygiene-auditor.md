@@ -26,7 +26,7 @@ backend/frontend sources, logging configuration, tests, sensitive paths
 
 ## Previous State
 
-Read ../state/logging-hygiene.yaml as context and revalidate every finding.
+Read ../state/logging-hygiene-auditor.yaml as context and revalidate every finding.
 
 ## Inspection Procedure
 
@@ -61,8 +61,9 @@ modify another task state.
 
 ## Risk Rules
 
-Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported
-by default.
+LOW: apply autonomously, validate, Draft PR. MEDIUM: apply with strong evidence and tests, Draft
+PR. HIGH deterministic: MAY implement remediation in the Draft PR; human merge is the approval
+gate. HIGH ambiguous: persist the finding, do not guess. See framework.md.
 
 ## Validation
 
@@ -71,12 +72,12 @@ Prefer just. Record Passed, Failed, or Not run only.
 
 ## State
 
-Owns ../state/logging-hygiene.yaml; use the framework schema and never set execution data without an
+Owns ../state/logging-hygiene-auditor.yaml; use the framework schema and never set execution data without an
 actual run.
 
 ## Report
 
-Owns ../reports/logging-hygiene.md; report facts, evidence, result, validation, unresolved findings,
+Owns ../reports/logging-hygiene-auditor.md; report facts, evidence, result, validation, unresolved findings,
 and risks without chain-of-thought or secrets.
 
 ## Pull Request

@@ -26,7 +26,7 @@ TODO, FIXME, HACK, XXX, TEMP, code, tests, history, ADRs, issues
 
 ## Previous State
 
-Read ../state/todo-fixme-debt.yaml as context and revalidate every finding.
+Read ../state/todo-fixme-debt-reconciler.yaml as context and revalidate every finding.
 
 ## Inspection Procedure
 
@@ -47,8 +47,11 @@ Apply LOW, MEDIUM, or HIGH risk and persist concise unresolved, blocked, ignored
 
 ## Decision Rules
 
-Implement mechanical LOW RISK only. If uncertainty persists, record it and continue safe unrelated
-work.
+Implement mechanical LOW RISK autonomously, validate, and push a Draft PR. Implement MEDIUM RISK
+with strong evidence and tests, then push a Draft PR. For HIGH deterministic findings, the agent MAY
+implement the remediation only in a Draft PR with human merge approval; never auto-merge. For HIGH
+ambiguous findings, persist and report the finding without guessing. If uncertainty persists at any
+level, record it and continue safe unrelated work.
 
 ## Allowed Changes
 
@@ -62,8 +65,9 @@ modify another task state.
 
 ## Risk Rules
 
-Autonomously apply LOW only. MEDIUM requires unambiguous evidence and validation. HIGH is reported
-by default.
+LOW: apply autonomously, validate, Draft PR. MEDIUM: apply with strong evidence and tests, Draft
+PR. HIGH deterministic: MAY implement remediation in the Draft PR; human merge is the approval
+gate. HIGH ambiguous: persist the finding, do not guess. See framework.md.
 
 ## Validation
 
@@ -72,12 +76,12 @@ Prefer just. Record Passed, Failed, or Not run only.
 
 ## State
 
-Owns ../state/todo-fixme-debt.yaml; use the framework schema and never set execution data without an
+Owns ../state/todo-fixme-debt-reconciler.yaml; use the framework schema and never set execution data without an
 actual run.
 
 ## Report
 
-Owns ../reports/todo-fixme-debt.md; report facts, evidence, result, validation, unresolved findings,
+Owns ../reports/todo-fixme-debt-reconciler.md; report facts, evidence, result, validation, unresolved findings,
 and risks without chain-of-thought or secrets.
 
 ## Pull Request

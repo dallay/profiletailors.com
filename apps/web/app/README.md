@@ -11,7 +11,7 @@ the `just` command hub rather than invoking package-manager or Gradle commands m
 
 ## Changes
 
-- **2026-08-03**: Corrected AGENTS.md reference path from `../../../AGENTS.md` to `../../../.agents/AGENTS.md` (dead-reference-cleanup automation).
+- **2026-08-03**: Corrected AGENTS.md reference path from `../../../AGENTS.md` to `../../../.agents/AGENTS.md` (dead-reference-cleaner automation).
 
 ## Usage
 
