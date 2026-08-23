@@ -77,10 +77,5 @@
   },
   "engines": {
     "node": "20.19.0 || >=22.12.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "shell-quote": ">=1.10.0"
-    }
   }
 }

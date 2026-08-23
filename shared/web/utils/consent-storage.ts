@@ -12,7 +12,7 @@ export function loadConsent(): ConsentReceipt | null {
       return null
     }
 
-    const parsed = JSON.parse(raw)
+    const parsed: unknown = JSON.parse(raw)
     return validateConsentReceipt(parsed)
   } catch {
     return null
