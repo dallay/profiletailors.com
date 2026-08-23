@@ -108,6 +108,7 @@ class PublishingSchedulingConfigurationTest {
             publishingJobExecutor = executor,
             transactionRunner = transactionRunner,
             publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
+            properties = PublishingWorkerProperties(),
         )
 
         assertNotNull(executor)
@@ -129,6 +130,7 @@ class PublishingSchedulingConfigurationTest {
             publishingJobExecutor = executor,
             transactionRunner = transactionRunner,
             publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
+            properties = PublishingWorkerProperties(),
         )
         val scheduler = RecordingTaskScheduler()
 
@@ -148,7 +150,7 @@ class PublishingSchedulingConfigurationTest {
     }
 
     @Test
-    fun `publishingWorkerLifecycle does not schedule tasks when disabled`() {
+    fun `publishingWorkerLifecycle does not schedule or invoke tasks when disabled`() {
         val retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5))
         val executor = configuration.publishingJobExecutor(
             notificationEventRepository = NoOpNotificationEventRepository(),
@@ -162,6 +164,7 @@ class PublishingSchedulingConfigurationTest {
             publishingJobExecutor = executor,
             transactionRunner = transactionRunner,
             publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
+            properties = PublishingWorkerProperties(),
         )
         val scheduler = RecordingTaskScheduler()
 
@@ -175,7 +178,10 @@ class PublishingSchedulingConfigurationTest {
             publishingWorker = worker,
         )
 
+        scheduler.invokeRegisteredTasks()
+
         assertEquals(0, scheduler.fixedRateSchedules.size)
+        assertEquals(0, scheduler.invocationCount)
     }
 
     private class NoOpTransactionRunner : AtomicTransactionRunner {
@@ -186,26 +192,48 @@ class PublishingSchedulingConfigurationTest {
         data class FixedRateSchedule(val startTime: Instant, val period: Duration)
 
         val fixedRateSchedules = mutableListOf<FixedRateSchedule>()
+        private val registeredTasks = mutableListOf<Runnable>()
+        var invocationCount = 0
+            private set
 
-        override fun schedule(task: Runnable, trigger: Trigger): ScheduledFuture<*> = CompletedScheduledFuture
+        fun invokeRegisteredTasks() {
+            registeredTasks.forEach {
+                invocationCount += 1
+                it.run()
+            }
+        }
 
-        override fun schedule(task: Runnable, startTime: Instant): ScheduledFuture<*> = CompletedScheduledFuture
+        override fun schedule(task: Runnable, trigger: Trigger): ScheduledFuture<*> {
+            registeredTasks += task
+            return CompletedScheduledFuture
+        }
+
+        override fun schedule(task: Runnable, startTime: Instant): ScheduledFuture<*> {
+            registeredTasks += task
+            return CompletedScheduledFuture
+        }
 
         override fun scheduleAtFixedRate(task: Runnable, startTime: Instant, period: Duration): ScheduledFuture<*> {
+            registeredTasks += task
             fixedRateSchedules += FixedRateSchedule(startTime, period)
             return CompletedScheduledFuture
         }
 
         override fun scheduleAtFixedRate(task: Runnable, period: Duration): ScheduledFuture<*> {
+            registeredTasks += task
             fixedRateSchedules += FixedRateSchedule(Instant.EPOCH, period)
             return CompletedScheduledFuture
         }
 
-        override fun scheduleWithFixedDelay(task: Runnable, startTime: Instant, delay: Duration): ScheduledFuture<*> =
-            CompletedScheduledFuture
+        override fun scheduleWithFixedDelay(task: Runnable, startTime: Instant, delay: Duration): ScheduledFuture<*> {
+            registeredTasks += task
+            return CompletedScheduledFuture
+        }
 
-        override fun scheduleWithFixedDelay(task: Runnable, delay: Duration): ScheduledFuture<*> =
-            CompletedScheduledFuture
+        override fun scheduleWithFixedDelay(task: Runnable, delay: Duration): ScheduledFuture<*> {
+            registeredTasks += task
+            return CompletedScheduledFuture
+        }
     }
 
     private object CompletedScheduledFuture : ScheduledFuture<Unit> {
@@ -221,11 +249,17 @@ class PublishingSchedulingConfigurationTest {
     private class NoOpPublicationJobRepository : PublicationJobRepository {
         override suspend fun enqueue(job: PublicationJob) = Unit
         override suspend fun replaceForPublication(job: PublicationJob) = Unit
-        override suspend fun claimNextDue(now: Instant, workerId: String): PublicationJobClaim? = null
+        override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? =
+            null
         override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) = Unit
         override suspend fun complete(jobId: String, completedAt: Instant) = Unit
         override suspend fun fail(jobId: String, failedAt: Instant) = Unit
         override suspend fun cancel(jobId: String, cancelledAt: Instant) = Unit
+        override suspend fun findStaleClaims(
+            now: Instant,
+            leaseStaleThreshold: Duration,
+        ): List<com.profiletailors.smp.publishing.domain.StaleJob> = emptyList()
+        override suspend fun releaseExpiredClaims(now: Instant, leaseStaleThreshold: Duration): Int = 0
     }
 
     private class NoOpPublicationRepository : PublicationRepository {

@@ -16,6 +16,7 @@ enum class PlatformPermission(val key: String) {
     AUDIT_READ("platform.audit.read"),
     OPERATORS_READ("platform.operators.read"),
     OPERATORS_MANAGE("platform.operators.manage"),
+    PUBLISHING_STALE_READ("platform.publishing.stale.read"),
     ;
 
     companion object {
@@ -40,6 +41,7 @@ val PLATFORM_ROLE_PERMISSIONS: Map<PlatformRole, Set<PlatformPermission>> = mapO
         PlatformPermission.USERS_WORKSPACES_READ,
         PlatformPermission.AUDIT_READ,
         PlatformPermission.OPERATORS_READ,
+        PlatformPermission.PUBLISHING_STALE_READ,
     ),
     PlatformRole.SUPPORT_AGENT to setOf(
         PlatformPermission.USERS_READ,

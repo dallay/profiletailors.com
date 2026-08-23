@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.domain
 
+import java.time.Duration
 import java.time.Instant
 
 interface SocialConnectionRepository {
@@ -70,7 +71,11 @@ interface PublicationJobRepository {
 
     suspend fun replaceForPublication(job: PublicationJob)
 
-    suspend fun claimNextDue(now: Instant, workerId: String): PublicationJobClaim?
+    suspend fun claimNextDue(
+        now: Instant,
+        workerId: String,
+        claimLease: Duration = Duration.parse("PT2M"),
+    ): PublicationJobClaim?
 
     suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int)
 
@@ -79,7 +84,34 @@ interface PublicationJobRepository {
     suspend fun fail(jobId: String, failedAt: Instant)
 
     suspend fun cancel(jobId: String, cancelledAt: Instant)
+
+    /**
+     * Returns claimed jobs whose lease expired before [now] - [leaseStaleThreshold].
+     * Used by operator diagnostics to surface stale work without exposing provider
+     * payloads, tokens, or exception messages.
+     */
+    suspend fun findStaleClaims(now: Instant, leaseStaleThreshold: Duration): List<StaleJob>
+
+    /**
+     * Resets every CLAIMED job whose lease expired before [now] - [leaseStaleThreshold]
+     * back to PENDING and clears the claim columns. Returns the number of rows updated.
+     */
+    suspend fun releaseExpiredClaims(now: Instant, leaseStaleThreshold: Duration): Int
 }
+
+/**
+ * Snapshot of a CLAIMED job whose lease has expired past the configured stale threshold.
+ * Exposes only safe, structural fields (no provider payloads, tokens, or PII).
+ */
+data class StaleJob(
+    val jobId: String,
+    val publicationId: String,
+    val workspaceId: String,
+    val claimedByWorker: String,
+    val claimedAt: Instant,
+    val leaseExpiresAt: Instant,
+    val attemptNumber: Int,
+)
 
 fun interface DeliveryAttemptRepository {
     suspend fun record(attempt: DeliveryAttempt): DeliveryAttempt

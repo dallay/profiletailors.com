@@ -72,8 +72,8 @@ class PublishingJobExecutor(
         try {
             val assets = resolveAssets(publication)
             validateAndPublish(claim, publication, socialAccount, assets, now)
-        } catch (exception: ReconnectRequiredException) {
-            handleReconnectRequired(claim, publication, socialAccount, exception, now)
+        } catch (_: ReconnectRequiredException) {
+            handleReconnectRequired(claim, publication, socialAccount, now)
         } catch (exception: PublishingFailureException) {
             handlePublishFailure(claim, publication, exception.failure, now)
         } catch (exception: AssetNotReadyException) {
@@ -320,14 +320,13 @@ class PublishingJobExecutor(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
         socialAccount: com.profiletailors.smp.publishing.domain.SocialAccount,
-        exception: ReconnectRequiredException,
         now: Instant,
     ) {
         log.warn(
             "Reconnect required for publication {} on account {}: {}",
             publication.id,
             socialAccount.id,
-            exception.message,
+            PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
         )
         transactionRunner.runAtomically {
             publicationRepository.markBlocked(
@@ -608,13 +607,23 @@ class PublishingWorker(
     private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val workerId: String,
+    private val claimLease: Duration = Duration.parse("PT2M"),
     private val lifecycleLogger: PublishingLifecycleLogger = PublishingLifecycleLogger(),
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     suspend fun pollOnce(): PublicationJobClaim? {
+        val now = clock.instant()
+        val releasedCount = publicationJobRepository.releaseExpiredClaims(now, claimLease)
+        if (releasedCount > 0) {
+            log.info(
+                "Released expired publication-job claims released={} leaseThresholdSeconds={}",
+                releasedCount,
+                claimLease.seconds,
+            )
+        }
         log.debug("Polling for next due publication job")
-        val claim = publicationJobRepository.claimNextDue(clock.instant(), workerId) ?: return null
+        val claim = publicationJobRepository.claimNextDue(now, workerId, claimLease) ?: return null
         val publication = publicationRepository.findByWorkspaceAndId(claim.workspaceId, claim.publicationId)
             ?: error("Publication '${claim.publicationId}' not found for worker claim.")
         lifecycleLogger.claimed(

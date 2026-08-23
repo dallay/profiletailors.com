@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.Duration
 import java.time.Instant
 
 @Tag("postgres")
@@ -67,7 +68,11 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             ),
         )
 
-        val claim = jobRepository.claimNextDue(Instant.parse("2026-05-27T07:59:00Z"), "worker-1")
+        val claim = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T07:59:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
 
         assertEquals(null, claim)
     }
@@ -93,7 +98,11 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             scheduleMode = ScheduleMode.NOW,
         )
 
-        val claim = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:01:00Z"), "worker-1")
+        val claim = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:01:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
 
         assertNotNull(claim)
         assertEquals("pub-priority", claim?.publicationId)
@@ -119,8 +128,16 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             attemptNumber = 2,
         )
 
-        val claimTooEarly = jobRepository.claimNextDue(Instant.parse("2026-05-27T09:00:00Z"), "worker-1")
-        val claimLater = jobRepository.claimNextDue(Instant.parse("2026-05-27T09:31:00Z"), "worker-1")
+        val claimTooEarly = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T09:00:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
+        val claimLater = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T09:31:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
 
         assertEquals(null, claimTooEarly)
         assertEquals("job-next-slot", claimLater?.jobId)
@@ -139,9 +156,17 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             scheduleMode = ScheduleMode.NOW,
         )
 
-        val firstClaim = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:01:00Z"), "worker-1")
+        val firstClaim = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:01:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
         jobRepository.complete("job-completed", Instant.parse("2026-05-27T08:02:00Z"))
-        val secondClaim = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:03:00Z"), "worker-2")
+        val secondClaim = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:03:00Z"),
+            "worker-2",
+            Duration.ofMinutes(2),
+        )
 
         assertEquals("job-completed", firstClaim?.jobId)
         assertEquals(null, secondClaim)

@@ -196,6 +196,7 @@ data class PublicationJobClaim(
     val workspaceId: String,
     val attemptNumber: Int,
     val claimedAt: Instant,
+    val leaseExpiresAt: Instant? = null,
 )
 
 @AggregateRoot

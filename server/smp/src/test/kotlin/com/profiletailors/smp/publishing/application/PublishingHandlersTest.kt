@@ -72,6 +72,7 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -2119,6 +2120,8 @@ class PublishingHandlersTest {
         var lastCancelledPublicationId: String? = null
         var writeCount: Int = 0
         var jobsByPublicationId: MutableMap<String, MutableList<PublicationJob>> = linkedMapOf()
+        var staleJobsReturnValue: List<com.profiletailors.smp.publishing.domain.StaleJob> = emptyList()
+        var findStaleCalls: MutableList<Pair<Instant, Duration>> = mutableListOf()
 
         override suspend fun enqueue(job: PublicationJob) {
             writeCount += 1
@@ -2132,7 +2135,8 @@ class PublishingHandlersTest {
             jobsByPublicationId[job.publicationId] = mutableListOf(job)
         }
 
-        override suspend fun claimNextDue(now: Instant, workerId: String): PublicationJobClaim? = null
+        override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? =
+            null
 
         override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) = Unit
 
@@ -2144,6 +2148,16 @@ class PublishingHandlersTest {
             writeCount += 1
             lastCancelledPublicationId = jobId
         }
+
+        override suspend fun findStaleClaims(
+            now: Instant,
+            leaseStaleThreshold: Duration,
+        ): List<com.profiletailors.smp.publishing.domain.StaleJob> {
+            findStaleCalls.add(now to leaseStaleThreshold)
+            return staleJobsReturnValue
+        }
+
+        override suspend fun releaseExpiredClaims(now: Instant, leaseStaleThreshold: Duration): Int = 0
 
         fun removeUnclaimedForPublication(publicationId: String) {
             jobsByPublicationId[publicationId] = jobsByPublicationId[publicationId]
@@ -3162,5 +3176,97 @@ class PublishingHandlersTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `ListStaleJobsHandler surfaces publication, workspace, age and safe next action without redaction`() = runTest {
+        val claimedAt = fixedClock.instant().minus(Duration.ofMinutes(15))
+        val leaseExpiresAt = fixedClock.instant().minus(Duration.ofMinutes(12))
+        val jobRepository = InMemoryPublicationJobRepository().apply {
+            staleJobsReturnValue = listOf(
+                com.profiletailors.smp.publishing.domain.StaleJob(
+                    jobId = "pjob-stuck-1",
+                    publicationId = "pub-stuck-1",
+                    workspaceId = "workspace-1",
+                    claimedByWorker = "worker-stuck-uuid",
+                    claimedAt = claimedAt,
+                    leaseExpiresAt = leaseExpiresAt,
+                    attemptNumber = 4,
+                ),
+                com.profiletailors.smp.publishing.domain.StaleJob(
+                    jobId = "pjob-stuck-2",
+                    publicationId = "pub-stuck-2",
+                    workspaceId = "workspace-1",
+                    claimedByWorker = "worker-stuck-uuid",
+                    claimedAt = claimedAt.minus(Duration.ofMinutes(5)),
+                    leaseExpiresAt = leaseExpiresAt.minus(Duration.ofMinutes(5)),
+                    attemptNumber = 1,
+                ),
+            )
+        }
+
+        val handler = ListStaleJobsHandler(jobRepository, fixedClock)
+
+        val result = handler.handle(ListStaleJobsQuery(leaseStaleThreshold = Duration.ofMinutes(5)))
+
+        assertEquals(2, result.total)
+        val first = result.staleJobs.single { it.jobId == "pjob-stuck-1" }
+        assertEquals("pub-stuck-1", first.publicationId)
+        assertEquals("workspace-1", first.workspaceId)
+        assertEquals(4, first.attemptNumber)
+        assertEquals("worker-stuck-uuid", first.claimedByWorker)
+        assertEquals("RELEASE_AND_RETRY", first.suggestedAction)
+        // ageSeconds is computed from claimedAt — 15 minutes = 900 seconds (clamped to >= 0)
+        assertEquals(15L * 60, first.ageSeconds)
+        // Handler did not leak tokens / provider payloads
+        first.toString().contains("token=") shouldBe false
+        first.toString().contains("Bearer ") shouldBe false
+
+        // Repository received the threshold and clock time
+        val (passedNow, passedThreshold) = jobRepository.findStaleCalls.single()
+        passedNow shouldBe fixedClock.instant()
+        passedThreshold shouldBe Duration.ofMinutes(5)
+    }
+
+    @Test
+    fun `ListStaleJobsHandler clamps negative age to zero when clock skews backwards`() = runTest {
+        val futureClaimedAt = fixedClock.instant().plus(Duration.ofMinutes(3))
+        val jobRepository = InMemoryPublicationJobRepository().apply {
+            staleJobsReturnValue = listOf(
+                com.profiletailors.smp.publishing.domain.StaleJob(
+                    jobId = "pjob-clock-skew",
+                    publicationId = "pub-clock-skew",
+                    workspaceId = "workspace-1",
+                    claimedByWorker = "worker-1",
+                    claimedAt = futureClaimedAt,
+                    leaseExpiresAt = futureClaimedAt.minus(Duration.ofHours(1)),
+                    attemptNumber = 1,
+                ),
+            )
+        }
+        val handler = ListStaleJobsHandler(jobRepository, fixedClock)
+
+        val item = handler.handle(ListStaleJobsQuery()).staleJobs.single()
+
+        assertEquals(0L, item.ageSeconds)
+    }
+
+    @Test
+    fun `ListStaleJobsHandler rejects non-positive lease stale threshold`() = runTest {
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = ListStaleJobsHandler(jobRepository, fixedClock)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(ListStaleJobsQuery(leaseStaleThreshold = Duration.ZERO))
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(ListStaleJobsQuery(leaseStaleThreshold = Duration.ofMinutes(-1)))
+            }
+        }
+        // Repository must NOT be queried when threshold is rejected
+        assertEquals(0, jobRepository.findStaleCalls.size)
     }
 }

@@ -53,6 +53,39 @@ class PublishingWorkerTest {
     private val fixedClock = Clock.fixed(Instant.parse("2026-05-26T12:00:00Z"), ZoneOffset.UTC)
 
     @Test
+    fun `worker passes claim lease to repository when polling`() = runTest {
+        val jobRepository = InMemoryJobRepository(
+            PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()),
+        )
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = InMemoryPublicationRepository(successPublication()),
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = SuccessfulPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = InMemoryPublicationRepository(successPublication()),
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+            claimLease = Duration.ofMinutes(2),
+        )
+
+        worker.pollOnce()
+
+        jobRepository.claimLease shouldBe Duration.ofMinutes(2)
+    }
+
+    @Test
     fun `failure taxonomy defines canonical categories retryability and final behavior`() {
         val expected = mapOf(
             PublishingFailureCategory.MEDIA_NOT_FOUND to Pair(false, false),
@@ -436,6 +469,40 @@ class PublishingWorkerTest {
     }
 
     @Test
+    fun `worker does not log reconnect diagnostic`() = runTest {
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(null),
+            publicationRepository = InMemoryPublicationRepository(successPublication()),
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = ReconnectPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val logger = LoggerFactory.getLogger(PublishingJobExecutor::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        logger.addAppender(appender)
+
+        try {
+            executor.executeClaim(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+        }
+
+        val message = appender.list.single { it.formattedMessage.contains("Reconnect required") }.formattedMessage
+        message shouldContain "pub-1"
+        message shouldContain "account-1"
+        message shouldContain "ACCOUNT_RECONNECT_REQUIRED"
+        message.contains("token=secret") shouldBe false
+        message.contains("https://provider.example/auth") shouldBe false
+    }
+
+    @Test
     fun `executor emits blocked lifecycle event after persistence`() = runTest {
         val executor = PublishingJobExecutor(
             publicationJobRepository = InMemoryJobRepository(null),
@@ -812,6 +879,108 @@ class PublishingWorkerTest {
         jobRepository.replacedJob?.publicationId shouldBe "pub-1"
     }
 
+    @Test
+    fun `pollOnce releases expired claims before polling and logs the count`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository = InMemoryJobRepository(
+            claim = PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()),
+        ).apply {
+            releaseReturnCount = 3
+        }
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = SuccessfulPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+            claimLease = Duration.ofMinutes(2),
+        )
+        val logger = LoggerFactory.getLogger(PublishingWorker::class.java) as Logger
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        logger.addAppender(appender)
+
+        try {
+            worker.pollOnce()
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+        }
+
+        // releaseExpiredClaims was invoked exactly once BEFORE claimNextDue
+        jobRepository.releaseCalls.size shouldBe 1
+        val (releasedAt, releasedThreshold) = jobRepository.releaseCalls.single()
+        releasedAt shouldBe fixedClock.instant()
+        releasedThreshold shouldBe Duration.ofMinutes(2)
+        // claimNextDue still executed AFTER the release call
+        jobRepository.claimLease shouldBe Duration.ofMinutes(2)
+
+        // And the operator-facing info log carries the released count, with no PII / tokens / paths
+        val infoMessages = appender.list
+            .filter { it.level == ch.qos.logback.classic.Level.INFO }
+            .map { it.formattedMessage }
+        infoMessages.any { it.contains("released=3") } shouldBe true
+        val allMessages = appender.list.joinToString(" ") { it.formattedMessage }
+        listOf("token=", "secret", "https://", "Bearer ").forEach { unsafe ->
+            withClue("must not contain '$unsafe'") {
+                allMessages.contains(unsafe) shouldBe false
+            }
+        }
+    }
+
+    @Test
+    fun `pollOnce propagates errors from releaseExpiredClaims without invoking claimNextDue`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository = InMemoryJobRepository(claim = null).apply {
+            releaseShouldThrow = true
+        }
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = SuccessfulPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+            claimLease = Duration.ofMinutes(2),
+        )
+
+        val exception = runCatching {
+            worker.pollOnce()
+        }.exceptionOrNull()
+
+        // The release failure is propagated (not silently swallowed)
+        exception.shouldNotBeNull()
+        exception.message shouldContain "releaseExpiredClaims failed"
+        // claimNextDue was NOT called because the release failed first
+        jobRepository.claimLease shouldBe null
+    }
+
     private fun successPublication() = PublicationDraft(
         id = "pub-1",
         workspaceId = "workspace-1",
@@ -858,12 +1027,21 @@ class PublishingWorkerTest {
         var retryAt: Instant? = null
         var failedJobId: String? = null
         var replacedJob: com.profiletailors.smp.publishing.domain.PublicationJob? = null
+        var claimLease: Duration? = null
+        var releaseCalls: MutableList<Pair<Instant, Duration>> = mutableListOf()
+        var releaseReturnCount: Int = 0
+        var releaseShouldThrow: Boolean = false
+        var findStaleCalls: MutableList<Pair<Instant, Duration>> = mutableListOf()
+        var findStaleReturnValue: List<com.profiletailors.smp.publishing.domain.StaleJob> = emptyList()
 
         override suspend fun enqueue(job: com.profiletailors.smp.publishing.domain.PublicationJob) = Unit
         override suspend fun replaceForPublication(job: com.profiletailors.smp.publishing.domain.PublicationJob) {
             replacedJob = job
         }
-        override suspend fun claimNextDue(now: Instant, workerId: String): PublicationJobClaim? = claim
+        override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? {
+            this.claimLease = claimLease
+            return claim
+        }
         override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) {
             retriedJobId = jobId
             retryAt = nextAttemptAt
@@ -875,6 +1053,20 @@ class PublishingWorkerTest {
             failedJobId = jobId
         }
         override suspend fun cancel(jobId: String, cancelledAt: Instant) = Unit
+
+        override suspend fun findStaleClaims(
+            now: Instant,
+            leaseStaleThreshold: Duration,
+        ): List<com.profiletailors.smp.publishing.domain.StaleJob> {
+            findStaleCalls.add(now to leaseStaleThreshold)
+            return findStaleReturnValue
+        }
+
+        override suspend fun releaseExpiredClaims(now: Instant, leaseStaleThreshold: Duration): Int {
+            releaseCalls.add(now to leaseStaleThreshold)
+            check(!releaseShouldThrow) { "releaseExpiredClaims failed" }
+            return releaseReturnCount
+        }
     }
 
     private class InMemoryPublicationRepository(

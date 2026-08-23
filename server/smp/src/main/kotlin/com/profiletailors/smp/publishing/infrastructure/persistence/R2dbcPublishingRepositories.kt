@@ -20,6 +20,7 @@ import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.domain.StaleJob
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -27,6 +28,7 @@ import kotlinx.coroutines.reactor.mono
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.reactive.TransactionalOperator
+import java.time.Duration
 import java.time.Instant
 import java.time.OffsetDateTime
 
@@ -67,6 +69,8 @@ private const val PUBLICATION_INSERT_VALUES = """
     :scheduledFor, :nextSlotAfter, :publishedAt, :failedAt, :externalPublicationId,
     :lastErrorCode, :lastErrorMessage, :createdAt, :updatedAt
 """
+
+private const val PUBLICATION_ID_COLUMN = "publication_id"
 
 @Repository
 @Suppress("TooManyFunctions")
@@ -245,7 +249,7 @@ class R2dbcPublicationRepository(
         )
             .bind("ids", publicationIds)
             .map { row, _ ->
-                requireNotNull(row.get("publication_id", String::class.java)) to
+                requireNotNull(row.get(PUBLICATION_ID_COLUMN, String::class.java)) to
                     requireNotNull(row.get("asset_id", String::class.java))
             }
             .all()
@@ -462,7 +466,7 @@ class R2dbcPublicationRepository(
             )
                 .bind("ids", publicationIds)
                 .map { row, _ ->
-                    requireNotNull(row.get("publication_id", String::class.java)) to
+                    requireNotNull(row.get(PUBLICATION_ID_COLUMN, String::class.java)) to
                         requireNotNull(row.get("asset_id", String::class.java))
                 }
                 .all()
@@ -754,7 +758,9 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
         insertJob(job)
     }
 
-    override suspend fun claimNextDue(now: Instant, workerId: String): PublicationJobClaim? {
+    override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? {
+        require(!claimLease.isNegative && !claimLease.isZero) { "Claim lease must be positive." }
+        val leaseExpiresAt = now.plus(claimLease)
         val row = databaseClient.sql(
             """
             SELECT id, publication_id, workspace_id, attempt_count
@@ -770,7 +776,7 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
                 Pair(
                     Triple(
                         requireNotNull(resultRow.get("id", String::class.java)),
-                        requireNotNull(resultRow.get("publication_id", String::class.java)),
+                        requireNotNull(resultRow.get(PUBLICATION_ID_COLUMN, String::class.java)),
                         requireNotNull(resultRow.get("workspace_id", String::class.java)),
                     ),
                     requireNotNull(resultRow.get("attempt_count", Int::class.javaObjectType)),
@@ -784,14 +790,17 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             UPDATE publication_jobs
             SET status = :status,
                 claimed_by_worker = :workerId,
-                claimed_at = :claimedAt,
-                attempt_count = :attemptCount
+                 claimed_at = :claimedAt,
+                 lease_expires_at = :leaseExpiresAt,
+                 attempt_count = :attemptCount
+
             WHERE id = :id
             """.trimIndent(),
         )
             .bind("status", JobStatus.CLAIMED.name)
             .bind("workerId", workerId)
             .bind("claimedAt", now)
+            .bind("leaseExpiresAt", leaseExpiresAt)
             .bind("attemptCount", row.second + 1)
             .bind("id", row.first.first)
             .fetch()
@@ -804,6 +813,7 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             workspaceId = row.first.third,
             attemptNumber = row.second + 1,
             claimedAt = now,
+            leaseExpiresAt = leaseExpiresAt,
         )
     }
 
@@ -814,8 +824,10 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             SET status = :status,
                 due_at = :nextAttemptAt,
                 attempt_count = :attemptCount,
-                claimed_by_worker = NULL,
-                claimed_at = NULL
+                 claimed_by_worker = NULL,
+                 claimed_at = NULL,
+                 lease_expires_at = NULL
+
             WHERE id = :id
             """.trimIndent(),
         )
@@ -874,6 +886,64 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+    }
+
+    override suspend fun findStaleClaims(now: Instant, leaseStaleThreshold: Duration): List<StaleJob> {
+        require(!leaseStaleThreshold.isNegative && !leaseStaleThreshold.isZero) {
+            "Lease stale threshold must be positive."
+        }
+        val thresholdAt = now.minus(leaseStaleThreshold)
+        return databaseClient.sql(
+            """
+            SELECT id, publication_id, workspace_id, claimed_by_worker,
+                   claimed_at, lease_expires_at, attempt_count
+            FROM publication_jobs
+            WHERE status = 'CLAIMED'
+              AND lease_expires_at < :thresholdAt
+            ORDER BY lease_expires_at ASC
+            LIMIT 100
+            """.trimIndent(),
+        )
+            .bind("thresholdAt", thresholdAt)
+            .map { row, _ ->
+                StaleJob(
+                    jobId = requireNotNull(row.get("id", String::class.java)),
+                    publicationId = requireNotNull(row.get(PUBLICATION_ID_COLUMN, String::class.java)),
+                    workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+                    claimedByWorker = requireNotNull(row.get("claimed_by_worker", String::class.java)),
+                    claimedAt = requireNotNull(row.get("claimed_at", OffsetDateTime::class.java)).toInstant(),
+                    leaseExpiresAt = requireNotNull(
+                        row.get("lease_expires_at", OffsetDateTime::class.java),
+                    ).toInstant(),
+                    attemptNumber = requireNotNull(row.get("attempt_count", Int::class.javaObjectType)),
+                )
+            }
+            .all()
+            .collectList()
+            .awaitSingle()
+    }
+
+    override suspend fun releaseExpiredClaims(now: Instant, leaseStaleThreshold: Duration): Int {
+        require(!leaseStaleThreshold.isNegative && !leaseStaleThreshold.isZero) {
+            "Lease stale threshold must be positive."
+        }
+        val thresholdAt = now.minus(leaseStaleThreshold)
+        return databaseClient.sql(
+            """
+            UPDATE publication_jobs
+            SET status = 'PENDING',
+                claimed_by_worker = NULL,
+                claimed_at = NULL,
+                lease_expires_at = NULL
+            WHERE status = 'CLAIMED'
+              AND lease_expires_at < :thresholdAt
+            """.trimIndent(),
+        )
+            .bind("thresholdAt", thresholdAt)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+            .toInt()
     }
 
     private suspend fun insertJob(job: PublicationJob) {

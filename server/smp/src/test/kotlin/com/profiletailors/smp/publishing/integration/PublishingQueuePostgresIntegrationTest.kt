@@ -28,6 +28,7 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.Duration
 import java.time.Instant
 
 /**
@@ -121,7 +122,11 @@ class PublishingQueuePostgresIntegrationTest {
         )
 
         // Claim at 09:01 — all three are due
-        val claim = jobRepository.claimNextDue(Instant.parse("2026-05-27T09:01:00Z"), "worker-1")
+        val claim = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T09:01:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
 
         // Should claim the highest priority first (priority_rank DESC)
         assertNotNull(claim)
@@ -142,7 +147,11 @@ class PublishingQueuePostgresIntegrationTest {
         )
 
         // Claim the job
-        val claim = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:01:00Z"), "worker-1")
+        val claim = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:01:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
 
         assertNotNull(claim)
         assertEquals(1, claim?.attemptNumber)
@@ -179,7 +188,11 @@ class PublishingQueuePostgresIntegrationTest {
         )
 
         // Claim and then reschedule
-        jobRepository.claimNextDue(Instant.parse("2026-05-27T08:01:00Z"), "worker-1")
+        jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:01:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
         jobRepository.rescheduleRetry(
             jobId = "job-retry-test",
             nextAttemptAt = Instant.parse("2026-05-27T09:00:00Z"),
@@ -218,11 +231,19 @@ class PublishingQueuePostgresIntegrationTest {
         )
 
         // Claim before due time
-        val claimTooEarly = jobRepository.claimNextDue(Instant.parse("2026-05-27T07:59:59Z"), "worker-1")
+        val claimTooEarly = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T07:59:59Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
         assertNull(claimTooEarly)
 
         // Claim exactly at due time
-        val claimExact = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:00:00Z"), "worker-2")
+        val claimExact = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:00:00Z"),
+            "worker-2",
+            Duration.ofMinutes(2),
+        )
         assertNotNull(claimExact)
         assertEquals("job-timestamp-test", claimExact?.jobId)
     }
@@ -240,12 +261,20 @@ class PublishingQueuePostgresIntegrationTest {
         )
 
         // First worker claims
-        val claim1 = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:01:00Z"), "worker-1")
+        val claim1 = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:01:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
         assertNotNull(claim1)
         assertEquals("job-concurrent-test", claim1?.jobId)
 
         // Second worker tries to claim — should get nothing
-        val claim2 = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:01:00Z"), "worker-2")
+        val claim2 = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:01:00Z"),
+            "worker-2",
+            Duration.ofMinutes(2),
+        )
         assertNull(claim2)
     }
 

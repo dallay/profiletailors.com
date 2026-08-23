@@ -9,10 +9,13 @@ import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.ActivityThresholds
 import com.profiletailors.smp.publishing.domain.ConflictDetectionPolicy
 import com.profiletailors.smp.publishing.domain.PublicationDraft
+import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
+import com.profiletailors.smp.publishing.domain.StaleJob
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.time.Clock
 import java.time.Duration
 
 // --- GetCalendarPublicationsHandler ---
@@ -156,5 +159,45 @@ internal class ListPublicationsHandler(
     companion object {
         private val DEFAULT_BROAD_LOOKBACK: java.time.Duration = java.time.Duration.ofDays(90)
         private val DEFAULT_BROAD_FORWARD: java.time.Duration = java.time.Duration.ofDays(30)
+    }
+}
+
+// --- ListStaleJobsHandler ---
+
+/**
+ * Surfaces claimed jobs whose lease expired past the configured stale threshold.
+ * Maps the domain [StaleJob] snapshot to the safe, PII-free [StaleJobItem] shape.
+ */
+@Service
+internal class ListStaleJobsHandler(
+    private val publicationJobRepository: PublicationJobRepository,
+    private val clock: Clock,
+) : QueryHandler<ListStaleJobsQuery, StaleJobsResponse> {
+
+    override suspend fun handle(query: ListStaleJobsQuery): StaleJobsResponse {
+        require(!query.leaseStaleThreshold.isNegative && !query.leaseStaleThreshold.isZero) {
+            "Lease stale threshold must be positive."
+        }
+
+        val now = clock.instant()
+        val stale = publicationJobRepository.findStaleClaims(now, query.leaseStaleThreshold)
+        val items = stale.take(query.limit).map { it.toItem(now) }
+        return StaleJobsResponse(staleJobs = items, total = stale.size)
+    }
+
+    private fun StaleJob.toItem(now: java.time.Instant): StaleJobItem = StaleJobItem(
+        jobId = jobId,
+        publicationId = publicationId,
+        workspaceId = workspaceId,
+        claimedByWorker = claimedByWorker,
+        claimedAt = claimedAt,
+        leaseExpiresAt = leaseExpiresAt,
+        ageSeconds = Duration.between(claimedAt, now).toSeconds().coerceAtLeast(0L),
+        attemptNumber = attemptNumber,
+        suggestedAction = STALE_JOB_SUGGESTED_ACTION,
+    )
+
+    private companion object {
+        const val STALE_JOB_SUGGESTED_ACTION = "RELEASE_AND_RETRY"
     }
 }
