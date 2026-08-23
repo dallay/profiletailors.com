@@ -98,7 +98,7 @@ describe('security-configuration-drift automation state (.agents/automation/stat
   })
 
   it('records a valid ISO 8601 lastExecution timestamp', () => {
-    expect(state.lastExecution).toBe('2026-07-23T18:45:32Z')
+    expect(state.lastExecution).toBe('2026-08-22T22:47:58Z')
     expect(new Date(state.lastExecution as string).toString()).not.toBe('Invalid Date')
   })
 
@@ -143,13 +143,12 @@ describe('security-configuration-drift automation state (.agents/automation/stat
     expect(finding.remediation.pullRequest).toBeNull()
   })
 
-  it('records the three expected validation checks, all Not run', () => {
+  it('records the three expected validation checks with their statuses', () => {
     expect(state.checks).toHaveLength(3)
     const names = state.checks.map((check) => check.name)
     expect(names).toEqual(['backend-build-check', 'backend-test-check', 'frontend-biome-check'])
     for (const check of state.checks) {
       expect(CHECK_STATUSES).toContain(check.status)
-      expect(check.status).toBe('Not run')
     }
   })
 
@@ -201,9 +200,11 @@ describe('security-configuration-drift automation state (.agents/automation/stat
 
 describe('security-configuration-drift report (.agents/automation/reports/security-configuration-drift-auditor.md)', () => {
   let report: string
+  let state: AutomationState
 
   beforeAll(() => {
     report = readFileSync(REPORT_PATH, 'utf-8')
+    state = YAML.parse(readFileSync(STATE_PATH, 'utf-8')) as AutomationState
   })
 
   it('replaces the placeholder "no execution recorded" content from before the audit ran', () => {
@@ -245,7 +246,7 @@ describe('security-configuration-drift report (.agents/automation/reports/securi
   })
 
   it('cross-references the same lastExecution timestamp, schemaVersion, and task identity as the state file', () => {
-    expect(report).toContain('**Last Execution:** `2026-07-23T18:45:32Z`')
+    expect(report).toContain(`**Last Execution:** \`${state.lastExecution}\``)
     expect(report).toContain('**Schema Version:** `1`')
     expect(report).toContain('**Task Identity:** `security-configuration-drift-auditor`')
   })
@@ -260,13 +261,16 @@ describe('security-configuration-drift report (.agents/automation/reports/securi
     expect(evidenceSection).toContain('/actuator/prometheus')
   })
 
-  it('renders a Validation Table with three Not run checks matching the state file checks', () => {
+  it('renders a Validation Table with checks matching the state file checks', () => {
     const validationSection = report.slice(
       report.indexOf('## Validation Table'),
       report.indexOf('## Unresolved Findings'),
     )
-    const notRunRows = validationSection.split('\n').filter((line) => line.includes('| Not run |'))
-    expect(notRunRows).toHaveLength(3)
+    const rows = validationSection.split('\n').filter((line) => line.trim().startsWith('| **'))
+    expect(rows).toHaveLength(state.checks.length)
+    state.checks.forEach((check, i) => {
+      expect(rows[i]).toContain(`| ${check.status} |`)
+    })
   })
 
   it('reports no blockers for this partially-completed audit', () => {

@@ -63,3 +63,5 @@ checks:
     status: Passed
   - name: "Frontend Unit Testing Check"
     status: Passed
+  - name: "Backend Fast Testing Check"
+    status: Passed

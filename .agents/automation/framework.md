@@ -34,13 +34,16 @@ BLOCKED. Even no-op audits update state and report and create exactly one Draft 
 
 ## Idempotent Draft PR Lifecycle
 
-Each task run establishes a deterministic branch name from its task identity and run timestamp.
-Before creating a new branch, check for an existing remote branch and matching Draft PR from a prior
-or concurrent run of the same task. If one exists, reuse and force-push update it instead of
-creating a duplicate. On retry, update the same branch and PR. On concurrent runs, the second run
-rebases onto the first run's latest pushed state (not the task's base branch) and force-pushes its
-own updates to the same branch. Exactly one Draft PR is pushed per run, including no-op outcomes.
-Never leave orphan branches or duplicate PRs for the same run.
+Each task run establishes a deterministic branch name from its task identity and a run identifier
+persisted in state before execution. Reuse that run identifier for deterministic branch naming and
+Draft PR lookup across retries and concurrent runs. Before creating a new branch, check for an
+existing remote branch and matching Draft PR from a prior or concurrent run of the same task. If one
+exists, reuse and update it instead of creating a duplicate. On retry, update the same branch and PR.
+On concurrent runs, serialize updates: the second run rebases onto the first run's latest pushed state
+(not the task's base branch) and pushes its own updates to the same branch. If the push is rejected
+because the branch moved, rebase onto the current remote tip and retry. Exactly one Draft PR is
+pushed per run, including no-op outcomes. Never leave orphan branches or duplicate PRs for the same
+run. Force-push is prohibited; resolve push conflicts by rebase and retry.
 
 ## Evidence-First Policy
 
@@ -91,7 +94,8 @@ Remediation statuses: none, proposed, implemented, verified.
 
 Every finding records firstDetected, lastVerified, and occurrences. These fields persist across
 runs so persistent debt is visible without an escalation system. When a finding reappears after being
-resolved, reset status to new and increment occurrences.
+resolved, reset status to new, increment occurrences, and clear prior remediation state by setting
+remediation.status to none and remediation.pullRequest to null.
 
 ## Minimum Change, Validation, and Self-Correction
 

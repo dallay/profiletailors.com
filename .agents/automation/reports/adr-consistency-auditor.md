@@ -30,7 +30,7 @@ The audit concluded with **NO_DRIFT_DETECTED**. The system exhibits exceptionall
 | **ADR-0009** | JWT & HttpOnly Cookie Auth | CONSISTENT | `IdentitySecurityConfiguration.kt` | Passed (Cookies secure and correctly issued) |
 | **ADR-0010** | Shared Kernel Governance | CONSISTENT | `:shared:common` gradle dependencies | Passed (Shared module is entirely framework-free) |
 | **ADR-0011** | Reusable Lead Capture Waitlist | CONSISTENT | `:shared:lead-capture` and `Waitlist` domain | Passed (Explicit notification vs marketing consent) |
-| **ADR-0012** | AGPL-3.0 Commercial Strategy | CONSISTENT | `docs/architecture/adr/0012-agpl-commercial-strategy.md` | Passed (Postures, CLA policies and SPDX tags deferred) |
+| **ADR-0012** | AGPL-3.0 Commercial Strategy | CONSISTENT | `docs/architecture/adr/0012-agpl-commercial-strategy.md` | Not run (SPDX tag enforcement and CLA policies documented as Proposed/Deferred per ADR-0012) |
 | **ADR-0013** | RateLimitTier vs SubscriptionPlan | CONSISTENT | Identity module contains no billing leakage | Passed (Technical rate limiting separated from commercial plans) |
 | **ADR-0014** | Future Billing Architecture | CONSISTENT | `docs/architecture/adr/0014-future-billing-architecture.md` | Passed (Planned hexagonal boundaries strictly documented) |
 | **ADR-0015** | Aggregate Root Entry Point | CONSISTENT | `AggregateBoundaryTest.kt` | Passed (Konsist cross-context import and mutator guards) |

@@ -8,13 +8,11 @@
 
 | Domain | Action | Details |
 |--------|--------|---------|
-| lead-capture-common | Already synced | Delta and main specs identical |
 | lead-capture-waitlist | Already synced | Delta content is subset of main spec (main augmented by DALLAY-493 DSAR requirements) |
 
 ## Archive Contents
 
 - proposal.md ✅
-- specs/lead-capture-common/spec.md ✅
 - specs/lead-capture-waitlist/spec.md ✅
 - design.md ✅
 - tasks.md ✅ (48/48 tasks; 47 complete, 1 archive-only deferred)
@@ -25,7 +23,6 @@
 
 The following main specs already reflected the implemented behavior before archiving:
 
-- `openspec/specs/lead-capture-common/spec.md`
 - `openspec/specs/lead-capture-waitlist/spec.md`
 
 ## Deferred Items

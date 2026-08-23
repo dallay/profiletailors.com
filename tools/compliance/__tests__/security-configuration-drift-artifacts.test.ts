@@ -84,7 +84,7 @@ describe('security-configuration-drift automation state file', () => {
   })
 
   it('records a parseable ISO 8601 lastExecution timestamp', () => {
-    expect(state.lastExecution).toBe('2026-07-23T18:45:32Z')
+    expect(state.lastExecution).toBe('2026-08-22T22:47:58Z')
     expect(state.lastExecution).not.toBeNull()
     const parsedDate = new Date(state.lastExecution as string)
     expect(Number.isNaN(parsedDate.getTime())).toBe(false)
@@ -137,11 +137,11 @@ describe('security-configuration-drift automation state file', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('lists the expected validation checks, all Not run', () => {
+  it('lists the expected validation checks with their recorded statuses', () => {
     expect(state.checks).toEqual([
       { name: 'backend-build-check', status: 'Not run' },
       { name: 'backend-test-check', status: 'Not run' },
-      { name: 'frontend-biome-check', status: 'Not run' },
+      { name: 'frontend-biome-check', status: 'Passed' },
     ])
   })
 
@@ -207,15 +207,15 @@ describe('security-configuration-drift automation report file', () => {
     expect(report).toContain('HIGH ambiguous')
   })
 
-  it('renders the validation table with all checks as Not run', () => {
+  it('renders the validation table rows with statuses matching the state file', () => {
     expect(report).toContain(
-      '| **Backend Build** | `just backend-build` | Not run | Verification pending. |',
+      '| **Backend Build** | `just backend-build` | Not run | Verification skipped to minimize risk; no backend code modified. |',
     )
     expect(report).toContain(
-      '| **Backend Fast Tests** | `just backend-test-fast` | Not run | Verification pending. |',
+      '| **Backend Fast Tests** | `just backend-test-fast` | Not run | Verification skipped to minimize risk; no backend code modified. |',
     )
     expect(report).toContain(
-      '| **Frontend Biome Check** | `just frontend-lint` | Not run | Verification pending. |',
+      '| **Frontend Biome Check** | `just frontend-lint` | Passed | Verified repository frontend code formatting and linting. |',
     )
   })
 
@@ -256,10 +256,13 @@ describe('security-configuration-drift state and report consistency', () => {
     }
   })
 
-  it('does not report a Passed check when the state records all checks as Not run', () => {
-    for (const check of state.checks) {
-      expect(check.status).toBe('Not run')
+  it('reports validation check statuses consistent with the state file', () => {
+    const passedChecks = state.checks.filter((check) => check.status === 'Passed')
+    const notRunChecks = state.checks.filter((check) => check.status === 'Not run')
+    for (const check of passedChecks) {
+      expect(report).toContain('| Passed |')
     }
-    expect(report).not.toContain('| Passed |')
+    expect(report).toContain(`| Not run |`)
+    expect(passedChecks.length + notRunChecks.length).toBe(state.checks.length)
   })
 })

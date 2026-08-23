@@ -53,10 +53,10 @@ findings:
 checks:
   - id: frontend-lint
     name: "Astro/Vue/TS Linters via biome"
-    status: "passed"
+    status: "Passed"
   - id: frontend-test
     name: "Vue unit tests via vitest"
-    status: "passed"
+    status: "Passed"
   - id: backend-check
     name: "Kotlin detekt and unit tests via Gradle"
-    status: "passed"
+    status: "Passed"

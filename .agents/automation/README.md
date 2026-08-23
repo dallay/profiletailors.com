@@ -59,7 +59,8 @@ Read both files completely before making changes.
 This is a zero-interaction scheduled execution. Do not ask for confirmation, approval, or
 implementation decisions. Detect, remediate when permitted, validate, update task state/report,
 commit, push, and create the required Draft Pull Request. Follow the Idempotent Draft PR Lifecycle:
-use a deterministic branch name from the task identity and run timestamp; check for an existing
-matching Draft PR to reuse or update instead of creating duplicates; handle retries and concurrent
-runs by updating the same branch; push exactly one Draft PR per run, including no-op outcomes. The
-human will review the Pull Request after execution.
+persist the run identifier in state before execution; use it for deterministic branch naming and
+Draft PR lookup across retries and concurrent runs; check for an existing matching Draft PR to reuse
+or update instead of creating duplicates; handle retries and concurrent runs by serializing updates
+to the same branch; resolve push conflicts by rebase and retry, never force-push; push exactly one
+Draft PR per run, including no-op outcomes. The human will review the Pull Request after execution.

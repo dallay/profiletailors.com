@@ -24,9 +24,7 @@ back/forward fully restores state.
 |--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Delta spec                     | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/spec.md`                                                                                                                                                                                                                                                                    |
 | Main spec (1)                  | `openspec/specs/visual-calendar/spec.md`                                                                                                                                                                                                                                                                                                   |
-| Main spec (2)                  | `openspec/specs/app-shell/spec.md`                                                                                                                                                                                                                                                                                                         |
 | Merge action (visual-calendar) | MODIFIED `### Requirement: Multi-View Calendar` — updated description to reflect URL addressability; ADDED 2 new scenarios (day-focus in month view, shareable week URL)                                                                                                                                                                   |
-| Merge action (app-shell)       | MODIFIED `### Requirement: SidebarChannelsSection` — `activeProvider` → `activeChannelId`, `selectChannel(channel)` → `selectChannel(accountId)`, 3 updated + 1 new scenario; ADDED 5 new requirements (Canonical Route Family, Route Query Param Contract, Route State Derivation, CalendarHeader Navigates, Browser History Integration) |
 
 **Merged scenarios (total 17 added):**
 
@@ -84,8 +82,6 @@ back/forward fully restores state.
 
 - `openspec/specs/visual-calendar/spec.md` — `### Requirement: Multi-View Calendar` updated with URL
   addressability, 2 new scenarios
-- `openspec/specs/app-shell/spec.md` — `### Requirement: SidebarChannelsSection` updated
-  props/emits/scenarios; 5 new requirements added
 
 ---
 

@@ -20,13 +20,13 @@ findings:
 checks:
   - id: C-1
     name: Frontend Consent Store Unit Tests
-    status: PASSED
+    status: Passed
     executedAt: "2026-07-29T19:00:00Z"
   - id: C-2
     name: Frontend Privacy Store Unit Tests
-    status: PASSED
+    status: Passed
     executedAt: "2026-07-29T19:00:00Z"
   - id: C-3
     name: Frontend Unit Test Suite
-    status: PASSED
+    status: Passed
     executedAt: "2026-07-29T19:00:00Z"
