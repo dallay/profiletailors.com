@@ -47,8 +47,11 @@ Apply LOW, MEDIUM, or HIGH risk and persist concise unresolved, blocked, ignored
 
 ## Decision Rules
 
-Implement mechanical LOW RISK only. If uncertainty persists, record it and continue safe unrelated
-work.
+Implement mechanical LOW RISK autonomously, validate, and push a Draft PR. Implement MEDIUM RISK
+with strong evidence and tests, then push a Draft PR. For HIGH deterministic findings, the agent MAY
+implement the remediation only in a Draft PR with human merge approval; never auto-merge. For HIGH
+ambiguous findings, persist and report the finding without guessing. If uncertainty persists at any
+level, record it and continue safe unrelated work.
 
 ## Allowed Changes
 
