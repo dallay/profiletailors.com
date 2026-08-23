@@ -97,6 +97,70 @@ class AdminWaitlistControllerTest {
             .uri("/api/admin/waitlist-entries?size=101")
             .exchange()
             .expectStatus().isBadRequest
+
+        verify(exactly = 0) { waitlistQueryTelemetry.recordListQuery(any(), any()) }
+    }
+
+    @Test
+    fun `listEntries records telemetry with emailSearch true when email filter is provided`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { waitlistQuery.list(any()) } returns PagedResult.of(listOf(summary()), 0, 25, 1)
+
+        webClient()
+            .get()
+            .uri("/api/admin/waitlist-entries?email=candidate@example.com")
+            .exchange()
+            .expectStatus().isOk
+
+        verify {
+            waitlistQueryTelemetry.recordListQuery(
+                statusFilter = null,
+                emailSearch = true,
+            )
+        }
+    }
+
+    @Test
+    fun `listEntries records telemetry with emailSearch false when email filter is blank`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { waitlistQuery.list(any()) } returns PagedResult.of(listOf(summary()), 0, 25, 1)
+
+        webClient()
+            .get()
+            .uri("/api/admin/waitlist-entries?email=   ")
+            .exchange()
+            .expectStatus().isOk
+
+        verify {
+            waitlistQueryTelemetry.recordListQuery(
+                statusFilter = null,
+                emailSearch = false,
+            )
+        }
+    }
+
+    @Test
+    fun `listEntries does not record telemetry when unauthenticated`() {
+        webClient(principal = null)
+            .get()
+            .uri("/api/admin/waitlist-entries")
+            .exchange()
+            .expectStatus().isUnauthorized
+
+        verify(exactly = 0) { waitlistQueryTelemetry.recordListQuery(any(), any()) }
+    }
+
+    @Test
+    fun `listEntries does not record telemetry when operator lacks read permission`() {
+        grantRoles(emptyList())
+
+        webClient()
+            .get()
+            .uri("/api/admin/waitlist-entries")
+            .exchange()
+            .expectStatus().isForbidden
+
+        verify(exactly = 0) { waitlistQueryTelemetry.recordListQuery(any(), any()) }
     }
 
     @Test
