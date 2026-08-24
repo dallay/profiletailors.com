@@ -76,10 +76,10 @@ Used for generic business logic packages that have no dependency on any framewor
 `:shared:common`).
 
 * **Configures:**
-  * JVM toolchain targeting **Java 21** and **Kotlin 2.3**.
-    * Dynamic compiler flags (e.g., `-Xcontext-receivers`).
-    * Enforces code styles via `detekt` using the root `/detekt.yml`.
-    * Configures standard JUnit Platform test task.
+    * JVM toolchain targeting **Java 21** and **Kotlin 2.3**.
+        * Dynamic compiler flags (e.g., `-Xcontext-receivers`).
+        * Enforces code styles via `detekt` using the root `/detekt.yml`.
+        * Configures standard JUnit Platform test task.
 
 ### 2. Spring Boot Shared Library (`com.profiletailors.spring.boot.library`)
 
@@ -112,7 +112,7 @@ Used exclusively for executable microservices or application servers (e.g., `:se
 Run all tasks from the monorepo root:
 
 | Command                                 | Action                                      |
-| :-------------------------------------- | :------------------------------------------ |
+|:----------------------------------------|:--------------------------------------------|
 | `./gradlew projects`                    | Inspect the loaded subproject tree          |
 | `./gradlew build`                       | Build and compile all projects              |
 | `./gradlew test`                        | Execute the unit and integration test suite |

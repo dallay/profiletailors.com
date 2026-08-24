@@ -54,7 +54,7 @@ backend sync attempt. The backend governance API provides durable audit storage.
 ## Cross-Surface Coverage
 
 | Surface       | Tech                    | Component(s)                                                                                                       | Trigger                                                 |
-| ------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+|---------------|-------------------------|--------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
 | **Marketing** | Astro 7                 | `ConsentScript.astro` (inline `<head>`), `ConsentBanner.astro` (fixed bottom), `CookieSettingsLink.astro` (footer) | On load if no valid receipt                             |
 | **App**       | Vue 3 + shadcn-vue      | `ConsentBanner.vue` (Dialog), `CookieSettings.vue` (standalone panel)                                              | On load if no valid receipt; footer link opens settings |
 | **Backend**   | Spring Boot 4 / WebFlux | `ConsentController` at `/api/governance/consent`                                                                   | On explicit sync from Pinia store                       |
@@ -83,6 +83,7 @@ interface ConsentReceipt {
 ```
 
 **Runtime validation** uses a Zod schema (`shared/web/validation/consent.ts`):
+
 - `consentVersion` must be a literal `1` (exact match)
 - `policyVersion` must be a valid ISO date
 - `timestamp` must be a valid ISO datetime
@@ -159,6 +160,7 @@ Hide banner
 ### 3. Storage → Analytics Flag
 
 The **marketing site** uses an inline `<script>` in `<head>` (`ConsentScript.astro`):
+
 1. Reads `localStorage['pt-consent']` synchronously
 2. Validates against the version/policy constants
 3. Sets `window.__PT_CONSENT_ANALYTICS = true/false`
@@ -166,6 +168,7 @@ The **marketing site** uses an inline `<script>` in `<head>` (`ConsentScript.ast
 5. `Analytics.astro` checks `__PT_CONSENT_ANALYTICS` before loading Ahrefs
 
 The **app** uses the Pinia store:
+
 1. Store reads from localStorage on init
 2. Computed getters expose `analyticsEnabled`
 3. Analytics initialisation reads the getter
@@ -198,6 +201,7 @@ export const CURRENT_POLICY_VERSION = '2026-07-23'
 - A mismatch triggers re-consent regardless of `consentVersion`
 
 **Upgrade flow:**
+
 1. Both are compiled as constants in the shared library
 2. The inline script (marketing) and Pinia store (app) both reference them
 3. On mismatch, the existing receipt is deleted and banner is shown
@@ -210,7 +214,7 @@ export const CURRENT_POLICY_VERSION = '2026-07-23'
 Defined in `shared/web/utils/privacy-signals.ts`:
 
 | Signal  | Detection                                 | Effect                 |
-| ------- | ----------------------------------------- | ---------------------- |
+|---------|-------------------------------------------|------------------------|
 | **DNT** | `navigator.doNotTrack === '1'` or `'yes'` | Analytics defaults OFF |
 | **GPC** | `navigator.globalPrivacyControl === true` | Analytics defaults OFF |
 | Both    | Either signal active                      | Analytics defaults OFF |
@@ -254,7 +258,7 @@ consentStore.saveConsent(receipt)
 Base path: `/api/governance/consent`
 
 | Method | Endpoint                           | Purpose                        |
-| ------ | ---------------------------------- | ------------------------------ |
+|--------|------------------------------------|--------------------------------|
 | POST   | `/api/governance/consent`          | Record a consent decision      |
 | POST   | `/api/governance/consent/withdraw` | Withdraw an active consent     |
 | GET    | `/api/governance/consent`          | List workspace consent records |
@@ -312,7 +316,7 @@ shared/web/
 ## Design Decisions
 
 | Decision                               | Rationale                                                    |
-| -------------------------------------- | ------------------------------------------------------------ |
+|----------------------------------------|--------------------------------------------------------------|
 | localStorage as source of truth        | Survives page reload, synchronous, no network dependency     |
 | Backend sync is best-effort            | Consent must work offline; audit is secondary                |
 | Two-version upgrade (version + policy) | Policy changes and schema changes are independent events     |

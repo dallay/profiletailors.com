@@ -14,7 +14,7 @@ Accessibility testing operates in three layers. Each layer catches a different c
 defect. **No single layer is sufficient on its own.**
 
 | Layer                          | Tool                    | What it catches                                                                               | When it runs                               |
-| ------------------------------ | ----------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------ |
+|--------------------------------|-------------------------|-----------------------------------------------------------------------------------------------|--------------------------------------------|
 | **Automated (axe)**            | `@axe-core/playwright`  | ~30–40 % of WCAG issues — missing labels, contrast failures, invalid ARIA, landmark structure | Every PR, CI pipeline                      |
 | **Keyboard-only walkthroughs** | Playwright + manual     | Focus order, focus traps, skip links, modal open/close, calendar navigation                   | Pre-release & after modal/calendar changes |
 | **Screen-reader testing**      | Manual (NVDA/VoiceOver) | Reading order, dynamic content announcements, form instructions, live regions                 | Before each minor release                  |
@@ -26,7 +26,7 @@ defect. **No single layer is sufficient on its own.**
 ### Location
 
 | App                  | Spec file                         | Fixture                                     |
-| -------------------- | --------------------------------- | ------------------------------------------- |
+|----------------------|-----------------------------------|---------------------------------------------|
 | `apps/web/app`       | `e2e/specs/accessibility.spec.ts` | `e2e/fixtures/a11y-fixture.ts`              |
 | `apps/web/marketing` | `tests/e2e/accessibility.spec.ts` | `@playwright/test` + `@axe-core/playwright` |
 
@@ -56,7 +56,7 @@ wcag2a  wcag2aa  wcag21a  wcag21aa  wcag22aa
 ### Disabled rules
 
 | Rule                | Reason                                                                     |
-| ------------------- | -------------------------------------------------------------------------- |
+|---------------------|----------------------------------------------------------------------------|
 | `aria-hidden-focus` | reka-ui animates dialogs out while focus is still inside; tracked upstream |
 
 Any additional rule suppressions **must** be documented in the spec file with a comment
@@ -147,7 +147,7 @@ The following issues are known but accepted with documented rationale. They must
 reviewed at each minor release to determine if the acceptance criteria still hold.
 
 | ID       | Description                                            | Severity | Acceptance rationale                                                   | Target fix release |
-| -------- | ------------------------------------------------------ | -------- | ---------------------------------------------------------------------- | ------------------ |
+|----------|--------------------------------------------------------|----------|------------------------------------------------------------------------|--------------------|
 | A11Y-001 | Calendar arrow-key navigation not implemented          | Moderate | Workaround (Tab) documented in accessibility statement; sprint planned | v0.5               |
 | A11Y-002 | Media picker drag-and-drop has no keyboard alternative | Moderate | Action menu alternative exists and is keyboard-operable                | v0.5               |
 
@@ -165,7 +165,7 @@ WCAG 2.1 AA as its web content standard).
 ### Current applicability
 
 | Criterion                                               | Assessment                                                                   |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------- |
+|---------------------------------------------------------|------------------------------------------------------------------------------|
 | Is the product offered to consumers in the EU?          | Yes (early-access preview)                                                   |
 | Is it a "consumer e-commerce service" under the EAA?    | **Borderline** — early-access preview with no active commercial transactions |
 | Is it a "communication service"?                        | No                                                                           |

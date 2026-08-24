@@ -214,19 +214,17 @@ release-backend-verify image_name:
 release-backend-image version="0.1.0" image_repository="profiletailors/smp":
     node scripts/release-backend-image.mjs "{{version}}" "{{image_repository}}"
 
-# Run backend unit tests (optionally exclude tags: just backend-test 'postgres')
-# Postgres integration tests use Testcontainers and require SMP_DB_TEST_PASSWORD,
-# which is sourced from .env (or the shell) — same shape as the CI workflow.
+# Run backend tests (optionally exclude tags: just backend-test 'postgres')
 backend-test exclude-tags="":
-    node scripts/with-db-password-gradle.mjs :server:smp:test --no-daemon {{ if exclude-tags != "" { "-PexcludeTags=" + exclude-tags } else { "" } }}
+    node scripts/gradle-run.mjs :server:smp:test --no-daemon {{ if exclude-tags != "" { "-PexcludeTags=" + exclude-tags } else { "" } }}
 
 # Run backend tests (fast)
 backend-test-fast:
-    node scripts/with-db-password-gradle.mjs :server:smp:test --no-daemon
+    node scripts/gradle-run.mjs :server:smp:test --no-daemon
 
 # Run full check: tests + Detekt (aligns with CI — excludes BDD suites)
 backend-check:
-    node scripts/with-db-password-gradle.mjs :server:smp:check --no-daemon -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
+    node scripts/gradle-run.mjs :server:smp:check --no-daemon -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
 
 # Run Detekt static analysis
 backend-lint:
@@ -258,19 +256,19 @@ kill-servers:
 
 # Run tests with JaCoCo coverage report
 backend-coverage:
-    node scripts/with-db-password-gradle.mjs :server:smp:test :server:smp:jacocoTestReport --no-daemon
+    node scripts/gradle-run.mjs :server:smp:test :server:smp:jacocoTestReport --no-daemon
 
 # Run fast BDD suite
 backend-bdd-fast:
-    node scripts/with-db-password-gradle.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/gradle-run.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run PostgreSQL integration tests with Testcontainers
 backend-test-postgres:
-    node scripts/with-db-password-gradle.mjs :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/gradle-run.mjs :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run Postgres BDD suite (requires infra-up first)
 backend-bdd-postgres:
-    node scripts/with-db-password-gradle.mjs :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/gradle-run.mjs :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # ═══════════════════════════════════════════════════════════════
 # INFRASTRUCTURE  (Docker Compose)
@@ -419,10 +417,10 @@ ci-local:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ Backend: unit tests (fast)..."
-    node scripts/with-db-password-gradle.mjs :server:smp:test --no-daemon
+    node scripts/gradle-run.mjs :server:smp:test --no-daemon
     @echo ""
     @echo "▸ Backend: build..."
-    node scripts/with-db-password-gradle.mjs :server:smp:assemble --no-daemon
+    node scripts/gradle-run.mjs :server:smp:assemble --no-daemon
     @echo ""
     @echo "══════════════════════════════════════════════"
     @echo "  ✅ CI Pipeline Simulation Complete"
@@ -433,10 +431,10 @@ ci-full: infra-up
     just ci-local
     @echo ""
     @echo "▸ Backend: Postgres integration suite..."
-    node scripts/with-db-password-gradle.mjs :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/gradle-run.mjs :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ Backend: Postgres BDD suite..."
-    node scripts/with-db-password-gradle.mjs :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/gradle-run.mjs :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "══════════════════════════════════════════════"
     @echo "  ✅ Full CI Suite Complete (incl. Postgres)"
@@ -474,10 +472,10 @@ ci:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ [6/8] Backend: unit tests (fast)..."
-    node scripts/with-db-password-gradle.mjs :server:smp:test --no-daemon
+    node scripts/gradle-run.mjs :server:smp:test --no-daemon
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
-    node scripts/with-db-password-gradle.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    node scripts/gradle-run.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
     cd {{frontend-dir}} && pnpm test:e2e
