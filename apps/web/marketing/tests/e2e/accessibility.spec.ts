@@ -134,7 +134,7 @@ test.describe('Marketing A11y — Consent banner @a11y', () => {
         await page.goto('/')
         await page.locator('#consent-banner').waitFor()
 
-        const results = await axe(page).include('#consent-banner').analyze()
+        const results = await axe(page).include('#consent-banner').analyze(); console.log('AXE VIOLATIONS:', JSON.stringify(results.violations, null, 2))
         expect(
             results.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length })),
             'axe violations in consent banner',
