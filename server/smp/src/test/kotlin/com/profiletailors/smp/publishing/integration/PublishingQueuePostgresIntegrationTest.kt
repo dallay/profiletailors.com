@@ -9,6 +9,9 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationJobRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.test.TestStorageConfiguration
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -28,6 +31,7 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.Duration
 import java.time.Instant
 
 /**
@@ -121,7 +125,11 @@ class PublishingQueuePostgresIntegrationTest {
         )
 
         // Claim at 09:01 — all three are due
-        val claim = jobRepository.claimNextDue(Instant.parse("2026-05-27T09:01:00Z"), "worker-1")
+        val claim = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T09:01:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
 
         // Should claim the highest priority first (priority_rank DESC)
         assertNotNull(claim)
@@ -142,7 +150,11 @@ class PublishingQueuePostgresIntegrationTest {
         )
 
         // Claim the job
-        val claim = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:01:00Z"), "worker-1")
+        val claim = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:01:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
 
         assertNotNull(claim)
         assertEquals(1, claim?.attemptNumber)
@@ -179,9 +191,16 @@ class PublishingQueuePostgresIntegrationTest {
         )
 
         // Claim and then reschedule
-        jobRepository.claimNextDue(Instant.parse("2026-05-27T08:01:00Z"), "worker-1")
+        val claim = requireNotNull(
+            jobRepository.claimNextDue(
+                Instant.parse("2026-05-27T08:01:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            ),
+        )
         jobRepository.rescheduleRetry(
             jobId = "job-retry-test",
+            claimVersion = claim.claimVersion,
             nextAttemptAt = Instant.parse("2026-05-27T09:00:00Z"),
             attemptNumber = 1,
         )
@@ -218,17 +237,25 @@ class PublishingQueuePostgresIntegrationTest {
         )
 
         // Claim before due time
-        val claimTooEarly = jobRepository.claimNextDue(Instant.parse("2026-05-27T07:59:59Z"), "worker-1")
+        val claimTooEarly = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T07:59:59Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
         assertNull(claimTooEarly)
 
         // Claim exactly at due time
-        val claimExact = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:00:00Z"), "worker-2")
+        val claimExact = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:00:00Z"),
+            "worker-2",
+            Duration.ofMinutes(2),
+        )
         assertNotNull(claimExact)
         assertEquals("job-timestamp-test", claimExact?.jobId)
     }
 
     @Test
-    fun `multiple workers cannot claim the same job due to transaction isolation`() = runTest {
+    fun `should return one claim when two workers claim concurrently`() = runTest {
         seedPublicationAndJob(
             publicationId = "pub-concurrent-test",
             jobId = "job-concurrent-test",
@@ -239,14 +266,20 @@ class PublishingQueuePostgresIntegrationTest {
             scheduleMode = ScheduleMode.NOW,
         )
 
-        // First worker claims
-        val claim1 = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:01:00Z"), "worker-1")
-        assertNotNull(claim1)
-        assertEquals("job-concurrent-test", claim1?.jobId)
+        val claims = coroutineScope {
+            listOf("worker-1", "worker-2").map { workerId ->
+                async(kotlinx.coroutines.Dispatchers.IO) {
+                    R2dbcPublicationJobRepository(databaseClient).claimNextDue(
+                        Instant.parse("2026-05-27T08:01:00Z"),
+                        workerId,
+                        Duration.ofMinutes(2),
+                    )
+                }
+            }.awaitAll()
+        }
 
-        // Second worker tries to claim — should get nothing
-        val claim2 = jobRepository.claimNextDue(Instant.parse("2026-05-27T08:01:00Z"), "worker-2")
-        assertNull(claim2)
+        assertEquals(1, claims.count { it != null })
+        assertEquals(1L, requireNotNull(claims.single { it != null }).claimVersion)
     }
 
     private suspend fun seedPrincipalWorkspaceAndAccount() {

@@ -11,6 +11,7 @@ import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 
@@ -246,4 +247,32 @@ data class NotificationEventItem(
     val suggestedAction: String?,
     val publicUrl: String?,
     val occurredAt: Instant,
+)
+
+// --- Stale Jobs (DALLAY-555) ---
+
+private const val DEFAULT_STALE_LEASE_THRESHOLD_MINUTES = 5L
+
+/**
+ * Lists jobs whose CLAIMED lease has expired past [leaseStaleThreshold].
+ * Surfaces publication, workspace, age, and a safe canonical next action so operators
+ * can act on stale work without reading raw exceptions or provider payloads.
+ */
+data class ListStaleJobsQuery(
+    val leaseStaleThreshold: Duration = Duration.ofMinutes(DEFAULT_STALE_LEASE_THRESHOLD_MINUTES),
+    val limit: Int = 50,
+) : Query<StaleJobsResponse>
+
+data class StaleJobsResponse(val staleJobs: List<StaleJobItem>, val total: Int)
+
+data class StaleJobItem(
+    val jobId: String,
+    val publicationId: String,
+    val workspaceId: String,
+    val claimedByWorker: String,
+    val claimedAt: Instant,
+    val leaseExpiresAt: Instant,
+    val ageSeconds: Long,
+    val attemptNumber: Int,
+    val suggestedAction: String,
 )

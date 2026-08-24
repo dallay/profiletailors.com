@@ -92,7 +92,7 @@ class WebFluxConfiguration : WebFluxConfigurer {
 
 ### 2. Updated Controllers
 
-**7 controllers** are configured to use this system:
+**15 controllers** are configured to use this system:
 
 - `LocalAuthController` (4 endpoints)
 - `CurrentUserProfileController` (1 endpoint)
@@ -101,6 +101,31 @@ class WebFluxConfiguration : WebFluxConfigurer {
 - `AuditEventController` (1 endpoint)
 - `WorkspaceAccessSummaryController` (1 endpoint)
 - `ResourcePreviewController` (1 endpoint)
+- `AnalyticsController` (analytics endpoints)
+- `HashtagsController` (hashtag endpoints)
+- `IdeasController` (9 endpoints — see below)
+- `PublicCapabilitiesController` (public capability endpoint)
+- `MediaAssetController` (media asset endpoints)
+- `HealthcheckController` (health check endpoint)
+- `PublishingControllers` (publishing endpoints)
+- `WorkspaceController` (workspace endpoints)
+
+#### Ideas API (`/api/ideas`)
+
+All Ideas Canvas endpoints use `version = "1"` and require
+`Accept: application/vnd.api.v1+json`:
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/ideas` | List all ideas grouped by column |
+| POST | `/api/ideas` | Create new idea (defaults to first column) |
+| GET | `/api/ideas/{ideaId}` | Get idea details |
+| PATCH | `/api/ideas/{ideaId}` | Update idea (title, notes, tags, links) |
+| PATCH | `/api/ideas/{ideaId}/move` | Move idea to column + position |
+| DELETE | `/api/ideas/{ideaId}` | Delete idea |
+| POST | `/api/ideas/{ideaId}/convert` | Convert idea to publication |
+| GET | `/api/ideas/columns` | Get column config for workspace |
+| PUT | `/api/ideas/columns` | Update column config (add, rename, reorder, delete) |
 
 ## Usage
 

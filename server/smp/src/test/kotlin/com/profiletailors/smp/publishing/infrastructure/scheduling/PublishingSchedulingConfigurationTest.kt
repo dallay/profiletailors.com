@@ -26,9 +26,11 @@ import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
+import com.profiletailors.smp.publishing.domain.StaleJobPage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.scheduling.Trigger
@@ -92,6 +94,15 @@ class PublishingSchedulingConfigurationTest {
     }
 
     @Test
+    fun `application config exposes stale grace as an operator override`() {
+        val application = requireNotNull(javaClass.classLoader.getResourceAsStream("application.yaml"))
+            .bufferedReader()
+            .use { it.readText() }
+
+        assertTrue(application.contains("stale-grace: \${SMP_PUBLISHING_WORKER_STALE_GRACE:PT5M}"))
+    }
+
+    @Test
     fun `publishingJobExecutor and worker beans are created`() {
         val retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5))
         val notificationEventRepository = NoOpNotificationEventRepository()
@@ -108,6 +119,7 @@ class PublishingSchedulingConfigurationTest {
             publishingJobExecutor = executor,
             transactionRunner = transactionRunner,
             publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
+            properties = PublishingWorkerProperties(),
         )
 
         assertNotNull(executor)
@@ -129,6 +141,7 @@ class PublishingSchedulingConfigurationTest {
             publishingJobExecutor = executor,
             transactionRunner = transactionRunner,
             publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
+            properties = PublishingWorkerProperties(),
         )
         val scheduler = RecordingTaskScheduler()
 
@@ -148,7 +161,7 @@ class PublishingSchedulingConfigurationTest {
     }
 
     @Test
-    fun `publishingWorkerLifecycle does not schedule tasks when disabled`() {
+    fun `publishingWorkerLifecycle does not schedule or invoke tasks when disabled`() {
         val retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5))
         val executor = configuration.publishingJobExecutor(
             notificationEventRepository = NoOpNotificationEventRepository(),
@@ -162,6 +175,7 @@ class PublishingSchedulingConfigurationTest {
             publishingJobExecutor = executor,
             transactionRunner = transactionRunner,
             publishingLifecycleLogger = configuration.publishingLifecycleLogger(),
+            properties = PublishingWorkerProperties(),
         )
         val scheduler = RecordingTaskScheduler()
 
@@ -175,7 +189,10 @@ class PublishingSchedulingConfigurationTest {
             publishingWorker = worker,
         )
 
+        scheduler.invokeRegisteredTasks()
+
         assertEquals(0, scheduler.fixedRateSchedules.size)
+        assertEquals(0, scheduler.invocationCount)
     }
 
     private class NoOpTransactionRunner : AtomicTransactionRunner {
@@ -186,26 +203,48 @@ class PublishingSchedulingConfigurationTest {
         data class FixedRateSchedule(val startTime: Instant, val period: Duration)
 
         val fixedRateSchedules = mutableListOf<FixedRateSchedule>()
+        private val registeredTasks = mutableListOf<Runnable>()
+        var invocationCount = 0
+            private set
 
-        override fun schedule(task: Runnable, trigger: Trigger): ScheduledFuture<*> = CompletedScheduledFuture
+        fun invokeRegisteredTasks() {
+            registeredTasks.forEach {
+                invocationCount += 1
+                it.run()
+            }
+        }
 
-        override fun schedule(task: Runnable, startTime: Instant): ScheduledFuture<*> = CompletedScheduledFuture
+        override fun schedule(task: Runnable, trigger: Trigger): ScheduledFuture<*> {
+            registeredTasks += task
+            return CompletedScheduledFuture
+        }
+
+        override fun schedule(task: Runnable, startTime: Instant): ScheduledFuture<*> {
+            registeredTasks += task
+            return CompletedScheduledFuture
+        }
 
         override fun scheduleAtFixedRate(task: Runnable, startTime: Instant, period: Duration): ScheduledFuture<*> {
+            registeredTasks += task
             fixedRateSchedules += FixedRateSchedule(startTime, period)
             return CompletedScheduledFuture
         }
 
         override fun scheduleAtFixedRate(task: Runnable, period: Duration): ScheduledFuture<*> {
+            registeredTasks += task
             fixedRateSchedules += FixedRateSchedule(Instant.EPOCH, period)
             return CompletedScheduledFuture
         }
 
-        override fun scheduleWithFixedDelay(task: Runnable, startTime: Instant, delay: Duration): ScheduledFuture<*> =
-            CompletedScheduledFuture
+        override fun scheduleWithFixedDelay(task: Runnable, startTime: Instant, delay: Duration): ScheduledFuture<*> {
+            registeredTasks += task
+            return CompletedScheduledFuture
+        }
 
-        override fun scheduleWithFixedDelay(task: Runnable, delay: Duration): ScheduledFuture<*> =
-            CompletedScheduledFuture
+        override fun scheduleWithFixedDelay(task: Runnable, delay: Duration): ScheduledFuture<*> {
+            registeredTasks += task
+            return CompletedScheduledFuture
+        }
     }
 
     private object CompletedScheduledFuture : ScheduledFuture<Unit> {
@@ -221,11 +260,21 @@ class PublishingSchedulingConfigurationTest {
     private class NoOpPublicationJobRepository : PublicationJobRepository {
         override suspend fun enqueue(job: PublicationJob) = Unit
         override suspend fun replaceForPublication(job: PublicationJob) = Unit
-        override suspend fun claimNextDue(now: Instant, workerId: String): PublicationJobClaim? = null
-        override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) = Unit
-        override suspend fun complete(jobId: String, completedAt: Instant) = Unit
-        override suspend fun fail(jobId: String, failedAt: Instant) = Unit
+        override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? =
+            null
+        override suspend fun rescheduleRetry(
+            jobId: String,
+            claimVersion: Long,
+            nextAttemptAt: Instant,
+            attemptNumber: Int,
+        ): Boolean = true
+        override suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant): Boolean = true
+        override suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant): Boolean = true
+        override suspend fun block(jobId: String, claimVersion: Long, blockedAt: Instant): Boolean = true
         override suspend fun cancel(jobId: String, cancelledAt: Instant) = Unit
+        override suspend fun findStaleClaims(now: Instant, staleGrace: Duration, limit: Int): StaleJobPage =
+            StaleJobPage(emptyList(), 0)
+        override suspend fun releaseExpiredClaims(now: Instant, staleGrace: Duration): Int = 0
     }
 
     private class NoOpPublicationRepository : PublicationRepository {
@@ -276,6 +325,8 @@ class PublishingSchedulingConfigurationTest {
 
     private class NoOpDeliveryAttemptRepository : DeliveryAttemptRepository {
         override suspend fun record(attempt: DeliveryAttempt): DeliveryAttempt = attempt
+        override suspend fun findByOperationKey(operationKey: String): DeliveryAttempt? = null
+        override suspend fun update(attempt: DeliveryAttempt): Boolean = true
     }
 
     private class NoOpNotificationEventRepository : NotificationEventRepository {

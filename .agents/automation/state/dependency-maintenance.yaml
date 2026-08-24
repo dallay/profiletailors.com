@@ -1,42 +1,5 @@
 schemaVersion: 1
 task: dependency-maintenance
-lastExecution: 2026-08-12T18:10:00Z
-outcome: CHANGES_APPLIED
-findings:
-  - id: biome-patch-drift
-    dependency: "@biomejs/biome"
-    type: patch-drift
-    currentVersion: 2.5.6
-    resolvedVersion: 2.5.7
-    status: resolved
-    evidence: "Biome upgraded from 2.5.6 to 2.5.7 as a conservative dependency maintenance patch."
-  - id: vue-patch-drift
-    dependency: "vue"
-    type: patch-drift
-    currentVersion: 3.5.40
-    resolvedVersion: 3.5.41
-    status: resolved
-    evidence: "Vue upgraded from 3.5.40 to 3.5.41 in the workspace as a conservative dependency maintenance patch."
-  - id: vue-i18n-alignment-drift
-    dependency: "vue-i18n"
-    type: version-drift
-    currentVersion: 11.4.7
-    resolvedVersion: 11.4.8
-    status: resolved
-    evidence: "Vue-i18n in apps/web/admin upgraded from 11.4.7 to 11.4.8 to align with apps/web/app version."
-  - id: internationalized-date-patch-drift
-    dependency: "@internationalized/date"
-    type: patch-drift
-    currentVersion: 3.12.2
-    resolvedVersion: 3.12.3
-    status: resolved
-    evidence: "@internationalized/date in apps/web/app upgraded from 3.12.2 to 3.12.3 as a conservative dependency maintenance patch."
-checks:
-  - name: backend-build-check
-    status: Passed
-  - name: frontend-biome-check
-    status: Passed
-  - name: frontend-build-check
-    status: Passed
-  - name: frontend-test-check
-    status: Passed
+lastExecution: null
+findings: []
+checks: []

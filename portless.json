@@ -6,6 +6,9 @@
     },
     "apps/web/marketing": {
       "name": "profiletailors"
+    },
+    "apps/web/admin": {
+      "name": "pt-admin"
     }
   }
 }

@@ -24,6 +24,27 @@ Feature: Platform administration access control and waitlist management
     Then the admin response status should be 200
     And the waitlist result should be paginated
 
+  Scenario: Platform operator can search waitlist entries by email
+    Given a pending waitlist entry exists for "search-test@example.com"
+    When the platform operator searches the waitlist for "Search-Test@example.com"
+    Then the admin response status should be 200
+    And the waitlist result should contain 1 entries
+    And the waitlist result should contain an entry with email "search-test@example.com"
+
+  Scenario: Searching the waitlist for an email with no match returns no entries
+    Given a pending waitlist entry exists for "no-match-test@example.com"
+    When the platform operator searches the waitlist for "unknown-search@example.com"
+    Then the admin response status should be 200
+    And the waitlist result should contain 0 entries
+
+  Scenario: Platform operator can filter waitlist entries by status
+    Given a pending waitlist entry exists for "pending-filter@example.com"
+    And an invited waitlist entry with an active invitation exists for "invited-filter@example.com"
+    When the platform operator filters the waitlist by status "PENDING"
+    Then the admin response status should be 200
+    And the waitlist result should contain 1 entries
+    And the waitlist result should contain an entry with email "pending-filter@example.com"
+
   Scenario: AUDITOR cannot invite a candidate
     Given the authenticated principal has the role "AUDITOR"
     And a pending waitlist entry exists for "auditor-test@example.com"
