@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.2...admin@v0.0.3) (2026-08-24)
+
+
+### Features
+
+* isolate worktree runtimes and development services ([ee0c376](https://github.com/dallay/profiletailors.com/commit/ee0c37649c5bc3af829563c389f79cadd75310de))
+
 ## [0.0.2](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.1...admin@v0.0.2) (2026-08-14)
 
 
