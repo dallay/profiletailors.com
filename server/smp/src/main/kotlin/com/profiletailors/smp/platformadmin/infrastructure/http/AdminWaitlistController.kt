@@ -9,6 +9,7 @@ import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntry
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.ports.WaitlistQueryTelemetryPort
 import com.profiletailors.smp.platformadmin.application.query.ListAdminWaitlistEntriesQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
@@ -36,6 +37,7 @@ class AdminWaitlistController(
     private val cancelHandler: CancelWaitlistEntryHandler,
     private val roleAssignmentRepository: PlatformRoleAssignmentRepository,
     private val requestContextStore: RequestContextStore,
+    private val waitlistQueryTelemetry: WaitlistQueryTelemetryPort,
 ) {
 
     @GetMapping
@@ -73,7 +75,12 @@ class AdminWaitlistController(
             invitedFrom = invitedFrom,
             invitedTo = invitedTo,
         )
-        return ResponseEntity.ok(waitlistQuery.list(query))
+        val result = waitlistQuery.list(query)
+        waitlistQueryTelemetry.recordListQuery(
+            statusFilterApplied = !status.isNullOrBlank(),
+            emailSearch = !email.isNullOrBlank(),
+        )
+        return ResponseEntity.ok(result)
     }
 
     @GetMapping("/{entryId}")
