@@ -154,8 +154,6 @@ jobs:
   backend-unit:
     name: 🧪 Backend Unit Tests
     runs-on: ubuntu-latest
-    env:
-      SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -182,8 +180,6 @@ jobs:
     permissions:
       contents: read
       actions: write
-    env:
-      SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -216,8 +212,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
-    env:
-      SMP_DB_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
