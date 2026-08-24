@@ -123,6 +123,12 @@ describe('stripMarkdownToPlainText', () => {
     expect(stripMarkdownToPlainText('<style>.x{color:red}</style>visible')).toBe('visible')
   })
 
+  it('removes script element containing encoded less-than in its body', () => {
+    expect(stripMarkdownToPlainText('<script>if (a < b) alert(1)</' + 'script>safe text')).toBe(
+      'safe text',
+    )
+  })
+
   it('strips HTML tags with event handler attributes', () => {
     expect(stripMarkdownToPlainText('<img src="x" onerror="alert(1)">')).toBe('')
     expect(stripMarkdownToPlainText('<div onclick="evil()">content</div>')).toBe('content')
@@ -158,11 +164,11 @@ describe('applyInlineFormat', () => {
     expect(result.selectionEnd).toBe(10)
   })
 
-  it('wraps italic inside bold without toggling off the bold markers', () => {
-    const result = applyInlineFormat('**Hello**', 2, 7, '*')
-    expect(result.text).toBe('***Hello***')
-    expect(result.selectionStart).toBe(3)
-    expect(result.selectionEnd).toBe(8)
+  it('toggles off italic inside bold by removing one marker from each side', () => {
+    const result = applyInlineFormat('***Hello***', 3, 8, '*')
+    expect(result.text).toBe('**Hello**')
+    expect(result.selectionStart).toBe(2)
+    expect(result.selectionEnd).toBe(7)
   })
 })
 

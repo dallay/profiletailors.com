@@ -2,7 +2,7 @@ import { describe, it, expect, vi, type Mock } from 'vitest'
 import { ref, nextTick, type Ref } from 'vue'
 import { useMarkdownEditor } from './useMarkdownEditor'
 
-interface FakeTextarea {
+type FakeTextarea = {
   selectionStart: number
   selectionEnd: number
   focus: Mock

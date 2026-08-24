@@ -30,8 +30,8 @@ function stripInlineMarkdown(text: string): string {
 
 function stripHtmlTags(text: string): string {
   return text
-    .replace(/<script\b[^<]*<\/script>/gi, '')
-    .replace(/<style\b[^<]*<\/style>/gi, '')
+    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, '')
     .replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
 }
 
@@ -109,12 +109,14 @@ export function applyInlineFormat(
   const after = text.slice(selectionEnd, selectionEnd + marker.length)
 
   if (before === marker && after === marker) {
-    const charBeforeBefore =
-      selectionStart - marker.length - 1 >= 0 ? text[selectionStart - marker.length - 1] : ''
-    const charAfterAfter =
-      selectionEnd + marker.length < text.length ? text[selectionEnd + marker.length] : ''
+    let runStart = selectionStart - marker.length
+    while (runStart > 0 && text[runStart - 1] === marker[0]) runStart--
+    let runEnd = selectionEnd + marker.length
+    while (runEnd < text.length && text[runEnd] === marker[0]) runEnd++
+    const leftRun = selectionStart - runStart
+    const rightRun = runEnd - selectionEnd
 
-    const isStandalone = charBeforeBefore !== marker[0] && charAfterAfter !== marker[0]
+    const isStandalone = leftRun === 1 && rightRun === 1
 
     if (isStandalone) {
       const newText =
@@ -125,6 +127,17 @@ export function applyInlineFormat(
         text: newText,
         selectionStart: selectionStart - marker.length,
         selectionEnd: selectionEnd - marker.length,
+      }
+    }
+
+    if (leftRun >= 2 && rightRun >= 2) {
+      const removeStart = selectionStart - marker.length
+      const removeEnd = selectionEnd + marker.length
+      const newText = text.slice(0, removeStart) + selectedText + text.slice(removeEnd)
+      return {
+        text: newText,
+        selectionStart: removeStart,
+        selectionEnd: removeEnd - marker.length * 2,
       }
     }
   }
