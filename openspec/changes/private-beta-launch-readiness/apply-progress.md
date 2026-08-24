@@ -23,27 +23,27 @@
 
 ### Verification evidence
 
-- `SMP_DB_TEST_PASSWORD=test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingWorkerTest' --tests 'com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingSchedulingConfigurationTest' --tests 'com.profiletailors.smp.publishing.application.PublishingHandlersTest' --tests 'com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublishingRepositoriesUnitTest' --tests 'com.profiletailors.smp.platformadmin.infrastructure.http.PublishingStaleJobsControllerTest' --tests 'com.profiletailors.smp.publishing.integration.PublishingQueueIntegrationTest' --no-daemon` — passed.
-- `SMP_DB_TEST_PASSWORD=test ./gradlew :server:smp:postgresIntegrationTest --tests 'com.profiletailors.smp.publishing.integration.PublishingWorkerTransactionPostgresIntegrationTest' --tests 'com.profiletailors.smp.publishing.integration.PublishingQueuePostgresIntegrationTest' --no-daemon` — passed.
-- `SMP_DB_TEST_PASSWORD=test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.persistence.PublishingClaimFencingLiquibaseChangelogTest' --no-daemon` — passed.
-- `SMP_DB_TEST_PASSWORD=test just backend-bdd-fast` — passed.
+- `./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingWorkerTest' --tests 'com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingSchedulingConfigurationTest' --tests 'com.profiletailors.smp.publishing.application.PublishingHandlersTest' --tests 'com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublishingRepositoriesUnitTest' --tests 'com.profiletailors.smp.platformadmin.infrastructure.http.PublishingStaleJobsControllerTest' --tests 'com.profiletailors.smp.publishing.integration.PublishingQueueIntegrationTest' --no-daemon` — passed.
+- `./gradlew :server:smp:postgresIntegrationTest --tests 'com.profiletailors.smp.publishing.integration.PublishingWorkerTransactionPostgresIntegrationTest' --tests 'com.profiletailors.smp.publishing.integration.PublishingQueuePostgresIntegrationTest' --no-daemon` — passed.
+- `./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.persistence.PublishingClaimFencingLiquibaseChangelogTest' --no-daemon` — passed.
+- `just backend-bdd-fast` — passed.
 - `just backend-bdd-postgres` — passed.
 - `just backend-test-fast` — passed.
-- `SMP_DB_TEST_PASSWORD=test just backend-check` — passed.
+- `just backend-check` — passed.
 - `just backend-build` — passed.
 - `just backend-lint` — passed.
 - `git diff --check` — passed.
 - `:server:smp:spotlessKotlinCheck` — passed after applying the repository formatter.
-- `SMP_DB_TEST_PASSWORD=test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingWorkerTest' --no-daemon` — passed (42 tests).
-- `SMP_DB_TEST_PASSWORD=test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublishingRepositoriesUnitTest' --no-daemon` — passed.
+- `./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingWorkerTest' --no-daemon` — passed (42 tests).
+- `./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublishingRepositoriesUnitTest' --no-daemon` — passed.
 - RED evidence: the first focused run completed 155 tests with 4 expected failures in the new list-safety, stale-reclaim, unknown-exception, and upload-redaction regressions.
-- `SMP_DB_TEST_PASSWORD=test ./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingWorkerTest' --tests 'com.profiletailors.smp.publishing.application.PublishingHandlersTest' --tests 'com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublishingRepositoriesUnitTest' --tests 'com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingAdaptersTest' --no-daemon` — passed after the red regressions and minimal fixes (203 tests).
-- `SMP_DB_TEST_PASSWORD=test ./gradlew :server:smp:postgresIntegrationTest --tests 'com.profiletailors.smp.publishing.integration.PublishingWorkerTransactionPostgresIntegrationTest' --tests 'com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublishingRepositoriesTest' --no-daemon` — passed after stale-reclaim fencing fixes.
-- `SMP_DB_TEST_PASSWORD=test just backend-bdd-fast` — passed after the publishing corrections.
-- `SMP_DB_TEST_PASSWORD=test just backend-check` — passed after Spotless/Detekt refactoring; includes SMP unit and PostgreSQL integration gates.
-- `SMP_DB_TEST_PASSWORD=test just backend-build` — passed, including `bootJar`, both BDD lanes, checks, tests, and Kover verification.
+- `./gradlew :server:smp:test --tests 'com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingWorkerTest' --tests 'com.profiletailors.smp.publishing.application.PublishingHandlersTest' --tests 'com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublishingRepositoriesUnitTest' --tests 'com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingAdaptersTest' --no-daemon` — passed after the red regressions and minimal fixes (203 tests).
+- `./gradlew :server:smp:postgresIntegrationTest --tests 'com.profiletailors.smp.publishing.integration.PublishingWorkerTransactionPostgresIntegrationTest' --tests 'com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublishingRepositoriesTest' --no-daemon` — passed after stale-reclaim fencing fixes.
+- `just backend-bdd-fast` — passed after the publishing corrections.
+- `just backend-check` — passed after Spotless/Detekt refactoring; includes SMP unit and PostgreSQL integration gates.
+- `just backend-build` — passed, including `bootJar`, both BDD lanes, checks, tests, and Kover verification.
 - `just backend-lint` — passed.
-- `SMP_DB_TEST_PASSWORD=test ./gradlew :server:smp:koverXmlReport --no-daemon` — passed; ran SMP unit, fast BDD, Postgres BDD, and Postgres integration tasks. A local changed-production-line comparison reports 334/336 covered (99.40%); this is local evidence, not Codecov evidence.
+- `./gradlew :server:smp:koverXmlReport --no-daemon` — passed; ran SMP unit, fast BDD, Postgres BDD, and Postgres integration tasks. A local changed-production-line comparison reports 334/336 covered (99.40%); this is local evidence, not Codecov evidence.
 - `git diff --check` — passed after the coverage follow-up.
 - `:server:smp:detekt` — passed after the coverage follow-up.
 - `com.profiletailors.smp.ModularStructureTest` — passed after moving the admin HTTP adapter into `platformadmin.infrastructure.http`.
