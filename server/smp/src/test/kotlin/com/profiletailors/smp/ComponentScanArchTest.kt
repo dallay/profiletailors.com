@@ -108,7 +108,7 @@ internal class ComponentScanArchTest {
     }
 
     @Test
-    fun controllersShouldNotDependOnRepositoryPorts() {
+    fun `should reject repository-port dependencies when HTTP infrastructure depends on them`() {
         val predicate = object : DescribedPredicate<JavaClass>(
             "a *Repository in the application layer",
         ) {

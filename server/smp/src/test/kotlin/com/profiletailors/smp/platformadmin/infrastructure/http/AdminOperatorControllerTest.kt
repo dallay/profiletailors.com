@@ -54,7 +54,7 @@ class AdminOperatorControllerTest {
     }
 
     @Test
-    fun `listOperators groups active assignments by principal`() {
+    fun `listOperators forwards already-grouped summaries in response`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
         coEvery { operatorQuery.listAllActive() } returns listOf(
             AdminOperatorSummary(

@@ -20,7 +20,6 @@ private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(i
  * 3) Upsert/mark blob READY.
  * 4) Update the asset with file_hash and canonical storage_key.
  */
-@Service
 class MediaAssetBackfillJob(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,

@@ -25,7 +25,6 @@ import java.time.Instant
  *
  * Blobs with `gc_failure_count >= 5` are skipped — they require manual intervention.
  */
-@Service
 class BlobGarbageCollector(
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val mediaAssetRepository: MediaAssetRepository,

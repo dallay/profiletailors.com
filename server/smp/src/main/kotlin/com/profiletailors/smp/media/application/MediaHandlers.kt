@@ -205,7 +205,6 @@ class CreateUploadedAssetHandler(
 }
 
 @Suppress("TooManyFunctions")
-@Service
 class UploadAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
@@ -970,7 +969,6 @@ class PutAssetHandler(
     }
 }
 
-@Service
 class CasUploadAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
