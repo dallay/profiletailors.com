@@ -23,7 +23,7 @@ class SpringJwtClaimsMapper {
 
         return JwtTokenClaims(
             tokenValue = token.tokenValue,
-            subject = token.subject,
+            subject = token.subject ?: throw IllegalArgumentException("JWT missing 'sub' claim"),
             issuer = token.issuer?.toString() ?: throw IllegalArgumentException("JWT missing 'iss' claim"),
             audience = token.audience?.toSet() ?: emptySet(),
             issuedAt = token.issuedAt,
