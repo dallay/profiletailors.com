@@ -2,10 +2,10 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminInvitationQuery
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
-import com.profiletailors.smp.platformadmin.application.ports.AdminInvitationQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions

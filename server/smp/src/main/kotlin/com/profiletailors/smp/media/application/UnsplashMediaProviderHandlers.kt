@@ -36,7 +36,7 @@ class SearchUnsplashPhotosHandler(private val provider: UnsplashPhotoProvider) :
 class MediaImportService(
     private val provider: UnsplashPhotoProvider,
     private val mediaAssetRepository: MediaAssetRepository,
-    private val storagePort: MediaStoragePort,
+    private val storage: MediaStorage,
     private val settings: UnsplashImportSettings,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
@@ -65,7 +65,7 @@ class MediaImportService(
         }
 
         val asset = try {
-            storagePort.upload(
+            storage.upload(
                 bucket = settings.storageBucket,
                 key = storageKey,
                 content = guardedContent,
@@ -136,7 +136,7 @@ class MediaImportService(
      */
     private suspend fun cleanupStorage(storageKey: String) {
         runCatching {
-            storagePort.delete(
+            storage.delete(
                 bucket = settings.storageBucket,
                 key = storageKey,
                 deleterId = "unsplash-import",

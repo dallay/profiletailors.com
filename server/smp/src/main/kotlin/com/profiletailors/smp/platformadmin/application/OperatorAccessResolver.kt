@@ -2,7 +2,7 @@ package com.profiletailors.smp.platformadmin.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.context.PrincipalContext
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import java.util.UUID
 

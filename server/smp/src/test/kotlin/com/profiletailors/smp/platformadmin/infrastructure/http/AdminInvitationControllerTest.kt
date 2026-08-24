@@ -6,10 +6,10 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminInvitationQuery
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
-import com.profiletailors.smp.platformadmin.application.ports.AdminInvitationQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import io.mockk.coEvery
 import io.mockk.coVerify

@@ -1,6 +1,6 @@
 package com.profiletailors.smp.media.infrastructure.http
 
-import com.profiletailors.smp.media.application.MediaAssetPreviewPort
+import com.profiletailors.smp.media.application.MediaAssetPreview
 import com.profiletailors.smp.media.application.MediaPreviewTokenService
 import com.profiletailors.smp.media.application.MediaUploadSettings
 import com.profiletailors.smp.media.domain.MediaAsset
@@ -172,14 +172,14 @@ class MediaAssetPreviewControllerTest {
     }
 
     private fun controller(asset: MediaAsset?): MediaAssetPreviewController {
-        val previewPort = object : MediaAssetPreviewPort {
+        val previewPort = object : MediaAssetPreview {
             override suspend fun findAsset(workspaceId: String, assetId: String): MediaAsset? = asset
             override fun download(bucket: String, key: String, downloaderId: String): Flow<ByteArray> =
                 flowOf("preview".toByteArray())
         }
 
         return MediaAssetPreviewController(
-            mediaAssetPreviewPort = previewPort,
+            mediaAssetPreview = previewPort,
             mediaPreviewTokenService = tokenService,
             mediaUploadSettings = uploadSettings,
         )

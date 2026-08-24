@@ -5,10 +5,10 @@ import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
 import com.profiletailors.smp.identity.application.PasswordResetNotificationFailure
-import com.profiletailors.smp.identity.application.PasswordResetNotificationFailurePort
+import com.profiletailors.smp.identity.application.PasswordResetNotificationFailureRecorder
 import com.profiletailors.smp.identity.application.PasswordResetNotificationStatus
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetry
-import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryPort
+import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryRecorder
 import com.profiletailors.smp.identity.domain.PasswordResetRequested
 import com.profiletailors.smp.identity.infrastructure.PasswordRecoveryConfigurationProperties
 import io.kotest.assertions.throwables.shouldThrow
@@ -132,7 +132,7 @@ class SendPasswordResetEmailConsumerTest {
             sender = SequencedEmailSender(
                 EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED),
             ),
-            failures = ThrowingFailurePort(
+            failures = ThrowingFailureRecorder(
                 org.springframework.dao.DataAccessResourceFailureException("store unavailable"),
             ),
             telemetry = telemetry,
@@ -149,7 +149,7 @@ class SendPasswordResetEmailConsumerTest {
             sender = SequencedEmailSender(
                 EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED),
             ),
-            failures = ThrowingFailurePort(IllegalStateException("programming error")),
+            failures = ThrowingFailureRecorder(IllegalStateException("programming error")),
         )
 
         shouldThrow<IllegalStateException> { consumer.consume(passwordResetRequested()) }
@@ -162,7 +162,7 @@ class SendPasswordResetEmailConsumerTest {
             sender = SequencedEmailSender(
                 EmailSendResult.permanentFailure(EmailFailureCategory.PROVIDER_REJECTED),
             ),
-            failures = ThrowingFailurePort(CancellationException("cancelled")),
+            failures = ThrowingFailureRecorder(CancellationException("cancelled")),
             telemetry = telemetry,
         )
 
@@ -238,16 +238,16 @@ class SendPasswordResetEmailConsumerTest {
         retry: PasswordRecoveryConfigurationProperties.NotificationRetry =
             PasswordRecoveryConfigurationProperties.NotificationRetry(),
         delay: PasswordResetRetryDelay = RecordingRetryDelay(),
-        failures: PasswordResetNotificationFailurePort = RecordingFailurePort(),
-        telemetry: PasswordResetNotificationTelemetryPort = RecordingTelemetryPort(),
+        failures: PasswordResetNotificationFailureRecorder = RecordingFailurePort(),
+        telemetry: PasswordResetNotificationTelemetryRecorder = RecordingTelemetryPort(),
     ) = SendPasswordResetEmailConsumer(
         emailSender = sender,
         emailProperties = EmailProperties(publicAppUrl = "https://app.example.com"),
         taskExecutor = ImmediateTaskExecutor,
         retryPolicy = retry,
         retryDelay = delay,
-        failurePort = failures,
-        telemetryPort = telemetry,
+        failureRecorder = failures,
+        telemetryRecorder = telemetry,
         clock = java.time.Clock.fixed(Instant.EPOCH, java.time.ZoneOffset.UTC),
     )
 
@@ -298,18 +298,19 @@ class SendPasswordResetEmailConsumerTest {
         }
     }
 
-    private class RecordingFailurePort : PasswordResetNotificationFailurePort {
+    private class RecordingFailurePort : PasswordResetNotificationFailureRecorder {
         val records = mutableListOf<PasswordResetNotificationFailure>()
         override suspend fun record(failure: PasswordResetNotificationFailure) {
             records += failure
         }
     }
 
-    private class ThrowingFailurePort(private val failure: RuntimeException) : PasswordResetNotificationFailurePort {
+    private class ThrowingFailureRecorder(private val failure: RuntimeException) :
+        PasswordResetNotificationFailureRecorder {
         override suspend fun record(failure: PasswordResetNotificationFailure): Unit = throw this.failure
     }
 
-    private class RecordingTelemetryPort : PasswordResetNotificationTelemetryPort {
+    private class RecordingTelemetryPort : PasswordResetNotificationTelemetryRecorder {
         val events = mutableListOf<PasswordResetNotificationTelemetry>()
         override fun record(event: PasswordResetNotificationTelemetry) {
             events += event

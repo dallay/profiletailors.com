@@ -2,8 +2,8 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.model.AdminDashboardSummary
-import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
 import org.springframework.http.HttpStatus

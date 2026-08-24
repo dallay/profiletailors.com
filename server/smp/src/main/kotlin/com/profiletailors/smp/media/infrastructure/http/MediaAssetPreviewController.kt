@@ -1,7 +1,7 @@
 package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.smp.media.application.AssetNotFoundException
-import com.profiletailors.smp.media.application.MediaAssetPreviewPort
+import com.profiletailors.smp.media.application.MediaAssetPreview
 import com.profiletailors.smp.media.application.MediaPreviewTokenService
 import com.profiletailors.smp.media.application.MediaUploadSettings
 import com.profiletailors.smp.media.domain.MediaAssetStatus
@@ -26,7 +26,7 @@ import java.time.Duration
 @RequestMapping(value = ["/api/media/assets"])
 @Tag(name = "Media Preview", description = "Signed public preview URLs for media assets")
 class MediaAssetPreviewController(
-    private val mediaAssetPreviewPort: MediaAssetPreviewPort,
+    private val mediaAssetPreview: MediaAssetPreview,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
     private val mediaUploadSettings: MediaUploadSettings,
 ) {
@@ -106,7 +106,7 @@ class MediaAssetPreviewController(
         expiresAt: Long,
         signature: String,
     ) = if (mediaPreviewTokenService.isValid(assetId, workspaceId, expiresAt, signature)) {
-        mediaAssetPreviewPort.findAsset(workspaceId, assetId)
+        mediaAssetPreview.findAsset(workspaceId, assetId)
             ?: throw AssetNotFoundException(assetId)
     } else {
         null
@@ -118,7 +118,7 @@ class MediaAssetPreviewController(
         status == MediaAssetStatus.READY && mediaType.startsWith("image/", ignoreCase = true)
 
     private suspend fun downloadBody(assetId: String, storageKey: String, purpose: String): Flux<DataBuffer> =
-        mediaAssetPreviewPort
+        mediaAssetPreview
             .download(
                 bucket = mediaUploadSettings.storageBucket,
                 key = storageKey,

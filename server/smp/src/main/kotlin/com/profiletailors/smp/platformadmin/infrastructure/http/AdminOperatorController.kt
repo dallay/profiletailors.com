@@ -2,10 +2,10 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminOperatorQuery
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminOperatorSummary
-import com.profiletailors.smp.platformadmin.application.ports.AdminOperatorQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole

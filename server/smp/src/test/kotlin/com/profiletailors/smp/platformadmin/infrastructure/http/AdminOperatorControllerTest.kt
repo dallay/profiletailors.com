@@ -6,10 +6,10 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminOperatorQuery
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminOperatorSummary
-import com.profiletailors.smp.platformadmin.application.ports.AdminOperatorQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import io.mockk.coEvery
 import io.mockk.coVerify

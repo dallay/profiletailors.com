@@ -31,7 +31,7 @@ import java.time.Instant
 internal class ApproveTakedownHandlerTest {
 
     private val repository: TakedownReportRepository = mockk()
-    private val mediaAssetStatusPort: MediaAssetStatusPort = mockk()
+    private val mediaAssetStatus: MediaAssetStatusUpdater = mockk()
     private val resourceContextProvider: ResourceContextProvider = mockk()
     private val principalContextProvider: com.profiletailors.common.domain.context.PrincipalContextProvider = mockk()
     private val authorizationDecider: WorkspaceAuthorizationDecider = mockk()
@@ -41,7 +41,7 @@ internal class ApproveTakedownHandlerTest {
     private val authorizationService = GovernanceAuthorizationService(authorizationDecider)
     private val handler = ApproveTakedownHandler(
         repository = repository,
-        mediaAssetStatusPort = mediaAssetStatusPort,
+        mediaAssetStatus = mediaAssetStatus,
         resourceContextProvider = resourceContextProvider,
         principalContextProvider = principalContextProvider,
         authorizationService = authorizationService,
@@ -77,7 +77,7 @@ internal class ApproveTakedownHandlerTest {
             )
         coEvery { repository.findById("ws-001", "report-001") } returns report
         coEvery { repository.save(any()) } answers { firstArg() }
-        coEvery { mediaAssetStatusPort.updateAssetStatus(any()) } returns Unit
+        coEvery { mediaAssetStatus.updateAssetStatus(any()) } returns Unit
         coEvery { auditHook.onMutation(any()) } returns Unit
         coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
@@ -87,7 +87,7 @@ internal class ApproveTakedownHandlerTest {
         result.reviewedById shouldBe "reviewer-001"
 
         coVerify {
-            mediaAssetStatusPort.updateAssetStatus(
+            mediaAssetStatus.updateAssetStatus(
                 match { update: AssetStatusUpdate ->
                     update.workspaceId == "ws-001" &&
                         update.assetId == "asset-001" &&

@@ -283,7 +283,7 @@ interface MediaRateLimitRepository {
  * Defined in the application layer so that [ImportUnsplashPhotoHandler] depends only
  * on this interface, not on the concrete [com.profiletailors.storage.application.StorageApplicationService].
  */
-interface MediaStoragePort {
+interface MediaStorage {
     suspend fun upload(
         bucket: String,
         key: String,

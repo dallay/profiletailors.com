@@ -35,7 +35,7 @@ class PasswordRecoveryBddSteps {
     private lateinit var recordingEmailSender: RecordingEmailSender
 
     @Autowired
-    private lateinit var rateLimitPort: com.profiletailors.smp.identity.application.RateLimitPort
+    private lateinit var rateLimit: com.profiletailors.smp.identity.application.RateLimit
 
     @Autowired
     private lateinit var authRateLimitWebFilter:
@@ -52,10 +52,10 @@ class PasswordRecoveryBddSteps {
         com.profiletailors.smp.identity.infrastructure.PasswordResetTokenCleanupScheduler
 
     @Autowired
-    private lateinit var passwordResetFailurePort: RecordingPasswordResetFailurePort
+    private lateinit var passwordResetFailureRecorder: RecordingPasswordResetFailureRecorder
 
     @Autowired
-    private lateinit var passwordResetTelemetryPort: RecordingPasswordResetTelemetryPort
+    private lateinit var passwordResetTelemetryRecorder: RecordingPasswordResetTelemetryRecorder
 
     @Autowired
     private lateinit var meterRegistry: MeterRegistry
@@ -124,9 +124,9 @@ class PasswordRecoveryBddSteps {
         forgotPasswordStatuses.clear()
         resetPasswordStatuses.clear()
         recordingEmailSender.reset()
-        passwordResetFailurePort.reset()
-        passwordResetTelemetryPort.reset()
-        (rateLimitPort as? com.profiletailors.smp.identity.infrastructure.InMemoryRateLimitAdapter)?.clear()
+        passwordResetFailureRecorder.reset()
+        passwordResetTelemetryRecorder.reset()
+        (rateLimit as? com.profiletailors.smp.identity.infrastructure.InMemoryRateLimit)?.clear()
         authRateLimitWebFilter.clear()
         passwordRecoveryFlag.enable()
         auditHook.reset()
@@ -1063,7 +1063,7 @@ class PasswordRecoveryBddSteps {
     fun theNotificationShouldBeMarkedAsFailed() {
         awaitPasswordResetEmail()
         assertEquals(3, recordingEmailSender.attempts)
-        assertEquals(3, passwordResetFailurePort.records.single().attempts)
+        assertEquals(3, passwordResetFailureRecorder.records.single().attempts)
     }
 
     /**
@@ -1072,7 +1072,7 @@ class PasswordRecoveryBddSteps {
     @And("operational telemetry should record the failure")
     fun operationalTelemetryShouldRecordTheFailure() {
         assertTrue(
-            passwordResetTelemetryPort.events.any {
+            passwordResetTelemetryRecorder.events.any {
                 it.status == com.profiletailors.smp.identity.application.PasswordResetNotificationStatus.FAILED
             },
         )
@@ -1092,7 +1092,7 @@ class PasswordRecoveryBddSteps {
     @Then("telemetry may include the notification type")
     fun telemetryMayIncludeTheNotificationType() {
         awaitPasswordResetEmail()
-        assertTrue(passwordResetTelemetryPort.events.all { it.notificationType == "PASSWORD_RESET" })
+        assertTrue(passwordResetTelemetryRecorder.events.all { it.notificationType == "PASSWORD_RESET" })
     }
 
     /**
@@ -1100,7 +1100,7 @@ class PasswordRecoveryBddSteps {
      */
     @And("telemetry may include delivery status")
     fun telemetryMayIncludeDeliveryStatus() {
-        assertTrue(passwordResetTelemetryPort.events.isNotEmpty())
+        assertTrue(passwordResetTelemetryRecorder.events.isNotEmpty())
     }
 
     /**
@@ -1332,7 +1332,7 @@ class PasswordRecoveryBddSteps {
     @And("authentication rate limiting is enabled")
     fun authenticationRateLimitingIsEnabled() {
         assertEquals(400, executeResetPassword("invalid-token", "NewPassword123!").status.value())
-        (rateLimitPort as? com.profiletailors.smp.identity.infrastructure.InMemoryRateLimitAdapter)?.clear()
+        (rateLimit as? com.profiletailors.smp.identity.infrastructure.InMemoryRateLimit)?.clear()
         authRateLimitWebFilter.clear()
     }
 
@@ -1539,8 +1539,8 @@ class PasswordRecoveryBddSteps {
      * Verifies that notification failure records and telemetry do not contain sensitive password-reset data.
      */
     private fun assertSafeNotificationOperations() {
-        val failureSerialized = passwordResetFailurePort.records.toString()
-        val telemetrySerialized = passwordResetTelemetryPort.events.toString()
+        val failureSerialized = passwordResetFailureRecorder.records.toString()
+        val telemetrySerialized = passwordResetTelemetryRecorder.events.toString()
         val logSerialized = logAppender.list.joinToString("\n") { it.formattedMessage }
         val sentinels = listOf(
             "bdd-sensitive-raw-token",

@@ -6,14 +6,14 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistQueryTelemetry
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntryDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntrySummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
-import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistQueryTelemetryPort
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -35,7 +35,7 @@ class AdminWaitlistControllerTest {
     private val inviteHandler = mockk<InviteWaitlistEntryHandler>(relaxed = true)
     private val cancelHandler = mockk<CancelWaitlistEntryHandler>(relaxed = true)
     private val operatorAccessResolver = mockk<OperatorAccessResolver>()
-    private val waitlistQueryTelemetry = mockk<WaitlistQueryTelemetryPort>(relaxed = true)
+    private val waitlistQueryTelemetry = mockk<WaitlistQueryTelemetry>(relaxed = true)
 
     @Test
     fun `listEntries returns 401 without principal context`() {

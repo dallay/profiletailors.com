@@ -1,8 +1,8 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
+import com.profiletailors.smp.platformadmin.application.contracts.AdminOperatorQuery
+import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.model.AdminOperatorSummary
-import com.profiletailors.smp.platformadmin.application.ports.AdminOperatorQuery
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import org.springframework.stereotype.Repository
 
 @Repository

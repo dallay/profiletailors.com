@@ -1,17 +1,13 @@
 package com.profiletailors.smp.hashtags.infrastructure.analysis
 
 import com.profiletailors.smp.hashtags.domain.HashtagAnalysis
-import com.profiletailors.smp.hashtags.domain.HashtagAnalysisPort
+import com.profiletailors.smp.hashtags.domain.HashtagAnalyzer
 import com.profiletailors.smp.hashtags.domain.HashtagPopularity
 import com.profiletailors.smp.hashtags.domain.HashtagSuggestion
 import org.springframework.stereotype.Service
 
-/**
- * Topic-to-hashtag mapping for local, dependency-free analysis.
- * Replace or extend this adapter when an external AI service is integrated.
- */
 @Service
-internal class LocalHashtagAnalysisService : HashtagAnalysisPort {
+internal class LocalHashtagAnalysisService : HashtagAnalyzer {
 
     override suspend fun analyze(content: String): HashtagAnalysis {
         val topics = extractTopics(content)

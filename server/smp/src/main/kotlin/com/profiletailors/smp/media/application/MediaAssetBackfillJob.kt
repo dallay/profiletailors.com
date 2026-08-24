@@ -24,7 +24,7 @@ private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(i
 class MediaAssetBackfillJob(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
-    private val storagePort: MediaStoragePort,
+    private val storage: MediaStorage,
     private val uploadSettings: MediaUploadSettings,
     private val transactionRunner: AtomicTransactionRunner,
 ) {
@@ -81,7 +81,7 @@ class MediaAssetBackfillJob(
             val canonicalKey = MediaStorageKeys.canonicalKey(asset.workspaceId, fileHash, detectedMediaType)
 
             if (canonicalKey != currentStorageKey) {
-                storagePort.copyObject(
+                storage.copyObject(
                     bucket = uploadSettings.storageBucket,
                     sourceKey = currentStorageKey,
                     destKey = canonicalKey,
@@ -123,7 +123,7 @@ class MediaAssetBackfillJob(
         val digest = MessageDigest.getInstance("SHA-256")
         var size = 0L
 
-        storagePort.download(
+        storage.download(
             bucket = uploadSettings.storageBucket,
             key = storageKey,
             downloaderId = "media-backfill:$workspaceId",

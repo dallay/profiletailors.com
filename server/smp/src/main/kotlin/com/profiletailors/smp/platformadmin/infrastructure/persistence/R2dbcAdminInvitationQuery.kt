@@ -1,8 +1,8 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
+import com.profiletailors.smp.platformadmin.application.contracts.AdminInvitationQuery
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
-import com.profiletailors.smp.platformadmin.application.ports.AdminInvitationQuery
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId
 import org.springframework.stereotype.Repository
 import java.util.UUID

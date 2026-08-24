@@ -56,7 +56,7 @@ class PasswordResetRequestTransactionPostgresIntegrationTest : PostgresDatabaseT
             ),
             transactionRunner = transactionRunner,
             eventPublisher = publisher,
-            rateLimitPort = com.profiletailors.smp.identity.infrastructure.InMemoryRateLimitAdapter(),
+            rateLimit = com.profiletailors.smp.identity.infrastructure.InMemoryRateLimit(),
             clock = Clock.fixed(now, ZoneOffset.UTC),
             passwordRecoveryEnabled = { true },
         )

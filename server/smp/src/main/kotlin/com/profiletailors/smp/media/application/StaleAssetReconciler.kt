@@ -29,7 +29,7 @@ import java.time.Instant
 class BlobGarbageCollector(
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val mediaAssetRepository: MediaAssetRepository,
-    private val storagePort: MediaStoragePort,
+    private val storage: MediaStorage,
     private val reconcilerSettings: MediaReconcilerSettings,
 ) {
     private val logger = LoggerFactory.getLogger(BlobGarbageCollector::class.java)
@@ -102,7 +102,7 @@ class BlobGarbageCollector(
 
         return try {
             withTimeout(GC_LOCK_TIMEOUT_MILLIS) {
-                storagePort.delete(
+                storage.delete(
                     bucket = reconcilerSettings.storageBucket,
                     key = storageKey,
                     deleterId = "blob-gc",

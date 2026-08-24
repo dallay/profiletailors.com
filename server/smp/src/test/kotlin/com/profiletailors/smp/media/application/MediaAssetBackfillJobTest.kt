@@ -296,7 +296,7 @@ class MediaAssetBackfillJobTest {
         blobs: BackfillInMemoryWorkspaceFileBlobRepository,
         storage: BackfillInMemoryFakeStorage,
     ): MediaAssetBackfillJob {
-        val storagePort = object : MediaStoragePort {
+        val storage = object : MediaStorage {
             override suspend fun upload(
                 bucket: String,
                 key: String,
@@ -315,7 +315,7 @@ class MediaAssetBackfillJobTest {
         return MediaAssetBackfillJob(
             mediaAssetRepository = media,
             workspaceFileBlobRepository = blobs,
-            storagePort = storagePort,
+            storage = storage,
             uploadSettings = MediaUploadSettings(5, 200, "bucket"),
             transactionRunner = BackfillNoopAtomicTransactionRunner,
         )

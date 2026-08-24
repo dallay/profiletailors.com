@@ -1060,7 +1060,7 @@ private class FakeStorage : Storage {
     val uploaded = linkedMapOf<String, List<ByteArray>>()
     val deletedKeys = mutableListOf<String>()
     val copies = mutableListOf<Pair<String, String>>()
-    fun port(): MediaStoragePort = object : MediaStoragePort {
+    fun port(): MediaStorage = object : MediaStorage {
         override suspend fun upload(
             bucket: String,
             key: String,
