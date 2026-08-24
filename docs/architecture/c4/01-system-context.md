@@ -108,7 +108,7 @@ graph TB
 ### People
 
 | Name                   | Description                                                              | Responsibilities                                                                 |
-| ---------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+|------------------------|--------------------------------------------------------------------------|----------------------------------------------------------------------------------|
 | **Content Creator**    | Individual or team member who creates and schedules social media content | Create posts, schedule publishing, manage content calendar, engage with audience |
 | **Team Administrator** | Manages team members, workspaces, and permissions                        | Invite team members, assign roles, configure workspace settings, manage billing  |
 | **Analyst**            | Reviews analytics and engagement metrics                                 | View reports, analyze performance, export data, track KPIs                       |
@@ -116,7 +116,7 @@ graph TB
 ### Software Systems
 
 | Name                    | Type     | Description                                                                                                               | Technology                              |
-| ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+|-------------------------|----------|---------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
 | **Profile Tailors**     | Internal | Social media management platform for scheduling, publishing, analyzing, and collaborating across multiple social networks | Spring Boot 4, Kotlin, WebFlux, Astro 7 |
 | **Twitter/X API**       | External | Social media platform for posting and engagement                                                                          | REST API                                |
 | **LinkedIn API**        | External | Professional networking platform                                                                                          | REST API                                |
@@ -155,12 +155,12 @@ graph TB
 Profile Tailors enables teams to:
 
 1. **Schedule smarter** — Plan and schedule content across multiple platforms from a single
-  interface
+   interface
 2. **Post everywhere** — Publish to Twitter, LinkedIn, Instagram, Facebook, and TikTok
-  simultaneously
+   simultaneously
 3. **Analyze performance** — Track engagement metrics and optimize content strategy
 4. **Collaborate effectively** — Coordinate team workflows with roles, permissions, and approval
-  flows
+   flows
 
 ### Key Constraints
 

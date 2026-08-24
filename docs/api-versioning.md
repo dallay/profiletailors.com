@@ -169,5 +169,5 @@ class LocalAuthController {
 ## References
 
 - [Spring Boot 4 API Versioning Documentation](https://docs.spring.io/spring-boot/reference/web/reactive.html#web.reactive.webflux.api-versioning)
-- [RFC 6838 - Media Type Specifications](https://tools.ietf.org/html/rfc6838)
+- [RFC 6838 - Media Type Specifications](https://www.rfc-editor.org/rfc/rfc6838.html)
 - [REST API Versioning Best Practices](https://restfulapi.net/versioning/)

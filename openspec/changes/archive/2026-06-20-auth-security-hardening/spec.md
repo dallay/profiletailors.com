@@ -2,9 +2,8 @@
 
 ## Purpose
 
-Allow users with unverified emails (PENDING) to authenticate and create sessions, while establishing
-a feature-level email verification policy for protected operations. Also introduce design contracts
-for future Argon2id password hashing migration.
+Allow users with unverified emails (PENDING) to authenticate and create sessions while enforcing a
+feature-level email verification policy for protected operations.
 
 ## ADDED Requirements
 
@@ -87,47 +86,6 @@ The problem detail SHALL include:
 - AND the problem detail SHALL include
   `type: "https://api.profiletailors.com/errors/email-verification-required"`
 
-### Requirement: EmailVerificationPolicy Interface (Design Only)
-
-The system SHOULD define an `EmailVerificationPolicy` interface in `identity/application`.
-
-The interface SHALL declare: `requiresVerification(feature: AuthFeature): Boolean`
-The interface SHALL define an enum `AuthFeature` with values: `PUBLISH_CONTENT`, `INVITE_TEAM`,
-`CONNECT_SOCIAL`, `ACCESS_BILLING`, and future extensibility.
-The default implementation SHALL return `true` for all features (all features require VERIFIED
-status).
-
-This requirement is DESIGN ONLY. Implementation is deferred.
-
-#### Scenario: EmailVerificationPolicy interface design
-
-- GIVEN the design specifies EmailVerificationPolicy in identity/application
-- WHEN the design is reviewed
-- THEN the interface SHALL declare `requiresVerification(feature: AuthFeature): Boolean`
-- AND the AuthFeature enum SHALL include PUBLISH_CONTENT, INVITE_TEAM, CONNECT_SOCIAL,
-  ACCESS_BILLING
-- AND a default implementation SHALL specify all features require verification
-
-### Requirement: Argon2id Password Hashing Interface (Design Only)
-
-The system SHOULD extend the `PasswordHasher` interface to support algorithm identification.
-
-The interface SHALL get a new property: `algorithm: String`
-The BCrypt implementation SHALL return `algorithm = "bcrypt"`
-A future Argon2id implementation SHALL return `algorithm = "argon2id"`
-The migration strategy SHALL specify rehash on login if BCrypt hash is detected.
-
-This requirement is DESIGN ONLY. Implementation is deferred.
-
-#### Scenario: PasswordHasher interface extended for algorithm property
-
-- GIVEN the design extends PasswordHasher interface
-- WHEN the design is reviewed
-- THEN the interface SHALL declare `algorithm: String` property
-- AND BCrypt implementation SHALL return `algorithm = "bcrypt"`
-- AND future Argon2id implementation SHALL return `algorithm = "argon2id"`
-- AND migration strategy SHALL specify rehash on login for BCrypt hashes
-
 ## MODIFIED Requirements
 
 ### Requirement: JWT-First Identity Materialization for Phase One
@@ -197,13 +155,11 @@ The system MUST reject refresh attempts for users with `email_status = UNVERIFIE
 
 | Domain       | Type  | Requirements                   | Scenarios |
 |--------------|-------|--------------------------------|-----------|
-| identity     | Delta | 2 added, 2 modified, 2 removed | 7         |
+| identity     | Delta | 2 added, 2 modified, 2 removed | 6         |
 | registration | Delta | 1 modified                     | 2         |
-| credentials  | Delta | 1 added (design only)          | 1         |
 
 ## Coverage
 
 - Happy paths: Login for PENDING users, Refresh for PENDING users, Registration creates session ✓
 - Edge cases: Email status in JWT claims, Breaking change in registration response ✓
 - Error states: EMAIL_VERIFICATION_REQUIRED problem detail structure ✓
-- Design-only: EmailVerificationPolicy interface, Argon2id migration strategy ✓

@@ -30,10 +30,11 @@ Boot 4 / WebFlux, specifically:
 1. Resolved the library ID on Context7:
    `/spring-projects/spring-ai` (Spring AI reference docs, source `spring-projects/spring-ai`).
 2. Queried three reference pages:
-   - `mcp-stateless-server-boot-starter-docs.adoc`
-   - `mcp-annotations-server.adoc`
-   - `mcp-annotations-examples.adoc`
-3. Verified the artifact exists at GA on Maven Central: `spring-ai-starter-mcp-server-webflux:2.0.0`.
+    - `mcp-stateless-server-boot-starter-docs.adoc`
+    - `mcp-annotations-server.adoc`
+    - `mcp-annotations-examples.adoc`
+3. Verified the artifact exists at GA on Maven Central:
+   `spring-ai-starter-mcp-server-webflux:2.0.0`.
 
 ### 1.3 Findings
 
@@ -104,14 +105,14 @@ This is wired internally by the starter; no project-level override is needed.
 
 ### 1.4 Decision (frozen for PR 1 + PR 2)
 
-| Item | Decision |
-|------|----------|
+| Item           | Decision                                                                                                                                                |
+|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Annotation API | `@McpTool(name, description, title, generateOutputSchema)` + `@McpToolParam(description, required)` from `org.springframework.ai.mcp.server.annotation` |
-| Method shape | `suspend fun` for tool bodies; `@McpToolParam(required = false)` for optional inputs |
-| Transport | STATELESS Streamable HTTP via `spring-ai-starter-mcp-server-webflux` |
-| Endpoint | `/api/mcp` (canonical Spring AI 2.0 property `spring.ai.mcp.server.streamable-http.mcp-endpoint`) |
-| Feature flag | `spring.ai.mcp.server.enabled=${SMP_MCP_ENABLED:false}` — when `false`, the transport bean is excluded entirely |
-| BOM | `org.springframework.ai:spring-ai-bom:2.0.0` imported in `:server:smp` `dependencyManagement` |
+| Method shape   | `suspend fun` for tool bodies; `@McpToolParam(required = false)` for optional inputs                                                                    |
+| Transport      | STATELESS Streamable HTTP via `spring-ai-starter-mcp-server-webflux`                                                                                    |
+| Endpoint       | `/api/mcp` (canonical Spring AI 2.0 property `spring.ai.mcp.server.streamable-http.mcp-endpoint`)                                                       |
+| Feature flag   | `spring.ai.mcp.server.enabled=${SMP_MCP_ENABLED:false}` — when `false`, the transport bean is excluded entirely                                         |
+| BOM            | `org.springframework.ai:spring-ai-bom:2.0.0` imported in `:server:smp` `dependencyManagement`                                                           |
 
 PR 2 inherits this contract verbatim.
 
@@ -166,9 +167,9 @@ CIMD is **draft-ietf-oauth-client-id-metadata-document** (`-08` at the time of w
 It lets a client carry a URL in `client_id` so the authorization server fetches the
 client metadata instead of requiring pre-registration or DCR.
 
-| Keycloak version | CIMD support |
-|------------------|--------------|
-| 26.0             | Not supported |
+| Keycloak version | CIMD support                    |
+|------------------|---------------------------------|
+| 26.0             | Not supported                   |
 | 26.x LTS         | Not supported (no flag, no SPI) |
 
 Keycloak's roadmap publishes no CIMD work. The `-08` draft is also still evolving; pinning
@@ -180,11 +181,11 @@ clients is compliant.
 
 ### 2.5 Fallback decision (frozen for PR 2 + PR 3)
 
-| Onboarding path | Status |
-|-----------------|--------|
-| RFC 7591 DCR    | **Primary** — enabled in the realm; SPA documents `POST /clients-registrations/default` to MCP clients |
-| Pre-registered confidential clients | **Secondary** — used by trusted first-party clients (Claude Desktop, Cursor internal builds) |
-| CIMD            | **Defer** — revisit only if Keycloak publishes official support or a vendor extension lands |
+| Onboarding path                     | Status                                                                                                 |
+|-------------------------------------|--------------------------------------------------------------------------------------------------------|
+| RFC 7591 DCR                        | **Primary** — enabled in the realm; SPA documents `POST /clients-registrations/default` to MCP clients |
+| Pre-registered confidential clients | **Secondary** — used by trusted first-party clients (Claude Desktop, Cursor internal builds)           |
+| CIMD                                | **Defer** — revisit only if Keycloak publishes official support or a vendor extension lands            |
 
 > **No code changes in SMP are required for any of the three paths.** Keycloak owns
 > `/oauth2/register`, `/.well-known/openid-configuration`, and `client_id` resolution. SMP
@@ -218,10 +219,10 @@ URI.
 
 Keycloak 26 supports RFC 8707 **per-client**. The behaviour depends on the client config:
 
-| Client config | Behaviour on `resource=…/api/mcp` |
-|---------------|------------------------------------|
+| Client config                                    | Behaviour on `resource=…/api/mcp`                                   |
+|--------------------------------------------------|---------------------------------------------------------------------|
 | Client with `resource` constraint set to MCP URI | Token's `aud` is restricted to that URI; no extra audience is added |
-| Client with no `resource` constraint | `resource` is ignored; token keeps default `aud = <realm>` |
+| Client with no `resource` constraint             | `resource` is ignored; token keeps default `aud = <realm>`          |
 
 To enforce multi-audience tokens (e.g. audience = `[realm, mcp-uri]`), Keycloak must be
 configured with an **audience resolver** or the client must declare the MCP resource in
@@ -255,10 +256,10 @@ If multi-audience mapping is **not** wired in Keycloak, the access token's `aud`
 
 ### 3.6 Decision (frozen for PR 2)
 
-| Aspect | Decision |
-|--------|----------|
-| Multi-audience | **Recommended** — Keycloak audience mapper copies MCP URI into `aud`; SMP validator already handles it |
-| Single-audience fallback | Acceptable — clients set the MCP URI as the only `aud`; `workspace_id` is a separate claim |
+| Aspect                    | Decision                                                                                                                                                               |
+|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Multi-audience            | **Recommended** — Keycloak audience mapper copies MCP URI into `aud`; SMP validator already handles it                                                                 |
+| Single-audience fallback  | Acceptable — clients set the MCP URI as the only `aud`; `workspace_id` is a separate claim                                                                             |
 | Resource Server behaviour | `JwtAudienceValidator` checks that the configured `app.mcp.resource-uri` appears in `aud` (either as the sole entry or among many). Token is rejected (401) otherwise. |
 
 PR 2 implements the audience check in `McpJwtConverter` (T12).
@@ -274,11 +275,11 @@ that Keycloak does **not** natively model "current workspace" inside the user se
 
 ### 4.2 Options considered
 
-| Option | Description | Trade-off |
-|--------|-------------|-----------|
-| **A** | SPA resolves workspace → Profile Tailors signs `workspace_context` (JWS) → SPA sends JWS in `workspace_context` query param → Keycloak protocol mapper verifies JWS and copies `workspace_id` into the access token | Minimum Keycloak customization (no SPI), no theme work, single source of truth (Profile Tailors DB) |
-| B | Custom Keycloak authenticator renders a workspace selector inside the consent screen | Rich UX, but requires a Keycloak SPI extension and is a separate change |
-| C | Intermediate Authorization Server (a Profile Tailors service that issues tokens) | ❌ Explicitly rejected — SMP is a Resource Server only |
+| Option | Description                                                                                                                                                                                                         | Trade-off                                                                                           |
+|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| **A**  | SPA resolves workspace → Profile Tailors signs `workspace_context` (JWS) → SPA sends JWS in `workspace_context` query param → Keycloak protocol mapper verifies JWS and copies `workspace_id` into the access token | Minimum Keycloak customization (no SPI), no theme work, single source of truth (Profile Tailors DB) |
+| B      | Custom Keycloak authenticator renders a workspace selector inside the consent screen                                                                                                                                | Rich UX, but requires a Keycloak SPI extension and is a separate change                             |
+| C      | Intermediate Authorization Server (a Profile Tailors service that issues tokens)                                                                                                                                    | ❌ Explicitly rejected — SMP is a Resource Server only                                               |
 
 ### 4.3 Decision: Option A
 
@@ -317,11 +318,11 @@ Option A is the **MVP path** because:
 
 ### 4.5 Transport mechanism
 
-| Choice | Verdict |
-|--------|---------|
+| Choice                                             | Verdict                                                                                                                                                                                                                                                                               |
+|----------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Login-URL parameter** `?workspace_context=<jws>` | **Chosen.** Universal across all Keycloak themes and authenticators; no SPI coupling. The protocol mapper picks it up from `session.note` via a built-in OIDC mapper pointing at a session note set by an `IdentityProviderAuthenticator` step that simply reads the query parameter. |
-| Auth-request parameter (RFC 9101) | Rejected for MVP — Keycloak 26 does not expose `request_uri` parsing for protocol mappers without an SPI extension. |
-| Static protocol mapper with no transport | Rejected — leaves no way to ship per-request context. |
+| Auth-request parameter (RFC 9101)                  | Rejected for MVP — Keycloak 26 does not expose `request_uri` parsing for protocol mappers without an SPI extension.                                                                                                                                                                   |
+| Static protocol mapper with no transport           | Rejected — leaves no way to ship per-request context.                                                                                                                                                                                                                                 |
 
 ### 4.6 Keycloak protocol mapper config (realm-side)
 
@@ -399,13 +400,13 @@ with `WWW-Authenticate`, and answers `initialize` / `tools/list` to an MCP clien
 
 ### 5.3 Expected behaviour
 
-| Step | Inspector action | Expected response |
-|------|------------------|-------------------|
-| 1 | `POST /api/mcp` with `initialize` (no `Authorization` header) | **401 Unauthorized** + `WWW-Authenticate: Bearer …` (header present in PR 1; full RFC 9728 `resource_metadata` URL lands in PR 2) |
-| 2 | `POST /api/mcp` with `Authorization: Bearer valid-token` (test token) | **200 OK** with `initialize` JSON-RPC result |
-| 3 | `POST /api/mcp` with `tools/list` (no `Authorization`) | **401 Unauthorized** |
-| 4 | `POST /api/mcp` with `tools/list` + valid token | **200 OK** with `tools: []` (no tools yet — PR 3 adds them) |
-| 5 | `POST /api/mcp` with `tools/call foo` + valid token | **-32601 Method not found** (transport is alive; Spring AI rejects unknown methods) |
+| Step | Inspector action                                                      | Expected response                                                                                                                 |
+|------|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| 1    | `POST /api/mcp` with `initialize` (no `Authorization` header)         | **401 Unauthorized** + `WWW-Authenticate: Bearer …` (header present in PR 1; full RFC 9728 `resource_metadata` URL lands in PR 2) |
+| 2    | `POST /api/mcp` with `Authorization: Bearer valid-token` (test token) | **200 OK** with `initialize` JSON-RPC result                                                                                      |
+| 3    | `POST /api/mcp` with `tools/list` (no `Authorization`)                | **401 Unauthorized**                                                                                                              |
+| 4    | `POST /api/mcp` with `tools/list` + valid token                       | **200 OK** with `tools: []` (no tools yet — PR 3 adds them)                                                                       |
+| 5    | `POST /api/mcp` with `tools/call foo` + valid token                   | **-32601 Method not found** (transport is alive; Spring AI rejects unknown methods)                                               |
 
 ### 5.4 Acceptance gate
 
@@ -440,27 +441,27 @@ npx @modelcontextprotocol/inspector --config mcp-inspector.config.json
 
 ## 6. Recommendations for PR 2
 
-| PR 2 task | Inherited from this spike |
-|-----------|----------------------------|
-| T11 — `ResourceMetadataController` | Section 1.5 property names (`streamable-http.mcp-endpoint`); Section 2.6 DCR + pre-registered clients |
-| T12 — `McpJwtConverter` | Section 3.6 (audience policy + fallback); Section 4 (workspace_id claim) |
-| T13 — `McpSecurityConfiguration` | Section 5.4 acceptance (401 + `WWW-Authenticate`) |
-| T14 — `McpWorkspaceContextResolver` | Section 4 (workspace_id from JWT only; `X-Workspace-Id` ignored) |
-| T15 — `McpToolInvocationAuthorizer` | Section 4 (scope claim separate from audience) |
-| T16 — `McpWorkspaceMembershipChecker` | Section 4.8 (single read per request, short-lived cache) |
-| T17 — `mcp_ping` (internal tool, profile-gated) | Section 1.3 (`@McpTool` shape, suspend fun, optional params) |
-| T18 — End-to-end security test | Section 5 acceptance matrix |
+| PR 2 task                                       | Inherited from this spike                                                                             |
+|-------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| T11 — `ResourceMetadataController`              | Section 1.5 property names (`streamable-http.mcp-endpoint`); Section 2.6 DCR + pre-registered clients |
+| T12 — `McpJwtConverter`                         | Section 3.6 (audience policy + fallback); Section 4 (workspace_id claim)                              |
+| T13 — `McpSecurityConfiguration`                | Section 5.4 acceptance (401 + `WWW-Authenticate`)                                                     |
+| T14 — `McpWorkspaceContextResolver`             | Section 4 (workspace_id from JWT only; `X-Workspace-Id` ignored)                                      |
+| T15 — `McpToolInvocationAuthorizer`             | Section 4 (scope claim separate from audience)                                                        |
+| T16 — `McpWorkspaceMembershipChecker`           | Section 4.8 (single read per request, short-lived cache)                                              |
+| T17 — `mcp_ping` (internal tool, profile-gated) | Section 1.3 (`@McpTool` shape, suspend fun, optional params)                                          |
+| T18 — End-to-end security test                  | Section 5 acceptance matrix                                                                           |
 
 ---
 
 ## 7. Risk register
 
-| Risk | Likelihood | Mitigation |
-|------|-----------|------------|
-| Spring AI 2.0 ships a 2.0.x patch that breaks `@McpTool` signature | Low | Pin `springAi = "2.0.0"` in the version catalog; bump deliberately |
-| Keycloak 27+ ships CIMD | Low | Re-enable CIMD by flipping the client config; SMP code path is unchanged |
-| Keycloak drops RFC 8707 multi-audience support | Very low | Single-audience fallback in Section 3.5 |
-| Workspace injection via login-URL param fails on Keycloak theme update | Low | The authenticator step is theme-agnostic; document the upgrade checklist in `docs/mcp-server.md` |
+| Risk                                                                   | Likelihood | Mitigation                                                                                       |
+|------------------------------------------------------------------------|------------|--------------------------------------------------------------------------------------------------|
+| Spring AI 2.0 ships a 2.0.x patch that breaks `@McpTool` signature     | Low        | Pin `springAi = "2.0.0"` in the version catalog; bump deliberately                               |
+| Keycloak 27+ ships CIMD                                                | Low        | Re-enable CIMD by flipping the client config; SMP code path is unchanged                         |
+| Keycloak drops RFC 8707 multi-audience support                         | Very low   | Single-audience fallback in Section 3.5                                                          |
+| Workspace injection via login-URL param fails on Keycloak theme update | Low        | The authenticator step is theme-agnostic; document the upgrade checklist in `docs/mcp-server.md` |
 
 ---
 

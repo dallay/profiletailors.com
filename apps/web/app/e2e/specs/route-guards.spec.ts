@@ -1,5 +1,5 @@
 /**
- * spec: openspec/specs/e2e/login-flow.md
+ * spec: docs/testing/e2e/login-flow.md
  * section: 9. Route Guards
  *
  * Covers redirecting unauthenticated users to login, authenticated

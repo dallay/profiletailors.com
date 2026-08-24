@@ -30,13 +30,13 @@ an email corresponds to an existing account.
 
 ## Delivery Classification
 
-| Requirement group | Delivery slice | Executable acceptance owner |
-|---|---|---|
-| REQ-PR, REQ-RP, REQ-TOK-01..05 | PR 1 core backend | PR 1 backend unit, HTTP, BDD, and real-Postgres tests where database semantics apply |
-| REQ-NOT-01..05 | PR 1 core backend | PR 1 notification/template acceptance |
-| REQ-NOT-06 | PR 3 hardening | PR 3 telemetry acceptance |
-| REQ-UI-01..16 | PR 2 frontend | PR 2 Vitest and Playwright acceptance |
-| Audit, retention cleanup, notification retry/final failure, and operational telemetry scenarios | PR 3 hardening | PR 3 backend acceptance |
+| Requirement group                                                                               | Delivery slice    | Executable acceptance owner                                                          |
+|-------------------------------------------------------------------------------------------------|-------------------|--------------------------------------------------------------------------------------|
+| REQ-PR, REQ-RP, REQ-TOK-01..05                                                                  | PR 1 core backend | PR 1 backend unit, HTTP, BDD, and real-Postgres tests where database semantics apply |
+| REQ-NOT-01..05                                                                                  | PR 1 core backend | PR 1 notification/template acceptance                                                |
+| REQ-NOT-06                                                                                      | PR 3 hardening    | PR 3 telemetry acceptance                                                            |
+| REQ-UI-01..16                                                                                   | PR 2 frontend     | PR 2 Vitest and Playwright acceptance                                                |
+| Audit, retention cleanup, notification retry/final failure, and operational telemetry scenarios | PR 3 hardening    | PR 3 backend acceptance                                                              |
 
 Feature-level delivery tags classify PR 1 backend scenarios, frontend coverage is
 owned by PR 2, and scenario-level `[PR 3]` headings plus `@pr-3` tags identify
@@ -205,12 +205,12 @@ REQ-NOT-06, retries, and terminal-failure recording are PR 3 hardening.**
 - **REQ-NOT-01** The `PasswordResetRequested` event MUST carry:
   `principalId: String`, `email: String`, `rawResetToken: String`.
 - **REQ-NOT-02** The notification consumer MUST render the email with:
-  - Reason header (password reset request).
-  - A primary CTA "Reset password" linking to
-    `<appBaseUrl>/reset-password?token=<rawToken>`.
-  - A statement that the link expires in 30 minutes.
-  - A statement that the request can be ignored if not initiated by the
-    recipient.
+    - Reason header (password reset request).
+    - A primary CTA "Reset password" linking to
+      `<appBaseUrl>/reset-password?token=<rawToken>`.
+    - A statement that the link expires in 30 minutes.
+    - A statement that the request can be ignored if not initiated by the
+      recipient.
 - **REQ-NOT-03** The email MUST NOT contain a temporary password or the
   current password.
 - **REQ-NOT-04** The reset URL MUST use the configured `publicAppUrl`
@@ -229,25 +229,47 @@ REQ-NOT-06, retries, and terminal-failure recording are PR 3 hardening.**
 
 **Delivery: PR 2 frontend. All REQ-UI requirements and scenarios are classified `@pr-2`.**
 
-- **REQ-UI-01** A "Forgot password?" link MUST be present and keyboard-reachable on the login page and MUST navigate to `/forgot-password`.
-- **REQ-UI-02** `/forgot-password` MUST remain guest-only under the same guard rule as `/login` and `/register`.
-- **REQ-UI-03** `ForgotPasswordView` MUST render an RFC 5322 email field and submit control, validate before API submission, expose pending state, and prevent duplicate submissions.
-- **REQ-UI-04** A successful forgot-password request MUST show the same localized generic confirmation regardless of account existence: "If an account exists for this email, you'll receive a password reset link shortly."
-- **REQ-UI-05** A forgot-password `429` response MUST show a localized rate-limit error; a disabled or unknown failure MUST show a localized unavailable or generic error without account disclosure.
-- **REQ-UI-06** `/reset-password?token=...` MUST be accessible to authenticated and unauthenticated visitors. The recovery token is the authorization capability; an existing session MUST NOT redirect away from or block the reset form.
-- **REQ-UI-07** `ResetPasswordView` MUST read the `token` query parameter. A missing or blank token MUST show an invalid-link state linking to `/forgot-password` and MUST NOT render the form.
-- **REQ-UI-08** The reset form MUST provide new-password and confirmation fields and enforce required, 12..128 characters, and equality before submission.
-- **REQ-UI-09** Invalid client input MUST NOT be submitted and MUST show localized policy or mismatch feedback. Pending submission MUST disable repeat submission.
-- **REQ-UI-10** Invalid, expired, and used token responses MUST produce one identical localized generic invalid-link state linking to `/forgot-password`; backend detail MUST NOT distinguish token state.
-- **REQ-UI-11** After backend `204`, the frontend MUST show that the password changed and MUST direct the visitor to `/login` to authenticate again. It MUST NOT preserve, restore, or create an authenticated frontend session, because the backend revokes refresh sessions and issues no replacement session.
-- **REQ-UI-12** All recovery strings MUST have EN and ES parity, wrap without truncation, and remain usable at supported responsive widths without horizontal overflow.
-- **REQ-UI-13** Both forms MUST use native submission, programmatic labels, suitable autocomplete values, associated validation errors, announced async/error states, visible keyboard focus, and practical touch targets.
-- **REQ-UI-14** API functions MUST reside in `apps/web/app/src/modules/auth/infrastructure/auth-api.ts` and preserve empty `202`/`204` responses and RFC 9457 error status/code:
+- **REQ-UI-01** A "Forgot password?" link MUST be present and keyboard-reachable on the login page
+  and MUST navigate to `/forgot-password`.
+- **REQ-UI-02** `/forgot-password` MUST remain guest-only under the same guard rule as `/login` and
+  `/register`.
+- **REQ-UI-03** `ForgotPasswordView` MUST render an RFC 5322 email field and submit control,
+  validate before API submission, expose pending state, and prevent duplicate submissions.
+- **REQ-UI-04** A successful forgot-password request MUST show the same localized generic
+  confirmation regardless of account existence: "If an account exists for this email, you'll receive
+  a password reset link shortly."
+- **REQ-UI-05** A forgot-password `429` response MUST show a localized rate-limit error; a disabled
+  or unknown failure MUST show a localized unavailable or generic error without account disclosure.
+- **REQ-UI-06** `/reset-password?token=...` MUST be accessible to authenticated and unauthenticated
+  visitors. The recovery token is the authorization capability; an existing session MUST NOT
+  redirect away from or block the reset form.
+- **REQ-UI-07** `ResetPasswordView` MUST read the `token` query parameter. A missing or blank token
+  MUST show an invalid-link state linking to `/forgot-password` and MUST NOT render the form.
+- **REQ-UI-08** The reset form MUST provide new-password and confirmation fields and enforce
+  required, 12..128 characters, and equality before submission.
+- **REQ-UI-09** Invalid client input MUST NOT be submitted and MUST show localized policy or
+  mismatch feedback. Pending submission MUST disable repeat submission.
+- **REQ-UI-10** Invalid, expired, and used token responses MUST produce one identical localized
+  generic invalid-link state linking to `/forgot-password`; backend detail MUST NOT distinguish
+  token state.
+- **REQ-UI-11** After backend `204`, the frontend MUST show that the password changed and MUST
+  direct the visitor to `/login` to authenticate again. It MUST NOT preserve, restore, or create an
+  authenticated frontend session, because the backend revokes refresh sessions and issues no
+  replacement session.
+- **REQ-UI-12** All recovery strings MUST have EN and ES parity, wrap without truncation, and remain
+  usable at supported responsive widths without horizontal overflow.
+- **REQ-UI-13** Both forms MUST use native submission, programmatic labels, suitable autocomplete
+  values, associated validation errors, announced async/error states, visible keyboard focus, and
+  practical touch targets.
+- **REQ-UI-14** API functions MUST reside in
+  `apps/web/app/src/modules/auth/infrastructure/auth-api.ts` and preserve empty `202`/`204`
+  responses and RFC 9457 error status/code:
   ```ts
   requestPasswordReset(email: string): Promise<void>
   resetPassword(payload: { token: string; newPassword: string }): Promise<void>
   ```
-- **REQ-UI-15** The raw token and new password MUST NOT enter localStorage, sessionStorage, analytics, logs, rendered error text, or test diagnostics.
+- **REQ-UI-15** The raw token and new password MUST NOT enter localStorage, sessionStorage,
+  analytics, logs, rendered error text, or test diagnostics.
 - **REQ-UI-16** Recovery routes MUST render outside the authenticated application shell.
 
 #### PR 2 Scenarios
@@ -326,14 +348,14 @@ is `@pr-1` by default; an explicit scenario-level `@pr-3` tag overrides that def
 Frontend E2E scenarios are `@pr-2`. Therefore every listed scenario has exactly one
 acceptance owner even when its product requirement remains globally mandatory.
 
-| Artifact | Default owner | Override |
-|---|---|---|
-| `identity-request-password-reset.feature` | PR 1 | None |
-| `identity-reset-password.feature` | PR 1 | None |
-| `identity-password-reset-persistence.feature` | PR 1 | `@pr-3` retention cleanup |
-| `identity-password-reset-notifications.feature` | PR 1 | `@pr-3` retry, terminal failure, telemetry |
-| `identity-password-reset-security.feature` | PR 1 | `@pr-3` completed-reset and suspicious-attempt audit |
-| `apps/web/app/e2e/specs/password-reset-frontend.spec.ts` | PR 2 | None |
+| Artifact                                                 | Default owner | Override                                             |
+|----------------------------------------------------------|---------------|------------------------------------------------------|
+| `identity-request-password-reset.feature`                | PR 1          | None                                                 |
+| `identity-reset-password.feature`                        | PR 1          | None                                                 |
+| `identity-password-reset-persistence.feature`            | PR 1          | `@pr-3` retention cleanup                            |
+| `identity-password-reset-notifications.feature`          | PR 1          | `@pr-3` retry, terminal failure, telemetry           |
+| `identity-password-reset-security.feature`               | PR 1          | `@pr-3` completed-reset and suspicious-attempt audit |
+| `apps/web/app/e2e/specs/password-reset-frontend.spec.ts` | PR 2          | None                                                 |
 
 ---
 
