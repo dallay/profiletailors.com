@@ -1,0 +1,11 @@
+change: release-please-title-pattern-fix
+current_phase: apply
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+next: verify
+updated: 2026-08-24
