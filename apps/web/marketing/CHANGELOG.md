@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.5](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.4...landing@v0.2.5) (2026-08-24)
+
+
+### Features
+
+* isolate worktree runtimes and development services ([ee0c376](https://github.com/dallay/profiletailors.com/commit/ee0c37649c5bc3af829563c389f79cadd75310de))
+
+
+### Bug Fixes
+
+* **marketing:** polish landing page typography, touch targets, and zero-comment policy ([#824](https://github.com/dallay/profiletailors.com/issues/824)) ([5845d06](https://github.com/dallay/profiletailors.com/commit/5845d06aa460381bd1bb649b961558e4e0b31701))
+
 ## [0.2.4](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.3...landing@v0.2.4) (2026-08-14)
 
 

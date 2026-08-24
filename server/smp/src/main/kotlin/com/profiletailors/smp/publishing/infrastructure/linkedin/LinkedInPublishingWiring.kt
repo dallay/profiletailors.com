@@ -91,8 +91,7 @@ class RealLinkedInConnectionProvider(
                 .build(),
         )
         if (tokenResponse.statusCode !in HTTP_SUCCESS_RANGE) {
-            val message = "LinkedIn token exchange failed: " +
-                "${tokenResponse.statusCode} ${tokenResponse.body}"
+            val message = "LinkedIn token exchange failed: status=${tokenResponse.statusCode}"
             throw IllegalStateException(message)
         }
         val token = objectMapper.readValue(tokenResponse.body, LinkedInTokenResponse::class.java)
@@ -104,8 +103,7 @@ class RealLinkedInConnectionProvider(
                 .build(),
         )
         if (profileResponse.statusCode !in HTTP_SUCCESS_RANGE) {
-            val message = "LinkedIn profile lookup failed: " +
-                "${profileResponse.statusCode} ${profileResponse.body}"
+            val message = "LinkedIn profile lookup failed: status=${profileResponse.statusCode}"
             throw IllegalStateException(message)
         }
         val profile = objectMapper.readValue(
@@ -146,7 +144,7 @@ class RealLinkedInConnectionProvider(
         val trimmed = picture?.trim()
         if (trimmed.isNullOrBlank() || !trimmed.startsWith("https://", ignoreCase = true)) {
             if (!trimmed.isNullOrBlank()) {
-                log.debug("LinkedIn avatar rejected — not HTTPS: {}", trimmed.take(MAX_AVATAR_URL_LOG_LENGTH))
+                log.debug("LinkedIn avatar rejected — not HTTPS")
             }
             return null
         }
@@ -156,7 +154,6 @@ class RealLinkedInConnectionProvider(
     private companion object {
         val HTTP_SUCCESS_RANGE = 200..299
         const val MILLIS_TO_SECONDS = 1000L
-        const val MAX_AVATAR_URL_LOG_LENGTH = 120
     }
 }
 
@@ -267,7 +264,6 @@ class RealLinkedInPublisher(
                 externalPublicationId = response.headers
                     .firstValue("x-restli-id")
                     .orElse("linkedin-post-${command.publicationId}"),
-                providerMessage = response.body,
             )
 
             HttpURLConnection.HTTP_UNAUTHORIZED,
@@ -454,11 +450,9 @@ class RealLinkedInPublisher(
         attachmentsBinding.storage.download(attachmentsBinding.bucketName, storageKey)
     } catch (e: StorageException) {
         log.warn(
-            "Storage download failed for asset {} (key={}, bucket={})",
+            "Storage download failed for asset {}: type={}",
             asset.id,
-            storageKey,
-            attachmentsBinding.bucketName,
-            e,
+            e::class.simpleName,
         )
         throw PublishingFailureException(PublishingFailure.mediaUnavailable(e::class.simpleName))
     }
@@ -481,13 +475,18 @@ fun interface LinkedInHttpTransport {
 data class LinkedInHttpResponse(val statusCode: Int, val headers: java.net.http.HttpHeaders, val body: String)
 
 class JdkLinkedInHttpTransport(private val httpClient: HttpClient) : LinkedInHttpTransport {
-    override suspend fun send(request: HttpRequest): LinkedInHttpResponse {
+    override suspend fun send(request: HttpRequest): LinkedInHttpResponse = try {
         val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-        return LinkedInHttpResponse(
+        LinkedInHttpResponse(
             statusCode = response.statusCode(),
             headers = response.headers(),
             body = response.body(),
         )
+    } catch (exception: InterruptedException) {
+        Thread.currentThread().interrupt()
+        throw com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException(exception)
+    } catch (exception: java.io.IOException) {
+        throw com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException(exception)
     }
 }
 

@@ -158,7 +158,7 @@ class RealLinkedInAssetUploader(
 
         if (response.statusCode !in HTTP_SUCCESS_RANGE) {
             throw ProviderUploadException(
-                "LinkedIn asset registration failed: ${response.statusCode} ${response.body}",
+                "LinkedIn asset registration failed: status=${response.statusCode}",
             )
         }
 
@@ -183,7 +183,7 @@ class RealLinkedInAssetUploader(
 
         if (response.statusCode !in HTTP_SUCCESS_RANGE) {
             throw ProviderUploadException(
-                "LinkedIn binary upload failed: ${response.statusCode} ${response.body}",
+                "LinkedIn binary upload failed: status=${response.statusCode}",
             )
         }
     }
@@ -239,7 +239,7 @@ class RealLinkedInAssetUploader(
 
         if (response.statusCode !in HTTP_SUCCESS_RANGE) {
             throw ProviderUploadException(
-                "LinkedIn video finalize failed: ${response.statusCode} ${response.body}",
+                "LinkedIn video finalize failed: status=${response.statusCode}",
             )
         }
     }

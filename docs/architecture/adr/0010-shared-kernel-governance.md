@@ -9,19 +9,21 @@
 - Related:
     - C4: [Dependency Graph](../shared/dependencies.md)
 
-## Context
+## Overview
+
+### Context
 
 A monorepo with multiple bounded contexts requires shared code to avoid duplication, but an
 ungoverned shared module can quickly lead to tight coupling and a "distributed monolith" inside a
 single build.
 
-## Decision drivers
+### Decision drivers
 
 - Independence (contexts should be able to evolve separately).
 - Stability (changes in shared code should be rare and well-vetted).
 - Framework Isolation (keeping the core domain free of technical details).
 
-## Decision
+### Decision
 
 The `shared/` modules MUST follow strict governance rules:
 
@@ -34,50 +36,32 @@ The `shared/` modules MUST follow strict governance rules:
 4. **Ownership**: Shared modules are owned by the Principal Architect or a cross-team platform
    group.
 
-## Scope and boundaries
+### Scope and boundaries
 
 - All Gradle modules under `shared/`.
 
-## Alternatives considered
+### Alternatives considered
 
-### Duplication
+#### Duplication
 
 - Advantages: Maximum independence between teams.
 - Disadvantages: Inconsistency in core concepts (e.g., how an Email is validated).
 - Reason rejected: Leads to high maintenance effort for cross-cutting security or infrastructure
   changes.
 
-## Consequences
+### Consequences
 
-### Positive
+#### Positive
 
 - Clean, reusable foundation.
 - Enforced architectural layers.
 
-### Negative
+#### Negative
 
 - Higher barrier to sharing code (intentional).
 - Changes to `shared:common` require recompiling the entire system.
 
-## Compliance and enforcement
-
-Enforced via Gradle build configuration and ArchUnit tests.
-
-**Automated dependency validation** for the framework-free constraint in `shared:common` can be
-implemented using:
-
-- **ArchUnit tests**: Add rules to verify that no classes in `shared:common` import Spring, R2DBC,
-  or other framework packages (e.g.,
-  `noClasses().that().resideInAPackage("com.profiletailors.common..").should().dependOnClassesThat().resideInAnyPackage("org.springframework..", "io.r2dbc..")`)
-- **Gradle dependency constraints**: Configure the `shared:common` module's `build.gradle.kts` to
-  explicitly exclude framework dependencies and fail the build if they are transitively introduced
-
-## Verification
-
-- `:shared:common` build file has minimal/no dependencies.
-- No circular dependencies between `:server:smp` and `:shared:*`.
-
-## Migration or remediation
+## Changes
 
 ### PermissionKey — admitted to shared/common
 
@@ -103,7 +87,33 @@ admission criterion. The exception is granted because:
 
 A typealias in `credentials.domain.CredentialType` preserves source compatibility.
 
-## Revisit conditions
+## Usage
+
+### Compliance and enforcement
+
+Enforced via Gradle build configuration and ArchUnit tests.
+
+**Automated dependency validation** for the framework-free constraint in `shared:common` can be
+implemented using:
+
+- **ArchUnit tests**: Add rules to verify that no classes in `shared:common` import Spring, R2DBC,
+  or other framework packages (e.g.,
+  `noClasses().that().resideInAPackage("com.profiletailors.common..").should().dependOnClassesThat().resideInAnyPackage("org.springframework..", "io.r2dbc..")`)
+- **Gradle dependency constraints**: Configure the `shared:common` module's `build.gradle.kts` to
+  explicitly exclude framework dependencies and fail the build if they are transitively introduced
+
+### Verification
+
+- `:shared:common` build file has minimal/no dependencies.
+- No circular dependencies between `:server:smp` and `:shared:*`.
+
+## Troubleshooting
+
+### Revisit conditions
 
 - The time to compile the entire project becomes a major productivity bottleneck.
 - The shared kernel grows too large to be understood by a single contributor.
+
+## References
+
+- C4: [Dependency Graph](../shared/dependencies.md)
