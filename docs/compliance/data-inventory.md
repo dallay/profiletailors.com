@@ -28,7 +28,7 @@ provider, and a database field or proposed duration is not an implemented deleti
 ## Changes
 
 | Version | Date       | Description                                                                                                |
-| ------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
+|---------|------------|------------------------------------------------------------------------------------------------------------|
 | 1.0     | 2026-07-17 | Initial inventory containing unverified providers and retention promises                                   |
 | 2.0     | 2026-07-17 | Revalidated against code; added evidence states and browser storage; removed unsupported production claims |
 
@@ -46,7 +46,7 @@ be described as an operational guarantee.
 ### Evidence summary
 
 | ID     | Activity                           | Evidence      | Retention control | Principal finding                                                                                                                                           |
-| ------ | ---------------------------------- | ------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|--------|------------------------------------|---------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | pa-001 | Accounts, authentication, sessions | Partial       | Partial           | Local/federated JWT and Resend adapter exist; Auth0/Clerk do not appear as current providers; account erasure is missing.                                   |
 | pa-002 | Social publishing and scheduling   | Partial       | Partial           | Only LinkedIn has real backend adapters; unpublished hard deletion exists; time-based post-termination cleanup is missing.                                  |
 | pa-003 | Hosting and delivery               | Not evidenced | Missing           | The repository produces static/app artifacts but does not select Vercel, Cloudflare, or another production host.                                            |
@@ -63,7 +63,7 @@ be described as an operational guarantee.
 ### Verified provider and integration state
 
 | Function            | Repository evidence                                                                                        | Production conclusion                                                                                  |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+|---------------------|------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
 | Authentication      | Local HS256 JWT issuer, configurable federated JWT validation, BCrypt credentials, HttpOnly refresh cookie | No external identity provider is selected; do not name Auth0 or Clerk.                                 |
 | Transactional email | Resend adapter conditional on `SMP_RESEND_API_KEY`                                                         | Configurable, not proved active or contracted.                                                         |
 | Database            | PostgreSQL through R2DBC and Liquibase                                                                     | Technology verified; hosting company, country, DPA, and transfer mechanism unknown.                    |
@@ -78,7 +78,7 @@ be described as an operational guarantee.
 ### Browser storage register
 
 | Name                       | Mechanism                  | Content                                          | Default lifetime    | Current control                                                    |
-| -------------------------- | -------------------------- | ------------------------------------------------ | ------------------- | ------------------------------------------------------------------ |
+|----------------------------|----------------------------|--------------------------------------------------|---------------------|--------------------------------------------------------------------|
 | `pt_refresh`               | HttpOnly cookie            | Refresh-session secret                           | Seven days          | Revoked and cleared on logout; Secure by default; `/api/auth` path |
 | `sidebar_state`            | JavaScript-readable cookie | Sidebar open/closed boolean                      | Seven days          | No SameSite or Secure attribute is set by the component            |
 | `theme`                    | Local storage              | Marketing theme                                  | No automatic expiry | User choice or browser clearing                                    |
@@ -95,7 +95,7 @@ or used for a development feature is not automatically necessary.
 ### Retention implementation register
 
 | Control                                      | State                  | Evidence or missing work                                                                         |
-| -------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
+|----------------------------------------------|------------------------|--------------------------------------------------------------------------------------------------|
 | Seven-day physical media deletion            | Implemented            | Hourly `BlobGarbageCollector`; five failures require manual intervention; database row persists. |
 | Unpublished publication deletion             | Implemented on request | Transaction removes jobs, asset links, delivery attempts, and publication.                       |
 | Refresh-session expiry/revocation            | Implemented            | Default seven-day expiry, rotation/revocation state, cookie clearing on logout.                  |

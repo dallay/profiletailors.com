@@ -2,8 +2,10 @@
 
 ## Overview
 
-Use this runbook when password reset requests, resets, notification delivery, or token cleanup behave
-abnormally. Start with aggregate telemetry and safe identifiers. Never search for or record a raw token,
+Use this runbook when password reset requests, resets, notification delivery, or token cleanup
+behave
+abnormally. Start with aggregate telemetry and safe identifiers. Never search for or record a raw
+token,
 email, raw IP, reset URL or query string, password, token hash, password hash, provider text,
 or exception message. Do not paste those values into tickets, dashboards, logs, or chat. Use only
 incident IDs, principal IDs when access is authorized, fixed categories, timestamps, and aggregate
@@ -18,13 +20,13 @@ counts.
 
 ### Symptoms and first response
 
-| Symptom | First safe check | Likely area |
-|---|---|---|
-| Reset failures increase | Reset outcomes by fixed `failure.category` | Endpoint, validation, flag, or database |
-| Delivery retries increase | Notification outcomes by category and attempt bucket | Email provider or network |
-| Terminal failures increase | Aggregate failure rows by category and time bucket | Provider outage or permanent rejection |
-| Token rows grow continuously | Aggregate expired-row counts and cleanup configuration | Cleanup scheduler or database |
-| Recovery returns 503 | Confirm the deployed feature-flag value | Intentional rollback or configuration drift |
+| Symptom                      | First safe check                                       | Likely area                                 |
+|------------------------------|--------------------------------------------------------|---------------------------------------------|
+| Reset failures increase      | Reset outcomes by fixed `failure.category`             | Endpoint, validation, flag, or database     |
+| Delivery retries increase    | Notification outcomes by category and attempt bucket   | Email provider or network                   |
+| Terminal failures increase   | Aggregate failure rows by category and time bucket     | Provider outage or permanent rejection      |
+| Token rows grow continuously | Aggregate expired-row counts and cleanup configuration | Cleanup scheduler or database               |
+| Recovery returns 503         | Confirm the deployed feature-flag value                | Intentional rollback or configuration drift |
 
 1. Record the incident ID, UTC start time, environment, deployment revision, and observed fixed
    categories.
@@ -71,12 +73,12 @@ principal ID, email, raw IP, token, reset URL, or exception as a metric label or
 Retry behavior is bounded exponential backoff. Retryability comes from the fixed provider category,
 not provider-message parsing.
 
-| Configuration key | Default | Meaning |
-|---|---:|---|
-| `app.identity.password-recovery.notification-retry.max-attempts` | `3` | Total attempts, including the first |
-| `app.identity.password-recovery.notification-retry.initial-backoff` | `1s` | Delay after the first retryable failure |
-| `app.identity.password-recovery.notification-retry.multiplier` | `2` | Backoff multiplier |
-| `app.identity.password-recovery.notification-retry.max-backoff` | `30s` | Maximum delay between attempts |
+| Configuration key                                                   | Default | Meaning                                 |
+|---------------------------------------------------------------------|--------:|-----------------------------------------|
+| `app.identity.password-recovery.notification-retry.max-attempts`    |     `3` | Total attempts, including the first     |
+| `app.identity.password-recovery.notification-retry.initial-backoff` |    `1s` | Delay after the first retryable failure |
+| `app.identity.password-recovery.notification-retry.multiplier`      |     `2` | Backoff multiplier                      |
+| `app.identity.password-recovery.notification-retry.max-backoff`     |   `30s` | Maximum delay between attempts          |
 
 `PROVIDER_UNAVAILABLE` and `PROVIDER_TIMEOUT` are retryable. `PROVIDER_REJECTED` and
 `INVALID_REQUEST` fail without another attempt. Exhaustion writes one terminal failure to
@@ -85,14 +87,14 @@ not provider-message parsing.
 
 Terminal failure records contain only these safe fields:
 
-| Field | Use |
-|---|---|
-| `id` | Failure record correlation |
-| `principal_id` | Authorized internal correlation; never a metric label |
-| `notification_type` | Fixed value `PASSWORD_RESET` |
-| `attempts` | Bounded attempt count |
-| `failed_at` | UTC failure time |
-| `failure_category` | Fixed provider failure category |
+| Field               | Use                                                   |
+|---------------------|-------------------------------------------------------|
+| `id`                | Failure record correlation                            |
+| `principal_id`      | Authorized internal correlation; never a metric label |
+| `notification_type` | Fixed value `PASSWORD_RESET`                          |
+| `attempts`          | Bounded attempt count                                 |
+| `failed_at`         | UTC failure time                                      |
+| `failure_category`  | Fixed provider failure category                       |
 
 Do not replay a stored reset notification: the terminal record does not retain a token or reset URL.
 Ask the user to initiate a new request after provider recovery.
@@ -104,11 +106,11 @@ idempotent and deletes rows only when `expires_at` is strictly older than the re
 `used_at` is either null or also strictly older than the cutoff. Active unexpired tokens and records
 used inside the audit-retention window remain.
 
-| Configuration key | Default |
-|---|---:|
-| `app.identity.password-recovery.cleanup.retention` | `30d` |
-| `app.identity.password-recovery.cleanup.interval` | `24h` |
-| `app.identity.password-recovery.cleanup.initial-delay` | `5m` |
+| Configuration key                                      | Default |
+|--------------------------------------------------------|--------:|
+| `app.identity.password-recovery.cleanup.retention`     |   `30d` |
+| `app.identity.password-recovery.cleanup.interval`      |   `24h` |
+| `app.identity.password-recovery.cleanup.initial-delay` |    `5m` |
 
 Use aggregate SQL only. The following query does not select token hashes, network hashes, email,
 passwords, or reset URLs:
@@ -138,7 +140,8 @@ change the reviewed retention configuration and validate the scheduler in a cont
 
 ### Feature-flag rollback
 
-Set `app.identity.password-recovery.enabled=false` in the deployment configuration and redeploy using
+Set `app.identity.password-recovery.enabled=false` in the deployment configuration and redeploy
+using
 the normal platform process. This makes both recovery endpoints return 503 and prevents token
 creation or consumption. It does not erase existing records or disable cleanup.
 
@@ -181,18 +184,22 @@ and actions taken. Follow the compliance incident-response runbook for suspected
 
 - **Metrics are absent:** Confirm the internal Prometheus endpoint is scraped and generate a safe
   synthetic request in a non-production environment. Do not add sensitive labels to diagnose it.
-- **Retries remain at `first`:** Check the fixed failure category. Permanent categories do not retry.
+- **Retries remain at `first`:** Check the fixed failure category. Permanent categories do not
+  retry.
 - **No terminal row exists after exhaustion:** Compare aggregate `terminal_failure` telemetry with
   aggregate database counts, then escalate a persistence failure; do not reconstruct the reset URL.
-- **Cleanup count does not fall:** Confirm the deployed retention, interval, and initial-delay values,
+- **Cleanup count does not fall:** Confirm the deployed retention, interval, and initial-delay
+  values,
   application scheduling health, and database connectivity. Respect legal holds.
 - **Users report invalid links after rollback:** This is expected while the flag is disabled. Do not
   inspect their link; communicate the outage and ask for a new request after recovery.
 
 ## References
 
-- [`openspec/changes/archive/2026-07-29-password-recovery/spec.md`](../../openspec/changes/archive/2026-07-29-password-recovery/spec.md)
-- [`openspec/changes/archive/2026-07-29-password-recovery/design.md`](../../openspec/changes/archive/2026-07-29-password-recovery/design.md)
+- [
+  `openspec/changes/archive/2026-07-29-password-recovery/spec.md`](../../openspec/changes/archive/2026-07-29-password-recovery/spec.md)
+- [
+  `openspec/changes/archive/2026-07-29-password-recovery/design.md`](../../openspec/changes/archive/2026-07-29-password-recovery/design.md)
 - [`docs/compliance/incident-response-runbook.md`](../compliance/incident-response-runbook.md)
 - [`docs/monitoring/prometheus-grafana-setup.md`](../monitoring/prometheus-grafana-setup.md)
 - [`Justfile`](../../Justfile)
