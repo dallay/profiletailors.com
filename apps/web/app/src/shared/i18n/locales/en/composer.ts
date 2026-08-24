@@ -51,6 +51,18 @@ export default {
     emptyHint: 'Write at least 50 characters to get suggestions.',
   },
   templates: 'Templates',
+  markdown: {
+    toolbarLabel: 'Formatting',
+    bold: 'Bold',
+    italic: 'Italic',
+    strikethrough: 'Strikethrough',
+    heading: 'Heading',
+    unorderedList: 'Bullet list',
+    orderedList: 'Numbered list',
+    blockquote: 'Quote',
+    link: 'Link',
+    code: 'Inline code',
+  },
   aiAssistant: 'AI Assistant',
   ai: {
     button: 'AI Assistant',
