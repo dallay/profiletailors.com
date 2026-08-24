@@ -129,5 +129,4 @@ authenticates through the login flow and fails fast when either variable is miss
 - `apps/web/app/e2e/playwright.media-mocked.config.ts`
 - `apps/web/app/e2e/playwright.media-real.config.ts`
 - `apps/web/app/e2e/specs/composer-media-attachments-mocked.spec.ts`
-- `openspec/changes/composer-media-attachments-playwright-e2e/design.md`
-- `openspec/changes/composer-media-attachments-playwright-e2e/verify-report.md`
+- `docs/testing/e2e/composer-media-attachments-test-plan.md`

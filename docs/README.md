@@ -1,6 +1,6 @@
 # Profile Tailors Documentation
 
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-08-24
 
 ## 📖 Table of Contents
 
@@ -51,6 +51,7 @@
 - [SonarQube Coverage](./sonarqube-coverage.md) - Technical guide for SonarQube coverage
 - [SonarQube Setup](./sonarqube-setup.md) - Step-by-step SonarQube configuration guide
 - [Coverage Summary](./coverage-setup-summary.md) - Summary of the test coverage implementation
+- [E2E Test Plans](./testing/e2e/README.md) - Playwright plans for dashboard user journeys
 - [Production Secrets](./production-secrets.md) - Secret inventory and production handling rules
 - [Root README](../README.md) - High-level project overview and quick-start
 

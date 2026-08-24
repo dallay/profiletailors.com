@@ -65,7 +65,7 @@ state to the live route and issues `router.replace()` only when canonicalization
 | `apps/web/app/src/stores/publishing.ts`                    | Modify | Make `fetchCalendar()` accept explicit timezone/filters; keep only compatibility mirrors. |
 | `apps/web/app/src/composables/useCalendarUrl.test.ts`      | Create | Unit coverage for parsing/serialization/canonicalization.                                 |
 | `apps/web/app/e2e/specs/scheduler-url-addressable.spec.ts` | Create | Refresh/back-forward/filter URL regression flow.                                          |
-| `openspec/changes/scheduler-url-addressable/state.yaml`    | Modify | Mark design complete.                                                                     |
+| `openspec/changes/archive/2026-06-24-scheduler-url-addressable/state.yaml` | Modify | Mark design complete.                                                                     |
 
 ## Interfaces / Contracts
 

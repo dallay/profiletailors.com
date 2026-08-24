@@ -19,7 +19,7 @@
 ### Sources
 
 - Proposal: `openspec/changes/private-beta-launch-readiness/proposal.md`
-- Delta specifications: `openspec/changes/private-beta-launch-readiness/specs/publishing/spec.md`, `specs/iam/spec.md`, `specs/e2e/spec.md`, `specs/lead-capture-waitlist/spec.md`, and `specs/cloudflare-tunnel-ingress/spec.md`
+- Product delta specifications: `openspec/changes/private-beta-launch-readiness/specs/publishing/spec.md`, `specs/iam/spec.md`, `specs/lead-capture-waitlist/spec.md`, and `docs/testing/e2e/invitee-private-beta.md`
 - Main capability specification: `openspec/specs/private-beta-launch-readiness/spec.md`
 - Design: `openspec/changes/private-beta-launch-readiness/design.md`
 - Tasks: `openspec/changes/private-beta-launch-readiness/tasks.md`

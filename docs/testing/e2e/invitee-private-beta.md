@@ -1,12 +1,12 @@
-# Delta for E2E
+# Invitee Private Beta E2E Test Plan
 
-## Overview
+## Purpose
 
-This delta defines the DALLAY-558 invitee journey from invitation acceptance through first login, workspace loading, scheduler/composer access, and a publish or schedule attempt. It requires user-visible assertions and a clear evidence boundary.
+This plan defines the DALLAY-558 invitee journey from invitation acceptance through first login, workspace loading, scheduler/composer access, and a publish or schedule attempt. It requires user-visible assertions and a clear evidence boundary.
 
-## Changes
+## Test Requirements
 
-### Requirement: Invitee Journey Covers Activation Through First Publish (DALLAY-558)
+### Invitee Journey Covers Activation Through First Publish (DALLAY-558)
 
 The application E2E suite MUST cover the invitee journey from invitation acceptance through first login, workspace loading, scheduler/composer access, and a publish or schedule attempt. Tests MUST assert user-visible outcomes, requested effects, workspace context, and safe errors rather than relying on snapshots alone. Backend behavior introduced by this change MUST also have required Cucumber BDD coverage with `@smoke` and `@fast` tags.
 
@@ -31,7 +31,7 @@ The application E2E suite MUST cover the invitee journey from invitation accepta
 - THEN the UI MUST show canonical, non-technical copy and the correct recovery action
 - AND it MUST NOT display tokens, stack traces, raw provider payloads, or internal identifiers
 
-### Requirement: E2E Evidence Has a Defined Boundary
+### E2E Evidence Has a Defined Boundary
 
 Mocked provider tests, local browser runs, and CI results MUST be labeled code/test evidence. A browser run against the managed VPS MAY be labeled operator-observed user journey evidence, with UTC timestamp, deployment identity, and scope. E2E evidence MUST NOT be described as provider verification or multi-user verification.
 
@@ -42,15 +42,13 @@ Mocked provider tests, local browser runs, and CI results MUST be labeled code/t
 - THEN DALLAY-558 MUST be marked blocked
 - AND DALLAY-559 MUST NOT be eligible for GO
 
-## Usage
+## Execution Guidance
 
 ### Test Evidence
 
 Use focused Playwright assertions for visible outcomes, requested effects, workspace context, and safe errors. Use fixtures for invitation and provider conditions; retain managed-VPS runs as separately classified operator evidence.
 
-## Troubleshooting
-
-### Blockers
+## Blockers
 
 Failure to reach first login or workspace context, an unsupported provider request, unsafe error content, missing backend BDD tags, or missing managed-environment provenance blocks the E2E prerequisite.
 
