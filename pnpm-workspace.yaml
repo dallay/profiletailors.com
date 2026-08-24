@@ -19,8 +19,8 @@ allowBuilds:
 # here in lockstep and rerun `pnpm install`.
 minimumReleaseAgeExclude:
   # Vue toolchain — pinned for compatibility with current catalogs
-  - '@vue/language-core@3.3.5'
-  - vue-tsc@3.3.5
+  - '@vue/language-core@3.3.11'
+  - vue-tsc@3.3.11
   - '@vue/devtools-core@8.1.3'
   - '@vue/devtools-kit@8.1.3'
   - '@vue/devtools-shared@8.1.3'
