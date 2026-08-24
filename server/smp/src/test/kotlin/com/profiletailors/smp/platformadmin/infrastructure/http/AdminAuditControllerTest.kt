@@ -4,13 +4,12 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platformadmin.application.OperatorAccess
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.model.AdminAuditEventSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.ports.AdminAuditQuery
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -26,7 +25,7 @@ class AdminAuditControllerTest {
     private val eventId = UUID.fromString("00000000-0000-0000-0000-0000000000a1")
 
     private val auditQuery = mockk<AdminAuditQuery>()
-    private val roleAssignmentRepository = mockk<PlatformRoleAssignmentRepository>()
+    private val operatorAccessResolver = mockk<OperatorAccessResolver>()
 
     @Test
     fun `listEvents returns 401 without principal context`() {
@@ -123,7 +122,7 @@ class AdminAuditControllerTest {
         .bindToController(
             AdminAuditController(
                 auditQuery = auditQuery,
-                roleAssignmentRepository = roleAssignmentRepository,
+                operatorAccessResolver = operatorAccessResolver,
                 requestContextStore = FakeRequestContextStore(principal),
             ),
         )
@@ -131,8 +130,7 @@ class AdminAuditControllerTest {
         .build()
 
     private fun grantRoles(roles: List<PlatformRole>) {
-        coEvery { roleAssignmentRepository.findActiveByPrincipalId(operatorId) } returns
-            roles.map { assignment(it) }
+        coEvery { operatorAccessResolver.resolve(any()) } returns OperatorAccess(operatorId, roles.toSet())
     }
 
     private fun operatorPrincipal() = PrincipalContext(
@@ -140,14 +138,6 @@ class AdminAuditControllerTest {
         principalType = PrincipalType.USER,
         subject = "operator@example.com",
         provider = "jwt",
-    )
-
-    private fun assignment(role: PlatformRole) = PlatformRoleAssignment(
-        id = PlatformRoleAssignmentId.generate(),
-        principalId = operatorId,
-        role = role,
-        assignedAt = clock,
-        assignedBy = operatorId,
     )
 
     private fun event() = AdminAuditEventSummary(

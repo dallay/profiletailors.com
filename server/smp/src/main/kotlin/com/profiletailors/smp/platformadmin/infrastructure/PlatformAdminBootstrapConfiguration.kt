@@ -28,6 +28,12 @@ import java.time.Duration
 class PlatformAdminBootstrapConfiguration {
 
     @Bean
+    fun operatorAccessResolver(
+        roleAssignmentRepository: PlatformRoleAssignmentRepository,
+    ): com.profiletailors.smp.platformadmin.application.OperatorAccessResolver =
+        com.profiletailors.smp.platformadmin.application.OperatorAccessResolver(roleAssignmentRepository)
+
+    @Bean
     fun tokenHasher(): TokenHasher = BCryptTokenHasher()
 
     @Bean

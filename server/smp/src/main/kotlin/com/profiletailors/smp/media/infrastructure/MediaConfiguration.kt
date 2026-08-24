@@ -72,6 +72,13 @@ class MediaConfiguration {
             override suspend fun delete(bucket: String, key: String, deleterId: String) {
                 storageApplicationService.delete(bucket, key, deleterId)
             }
+
+            override fun download(bucket: String, key: String, downloaderId: String): Flow<ByteArray> =
+                storageApplicationService.download(bucket, key, downloaderId)
+
+            override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+                storageApplicationService.copyObject(bucket, sourceKey, destKey)
+            }
         }
 
     /**

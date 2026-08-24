@@ -4,18 +4,13 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platformadmin.application.OperatorAccess
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
-import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
+import com.profiletailors.smp.platformadmin.application.ports.AdminInvitationQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
-import com.profiletailors.smp.platformadmin.domain.WaitlistInvitation
-import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId
-import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationStatus
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -31,10 +26,10 @@ class AdminInvitationControllerTest {
     private val invitationId = UUID.fromString("00000000-0000-0000-0000-0000000000a1")
     private val entryId = "entry-abc-123"
 
-    private val invitationRepository = mockk<WaitlistInvitationRepository>()
+    private val invitationQuery = mockk<AdminInvitationQuery>()
     private val resendHandler = mockk<ResendWaitlistInvitationHandler>(relaxed = true)
     private val revokeHandler = mockk<RevokeWaitlistInvitationHandler>(relaxed = true)
-    private val roleAssignmentRepository = mockk<PlatformRoleAssignmentRepository>()
+    private val operatorAccessResolver = mockk<OperatorAccessResolver>()
 
     @Test
     fun `getInvitation returns 401 without principal context`() {
@@ -61,7 +56,7 @@ class AdminInvitationControllerTest {
     @Test
     fun `getInvitation returns summary for existing invitation`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
-        coEvery { invitationRepository.findById(WaitlistInvitationId(invitationId)) } returns invitation()
+        coEvery { invitationQuery.findById(invitationId) } returns invitationSummary()
 
         webClient()
             .get()
@@ -77,7 +72,7 @@ class AdminInvitationControllerTest {
     @Test
     fun `getInvitation returns 404 when invitation does not exist`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
-        coEvery { invitationRepository.findById(WaitlistInvitationId(invitationId)) } returns null
+        coEvery { invitationQuery.findById(invitationId) } returns null
 
         webClient()
             .get()
@@ -121,10 +116,10 @@ class AdminInvitationControllerTest {
     private fun webClient(principal: PrincipalContext? = operatorPrincipal()): WebTestClient = WebTestClient
         .bindToController(
             AdminInvitationController(
-                invitationRepository = invitationRepository,
+                invitationQuery = invitationQuery,
                 resendHandler = resendHandler,
                 revokeHandler = revokeHandler,
-                roleAssignmentRepository = roleAssignmentRepository,
+                operatorAccessResolver = operatorAccessResolver,
                 requestContextStore = FakeRequestContextStore(principal),
             ),
         )
@@ -132,8 +127,7 @@ class AdminInvitationControllerTest {
         .build()
 
     private fun grantRoles(roles: List<PlatformRole>) {
-        coEvery { roleAssignmentRepository.findActiveByPrincipalId(operatorId) } returns
-            roles.map { assignment(it) }
+        coEvery { operatorAccessResolver.resolve(any()) } returns OperatorAccess(operatorId, roles.toSet())
     }
 
     private fun operatorPrincipal() = PrincipalContext(
@@ -141,26 +135,6 @@ class AdminInvitationControllerTest {
         principalType = PrincipalType.USER,
         subject = "operator@example.com",
         provider = "jwt",
-    )
-
-    private fun assignment(role: PlatformRole) = PlatformRoleAssignment(
-        id = PlatformRoleAssignmentId.generate(),
-        principalId = operatorId,
-        role = role,
-        assignedAt = clock,
-        assignedBy = operatorId,
-    )
-
-    private fun invitation() = WaitlistInvitation(
-        id = WaitlistInvitationId(invitationId),
-        waitlistEntryId = entryId,
-        tokenHash = "hash",
-        status = WaitlistInvitationStatus.ACTIVE,
-        issuedAt = clock.minusSeconds(3600),
-        expiresAt = clock.plusSeconds(604_800),
-        createdBy = operatorId,
-        deliveryStatus = InvitationDeliveryStatus.SENT,
-        deliveryAttemptCount = 1,
     )
 
     private fun invitationSummary() = AdminInvitationSummary(

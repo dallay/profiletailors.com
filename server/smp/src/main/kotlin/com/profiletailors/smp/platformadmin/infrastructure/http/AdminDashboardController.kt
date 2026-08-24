@@ -1,9 +1,9 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.model.AdminDashboardSummary
 import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
 import org.springframework.http.HttpStatus
@@ -13,13 +13,12 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.Clock
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin/dashboard")
 class AdminDashboardController(
     private val waitlistQuery: AdminWaitlistQuery,
-    private val roleAssignmentRepository: PlatformRoleAssignmentRepository,
+    private val operatorAccessResolver: OperatorAccessResolver,
     private val requestContextStore: RequestContextStore,
     private val clock: Clock,
 ) {
@@ -29,11 +28,9 @@ class AdminDashboardController(
     ): ResponseEntity<AdminDashboardSummary> {
         val ctx = requestContextStore.currentPrincipalContext()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        val operatorId = UUID.fromString(ctx.principalId)
-        val assignments = roleAssignmentRepository.findActiveByPrincipalId(operatorId)
-        val operatorRoles = assignments.map { it.role }.toSet()
+        val operator = operatorAccessResolver.resolve(ctx)
 
-        if (PlatformPermission.DASHBOARD_READ !in operatorRoles.effectivePermissions()) {
+        if (PlatformPermission.DASHBOARD_READ !in operator.roles.effectivePermissions()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         }
 

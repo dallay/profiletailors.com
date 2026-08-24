@@ -293,4 +293,8 @@ interface MediaStoragePort {
     )
 
     suspend fun delete(bucket: String, key: String, deleterId: String)
+
+    fun download(bucket: String, key: String, downloaderId: String): Flow<ByteArray>
+
+    suspend fun copyObject(bucket: String, sourceKey: String, destKey: String)
 }

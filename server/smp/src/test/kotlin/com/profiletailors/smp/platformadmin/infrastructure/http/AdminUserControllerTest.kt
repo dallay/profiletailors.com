@@ -4,15 +4,14 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platformadmin.application.OperatorAccess
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.model.AdminUserDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminUserSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWorkspaceMembershipSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.ports.AdminUserQuery
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -28,7 +27,7 @@ class AdminUserControllerTest {
     private val userId = "00000000-0000-0000-0000-000000000011"
 
     private val userQuery = mockk<AdminUserQuery>()
-    private val roleAssignmentRepository = mockk<PlatformRoleAssignmentRepository>()
+    private val operatorAccessResolver = mockk<OperatorAccessResolver>()
 
     @Test
     fun `listUsers returns 401 without principal context`() {
@@ -157,7 +156,7 @@ class AdminUserControllerTest {
         .bindToController(
             AdminUserController(
                 userQuery = userQuery,
-                roleAssignmentRepository = roleAssignmentRepository,
+                operatorAccessResolver = operatorAccessResolver,
                 requestContextStore = FakeRequestContextStore(principal),
             ),
         )
@@ -165,8 +164,7 @@ class AdminUserControllerTest {
         .build()
 
     private fun grantRoles(roles: List<PlatformRole>) {
-        coEvery { roleAssignmentRepository.findActiveByPrincipalId(operatorId) } returns
-            roles.map { assignment(it) }
+        coEvery { operatorAccessResolver.resolve(any()) } returns OperatorAccess(operatorId, roles.toSet())
     }
 
     private fun operatorPrincipal() = PrincipalContext(
@@ -174,14 +172,6 @@ class AdminUserControllerTest {
         principalType = PrincipalType.USER,
         subject = "operator@example.com",
         provider = "jwt",
-    )
-
-    private fun assignment(role: PlatformRole) = PlatformRoleAssignment(
-        id = PlatformRoleAssignmentId.generate(),
-        principalId = operatorId,
-        role = role,
-        assignedAt = clock,
-        assignedBy = operatorId,
     )
 
     private fun summary() = AdminUserSummary(

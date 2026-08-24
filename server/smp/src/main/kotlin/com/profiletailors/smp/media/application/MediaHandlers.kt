@@ -17,7 +17,6 @@ import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.media.domain.MediaStorageKeys
-import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.flow
@@ -210,7 +209,7 @@ class CreateUploadedAssetHandler(
 class UploadAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
-    private val storageApplicationService: StorageApplicationService,
+    private val storagePort: MediaStoragePort,
     private val uploadSettings: MediaUploadSettings,
     private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
@@ -380,7 +379,7 @@ class UploadAssetHandler(
 
     private suspend fun deletePartialStorageObject(assetId: String, storageKey: String): Boolean = try {
         withTimeout(CLEANUP_TIMEOUT_MILLIS) {
-            storageApplicationService.delete(
+            storagePort.delete(
                 uploadSettings.storageBucket,
                 storageKey,
                 "media-reconciler",
@@ -465,7 +464,7 @@ class UploadAssetHandler(
         }
 
         withTimeout(command.timeoutSeconds * MILLIS_PER_SECOND) {
-            storageApplicationService.upload(
+            storagePort.upload(
                 bucket = bucket,
                 key = asset.storageKey ?: error("asset must have storageKey before upload"),
                 content = uploadFlow,
@@ -975,7 +974,7 @@ class PutAssetHandler(
 class CasUploadAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
-    private val storageApplicationService: StorageApplicationService,
+    private val storagePort: MediaStoragePort,
     private val uploadSettings: MediaUploadSettings,
     private val transactionRunner: AtomicTransactionRunner,
     private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
@@ -1093,7 +1092,7 @@ class CasUploadAssetHandler(
             CasUploadAssetResult.NotFound(assetId)
         } catch (e: StorageException) {
             // The transactional block terminated with an error (typically a `StorageException`
-            // from `storageApplicationService.copyObject`). The transaction has already rolled
+            // from `storagePort.copyObject`). The transaction has already rolled
             // back via the transaction manager semantics. We now perform the storage cleanup
             // and mark the asset/blob as failed OUTSIDE the transaction.
             cleanupTemp(tempKey)
@@ -1169,7 +1168,7 @@ class CasUploadAssetHandler(
                 // when the `transactional {}` Mono terminates with an error, so we do not need
                 // an explicit rollback path here.
                 try {
-                    storageApplicationService.copyObject(
+                    storagePort.copyObject(
                         uploadSettings.storageBucket,
                         sourceKey = tempKey,
                         destKey = canonicalKey,
@@ -1348,7 +1347,7 @@ class CasUploadAssetHandler(
         }
 
         withTimeout(command.timeoutSeconds * MILLIS_PER_SECOND) {
-            storageApplicationService.upload(
+            storagePort.upload(
                 bucket = uploadSettings.storageBucket,
                 key = tempKey,
                 content = uploadFlow,
@@ -1410,7 +1409,7 @@ class CasUploadAssetHandler(
 
     private suspend fun cleanupTemp(tempKey: String) {
         try {
-            storageApplicationService.delete(
+            storagePort.delete(
                 bucket = uploadSettings.storageBucket,
                 key = tempKey,
                 deleterId = "upload-handler",

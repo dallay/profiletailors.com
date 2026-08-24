@@ -1,17 +1,11 @@
 package com.profiletailors.smp.media.infrastructure.http
 
-import com.profiletailors.common.domain.bus.event.BaseDomainEvent
-import com.profiletailors.common.domain.bus.event.EventPublisher
-import com.profiletailors.smp.media.application.MediaAssetRepository
+import com.profiletailors.smp.media.application.MediaAssetPreviewPort
 import com.profiletailors.smp.media.application.MediaPreviewTokenService
 import com.profiletailors.smp.media.application.MediaUploadSettings
-import com.profiletailors.smp.media.application.PagedMediaAssets
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
-import com.profiletailors.storage.application.StorageApplicationService
-import com.profiletailors.storage.domain.Storage
-import com.profiletailors.storage.domain.StorageObservation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -178,83 +172,15 @@ class MediaAssetPreviewControllerTest {
     }
 
     private fun controller(asset: MediaAsset?): MediaAssetPreviewController {
-        val repository = object : MediaAssetRepository {
-            override suspend fun create(asset: MediaAsset): MediaAsset = asset
-            override suspend fun findByWorkspaceAndId(workspaceId: String, assetId: String): MediaAsset? = asset
-            override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: List<String>): List<MediaAsset> =
-                emptyList()
-            override suspend fun listByWorkspace(
-                workspaceId: String,
-                statuses: Set<MediaAssetStatus>,
-                pageSize: Int,
-                cursor: String?,
-            ): PagedMediaAssets = PagedMediaAssets(emptyList(), null)
-            override suspend fun claimUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean = false
-            override suspend fun claimCasUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean = false
-            override suspend fun markAsReady(assetId: String, workspaceId: String, fileSizeBytes: Long): MediaAsset? =
-                null
-            override suspend fun markAsReadyFromDedup(
-                assetId: String,
-                workspaceId: String,
-                storageKey: String,
-                detectedMediaType: String,
-                fileSizeBytes: Long?,
-            ): MediaAsset? = null
-            override suspend fun markAsFailed(assetId: String, workspaceId: String, reason: String?): MediaAsset? = null
-            override suspend fun updateStatus(
-                assetId: String,
-                workspaceId: String,
-                status: MediaAssetStatus,
-            ): MediaAsset? = null
-            override suspend fun softDelete(assetId: String, workspaceId: String): MediaAsset? = null
-            override suspend fun findStaleProcessingAssets(
-                thresholdHours: Long,
-                gracePeriodMinutes: Long,
-            ): List<MediaAsset> = emptyList()
-            override suspend fun findRecentlyFailedAssets(): List<MediaAsset> = emptyList()
-            override suspend fun findExpiredPendingUploadAssets(limit: Int): List<MediaAsset> = emptyList()
-            override suspend fun findExpiredUploadingAssets(limit: Int): List<MediaAsset> = emptyList()
-            override suspend fun countActiveReferences(workspaceId: String, fileHash: String): Int = 0
-            override suspend fun findActiveByWorkspaceAndHash(workspaceId: String, fileHash: String): MediaAsset? = null
+        val previewPort = object : MediaAssetPreviewPort {
+            override suspend fun findAsset(workspaceId: String, assetId: String): MediaAsset? = asset
+            override fun download(bucket: String, key: String, downloaderId: String): Flow<ByteArray> =
+                flowOf("preview".toByteArray())
         }
 
-        val storageService = StorageApplicationService(
-            storage = object : Storage {
-                override suspend fun upload(
-                    bucket: String,
-                    key: String,
-                    content: Flow<ByteArray>,
-                    metadata: Map<String, String>,
-                ) {}
-                override fun download(bucket: String, key: String): Flow<ByteArray> = flowOf("preview".toByteArray())
-                override suspend fun delete(bucket: String, key: String) {}
-                override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
-                override suspend fun exists(bucket: String, key: String): Boolean = true
-                override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String): Unit =
-                    throw IllegalStateException("copyObject: source not found: $sourceKey")
-            },
-            eventPublisher = object : EventPublisher<BaseDomainEvent> {
-                override suspend fun publish(event: BaseDomainEvent) {}
-            },
-            metrics = object : StorageObservation {
-                override fun recordOperation(operation: String, provider: String, bucket: String, success: Boolean) {}
-                override fun recordBytesUploaded(bytes: Long, provider: String, bucket: String) {}
-                override fun recordBytesDownloaded(bytes: Long, provider: String, bucket: String) {}
-                override fun recordOperationLatency(operation: String, provider: String, durationNanos: Long) {}
-                override fun recordError(operation: String, provider: String, bucket: String, errorType: String) {}
-                override fun recordPresignedUrlGenerated(provider: String, success: Boolean) {}
-                override suspend fun <T : Any> recordOperationTime(
-                    operation: String,
-                    provider: String,
-                    action: suspend () -> T,
-                ): T = action()
-            },
-        )
-
         return MediaAssetPreviewController(
-            mediaAssetRepository = repository,
+            mediaAssetPreviewPort = previewPort,
             mediaPreviewTokenService = tokenService,
-            storageApplicationService = storageService,
             mediaUploadSettings = uploadSettings,
         )
     }

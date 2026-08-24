@@ -79,7 +79,29 @@ implemented using:
 
 ## Migration or remediation
 
-None required; the current structure is already exceptionally clean.
+### PermissionKey — admitted to shared/common
+
+`PermissionKey` was moved from `authorization.domain` to
+`com.profiletailors.common.domain.vo.permission` because it is a domain primitive
+used by three bounded contexts: `authorization`, `governance`, and `tenancy`. A
+typealias in `authorization.domain.PermissionKey` preserves source compatibility for
+existing imports within the authorization context. Cross-context consumers
+(`governance`, `tenancy`) now import directly from `shared/common`.
+
+### CredentialType — exception: admitted with 2 contexts
+
+`CredentialType` was moved from `credentials.domain` to
+`com.profiletailors.common.domain.authentication` despite being used by only two
+bounded contexts (`credentials` and `identity`), which is below the three-context
+admission criterion. The exception is granted because:
+
+- It is an immutable enum (inherently safe to share).
+- Its semantics mirror `PrincipalType`, which already resides in `shared/common`.
+- The alternative (cross-context domain import from `identity` into `credentials`)
+  creates bounded-context coupling that ADR-0010's governance model is designed to
+  prevent.
+
+A typealias in `credentials.domain.CredentialType` preserves source compatibility.
 
 ## Revisit conditions
 
