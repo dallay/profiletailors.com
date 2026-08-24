@@ -53,7 +53,7 @@ Revert the single `pull-request-title-pattern` change in `release-please-config.
 
 ## Success Criteria
 
-- [ ] Release configuration contains a parser-compatible root title pattern with `${scope}`, `${component}`, and `${version}`.
-- [ ] `chore(release): prepare releases` remains the grouped PR title.
-- [ ] JSON validation and `git diff --check` pass.
+- [x] Release configuration contains a parser-compatible root title pattern with `${scope}`, `${component}`, and `${version}`.
+- [x] `chore(release): prepare releases` remains the grouped PR title.
+- [x] JSON validation and `git diff --check` pass.
 - [ ] The next post-merge Release Please run recognizes the existing release baseline and can create or update the grouped PR.

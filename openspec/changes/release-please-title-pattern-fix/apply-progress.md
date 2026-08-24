@@ -25,6 +25,7 @@
 - `git diff --check` — clean.
 - Final diff: `release-please-config.json | 2 +-` (1 insertion / 1 deletion).
 - `git diff origin/main..HEAD --stat` — only the intended `release-please-config.json` line and the OpenSpec change directory; no package versions, manifest versions, workflow permissions, or tag definitions changed.
+- Release Please 17.6.0 matcher verification: configuration-only; the pattern `chore${scope}: release${component} ${version}` matches the Release Please default pattern structure and includes all required placeholders (`${scope}`, `${component}`, `${version}`), but no live matcher command was executed pre-merge. Post-merge workflow execution will provide runtime matcher evidence.
 
 ## Troubleshooting
 

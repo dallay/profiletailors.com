@@ -34,7 +34,7 @@ Chain strategy: single-pr
 ## Phase 3: Focused Verification / REFACTOR
 
 - [x] 3.1 Re-run the focused assertion and JSON parse against `release-please-config.json`; verify all three placeholders and `chore(release): prepare releases` pass.
-- [x] 3.2 Verify the placeholder contract against the pinned Release Please 17.6.0 matcher behavior, including optional scope, component, and semantic-version tokens.
+- [ ] 3.2 Verify the placeholder contract against the pinned Release Please 17.6.0 matcher behavior, including optional scope, component, and semantic-version tokens.
 - [x] 3.3 Run `git diff --check` and inspect the focused diff to confirm only the intended configuration line changed and no package versions or release tags changed.
 
 ## Phase 4: Cleanup
