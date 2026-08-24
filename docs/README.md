@@ -30,6 +30,8 @@
 ### Infrastructure
 - [Modular Docker Compose](./infrastructure/modular-docker-compose.md) - Reusable infrastructure
   services
+- [Private Beta Launch Readiness Runbook](./infrastructure/private-beta-launch-readiness-runbook.md) -
+  Operator procedures for publishing safe-off, stale visibility, and rollback (DALLAY-555/557)
 - [PostgreSQL Setup](../infra/postgres/) - Database configuration
 
 ### Monitoring & Observability

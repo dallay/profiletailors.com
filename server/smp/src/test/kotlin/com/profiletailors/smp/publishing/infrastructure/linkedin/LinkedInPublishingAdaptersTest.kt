@@ -219,7 +219,7 @@ class LinkedInPublishingAdaptersTest {
 
 La migración exige cuidado con (paréntesis), [corchetes] y {llaves}."""
 
-        publisher.publish(
+        val result = publisher.publish(
             ProviderPublishCommand(
                 publicationId = "pub-little-text",
                 workspaceId = "workspace-1",
@@ -229,6 +229,7 @@ La migración exige cuidado con (paréntesis), [corchetes] y {llaves}."""
             ),
         )
 
+        assertNull(result.providerMessage)
         val payload = transport.capturedBodies.single()
         assertEquals(
             """Spring Boot 4.x \(el cambio más grande\)
@@ -1316,6 +1317,7 @@ La migración exige cuidado con \(paréntesis\), \[corchetes\] y \{llaves\}.""",
         }
 
         assertTrue(error.message!!.contains("asset registration failed"))
+        assertTrue(!error.message!!.contains("Bad request"))
     }
 
     @Test

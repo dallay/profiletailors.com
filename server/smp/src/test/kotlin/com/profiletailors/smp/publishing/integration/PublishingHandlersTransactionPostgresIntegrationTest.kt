@@ -66,6 +66,7 @@ import org.springframework.transaction.reactive.TransactionalOperator
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.Duration
 import java.time.Instant
 
 @Tag("postgres")
@@ -736,8 +737,8 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
             delegate.cancel(jobId, cancelledAt)
         }
 
-        override suspend fun claimNextDue(now: Instant, workerId: String): PublicationJobClaim? =
-            delegate.claimNextDue(now, workerId)
+        override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? =
+            delegate.claimNextDue(now, workerId, claimLease)
     }
 
     companion object {

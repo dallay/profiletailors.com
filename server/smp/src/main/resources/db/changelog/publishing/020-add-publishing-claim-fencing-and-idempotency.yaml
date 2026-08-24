@@ -1,0 +1,97 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-020-add-publishing-claim-fencing-and-idempotency
+      author: opencode
+      changes:
+        - addColumn:
+            tableName: publication_jobs
+            columns:
+              - column:
+                  name: claim_version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: blocked_at
+                  type: timestamp with time zone
+        - addColumn:
+            tableName: delivery_attempts
+            columns:
+              - column:
+                  name: operation_key
+                  type: varchar(255)
+              - column:
+                  name: claim_version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: phase
+                  type: varchar(32)
+                  defaultValue: FINALIZATION
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: >-
+              UPDATE delivery_attempts
+              SET operation_key = publication_job_id || ':' || attempt_number
+              WHERE operation_key IS NULL
+        - addNotNullConstraint:
+            tableName: delivery_attempts
+            columnName: operation_key
+            columnDataType: varchar(255)
+        - addUniqueConstraint:
+            tableName: delivery_attempts
+            columnNames: operation_key
+            constraintName: uq_delivery_attempts_operation_key
+        - createIndex:
+            tableName: publication_jobs
+            indexName: idx_publication_jobs_claim_version
+            columns:
+              - column:
+                  name: id
+              - column:
+                  name: claim_version
+      rollback:
+        - dropUniqueConstraint:
+            tableName: delivery_attempts
+            constraintName: uq_delivery_attempts_operation_key
+        - dropIndex:
+            tableName: publication_jobs
+            indexName: idx_publication_jobs_claim_version
+        - dropColumn:
+            tableName: delivery_attempts
+            columnName: phase
+        - dropColumn:
+            tableName: delivery_attempts
+            columnName: claim_version
+        - dropColumn:
+            tableName: delivery_attempts
+            columnName: operation_key
+        - dropColumn:
+            tableName: publication_jobs
+            columnName: blocked_at
+        - dropColumn:
+            tableName: publication_jobs
+            columnName: claim_version
+
+  - changeSet:
+      id: publishing-020-add-claimed-lease-index
+      author: opencode
+      runInTransaction: false
+      changes:
+        - sql:
+            splitStatements: false
+            stripComments: true
+            sql: >-
+              CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_publication_jobs_claimed_lease
+              ON publication_jobs (lease_expires_at)
+              WHERE status = 'CLAIMED'
+      rollback:
+        - sql:
+            splitStatements: false
+            stripComments: true
+            sql: >-
+              DROP INDEX CONCURRENTLY IF EXISTS idx_publication_jobs_claimed_lease

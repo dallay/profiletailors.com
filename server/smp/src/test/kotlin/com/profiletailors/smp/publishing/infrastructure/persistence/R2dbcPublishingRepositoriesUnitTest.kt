@@ -6,6 +6,7 @@ import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
+import com.profiletailors.smp.publishing.domain.DeliveryAttemptPhase
 import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.PublicationAsset
@@ -29,7 +30,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.Duration
 import java.time.Instant
+import java.time.OffsetDateTime
 import kotlin.test.assertFailsWith
 
 @Tag("postgres")
@@ -595,7 +598,11 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
 
             publicationJobRepository.enqueue(job)
 
-            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-1")
+            val claim = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T13:00:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            )
             assertNotNull(claim)
             assertEquals("job-enqueue-1", claim!!.jobId)
             assertEquals(pubId, claim.publicationId)
@@ -632,11 +639,19 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
                 .awaitSingle()
             assertEquals(0L, remainingAttempts)
 
-            val claim1 = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-A")
+            val claim1 = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T13:00:00Z"),
+                "worker-A",
+                Duration.ofMinutes(2),
+            )
             assertNotNull(claim1)
             assertEquals("job-replace-2", claim1!!.jobId)
 
-            val claim2 = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-B")
+            val claim2 = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T13:00:00Z"),
+                "worker-B",
+                Duration.ofMinutes(2),
+            )
             assertNull(claim2)
         }
 
@@ -647,7 +662,11 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
 
             publicationJobRepository.replaceForPublication(replacement)
 
-            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-1")
+            val claim = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T13:00:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            )
             assertNotNull(claim)
             assertEquals(replacement.id, claim?.jobId)
         }
@@ -662,7 +681,11 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
                 dueAt = Instant.parse("2026-06-02T00:00:00Z"),
             )
 
-            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T12:00:00Z"), "worker-1")
+            val claim = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T12:00:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            )
             assertNull(claim)
         }
 
@@ -685,7 +708,11 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
                 priorityRank = 100,
             )
 
-            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T12:00:00Z"), "worker-1")
+            val claim = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T12:00:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            )
             assertNotNull(claim)
             assertEquals("job-high-priority", claim!!.jobId)
         }
@@ -701,7 +728,11 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
                 priorityRank = 50,
             )
 
-            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T12:00:00Z"), "worker-1")
+            val claim = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T12:00:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            )
             assertNotNull(claim)
             assertEquals("job-retry", claim!!.jobId)
         }
@@ -709,21 +740,32 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
         @Test
         fun `rescheduleRetry updates job to RETRY_WAITING and clears claim`() = runTest {
             val pubId = insertPublication(PublicationStatus.PROCESSING.name)
-            val job = makeJob("job-retry-test", pubId, JobStatus.CLAIMED)
+            val job = makeJob("job-retry-test", pubId, JobStatus.PENDING)
             publicationJobRepository.enqueue(job)
-            publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T12:00:00Z"), "worker-1")
 
+            val firstClaim = requireNotNull(
+                publicationJobRepository.claimNextDue(
+                    Instant.parse("2026-06-01T12:00:00Z"),
+                    "worker-1",
+                    Duration.ofMinutes(2),
+                ),
+            )
             publicationJobRepository.rescheduleRetry(
                 jobId = "job-retry-test",
+                claimVersion = firstClaim.claimVersion,
                 nextAttemptAt = Instant.parse("2026-06-01T14:00:00Z"),
                 attemptNumber = 2,
             )
 
-            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T14:00:00Z"), "worker-2")
-            assertNotNull(claim)
+            val claimAfterReschedule = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T14:00:00Z"),
+                "worker-2",
+                Duration.ofMinutes(2),
+            )
+            assertNotNull(claimAfterReschedule)
             // claimNextDue increments stored attempt_count, so after rescheduleRetry(2)
             // the stored count is 2, and the next claim returns 2 + 1 = 3
-            assertEquals(3, claim!!.attemptNumber)
+            assertEquals(3, claimAfterReschedule!!.attemptNumber)
         }
 
         @Test
@@ -732,10 +774,28 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
             val job = makeJob("job-complete-test", pubId, JobStatus.PENDING)
             publicationJobRepository.enqueue(job)
 
-            publicationJobRepository.complete("job-complete-test", Instant.parse("2026-06-01T12:30:00Z"))
+            val claim = requireNotNull(
+                publicationJobRepository.claimNextDue(
+                    Instant.parse("2026-06-01T12:00:00Z"),
+                    "worker-1",
+                    Duration.ofMinutes(2),
+                ),
+            )
+            assertEquals(
+                true,
+                publicationJobRepository.complete(
+                    "job-complete-test",
+                    claim.claimVersion,
+                    Instant.parse("2026-06-01T12:30:00Z"),
+                ),
+            )
 
-            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-1")
-            assertNull(claim)
+            val claimAfterCompletion = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T13:00:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            )
+            assertNull(claimAfterCompletion)
         }
 
         @Test
@@ -744,10 +804,60 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
             val job = makeJob("job-fail-test", pubId, JobStatus.PENDING)
             publicationJobRepository.enqueue(job)
 
-            publicationJobRepository.fail("job-fail-test", Instant.parse("2026-06-01T12:30:00Z"))
+            val claim = requireNotNull(
+                publicationJobRepository.claimNextDue(
+                    Instant.parse("2026-06-01T12:00:00Z"),
+                    "worker-1",
+                    Duration.ofMinutes(2),
+                ),
+            )
+            assertEquals(
+                true,
+                publicationJobRepository.fail(
+                    "job-fail-test",
+                    claim.claimVersion,
+                    Instant.parse("2026-06-01T12:30:00Z"),
+                ),
+            )
 
-            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-1")
-            assertNull(claim)
+            val claimAfterFailure = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T13:00:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            )
+            assertNull(claimAfterFailure)
+        }
+
+        @Test
+        fun `block sets job status to BLOCKED and clears the claim`() = runTest {
+            val pubId = insertPublication(PublicationStatus.PROCESSING.name, "pub-block-test")
+            insertPublicationJob(
+                id = "job-block-test",
+                publicationId = pubId,
+                status = JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T12:00:00Z"),
+            )
+            val claim = requireNotNull(
+                publicationJobRepository.claimNextDue(
+                    Instant.parse("2026-06-01T12:00:00Z"),
+                    "worker-1",
+                    Duration.ofMinutes(2),
+                ),
+            )
+
+            assertTrue(
+                publicationJobRepository.block(
+                    jobId = claim.jobId,
+                    claimVersion = claim.claimVersion,
+                    blockedAt = Instant.parse("2026-06-01T12:30:00Z"),
+                ),
+            )
+
+            val row = loadJobRow("job-block-test")
+            assertEquals("BLOCKED", row["status"])
+            assertNotNull(row["blocked_at"])
+            assertNull(row["claimed_at"])
+            assertNull(row["lease_expires_at"])
         }
 
         @Test
@@ -759,8 +869,304 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
             // cancel() uses WHERE publication_id = :publicationId — pass publication_id
             publicationJobRepository.cancel(pubId, Instant.parse("2026-06-01T12:30:00Z"))
 
-            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-1")
+            val claim = publicationJobRepository.claimNextDue(
+                Instant.parse("2026-06-01T13:00:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            )
             assertNull(claim)
+        }
+
+        // -------------------------------------------------------------------------
+        // R2dbcPublicationJobRepository — stale claim visibility / recovery
+        // -------------------------------------------------------------------------
+
+        @Test
+        fun `should return only claimed jobs whose lease expired past the threshold`() = runTest {
+            val now = Instant.parse("2026-06-01T12:00:00Z")
+            val pubStaleOld = insertPublication(PublicationStatus.PROCESSING.name, "pub-stale-old")
+            val pubStaleRecent = insertPublication(PublicationStatus.PROCESSING.name, "pub-stale-recent")
+            val pubFresh = insertPublication(PublicationStatus.PROCESSING.name, "pub-fresh")
+            val pubPending = insertPublication(PublicationStatus.QUEUED.name, "pub-pending-stale")
+
+            // Stale claim (lease expired long ago)
+            insertPublicationJobWithClaim(
+                id = "job-stale-old",
+                publicationId = pubStaleOld,
+                claimedByWorker = "worker-stuck",
+                claimedAt = now.minus(Duration.ofMinutes(30)),
+                leaseExpiresAt = now.minus(Duration.ofMinutes(25)),
+            )
+
+            // Stale claim (lease just expired past 5-min threshold)
+            insertPublicationJobWithClaim(
+                id = "job-stale-recent",
+                publicationId = pubStaleRecent,
+                claimedByWorker = "worker-stuck",
+                claimedAt = now.minus(Duration.ofMinutes(7)),
+                leaseExpiresAt = now.minus(Duration.ofMinutes(6)),
+            )
+
+            // Fresh claim (still inside 5-min threshold)
+            insertPublicationJobWithClaim(
+                id = "job-fresh-claim",
+                publicationId = pubFresh,
+                claimedByWorker = "worker-1",
+                claimedAt = now.minus(Duration.ofMinutes(1)),
+                leaseExpiresAt = now.plus(Duration.ofMinutes(1)),
+            )
+
+            // Non-claimed (PENDING) with old due_at must NOT appear even if lease column would be null
+            insertPublicationJob(
+                id = "job-pending",
+                publicationId = pubPending,
+                status = JobStatus.PENDING,
+                dueAt = now.minus(Duration.ofMinutes(30)),
+            )
+
+            val stale = publicationJobRepository.findStaleClaims(now, Duration.ofMinutes(5), limit = 1)
+
+            assertEquals(2, stale.total)
+            assertEquals(1, stale.jobs.size)
+            // Ordered by lease_expires_at ASC; total still reports the unbounded match count.
+            assertEquals("job-stale-old", stale.jobs[0].jobId)
+            assertEquals("workspace-1", stale.jobs[0].workspaceId)
+            assertEquals("worker-stuck", stale.jobs[0].claimedByWorker)
+            assertEquals(pubStaleOld, stale.jobs[0].publicationId)
+        }
+
+        @Test
+        fun `should return an empty page when no claims have expired past the threshold`() = runTest {
+            val now = Instant.parse("2026-06-01T12:00:00Z")
+            val pubId = insertPublication(PublicationStatus.PROCESSING.name, "pub-no-stale")
+
+            insertPublicationJobWithClaim(
+                id = "job-fresh",
+                publicationId = pubId,
+                claimedByWorker = "worker-1",
+                claimedAt = now.minus(Duration.ofMinutes(1)),
+                leaseExpiresAt = now.plus(Duration.ofMinutes(1)),
+            )
+
+            val stale = publicationJobRepository.findStaleClaims(now, Duration.ofMinutes(5), limit = 10)
+
+            assertTrue(stale.jobs.isEmpty(), "Expected no stale claims, got ${stale.jobs.size}")
+            assertEquals(0, stale.total)
+        }
+
+        @Test
+        fun `should respect the supplied stale threshold window`() = runTest {
+            val now = Instant.parse("2026-06-01T12:00:00Z")
+            val pubId = insertPublication(PublicationStatus.PROCESSING.name, "pub-threshold")
+
+            // Lease expired 2 minutes ago — stale only when threshold < 2 minutes
+            insertPublicationJobWithClaim(
+                id = "job-2-min",
+                publicationId = pubId,
+                claimedByWorker = "worker-1",
+                claimedAt = now.minus(Duration.ofMinutes(3)),
+                leaseExpiresAt = now.minus(Duration.ofMinutes(2)),
+            )
+
+            val staleFor5Min = publicationJobRepository.findStaleClaims(now, Duration.ofMinutes(5), limit = 10)
+            val staleFor1Min = publicationJobRepository.findStaleClaims(now, Duration.ofMinutes(1), limit = 10)
+
+            assertTrue(
+                staleFor5Min.jobs.isEmpty(),
+                "5-min threshold should NOT flag a lease that expired only 2 minutes ago",
+            )
+            assertEquals(1, staleFor1Min.total)
+            assertEquals(1, staleFor1Min.jobs.size)
+        }
+
+        @Test
+        fun `should reset stale claimed jobs to pending and return the affected count`() = runTest {
+            val now = Instant.parse("2026-06-01T12:00:00Z")
+            val pubStale1 = insertPublication(PublicationStatus.PROCESSING.name, "pub-release-stale-1")
+            val pubStale2 = insertPublication(PublicationStatus.PROCESSING.name, "pub-release-stale-2")
+
+            insertPublicationJobWithClaim(
+                id = "job-stale-1",
+                publicationId = pubStale1,
+                claimedByWorker = "worker-stuck",
+                claimedAt = now.minus(Duration.ofMinutes(20)),
+                leaseExpiresAt = now.minus(Duration.ofMinutes(15)),
+            )
+            insertPublicationJobWithClaim(
+                id = "job-stale-2",
+                publicationId = pubStale2,
+                claimedByWorker = "worker-stuck",
+                claimedAt = now.minus(Duration.ofMinutes(10)),
+                leaseExpiresAt = now.minus(Duration.ofMinutes(8)),
+            )
+
+            val released = publicationJobRepository.releaseExpiredClaims(now, Duration.ofMinutes(5))
+
+            assertEquals(2, released)
+
+            // Both jobs must now be PENDING with cleared claim columns
+            val reset1 = loadJobRow("job-stale-1")
+            assertEquals("PENDING", reset1["status"])
+            assertNull(reset1["claimed_by_worker"])
+            assertNull(reset1["claimed_at"])
+            assertNull(reset1["lease_expires_at"])
+
+            val reset2 = loadJobRow("job-stale-2")
+            assertEquals("PENDING", reset2["status"])
+            assertNull(reset2["claimed_by_worker"])
+        }
+
+        @Test
+        fun `reclaiming a stale job reuses the in-progress delivery attempt identity`() = runTest {
+            val now = Instant.parse("2026-06-01T12:00:00Z")
+            val pubId = insertPublication(PublicationStatus.PROCESSING.name, "pub-stale-recovery")
+            val jobId = "job-stale-recovery"
+            val operationKey = "$jobId:1"
+
+            insertPublicationJobWithClaim(
+                id = jobId,
+                publicationId = pubId,
+                claimedByWorker = "worker-stuck",
+                claimedAt = now.minus(Duration.ofMinutes(20)),
+                leaseExpiresAt = now.minus(Duration.ofMinutes(15)),
+            )
+            deliveryAttemptRepository.record(
+                DeliveryAttempt(
+                    id = "attempt-stale-recovery",
+                    publicationId = pubId,
+                    publicationJobId = jobId,
+                    attemptNumber = 1,
+                    outcome = DeliveryAttemptOutcome.IN_PROGRESS,
+                    retryable = false,
+                    attemptedAt = now.minus(Duration.ofMinutes(20)),
+                    operationKey = operationKey,
+                    phase = DeliveryAttemptPhase.PROVIDER_CREATE,
+                ),
+            )
+
+            publicationJobRepository.releaseExpiredClaims(now, Duration.ofMinutes(5))
+            val reclaimed = requireNotNull(
+                publicationJobRepository.claimNextDue(
+                    now = now,
+                    workerId = "worker-reclaimer",
+                    claimLease = Duration.ofMinutes(2),
+                ),
+            )
+
+            assertEquals(1, reclaimed.attemptNumber)
+            assertEquals(operationKey, reclaimed.operationKey)
+        }
+
+        @Test
+        fun `should leave fresh claims alone`() = runTest {
+            val now = Instant.parse("2026-06-01T12:00:00Z")
+            val pubId = insertPublication(PublicationStatus.PROCESSING.name, "pub-release-fresh")
+
+            insertPublicationJobWithClaim(
+                id = "job-fresh",
+                publicationId = pubId,
+                claimedByWorker = "worker-1",
+                claimedAt = now.minus(Duration.ofMinutes(1)),
+                leaseExpiresAt = now.plus(Duration.ofMinutes(1)),
+            )
+
+            val released = publicationJobRepository.releaseExpiredClaims(now, Duration.ofMinutes(5))
+
+            assertEquals(0, released)
+            val fresh = loadJobRow("job-fresh")
+            assertEquals("CLAIMED", fresh["status"])
+            assertEquals("worker-1", fresh["claimed_by_worker"])
+        }
+
+        @Test
+        fun `should leave non-claimed statuses alone`() = runTest {
+            val now = Instant.parse("2026-06-01T12:00:00Z")
+            val pubPending = insertPublication(PublicationStatus.QUEUED.name, "pub-non-claimed-pending")
+            val pubRetry = insertPublication(PublicationStatus.SCHEDULED.name, "pub-non-claimed-retry")
+            val pubCompleted = insertPublication(PublicationStatus.PUBLISHED.name, "pub-non-claimed-completed")
+
+            insertPublicationJob(
+                id = "job-pending",
+                publicationId = pubPending,
+                status = JobStatus.PENDING,
+                dueAt = now.minus(Duration.ofMinutes(30)),
+            )
+            insertPublicationJob(
+                id = "job-retry-waiting",
+                publicationId = pubRetry,
+                status = JobStatus.RETRY_WAITING,
+                dueAt = now.minus(Duration.ofMinutes(30)),
+            )
+            insertPublicationJob(
+                id = "job-completed",
+                publicationId = pubCompleted,
+                status = JobStatus.COMPLETED,
+                dueAt = now.minus(Duration.ofMinutes(30)),
+            )
+
+            val released = publicationJobRepository.releaseExpiredClaims(now, Duration.ofMinutes(5))
+
+            assertEquals(0, released)
+            assertEquals("PENDING", loadJobRow("job-pending")["status"])
+            assertEquals("RETRY_WAITING", loadJobRow("job-retry-waiting")["status"])
+            assertEquals("COMPLETED", loadJobRow("job-completed")["status"])
+        }
+
+        @Test
+        fun `should reject non-positive stale grace and limits`() = runTest {
+            val now = Instant.parse("2026-06-01T12:00:00Z")
+
+            assertFailsWith<IllegalArgumentException> {
+                publicationJobRepository.findStaleClaims(now, Duration.ZERO, limit = 1)
+            }
+            assertFailsWith<IllegalArgumentException> {
+                publicationJobRepository.findStaleClaims(now, Duration.ofMinutes(1), limit = 0)
+            }
+            assertFailsWith<IllegalArgumentException> {
+                publicationJobRepository.releaseExpiredClaims(now, Duration.ZERO)
+            }
+        }
+
+        @Test
+        fun `should reject a terminal mutation from a stale claim version`() = runTest {
+            val claimedAt = Instant.parse("2026-06-01T12:00:00Z")
+            val pubId = insertPublication(PublicationStatus.PROCESSING.name, "pub-claim-fence")
+            insertPublicationJob(
+                id = "job-claim-fence",
+                publicationId = pubId,
+                status = JobStatus.PENDING,
+                dueAt = claimedAt,
+            )
+
+            val firstClaim = requireNotNull(
+                publicationJobRepository.claimNextDue(
+                    claimedAt,
+                    "worker-1",
+                    Duration.ofMinutes(2),
+                ),
+            )
+            publicationJobRepository.releaseExpiredClaims(
+                now = claimedAt.plus(Duration.ofMinutes(4)),
+                staleGrace = Duration.ofMinutes(1),
+            )
+            val secondClaim = requireNotNull(
+                publicationJobRepository.claimNextDue(
+                    claimedAt.plus(Duration.ofMinutes(4)),
+                    "worker-2",
+                    Duration.ofMinutes(2),
+                ),
+            )
+
+            assertTrue(secondClaim.claimVersion > firstClaim.claimVersion)
+            assertEquals(
+                false,
+                publicationJobRepository.complete(
+                    jobId = firstClaim.jobId,
+                    claimVersion = firstClaim.claimVersion,
+                    completedAt = claimedAt.plus(Duration.ofMinutes(4)),
+                ),
+            )
+            assertEquals("CLAIMED", loadJobRow("job-claim-fence")["status"])
         }
     }
 
@@ -859,6 +1265,54 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
             assertEquals("attempt-3", result.id)
             assertEquals(3, result.attemptNumber)
             assertEquals("ext-id-3", result.externalPublicationId)
+        }
+
+        @Test
+        fun `find and update roundtrip operation key phase and fenced outcome`() = runTest {
+            val pubId = insertPublication(PublicationStatus.PROCESSING.name, "pub-da-roundtrip")
+            val jobId = "job-da-roundtrip"
+            insertPublicationJob(
+                jobId,
+                pubId,
+                JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T12:00:00Z"),
+                claimVersion = 4,
+            )
+
+            val started = DeliveryAttempt(
+                id = "attempt-roundtrip",
+                publicationId = pubId,
+                publicationJobId = jobId,
+                attemptNumber = 1,
+                outcome = DeliveryAttemptOutcome.IN_PROGRESS,
+                retryable = false,
+                attemptedAt = Instant.parse("2026-06-01T12:00:00Z"),
+                createdAt = Instant.parse("2026-06-01T12:00:01Z"),
+                operationKey = "$jobId:1",
+                claimVersion = 4,
+                phase = DeliveryAttemptPhase.PROVIDER_CREATE,
+            )
+            deliveryAttemptRepository.record(started)
+
+            val loaded = requireNotNull(deliveryAttemptRepository.findByOperationKey("$jobId:1"))
+            assertEquals(started.id, loaded.id)
+            assertEquals(started.createdAt, loaded.createdAt)
+            assertEquals(started.claimVersion, loaded.claimVersion)
+            assertEquals(DeliveryAttemptPhase.PROVIDER_CREATE, loaded.phase)
+
+            val finalized = loaded.copy(
+                outcome = DeliveryAttemptOutcome.SUCCEEDED,
+                externalPublicationId = "linkedin-post-roundtrip",
+                attemptedAt = Instant.parse("2026-06-01T12:00:02Z"),
+                phase = DeliveryAttemptPhase.FINALIZATION,
+            )
+            assertTrue(deliveryAttemptRepository.update(finalized))
+
+            val persisted = requireNotNull(deliveryAttemptRepository.findByOperationKey("$jobId:1"))
+            assertEquals(DeliveryAttemptOutcome.SUCCEEDED, persisted.outcome)
+            assertEquals("linkedin-post-roundtrip", persisted.externalPublicationId)
+            assertEquals(DeliveryAttemptPhase.FINALIZATION, persisted.phase)
+            assertFalse(deliveryAttemptRepository.update(finalized.copy(claimVersion = 5)))
         }
     }
 
@@ -1049,15 +1503,16 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
         status: JobStatus,
         dueAt: Instant,
         priorityRank: Int = 10,
+        claimVersion: Long = 0,
     ) {
         databaseClient.sql(
             """
             INSERT INTO publication_jobs (
                 id, publication_id, workspace_id, status, due_at, priority_rank,
-                attempt_count, max_attempts, created_at
+                attempt_count, max_attempts, created_at, claim_version
             ) VALUES (
                 :id, :publicationId, 'workspace-1', :status, :dueAt,
-                :priorityRank, 0, 3, :createdAt
+                :priorityRank, 0, 3, :createdAt, :claimVersion
             )
             """.trimIndent(),
         )
@@ -1067,9 +1522,65 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
             .bind("dueAt", dueAt)
             .bind("priorityRank", priorityRank)
             .bind("createdAt", java.time.Instant.now())
+            .bind("claimVersion", claimVersion)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+    }
+
+    private suspend fun insertPublicationJobWithClaim(
+        id: String,
+        publicationId: String,
+        claimedByWorker: String,
+        claimedAt: Instant,
+        leaseExpiresAt: Instant,
+    ) {
+        databaseClient.sql(
+            """
+            INSERT INTO publication_jobs (
+                id, publication_id, workspace_id, status, due_at, priority_rank,
+                attempt_count, max_attempts, claimed_by_worker, claimed_at,
+                lease_expires_at, created_at
+            ) VALUES (
+                :id, :publicationId, 'workspace-1', 'CLAIMED', :dueAt,
+                10, 1, 3, :claimedByWorker, :claimedAt,
+                :leaseExpiresAt, :createdAt
+            )
+            """.trimIndent(),
+        )
+            .bind("id", id)
+            .bind("publicationId", publicationId)
+            .bind("dueAt", claimedAt)
+            .bind("claimedByWorker", claimedByWorker)
+            .bind("claimedAt", claimedAt)
+            .bind("leaseExpiresAt", leaseExpiresAt)
+            .bind("createdAt", java.time.Instant.now())
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    private suspend fun loadJobRow(jobId: String): Map<String, Any?> {
+        val row = databaseClient.sql(
+            """
+            SELECT status, claimed_by_worker, claimed_at, lease_expires_at, blocked_at
+            FROM publication_jobs
+            WHERE id = :id
+            """.trimIndent(),
+        )
+            .bind("id", jobId)
+            .map { resultRow, _ ->
+                mapOf(
+                    "status" to resultRow.get("status", String::class.java),
+                    "claimed_by_worker" to resultRow.get("claimed_by_worker", String::class.java),
+                    "claimed_at" to resultRow.get("claimed_at", OffsetDateTime::class.java),
+                    "lease_expires_at" to resultRow.get("lease_expires_at", OffsetDateTime::class.java),
+                    "blocked_at" to resultRow.get("blocked_at", OffsetDateTime::class.java),
+                )
+            }
+            .one()
+            .awaitSingle()
+        return row
     }
 
     private fun makeJob(id: String, publicationId: String, status: JobStatus): PublicationJob = PublicationJob(
