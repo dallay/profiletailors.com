@@ -3,9 +3,8 @@
 ## Overview
 
 Use this runbook when password reset requests, resets, notification delivery, or token cleanup
-behave
-abnormally. Start with aggregate telemetry and safe identifiers. Never search for or record a raw
-token,
+behave abnormally. Start with aggregate telemetry and safe identifiers. Never search for or record a
+raw token,
 email, raw IP, reset URL or query string, password, token hash, password hash, provider text,
 or exception message. Do not paste those values into tickets, dashboards, logs, or chat. Use only
 incident IDs, principal IDs when access is authorized, fixed categories, timestamps, and aggregate
