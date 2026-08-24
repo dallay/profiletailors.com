@@ -18,11 +18,11 @@ Counter-notice update emails removed from implementation scope.
 
 The system MUST produce three template types for the takedown lifecycle:
 
-| Template                    | Trigger              | Content                                                       |
-|-----------------------------|----------------------|---------------------------------------------------------------|
-| **Takedown Confirmation**   | Report submitted     | Report ID, asset ID, expected review timeline, support contact|
-| **Takedown Approved**       | Staff approves       | Outcome (approved), asset ID, report ID                       |
-| **Takedown Rejected**       | Staff rejects        | Outcome (rejected), asset ID, report ID                       |
+| Template                  | Trigger          | Content                                                        |
+|---------------------------|------------------|----------------------------------------------------------------|
+| **Takedown Confirmation** | Report submitted | Report ID, asset ID, expected review timeline, support contact |
+| **Takedown Approved**     | Staff approves   | Outcome (approved), asset ID, report ID                        |
+| **Takedown Rejected**     | Staff rejects    | Outcome (rejected), asset ID, report ID                        |
 
 All templates SHALL follow the existing `EmailTemplates` pattern: plain-text body and inline-styled
 HTML body, both rendered from template variables with idempotency keys. Templates SHALL be

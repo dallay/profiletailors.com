@@ -1,9 +1,9 @@
 # E2E Test Plan — Composer Media Attachments
 
-> Last updated: 2026-07-08  
-> Primary UI: `https://pt-app.localhost:1355/` → `Create Post` modal  
+> Last updated: 2026-07-08
+> Primary UI: `https://pt-app.localhost:1355/` → `Create Post` modal
 > Scope: composer inline attachments, local upload UX, media-library staging, social preview
-> reconciliation, and attachment-limit behavior  
+> reconciliation, and attachment-limit behavior
 > Evidence: live authenticated browser exploration with `dev@profiletailors.com` on the running
 > frontend
 
@@ -667,7 +667,7 @@ If Unsplash is absent in local dev:
 
 ## References
 
-- `openspec/specs/e2e/cas-media-library-test-plan.md` — broader media-library and CAS coverage
+- `docs/testing/e2e/` — related media-library and CAS coverage plans
 - `apps/web/app/e2e/pages/compose-modal-page.ts` — existing page object with basic composer locators
 - `apps/web/app/src/composables/useComposerMediaPicker.ts` — picker staging, source switching,
   attachment limits, and provider import/search stubs

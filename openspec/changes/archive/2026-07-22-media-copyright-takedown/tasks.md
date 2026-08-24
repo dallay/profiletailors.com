@@ -11,7 +11,8 @@
 | Delivery strategy       | size:exception                                         |
 | Chain strategy          | n/a                                                    |
 
-Decision needed before apply: Resolved — maintainer approved `size:exception` for one larger implementation pass.
+Decision needed before apply: Resolved — maintainer approved `size:exception` for one larger
+implementation pass.
 Chained PRs recommended: Yes
 Chain strategy: n/a
 400-line budget risk: High

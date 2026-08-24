@@ -24,7 +24,7 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 ### Technology Stack
 
 | Layer        | Technology                                 |
-| ------------ | ------------------------------------------ |
+|--------------|--------------------------------------------|
 | **Frontend** | Astro 7 (marketing), Vue 3 (dashboard app) |
 | **Backend**  | Spring Boot 4, Kotlin, WebFlux (reactive)  |
 | **Database** | PostgreSQL 18 with R2DBC (reactive driver) |
@@ -46,18 +46,18 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 The API Application is composed of multiple Gradle modules. The **Shared Kernel** provides
 framework-agnostic domain primitives and shared infrastructure:
 
-| Module                      | Purpose                                                            | Spring Deps |
-| --------------------------- | ------------------------------------------------------------------ | ----------- |
-| `shared:common`             | Domain primitives, base entities, value objects, `@Service` marker | ❌ None      |
-| `shared:bus`                | Event bus abstractions (CQRS mediator)                             | ❌ None      |
-| `shared:security`           | Security primitives (Hasher interface + implementations)           | ❌ None      |
-| `shared:presentation`       | Presentation layer utilities (PageResponse, pagination)            | ❌ None      |
-| `shared:lead-capture:common`| Framework-free lead capture primitives                              | ❌ None      |
-| `shared:lead-capture:waitlist`| Framework-free waitlist aggregates & ports                        | ❌ None      |
-| `shared:spring-boot-common` | Spring Boot integration, exception handlers, filters, presenters   | ✅ Yes       |
-| `shared:storage`            | Storage abstractions (S3/R2)                                       | ✅ Yes       |
-| `shared:shield:ratelimit`   | Rate limiting with Bucket4j + Caffeine / Redis                     | ✅ Yes       |
-| `shared:notifications`      | Notification abstractions and domain models                        | ❌ None      |
+| Module                         | Purpose                                                            | Spring Deps |
+|--------------------------------|--------------------------------------------------------------------|-------------|
+| `shared:common`                | Domain primitives, base entities, value objects, `@Service` marker | ❌ None      |
+| `shared:bus`                   | Event bus abstractions (CQRS mediator)                             | ❌ None      |
+| `shared:security`              | Security primitives (Hasher interface + implementations)           | ❌ None      |
+| `shared:presentation`          | Presentation layer utilities (PageResponse, pagination)            | ❌ None      |
+| `shared:lead-capture:common`   | Framework-free lead capture primitives                             | ❌ None      |
+| `shared:lead-capture:waitlist` | Framework-free waitlist aggregates & ports                         | ❌ None      |
+| `shared:spring-boot-common`    | Spring Boot integration, exception handlers, filters, presenters   | ✅ Yes       |
+| `shared:storage`               | Storage abstractions (S3/R2)                                       | ✅ Yes       |
+| `shared:shield:ratelimit`      | Rate limiting with Bucket4j + Caffeine / Redis                     | ✅ Yes       |
+| `shared:notifications`         | Notification abstractions and domain models                        | ❌ None      |
 
 > **Full dependency graph:** See [Shared Module Dependencies](../shared/dependencies.md) for
 > the complete module dependency diagram with all `api` vs `implementation` edges.
@@ -70,9 +70,11 @@ The backend `server:smp` comprises 19 modular bounded contexts:
 
 1. **Analytics Context**: Engagement metrics collection, aggregation, and reporting.
 2. **Audit Context**: Request outcomes, authorization decision auditing, and mutation event capture.
-3. **Authorization Context**: RBAC, direct permission grants, workspace permissions, and entitlements.
+3. **Authorization Context**: RBAC, direct permission grants, workspace permissions, and
+   entitlements.
 4. **Config Context**: Dynamic platform and system configuration.
-5. **Credentials Context**: API keys, OAuth tokens, and credential encryption (`PublishingCredentialsProperties`).
+5. **Credentials Context**: API keys, OAuth tokens, and credential encryption (
+   `PublishingCredentialsProperties`).
 6. **Governance Context**: Mutation audit logging, policy enforcement, and compliance tracking.
 7. **Hashtags Context**: Hashtag group management, aggregation, and performance tracking.
 8. **Ideas Context**: Content brainstorming and draft idea management.
@@ -82,11 +84,15 @@ The backend `server:smp` comprises 19 modular bounded contexts:
 12. **Media Context**: Media asset storage, Content-Addressable Storage (CAS) deduplication.
 13. **Notifications Context**: Transactional email delivery and notification channels.
 14. **Observability Context**: Request monitoring, metrics collection, and rate limiting hooks.
-15. **Platform Context**: Request context management (`PrincipalContext`), mediator pattern (`SpringMediator`).
+15. **Platform Context**: Request context management (`PrincipalContext`), mediator pattern (
+    `SpringMediator`).
 16. **Platformadmin Context**: Global platform administration and feature flags.
-17. **Privacy Context**: Data Subject Access Requests (DSAR), erasure, and privacy export operations.
-18. **Publishing Context**: Post creation, scheduling, platform channel connections, and publishing execution.
-19. **Tenancy Context**: Workspaces, memberships, ownership transfers, and tenant isolation (ADR-0008).
+17. **Privacy Context**: Data Subject Access Requests (DSAR), erasure, and privacy export
+    operations.
+18. **Publishing Context**: Post creation, scheduling, platform channel connections, and publishing
+    execution.
+19. **Tenancy Context**: Workspaces, memberships, ownership transfers, and tenant isolation (
+    ADR-0008).
 
 ---
 
@@ -172,7 +178,8 @@ The backend `server:smp` comprises 19 modular bounded contexts:
 
 ### Deployment Architecture
 
-Profile Tailors utilizes **Docker Swarm** for backend orchestration (`infra/apps/smp/swarm/` and `docs/infrastructure/production-docker-swarm.md`):
+Profile Tailors utilizes **Docker Swarm** for backend orchestration (`infra/apps/smp/swarm/` and
+`docs/infrastructure/production-docker-swarm.md`):
 
 ```text
 CDN (Cloudflare / Vercel)

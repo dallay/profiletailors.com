@@ -12,7 +12,7 @@ redirects, API clients, and tooling.
 Instead of remembering fixed Vite and Astro ports, you get consistent HTTPS URLs:
 
 | Project           | URL                                |
-| ----------------- | ---------------------------------- |
+|-------------------|------------------------------------|
 | Marketing (Astro) | `https://profiletailors.localhost` |
 | App (Vue 3)       | `https://pt-app.localhost`         |
 | Admin (Vue 3)     | `https://pt-admin.localhost`       |
@@ -119,21 +119,22 @@ The root `portless.json` provides additional name resolution for the monorepo:
 
 ### Useful commands
 
-| Command                             | Description                                     |
-| ----------------------------------- | ----------------------------------------------- |
-| `pnpm exec portless proxy start`    | Start the HTTPS proxy (sudo for port 443)       |
-| `pnpm exec portless proxy stop`     | Stop the proxy                                  |
-| `pnpm exec portless service install`| Install as launchd service (auto-start on boot) |
-| `pnpm exec portless list`           | Show active routes                              |
-| `pnpm exec portless get <name>`     | Resolve a named app URL                         |
-| `pnpm exec portless doctor`         | Check proxy, routes, and DNS                    |
-| `pnpm exec portless clean`          | Clean local TLS state                           |
+| Command                              | Description                                     |
+|--------------------------------------|-------------------------------------------------|
+| `pnpm exec portless proxy start`     | Start the HTTPS proxy (sudo for port 443)       |
+| `pnpm exec portless proxy stop`      | Stop the proxy                                  |
+| `pnpm exec portless service install` | Install as launchd service (auto-start on boot) |
+| `pnpm exec portless list`            | Show active routes                              |
+| `pnpm exec portless get <name>`      | Resolve a named app URL                         |
+| `pnpm exec portless doctor`          | Check proxy, routes, and DNS                    |
+| `pnpm exec portless clean`           | Clean local TLS state                           |
 
 ## Troubleshooting
 
 ### Proxy won't start — permission denied
 
-Portless needs sudo access for port 443. Run `pnpm exec portless proxy start` in a terminal where you can
+Portless needs sudo access for port 443. Run `pnpm exec portless proxy start` in a terminal where
+you can
 enter your password. If sudo is not available, portless falls back to a high port (e.g. `:1355`).
 
 ### Certificate warnings

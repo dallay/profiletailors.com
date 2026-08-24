@@ -60,7 +60,7 @@ just infra-down      # Stop containers after
 The full CI pipeline verifies:
 
 | Check        | Scope                | Tool                       |
-| ------------ | -------------------- | -------------------------- |
+|--------------|----------------------|----------------------------|
 | Secret leaks | All commits          | gitleaks                   |
 | Lint         | Frontend             | Biome                      |
 | Lint         | Backend              | detekt + spotless          |
@@ -230,7 +230,7 @@ mocked dependencies.
 ### Test Steps
 
 | Step | Action                                                  | Expected Result                                                                                                                                                    |
-| ---- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|------|---------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 1    | Register a new account or log in                        | Dashboard loads                                                                                                                                                    |
 | 2    | Verify email if not verified                            | Email status shows verified                                                                                                                                        |
 | 3    | Navigate to Scheduler                                   | Scheduler view loads with empty state or existing posts                                                                                                            |
@@ -253,7 +253,7 @@ mocked dependencies.
 ### Failure Path Verification
 
 | Step | Action                                                | Expected Result                                                                                    |
-| ---- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+|------|-------------------------------------------------------|----------------------------------------------------------------------------------------------------|
 | 1    | Publish with rate-limited provider (simulate 429)     | Failure modal shows the localized `PROVIDER_RATE_LIMITED` category message with retry action       |
 | 2    | Publish with expired LinkedIn token                   | Failure modal shows the localized `ACCOUNT_RECONNECT_REQUIRED` category message with reconnect CTA |
 | 3    | Publish with deleted media                            | Failure modal shows the localized `MEDIA_NOT_FOUND` category message with re-upload guidance       |

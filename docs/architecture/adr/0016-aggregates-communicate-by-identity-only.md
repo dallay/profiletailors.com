@@ -223,15 +223,15 @@ to the rule. Existing unmarked classes remain unguarded until they are marked.
 ## Follow-up actions
 
 - [ ] Audit and mark aggregates and internal entities in every bounded context's `domain`
-      package: analytics, audit, authorization, credentials, governance, hashtags, ideas,
-      leadcapture, mcp, media, notifications, observability, publishing.
+  package: analytics, audit, authorization, credentials, governance, hashtags, ideas,
+  leadcapture, mcp, media, notifications, observability, publishing.
 - [ ] Add a Konsist "unmarked aggregate detector" that fails when a `data class` in `*.domain`
-      has an `id`/`Id` property of type `String` or `UUID` but lacks `@AggregateRoot` — the
-      "forgot to annotate" guard rail.
+  has an `id`/`Id` property of type `String` or `UUID` but lacks `@AggregateRoot` — the
+  "forgot to annotate" guard rail.
 - [ ] Revisit generic type handling: add explicit AST traversal of `KoTypeArgumentProvider`
-      so `Set<Workspace>`-style references are checked, not just direct property types.
+  so `Set<Workspace>`-style references are checked, not just direct property types.
 - [ ] Consider typed IDs (`WorkspaceId` instead of `String`) as a follow-up ADR; not in scope
-      here.
+  here.
 
 ## Revisit conditions
 

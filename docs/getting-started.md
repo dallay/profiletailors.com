@@ -15,7 +15,7 @@ Run `just -l` to see every available recipe.
 ## Prerequisites
 
 | Requirement | Version      | Install                                                                |
-| ----------- | ------------ | ---------------------------------------------------------------------- |
+|-------------|--------------|------------------------------------------------------------------------|
 | Java        | `>= 21`      | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
 | Node.js     | `>= 22.12.0` | [nodejs.org](https://nodejs.org)                                       |
 | pnpm        | `11.11.0`    | `npm install -g pnpm@11.11.0`                                          |
@@ -162,7 +162,7 @@ just -l
 Key recipes:
 
 | Command                  | Description                                     |
-| ------------------------ | ----------------------------------------------- |
+|--------------------------|-------------------------------------------------|
 | `just setup`             | Full bootstrap: .env + deps + hooks + agentsync |
 | `just dev-frontend`      | Start both Astro and Vue dev servers            |
 | `just frontend-test`     | Run Vitest unit tests                           |

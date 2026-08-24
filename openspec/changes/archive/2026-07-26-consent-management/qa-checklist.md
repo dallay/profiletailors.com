@@ -1,6 +1,7 @@
 # QA Checklist: Consent Management
 
-Manual verification steps for the consent management feature across both surfaces (marketing site + app).
+Manual verification steps for the consent management feature across both surfaces (marketing site +
+app).
 
 ## 1. Marketing Site (Astro) — Consent Banner
 
@@ -9,7 +10,8 @@ Manual verification steps for the consent management feature across both surface
 - [ ] Navigate to marketing site (`/`) with clean localStorage
 - [ ] Consent banner is visible at the bottom of the viewport
 - [ ] Banner has `position: fixed` and does not shift page content (CLS = 0)
-- [ ] "Accept all", "Reject all", and "Save preferences" buttons have **equal visual prominence** (same size, padding, font-weight, color saturation)
+- [ ] "Accept all", "Reject all", and "Save preferences" buttons have **equal visual prominence** (
+  same size, padding, font-weight, color saturation)
 - [ ] Necessary cookies toggle is disabled and marked as "Always on"
 - [ ] Analytics toggle is ON by default (no DNT/GPC)
 
@@ -18,7 +20,8 @@ Manual verification steps for the consent management feature across both surface
 - [ ] Click "Accept all"
 - [ ] Banner disappears
 - [ ] Reload the page — banner does NOT reappear
-- [ ] `localStorage` has `pt-consent` with `analytics: true`, `source: "banner"`, `consentVersion: 1`
+- [ ] `localStorage` has `pt-consent` with `analytics: true`, `source: "banner"`,
+  `consentVersion: 1`
 - [ ] Ahrefs analytics script loads (check Network tab for `analytics.ahrefs.com`)
 
 ### 1.3 Reject All Flow
@@ -35,7 +38,8 @@ Manual verification steps for the consent management feature across both surface
 - [ ] Clear `localStorage`, reload
 - [ ] Toggle analytics OFF, click "Save preferences"
 - [ ] Banner disappears
-- [ ] `localStorage` receipt has `analytics: false`, `source: "banner"` (marketing saves always use `banner` source)
+- [ ] `localStorage` receipt has `analytics: false`, `source: "banner"` (marketing saves always use
+  `banner` source)
 
 ### 1.5 DNT Signal
 
@@ -100,8 +104,8 @@ Manual verification steps for the consent management feature across both surface
 ### 2.4 Cookie Settings Link (Footer + Sidebar)
 
 - [ ] After accepting or rejecting, locate "Cookie settings" link in:
-  - **Footer bar** at the bottom of the app shell
-  - **Sidebar user menu** (click user avatar/name)
+    - **Footer bar** at the bottom of the app shell
+    - **Sidebar user menu** (click user avatar/name)
 - [ ] Click either link — CookieSettings dialog opens
 - [ ] Dialog shows the same category layout (necessary disabled, analytics toggleable)
 
@@ -130,9 +134,9 @@ Manual verification steps for the consent management feature across both surface
 ### 2.8 Equal Prominence (Visual Check)
 
 - [ ] All three buttons in the banner dialog have the same visual weight
-  - Same padding (`py-3`) and min-width
-  - Same font-size and weight
-  - Same hover/active states
+    - Same padding (`py-3`) and min-width
+    - Same font-size and weight
+    - Same hover/active states
 - [ ] No button is visually diminished or "dark patterned"
 
 ---

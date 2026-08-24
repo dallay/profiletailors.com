@@ -178,7 +178,10 @@ MUST describe the setting without secrets.
 
 ### Requirement: Backend-Authoritative Registration Gate
 
-When registration is disabled, `POST /api/auth/register` MUST be rejected before command dispatch or mutation with exact HTTP 503 Problem Details and `code: "REGISTRATION_DISABLED"`. No command, persistence, event, or session mutation MUST occur. When enabled, existing registration behavior and atomicity MUST remain unchanged.
+When registration is disabled, `POST /api/auth/register` MUST be rejected before command dispatch or
+mutation with exact HTTP 503 Problem Details and `code: "REGISTRATION_DISABLED"`. No command,
+persistence, event, or session mutation MUST occur. When enabled, existing registration behavior and
+atomicity MUST remain unchanged.
 
 #### Scenario: Direct registration is denied without side effects
 
@@ -196,7 +199,11 @@ When registration is disabled, `POST /api/auth/register` MUST be rejected before
 
 ### Requirement: Registration UI Fails Closed
 
-The SPA MUST show registration entry points only after the public capability resolves enabled. Capability-read failure or malformed data MUST close registration UI and direct access, MUST NOT be treated as security enforcement, and MUST NOT block login. Direct `/register` access while unavailable MUST preserve the requested route, render “Registration is currently unavailable” with named-route navigation to login, omit the form, and MUST NOT call registration.
+The SPA MUST show registration entry points only after the public capability resolves enabled.
+Capability-read failure or malformed data MUST close registration UI and direct access, MUST NOT be
+treated as security enforcement, and MUST NOT block login. Direct `/register` access while
+unavailable MUST preserve the requested route, render “Registration is currently unavailable” with
+named-route navigation to login, omit the form, and MUST NOT call registration.
 
 #### Scenario: Registration UI follows enabled capability
 

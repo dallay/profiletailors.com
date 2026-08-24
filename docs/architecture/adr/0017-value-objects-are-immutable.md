@@ -87,7 +87,8 @@ Every bounded context in `com.profiletailors.smp.{context}.domain` MUST mark its
 
 ### 4. Enforcement lives in `ValueObjectImmutabilityTest`
 
-The rule is enforced by `server/smp/src/test/kotlin/com/profiletailors/smp/ValueObjectImmutabilityTest.kt`,
+The rule is enforced by
+`server/smp/src/test/kotlin/com/profiletailors/smp/ValueObjectImmutabilityTest.kt`,
 tagged `@Tag("ddd-conformance")` so it runs as part of `./gradlew :server:smp:test` by default.
 The test uses Konsist to scan the production source set only (test fixtures legitimately
 materialise raw values).
@@ -107,7 +108,8 @@ Failure messages cite `ADR-0017 violated` and the offending member.
   and `com.profiletailors.common.domain.*`.
 - Test source sets are explicitly excluded.
 - Interfaces are excluded — `@Target(AnnotationTarget.CLASS)` keeps the marker on classes only.
-- ID-style value classes wrapping primitives (`WorkspaceId(value: UUID)`, `CredentialId(value: UUID)`)
+- ID-style value classes wrapping primitives (`WorkspaceId(value: UUID)`,
+  `CredentialId(value: UUID)`)
   pass the validation check via the `random()` factory that ships with them.
 
 ### Accepted exceptions
@@ -215,12 +217,12 @@ DDD conformance can be considered complete.
 ## Follow-up actions
 
 - [ ] Audit and annotate VOs in `server/smp/{context}/domain/` for every bounded context
-      (publishing, governance, identity, privacy, authorization, ideas, platformadmin, media,
-      analytics, notifications, leadcapture, hashtags, mcp, observability, audit, credentials).
+  (publishing, governance, identity, privacy, authorization, ideas, platformadmin, media,
+  analytics, notifications, leadcapture, hashtags, mcp, observability, audit, credentials).
 - [ ] Add a Konsist test that fails when a `data class` in `*.domain` has only `val`
-      properties and no marker — the "forgot to annotate" guard rail.
+  properties and no marker — the "forgot to annotate" guard rail.
 - [ ] Land ADR-0016 (Aggregates Communicate by Identity Only) with
-      `IdentityOnlyAggregateCommunicationTest`.
+  `IdentityOnlyAggregateCommunicationTest`.
 
 ## Revisit conditions
 

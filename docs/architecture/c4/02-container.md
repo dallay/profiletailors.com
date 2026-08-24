@@ -130,10 +130,12 @@ graph TB
   `shared:security`, `shared:presentation`, `shared:storage`, `shared:shield:ratelimit`,
   `shared:lead-capture:*`) and `server:smp` (application assembly).
 - **Bounded Contexts**: Analytics, Audit, Authorization, Config, Credentials, Governance, Hashtags,
-  Ideas, Identity, Leadcapture, MCP, Media, Notifications, Observability, Platform, Platformadmin, Privacy,
+  Ideas, Identity, Leadcapture, MCP, Media, Notifications, Observability, Platform, Platformadmin,
+  Privacy,
   Publishing, Tenancy.
 - **Key Features**: Reactive programming with Kotlin coroutines, native JWT/cookie authentication,
-  non-blocking R2DBC access, internal in-process event publishing via Reactor (`ChannelEventPublisher`),
+  non-blocking R2DBC access, internal in-process event publishing via Reactor (
+  `ChannelEventPublisher`),
   Spring Modulith modular monolith.
 
 ### Data Containers
@@ -152,13 +154,19 @@ graph TB
 - **Technology**: Caffeine local in-memory cache, optional Redis via `shared:shield:ratelimit`
 - **Deployment**: Embedded JVM in-memory / optional container
 - **Purpose**: Rate limiting (Bucket4j) and ephemeral caching.
-- **Use Cases**: Rate limiting for public and waitlist endpoints (defaults to Caffeine). Session management relies on stateless signed JWT cookies rather than central session cache storage.
+- **Use Cases**: Rate limiting for public and waitlist endpoints (defaults to Caffeine). Session
+  management relies on stateless signed JWT cookies rather than central session cache storage.
 
 #### Event Bus (In-Process Event Dispatch)
 
-- **Technology**: Reactor Sinks (`ReactorChannelEventPublisher`) for ChannelEvent SSE updates; EventEmitter/EventMultiplexer and Spring ApplicationEventPublisher (`SpringDomainEventPublisher`) for DomainEvent dispatch
+- **Technology**: Reactor Sinks (`ReactorChannelEventPublisher`) for ChannelEvent SSE updates;
+  EventEmitter/EventMultiplexer and Spring ApplicationEventPublisher (`SpringDomainEventPublisher`)
+  for DomainEvent dispatch
 - **Deployment**: In-process within `server:smp`
-- **Purpose**: Asynchronous internal event publishing. `ReactorChannelEventPublisher` handles channel-change events (ChannelEvent) for Server-Sent Events (SSE) updates only. `SpringDomainEventPublisher` dispatches DomainEvent instances to @Subscribe-annotated consumers and @EventListener methods.
+- **Purpose**: Asynchronous internal event publishing. `ReactorChannelEventPublisher` handles
+  channel-change events (ChannelEvent) for Server-Sent Events (SSE) updates only.
+  `SpringDomainEventPublisher` dispatches DomainEvent instances to @Subscribe-annotated consumers
+  and @EventListener methods.
 
 ---
 
@@ -166,18 +174,18 @@ graph TB
 
 ### Synchronous (Request/Response)
 
-| From              | To                | Protocol     | Purpose                    |
-| ----------------- | ----------------- | ------------ | -------------------------- |
-| Web App / SPA     | API Application   | HTTPS/REST   | User actions, data queries |
-| API Application   | Database          | R2DBC        | Data persistence           |
-| API Application   | Cloud Storage     | HTTPS/S3     | Media upload/download      |
-| API Application   | Social Media APIs | HTTPS/REST   | Post publishing & metrics  |
+| From            | To                | Protocol   | Purpose                    |
+|-----------------|-------------------|------------|----------------------------|
+| Web App / SPA   | API Application   | HTTPS/REST | User actions, data queries |
+| API Application | Database          | R2DBC      | Data persistence           |
+| API Application | Cloud Storage     | HTTPS/S3   | Media upload/download      |
+| API Application | Social Media APIs | HTTPS/REST | Post publishing & metrics  |
 
 ### Asynchronous (Event-Driven)
 
-| From              | To                | Via           | Purpose                    |
-| ----------------- | ----------------- | ------------- | -------------------------- |
-| Publishing Context| Channel Subscribers| In-process Reactor Channel| OAuth connection / channel events |
+| From               | To                  | Via                        | Purpose                           |
+|--------------------|---------------------|----------------------------|-----------------------------------|
+| Publishing Context | Channel Subscribers | In-process Reactor Channel | OAuth connection / channel events |
 
 ---
 
@@ -186,7 +194,7 @@ graph TB
 ### Backend Stack
 
 | Component           | Technology                   | Rationale                                           |
-| ------------------- | ---------------------------- | --------------------------------------------------- |
+|---------------------|------------------------------|-----------------------------------------------------|
 | **Language**        | Kotlin                       | Type-safe, concise, excellent coroutines support    |
 | **Framework**       | Spring Boot 4                | Mature ecosystem, reactive support, Spring Modulith |
 | **Reactive**        | WebFlux + Coroutines         | Non-blocking I/O, better resource utilization       |
@@ -197,7 +205,7 @@ graph TB
 ### Frontend Stack
 
 | Component     | Technology      | Rationale                                               |
-| ------------- | --------------- | ------------------------------------------------------- |
+|---------------|-----------------|---------------------------------------------------------|
 | **Marketing** | Astro 7         | Static-first, fast, excellent DX                        |
 | **Web App**   | Vue 3           | Component-based, reactive, excellent TypeScript support |
 | **Language**  | TypeScript      | Type safety, better tooling                             |
@@ -206,13 +214,13 @@ graph TB
 
 ### Infrastructure
 
-| Component    | Technology       | Rationale                                   |
-| ------------ | ---------------- | ------------------------------------------- |
-| **Database** | PostgreSQL 18    | Robust, ACID, JSON support, mature          |
-| **Cache**    | Redis            | Fast, simple, widely supported              |
-| **Event Bus**| Reactor Channels | Reactive in-process event publishing        |
-| **Storage**  | S3-compatible    | Standard API, multiple providers            |
-| **Auth**     | OAuth2/OIDC      | Industry standard, delegated authentication |
+| Component     | Technology       | Rationale                                   |
+|---------------|------------------|---------------------------------------------|
+| **Database**  | PostgreSQL 18    | Robust, ACID, JSON support, mature          |
+| **Cache**     | Redis            | Fast, simple, widely supported              |
+| **Event Bus** | Reactor Channels | Reactive in-process event publishing        |
+| **Storage**   | S3-compatible    | Standard API, multiple providers            |
+| **Auth**      | OAuth2/OIDC      | Industry standard, delegated authentication |
 
 ---
 
@@ -317,7 +325,7 @@ graph TB
 **In Progress**:
 
 - 🔄 Web Application (Vue 3, design phase)
-**Planned / In Progress**:
+  **Planned / In Progress**:
 
 - 🔲 Social media platform publishing execution
 - 🔲 Advanced analytics aggregation

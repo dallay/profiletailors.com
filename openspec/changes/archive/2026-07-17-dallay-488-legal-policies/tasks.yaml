@@ -4,15 +4,15 @@ Chain strategy: pending
 400-line budget risk: High
   
   ## Review Workload Forecast
-                        
-                        | Field | Value |
-                        |-------|-------|
-                        | Estimated changed lines | ~1000–1100 |
-                        | 400-line budget risk | High |
-                        | Chained PRs recommended | Yes |
-                        | Suggested split | PR 1 (Foundation) → PR 2 (Content + Components) → PR 3 (Routes + Integration) → PR 4 (Verification) |
-                        | Delivery strategy | ask-on-risk |
-                        | Chain strategy | pending |
+  
+  | Field | Value |
+  |-------|-------|
+  | Estimated changed lines | ~1000–1100 |
+  | 400-line budget risk | High |
+  | Chained PRs recommended | Yes |
+  | Suggested split | PR 1 (Foundation) → PR 2 (Content + Components) → PR 3 (Routes + Integration) → PR 4 (Verification) |
+  | Delivery strategy | ask-on-risk |
+  | Chain strategy | pending |
 
 Decision needed before apply: Yes
 Chained PRs recommended: Yes

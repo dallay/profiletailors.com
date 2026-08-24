@@ -9,8 +9,9 @@
 > - **Detail endpoint**: `GET .../{id}` intentionally omitted (YAGNI)
 > - **TakedownReportStatus**: Shipped as `REPORTED`, `APPROVED`, `DISMISSED`, `SUSPENDED` (reserved)
 > - **Email implementation**: `TakedownEmailTemplates` + domain-event consumers instead of direct
->   `EmailSender.send()` on templates class
-> - **Audit events**: Generic `AuditHook.onMutation()` action strings instead of dedicated event-type enum
+    > `EmailSender.send()` on templates class
+> - **Audit events**: Generic `AuditHook.onMutation()` action strings instead of dedicated
+    event-type enum
 
 ## Technical Approach
 
@@ -115,10 +116,10 @@ compliance in Phase 1 while Phase 2 addresses DMCA readiness.
 
 ### Architecture Decisions
 
-| Option                                                      | Tradeoff                                                                                                                                                                                                | Decision                                                                                                                                                                 |
-|-------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **ADR-003**: TakedownReport in governance vs media context  | Embedding in media context places legal/compliance logic alongside upload/storage concerns, violating separation of concerns. Governance owns audit trail and compliance controls.                      | **Governance context** — new `media/takedown` sub-domain within governance. Audit trail belongs under governance.                                                        |
-| **ADR-004**: `SUSPENDED` status vs separate blocklist table | Blocklist table adds JOIN overhead for every media query and requires a new exclusion pattern. Status field already models asset lifecycle; SUSPENDED is a natural extension of the existing CAS model. | **New `SUSPENDED` value in `MediaAssetStatus`** — simpler queries, works with existing `listByWorkspace(statuses: Set<>)` filtering, status already models availability. |
+| Option                                                      | Tradeoff                                                                                                                                                                                                | Decision                                                                                                                                                                                   |
+|-------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **ADR-003**: TakedownReport in governance vs media context  | Embedding in media context places legal/compliance logic alongside upload/storage concerns, violating separation of concerns. Governance owns audit trail and compliance controls.                      | **Governance context** — new `media/takedown` sub-domain within governance. Audit trail belongs under governance.                                                                          |
+| **ADR-004**: `SUSPENDED` status vs separate blocklist table | Blocklist table adds JOIN overhead for every media query and requires a new exclusion pattern. Status field already models asset lifecycle; SUSPENDED is a natural extension of the existing CAS model. | **New `SUSPENDED` value in `MediaAssetStatus`** — simpler queries, works with existing `listByWorkspace(statuses: Set<>)` filtering, status already models availability.                   |
 | **ADR-005**: Feature flag for takedown endpoints            | Takedown workflow is new functionality; a flag allows safe rollout and instant disable if issues arise. Use Spring Boot `@ConditionalOnProperty`.                                                       | **DROPPED during implementation** — endpoints are always-on. Tradeoff accepted: no instant disable without a deploy. Simpler wiring, fewer configuration paths. See W-03 in verify-report. |
 
 ### Domain Model — TakedownReport
@@ -241,12 +242,12 @@ Package: `com.profiletailors.smp.governance.infrastructure.http`
 > (YAGNI). Counter-notice endpoints removed. Single `POST .../action` replaced by split `POST
 > .../approve` and `POST .../reject`. Permission keys use dashes per codebase convention.
 
-| Method | Path                                                    | Auth                                     | Handler                       |
-|--------|---------------------------------------------------------|------------------------------------------|-------------------------------|
-| `POST` | `/api/governance/media/takedown-reports`                | `media-read` (workspace membership)      | `ReportTakedownHandler`       |
-| `GET`  | `/api/governance/media/takedown-reports`                | `media-read`                             | `ListTakedownReportsHandler`  |
-| `POST` | `/api/governance/media/takedown-reports/{id}/approve`   | `media-takedown`                         | `ApproveTakedownHandler`      |
-| `POST` | `/api/governance/media/takedown-reports/{id}/reject`    | `media-takedown`                         | `RejectTakedownHandler`       |
+| Method | Path                                                  | Auth                                | Handler                      |
+|--------|-------------------------------------------------------|-------------------------------------|------------------------------|
+| `POST` | `/api/governance/media/takedown-reports`              | `media-read` (workspace membership) | `ReportTakedownHandler`      |
+| `GET`  | `/api/governance/media/takedown-reports`              | `media-read`                        | `ListTakedownReportsHandler` |
+| `POST` | `/api/governance/media/takedown-reports/{id}/approve` | `media-takedown`                    | `ApproveTakedownHandler`     |
+| `POST` | `/api/governance/media/takedown-reports/{id}/reject`  | `media-takedown`                    | `RejectTakedownHandler`      |
 
 ### Request/Response DTOs
 
@@ -287,12 +288,12 @@ data class TakedownReportResponse(
 > **Shipped implementation** (4 handlers): No `GetTakedownReportQuery` (detail endpoint omitted).
 > No counter-notice handlers. Split approve/reject replaces single `ReviewTakedownReportHandler`.
 
-| File                                | Handler                        | Key behavior                                                                                                                                                    |
-|-------------------------------------|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `TakedownHandlers.kt`              | `ReportTakedownHandler`        | Validates asset exists in workspace. Creates `TakedownReport` with status `REPORTED`. Persists. Records audit event `MEDIA_TAKEDOWN_REPORTED`. Sends domain event for email. Returns report response. |
-| `TakedownHandlers.kt`              | `ApproveTakedownHandler`       | Validates report is reviewable. Sets asset status to `SUSPENDED`. Sets report status to `APPROVED`. Records `MEDIA_TAKEDOWN_APPROVED`. Sends domain event for email. |
-| `TakedownHandlers.kt`              | `RejectTakedownHandler`        | Validates report is reviewable. Sets report status to `DISMISSED`. Asset untouched. Records `MEDIA_TAKEDOWN_REJECTED`. Sends domain event for email.             |
-| `ListTakedownReportsQuery.kt`      | `ListTakedownReportsHandler`   | Lists reports for workspace. Returned by `GET /reports` endpoint.                                                                                               |
+| File                          | Handler                      | Key behavior                                                                                                                                                                                          |
+|-------------------------------|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `TakedownHandlers.kt`         | `ReportTakedownHandler`      | Validates asset exists in workspace. Creates `TakedownReport` with status `REPORTED`. Persists. Records audit event `MEDIA_TAKEDOWN_REPORTED`. Sends domain event for email. Returns report response. |
+| `TakedownHandlers.kt`         | `ApproveTakedownHandler`     | Validates report is reviewable. Sets asset status to `SUSPENDED`. Sets report status to `APPROVED`. Records `MEDIA_TAKEDOWN_APPROVED`. Sends domain event for email.                                  |
+| `TakedownHandlers.kt`         | `RejectTakedownHandler`      | Validates report is reviewable. Sets report status to `DISMISSED`. Asset untouched. Records `MEDIA_TAKEDOWN_REJECTED`. Sends domain event for email.                                                  |
+| `ListTakedownReportsQuery.kt` | `ListTakedownReportsHandler` | Lists reports for workspace. Returned by `GET /reports` endpoint.                                                                                                                                     |
 
 > **Shipped implementation**: Permission keys use dashes (`media-read`, `media-takedown`)
 > matching codebase convention (see `workspace:consent:read`, `workspace:audit:read`).
@@ -460,25 +461,25 @@ Phase 2 change: the default statuses list in `MediaQueries.kt` / `MediaAssetCont
 | `server/smp/src/main/kotlin/.../governance/infrastructure/R2dbcTakedownReportRepository.kt`           | Create | R2DBC adapter                                                 |
 | `server/smp/src/main/resources/db/changelog/governance/006-create-takedown-reports.yaml`              | Create | Takedown reports table                                        |
 | `server/smp/src/main/resources/db/changelog/authorization/011-seed-governance-media-permissions.yaml` | Create | New permission keys                                           |
-| `server/smp/src/main/kotlin/.../governance/infrastructure/email/TakedownEmailTemplates.kt`              | Create | Takedown email templates (separate from `EmailTemplates`)     |
-| `server/smp/src/main/kotlin/.../governance/infrastructure/email/TakedownEmailConsumers.kt`             | Create | Domain-event consumers for email dispatch                     |
+| `server/smp/src/main/kotlin/.../governance/infrastructure/email/TakedownEmailTemplates.kt`            | Create | Takedown email templates (separate from `EmailTemplates`)     |
+| `server/smp/src/main/kotlin/.../governance/infrastructure/email/TakedownEmailConsumers.kt`            | Create | Domain-event consumers for email dispatch                     |
 | `apps/web/app/src/modules/media/services/media-api.ts`                                                | Modify | Add `licence` to `MediaAssetSummary` type                     |
 | `apps/web/app/src/modules/media/presentation/components/MediaAttribution.vue`                         | Create | Attribution display component                                 |
 | `apps/web/app/src/modules/media/presentation/views/MediaLibraryView.vue`                              | Modify | Integrate `<MediaAttribution>` + SUSPENDED badge              |
-| `apps/web/app/src/modules/governance/components/TakedownReportDialog.vue`                              | Create | Takedown report submission form                               |
-| `apps/web/app/src/modules/governance/views/GovernanceTakedownView.vue`                                 | Create | Governance takedown review dashboard                          |
+| `apps/web/app/src/modules/governance/components/TakedownReportDialog.vue`                             | Create | Takedown report submission form                               |
+| `apps/web/app/src/modules/governance/views/GovernanceTakedownView.vue`                                | Create | Governance takedown review dashboard                          |
 
 ### Testing Strategy
 
-| Layer                                  | What to Test                                                                | Approach                                                |
-|----------------------------------------|-----------------------------------------------------------------------------|---------------------------------------------------------|
-| Unit — domain                          | TakedownReport state machine (approve, dismiss, invariants)                 | Kotest table-driven (11 test cases)                    |
-| Unit — handlers                        | Report/Approve/Reject/List flows with mocked repos + auth                   | Handler unit tests (11 test cases)                     |
-| Integration — R2DBC                    | `R2dbcTakedownReportRepository` CRUD + workspace isolation + filtering      | `@DataR2dbcTest` with Postgres Testcontainers (3 cases)|
-| Integration — REST                     | Controller endpoint contracts, auth enforcement, validation errors          | `@WebFluxTest` with mock handlers (8 test cases)       |
-| Integration — Email consumers          | TakedownEmailConsumers dispatch with idempotency keys                      | Event consumer tests (15 cases)                        |
-| Unit — Frontend (Vitest)               | TakedownReportDialog, GovernanceTakedownView, governance-api service        | Vitest (25 passed, 1 todo)                             |
-| E2E — Frontend                         | Mocked authenticated review-and-approve flow                                | Playwright (3 browsers, 1 spec)                        |
+| Layer                         | What to Test                                                           | Approach                                                |
+|-------------------------------|------------------------------------------------------------------------|---------------------------------------------------------|
+| Unit — domain                 | TakedownReport state machine (approve, dismiss, invariants)            | Kotest table-driven (11 test cases)                     |
+| Unit — handlers               | Report/Approve/Reject/List flows with mocked repos + auth              | Handler unit tests (11 test cases)                      |
+| Integration — R2DBC           | `R2dbcTakedownReportRepository` CRUD + workspace isolation + filtering | `@DataR2dbcTest` with Postgres Testcontainers (3 cases) |
+| Integration — REST            | Controller endpoint contracts, auth enforcement, validation errors     | `@WebFluxTest` with mock handlers (8 test cases)        |
+| Integration — Email consumers | TakedownEmailConsumers dispatch with idempotency keys                  | Event consumer tests (15 cases)                         |
+| Unit — Frontend (Vitest)      | TakedownReportDialog, GovernanceTakedownView, governance-api service   | Vitest (25 passed, 1 todo)                              |
+| E2E — Frontend                | Mocked authenticated review-and-approve flow                           | Playwright (3 browsers, 1 spec)                         |
 
 ### Migration / Rollout
 
@@ -490,7 +491,8 @@ Phase 2 change: the default statuses list in `MediaQueries.kt` / `MediaAssetCont
 
 ### Open Questions (Resolved)
 
-- [x] **SUSPENDED visibility**: Hidden from default list (status=READY). Visible with a warning-styled
+- [x] **SUSPENDED visibility**: Hidden from default list (status=READY). Visible with a
+  warning-styled
   "Suspended" badge when reviewer opts into `SUSPENDED` status filter. Shipped implementation.
 - [x] **Rate-limiting**: Not implemented. Deferred — proposal mention was aspirational, no concrete
   requirement in shipped scope.

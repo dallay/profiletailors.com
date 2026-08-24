@@ -19,7 +19,7 @@ sign the CLA or have their contributions removed or rewritten.
 ## Copyright Holders
 
 | GitHub handle | Legal name / entity   | Role               | First commit        | CLA signed | CLA signature date | Notes                             |
-| ------------- | --------------------- | ------------------ | ------------------- | ---------- | ------------------ | --------------------------------- |
+|---------------|-----------------------|--------------------|---------------------|------------|--------------------|-----------------------------------|
 | `yacosta738`  | Dallay (sole founder) | Author, maintainer | Repository creation | Yes        | 2026-05-18         | Signed via CLA Assistant on PR #2 |
 
 ### Notes
@@ -34,7 +34,7 @@ sign the CLA or have their contributions removed or rewritten.
 ## CLA Coverage
 
 | Metric                              | Value |
-| ----------------------------------- | ----- |
+|-------------------------------------|-------|
 | Total contributors with merged code | 1     |
 | Contributors with signed CLA        | 1     |
 | Coverage                            | 100 % |

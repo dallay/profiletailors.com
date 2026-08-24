@@ -69,21 +69,25 @@
 
 ### 1.2 Flow Decision Matrix
 
-| User Type | Banner Shown | localStorage | Backend Sync |
-|-----------|-------------|--------------|--------------|
-| Marketing anonymous | Yes | Write | No |
-| App anonymous | Yes | Write | No |
-| App authenticated | Yes | Write | Yes |
+| User Type           | Banner Shown | localStorage | Backend Sync |
+|---------------------|--------------|--------------|--------------|
+| Marketing anonymous | Yes          | Write        | No           |
+| App anonymous       | Yes          | Write        | No           |
+| App authenticated   | Yes          | Write        | Yes          |
 
 ### 1.3 Key Architectural Decisions
 
 **Decision**: Separate inline consent check from React/Astro hydration
-**Rationale**: Analytics scripts must be blocked BEFORE any JavaScript executes. Hydration-based checks would race with Partytown initialization.
-**Alternatives**: React context at root — rejected because it runs after hydration, leaving a window where scripts could execute.
+**Rationale**: Analytics scripts must be blocked BEFORE any JavaScript executes. Hydration-based
+checks would race with Partytown initialization.
+**Alternatives**: React context at root — rejected because it runs after hydration, leaving a window
+where scripts could execute.
 
 **Decision**: localStorage as single source of truth for consent state
-**Rationale**: Simple, works offline, no server round-trip for anonymous users. Matches GDPR requirement for "easy withdrawal."
-**Alternatives**: Cookie-based — rejected; cookies are sent with every request, raising privacy concerns. IndexedDB — overkill for flat schema.
+**Rationale**: Simple, works offline, no server round-trip for anonymous users. Matches GDPR
+requirement for "easy withdrawal."
+**Alternatives**: Cookie-based — rejected; cookies are sent with every request, raising privacy
+concerns. IndexedDB — overkill for flat schema.
 
 ## 2. Component Design
 
@@ -782,9 +786,11 @@ const analyticsAllowed = typeof window !== 'undefined'
 
 ### 4.3 Race Condition Prevention
 
-**Problem**: Partytown may initialize asynchronously, potentially loading scripts before our inline check runs.
+**Problem**: Partytown may initialize asynchronously, potentially loading scripts before our inline
+check runs.
 
-**Solution**: Inline script runs in `<head>` with `is:inline` and no `async`/`defer`. This blocks HTML parsing until complete, guaranteeing the flag is set before any other script can execute.
+**Solution**: Inline script runs in `<head>` with `is:inline` and no `async`/`defer`. This blocks
+HTML parsing until complete, guaranteeing the flag is set before any other script can execute.
 
 **Verification**: Playwright test ensures no Ahrefs network request fires before consent is given:
 
@@ -860,12 +866,13 @@ export function getDefaultAnalyticsState(): boolean {
 
 ### 5.2 Banner Behavior with DNT/GPC
 
-| Signal State | Analytics Default | Banner Shown | User Can Override |
-|--------------|-------------------|--------------|-------------------|
-| No DNT/GPC | ON (unchecked) | Yes | Yes |
-| DNT or GPC | OFF (checked off) | Yes | Yes (user clicks Accept) |
+| Signal State | Analytics Default | Banner Shown | User Can Override        |
+|--------------|-------------------|--------------|--------------------------|
+| No DNT/GPC   | ON (unchecked)    | Yes          | Yes                      |
+| DNT or GPC   | OFF (checked off) | Yes          | Yes (user clicks Accept) |
 
-**Rationale**: Banner always shown for transparency. Default is restrictive but user can override if they explicitly choose.
+**Rationale**: Banner always shown for transparency. Default is restrictive but user can override if
+they explicitly choose.
 
 ## 6. Backend Integration (App Only)
 
@@ -936,7 +943,9 @@ async function syncConsent(receipt: ConsentReceipt): Promise<void> {
 
 ### 6.4 Idempotency
 
-The backend should accept duplicate requests with the same `timestamp` and `subjectReference` without error. This handles:
+The backend should accept duplicate requests with the same `timestamp` and `subjectReference`
+without error. This handles:
+
 - Network retries
 - User clicking save multiple times
 - Stale local state syncing after rehydration
@@ -997,13 +1006,13 @@ export const consentEs = {
 
 **Requirement**: All three buttons must have identical visual weight.
 
-| Attribute | Accept | Reject | Save |
-|-----------|--------|--------|------|
-| Size | Same | Same | Same |
-| Color saturation | Same | Same | Same |
-| Position | First | Second | Third |
-| Font weight | 600 | 600 | 600 |
-| Padding | 0.75rem 1.5rem | 0.75rem 1.5rem | 0.75rem 1.5rem |
+| Attribute        | Accept         | Reject         | Save           |
+|------------------|----------------|----------------|----------------|
+| Size             | Same           | Same           | Same           |
+| Color saturation | Same           | Same           | Same           |
+| Position         | First          | Second         | Third          |
+| Font weight      | 600            | 600            | 600            |
+| Padding          | 0.75rem 1.5rem | 0.75rem 1.5rem | 0.75rem 1.5rem |
 
 **CSS enforcement**:
 
@@ -1277,21 +1286,24 @@ export async function clearConsent(page: Page) {
 
 The inline script in `<head>` must be minimal:
 
-| Metric | Target | Current Estimate |
-|--------|--------|------------------|
-| Script size | < 2KB | ~1.8KB |
-| Parse time | < 5ms | ~3ms |
-| CLS impact | None | Positioned after theme script |
+| Metric      | Target | Current Estimate              |
+|-------------|--------|-------------------------------|
+| Script size | < 2KB  | ~1.8KB                        |
+| Parse time  | < 5ms  | ~3ms                          |
+| CLS impact  | None   | Positioned after theme script |
 
 ### 9.2 CLS Mitigation
 
-Consent banner positioned at bottom of viewport with `position: fixed` and `z-index` below modals. No layout shift because:
+Consent banner positioned at bottom of viewport with `position: fixed` and `z-index` below modals.
+No layout shift because:
+
 1. Hidden by default (`hidden` attribute)
 2. Only shown after hydration confirms no valid consent
 
 ### 9.3 Partytown Overhead
 
-Partytown is already integrated. The consent check adds no additional worker overhead — it merely sets a boolean flag. Ahrefs already uses Partytown, so no new infrastructure needed.
+Partytown is already integrated. The consent check adds no additional worker overhead — it merely
+sets a boolean flag. Ahrefs already uses Partytown, so no new infrastructure needed.
 
 ### 9.4 Lazy Loading
 
@@ -1307,26 +1319,26 @@ Partytown is already integrated. The consent check adds no additional worker ove
 
 ## 10. File Changes Summary
 
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/web/marketing/src/components/consent/ConsentBanner.astro` | Create | Banner UI component |
-| `apps/web/marketing/src/components/consent/ConsentBanner.css` | Create | Scoped styles |
-| `apps/web/marketing/src/components/consent/ConsentScript.astro` | Create | Inline head script |
-| `apps/web/marketing/src/components/consent/types.ts` | Create | TypeScript types |
-| `apps/web/marketing/src/components/Analytics.astro` | Modify | Conditional Ahrefs load |
-| `apps/web/marketing/src/layouts/Layout.astro` | Modify | Include ConsentScript |
-| `apps/web/marketing/src/i18n/consent.ts` | Create | EN + ES translations |
-| `apps/web/marketing/e2e/consent.spec.ts` | Create | Playwright E2E tests |
-| `apps/web/app/src/components/consent/ConsentBanner.vue` | Create | Dialog-based banner |
-| `apps/web/app/src/components/consent/CookieSettings.vue` | Create | Settings panel |
-| `apps/web/app/src/components/consent/useConsent.ts` | Create | Composable hook |
-| `apps/web/app/src/modules/settings/infrastructure/consent.store.ts` | Create | Pinia store |
-| `apps/web/app/src/modules/settings/infrastructure/consent.store.test.ts` | Create | Store tests |
-| `apps/web/app/src/shared/i18n/locales/en/consent.ts` | Create | EN translations |
-| `apps/web/app/src/shared/i18n/locales/es/consent.ts` | Create | ES translations |
-| `shared/types/consent.ts` | Create | Shared types |
-| `shared/validation/consent.schema.ts` | Create | Zod schemas |
-| `shared/utils/detect-privacy-signals.ts` | Create | DNT/GPC detection |
+| File                                                                     | Action | Description             |
+|--------------------------------------------------------------------------|--------|-------------------------|
+| `apps/web/marketing/src/components/consent/ConsentBanner.astro`          | Create | Banner UI component     |
+| `apps/web/marketing/src/components/consent/ConsentBanner.css`            | Create | Scoped styles           |
+| `apps/web/marketing/src/components/consent/ConsentScript.astro`          | Create | Inline head script      |
+| `apps/web/marketing/src/components/consent/types.ts`                     | Create | TypeScript types        |
+| `apps/web/marketing/src/components/Analytics.astro`                      | Modify | Conditional Ahrefs load |
+| `apps/web/marketing/src/layouts/Layout.astro`                            | Modify | Include ConsentScript   |
+| `apps/web/marketing/src/i18n/consent.ts`                                 | Create | EN + ES translations    |
+| `apps/web/marketing/e2e/consent.spec.ts`                                 | Create | Playwright E2E tests    |
+| `apps/web/app/src/components/consent/ConsentBanner.vue`                  | Create | Dialog-based banner     |
+| `apps/web/app/src/components/consent/CookieSettings.vue`                 | Create | Settings panel          |
+| `apps/web/app/src/components/consent/useConsent.ts`                      | Create | Composable hook         |
+| `apps/web/app/src/modules/settings/infrastructure/consent.store.ts`      | Create | Pinia store             |
+| `apps/web/app/src/modules/settings/infrastructure/consent.store.test.ts` | Create | Store tests             |
+| `apps/web/app/src/shared/i18n/locales/en/consent.ts`                     | Create | EN translations         |
+| `apps/web/app/src/shared/i18n/locales/es/consent.ts`                     | Create | ES translations         |
+| `shared/types/consent.ts`                                                | Create | Shared types            |
+| `shared/validation/consent.schema.ts`                                    | Create | Zod schemas             |
+| `shared/utils/detect-privacy-signals.ts`                                 | Create | DNT/GPC detection       |
 
 ## 11. Open Design Questions
 
@@ -1335,6 +1347,7 @@ Partytown is already integrated. The consent check adds no additional worker ove
 **Question**: Should failed backend syncs retry automatically, and if so, with what backoff?
 
 **Options**:
+
 1. **No retry** — Accept data loss for anonymous users; authenticated users see error
 2. **Retry with exponential backoff** — Retry 3 times over 1 minute
 3. **Queue for later** — Store failed syncs and retry on next page load
@@ -1343,18 +1356,22 @@ Partytown is already integrated. The consent check adds no additional worker ove
 
 ### 11.2 Region Detection Approach
 
-**Question**: Should we implement geolocation-based region detection to determine applicable law (GDPR vs non-EU)?
+**Question**: Should we implement geolocation-based region detection to determine applicable law (
+GDPR vs non-EU)?
 
 **Options**:
+
 1. **Hardcoded EU** — MVP over-compliance; show GDPR banner to everyone
 2. **Free geo-IP API** — Cloudflare headers or free service (limited accuracy)
 3. **Backend-based** — Server determines region from request context
 
-**Recommendation**: Hardcoded EU (current) until legal team confirms non-EU users don't need GDPR. Avoids complexity and potential false negatives.
+**Recommendation**: Hardcoded EU (current) until legal team confirms non-EU users don't need GDPR.
+Avoids complexity and potential false negatives.
 
 ### 11.3 Marketing Category Extensibility
 
-**Question**: How should we architect for future categories (Marketing, Functional, etc.) without requiring `consentVersion` bumps?
+**Question**: How should we architect for future categories (Marketing, Functional, etc.) without
+requiring `consentVersion` bumps?
 
 **Architecture**:
 
@@ -1369,7 +1386,8 @@ interface ConsentReceipt {
 }
 ```
 
-**Approach**: Categories are optional in schema. Frontend decides which to show. `consentVersion` only bumps when the PURPOSE changes, not when a new optional category is added.
+**Approach**: Categories are optional in schema. Frontend decides which to show. `consentVersion`
+only bumps when the PURPOSE changes, not when a new optional category is added.
 
 ---
 

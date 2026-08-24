@@ -20,11 +20,11 @@ back/forward fully restores state.
 
 ## Spec Delta Merged
 
-| Field                          | Value                                                                                                                                                                                                                                                                                                                                      |
-|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Delta spec                     | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/spec.md`                                                                                                                                                                                                                                                                    |
-| Main spec (1)                  | `openspec/specs/visual-calendar/spec.md`                                                                                                                                                                                                                                                                                                   |
-| Merge action (visual-calendar) | MODIFIED `### Requirement: Multi-View Calendar` — updated description to reflect URL addressability; ADDED 2 new scenarios (day-focus in month view, shareable week URL)                                                                                                                                                                   |
+| Field                          | Value                                                                                                                                                                    |
+|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Delta spec                     | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/spec.md`                                                                                                  |
+| Main spec (1)                  | `openspec/specs/visual-calendar/spec.md`                                                                                                                                 |
+| Merge action (visual-calendar) | MODIFIED `### Requirement: Multi-View Calendar` — updated description to reflect URL addressability; ADDED 2 new scenarios (day-focus in month view, shareable week URL) |
 
 **Merged scenarios (total 17 added):**
 
