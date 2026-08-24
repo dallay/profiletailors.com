@@ -5,6 +5,8 @@ import {defineCoverageReporterConfig} from '@bgotink/playwright-coverage';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const previewPort = Number(process.env.PLAYWRIGHT_PORT || '4321');
+const backendPort = process.env.SMP_BACKEND_PORT || '7638';
 
 /**
  * Playwright configuration for Profile Tailors marketing site
@@ -34,7 +36,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: 'http://localhost:4321',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${previewPort}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -63,9 +65,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'WAITLIST_ENABLED=true WAITLIST_API_BASE=http://localhost:7638 pnpm build && pnpm preview',
-    url: 'http://localhost:4321',
-    reuseExistingServer: !process.env.CI,
+    command: `WAITLIST_ENABLED=true WAITLIST_API_BASE=http://localhost:${backendPort} pnpm build && PORT=${previewPort} pnpm preview`,
+    url: `http://localhost:${previewPort}`,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'true',
     timeout: 120 * 1000,
   },
 });

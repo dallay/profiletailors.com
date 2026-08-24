@@ -16,17 +16,12 @@ const sizes = {
 ---
 
 <a href="/" class="inline-flex items-center gap-2 group" aria-label="Profile Tailors">
-  <!--
-    fill="currentColor" está en el SVG raíz.
-    text-text-display es negro en light mode y blanco en dark mode (via CSS tokens),
-    así que el logo hereda el color correcto sin duplicar archivos.
-  -->
   <Logo
     class:list={['flex-shrink-0 transition-transform duration-300 group-hover:scale-105 text-text-display', sizes[size].svg]}
     aria-hidden="true"
   />
   {showBrand && (
-    <span class:list={['font-display font-semibold text-text-display tracking-tight whitespace-nowrap', sizes[size].text]}>
+    <span class:list={['font-display font-medium text-text-display tracking-tight whitespace-nowrap', sizes[size].text]}>
       Profile Tailors
     </span>
   )}

@@ -91,8 +91,7 @@ class RealLinkedInConnectionProvider(
                 .build(),
         )
         if (tokenResponse.statusCode !in HTTP_SUCCESS_RANGE) {
-            val message = "LinkedIn token exchange failed: " +
-                "${tokenResponse.statusCode} ${tokenResponse.body}"
+            val message = "LinkedIn token exchange failed: status=${tokenResponse.statusCode}"
             throw IllegalStateException(message)
         }
         val token = objectMapper.readValue(tokenResponse.body, LinkedInTokenResponse::class.java)
@@ -104,8 +103,7 @@ class RealLinkedInConnectionProvider(
                 .build(),
         )
         if (profileResponse.statusCode !in HTTP_SUCCESS_RANGE) {
-            val message = "LinkedIn profile lookup failed: " +
-                "${profileResponse.statusCode} ${profileResponse.body}"
+            val message = "LinkedIn profile lookup failed: status=${profileResponse.statusCode}"
             throw IllegalStateException(message)
         }
         val profile = objectMapper.readValue(
@@ -146,7 +144,7 @@ class RealLinkedInConnectionProvider(
         val trimmed = picture?.trim()
         if (trimmed.isNullOrBlank() || !trimmed.startsWith("https://", ignoreCase = true)) {
             if (!trimmed.isNullOrBlank()) {
-                log.debug("LinkedIn avatar rejected — not HTTPS: {}", trimmed.take(MAX_AVATAR_URL_LOG_LENGTH))
+                log.debug("LinkedIn avatar rejected — not HTTPS")
             }
             return null
         }
@@ -156,7 +154,6 @@ class RealLinkedInConnectionProvider(
     private companion object {
         val HTTP_SUCCESS_RANGE = 200..299
         const val MILLIS_TO_SECONDS = 1000L
-        const val MAX_AVATAR_URL_LOG_LENGTH = 120
     }
 }
 
@@ -267,7 +264,6 @@ class RealLinkedInPublisher(
                 externalPublicationId = response.headers
                     .firstValue("x-restli-id")
                     .orElse("linkedin-post-${command.publicationId}"),
-                providerMessage = response.body,
             )
 
             HttpURLConnection.HTTP_UNAUTHORIZED,
@@ -291,22 +287,22 @@ class RealLinkedInPublisher(
     }
 
     /**
-     * Builds the LinkedIn request body for a publication.
+     * Constructs the request body for publishing a post to LinkedIn.
      *
-     * @param command The publication command containing the account, text, title, and assets.
-     * @return The request fields for the published post, including optional media or article content.
-     * @throws IllegalStateException If the social account has no profile URN, or if an asset has invalid metadata
-     *   (e.g., uploaded asset missing storage key, external URL asset missing URL).
-     * @throws PublishingFailureException If asset storage is unavailable when downloading asset binaries.
+     * Requires the social account to have a profile URN; throws [IllegalStateException] if missing.
+     *
+     * @return A map containing the post author, commentary, visibility settings,
+     * and optional media or article content formatted for the LinkedIn API.
+     * @throws IllegalStateException If the social account is missing a profile URN.
      */
     private suspend fun buildPostBody(command: ProviderPublishCommand): Map<String, Any> {
         val authorUrn = command.socialAccount.profileUrn
             ?: throw IllegalStateException(
                 "LinkedIn social account is missing a person URN for authoring.",
             )
-        val rawCommentary = command.publication.bodyText.orEmpty()
-        val commentary = escapeLinkedInCommentary(rawCommentary)
-        val articleLink = extractFirstUrl(rawCommentary)
+        val commentary = command.publication.bodyText.orEmpty()
+        val articleLink = extractFirstUrl(commentary)
+        val littleTextCommentary = escapeLittleText(commentary)
 
         val assetContent = buildAssetContent(command, command.assets)
 
@@ -317,7 +313,7 @@ class RealLinkedInPublisher(
                 "article" to mapOf(
                     "source" to articleLink,
                     "title" to (command.publication.title ?: articleLink),
-                    "description" to rawCommentary,
+                    "description" to commentary,
                 ),
             )
         } else {
@@ -326,7 +322,7 @@ class RealLinkedInPublisher(
 
         return linkedMapOf(
             "author" to authorUrn,
-            "commentary" to commentary,
+            "commentary" to littleTextCommentary,
             "visibility" to "PUBLIC",
             "distribution" to mapOf(
                 "feedDistribution" to "MAIN_FEED",
@@ -341,6 +337,9 @@ class RealLinkedInPublisher(
             }
         }
     }
+
+    private fun escapeLittleText(commentary: String): String =
+        commentary.replace(Regex("""([\\()\[\]{}@#<>*_~|])"""), """\\${'$'}1""")
 
     /**
      * Constructs the asset content structure for a LinkedIn post.
@@ -451,11 +450,9 @@ class RealLinkedInPublisher(
         attachmentsBinding.storage.download(attachmentsBinding.bucketName, storageKey)
     } catch (e: StorageException) {
         log.warn(
-            "Storage download failed for asset {} (key={}, bucket={})",
+            "Storage download failed for asset {}: type={}",
             asset.id,
-            storageKey,
-            attachmentsBinding.bucketName,
-            e,
+            e::class.simpleName,
         )
         throw PublishingFailureException(PublishingFailure.mediaUnavailable(e::class.simpleName))
     }
@@ -469,41 +466,6 @@ class RealLinkedInPublisher(
     }
 }
 
-/**
- * Escapes reserved punctuation in publication text for LinkedIn commentary while preserving standalone hashtags.
- *
- * @param text The publication text to escape.
- * @return The escaped commentary text.
- */
-internal fun escapeLinkedInCommentary(text: String): String = buildString(text.length) {
-    text.forEachIndexed { index, character ->
-        val isStandaloneHashtag = character == '#' && isStandaloneLinkedInHashtag(text, index)
-        if (!isStandaloneHashtag && character in LINKEDIN_COMMENTARY_RESERVED_CHARACTERS) {
-            append('\\')
-        }
-        append(character)
-    }
-}
-
-/**
- * Determines whether the character at the specified index starts a standalone hashtag.
- *
- * @param text The text containing the hashtag.
- * @param index The index of the potential hashtag character.
- * @return `true` if the character is preceded by whitespace or text start and followed by a letter or
- *   digit, `false` otherwise.
- */
-private fun isStandaloneLinkedInHashtag(text: String, index: Int): Boolean {
-    val next = text.getOrNull(index + 1) ?: return false
-    if (!next.isLetterOrDigit()) return false
-    val previous = text.getOrNull(index - 1)
-    return previous == null || !previous.isLetterOrDigit()
-}
-
-private val LINKEDIN_COMMENTARY_RESERVED_CHARACTERS = setOf(
-    '\\', '|', '{', '}', '@', '[', ']', '(', ')', '<', '>', '#', '*', '_', '~',
-)
-
 internal const val CONTENT_TYPE = "Content-Type"
 
 fun interface LinkedInHttpTransport {
@@ -513,13 +475,18 @@ fun interface LinkedInHttpTransport {
 data class LinkedInHttpResponse(val statusCode: Int, val headers: java.net.http.HttpHeaders, val body: String)
 
 class JdkLinkedInHttpTransport(private val httpClient: HttpClient) : LinkedInHttpTransport {
-    override suspend fun send(request: HttpRequest): LinkedInHttpResponse {
+    override suspend fun send(request: HttpRequest): LinkedInHttpResponse = try {
         val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-        return LinkedInHttpResponse(
+        LinkedInHttpResponse(
             statusCode = response.statusCode(),
             headers = response.headers(),
             body = response.body(),
         )
+    } catch (exception: InterruptedException) {
+        Thread.currentThread().interrupt()
+        throw com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException(exception)
+    } catch (exception: java.io.IOException) {
+        throw com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException(exception)
     }
 }
 

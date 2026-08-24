@@ -71,8 +71,13 @@ pre-push:
       run: './gradlew spotlessCheck --no-daemon'
 
     # Gitleaks: scan the commit range being pushed using refs provided by pre-push stdin
+    # DISABLED: Scanning git history on push is slow and gets killed on large histories.
+    # - pre-commit gitleaks protect --staged catches staged secrets before commit
+    # - GitHub Actions runs gitleaks on every push anyway
+    # Re-enable with skip: false if needed
     gitleaks-range:
-      run: 'while read local_ref local_sha remote_ref remote_sha; do if [ -z "$local_sha" ] || [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then continue; fi; if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then log_opts="$local_sha --not --remotes=origin"; else log_opts="$remote_sha..$local_sha"; fi; gitleaks git --redact --exit-code 1 --config .gitleaks.toml --log-opts="$log_opts"; done'
+      run: 'echo "gitleaks-range disabled — gitleaks protect runs on pre-commit and CI gates on push"'
+      skip: true
 
     # Backend tests before push.
     # The "postgres" tag excludes Postgres integration tests that require Docker/Testcontainers

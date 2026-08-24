@@ -1,19 +1,4 @@
 ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 interface FeatureItem {
   tag: string
   title: string
@@ -47,7 +32,7 @@ const { label, items } = Astro.props
           {feature.tag}
         </p>
         <div>
-          <h3 class="font-display text-xl font-semibold text-text-display mb-3">
+          <h3 class="font-display text-xl font-medium text-text-display mb-3">
             {feature.title}
           </h3>
           <p class="font-display text-base text-text-secondary leading-relaxed">

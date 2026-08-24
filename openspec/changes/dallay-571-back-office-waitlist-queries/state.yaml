@@ -1,0 +1,10 @@
+change: dallay-571-back-office-waitlist-queries
+current_phase: apply
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+next: verify
+updated: 2026-08-23

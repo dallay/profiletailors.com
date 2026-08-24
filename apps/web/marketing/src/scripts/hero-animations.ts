@@ -1,32 +1,18 @@
-// src/scripts/hero-animations.ts
-// One-shot WAAPI animation sequence for the Hero section on page load.
-// Effects: micro-scale-fade (label), soft-blur-in (headline), typewriter (sub), plain fade (status).
-
 const EASING_SPRING = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const EASING_EASE = 'ease'
 
-// Commit the animation's final state to inline styles, then cancel the effect.
-// Without this, fill:'forwards' keeps the WAAPI effect in the cascade at a higher layer
-// than inline styles, so setting el.style.opacity = '1' after finished has no effect.
-// After cancel we always force the final state explicitly — Safari does not always flush
-// commitStyles() reliably, leaving blur residue or clipped characters.
 function commitAndCancel(anim: Animation, el: HTMLElement): void {
   try {
     anim.commitStyles()
   } catch {
-    // intentionally ignored — we force state below
   }
   anim.cancel()
-  // Force final visible state regardless of what commitStyles() did.
-  // This is the Safari-safe fallback: explicit inline styles always win.
   el.style.opacity = '1'
   el.style.transform = 'none'
   el.style.filter = 'none'
   el.style.willChange = 'auto'
 }
 
-// Split text into per-character spans, turning \n into <br> elements.
-// Returns only the animatable spans (not <br> nodes).
 export function splitToChars(el: HTMLElement): HTMLSpanElement[] {
   const text = el.textContent ?? ''
   el.textContent = ''
@@ -49,14 +35,12 @@ export function splitToChars(el: HTMLElement): HTMLSpanElement[] {
   return spans
 }
 
-// Snap an element to its final visible state without animation (for reduced-motion).
 function snapVisible(el: HTMLElement): void {
   el.style.opacity = '1'
   el.style.transform = 'none'
   el.style.filter = 'none'
 }
 
-// Animate label: whole element, micro-scale + fade, 240ms one-shot.
 async function animateLabel(el: HTMLElement, delayMs: number): Promise<void> {
   el.style.opacity = '0'
   const anim = el.animate(
@@ -70,17 +54,14 @@ async function animateLabel(el: HTMLElement, delayMs: number): Promise<void> {
   commitAndCancel(anim, el)
 }
 
-// Animate headline: soft-blur-in per-character.
 function animateHeadline(el: HTMLElement, delayMs: number): Promise<void> {
   const chars = splitToChars(el)
-  const Y_TRAVEL = 9 // px
+  const Y_TRAVEL = 9
 
-  el.style.opacity = '1' // container visible; chars handle their own opacity
+  el.style.opacity = '1'
 
   const pairs = chars.map((span, rank) => {
     span.style.opacity = '0'
-    // will-change hints Safari to create a compositing layer per char,
-    // preventing blur residue and clipping at animation end.
     span.style.willChange = 'transform, opacity, filter'
     const anim = span.animate(
       [
@@ -97,11 +78,10 @@ function animateHeadline(el: HTMLElement, delayMs: number): Promise<void> {
     return { anim, span }
   })
 
-  const maxDelay = delayMs + (chars.length - 1) * 18 + 648 + 200 // generous safety margin
+  const maxDelay = delayMs + (chars.length - 1) * 18 + 648 + 200
 
   const raceTimeout = new Promise<void>((resolve) =>
     setTimeout(() => {
-      // Safety net: if Safari never resolves anim.finished, force final state and bail.
       pairs.forEach(({ anim, span }) => commitAndCancel(anim, span))
       resolve()
     }, maxDelay)
@@ -115,13 +95,10 @@ function animateHeadline(el: HTMLElement, delayMs: number): Promise<void> {
   ])
 }
 
-// Animate sub: typewriter per-character.
-// Uses a simple setTimeout-based reveal instead of WAAPI steps() to avoid
-// commitStyles() timing issues with step easing functions.
 function animateSub(el: HTMLElement, delayMs: number): Promise<void> {
   const chars = splitToChars(el)
 
-  el.style.opacity = '1' // container visible; chars handle opacity
+  el.style.opacity = '1'
 
   chars.forEach((span) => {
     span.style.opacity = '0'
@@ -137,12 +114,10 @@ function animateSub(el: HTMLElement, delayMs: number): Promise<void> {
         delayMs + rank * 33
       )
     })
-    // Fallback resolve if chars is empty
     if (chars.length === 0) resolve()
   })
 }
 
-// Animate a generic element: plain fade + translateY.
 async function animateFade(el: HTMLElement, delayMs: number): Promise<void> {
   el.style.opacity = '0'
   const anim = el.animate(
@@ -164,7 +139,6 @@ export async function initHeroAnimations(): Promise<void> {
   const sub = document.querySelector<HTMLElement>('[data-hero-sub]')
   const form = document.querySelector<HTMLElement>('[data-hero-form]')
 
-  // Guard: if Hero isn't on this page, exit early.
   if (!label || !headline || !sub) return
 
   if (prefersReduced) {
@@ -172,13 +146,10 @@ export async function initHeroAnimations(): Promise<void> {
     return
   }
 
-  // t=0: label
   await animateLabel(label, 0)
 
-  // t=after label (~240ms): headline
   await animateHeadline(headline, 0)
 
-  // t=after headline: sub (with 100ms gap) + status fire concurrently
   const subDelay = 100
   const subAnimPromise = animateSub(sub, subDelay)
 

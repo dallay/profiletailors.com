@@ -1,5 +1,7 @@
 change: private-beta-launch-readiness
-current_phase: apply
+delivery_strategy: single-pr
+review_budget: "size-exception approved by user on 2026-08-23"
+current_phase: qa
 completed:
   - explore
   - propose
@@ -10,5 +12,14 @@ completed:
   - contract-clarification
   - apply-unit-1-activation-invitation-core
   - apply-unit-1-bdd-fast-green
-next: apply-unit-1-bdd-postgres-verify
-updated: 2026-08-14
+  - apply-unit-1-bdd-postgres-verify
+  - apply-unit-2-publishing-controls
+  - verify
+next: archive (blocked by acceptance QA)
+note: "Phase 2 technical verification passed, but acceptance QA remains BLOCKED until managed-beta evidence is supplied. QA is active, not completed; do not archive yet."
+warnings:
+  - "Fenix production is reachable read-only, but no approved production change window or mutation permissions are available."
+  - "The deployed v0.4.1 image is a confirmed pre-change/mismatched release; its ancestor tag lacks ListStaleJobsQuery and PUBLISHING_STALE_READ."
+  - "just swarm-config remains unavailable because DASHBOARD_IMAGE is missing."
+  - "Change-wide Phase 3 invitee journey and Phases 4-5 operational/final-gate tasks remain pending."
+updated: 2026-08-23

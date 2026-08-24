@@ -35,7 +35,7 @@ tasks.bootRun {
                 key.trim() to value.trim()
             }.filter { (_, value) -> value.isNotBlank() }
             .forEach { (key, value) ->
-                environment(key, value)
+                if (providers.environmentVariable(key).orNull == null) environment(key, value)
             }
     }
 

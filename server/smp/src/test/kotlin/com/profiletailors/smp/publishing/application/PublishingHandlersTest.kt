@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.application
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
@@ -72,6 +73,7 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -1810,6 +1812,35 @@ class PublishingHandlersTest {
         assertEquals(emptyList<ListPublicationItem>(), result.publications)
     }
 
+    @Test
+    fun `list publications does not expose persisted technical error messages`() = runTest {
+        val unsafeMessage = "com.linkedin.Client token=secret https://api.linkedin.com/rest/posts bucket/key"
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-failed", "account-1", "2026-06-15T10:00:00Z", PublicationStatus.FAILED)
+                    .copy(
+                        lastErrorCode = "PUBLISHING_FAILED",
+                        lastErrorMessage = unsafeMessage,
+                    ),
+            ),
+        )
+        val handler = ListPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            ListPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+            ),
+        )
+
+        val item = result.publications.single()
+        item.lastErrorMessage shouldBe null
+        jacksonObjectMapper().findAndRegisterModules().writeValueAsString(item).shouldNotContain(unsafeMessage)
+    }
+
     private fun calendarPublication(
         id: String,
         socialAccountId: String,
@@ -2119,6 +2150,8 @@ class PublishingHandlersTest {
         var lastCancelledPublicationId: String? = null
         var writeCount: Int = 0
         var jobsByPublicationId: MutableMap<String, MutableList<PublicationJob>> = linkedMapOf()
+        var staleJobsReturnValue: List<com.profiletailors.smp.publishing.domain.StaleJob> = emptyList()
+        var findStaleCalls: MutableList<Pair<Instant, Duration>> = mutableListOf()
 
         override suspend fun enqueue(job: PublicationJob) {
             writeCount += 1
@@ -2132,18 +2165,40 @@ class PublishingHandlersTest {
             jobsByPublicationId[job.publicationId] = mutableListOf(job)
         }
 
-        override suspend fun claimNextDue(now: Instant, workerId: String): PublicationJobClaim? = null
+        override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? =
+            null
 
-        override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) = Unit
+        override suspend fun rescheduleRetry(
+            jobId: String,
+            claimVersion: Long,
+            nextAttemptAt: Instant,
+            attemptNumber: Int,
+        ): Boolean = true
 
-        override suspend fun complete(jobId: String, completedAt: Instant) = Unit
+        override suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant): Boolean = true
 
-        override suspend fun fail(jobId: String, failedAt: Instant) = Unit
+        override suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant): Boolean = true
+
+        override suspend fun block(jobId: String, claimVersion: Long, blockedAt: Instant): Boolean = true
 
         override suspend fun cancel(jobId: String, cancelledAt: Instant) {
             writeCount += 1
             lastCancelledPublicationId = jobId
         }
+
+        override suspend fun findStaleClaims(
+            now: Instant,
+            staleGrace: Duration,
+            limit: Int,
+        ): com.profiletailors.smp.publishing.domain.StaleJobPage {
+            findStaleCalls.add(now to staleGrace)
+            return com.profiletailors.smp.publishing.domain.StaleJobPage(
+                staleJobsReturnValue,
+                staleJobsReturnValue.size,
+            )
+        }
+
+        override suspend fun releaseExpiredClaims(now: Instant, staleGrace: Duration): Int = 0
 
         fun removeUnclaimedForPublication(publicationId: String) {
             jobsByPublicationId[publicationId] = jobsByPublicationId[publicationId]
@@ -3162,5 +3217,97 @@ class PublishingHandlersTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `ListStaleJobsHandler surfaces publication, workspace, age and safe next action without redaction`() = runTest {
+        val claimedAt = fixedClock.instant().minus(Duration.ofMinutes(15))
+        val leaseExpiresAt = fixedClock.instant().minus(Duration.ofMinutes(12))
+        val jobRepository = InMemoryPublicationJobRepository().apply {
+            staleJobsReturnValue = listOf(
+                com.profiletailors.smp.publishing.domain.StaleJob(
+                    jobId = "pjob-stuck-1",
+                    publicationId = "pub-stuck-1",
+                    workspaceId = "workspace-1",
+                    claimedByWorker = "worker-stuck-uuid",
+                    claimedAt = claimedAt,
+                    leaseExpiresAt = leaseExpiresAt,
+                    attemptNumber = 4,
+                ),
+                com.profiletailors.smp.publishing.domain.StaleJob(
+                    jobId = "pjob-stuck-2",
+                    publicationId = "pub-stuck-2",
+                    workspaceId = "workspace-1",
+                    claimedByWorker = "worker-stuck-uuid",
+                    claimedAt = claimedAt.minus(Duration.ofMinutes(5)),
+                    leaseExpiresAt = leaseExpiresAt.minus(Duration.ofMinutes(5)),
+                    attemptNumber = 1,
+                ),
+            )
+        }
+
+        val handler = ListStaleJobsHandler(jobRepository, fixedClock)
+
+        val result = handler.handle(ListStaleJobsQuery(leaseStaleThreshold = Duration.ofMinutes(5)))
+
+        assertEquals(2, result.total)
+        val first = result.staleJobs.single { it.jobId == "pjob-stuck-1" }
+        assertEquals("pub-stuck-1", first.publicationId)
+        assertEquals("workspace-1", first.workspaceId)
+        assertEquals(4, first.attemptNumber)
+        assertEquals("worker-stuck-uuid", first.claimedByWorker)
+        assertEquals("RELEASE_AND_RETRY", first.suggestedAction)
+        // ageSeconds is computed from claimedAt — 15 minutes = 900 seconds (clamped to >= 0)
+        assertEquals(15L * 60, first.ageSeconds)
+        // Handler did not leak tokens / provider payloads
+        first.toString().contains("token=") shouldBe false
+        first.toString().contains("Bearer ") shouldBe false
+
+        // Repository received the threshold and clock time
+        val (passedNow, passedThreshold) = jobRepository.findStaleCalls.single()
+        passedNow shouldBe fixedClock.instant()
+        passedThreshold shouldBe Duration.ofMinutes(5)
+    }
+
+    @Test
+    fun `ListStaleJobsHandler clamps negative age to zero when clock skews backwards`() = runTest {
+        val futureClaimedAt = fixedClock.instant().plus(Duration.ofMinutes(3))
+        val jobRepository = InMemoryPublicationJobRepository().apply {
+            staleJobsReturnValue = listOf(
+                com.profiletailors.smp.publishing.domain.StaleJob(
+                    jobId = "pjob-clock-skew",
+                    publicationId = "pub-clock-skew",
+                    workspaceId = "workspace-1",
+                    claimedByWorker = "worker-1",
+                    claimedAt = futureClaimedAt,
+                    leaseExpiresAt = futureClaimedAt.minus(Duration.ofHours(1)),
+                    attemptNumber = 1,
+                ),
+            )
+        }
+        val handler = ListStaleJobsHandler(jobRepository, fixedClock)
+
+        val item = handler.handle(ListStaleJobsQuery()).staleJobs.single()
+
+        assertEquals(0L, item.ageSeconds)
+    }
+
+    @Test
+    fun `ListStaleJobsHandler rejects non-positive lease stale threshold`() = runTest {
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = ListStaleJobsHandler(jobRepository, fixedClock)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(ListStaleJobsQuery(leaseStaleThreshold = Duration.ZERO))
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(ListStaleJobsQuery(leaseStaleThreshold = Duration.ofMinutes(-1)))
+            }
+        }
+        // Repository must NOT be queried when threshold is rejected
+        assertEquals(0, jobRepository.findStaleCalls.size)
     }
 }

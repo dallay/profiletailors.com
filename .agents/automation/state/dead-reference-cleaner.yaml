@@ -1,0 +1,5 @@
+schemaVersion: 1
+task: dead-reference-cleaner
+lastExecution: null
+findings: []
+checks: []

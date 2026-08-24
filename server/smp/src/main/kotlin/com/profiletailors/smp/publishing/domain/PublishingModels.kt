@@ -56,6 +56,7 @@ enum class JobStatus {
     RETRY_WAITING,
     COMPLETED,
     FAILED,
+    BLOCKED,
     CANCELLED,
 }
 
@@ -74,8 +75,17 @@ enum class PublicationAssetStatus {
 
 @ValueObject
 enum class DeliveryAttemptOutcome {
+    IN_PROGRESS,
     SUCCEEDED,
     FAILED,
+    AMBIGUOUS,
+}
+
+@ValueObject
+enum class DeliveryAttemptPhase {
+    PROVIDER_CREATE,
+    FINALIZATION,
+    AMBIGUOUS,
 }
 
 @AggregateRoot
@@ -186,8 +196,10 @@ data class PublicationJob(
     val leaseExpiresAt: Instant? = null,
     val completedAt: Instant? = null,
     val failedAt: Instant? = null,
+    val blockedAt: Instant? = null,
     val cancelledAt: Instant? = null,
     val createdAt: Instant? = null,
+    val claimVersion: Long = 0,
 )
 
 data class PublicationJobClaim(
@@ -196,6 +208,9 @@ data class PublicationJobClaim(
     val workspaceId: String,
     val attemptNumber: Int,
     val claimedAt: Instant,
+    val leaseExpiresAt: Instant? = null,
+    val claimVersion: Long = 1,
+    val operationKey: String = "$jobId:$attemptNumber",
 )
 
 @AggregateRoot
@@ -211,6 +226,13 @@ data class DeliveryAttempt(
     val externalPublicationId: String? = null,
     val attemptedAt: Instant,
     val createdAt: Instant? = null,
+    val operationKey: String = "$publicationJobId:$attemptNumber",
+    val claimVersion: Long = 1,
+    val phase: DeliveryAttemptPhase = when (outcome) {
+        DeliveryAttemptOutcome.IN_PROGRESS -> DeliveryAttemptPhase.PROVIDER_CREATE
+        DeliveryAttemptOutcome.AMBIGUOUS -> DeliveryAttemptPhase.AMBIGUOUS
+        DeliveryAttemptOutcome.SUCCEEDED, DeliveryAttemptOutcome.FAILED -> DeliveryAttemptPhase.FINALIZATION
+    },
 )
 
 /**

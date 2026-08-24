@@ -10,7 +10,7 @@ services:
       # Do not use production credentials here. See docs/security/
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_gK2fcFZg5cgVu9U}
     ports:
-      - '${POSTGRES_PORT:-5432}:5432'
+      - '${POSTGRES_PORT:-0}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:

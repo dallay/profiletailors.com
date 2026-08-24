@@ -7,8 +7,10 @@ import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcAtomicTransactionRunner
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
+import com.profiletailors.smp.publishing.domain.DeliveryAttemptPhase
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
+import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.NotificationEvent
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
@@ -31,6 +33,8 @@ import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcDeliver
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcNotificationEventRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationJobRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
+import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailure
+import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureException
 import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingJobExecutor
 import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingWorker
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
@@ -140,6 +144,47 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
     }
 
     @Test
+    fun `stale reclaim reconciles in-progress attempt without replaying provider create`() = runTest {
+        val initialClaim = seedPublicationAndJob("pub-stale-recovery")
+        deliveryAttemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-stale-recovery",
+                publicationId = initialClaim.publicationId,
+                publicationJobId = initialClaim.jobId,
+                attemptNumber = initialClaim.attemptNumber,
+                outcome = DeliveryAttemptOutcome.IN_PROGRESS,
+                retryable = false,
+                attemptedAt = fixedClock.instant(),
+                operationKey = initialClaim.operationKey,
+                claimVersion = initialClaim.claimVersion,
+                phase = DeliveryAttemptPhase.PROVIDER_CREATE,
+            ),
+        )
+
+        jobRepository.releaseExpiredClaims(
+            now = fixedClock.instant().plus(Duration.ofMinutes(10)),
+            staleGrace = Duration.ofMinutes(5),
+        )
+        val reclaimedClaim = requireNotNull(
+            jobRepository.claimNextDue(
+                now = fixedClock.instant().plus(Duration.ofMinutes(10)),
+                workerId = "worker-reclaimer",
+                claimLease = Duration.ofMinutes(2),
+            ),
+        )
+        assertEquals(initialClaim.attemptNumber, reclaimedClaim.attemptNumber)
+        assertEquals(initialClaim.operationKey, reclaimedClaim.operationKey)
+
+        val publisher = CountingPublisher()
+        createExecutor(socialPublisher = publisher).executeClaim(reclaimedClaim)
+
+        assertEquals(0, publisher.calls)
+        assertPublication("pub-stale-recovery", PublicationStatus.BLOCKED)
+        assertDeliveryAttemptWithOutcome("pub-stale-recovery", "AMBIGUOUS")
+        assertJobBlocked("pub-stale-recovery")
+    }
+
+    @Test
     fun `disabled account fails publication and job terminally`() = runTest {
         val claim = seedPublicationAndJob("pub-disabled-account")
         val executor = executorWithDisabledAccount()
@@ -163,10 +208,10 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
             }
         }
 
-        // Rollback should prevent partial state: no delivery attempt, publication still QUEUED
+        // The pre-provider attempt is retained for reconciliation when finalization fails.
         assertPublication("pub-failure-rollback", PublicationStatus.QUEUED)
-        assertNoDeliveryAttempt("pub-failure-rollback")
-        assertJobNotFailed("pub-failure-rollback")
+        assertDeliveryAttemptWithOutcome("pub-failure-rollback", "IN_PROGRESS")
+        assertJobClaimed("pub-failure-rollback")
     }
 
     @Test
@@ -180,8 +225,9 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
             }
         }
 
-        // Rollback should prevent delivery attempt recording
-        assertNoDeliveryAttempt("pub-retry-rollback")
+        // The pre-provider attempt is intentionally retained for reconciliation when finalization fails.
+        assertDeliveryAttemptWithOutcome("pub-retry-rollback", "IN_PROGRESS")
+        assertJobClaimed("pub-retry-rollback")
     }
 
     // ===== requeueBlockedPublication tests =====
@@ -255,9 +301,9 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
             }
         }
 
-        // Rollback should prevent all writes: publication stays QUEUED, job stays PENDING, no notification_events row
+        // Rollback keeps the publication queued, claim active, and event absent.
         assertPublication("pub-notif-rollback", PublicationStatus.QUEUED)
-        assertJobNotFailed("pub-notif-rollback")
+        assertJobClaimed("pub-notif-rollback")
         assertNoNotificationEvent("pub-notif-rollback")
     }
 
@@ -376,20 +422,20 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
                 id = jobId,
                 publicationId = publicationId,
                 workspaceId = "workspace-1",
-                status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
+                status = JobStatus.PENDING,
                 dueAt = fixedClock.instant(),
                 priorityRank = 0,
-                attemptCount = 0,
+                attemptCount = attemptNumber - 1,
                 maxAttempts = 3,
             ),
         )
 
-        return PublicationJobClaim(
-            jobId = jobId,
-            publicationId = publicationId,
-            workspaceId = "workspace-1",
-            attemptNumber = attemptNumber,
-            claimedAt = fixedClock.instant(),
+        return requireNotNull(
+            jobRepository.claimNextDue(
+                now = fixedClock.instant(),
+                workerId = "worker-seed",
+                claimLease = Duration.ofMinutes(2),
+            ),
         )
     }
 
@@ -446,22 +492,13 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         assertNull(row, "Notification event should not exist after rollback")
     }
 
-    private suspend fun assertJobNotCompleted(publicationId: String) {
+    private suspend fun assertJobClaimed(publicationId: String) {
         val row = databaseClient.sql("SELECT status FROM publication_jobs WHERE publication_id = :pub_id")
             .bind("pub_id", publicationId)
             .fetch()
             .one()
             .awaitSingleOrNull()
-        assertEquals("PENDING", row?.get("status"), "Job should remain PENDING after rollback")
-    }
-
-    private suspend fun assertJobNotFailed(publicationId: String) {
-        val row = databaseClient.sql("SELECT status FROM publication_jobs WHERE publication_id = :pub_id")
-            .bind("pub_id", publicationId)
-            .fetch()
-            .one()
-            .awaitSingleOrNull()
-        assertEquals("PENDING", row?.get("status"), "Job should remain PENDING after rollback")
+        assertEquals("CLAIMED", row?.get("status"), "Job should retain its claim after rollback")
     }
 
     private suspend fun assertJobFailed(publicationId: String) {
@@ -471,6 +508,15 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
             .one()
             .awaitSingleOrNull()
         assertEquals("FAILED", row?.get("status"), "Job should be FAILED")
+    }
+
+    private suspend fun assertJobBlocked(publicationId: String) {
+        val row = databaseClient.sql("SELECT status FROM publication_jobs WHERE publication_id = :pub_id")
+            .bind("pub_id", publicationId)
+            .fetch()
+            .one()
+            .awaitSingleOrNull()
+        assertEquals("BLOCKED", row?.get("status"), "Job should be BLOCKED")
     }
 
     private suspend fun cleanupTestData() {
@@ -567,9 +613,9 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         private val failReplace: Boolean = false,
         private val failRescheduleRetry: Boolean = false,
     ) : PublicationJobRepository by delegate {
-        override suspend fun complete(jobId: String, completedAt: Instant) {
+        override suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant): Boolean {
             if (failComplete) throw InjectedJobFailure("Injected failure in complete")
-            delegate.complete(jobId, completedAt)
+            return delegate.complete(jobId, claimVersion, completedAt)
         }
 
         override suspend fun replaceForPublication(job: com.profiletailors.smp.publishing.domain.PublicationJob) {
@@ -577,17 +623,20 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
             delegate.replaceForPublication(job)
         }
 
-        override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) {
+        override suspend fun rescheduleRetry(
+            jobId: String,
+            claimVersion: Long,
+            nextAttemptAt: Instant,
+            attemptNumber: Int,
+        ): Boolean {
             if (failRescheduleRetry) throw InjectedJobFailure("Injected failure in rescheduleRetry")
-            delegate.rescheduleRetry(jobId, nextAttemptAt, attemptNumber)
+            return delegate.rescheduleRetry(jobId, claimVersion, nextAttemptAt, attemptNumber)
         }
     }
 
     private class InjectedPublicationFailure(message: String) : RuntimeException(message)
     private class InjectedJobFailure(message: String) : RuntimeException(message)
     private class InjectedNotificationEventFailure(message: String) : RuntimeException(message)
-    private class ProviderUnavailableFailure : RuntimeException("Provider unavailable")
-
     private class FailingNotificationEventRepository(
         private val delegate: NotificationEventRepository,
         private val failRecord: Boolean = false,
@@ -621,9 +670,18 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
             ProviderPublishResult(externalPublicationId = "external-pub-${command.publicationId}")
     }
 
+    private class CountingPublisher : SocialPublisher {
+        var calls: Int = 0
+
+        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
+            calls += 1
+            return ProviderPublishResult(externalPublicationId = "external-pub-${command.publicationId}")
+        }
+    }
+
     private class FailingPublisher : SocialPublisher {
         override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
-            throw ProviderUnavailableFailure()
+            throw PublishingFailureException(PublishingFailure.publishingFailed("provider failure"))
     }
 
     private class RetryableFailingPublisher : SocialPublisher {

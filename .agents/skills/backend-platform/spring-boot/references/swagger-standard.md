@@ -272,19 +272,18 @@ For endpoints that require authentication:
 8. **ProblemDetail**: Use Spring's `ProblemDetail` for error responses
 9. **Headers**: Document special headers (e.g., `Retry-After` for 429)
 
-## Complete Example: ContactController
+## Reference Implementation
 
-See
-`/server/engine/src/main/kotlin/com/profiletailors/contact/infrastructure/http/ContactController.kt`
-
-This controller is the gold standard for Swagger documentation in the project.
+The complete annotated pattern described in this document represents the standard to progressively
+apply across all controllers. Controllers in `server/smp/src/main/kotlin` may not yet fully implement
+this standard and should be enhanced during feature work or dedicated documentation sprints.
 
 ## Verification
 
 Before committing:
 
 ```bash
-make verify-all  # Debe pasar sin errores
+just backend-test-fast
 ```
 
 To view the generated documentation:
