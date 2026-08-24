@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.4](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.3...smp@v0.4.4) (2026-08-24)
+
+
+### Features
+
+* isolate worktree runtimes and development services ([ee0c376](https://github.com/dallay/profiletailors.com/commit/ee0c37649c5bc3af829563c389f79cadd75310de))
+* **platform-admin:** add waitlist query observability and BDD search/filter scenarios (DALLAY-571) ([#838](https://github.com/dallay/profiletailors.com/issues/838)) ([7b63a3d](https://github.com/dallay/profiletailors.com/commit/7b63a3db7678b4396bad2d474b16656a3259810d))
+* **publishing:** add lease recovery and stale-job controls ([#836](https://github.com/dallay/profiletailors.com/issues/836)) ([17ebbf4](https://github.com/dallay/profiletailors.com/commit/17ebbf4afe7a593698e93b34f71582577596767b))
+
 ## [0.4.3](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.2...smp@v0.4.3) (2026-08-15)
 
 
