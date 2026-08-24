@@ -99,7 +99,8 @@ allowed because they do not match these prefixes and do not mutate the receiver.
 
 ### 5. Enforcement lives in `AggregateBoundaryTest`
 
-The rule is enforced by `server/smp/src/test/kotlin/com/profiletailors/smp/AggregateBoundaryTest.kt`,
+The rule is enforced by
+`server/smp/src/test/kotlin/com/profiletailors/smp/AggregateBoundaryTest.kt`,
 tagged `@Tag("ddd-conformance")` so it runs as part of `./gradlew :server:smp:test` by default.
 The test uses Konsist to scan the production source set only (test source sets legitimately
 reference entities to construct fixtures).
@@ -230,12 +231,13 @@ the gap window.
 
 ## Follow-up actions
 
-- [ ] Land ADR-0016 (Aggregates Communicate by Identity Only) with `IdentityOnlyAggregateCommunicationTest`.
+- [ ] Land ADR-0016 (Aggregates Communicate by Identity Only) with
+  `IdentityOnlyAggregateCommunicationTest`.
 - [ ] Land ADR-0017 (Value Objects Are Immutable) with `ValueObjectImmutabilityTest`.
 - [ ] Annotate value objects across all bounded contexts (`WorkspaceId`, `PrincipalType`,
-      existing VO under `shared/common/domain/vo/`).
+  existing VO under `shared/common/domain/vo/`).
 - [ ] Add a Konsist test that fails when a class in `*.domain` has public state but lacks both
-      `@AggregateRoot` and `@DomainEntity` markers — the "forgot to annotate" guard rail.
+  `@AggregateRoot` and `@DomainEntity` markers — the "forgot to annotate" guard rail.
 
 ## Revisit conditions
 

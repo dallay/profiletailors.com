@@ -5,20 +5,21 @@
 
 ## Shared Kernel Modules
 
-The monorepo contains 10 registered Gradle modules under `shared/` (excluding `shared:assets` and `shared:web` which are asset directories, not Gradle modules):
+The monorepo contains 10 registered Gradle modules under `shared/` (excluding `shared:assets` and
+`shared:web` which are asset directories, not Gradle modules):
 
-| Module                          | Path                            | Type                    | Consumed By                  |
-|---------------------------------|---------------------------------|-------------------------|------------------------------|
-| `:shared:common`                | `shared/common/`                | Foundation              | All modules                  |
-| `:shared:bus`                   | `shared/bus/`                   | CQRS & Event Bus        | SBC, storage, ratelimit, smp |
-| `:shared:presentation`          | `shared/presentation/`          | Presentation DTOs       | SBC, smp                     |
-| `:shared:security`              | `shared/security/`              | Security & Hashing      | SBC, smp                     |
-| `:shared:spring-boot-common`    | `shared/spring-boot-common/`    | Spring Boot Integration | ratelimit, smp               |
-| `:shared:storage`               | `shared/storage/`               | Storage (S3/R2)         | smp                          |
-| `:shared:shield:ratelimit`      | `shared/shield/ratelimit/`      | Rate Limiting           | storage, smp                 |
-| `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (Lead Capture)| waitlist, smp                |
-| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | smp                          |
-| `:shared:notifications`         | `shared/notifications/`         | Notifications           | smp                          |
+| Module                          | Path                            | Type                      | Consumed By                  |
+|---------------------------------|---------------------------------|---------------------------|------------------------------|
+| `:shared:common`                | `shared/common/`                | Foundation                | All modules                  |
+| `:shared:bus`                   | `shared/bus/`                   | CQRS & Event Bus          | SBC, storage, ratelimit, smp |
+| `:shared:presentation`          | `shared/presentation/`          | Presentation DTOs         | SBC, smp                     |
+| `:shared:security`              | `shared/security/`              | Security & Hashing        | SBC, smp                     |
+| `:shared:spring-boot-common`    | `shared/spring-boot-common/`    | Spring Boot Integration   | ratelimit, smp               |
+| `:shared:storage`               | `shared/storage/`               | Storage (S3/R2)           | smp                          |
+| `:shared:shield:ratelimit`      | `shared/shield/ratelimit/`      | Rate Limiting             | storage, smp                 |
+| `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (Lead Capture) | waitlist, smp                |
+| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports            | smp                          |
+| `:shared:notifications`         | `shared/notifications/`         | Notifications             | smp                          |
 
 ## Lead Capture Modules
 
@@ -101,19 +102,19 @@ graph TB
 
 ## Module Reference
 
-| Module                          | Path                            | Type                    | Depends On                                                                  | Consumed By                  |
-|---------------------------------|---------------------------------|-------------------------|-----------------------------------------------------------------------------|------------------------------|
-| `:shared:common`                | `shared/common/`                | Foundation (no deps)    | —                                                                           | All modules                  |
-| `:shared:bus`                   | `shared/bus/`                   | Shared                  | `:shared:common`                                                            | SBC, storage, ratelimit, smp |
-| `:shared:presentation`          | `shared/presentation/`          | Shared                  | `:shared:common`                                                            | SBC, smp                     |
-| `:shared:security`              | `shared/security/`              | Shared                  | `:shared:common`                                                            | SBC, smp                     |
-| `:shared:spring-boot-common`    | `shared/spring-boot-common/`    | Spring Boot integration | `:shared:common`, `:shared:bus`, `:shared:security`, `:shared:presentation` | ratelimit, smp               |
-| `:shared:storage`               | `shared/storage/`               | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:shield:ratelimit`                 | smp                          |
-| `:shared:shield:ratelimit`      | `shared/shield/ratelimit/`      | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:spring-boot-common`               | storage, smp                 |
-| `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (no deps)    | —                                                                           | waitlist, notifications, smp |
-| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | `:shared:lead-capture:common`                                               | notifications, smp           |
+| Module                          | Path                            | Type                    | Depends On                                                                                      | Consumed By                  |
+|---------------------------------|---------------------------------|-------------------------|-------------------------------------------------------------------------------------------------|------------------------------|
+| `:shared:common`                | `shared/common/`                | Foundation (no deps)    | —                                                                                               | All modules                  |
+| `:shared:bus`                   | `shared/bus/`                   | Shared                  | `:shared:common`                                                                                | SBC, storage, ratelimit, smp |
+| `:shared:presentation`          | `shared/presentation/`          | Shared                  | `:shared:common`                                                                                | SBC, smp                     |
+| `:shared:security`              | `shared/security/`              | Shared                  | `:shared:common`                                                                                | SBC, smp                     |
+| `:shared:spring-boot-common`    | `shared/spring-boot-common/`    | Spring Boot integration | `:shared:common`, `:shared:bus`, `:shared:security`, `:shared:presentation`                     | ratelimit, smp               |
+| `:shared:storage`               | `shared/storage/`               | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:shield:ratelimit`                                     | smp                          |
+| `:shared:shield:ratelimit`      | `shared/shield/ratelimit/`      | Infrastructure          | `:shared:common`, `:shared:bus`, `:shared:spring-boot-common`                                   | storage, smp                 |
+| `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (no deps)    | —                                                                                               | waitlist, notifications, smp |
+| `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | `:shared:lead-capture:common`                                                                   | notifications, smp           |
 | `:shared:notifications`         | `shared/notifications/`         | Shared                  | `:shared:common`, `:shared:bus`, `:shared:lead-capture:common`, `:shared:lead-capture:waitlist` | smp                          |
-| `:server:smp`                   | `server/smp/`                   | Application             | All `shared:*` modules                                                      | —                            |
+| `:server:smp`                   | `server/smp/`                   | Application             | All `shared:*` modules                                                                          | —                            |
 
 ## Layer Rules
 
