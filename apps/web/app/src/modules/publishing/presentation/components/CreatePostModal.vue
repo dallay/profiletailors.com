@@ -111,7 +111,6 @@ const selectedChannelId = ref<string | null>(null)
 const markdownEditor = useMarkdownEditor({ postText: postText })
 const composerTextareaEl = markdownEditor.textareaEl
 
-
 const picker = useComposerMediaPicker({
   mediaStore,
   publishingStore,
@@ -376,7 +375,8 @@ watch(
 
 const isSubmitting = ref(false)
 const charLimit = 3000
-const charsRemaining = computed(() => charLimit - markdownEditor.plainTextForPreview.value.length)
+const normalizedText = computed(() => markdownEditor.plainTextForSubmit())
+const charsRemaining = computed(() => charLimit - normalizedText.value.length)
 const isTextTooLong = computed(() => charsRemaining.value < 0)
 const selectedChannel = computed(() =>
   publishingStore.channels.find((channel) => channel.id === selectedChannelId.value)
@@ -425,7 +425,7 @@ const canSubmit = computed(() => {
   return (
     !!selectedChannel.value &&
     postText.value.trim().length > 0 &&
-    markdownEditor.plainTextForPreview.value.trim().length > 0 &&
+    normalizedText.value.trim().length > 0 &&
     !isTextTooLong.value &&
     !isSubmitting.value &&
     !picker.isAttachmentLimitExceeded.value
@@ -1116,7 +1116,7 @@ async function handleSchedule() {
       : true
     if (!uploadOk) return
 
-    const normalizedPostText = markdownEditor.plainTextForSubmit()
+    const normalizedPostText = normalizedText.value
     const backendScheduleMode = resolveScheduleMode(scheduleMode.value)
 
     if (isEditMode.value && props.editingPublication) {

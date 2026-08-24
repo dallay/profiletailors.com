@@ -112,6 +112,21 @@ describe('stripMarkdownToPlainText', () => {
   it('does not strip marker-like text that is not wrapping', () => {
     expect(stripMarkdownToPlainText('3 * 4 = 12')).toBe('3 * 4 = 12')
   })
+
+  it('strips raw HTML tags preserving inner text', () => {
+    expect(stripMarkdownToPlainText('<b>bold</b> text')).toBe('bold text')
+    expect(stripMarkdownToPlainText('<span class="x">content</span>')).toBe('content')
+  })
+
+  it('removes script and style elements entirely', () => {
+    expect(stripMarkdownToPlainText('<script>alert(1)</' + 'script>safe')).toBe('safe')
+    expect(stripMarkdownToPlainText('<style>.x{color:red}</style>visible')).toBe('visible')
+  })
+
+  it('strips HTML tags with event handler attributes', () => {
+    expect(stripMarkdownToPlainText('<img src="x" onerror="alert(1)">')).toBe('')
+    expect(stripMarkdownToPlainText('<div onclick="evil()">content</div>')).toBe('content')
+  })
 })
 
 describe('applyInlineFormat', () => {
@@ -141,6 +156,13 @@ describe('applyInlineFormat', () => {
     expect(result.text).toBe('**He**text**llo**')
     expect(result.selectionStart).toBe(6)
     expect(result.selectionEnd).toBe(10)
+  })
+
+  it('wraps italic inside bold without toggling off the bold markers', () => {
+    const result = applyInlineFormat('**Hello**', 2, 7, '*')
+    expect(result.text).toBe('***Hello***')
+    expect(result.selectionStart).toBe(3)
+    expect(result.selectionEnd).toBe(8)
   })
 })
 

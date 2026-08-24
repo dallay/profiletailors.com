@@ -1,11 +1,22 @@
-import { describe, it, expect, vi } from 'vitest'
-import { ref, nextTick } from 'vue'
+import { describe, it, expect, vi, type Mock } from 'vitest'
+import { ref, nextTick, type Ref } from 'vue'
 import { useMarkdownEditor } from './useMarkdownEditor'
 
-function setup(initialText = '') {
+interface FakeTextarea {
+  selectionStart: number
+  selectionEnd: number
+  focus: Mock
+  setSelectionRange: Mock
+}
+
+function setup(initialText = ''): {
+  postText: Ref<string>
+  editor: ReturnType<typeof useMarkdownEditor>
+  fakeTextarea: FakeTextarea
+} {
   const postText = ref(initialText)
   const editor = useMarkdownEditor({ postText })
-  const fakeTextarea = {
+  const fakeTextarea: FakeTextarea = {
     selectionStart: 0,
     selectionEnd: 0,
     focus: vi.fn(),
@@ -116,6 +127,15 @@ describe('useMarkdownEditor', () => {
     expect(postText.value).toBe('**Hello** world')
   })
 
+  it('restores the computed selection after formatting', () => {
+    const { editor, fakeTextarea } = setup('Hello world')
+    fakeTextarea.selectionStart = 0
+    fakeTextarea.selectionEnd = 5
+    editor.applyBold()
+    expect(fakeTextarea.focus).toHaveBeenCalled()
+    expect(fakeTextarea.setSelectionRange).toHaveBeenCalledWith(2, 7)
+  })
+
   it('plainTextForSubmit strips markdown and trims', () => {
     const { editor } = setup('  **bold** and *italic*  ')
     expect(editor.plainTextForSubmit()).toBe('bold and italic')
@@ -144,7 +164,10 @@ describe('useMarkdownEditor', () => {
 })
 
 describe('useMarkdownEditor — keyboard shortcuts', () => {
-  function makeEvent(key: string, opts: { meta?: boolean; ctrl?: boolean; shift?: boolean } = {}) {
+  function makeEvent(
+    key: string,
+    opts: { meta?: boolean; ctrl?: boolean; shift?: boolean } = {},
+  ): KeyboardEvent {
     return {
       key,
       metaKey: opts.meta ?? false,

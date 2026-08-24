@@ -11,7 +11,7 @@ function stripInlineMarkdown(text: string): string {
     .replace(/!\[([^\]]*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g, '$1')
     .replace(
       /\[([^\]]*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g,
-      (_match, label: string, url: string) => {
+      (_match: string, label: string, url: string): string => {
         const trimmedUrl = url.trim()
         if (!SAFE_URL.test(trimmedUrl)) {
           return label
@@ -28,6 +28,13 @@ function stripInlineMarkdown(text: string): string {
     .replace(/`(.+?)`/g, '$1')
 }
 
+function stripHtmlTags(text: string): string {
+  return text
+    .replace(/<script\b[^<]*<\/script>/gi, '')
+    .replace(/<style\b[^<]*<\/style>/gi, '')
+    .replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '')
+}
+
 export function stripMarkdownToPlainText(text: string): string {
   const lines = text.split('\n')
   const result: string[] = []
@@ -42,7 +49,7 @@ export function stripMarkdownToPlainText(text: string): string {
       result.push(line)
       continue
     }
-    let processed = line
+    let processed = stripHtmlTags(line)
     processed = processed.replace(/^#{1,3}\s+/, '')
     processed = processed.replace(/^>\s?/, '')
     processed = processed.replace(/^[-*]\s+/, '')
@@ -102,14 +109,23 @@ export function applyInlineFormat(
   const after = text.slice(selectionEnd, selectionEnd + marker.length)
 
   if (before === marker && after === marker) {
-    const newText =
-      text.slice(0, selectionStart - marker.length) +
-      selectedText +
-      text.slice(selectionEnd + marker.length)
-    return {
-      text: newText,
-      selectionStart: selectionStart - marker.length,
-      selectionEnd: selectionEnd - marker.length,
+    const charBeforeBefore =
+      selectionStart - marker.length - 1 >= 0 ? text[selectionStart - marker.length - 1] : ''
+    const charAfterAfter =
+      selectionEnd + marker.length < text.length ? text[selectionEnd + marker.length] : ''
+
+    const isStandalone = charBeforeBefore !== marker[0] && charAfterAfter !== marker[0]
+
+    if (isStandalone) {
+      const newText =
+        text.slice(0, selectionStart - marker.length) +
+        selectedText +
+        text.slice(selectionEnd + marker.length)
+      return {
+        text: newText,
+        selectionStart: selectionStart - marker.length,
+        selectionEnd: selectionEnd - marker.length,
+      }
     }
   }
 

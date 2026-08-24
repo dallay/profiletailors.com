@@ -12,9 +12,13 @@ import {
   Code,
 } from '@lucide/vue'
 
-defineProps<{
+interface Props {
   disabled?: boolean
-}>()
+}
+
+withDefaults(defineProps<Props>(), {
+  disabled: false,
+})
 
 const emit = defineEmits<{
   (e: 'bold'): void

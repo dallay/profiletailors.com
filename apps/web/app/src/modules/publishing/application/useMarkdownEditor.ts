@@ -41,6 +41,11 @@ function applyFormat(
 
   const result = transform(postText.value, start, end)
   postText.value = result.text
+
+  if (el) {
+    el.focus()
+    el.setSelectionRange(result.selectionStart, result.selectionEnd)
+  }
 }
 
 export function useMarkdownEditor(options: UseMarkdownEditorOptions): UseMarkdownEditorResult {
@@ -57,26 +62,38 @@ export function useMarkdownEditor(options: UseMarkdownEditorOptions): UseMarkdow
   )
 
   function applyBold(): void {
-    applyFormat(options.postText, textareaEl, (text, start, end) =>
-      applyInlineFormat(text, start, end, '**'),
+    applyFormat(
+      options.postText,
+      textareaEl,
+      (text: string, start: number, end: number): FormatResult =>
+        applyInlineFormat(text, start, end, '**'),
     )
   }
 
   function applyItalic(): void {
-    applyFormat(options.postText, textareaEl, (text, start, end) =>
-      applyInlineFormat(text, start, end, '*'),
+    applyFormat(
+      options.postText,
+      textareaEl,
+      (text: string, start: number, end: number): FormatResult =>
+        applyInlineFormat(text, start, end, '*'),
     )
   }
 
   function applyStrikethrough(): void {
-    applyFormat(options.postText, textareaEl, (text, start, end) =>
-      applyInlineFormat(text, start, end, '~~'),
+    applyFormat(
+      options.postText,
+      textareaEl,
+      (text: string, start: number, end: number): FormatResult =>
+        applyInlineFormat(text, start, end, '~~'),
     )
   }
 
   function applyInlineCode(): void {
-    applyFormat(options.postText, textareaEl, (text, start, end) =>
-      applyInlineFormat(text, start, end, '`'),
+    applyFormat(
+      options.postText,
+      textareaEl,
+      (text: string, start: number, end: number): FormatResult =>
+        applyInlineFormat(text, start, end, '`'),
     )
   }
 
@@ -85,20 +102,29 @@ export function useMarkdownEditor(options: UseMarkdownEditorOptions): UseMarkdow
   }
 
   function applyUnorderedList(): void {
-    applyFormat(options.postText, textareaEl, (text, start, end) =>
-      applyLinePrefix(text, start, end, '- '),
+    applyFormat(
+      options.postText,
+      textareaEl,
+      (text: string, start: number, end: number): FormatResult =>
+        applyLinePrefix(text, start, end, '- '),
     )
   }
 
   function applyOrderedList(): void {
-    applyFormat(options.postText, textareaEl, (text, start, end) =>
-      applyLinePrefix(text, start, end, '1. '),
+    applyFormat(
+      options.postText,
+      textareaEl,
+      (text: string, start: number, end: number): FormatResult =>
+        applyLinePrefix(text, start, end, '1. '),
     )
   }
 
   function applyBlockquote(): void {
-    applyFormat(options.postText, textareaEl, (text, start, end) =>
-      applyLinePrefix(text, start, end, '> '),
+    applyFormat(
+      options.postText,
+      textareaEl,
+      (text: string, start: number, end: number): FormatResult =>
+        applyLinePrefix(text, start, end, '> '),
     )
   }
 
