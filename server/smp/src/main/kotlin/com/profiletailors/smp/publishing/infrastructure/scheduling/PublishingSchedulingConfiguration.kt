@@ -76,6 +76,7 @@ class PublishingSchedulingConfiguration(
         publishingJobExecutor: PublishingJobExecutor,
         transactionRunner: AtomicTransactionRunner,
         publishingLifecycleLogger: PublishingLifecycleLogger,
+        properties: PublishingWorkerProperties,
     ): PublishingWorker = PublishingWorker(
         publicationJobRepository = publicationJobRepository,
         publicationRepository = publicationRepository,
@@ -83,6 +84,8 @@ class PublishingSchedulingConfiguration(
         transactionRunner = transactionRunner,
         clock = clock,
         workerId = "worker-${UUID.randomUUID()}",
+        claimLease = properties.claimLease,
+        staleGrace = properties.staleGrace,
         lifecycleLogger = publishingLifecycleLogger,
     )
 

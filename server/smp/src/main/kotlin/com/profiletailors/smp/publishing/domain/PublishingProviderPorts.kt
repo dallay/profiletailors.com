@@ -30,6 +30,7 @@ data class ProviderPublishCommand(
     val socialAccount: SocialAccount,
     val publication: PublicationDraft,
     val assets: List<PublicationAsset>,
+    val operationKey: String? = null,
 )
 
 data class ProviderPublishResult(
@@ -93,3 +94,12 @@ data class AssetUploadContext(
 )
 
 class ProviderUploadException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+
+/**
+ * Indicates that a provider request may have reached the provider but its outcome is unknown.
+ *
+ * Callers must reconcile the provider before retrying a publication rather than dispatching a
+ * second create request blindly.
+ */
+class ProviderTransportUncertaintyException(cause: Throwable? = null) :
+    RuntimeException("Provider transport outcome is uncertain.", cause)

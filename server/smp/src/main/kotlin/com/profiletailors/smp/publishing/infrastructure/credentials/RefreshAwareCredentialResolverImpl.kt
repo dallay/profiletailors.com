@@ -147,7 +147,7 @@ class RefreshAwareCredentialResolverImpl(
             )
 
             if (response.statusCode !in HTTP_SUCCESS_RANGE) {
-                log.warn("LinkedIn refresh token exchange failed: {} {}", response.statusCode, response.body)
+                log.warn("LinkedIn refresh token exchange failed: status={}", response.statusCode)
                 return null
             }
 
@@ -163,17 +163,20 @@ class RefreshAwareCredentialResolverImpl(
                 },
             )
         } catch (e: HttpTimeoutException) {
-            log.warn("LinkedIn refresh token exchange timed out", e)
+            log.warn("LinkedIn refresh token exchange timed out: type={}", e::class.simpleName)
             null
         } catch (e: IOException) {
-            log.warn("LinkedIn refresh token exchange failed: {}", e.message)
+            log.warn("LinkedIn refresh token exchange failed: type={}", e::class.simpleName)
             null
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            log.warn("LinkedIn refresh token exchange was interrupted", e)
+            log.warn("LinkedIn refresh token exchange was interrupted: type={}", e::class.simpleName)
             null
         } catch (e: Exception) {
-            log.error("LinkedIn refresh token exchange threw unexpected exception", e)
+            log.error(
+                "LinkedIn refresh token exchange threw unexpected exception: type={}",
+                e::class.simpleName,
+            )
             null
         }
     }

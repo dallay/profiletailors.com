@@ -109,7 +109,7 @@ internal fun PublicationDraft.toListItem(): ListPublicationItem = ListPublicatio
     externalPublicationId = externalPublicationId,
     failedAt = failedAt,
     lastErrorCode = lastErrorCode,
-    lastErrorMessage = lastErrorMessage,
+    lastErrorMessage = null,
     blockedReason = blockedReason,
     createdAt = createdAt,
 )
