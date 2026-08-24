@@ -2,19 +2,13 @@
 
 ## Overview
 
-This delta defines evidence-bounded production waitlist activation for DALLAY-520. It exercises the
-existing waitlist lifecycle while separating code/test behavior from managed-beta operator
-observations and protecting personal data.
+This delta defines evidence-bounded production waitlist activation for DALLAY-520. It exercises the existing waitlist lifecycle while separating code/test behavior from managed-beta operator observations and protecting personal data.
 
 ## Changes
 
 ### Requirement: Production Waitlist Activation Is Evidence-Bounded (DALLAY-520)
 
-The waitlist activation exercise MUST use the existing waitlist lifecycle and MUST record a dated,
-UTC evidence entry for activation, entry creation, invite eligibility, and conversion. Code and test
-results MAY prove implemented behavior; only operator evidence from the managed beta environment MAY
-prove that the deployed activation path was exercised. A passing local or CI check MUST NOT be
-treated as production activation evidence.
+The waitlist activation exercise MUST use the existing waitlist lifecycle and MUST record a dated, UTC evidence entry for activation, entry creation, invite eligibility, and conversion. Code and test results MAY prove implemented behavior; only operator evidence from the managed beta environment MAY prove that the deployed activation path was exercised. A passing local or CI check MUST NOT be treated as production activation evidence.
 
 #### Scenario: Active waitlist accepts a beta entry
 
@@ -39,10 +33,7 @@ treated as production activation evidence.
 
 ### Requirement: Waitlist Evidence Protects Personal Data
 
-Evidence MUST contain only the minimum data needed to reproduce the check. It MUST NOT include
-access tokens, invitation tokens, full email addresses, provider payloads, or unredacted logs.
-Evidence with missing provenance, exposed secrets, or unverifiable timestamps MUST be a launch
-blocker.
+Evidence MUST contain only the minimum data needed to reproduce the check. It MUST NOT include access tokens, invitation tokens, full email addresses, provider payloads, or unredacted logs. Evidence with missing provenance, exposed secrets, or unverifiable timestamps MUST be a launch blocker.
 
 #### Scenario: Redacted evidence is retained
 
@@ -55,16 +46,13 @@ blocker.
 
 ### Activation Evidence
 
-Record the environment, UTC timestamp, scope, source, observed outcome, and redacted test identifier
-for activation, entry creation, invite eligibility, and conversion. Keep local and CI results as
-implementation evidence only.
+Record the environment, UTC timestamp, scope, source, observed outcome, and redacted test identifier for activation, entry creation, invite eligibility, and conversion. Keep local and CI results as implementation evidence only.
 
 ## Troubleshooting
 
 ### Blockers
 
-A paused or closed waitlist, duplicate behavior that discloses membership state, missing provenance,
-unverifiable timestamps, exposed secrets, or unredacted PII blocks the activation prerequisite.
+A paused or closed waitlist, duplicate behavior that discloses membership state, missing provenance, unverifiable timestamps, exposed secrets, or unredacted PII blocks the activation prerequisite.
 
 ## References
 

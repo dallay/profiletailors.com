@@ -22,7 +22,7 @@ require temporarily returning publication status to `blocked` until approvals co
 ## Changes
 
 | Version | Date       | Description                                                                     |
-|---------|------------|---------------------------------------------------------------------------------|
+| ------- | ---------- | ------------------------------------------------------------------------------- |
 | 2.1     | 2026-07-31 | Reconciled gate status with approved legal publication runtime state            |
 | 2.0     | 2026-07-17 | Added the enforced blocked-render state and reconciled corrected draft findings |
 | 1.0     | 2026-07-17 | Added factual, operational, jurisdictional, and approval gates                  |
@@ -34,7 +34,7 @@ require temporarily returning publication status to `blocked` until approvals co
 A policy version may be published only when all four approvals are recorded:
 
 | Approval        | Required signer                                     | What the signer confirms                                                                                                                    |
-|-----------------|-----------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Product truth   | Product owner                                       | Features, audience, billing, integrations, and user flows match the text.                                                                   |
 | Technical truth | Engineering or security owner                       | Data flows, vendors, regions, cookies/storage, retention, deletion, rights, and security controls have linked evidence.                     |
 | Business truth  | Authorised representative of the contracting entity | Entity, address, registration, contacts, prices, taxes, support, and commercial promises are correct.                                       |
@@ -81,7 +81,7 @@ Any unchecked item blocks publication:
 ### Findings register
 
 | ID      | Status                                                     | Finding                                                                                                                                                             | Required resolution or evidence                                                                                      |
-|---------|------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| ------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | LPG-001 | Open — publication blocker                                 | The operating legal entity, registered address, registration details, and authorised representative are unresolved.                                                 | Record the actual legal person and all mandatory corporate disclosures.                                              |
 | LPG-002 | Draft corrected; operational blocker remains               | The EN/ES draft no longer names unsupported hosting, identity, storage, monitoring, or social providers. Production vendors and contracts are still unselected.     | Select and contract the production stack, then generate the recipient disclosure from verified evidence.             |
 | LPG-003 | Draft corrected; measurement blocker remains               | The cookie draft now reflects repository evidence and Ahrefs' default cookieless behaviour. Production-like browser and network measurement has not been completed. | Run the storage scan for every representative state and approve consent classifications.                             |
@@ -113,7 +113,7 @@ Rollback owner and procedure:
 ### Separation of verification responsibilities
 
 | Verification             | Can establish                                                                       | Cannot establish                                                                                   |
-|--------------------------|-------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| ------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Build and tests          | Routes render, translations have matching keys, links and markup satisfy assertions | Legal applicability, factual vendor use, enforceability, consent validity, or operational deletion |
 | Product/technical review | Behaviour, data flows, vendors, storage, and implemented controls                   | Local-law interpretation or enforceability                                                         |
 | Legal review             | Applicability and wording for documented facts and markets                          | Whether undocumented product behaviour or controls actually exist                                  |

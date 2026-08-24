@@ -1,5 +1,5 @@
 /**
- * spec: docs/testing/e2e/login-flow.md
+ * spec: openspec/specs/e2e/login-flow.md
  * section: 10. Internationalization (i18n)
  *
  * NOTE: Language switching is NOT available on the auth page. The locale

@@ -6,8 +6,8 @@
 
 ## Specs Synced
 
-| Domain                | Action         | Details                                                                               |
-|-----------------------|----------------|---------------------------------------------------------------------------------------|
+| Domain | Action | Details |
+|--------|--------|---------|
 | lead-capture-waitlist | Already synced | Delta content is subset of main spec (main augmented by DALLAY-493 DSAR requirements) |
 
 ## Archive Contents
@@ -27,14 +27,11 @@ The following main specs already reflected the implemented behavior before archi
 
 ## Deferred Items
 
-- **DALLAY-512**: Distributed bucket backend needed before enabling WAITLIST rate limiting in
-  multi-replica environments
-- **DALLAY-513**: Trusted-proxy allowlist needed before enabling WAITLIST rate limiting behind
-  shared ingress
+- **DALLAY-512**: Distributed bucket backend needed before enabling WAITLIST rate limiting in multi-replica environments
+- **DALLAY-513**: Trusted-proxy allowlist needed before enabling WAITLIST rate limiting behind shared ingress
 - Both mitigated: `application.rate-limit.waitlist.enabled` defaults to `false` in SMP
 
 ## SDD Cycle Complete
 
-The reusable lead-capture waitlist capability has been fully planned, implemented, verified, and
-archived.
+The reusable lead-capture waitlist capability has been fully planned, implemented, verified, and archived.
 Ready to close the epic.

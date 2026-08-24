@@ -2,24 +2,17 @@
 
 ## Overview
 
-This delta defines the invitation acceptance boundary for DALLAY-556: validate the invitation before
-membership changes, preserve workspace isolation, protect invitation secrets and PII, and keep
-production evidence distinct from automated behavior evidence.
+This delta defines the invitation acceptance boundary for DALLAY-556: validate the invitation before membership changes, preserve workspace isolation, protect invitation secrets and PII, and keep production evidence distinct from automated behavior evidence.
 
 ## Changes
 
 ### Requirement: Invite Acceptance Creates Scoped Membership (DALLAY-556)
 
-An invitation acceptance flow MUST validate the invitation before creating membership. A valid
-acceptance MUST create or reconcile exactly one membership in the invited workspace, preserve the
-workspace boundary, and allow the invitee to complete first login. An invite MUST NOT grant access
-to any other workspace or bypass existing authentication, email-verification, or authorization
-gates.
+An invitation acceptance flow MUST validate the invitation before creating membership. A valid acceptance MUST create or reconcile exactly one membership in the invited workspace, preserve the workspace boundary, and allow the invitee to complete first login. An invite MUST NOT grant access to any other workspace or bypass existing authentication, email-verification, or authorization gates.
 
 #### Scenario: Invitee accepts and reaches first login
 
-- GIVEN a valid, unexpired invitation for workspace A and an authenticated or newly registered
-  invitee
+- GIVEN a valid, unexpired invitation for workspace A and an authenticated or newly registered invitee
 - WHEN the invitee accepts the invitation and completes the required login step
 - THEN exactly one membership for workspace A MUST exist
 - AND the invitee MUST be able to load workspace-scoped data for A
@@ -42,9 +35,7 @@ gates.
 
 ### Requirement: Invitation Secrets and PII Are Protected
 
-Invitation tokens MUST be single-use, time-bounded, and treated as secrets. API responses, browser
-logs, screenshots, and evidence MUST NOT expose raw tokens, credentials, or unnecessary invitee PII.
-The system MUST preserve existing deny-by-default and explicit workspace-context requirements.
+Invitation tokens MUST be single-use, time-bounded, and treated as secrets. API responses, browser logs, screenshots, and evidence MUST NOT expose raw tokens, credentials, or unnecessary invitee PII. The system MUST preserve existing deny-by-default and explicit workspace-context requirements.
 
 #### Scenario: Consumed invitation cannot be replayed
 
@@ -55,10 +46,7 @@ The system MUST preserve existing deny-by-default and explicit workspace-context
 
 ### Requirement: Invitation Evidence Does Not Prove Delivery By Itself
 
-Unit, BDD, and integration tests MAY prove invitation validation, membership creation, and tenancy
-behavior. They MUST NOT be treated as proof that a production email was delivered. Only a dated,
-redacted operator record from the managed beta environment MAY establish observed invite delivery
-and acceptance; absent that record, the invitation prerequisite MUST remain unverified.
+Unit, BDD, and integration tests MAY prove invitation validation, membership creation, and tenancy behavior. They MUST NOT be treated as proof that a production email was delivered. Only a dated, redacted operator record from the managed beta environment MAY establish observed invite delivery and acceptance; absent that record, the invitation prerequisite MUST remain unverified.
 
 #### Scenario: Production invitation evidence has provenance
 
@@ -71,16 +59,13 @@ and acceptance; absent that record, the invitation prerequisite MUST remain unve
 
 ### Evidence Classification
 
-Classify automated implementation evidence as code or test evidence and managed-environment
-observations as operator evidence. Do not infer production delivery from a passing local, CI, BDD,
-or integration test.
+Classify automated implementation evidence as code or test evidence and managed-environment observations as operator evidence. Do not infer production delivery from a passing local, CI, BDD, or integration test.
 
 ## Troubleshooting
 
 ### Acceptance Blockers
 
-Missing provenance, exposed secrets or unnecessary PII, invalid invitation state, cross-workspace
-access, or an unavailable rollback path blocks the invitation prerequisite.
+Missing provenance, exposed secrets or unnecessary PII, invalid invitation state, cross-workspace access, or an unavailable rollback path blocks the invitation prerequisite.
 
 ## References
 

@@ -128,8 +128,8 @@ For dashboard checks without a dedicated recipe, use the package scripts used by
 | `just production-smoke` | Verify production routing, migrations, data, secrets, and hardening |
 | `just swarm-config` / `just production-config` | Validate rendered deployment configuration |
 
-Backend tests that use Testcontainers require Docker; their PostgreSQL credential is defined by the
-test fixture and does not come from `.env` or the shell. Never commit `.env` or any secret value.
+Backend tests that need the database password read `SMP_DB_TEST_PASSWORD` from the shell or local
+`.env`; never commit `.env` or any secret value.
 
 ### Local CI versus remote gates
 
@@ -425,9 +425,10 @@ comments.
   `.agents/DESIGN.md` rather than inventing a parallel visual language.
 - **API versioning:** backend clients and BDD requests normally require
   `Accept: application/vnd.api.v1+json`.
-- **Database tests:** PostgreSQL integration/BDD may require `just infra-up`.
-- **Environment loading:** `bootRun` reads the root `.env`; Testcontainers test helpers use their
-  fixed fixture credential without database password configuration.
+- **Database tests:** set `SMP_DB_TEST_PASSWORD`; PostgreSQL integration/BDD may require
+  `just infra-up`.
+- **Environment loading:** `bootRun` reads the root `.env`; test helpers source the database
+  password from the shell or `.env`.
 - **Test tags:** `@Tag("postgres")`, `@Tag("bdd")`, and `@Tag("modularity")` classify suites; they
   must not be used to hide failures. `backend-check` excludes only the two BDD tasks by design.
 - **Architecture checker:** there is no verified `just architecture-check` aggregator. Do not add

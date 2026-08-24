@@ -55,17 +55,17 @@ state to the live route and issues `router.replace()` only when canonicalization
 
 ## File Changes
 
-| File                                                                       | Action | Description                                                                               |
-|----------------------------------------------------------------------------|--------|-------------------------------------------------------------------------------------------|
-| `apps/web/app/src/router/index.ts`                                         | Modify | Add canonical scheduler route family and redirects.                                       |
-| `apps/web/app/src/composables/useCalendarUrl.ts`                           | Create | Central URL codec, typed state, navigation helpers, canonicalization.                     |
-| `apps/web/app/src/views/SchedulerView.vue`                                 | Modify | Replace local route-relevant refs with composable state; refetch by visible range.        |
-| `apps/web/app/src/components/CalendarHeader.vue`                           | Modify | Consume props/emit intent instead of mutating route-relevant store refs.                  |
-| `apps/web/app/src/components/layout/AppShell.vue`                          | Modify | Sidebar channel selection pushes scheduler URLs with `channels[]`.                        |
-| `apps/web/app/src/stores/publishing.ts`                                    | Modify | Make `fetchCalendar()` accept explicit timezone/filters; keep only compatibility mirrors. |
-| `apps/web/app/src/composables/useCalendarUrl.test.ts`                      | Create | Unit coverage for parsing/serialization/canonicalization.                                 |
-| `apps/web/app/e2e/specs/scheduler-url-addressable.spec.ts`                 | Create | Refresh/back-forward/filter URL regression flow.                                          |
-| `openspec/changes/archive/2026-06-24-scheduler-url-addressable/state.yaml` | Modify | Mark design complete.                                                                     |
+| File                                                       | Action | Description                                                                               |
+|------------------------------------------------------------|--------|-------------------------------------------------------------------------------------------|
+| `apps/web/app/src/router/index.ts`                         | Modify | Add canonical scheduler route family and redirects.                                       |
+| `apps/web/app/src/composables/useCalendarUrl.ts`           | Create | Central URL codec, typed state, navigation helpers, canonicalization.                     |
+| `apps/web/app/src/views/SchedulerView.vue`                 | Modify | Replace local route-relevant refs with composable state; refetch by visible range.        |
+| `apps/web/app/src/components/CalendarHeader.vue`           | Modify | Consume props/emit intent instead of mutating route-relevant store refs.                  |
+| `apps/web/app/src/components/layout/AppShell.vue`          | Modify | Sidebar channel selection pushes scheduler URLs with `channels[]`.                        |
+| `apps/web/app/src/stores/publishing.ts`                    | Modify | Make `fetchCalendar()` accept explicit timezone/filters; keep only compatibility mirrors. |
+| `apps/web/app/src/composables/useCalendarUrl.test.ts`      | Create | Unit coverage for parsing/serialization/canonicalization.                                 |
+| `apps/web/app/e2e/specs/scheduler-url-addressable.spec.ts` | Create | Refresh/back-forward/filter URL regression flow.                                          |
+| `openspec/changes/scheduler-url-addressable/state.yaml`    | Modify | Mark design complete.                                                                     |
 
 ## Interfaces / Contracts
 

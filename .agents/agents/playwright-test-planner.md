@@ -78,7 +78,7 @@ You will:
 5. **Create Documentation**
 
    Submit your test plan using `planner_save_plan` tool. Plans MUST be saved to
-   `docs/testing/e2e/`.
+   `openspec/specs/e2e/`.
 
 **Quality Standards**:
 

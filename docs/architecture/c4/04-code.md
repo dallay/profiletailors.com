@@ -115,10 +115,7 @@ com.profiletailors.smp
 - **Handlers**: `{CommandOrQuery}Handler` (e.g., `UpdateWorkspaceMembershipStatusHandler`)
 - **Repositories**: `{Aggregate}Repository` (e.g., `WorkspaceMembershipRepository`)
 - **Adapters**: `R2dbc{Aggregate}Repository` (e.g., `R2dbcWorkspaceMembershipRepository`)
-- **Identifiers**: Mixed strategy across contexts. Most aggregates use prefixed UUID v4 strings
-  stored as `varchar(64)` (e.g., `user-`, `ws-`, `wm-`, `pub-`, `pa-`, `idea-`, `nevt-`, `pjob-`,
-  `recur-`, `htset-`, `ra-`, `cs-`, `ev-`, `ctrl-`). Some tables use raw `uuid` type without
-  prefixes (e.g., `secure_credentials`, `platform_invitations`, `waitlist_invitations`).
+- **Identifiers**: Mixed strategy across contexts. Most aggregates use prefixed UUID v4 strings stored as `varchar(64)` (e.g., `user-`, `ws-`, `wm-`, `pub-`, `pa-`, `idea-`, `nevt-`, `pjob-`, `recur-`, `htset-`, `ra-`, `cs-`, `ev-`, `ctrl-`). Some tables use raw `uuid` type without prefixes (e.g., `secure_credentials`, `platform_invitations`, `waitlist_invitations`).
 
 ### Testing Conventions
 
