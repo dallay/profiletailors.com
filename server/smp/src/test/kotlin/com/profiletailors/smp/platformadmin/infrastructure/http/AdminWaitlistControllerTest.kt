@@ -12,12 +12,14 @@ import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntry
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.ports.WaitlistQueryTelemetryPort
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -34,6 +36,7 @@ class AdminWaitlistControllerTest {
     private val inviteHandler = mockk<InviteWaitlistEntryHandler>(relaxed = true)
     private val cancelHandler = mockk<CancelWaitlistEntryHandler>(relaxed = true)
     private val roleAssignmentRepository = mockk<PlatformRoleAssignmentRepository>()
+    private val waitlistQueryTelemetry = mockk<WaitlistQueryTelemetryPort>(relaxed = true)
 
     @Test
     fun `listEntries returns 401 without principal context`() {
@@ -77,6 +80,31 @@ class AdminWaitlistControllerTest {
                 match { query -> query.status == "PENDING" && query.waitlistId == "waitlist-1" },
             )
         }
+        verify {
+            waitlistQueryTelemetry.recordListQuery(
+                statusFilterApplied = true,
+                emailSearch = false,
+            )
+        }
+    }
+
+    @Test
+    fun `listEntries records telemetry for unfiltered request`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { waitlistQuery.list(any()) } returns PagedResult.of(emptyList(), 0, 25, 0)
+
+        webClient()
+            .get()
+            .uri("/api/admin/waitlist-entries")
+            .exchange()
+            .expectStatus().isOk
+
+        verify {
+            waitlistQueryTelemetry.recordListQuery(
+                statusFilterApplied = false,
+                emailSearch = false,
+            )
+        }
     }
 
     @Test
@@ -88,6 +116,70 @@ class AdminWaitlistControllerTest {
             .uri("/api/admin/waitlist-entries?size=101")
             .exchange()
             .expectStatus().isBadRequest
+
+        verify(exactly = 0) { waitlistQueryTelemetry.recordListQuery(any(), any()) }
+    }
+
+    @Test
+    fun `listEntries records telemetry with emailSearch true when email filter is provided`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { waitlistQuery.list(any()) } returns PagedResult.of(listOf(summary()), 0, 25, 1)
+
+        webClient()
+            .get()
+            .uri("/api/admin/waitlist-entries?email=candidate@example.com")
+            .exchange()
+            .expectStatus().isOk
+
+        verify {
+            waitlistQueryTelemetry.recordListQuery(
+                statusFilterApplied = false,
+                emailSearch = true,
+            )
+        }
+    }
+
+    @Test
+    fun `listEntries records telemetry with emailSearch false when email filter is blank`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { waitlistQuery.list(any()) } returns PagedResult.of(listOf(summary()), 0, 25, 1)
+
+        webClient()
+            .get()
+            .uri("/api/admin/waitlist-entries?email=   ")
+            .exchange()
+            .expectStatus().isOk
+
+        verify {
+            waitlistQueryTelemetry.recordListQuery(
+                statusFilterApplied = false,
+                emailSearch = false,
+            )
+        }
+    }
+
+    @Test
+    fun `listEntries does not record telemetry when unauthenticated`() {
+        webClient(principal = null)
+            .get()
+            .uri("/api/admin/waitlist-entries")
+            .exchange()
+            .expectStatus().isUnauthorized
+
+        verify(exactly = 0) { waitlistQueryTelemetry.recordListQuery(any(), any()) }
+    }
+
+    @Test
+    fun `listEntries does not record telemetry when operator lacks read permission`() {
+        grantRoles(emptyList())
+
+        webClient()
+            .get()
+            .uri("/api/admin/waitlist-entries")
+            .exchange()
+            .expectStatus().isForbidden
+
+        verify(exactly = 0) { waitlistQueryTelemetry.recordListQuery(any(), any()) }
     }
 
     @Test
@@ -171,6 +263,7 @@ class AdminWaitlistControllerTest {
                 cancelHandler = cancelHandler,
                 roleAssignmentRepository = roleAssignmentRepository,
                 requestContextStore = FakeRequestContextStore(principal),
+                waitlistQueryTelemetry = waitlistQueryTelemetry,
             ),
         )
         .controllerAdvice(AdminProblemDetailsHandler())
