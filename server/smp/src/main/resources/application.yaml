@@ -130,6 +130,7 @@ publishing:
     poll-interval: ${SMP_PUBLISHING_WORKER_POLL_INTERVAL:PT30S}
     blocked-recovery-interval: ${SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL:PT5M}
     claim-lease: ${SMP_PUBLISHING_WORKER_CLAIM_LEASE:PT2M}
+    stale-grace: ${SMP_PUBLISHING_WORKER_STALE_GRACE:PT5M}
     max-retries: ${SMP_PUBLISHING_MAX_RETRIES:3}
     retry-backoff: ${SMP_PUBLISHING_RETRY_BACKOFF:PT5M}
   linkedin:
