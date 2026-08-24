@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.3](https://github.com/dallay/profiletailors.com/compare/app@v0.3.2...app@v0.3.3) (2026-08-24)
+
+
+### Features
+
+* **automation:** rename agent artifacts to match task identity and harden finding lifecycle ([#830](https://github.com/dallay/profiletailors.com/issues/830)) ([72eed11](https://github.com/dallay/profiletailors.com/commit/72eed11589250954a38c2a99d1800959050f1a9a))
+* isolate worktree runtimes and development services ([ee0c376](https://github.com/dallay/profiletailors.com/commit/ee0c37649c5bc3af829563c389f79cadd75310de))
+
+
+### Bug Fixes
+
+* **tools/compliance:** upgrade vitest to v4.1.11 ([#837](https://github.com/dallay/profiletailors.com/issues/837)) ([06c16f3](https://github.com/dallay/profiletailors.com/commit/06c16f33b5aa5c479135c686d3a3c562e6bba54f))
+
 ## [0.3.2](https://github.com/dallay/profiletailors.com/compare/app@v0.3.1...app@v0.3.2) (2026-08-14)
 
 
