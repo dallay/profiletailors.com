@@ -6,6 +6,7 @@ export default {
   submitting: 'Aceptando…',
   accepted: 'Invitación aceptada.',
   workspaceReady: 'Cargando tu espacio de trabajo…',
+  redirecting: 'Redirigiendo a tu espacio de trabajo…',
   checkingAvailability: 'Comprobando disponibilidad de aceptación de invitaciones…',
   unavailableTitle: 'La aceptación de invitaciones no está disponible',
   unavailableMessage:

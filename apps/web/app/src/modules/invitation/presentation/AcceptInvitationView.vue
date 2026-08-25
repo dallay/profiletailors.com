@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublicCapabilitiesStore } from '@modules/auth/infrastructure/public-capabilities.store'
 import { useAcceptInvitationStore } from '@modules/invitation/infrastructure/accept-invitation.store'
 import AuthShell from '@modules/auth/presentation/AuthShell.vue'
@@ -8,11 +10,15 @@ import AuthShell from '@modules/auth/presentation/AuthShell.vue'
 const props = defineProps<{ token: string }>()
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
 const capabilities = usePublicCapabilitiesStore()
 const store = useAcceptInvitationStore()
 
 const tokenMissing = computed(() => !props.token || props.token.trim() === '')
 const submitted = ref(false)
+const redirecting = ref(false)
 
 onMounted(() => {
   void capabilities.load()
@@ -36,6 +42,31 @@ function canonicalErrorKey(): string {
       return 'invitation.errors.generic'
   }
 }
+
+async function handleSubmit(): Promise<void> {
+  if (submitted.value || store.pending) return
+  submitted.value = true
+  const result = await store.accept(props.token)
+  if (result.workspaceId) {
+    redirecting.value = true
+    try {
+      await auth.hydrateSession()
+    } catch {
+    }
+    if (auth.isAuthenticated) {
+      await router.replace('/')
+    } else {
+      const fullPath = `${route.path}${route.query && Object.keys(route.query).length > 0 ? `?${new URLSearchParams(route.query as Record<string, string>).toString()}` : ''}`
+      await router.replace({ path: '/login', query: { redirect: fullPath } })
+    }
+  }
+}
+
+watch(redirecting, (value) => {
+  if (value) {
+    document.title = t('invitation.redirecting')
+  }
+})
 </script>
 
 <template>
@@ -56,9 +87,8 @@ function canonicalErrorKey(): string {
       <div v-if="tokenMissing" role="alert" class="text-sm text-error">
         {{ t('invitation.errors.missingToken') }}
       </div>
-      <div v-else-if="store.hasAccepted" role="status" aria-live="polite" class="space-y-3 text-center">
-        <p class="text-sm text-text-secondary">{{ t('invitation.accepted') }}</p>
-        <p class="text-sm text-text-secondary">{{ t('invitation.workspaceReady') }}</p>
+      <div v-else-if="store.hasAccepted && redirecting" role="status" aria-live="polite" class="space-y-3 text-center">
+        <p class="text-sm text-text-secondary">{{ t('invitation.redirecting') }}</p>
       </div>
       <div v-else-if="store.errorCode" role="alert" class="text-sm text-error">
         {{ t(canonicalErrorKey()) }}
@@ -68,7 +98,7 @@ function canonicalErrorKey(): string {
         class="space-y-5"
         :aria-busy="store.pending"
         novalidate
-        @submit.prevent="async () => { submitted = true; await store.accept(props.token) }"
+        @submit.prevent="handleSubmit"
       >
         <button
           type="submit"

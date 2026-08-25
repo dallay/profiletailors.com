@@ -5,6 +5,7 @@ export default {
   submitting: 'Accepting…',
   accepted: 'Invitation accepted.',
   workspaceReady: 'Loading your workspace…',
+  redirecting: 'Redirecting to your workspace…',
   checkingAvailability: 'Checking invitation acceptance availability…',
   unavailableTitle: 'Invitation acceptance is currently unavailable',
   unavailableMessage: 'We cannot accept invitations right now. Please try again later.',

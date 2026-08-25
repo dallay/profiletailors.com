@@ -4,6 +4,12 @@ import { flushPromises, mount } from '@vue/test-utils'
 import AcceptInvitationView from './AcceptInvitationView.vue'
 
 const accept = vi.hoisted(() => vi.fn())
+const hydrateSession = vi.hoisted(() => vi.fn())
+const routerReplace = vi.hoisted(() => vi.fn())
+
+const authState = reactive({
+  hydrated: false,
+})
 
 const state = reactive({
   pending: false,
@@ -62,6 +68,25 @@ vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
   }),
 }))
 
+vi.mock('@modules/auth/infrastructure/auth.store', () => ({
+  useAuthStore: () => ({
+    hydrateSession,
+    get isAuthenticated() {
+      return authState.hydrated
+    },
+  }),
+}))
+
+vi.mock('vue-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-router')>()),
+  useRoute: () => ({
+    path: '/invitations/accept',
+    query: { token: 'raw-token' },
+    fullPath: '/invitations/accept?token=raw-token',
+  }),
+  useRouter: () => ({ replace: routerReplace }),
+}))
+
 vi.mock('vue-i18n', async (importOriginal) => ({
   ...(await importOriginal<typeof import('vue-i18n')>()),
   useI18n: () => ({ locale: { value: 'en' }, t: (key: string) => key }),
@@ -76,7 +101,10 @@ describe('AcceptInvitationView', () => {
     state.errorStatus = null
     capabilitiesState.resolved = true
     capabilitiesState.invitationAcceptanceEnabled = true
+    authState.hydrated = false
     accept.mockReset()
+    hydrateSession.mockReset()
+    routerReplace.mockReset()
     load.mockReset()
   })
 
@@ -91,7 +119,7 @@ describe('AcceptInvitationView', () => {
   })
 
   it('submits the token from props and exposes the resolved workspace id', async () => {
-    accept.mockImplementation(async (token: string) => {
+    accept.mockImplementation(async () => {
       state.workspaceId = 'ws-abc'
       state.membershipStatus = 'ACTIVE'
       return {
@@ -112,6 +140,69 @@ describe('AcceptInvitationView', () => {
 
     expect(accept).toHaveBeenCalledWith('raw-token')
     expect(state.workspaceId).toBe('ws-abc')
+  })
+
+  it('hydrates the auth session and redirects to dashboard after successful acceptance', async () => {
+    accept.mockImplementation(async () => {
+      state.workspaceId = 'ws-abc'
+      state.membershipStatus = 'ACTIVE'
+      return {
+        workspaceId: 'ws-abc',
+        membershipStatus: 'ACTIVE',
+        errorCode: null,
+        errorStatus: null,
+      }
+    })
+    hydrateSession.mockImplementation(async () => {
+      authState.hydrated = true
+    })
+
+    const wrapper = mount(AcceptInvitationView, {
+      props: { token: 'raw-token' },
+      global: { stubs: { RouterLink: true, RouterView: true } },
+    })
+
+    await wrapper.find('form').trigger('submit.prevent')
+    await flushPromises()
+    await flushPromises()
+
+    expect(hydrateSession).toHaveBeenCalledOnce()
+    expect(routerReplace).toHaveBeenCalledWith('/')
+  })
+
+  it('redirects to login when the session was not established by the cookie', async () => {
+    accept.mockImplementation(async () => {
+      state.workspaceId = 'ws-abc'
+      state.membershipStatus = 'ACTIVE'
+      return {
+        workspaceId: 'ws-abc',
+        membershipStatus: 'ACTIVE',
+        errorCode: null,
+        errorStatus: null,
+      }
+    })
+    hydrateSession.mockImplementation(async () => {
+      authState.hydrated = false
+    })
+
+    const wrapper = mount(AcceptInvitationView, {
+      props: { token: 'raw-token' },
+      global: { stubs: { RouterLink: true, RouterView: true } },
+    })
+
+    await wrapper.find('form').trigger('submit.prevent')
+    await flushPromises()
+    await flushPromises()
+
+    expect(hydrateSession).toHaveBeenCalledOnce()
+    expect(routerReplace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: '/login',
+        query: expect.objectContaining({
+          redirect: expect.stringContaining('/invitations/accept?token='),
+        }),
+      }),
+    )
   })
 
   it('shows the canonical not-acceptable copy when the backend rejects with that code', async () => {

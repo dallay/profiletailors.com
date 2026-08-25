@@ -48,7 +48,38 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       })
     })
 
-    await page.goto(`${APP_URL.dashboard}/invitations/accept?token=raw-token-e2e`)
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.api.v1+json',
+        body: JSON.stringify({
+          accessToken: 'invitation-access-token',
+          tokenType: 'Bearer',
+          expiresIn: 3600,
+          principalId: 'invitee-principal',
+          email: 'invitee@example.com',
+          username: 'invitee',
+          emailStatus: 'VERIFIED',
+          workspaceId: 'invitation-workspace',
+        }),
+      })
+    })
+
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.api.v1+json',
+        body: JSON.stringify({
+          principalId: 'invitee-principal',
+          email: 'invitee@example.com',
+          username: 'invitee',
+          displayIdentity: 'invitee',
+          emailStatus: 'VERIFIED',
+        }),
+      })
+    })
+
+    await page.goto(`${APP_URL.dashboard}invitations/accept?token=raw-token-e2e`)
     await expect(page.getByRole('heading', { name: /accept your invitation/i })).toBeVisible()
 
     const acceptPromise = page.waitForResponse(
@@ -60,7 +91,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     const acceptResponse = await acceptPromise
     expect(acceptResponse.ok()).toBe(true)
 
-    await expect(page.getByText(/invitation accepted/i)).toBeVisible()
+    await expect(page).toHaveURL(/\/$/)
   })
 
   test('3.2 Empty invitation token shows the missing-token error without calling the API', async ({
@@ -84,7 +115,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       await route.continue()
     })
 
-    await page.goto(`${APP_URL.dashboard}/invitations/accept?token=`)
+    await page.goto(`${APP_URL.dashboard}invitations/accept?token=`)
     await expect(page.getByRole('alert')).toContainText(/missing its token/i)
     expect(acceptCalled).toBe(false)
   })
@@ -112,7 +143,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       })
     })
 
-    await page.goto(`${APP_URL.dashboard}/invitations/accept?token=raw-token-e2e`)
+    await page.goto(`${APP_URL.dashboard}invitations/accept?token=raw-token-e2e`)
     await expect(page.getByRole('heading', { name: /currently unavailable/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /accept invitation/i })).toHaveCount(0)
   })
@@ -143,7 +174,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       })
     })
 
-    await page.goto(`${APP_URL.dashboard}/invitations/accept?token=raw-token-e2e`)
+    await page.goto(`${APP_URL.dashboard}invitations/accept?token=raw-token-e2e`)
     await page.getByRole('button', { name: /accept invitation/i }).click()
 
     await expect(page.getByRole('alert')).toContainText(/no longer valid/i)
@@ -173,11 +204,19 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       })
     })
 
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({ status: 401 }),
+      })
+    })
+
     const rawToken = 'super-secret-invitation-token-do-not-leak'
-    await page.goto(`${APP_URL.dashboard}/invitations/accept?token=${rawToken}`)
+    await page.goto(`${APP_URL.dashboard}invitations/accept?token=${rawToken}`)
     await page.getByRole('button', { name: /accept invitation/i }).click()
 
-    await expect(page.getByText(/invitation accepted/i)).toBeVisible()
+    await expect(page).toHaveURL(/\/login\?redirect=/)
 
     const html = await page.content()
     expect(html).not.toContain(rawToken)
@@ -206,7 +245,15 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       })
     })
 
-    await page.goto(`${APP_URL.dashboard}/invitations/accept?token=raw-token-e2e`)
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({ status: 401 }),
+      })
+    })
+
+    await page.goto(`${APP_URL.dashboard}invitations/accept?token=raw-token-e2e`)
     await page.getByRole('button', { name: /accept invitation/i }).click()
 
     await expect(page.getByRole('alert')).toContainText(/try again/i)
