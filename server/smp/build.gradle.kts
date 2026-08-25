@@ -130,7 +130,7 @@ dependencies {
         implementation(libs.bouncycastle.prov)
         implementation(libs.bouncycastle.pgp)
         implementation("com.ongres.scram:scram-client:3.3")
-        implementation("com.ongres.scram:scram-common:3.3")
+        implementation("com.ongres.scram:scram-common:3.4")
     }
 }
 
