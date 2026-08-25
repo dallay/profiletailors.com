@@ -67,12 +67,10 @@ class R2dbcSocialAccountRepository(
         .description("Number of times a LinkedIn avatar URL has been successfully persisted")
         .register(meterRegistry)
 
-    override suspend fun upsert(account: SocialAccount): SocialAccount {
-        val result = upsertPostgres(account)
+    override suspend fun upsert(account: SocialAccount): SocialAccount = upsertPostgres(account).also {
         if (account.avatarUrl != null) {
             avatarPersistedCounter.increment()
         }
-        return result
     }
 
     private suspend fun upsertPostgres(account: SocialAccount): SocialAccount = databaseClient.sql(
