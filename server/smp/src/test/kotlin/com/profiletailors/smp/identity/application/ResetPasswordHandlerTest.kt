@@ -399,6 +399,11 @@ class ResetPasswordHandlerTest {
             return stored
         }
 
+        override suspend fun findByTokenHashForUpdate(tokenHash: String): PasswordResetToken? {
+            lastLookedUpHash = tokenHash
+            return stored
+        }
+
         override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) {
             consumeCalls += 1
             lastConsumedToken = tokenHash

@@ -538,6 +538,8 @@ class RequestPasswordResetHandlerTest {
 
         override suspend fun findByTokenHash(tokenHash: String) = null
 
+        override suspend fun findByTokenHashForUpdate(tokenHash: String) = null
+
         override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) = Unit
     }
 
@@ -563,6 +565,8 @@ class RequestPasswordResetHandlerTest {
         }
 
         override suspend fun findByTokenHash(tokenHash: String) = null
+
+        override suspend fun findByTokenHashForUpdate(tokenHash: String) = null
 
         override suspend fun consumeAndUpdatePassword(tokenHash: String, now: Instant, newPasswordHash: String) = Unit
     }
