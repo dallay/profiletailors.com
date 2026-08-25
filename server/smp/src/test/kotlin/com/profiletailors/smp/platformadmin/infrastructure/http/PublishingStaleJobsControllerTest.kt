@@ -6,6 +6,7 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platform.infrastructure.http.WebFluxConfiguration
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
@@ -96,16 +97,16 @@ class PublishingStaleJobsControllerTest {
     }
 
     @Test
-    fun `returns 403 when authenticated principal identifier is not a UUID`() {
+    fun `returns 400 when authenticated principal identifier is not a UUID`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OPERATOR))
 
         webClient(defaultPrincipal.copy(principalId = "principal-not-a-uuid"))
             .get()
             .uri("/api/admin/publishing/stale-jobs")
             .exchange()
-            .expectStatus().isForbidden
+            .expectStatus().isBadRequest
             .expectBody()
-            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
+            .jsonPath("$.code").isEqualTo("VALIDATION_ERROR")
 
         coVerify(exactly = 0) { roleAssignmentRepository.findActiveByPrincipalId(any()) }
         coVerify(exactly = 0) { mediator.send(any<ListStaleJobsQuery>()) }
@@ -221,7 +222,7 @@ class PublishingStaleJobsControllerTest {
         WebTestClient.bindToController(
             PublishingStaleJobsController(
                 mediator = mediator,
-                roleAssignmentRepository = roleAssignmentRepository,
+                operatorAccessResolver = OperatorAccessResolver(roleAssignmentRepository),
                 requestContextStore = FakeRequestContextStore(principal),
             ),
         )

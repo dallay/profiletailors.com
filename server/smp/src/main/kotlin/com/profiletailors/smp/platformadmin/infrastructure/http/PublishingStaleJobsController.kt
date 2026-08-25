@@ -2,7 +2,7 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.platform.domain.RequestContextStore
-import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.Duration
-import java.util.UUID
 
 /**
  * Admin-only operator view of stale publication-job claims.
@@ -45,7 +44,7 @@ import java.util.UUID
 )
 class PublishingStaleJobsController(
     private val mediator: Mediator,
-    private val roleAssignmentRepository: PlatformRoleAssignmentRepository,
+    private val operatorAccessResolver: OperatorAccessResolver,
     private val requestContextStore: RequestContextStore,
 ) {
 
@@ -88,14 +87,8 @@ class PublishingStaleJobsController(
         val ctx = requestContextStore.currentPrincipalContext()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
 
-        val operatorId = runCatching { UUID.fromString(ctx.principalId) }
-            .getOrElse {
-                throw PlatformAccessDeniedException(PlatformPermission.PUBLISHING_STALE_READ)
-            }
-        val assignments = roleAssignmentRepository.findActiveByPrincipalId(operatorId)
-        val operatorRoles = assignments.map { it.role }.toSet()
-
-        if (PlatformPermission.PUBLISHING_STALE_READ !in operatorRoles.effectivePermissions()) {
+        val operator = operatorAccessResolver.resolve(ctx)
+        if (PlatformPermission.PUBLISHING_STALE_READ !in operator.roles.effectivePermissions()) {
             throw PlatformAccessDeniedException(PlatformPermission.PUBLISHING_STALE_READ)
         }
 
