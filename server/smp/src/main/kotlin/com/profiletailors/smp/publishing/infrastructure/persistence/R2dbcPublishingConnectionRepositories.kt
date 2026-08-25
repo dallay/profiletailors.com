@@ -14,22 +14,13 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
-import org.springframework.r2dbc.BadSqlGrammarException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
 
 @Repository
 class R2dbcSocialConnectionRepository(private val databaseClient: DatabaseClient) : SocialConnectionRepository {
-    @Suppress("SwallowedException")
-    override suspend fun upsert(connection: SocialConnection): SocialConnection = try {
-        upsertPostgres(connection)
-    } catch (exception: BadSqlGrammarException) {
-        // H2/R2DBC test databases used by local unit tests do not support PostgreSQL
-        // ON CONFLICT ... RETURNING. Production remains PostgreSQL and uses the SQL above;
-        // this fallback preserves the same repository contract in tests.
-        upsertForTestDatabase(connection)
-    }
+    override suspend fun upsert(connection: SocialConnection): SocialConnection = upsertPostgres(connection)
 
     private suspend fun upsertPostgres(connection: SocialConnection): SocialConnection = databaseClient.sql(
         """
@@ -51,61 +42,6 @@ class R2dbcSocialConnectionRepository(private val databaseClient: DatabaseClient
         .map { row, _ -> row.toSocialConnection() }
         .one()
         .awaitSingle()
-
-    private suspend fun upsertForTestDatabase(connection: SocialConnection): SocialConnection {
-        val existing = findByNaturalKey(connection)
-        if (existing == null) {
-            databaseClient.sql(
-                """
-                INSERT INTO social_connections (
-                    id, workspace_id, provider, provider_connection_ref, status, credential_reference, connected_at, last_synced_at
-                ) VALUES (
-                    :id, :workspaceId, :provider, :providerConnectionRef, :status, :credentialReference, :connectedAt, :lastSyncedAt
-                )
-                """.trimIndent(),
-            )
-                .bindSocialConnection(connection)
-                .fetch()
-                .rowsUpdated()
-                .awaitSingle()
-            return connection
-        }
-        databaseClient.sql(
-            """
-            UPDATE social_connections
-            SET status = :status,
-                credential_reference = :credentialReference,
-                connected_at = :connectedAt,
-                last_synced_at = :lastSyncedAt
-            WHERE id = :id
-            """.trimIndent(),
-        )
-            .bind("id", existing.id)
-            .bind("status", connection.status.name)
-            .bindNullable("credentialReference", connection.credentialReference, String::class.java)
-            .bindNullable("connectedAt", connection.connectedAt, java.time.Instant::class.java)
-            .bindNullable("lastSyncedAt", connection.lastSyncedAt, java.time.Instant::class.java)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-        return findByWorkspaceAndId(existing.workspaceId, existing.id) ?: existing
-    }
-
-    private suspend fun findByNaturalKey(connection: SocialConnection): SocialConnection? = databaseClient.sql(
-        """
-        SELECT id, workspace_id, provider, provider_connection_ref, status, credential_reference, connected_at, last_synced_at, created_at
-        FROM social_connections
-        WHERE workspace_id = :workspaceId
-          AND provider = :provider
-          AND provider_connection_ref = :providerConnectionRef
-        """.trimIndent(),
-    )
-        .bind("workspaceId", connection.workspaceId)
-        .bind("provider", connection.provider.name)
-        .bind("providerConnectionRef", connection.providerConnectionRef)
-        .map { row, _ -> row.toSocialConnection() }
-        .one()
-        .awaitSingleOrNull()
 
     override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =
         databaseClient.sql(
@@ -131,20 +67,10 @@ class R2dbcSocialAccountRepository(
         .description("Number of times a LinkedIn avatar URL has been successfully persisted")
         .register(meterRegistry)
 
-    @Suppress("SwallowedException")
-    override suspend fun upsert(account: SocialAccount): SocialAccount {
-        val result = try {
-            upsertPostgres(account)
-        } catch (exception: BadSqlGrammarException) {
-            // H2/R2DBC test databases used by local unit tests do not support PostgreSQL
-            // ON CONFLICT ... RETURNING. Production remains PostgreSQL and uses the SQL above;
-            // this fallback preserves the same repository contract in tests.
-            upsertForTestDatabase(account)
-        }
+    override suspend fun upsert(account: SocialAccount): SocialAccount = upsertPostgres(account).also {
         if (account.avatarUrl != null) {
             avatarPersistedCounter.increment()
         }
-        return result
     }
 
     private suspend fun upsertPostgres(account: SocialAccount): SocialAccount = databaseClient.sql(
@@ -170,65 +96,6 @@ class R2dbcSocialAccountRepository(
         .one()
         .awaitSingle()
 
-    private suspend fun upsertForTestDatabase(account: SocialAccount): SocialAccount {
-        val existing = findByNaturalKey(account)
-        if (existing == null) {
-            databaseClient.sql(
-                """
-                INSERT INTO social_accounts (
-                    id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, avatar_url, status
-                ) VALUES (
-                    :id, :socialConnectionId, :workspaceId, :provider, :providerAccountId, :accountType, :displayName, :profileUrn, :avatarUrl, :status
-                )
-                """.trimIndent(),
-            )
-                .bindSocialAccount(account)
-                .fetch()
-                .rowsUpdated()
-                .awaitSingle()
-            return account
-        }
-        databaseClient.sql(
-            """
-            UPDATE social_accounts
-            SET social_connection_id = :socialConnectionId,
-                account_type = :accountType,
-                display_name = :displayName,
-                profile_urn = :profileUrn,
-                avatar_url = :avatarUrl,
-                status = :status
-            WHERE id = :id
-            """.trimIndent(),
-        )
-            .bind("id", existing.id)
-            .bind("socialConnectionId", account.socialConnectionId)
-            .bind("accountType", account.kind.name)
-            .bind("displayName", account.displayName)
-            .bindNullable("profileUrn", account.profileUrn, String::class.java)
-            .bindNullable("avatarUrl", account.avatarUrl, String::class.java)
-            .bind("status", account.status.name)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-        return findByWorkspaceAndId(existing.workspaceId, existing.id) ?: existing
-    }
-
-    private suspend fun findByNaturalKey(account: SocialAccount): SocialAccount? = databaseClient.sql(
-        """
-        SELECT id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, avatar_url, status, created_at
-        FROM social_accounts
-        WHERE workspace_id = :workspaceId
-          AND provider = :provider
-          AND provider_account_id = :providerAccountId
-        """.trimIndent(),
-    )
-        .bind("workspaceId", account.workspaceId)
-        .bind("provider", account.provider.name)
-        .bind("providerAccountId", account.providerAccountId)
-        .map { row, _ -> row.toSocialAccount() }
-        .one()
-        .awaitSingleOrNull()
-
     override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? =
         databaseClient.sql(
             """
@@ -244,6 +111,7 @@ class R2dbcSocialAccountRepository(
             .awaitSingleOrNull()
 }
 
+@Suppress("StringLiteralDuplication")
 @Repository
 class R2dbcConnectedSocialChannelReadRepository(private val databaseClient: DatabaseClient) :
     ConnectedSocialChannelReadRepository {

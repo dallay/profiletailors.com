@@ -38,7 +38,7 @@ import java.time.Instant
  * PostgreSQL-specific integration tests for publishing queue claim and update operations.
  *
  * These tests verify that the SQL operations in R2dbcPublicationJobRepository work correctly
- * against a real PostgreSQL database, beyond what H2 semantics can validate.
+ * against a real PostgreSQL database, beyond what a lightweight test database can validate.
  *
  * Key scenarios tested:
  * - Concurrent claim operations with ORDER BY and LIMIT

@@ -96,8 +96,8 @@ headers: {
 
 **Test Classes:**
 
-1. `ModularStructureTest` - needs H2 config
-2. `ModularityVerificationTest` - needs H2 config
+1. `ModularStructureTest` - modularity verification
+2. `ModularityVerificationTest` - modularity verification
 3. `ResourcePreviewEndpointIntegrationTest` - 5 tests
 4. `ResourcePreviewEndpointPostgresIntegrationTest` - 5 tests
 5. `WorkspaceAccessSummaryEndpointIntegrationTest` - 16 tests
@@ -144,7 +144,7 @@ Spring Boot 4's built-in resolvers don't support vendor media type patterns like
 ### High Priority
 
 1. **Fix remaining integration tests** (34 failing)
-    - Add H2 config to modular structure tests
+    - Re-run modularity tests against the current PostgreSQL-backed test configuration
     - Investigate `UnsupportedOperationException` in endpoint tests
 
 2. **Verify frontend integration**

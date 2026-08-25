@@ -403,6 +403,10 @@ class PlatformAdminBddSteps {
     // ── Database helpers ─────────────────────────────────────────────────────
 
     private suspend fun cleanupPlatformAdminData() {
+        val principalIds = "'$ADMIN_PRINCIPAL_ID', 'principal-1'"
+        val deleteByPrincipal = { table: String ->
+            "DELETE FROM $table WHERE principal_id IN ($principalIds)"
+        }
         listOf(
             "DELETE FROM platform_admin_audit_events",
             "DELETE FROM invitations",
@@ -410,8 +414,19 @@ class PlatformAdminBddSteps {
             "DELETE FROM platform_role_assignments WHERE principal_id = '$ADMIN_PRINCIPAL_ID'::uuid",
             "DELETE FROM waitlist_entries WHERE waitlist_id = 'admin-bdd-waitlist'",
             "DELETE FROM waitlists WHERE id = 'admin-bdd-waitlist'",
-            "DELETE FROM user_identities WHERE principal_id IN ('$ADMIN_PRINCIPAL_ID', 'principal-1')",
-            "DELETE FROM principals WHERE id IN ('$ADMIN_PRINCIPAL_ID', 'principal-1')",
+            "DELETE FROM membership_roles WHERE membership_id IN (" +
+                "SELECT id FROM workspace_memberships WHERE principal_id IN ($principalIds))",
+            deleteByPrincipal("workspace_direct_grants"),
+            deleteByPrincipal("workspace_target_scopes"),
+            deleteByPrincipal("workspace_memberships"),
+            "DELETE FROM workspace_ownerships WHERE owner_principal_id IN ('$ADMIN_PRINCIPAL_ID', 'principal-1')",
+            deleteByPrincipal("local_password_credentials"),
+            deleteByPrincipal("refresh_sessions"),
+            deleteByPrincipal("password_reset_tokens"),
+            deleteByPrincipal("api_key_credentials"),
+            deleteByPrincipal("service_account_credentials"),
+            deleteByPrincipal("user_identities"),
+            "DELETE FROM principals WHERE id IN ($principalIds)",
         ).forEach { sql ->
             runCatching { databaseClient.sql(sql).fetch().rowsUpdated().awaitSingle() }
         }

@@ -39,11 +39,6 @@ out/
 ### Kotlin ###
 .kotlin
 
-### H2 in-memory database files (stray files from tests) ###
-r2dbc:h2:mem:/
-*.mv.db
-*.trace.db
-
 ### Environment ###
 # Using root .gitignore for .env files
 

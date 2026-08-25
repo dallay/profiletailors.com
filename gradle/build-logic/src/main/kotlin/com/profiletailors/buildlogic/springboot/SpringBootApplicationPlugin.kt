@@ -75,7 +75,7 @@ class SpringBootApplicationPlugin : ConventionPlugin {
             // Register BDD Fast Test task
             val bddFastTestTask = tasks.register("bddFastTest", Test::class.java) {
                 group = "verification"
-                description = "Runs fast BDD suite with H2"
+                description = "Runs fast BDD suite with PostgreSQL Testcontainers"
                 testClassesDirs = testSourceSet.output.classesDirs
                 classpath = testSourceSet.runtimeClasspath
                 useJUnitPlatform()

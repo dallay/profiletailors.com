@@ -94,20 +94,6 @@ databaseChangeLog:
               ON workspace_file_blobs (orphaned_at)
               WHERE status = 'READY_FOR_GC'
 
-  - changeSet:
-      id: media-002-blob-gc-candidates-index-h2
-      author: sdd-apply
-      dbms: h2
-      changes:
-        - createIndex:
-            tableName: workspace_file_blobs
-            indexName: idx_blobs_gc_candidates
-            columns:
-              - column:
-                  name: status
-              - column:
-                  name: orphaned_at
-
   # ── 2b. PostgreSQL-native blob constraints ──────────────────────
   - changeSet:
       id: media-002-blob-status-check

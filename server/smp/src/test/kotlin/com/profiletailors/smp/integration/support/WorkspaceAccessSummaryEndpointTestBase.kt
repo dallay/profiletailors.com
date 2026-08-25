@@ -31,8 +31,8 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Abstract base for workspace-access-summary endpoint integration tests.
  *
- * Subclasses only need to wire the Spring context (H2 vs Postgres) and
- * implement the three Liquibase coordinate methods.
+ * Subclasses only need to wire the Spring context and implement the three
+ * Liquibase coordinate methods.
  */
 @Suppress("LargeClass")
 abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointIntegrationTestSupport() {
