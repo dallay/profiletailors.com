@@ -62,6 +62,16 @@ const translations: Record<string, string> = {
   'composer.nextScheduleBtn': 'Next Schedule',
   'composer.saveChanges': 'Save Changes',
   'composer.cancelBtn': 'Cancel',
+  'composer.markdown.bold': 'Bold',
+  'composer.markdown.italic': 'Italic',
+  'composer.markdown.strikethrough': 'Strikethrough',
+  'composer.markdown.heading': 'Heading',
+  'composer.markdown.unorderedList': 'Bullet list',
+  'composer.markdown.orderedList': 'Numbered list',
+  'composer.markdown.blockquote': 'Quote',
+  'composer.markdown.link': 'Link',
+  'composer.markdown.code': 'Inline code',
+  'composer.markdown.toolbarLabel': 'Formatting',
   'composer.ai.button': 'AI Assistant',
   'composer.ai.title': 'AI content generator',
   'composer.ai.description':
@@ -213,6 +223,15 @@ vi.mock('@lucide/vue', () => {
     MessageCircle: stub,
     Repeat2: stub,
     Send: stub,
+    Bold: stub,
+    Italic: stub,
+    Strikethrough: stub,
+    Heading: stub,
+    List: stub,
+    ListOrdered: stub,
+    Quote: stub,
+    Link: stub,
+    Code: stub,
   }
 })
 
@@ -272,7 +291,9 @@ const mountedWrappers: Array<{ unmount: () => void }> = []
 
 async function cleanupMountedWrappers() {
   for (const wrapper of mountedWrappers.splice(0)) {
-    wrapper.unmount()
+    try {
+      wrapper.unmount()
+    } catch {}
   }
 }
 
@@ -2084,5 +2105,306 @@ describe('CreatePostModal.vue — inline composer media layout', () => {
       expect(document.querySelector('[role="alert"]')).toBeNull()
       expect((getByTestId('composer-textarea') as HTMLTextAreaElement).value).toBe('')
     })
+  })
+})
+
+describe('CreatePostModal.vue — markdown toolbar', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:mock-preview'),
+      revokeObjectURL: vi.fn(),
+    })
+  })
+
+  afterEach(async () => {
+    await cleanupMountedWrappers()
+    await nextTick()
+    vi.unstubAllGlobals()
+    document.body.innerHTML = ''
+  })
+
+  it('applies link formatting when the link button is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Click here'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    textarea.selectionStart = 0
+    textarea.selectionEnd = 5
+
+    getByTestId('md-link').click()
+    await flushModal(wrapper)
+
+    expect(textarea.value).toBe('[Click](https://) here')
+  })
+
+  it('submits plain text (stripped of markdown) to the store on schedule', async () => {
+    const store = usePublishingStore()
+    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = '**Bold** and *italic* post'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))
+    expect(scheduleButton).toBeTruthy()
+    scheduleButton!.click()
+
+    await vi.waitFor(() => {
+      expect(scheduleSpy).toHaveBeenCalledTimes(1)
+    })
+
+    const submittedContent = scheduleSpy.mock.calls[0]?.[0]?.content
+    expect(submittedContent).toBe('Bold and italic post')
+  })
+
+  it('preserves existing plain-text content in edit mode', async () => {
+    const wrapper = mountModal([makeChannel('ch-edit')], {
+      editingPublication: makeEditingPublication({
+        content: 'Existing plain text content',
+      }),
+    })
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    expect(textarea.value).toBe('Existing plain text content')
+  })
+
+  it('disables toolbar buttons while submitting', async () => {
+    const store = usePublishingStore()
+    vi.spyOn(store, 'schedulePost').mockImplementation(() => new Promise(() => {}))
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Test content'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    const boldButton = getByTestId('md-bold') as HTMLButtonElement
+    expect(boldButton.disabled).toBe(false)
+
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))
+    scheduleButton!.click()
+    await flushModal(wrapper)
+
+    expect(boldButton.disabled).toBe(true)
+  })
+
+  it('applies bold formatting when the bold button is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Hello world'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    textarea.setSelectionRange(0, 5)
+
+    getByTestId('md-bold').click()
+    await flushModal(wrapper)
+
+    expect(textarea.value).toBe('**Hello** world')
+  })
+
+  it('applies italic formatting when the italic button is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Hello'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    textarea.setSelectionRange(0, 5)
+
+    getByTestId('md-italic').click()
+    await flushModal(wrapper)
+
+    expect(textarea.value).toBe('*Hello*')
+  })
+
+  it('applies heading formatting when the heading button is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'My heading'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    textarea.setSelectionRange(0, 9)
+
+    getByTestId('md-heading').click()
+    await flushModal(wrapper)
+
+    expect(textarea.value).toBe('# My heading')
+  })
+
+  it('applies unordered list formatting when the list button is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Item one'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    textarea.setSelectionRange(0, 8)
+
+    getByTestId('md-unordered-list').click()
+    await flushModal(wrapper)
+
+    expect(textarea.value).toBe('- Item one')
+  })
+
+  it('applies ordered list formatting when the numbered list button is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Item one'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    textarea.setSelectionRange(0, 8)
+
+    getByTestId('md-ordered-list').click()
+    await flushModal(wrapper)
+
+    expect(textarea.value).toBe('1. Item one')
+  })
+
+  it('applies blockquote formatting when the quote button is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Quoted text'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    textarea.setSelectionRange(0, 11)
+
+    getByTestId('md-blockquote').click()
+    await flushModal(wrapper)
+
+    expect(textarea.value).toBe('> Quoted text')
+  })
+
+  it('applies inline code formatting when the code button is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'npm install'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    textarea.setSelectionRange(0, 11)
+
+    getByTestId('md-code').click()
+    await flushModal(wrapper)
+
+    expect(textarea.value).toBe('`npm install`')
+  })
+
+  it('applies strikethrough formatting when the strikethrough button is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'deleted'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+    textarea.setSelectionRange(0, 7)
+
+    getByTestId('md-strikethrough').click()
+    await flushModal(wrapper)
+
+    expect(textarea.value).toBe('~~deleted~~')
+  })
+
+  it('normalizes hashtags in submitted content', async () => {
+    const store = usePublishingStore()
+    const scheduleSpy = vi.spyOn(store, 'schedulePost').mockResolvedValue({} as Publication)
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = 'Check this out #AWESOME #COOL-STUFF'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    const scheduleButton = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.ui-button'),
+    ).find((button) => button.textContent?.includes('Schedule Now'))
+    scheduleButton!.click()
+
+    await vi.waitFor(() => {
+      expect(scheduleSpy).toHaveBeenCalledTimes(1)
+    })
+
+    const submittedContent = scheduleSpy.mock.calls[0]?.[0]?.content
+    expect(submittedContent).toBe('Check this out #awesome #coolstuff')
+  })
+
+  it('renders the markdown toolbar with accessible labels', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const toolbar = getByTestId('markdown-toolbar')
+    expect(toolbar.getAttribute('role')).toBe('toolbar')
+    expect(toolbar.getAttribute('aria-label')).toBe('Formatting')
+  })
+
+  it('shows the preview panel text without markdown markers', async () => {
+    const wrapper = mountModal([makeChannel('ch-md')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    textarea.value = '**Bold** and *italic* text'
+    textarea.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    const previewText = getByTestId('linkedin-preview-text')
+    expect(previewText.textContent).toContain('Bold and italic text')
+    expect(previewText.textContent).not.toContain('**')
+    expect(previewText.textContent).not.toContain('*')
+  })
+
+  it('preserves markdown-formatted content in edit mode and strips on resubmit', async () => {
+    const store = usePublishingStore()
+    const updateSpy = vi.spyOn(store, 'updatePost').mockResolvedValue({} as Publication)
+    const wrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication({
+        content: '**Bold** content',
+        accountId: 'ch-edit-1',
+      }),
+    })
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea') as HTMLTextAreaElement
+    expect(textarea.value).toBe('**Bold** content')
+
+    const saveButton = Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-button')).find(
+      (button) => button.textContent?.includes('Save Changes'),
+    )
+    expect(saveButton).toBeDefined()
+    saveButton!.click()
+
+    await vi.waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledTimes(1)
+    })
+
+    const submittedContent = updateSpy.mock.calls[0]?.[1]?.content
+    expect(submittedContent).toBe('Bold content')
   })
 })

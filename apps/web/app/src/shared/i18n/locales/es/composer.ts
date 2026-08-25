@@ -51,6 +51,18 @@ export default {
     emptyHint: 'Escribe al menos 50 caracteres para obtener sugerencias.',
   },
   templates: 'Plantillas',
+  markdown: {
+    toolbarLabel: 'Formato',
+    bold: 'Negrita',
+    italic: 'Cursiva',
+    strikethrough: 'Tachado',
+    heading: 'Encabezado',
+    unorderedList: 'Lista de viñetas',
+    orderedList: 'Lista numerada',
+    blockquote: 'Cita',
+    link: 'Enlace',
+    code: 'Código en línea',
+  },
   aiAssistant: 'Asistente IA',
   ai: {
     button: 'Asistente IA',

@@ -7,6 +7,7 @@ import { useComposerMediaPicker } from '@modules/publishing/application/useCompo
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import { ImageIcon, ChevronDown, Hash, Smile, Sparkles, X } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import { useMarkdownEditor } from '@modules/publishing/application/useMarkdownEditor'
 import {
   generateAiPostContent,
   optimizeAiPostContent,
@@ -35,6 +36,7 @@ import Spinner from '@/components/ui/spinner/Spinner.vue'
 import ComposerMediaPickerShell from '@modules/publishing/presentation/components/composer/ComposerMediaPickerShell.vue'
 import MediaProviderPanel from '@modules/publishing/presentation/components/composer/MediaProviderPanel.vue'
 import ComposerSchedulePanel from '@modules/publishing/presentation/components/composer/ComposerSchedulePanel.vue'
+import MarkdownToolbar from '@modules/publishing/presentation/components/composer/MarkdownToolbar.vue'
 import ComposerChannelSelector from './ComposerChannelSelector.vue'
 
 type ComposerScheduleMode = 'now' | 'next' | 'custom'
@@ -106,6 +108,8 @@ type AiVersion = {
 const postText = ref('')
 const selectedChannelId = ref<string | null>(null)
 
+const markdownEditor = useMarkdownEditor({ postText: postText })
+const composerTextareaEl = markdownEditor.textareaEl
 
 const picker = useComposerMediaPicker({
   mediaStore,
@@ -371,7 +375,8 @@ watch(
 
 const isSubmitting = ref(false)
 const charLimit = 3000
-const charsRemaining = computed(() => charLimit - postText.value.length)
+const normalizedText = computed(() => markdownEditor.plainTextForSubmit())
+const charsRemaining = computed(() => charLimit - normalizedText.value.length)
 const isTextTooLong = computed(() => charsRemaining.value < 0)
 const selectedChannel = computed(() =>
   publishingStore.channels.find((channel) => channel.id === selectedChannelId.value)
@@ -420,6 +425,7 @@ const canSubmit = computed(() => {
   return (
     !!selectedChannel.value &&
     postText.value.trim().length > 0 &&
+    normalizedText.value.trim().length > 0 &&
     !isTextTooLong.value &&
     !isSubmitting.value &&
     !picker.isAttachmentLimitExceeded.value
@@ -664,7 +670,7 @@ const linkedinPreview = computed<LinkedInPreviewModel>(() => ({
   authorHandle: selectedChannel.value?.handle || 'LinkedIn Member',
   authorAvatarUrl: selectedChannel.value?.avatarUrl ?? null,
   authorInitials: selectedChannelInitials.value,
-  text: postText.value,
+  text: markdownEditor.plainTextForPreview.value,
   placeholderText: t('composer.seePreviewHere'),
   media: selectedPreviewMedia.value,
 }))
@@ -1110,7 +1116,7 @@ async function handleSchedule() {
       : true
     if (!uploadOk) return
 
-    const normalizedPostText = postText.value.trim()
+    const normalizedPostText = normalizedText.value
     const backendScheduleMode = resolveScheduleMode(scheduleMode.value)
 
     if (isEditMode.value && props.editingPublication) {
@@ -1219,17 +1225,33 @@ async function handleCreateSubmit(
           />
 
           <div class="flex flex-1 flex-col rounded-3xl border border-border-visible bg-bg-primary/70 min-h-105">
+            <div class="border-b border-border-subtle/70 px-3 py-2">
+              <MarkdownToolbar
+                :disabled="isSubmitting"
+                @bold="markdownEditor.applyBold()"
+                @italic="markdownEditor.applyItalic()"
+                @strikethrough="markdownEditor.applyStrikethrough()"
+                @heading="markdownEditor.applyHeading()"
+                @unordered-list="markdownEditor.applyUnorderedList()"
+                @ordered-list="markdownEditor.applyOrderedList()"
+                @blockquote="markdownEditor.applyBlockquote()"
+                @link="markdownEditor.applyLink()"
+                @code="markdownEditor.applyInlineCode()"
+              />
+            </div>
             <label for="create-post-text" class="sr-only">Post content</label>
             <textarea
               id="create-post-text"
+              ref="composerTextareaEl"
               v-model="postText"
               :placeholder="$t('composer.placeholder')"
-              class="min-h-65 w-full flex-1 resize-none bg-transparent p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
+              class="min-h-55 w-full flex-1 resize-none bg-transparent p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
               data-testid="composer-textarea"
               @dragover="handleComposerSurfaceDragOver"
               @dragleave="handleComposerSurfaceDragLeave"
               @drop="handleComposerSurfaceDrop"
               @paste="handleComposerSurfacePaste"
+              @keydown="markdownEditor.handleKeyDown"
             ></textarea>
 
             <div class="border-t border-border-subtle/70 px-4 py-4">
