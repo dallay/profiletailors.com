@@ -47,11 +47,15 @@ class BCryptPasswordHasherTest {
     }
 
     @Test
-    fun `should truncate passwords longer than 72 bytes via SHA-256 pre-hash when hashing`() {
-        val longPassword = "x".repeat(200)
-        val hash = hasher.hash(longPassword)
+    fun `should differentiate long passwords beyond 72 bytes via SHA-256 pre-hash`() {
+        val commonPrefix = "x".repeat(72)
+        val passwordA = "$commonPrefix-A"
+        val passwordB = "$commonPrefix-B"
 
-        hasher.matches(longPassword, hash).shouldBeTrue()
+        val hashA = hasher.hash(passwordA)
+
+        hasher.matches(passwordA, hashA).shouldBeTrue()
+        hasher.matches(passwordB, hashA).shouldBeFalse()
     }
 
     @Test
