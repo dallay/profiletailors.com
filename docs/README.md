@@ -1,6 +1,6 @@
 # Profile Tailors Documentation
 
-**Last Updated:** 2026-08-24
+**Last Updated:** 2026-07-28
 
 ## 📖 Table of Contents
 
@@ -22,15 +22,12 @@
 - [OpenSpec](../openspec/README.md) - Product specifications, change artifacts, and verification
   evidence
 - [Consent Management](./consent-management.md) - Shared consent model and frontend/backend flow
-- [Compliance Baseline](./compliance/README.md) - Current legal controls and future-state compliance
-  boundary
-- [Marketing Legal Baseline Mapping](./compliance/marketing-legal-baseline.md) - Awesome Legal
-  mapping to Profile Tailors legal artifacts
+- [Compliance Baseline](./compliance/README.md) - Current legal controls and future-state compliance boundary
+- [Marketing Legal Baseline Mapping](./compliance/marketing-legal-baseline.md) - Awesome Legal mapping to Profile Tailors legal artifacts
 - [Publishing Failure Modes](./publishing-failure-modes.md) - User-facing publishing error taxonomy
 - [Release Verification](./release-verification.md) - Evidence required before release readiness
 
 ### Infrastructure
-
 - [Modular Docker Compose](./infrastructure/modular-docker-compose.md) - Reusable infrastructure
   services
 - [Private Beta Launch Readiness Runbook](./infrastructure/private-beta-launch-readiness-runbook.md) -
@@ -54,7 +51,6 @@
 - [SonarQube Coverage](./sonarqube-coverage.md) - Technical guide for SonarQube coverage
 - [SonarQube Setup](./sonarqube-setup.md) - Step-by-step SonarQube configuration guide
 - [Coverage Summary](./coverage-setup-summary.md) - Summary of the test coverage implementation
-- [E2E Test Plans](./testing/e2e/README.md) - Playwright plans for dashboard user journeys
 - [Production Secrets](./production-secrets.md) - Secret inventory and production handling rules
 - [Root README](../README.md) - High-level project overview and quick-start
 

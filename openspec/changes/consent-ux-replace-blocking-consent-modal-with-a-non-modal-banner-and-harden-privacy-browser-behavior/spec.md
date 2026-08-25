@@ -1,17 +1,12 @@
 # Delta for Consent Banner Presentation
 
-New capability `consent-banner-presentation`; `privacy-compliance` receipt/source/version contract
-unchanged.
+New capability `consent-banner-presentation`; `privacy-compliance` receipt/source/version contract unchanged.
 
 ## ADDED Requirements
 
 ### Requirement: Non-modal Fixed Banner Presentation
 
-First-level prompt MUST render as a fixed, non-modal surface near the viewport bottom. It MUST NOT
-mount `DialogOverlay`, MUST NOT add a full-screen dark backdrop, MUST NOT trap focus, and MUST NOT
-block app interaction. MUST use a scoped z-index without a portal. Desktop: max-width 560–680px,
-centered or bottom-right, above footer. Mobile: bottom sheet, no horizontal overflow. MUST respect
-`env(safe-area-inset-*)`; light/dark themes.
+First-level prompt MUST render as a fixed, non-modal surface near the viewport bottom. It MUST NOT mount `DialogOverlay`, MUST NOT add a full-screen dark backdrop, MUST NOT trap focus, and MUST NOT block app interaction. MUST use a scoped z-index without a portal. Desktop: max-width 560–680px, centered or bottom-right, above footer. Mobile: bottom sheet, no horizontal overflow. MUST respect `env(safe-area-inset-*)`; light/dark themes.
 
 #### Scenario: First visit shows non-modal prompt
 
@@ -30,8 +25,7 @@ centered or bottom-right, above footer. Mobile: bottom sheet, no horizontal over
 
 ### Requirement: First-Level Actions
 
-Prompt MUST make Accept all, Reject optional, and Customize immediately available with equal
-practical accessibility and no dark patterns.
+Prompt MUST make Accept all, Reject optional, and Customize immediately available with equal practical accessibility and no dark patterns.
 
 #### Scenario: All actions available up front
 
@@ -41,10 +35,7 @@ practical accessibility and no dark patterns.
 
 ### Requirement: Customize Surface
 
-Customize MUST expose the analytics preference and a Save action, inline in the banner or as a
-compact sheet. Necessary MUST remain always enabled and MUST NOT be user-disabled in any surface.
-MUST NOT mount a full-screen backdrop and MUST never leave an orphaned overlay — if overlay
-primitives are used, overlay and content MUST share one lifecycle.
+Customize MUST expose the analytics preference and a Save action, inline in the banner or as a compact sheet. Necessary MUST remain always enabled and MUST NOT be user-disabled in any surface. MUST NOT mount a full-screen backdrop and MUST never leave an orphaned overlay — if overlay primitives are used, overlay and content MUST share one lifecycle.
 
 #### Scenario: Customize saves granular preference
 
@@ -56,9 +47,7 @@ primitives are used, overlay and content MUST share one lifecycle.
 
 ### Requirement: Re-open Detailed Preferences
 
-Footer "Cookie settings" MUST reopen the detailed preferences modal (`CookieSettings`, the only
-consent modal, opened solely by `showCookieSettings`) after a decision is saved. This flow MUST NOT
-re-show the banner.
+Footer "Cookie settings" MUST reopen the detailed preferences modal (`CookieSettings`, the only consent modal, opened solely by `showCookieSettings`) after a decision is saved. This flow MUST NOT re-show the banner.
 
 #### Scenario: Cookie settings reopens preferences
 
@@ -69,21 +58,16 @@ re-show the banner.
 
 ### Requirement: Visibility State Machine
 
-Banner MUST show when no valid receipt exists; MUST be suppressed when a valid current-version
-receipt exists. Malformed, missing-field, or outdated receipts MUST count as no consent and re-show
-the banner.
+Banner MUST show when no valid receipt exists; MUST be suppressed when a valid current-version receipt exists. Malformed, missing-field, or outdated receipts MUST count as no consent and re-show the banner.
 
-| State | Receipt        | Banner                       |
-|-------|----------------|------------------------------|
-| A     | none / invalid | shows                        |
-| B     | stale version  | re-shows                     |
-| C     | valid current  | hidden                       |
-| D     | DNT/GPC        | shows, analytics OFF default |
+| State | Receipt | Banner |
+|-------|---------|--------|
+| A | none / invalid | shows |
+| B | stale version | re-shows |
+| C | valid current | hidden |
+| D | DNT/GPC | shows, analytics OFF default |
 
-While undecided, banner MUST NOT be dismissible: no close control MUST render; Escape MUST be
-ignored. Only a consent decision (accept/reject/customize-save) hides it. The store MUST NOT expose
-a force-open/settings-open API: `forceOpen`, `openSettings`, and `closeSettings` MUST be removed (no
-production caller exists; footer re-open goes through `showCookieSettings` only).
+While undecided, banner MUST NOT be dismissible: no close control MUST render; Escape MUST be ignored. Only a consent decision (accept/reject/customize-save) hides it. The store MUST NOT expose a force-open/settings-open API: `forceOpen`, `openSettings`, and `closeSettings` MUST be removed (no production caller exists; footer re-open goes through `showCookieSettings` only).
 
 #### Scenario: Valid consent suppresses prompt
 
@@ -107,17 +91,13 @@ production caller exists; footer re-open goes through `showCookieSettings` only)
 
 ### Requirement: Persistence Contract
 
-| Action           | `analytics`  | `source` |
-|------------------|--------------|----------|
-| Accept all       | true         | banner   |
-| Reject optional  | false        | banner   |
-| Customize + Save | toggle value | banner   |
+| Action | `analytics` | `source` |
+|--------|-------------|----------|
+| Accept all | true | banner |
+| Reject optional | false | banner |
+| Customize + Save | toggle value | banner |
 
-Receipts MUST stay versioned (`consentVersion` 1), policy-version validated (`policyVersion` "
-2026-07-23"), region `EU`, ISO timestamped, `dnt` captured, Necessary `true`. DNT/GPC MUST default
-analytics OFF while still showing the prompt; explicit Accept overrides. Backend sync for
-authenticated users MUST stay best-effort and MUST NOT block UI dismissal; sync failure MUST NOT
-revert the local receipt.
+Receipts MUST stay versioned (`consentVersion` 1), policy-version validated (`policyVersion` "2026-07-23"), region `EU`, ISO timestamped, `dnt` captured, Necessary `true`. DNT/GPC MUST default analytics OFF while still showing the prompt; explicit Accept overrides. Backend sync for authenticated users MUST stay best-effort and MUST NOT block UI dismissal; sync failure MUST NOT revert the local receipt.
 
 #### Scenario: Reject persists false and blocks analytics
 
@@ -136,10 +116,7 @@ revert the local receipt.
 
 ### Requirement: Browser Resilience
 
-Prompt MUST remain usable with privacy protections enabled and MUST NEVER leave the app behind an
-orphaned blocking overlay, even if prompt content fails to render. Chrome/Chromium, Safari/WebKit,
-Brave (Shields ON and OFF) MUST be verified across states A–D. Investigation MUST document the Brave
-root cause even if the redesign eliminates the symptom.
+Prompt MUST remain usable with privacy protections enabled and MUST NEVER leave the app behind an orphaned blocking overlay, even if prompt content fails to render. Chrome/Chromium, Safari/WebKit, Brave (Shields ON and OFF) MUST be verified across states A–D. Investigation MUST document the Brave root cause even if the redesign eliminates the symptom.
 
 #### Scenario: Privacy browser with no valid consent
 
@@ -157,9 +134,7 @@ root cause even if the redesign eliminates the symptom.
 
 ### Requirement: i18n, Accessibility, and Test Coverage
 
-Prompt MUST provide EN/ES copy, keyboard navigation with visible focus states, and MUST NOT regress
-analytics gating. Component tests MUST assert no global dialog overlay is mounted; E2E MUST cover
-the non-modal prompt and stale-consent state, keeping `consent-banner` testid.
+Prompt MUST provide EN/ES copy, keyboard navigation with visible focus states, and MUST NOT regress analytics gating. Component tests MUST assert no global dialog overlay is mounted; E2E MUST cover the non-modal prompt and stale-consent state, keeping `consent-banner` testid.
 
 #### Scenario: Localized and keyboard-usable prompt
 

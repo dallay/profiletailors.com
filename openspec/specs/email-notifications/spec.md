@@ -352,11 +352,11 @@ The following requirements were added as part of the media copyright takedown ch
 The system MUST produce three template types for the takedown lifecycle delivered via
 domain-event consumers:
 
-| Template              | Trigger          | Consumer                            |
-|-----------------------|------------------|-------------------------------------|
-| Takedown Confirmation | Report submitted | `SendTakedownReportedEmailConsumer` |
-| Takedown Approved     | Staff approves   | `SendTakedownApprovedEmailConsumer` |
-| Takedown Rejected     | Staff rejects    | `SendTakedownRejectedEmailConsumer` |
+| Template                    | Trigger              | Consumer                                |
+|-----------------------------|----------------------|-----------------------------------------|
+| Takedown Confirmation       | Report submitted     | `SendTakedownReportedEmailConsumer`     |
+| Takedown Approved           | Staff approves       | `SendTakedownApprovedEmailConsumer`     |
+| Takedown Rejected           | Staff rejects        | `SendTakedownRejectedEmailConsumer`     |
 
 All templates SHALL follow the existing template pattern: plain-text body and inline-styled
 HTML body, both rendered from template variables with idempotency keys. Templates SHALL be
@@ -364,7 +364,6 @@ dispatched asynchronously via domain-event consumers through the `EmailDispatche
 
 Implementation lives in `TakedownEmailTemplates.kt` under `governance/infrastructure/email/`.
 Consumers in `TakedownEmailConsumers.kt` resolve recipients via `WorkspaceOwnershipRepository`
-
 + `PrincipalIdentityLookup`.
 
 (Previously: only verification email templates existed.)

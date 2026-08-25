@@ -10,7 +10,7 @@ It standardises status wording across `docs/compliance/`.
 ## Changes
 
 | Version | Date       | Description                                                                  |
-|---------|------------|------------------------------------------------------------------------------|
+| ------- | ---------- | ---------------------------------------------------------------------------- |
 | 1.0     | 2026-07-31 | Added canonical status taxonomy and naming pattern for compliance artifacts. |
 
 ## Usage
@@ -24,7 +24,7 @@ Use this format in document headers:
 ### Allowed classes
 
 | Class                     | Meaning                                                                                  |
-|---------------------------|------------------------------------------------------------------------------------------|
+| ------------------------- | ---------------------------------------------------------------------------------------- |
 | Active policy baseline    | Public legal policy publication is currently active for the operator-hosted instance.    |
 | Active register           | Internal register is currently maintained and in use.                                    |
 | Implemented evidence      | Technical/operational evidence exists, but legal/business approval may still be pending. |
@@ -55,8 +55,7 @@ Use this format in document headers:
 
 ## Troubleshooting
 
-- If a status appears to conflict with runtime legal publication, treat runtime publication state
-  and
+- If a status appears to conflict with runtime legal publication, treat runtime publication state and
   approved policy pages as operative, then reconcile internal docs in the same change set.
 - If a new document does not fit existing classes, use the closest class and open a follow-up to
   extend this taxonomy.

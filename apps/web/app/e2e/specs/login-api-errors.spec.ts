@@ -1,5 +1,5 @@
 /**
- * spec: docs/testing/e2e/login-flow.md
+ * spec: openspec/specs/e2e/login-flow.md
  * section: 4. Login API — Error Paths
  *
  * Covers invalid credentials, non-existent email (no user enumeration),

@@ -81,12 +81,12 @@ node scripts/compose-run.mjs --file infra/apps/smp/compose.yaml down
 Services use default values but can be overridden using a `.env` file in the application directory
 or by passing them directly.
 
-| Variable            | Default Value        | Description                               |
-|:--------------------|:---------------------|:------------------------------------------|
-| `POSTGRES_PORT`     | `0`                  | Dynamic external port for PostgreSQL      |
-| `POSTGRES_DB`       | `profiletailors_smp` | Database name                             |
-| `POSTGRES_USER`     | `pt_user`            | Database user                             |
-| `MANAGEMENT_PORT`   | dynamic              | Per-worktree backend management port      |
+| Variable            | Default Value        | Description                       |
+|:--------------------|:---------------------|:----------------------------------|
+| `POSTGRES_PORT`     | `0`                  | Dynamic external port for PostgreSQL |
+| `POSTGRES_DB`       | `profiletailors_smp` | Database name                     |
+| `POSTGRES_USER`     | `pt_user`            | Database user                     |
+| `MANAGEMENT_PORT`   | dynamic              | Per-worktree backend management port |
 | `MAILPIT_SMTP_PORT` | `0`                  | Dynamic host port for local email capture |
 | `MAILPIT_UI_PORT`   | `0`                  | Dynamic Mailpit web UI host port          |
 

@@ -1,5 +1,5 @@
 /**
- * spec: docs/testing/e2e/login-flow.md
+ * spec: openspec/specs/e2e/login-flow.md
  * section: 7. Token Refresh (Silent 401 Retry)
  *
  * Covers silent token refresh on 401, logout on refresh failure,

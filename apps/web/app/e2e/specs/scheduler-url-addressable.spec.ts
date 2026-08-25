@@ -4,7 +4,7 @@
  * Validates that deep links, navigation, sidebar filters, and browser
  * history correctly drive the scheduler state via canonical URLs.
  *
- * @see openspec/specs/scheduler-url-state-standard/spec.md
+ * @see openspec/changes/scheduler-url-addressable/spec.md
  */
 
 import { test, expect } from '../fixtures/scheduler-base-test'

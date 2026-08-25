@@ -81,8 +81,7 @@ Procedure:
    `docker service inspect "$BACKEND_SERVICE" --format '{{ .Spec.TaskTemplate.ContainerSpec.Env }}' | tr ' ' '\n' | grep SMP_PUBLISHING_WORKER_ENABLED`.
 2. Set `SMP_PUBLISHING_WORKER_ENABLED="false"` in the Swarm env source
    (`infra/apps/smp/swarm/.env` or the equivalent secrets-backed config).
-3. Re-render and re-deploy the stack:
-   `docker stack deploy -c infra/apps/smp/swarm/stack.yaml "$STACK_NAME"`.
+3. Re-render and re-deploy the stack: `docker stack deploy -c infra/apps/smp/swarm/stack.yaml "$STACK_NAME"`.
 4. Wait for `docker service ps "$BACKEND_SERVICE"` to show the new task as `Running` with no
    startup errors.
 5. Confirm the worker is no longer polling by tailing the backend logs and confirming
@@ -133,19 +132,19 @@ The caller must have the `PUBLISHING_STALE_READ` permission. Unauthenticated cal
 `PLATFORM_ACCESS_DENIED` problem code.
 
 - Query parameters:
-    - `leaseStaleThreshold: string` — ISO-8601 duration string representing the minimum
-      age of the expired lease before a row is reported stale. Default/example: `PT5M`
-      (`PublishingStaleJobsController.kt:127`).
-    - `limit: Int` — cap on returned items. Default `50` (`PublishingApi.kt:261`).
+  - `leaseStaleThreshold: string` — ISO-8601 duration string representing the minimum
+    age of the expired lease before a row is reported stale. Default/example: `PT5M`
+    (`PublishingStaleJobsController.kt:127`).
+  - `limit: Int` — cap on returned items. Default `50` (`PublishingApi.kt:261`).
 - Response fields per `StaleJobItem` (`PublishingApi.kt:266-276`):
-    - `jobId`, `publicationId`, `workspaceId` — identifiers.
-    - `claimedByWorker` — opaque UUID in the form `worker-<UUID>`.
-    - `claimedAt`, `leaseExpiresAt` — timestamps.
-    - `ageSeconds` — seconds elapsed from `claimedAt` to the read instant, clamped to
-      `>= 0L` (`PublishingQueryHandlers.kt:195`).
-    - `attemptNumber` — current attempt count for the job.
-    - `suggestedAction` — canonical literal `"RELEASE_AND_RETRY"`
-      (`PublishingQueryHandlers.kt:201`, `const val STALE_JOB_SUGGESTED_ACTION`).
+  - `jobId`, `publicationId`, `workspaceId` — identifiers.
+  - `claimedByWorker` — opaque UUID in the form `worker-<UUID>`.
+  - `claimedAt`, `leaseExpiresAt` — timestamps.
+  - `ageSeconds` — seconds elapsed from `claimedAt` to the read instant, clamped to
+    `>= 0L` (`PublishingQueryHandlers.kt:195`).
+  - `attemptNumber` — current attempt count for the job.
+  - `suggestedAction` — canonical literal `"RELEASE_AND_RETRY"`
+    (`PublishingQueryHandlers.kt:201`, `const val STALE_JOB_SUGGESTED_ACTION`).
 
 The controller validates the threshold and limit, then dispatches `ListStaleJobsQuery`
 through the Mediator bus. Invalid threshold or limit values return `400` with the
@@ -178,15 +177,15 @@ Publishing behavior is fully controlled by the env vars consumed by
 `server/smp/src/main/resources/application.yaml`. Each var has an operator-readable
 default and is overridable through the Swarm stack.
 
-| Env var                                    | Default | Behavior                                                                                                       |
-|--------------------------------------------|---------|----------------------------------------------------------------------------------------------------------------|
-| `SMP_PUBLISHING_WORKER_ENABLED`            | `false` | Master switch. `false` short-circuits `PublishingWorkerLifecycle.start()` so no poll is ever scheduled.        |
-| `SMP_PUBLISHING_WORKER_POLL_INTERVAL`      | `PT30S` | Cadence at which the lifecycle calls `pollOnce`.                                                               |
-| `SMP_PUBLISHING_WORKER_CLAIM_LEASE`        | `PT2M`  | In-flight lease written as `lease_expires_at = now + claimLease` when a job is claimed.                        |
-| `SMP_PUBLISHING_WORKER_STALE_GRACE`        | `PT5M`  | Additional age required after lease expiry; recovery releases only when `lease_expires_at < now - staleGrace`. |
-| `SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL` | `PT5M`  | Cadence at which `BLOCKED` jobs are promoted back to `PENDING`.                                                |
-| `SMP_PUBLISHING_MAX_RETRIES`               | `3`     | Capped delivery attempts before a job moves to `BLOCKED`.                                                      |
-| `SMP_PUBLISHING_RETRY_BACKOFF`             | `PT5M`  | Delay between retryable delivery attempts.                                                                     |
+| Env var | Default | Behavior |
+|---|---|---|
+| `SMP_PUBLISHING_WORKER_ENABLED` | `false` | Master switch. `false` short-circuits `PublishingWorkerLifecycle.start()` so no poll is ever scheduled. |
+| `SMP_PUBLISHING_WORKER_POLL_INTERVAL` | `PT30S` | Cadence at which the lifecycle calls `pollOnce`. |
+| `SMP_PUBLISHING_WORKER_CLAIM_LEASE` | `PT2M` | In-flight lease written as `lease_expires_at = now + claimLease` when a job is claimed. |
+| `SMP_PUBLISHING_WORKER_STALE_GRACE` | `PT5M` | Additional age required after lease expiry; recovery releases only when `lease_expires_at < now - staleGrace`. |
+| `SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL` | `PT5M` | Cadence at which `BLOCKED` jobs are promoted back to `PENDING`. |
+| `SMP_PUBLISHING_MAX_RETRIES` | `3` | Capped delivery attempts before a job moves to `BLOCKED`. |
+| `SMP_PUBLISHING_RETRY_BACKOFF` | `PT5M` | Delay between retryable delivery attempts. |
 
 Lease-aware claim contract (per `publication_jobs` schema):
 
@@ -210,20 +209,20 @@ Rollback safety:
 Every operator-observed entry that supports the DALLAY-555 / DALLAY-557 acceptance
 record MUST carry the following fields. A row missing any of them blocks acceptance.
 
-| Field                       | Required format                                                                                    | Notes                                                                                                                    |
-|-----------------------------|----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| UTC time                    | ISO-8601 with `Z`                                                                                  | E.g. `2026-08-22T18:30:00Z`. No local-time entries.                                                                      |
-| Hostname                    | FQDN or Swarm node label                                                                           | E.g. `prod-1.eu-west.internal`.                                                                                          |
-| Namespace                   | Swarm stack name                                                                                   | `STACK_NAME` (the observed QA default was `profiletailors-smp-dz2yer`).                                                  |
-| Release                     | Image tag or digest                                                                                | E.g. `profiletailors/smp:v2026.08.22-rc1` or `@sha256:...`.                                                              |
-| Operator                    | Operator handle                                                                                    | First-name + role; no email addresses.                                                                                   |
-| Scope                       | One of `safe-off`, `re-enable`, `stale-visibility`, `stale-recovery`, `rollback`, `backup-restore` |                                                                                                                          |
-| Result                      | `PASS` / `FAIL` / `OBSERVED`                                                                       | Match the operation class.                                                                                               |
-| Classification              | `USER_REPORTED_OPERATIONAL` ONLY                                                                   | MUST NOT be `provider-verified`, `MULTI_USER_VERIFIED`, or any variant that implies provider or multi-user confirmation. |
-| Retention                   | Days or policy reference                                                                           | E.g. `365d` or `compliance:evidence-retention`.                                                                          |
-| Safe-off state              | `ENABLED` / `DISABLED`                                                                             | Read from the deployed service at the same instant as the observation.                                                   |
-| Backup/restore confirmation | `PASS` / `N/A`                                                                                     | Required for any `rollback` or `safe-off` entry.                                                                         |
-| Rollback status             | `READY` / `BLOCKED`                                                                                | Required for any `safe-off` or `rollback` entry; link to the runbook section that was rehearsed.                         |
+| Field | Required format | Notes |
+|---|---|---|
+| UTC time | ISO-8601 with `Z` | E.g. `2026-08-22T18:30:00Z`. No local-time entries. |
+| Hostname | FQDN or Swarm node label | E.g. `prod-1.eu-west.internal`. |
+| Namespace | Swarm stack name | `STACK_NAME` (the observed QA default was `profiletailors-smp-dz2yer`). |
+| Release | Image tag or digest | E.g. `profiletailors/smp:v2026.08.22-rc1` or `@sha256:...`. |
+| Operator | Operator handle | First-name + role; no email addresses. |
+| Scope | One of `safe-off`, `re-enable`, `stale-visibility`, `stale-recovery`, `rollback`, `backup-restore` | |
+| Result | `PASS` / `FAIL` / `OBSERVED` | Match the operation class. |
+| Classification | `USER_REPORTED_OPERATIONAL` ONLY | MUST NOT be `provider-verified`, `MULTI_USER_VERIFIED`, or any variant that implies provider or multi-user confirmation. |
+| Retention | Days or policy reference | E.g. `365d` or `compliance:evidence-retention`. |
+| Safe-off state | `ENABLED` / `DISABLED` | Read from the deployed service at the same instant as the observation. |
+| Backup/restore confirmation | `PASS` / `N/A` | Required for any `rollback` or `safe-off` entry. |
+| Rollback status | `READY` / `BLOCKED` | Required for any `safe-off` or `rollback` entry; link to the runbook section that was rehearsed. |
 
 ## Troubleshooting
 
@@ -263,8 +262,7 @@ happens the operator should:
    ```
 2. Compare against the most recent `claim-lease` config to confirm the threshold is
    being honored.
-3. If the schema migration for `publication_jobs` (
-   `020-add-publishing-claim-fencing-and-idempotency.yaml`)
+3. If the schema migration for `publication_jobs` (`020-add-publishing-claim-fencing-and-idempotency.yaml`)
    has not been applied against the target database, the claim columns are missing
    and `releaseExpiredClaims` will fail with a SQL error. Re-run Liquibase against
    the `prod` context.
@@ -277,8 +275,7 @@ LinkedIn integration runbook.
 
 ## References
 
-- [
-  `openspec/changes/private-beta-launch-readiness/specs/publishing/spec.md`](../../openspec/changes/private-beta-launch-readiness/specs/publishing/spec.md)
+- [`openspec/changes/private-beta-launch-readiness/specs/publishing/spec.md`](../../openspec/changes/private-beta-launch-readiness/specs/publishing/spec.md)
 - [`docs/README.md`](../README.md)
 - [`docs/architecture/adr/README.md`](../architecture/adr/README.md)
 - [`docs/infrastructure/production-docker-swarm.md`](./production-docker-swarm.md)

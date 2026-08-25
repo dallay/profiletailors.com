@@ -18,9 +18,7 @@ sed -n '/<script is:inline>/,/<\/script>/p' apps/web/marketing/src/components/co
 
 **Result**: ~1.8KB (within budget)
 
-**Notes**: The script contains only essential logic: DNT/GPC detection, schema validation,
-localStorage read, and flag setting. No external dependencies. The `is:inline` directive means Astro
-emits it verbatim without additional bundling overhead.
+**Notes**: The script contains only essential logic: DNT/GPC detection, schema validation, localStorage read, and flag setting. No external dependencies. The `is:inline` directive means Astro emits it verbatim without additional bundling overhead.
 
 ## 2. Layout Shift (CLS)
 
@@ -28,14 +26,12 @@ emits it verbatim without additional bundling overhead.
 **Verification method**: Chrome DevTools Performance tab — Layout Shifts recording
 
 **Steps**:
-
 1. Open Chrome DevTools → Performance tab
 2. Click the "cog" icon → enable "Layout Shifts" in the experience section
 3. Record a page load on the marketing site (`/`)
 4. Observe the "Experience" section for layout shift entries
 
 **Expected**: No layout shift entries. The consent banner uses:
-
 - `position: fixed` — removes it from the document flow
 - `hidden` attribute by default — not rendered until consent check completes
 - `z-index` below modals — prevents overlap with critical UI
@@ -58,7 +54,6 @@ Run Lighthouse audit on the marketing site homepage:
 **Expected**: Score should be within 1 point of the pre-consent baseline.
 
 **Notes**: The consent feature adds:
-
 - One inline `<script>` in `<head>` (~1.8KB) — negligible parse cost
 - One hidden `<div>` at end of `<body>` — no render cost until shown
 - Conditional Ahrefs load — only fires after explicit consent, not on first visit
@@ -78,19 +73,17 @@ Run Lighthouse audit on the marketing site homepage:
 ## 5. Bundle Impact (App)
 
 The app (Vue SPA) consent components are lazy-loaded only when needed:
-
 - `ConsentBanner.vue` — `v-if` on `showBanner` computed, DOM not rendered when consent exists
 - `CookieSettings.vue` — `v-model:open` controls Dialog visibility
 
-**Bundle size impact**: ~3KB gzip for both components combined (dialog + switch + button are already
-in the app's vendor bundle from shadcn-vue).
+**Bundle size impact**: ~3KB gzip for both components combined (dialog + switch + button are already in the app's vendor bundle from shadcn-vue).
 
 ## Summary
 
-| Metric                | Target                 | Result               | Status |
-|-----------------------|------------------------|----------------------|--------|
-| Inline script size    | < 2KB                  | ~1.8KB               | ✅      |
-| CLS                   | 0                      | 0                    | ✅      |
-| Lighthouse regression | < 1pt                  | Pending manual check | ⏳      |
-| Ahrefs blocking       | Before consent blocked | Verified via E2E     | ✅      |
-| App bundle impact     | < 5KB                  | ~3KB                 | ✅      |
+| Metric | Target | Result | Status |
+|--------|--------|--------|--------|
+| Inline script size | < 2KB | ~1.8KB | ✅ |
+| CLS | 0 | 0 | ✅ |
+| Lighthouse regression | < 1pt | Pending manual check | ⏳ |
+| Ahrefs blocking | Before consent blocked | Verified via E2E | ✅ |
+| App bundle impact | < 5KB | ~3KB | ✅ |

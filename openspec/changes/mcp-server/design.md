@@ -36,18 +36,18 @@ nor run an `/oauth2/register` endpoint.
 
 ## Architecture Decisions
 
-| #  | Decision                  | Options considered                                                                              | Choice & rationale                                                                                                                                                                                                                                                                        |
-|----|---------------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1  | MCP transport             | STDIO / Streamable HTTP STATEFUL / Streamable HTTP STATELESS                                    | **STATELESS Streamable HTTP** — cloud-native, no session affinity, every request is independent; aligns with Spring AI 2.0 webflux starter. Stateful is reserved for Phase 3 push notifications.                                                                                          |
-| 2  | Auth integration          | Custom OAuth2 handler / Spring Security OAuth2 Resource Server                                  | **Resource Server** — reuse `JwtPrincipalAuthenticationConverter` and `JwtAuthenticatedPrincipalMaterializer`. No new token-validation logic.                                                                                                                                             |
-| 3  | Tool execution boundary   | Direct handler calls / Mediator dispatch                                                        | **Mediator** — `mediator.send(query)` triggers the same pipeline (audit, validation, telemetry) as REST endpoints. Avoids bypassing cross-cutting concerns.                                                                                                                               |
-| 4  | Workspace isolation       | Trust `X-Workspace-Id` header / Extract from JWT claim                                          | **JWT claim only** — `workspace_id` taken from the validated token and pushed into `ResourceContext` via `RequestContextStore`. Header is **ignored** for `/api/mcp`.                                                                                                                     |
-| 5  | Scope enforcement         | `@PreAuthorize` on tools / WebFilter that parses JSON-RPC body / **Tool invocation authorizer** | **`McpToolInvocationAuthorizer`** — called at tool dispatch after Spring AI resolves the bean; consults a static tool→scope table. The security chain **never** parses the JSON-RPC body.                                                                                                 |
-| 6  | Error mapping             | New error type / Reuse `ProblemDetail`                                                          | **Reuse + new `McpErrorMapper`** — domain exceptions remain shared; mapper converts to `CallToolResult(isError=true, content=…)` carrying `ApplicationError(code, category, message, retryable, correlationId)`.                                                                          |
-| 7  | Client onboarding         | DCR-only / CIMD-only / DCR + CIMD                                                               | **DCR confirmed; CIMD is a spike question** — Keycloak 26+ supports RFC 7591 DCR (confirmed by Keycloak docs). CIMD (draft-ietf-oauth-client-id-metadata-document) is unverified; baseline path is **pre-registered clients + DCR**; fallback if CIMD fails is **pre-registration only**. |
-| 8  | Rate limiting             | New bucket per tool / Reuse `InMemoryRateLimitAdapter`                                          | **Reuse** — add new bucket names (`mcp-channels-read`, `mcp-publications-read`) wired into existing `RateLimitConfiguration`.                                                                                                                                                             |
-| 9  | Authorization Server role | SMP embeds an OAuth server / Keycloak                                                           | **Keycloak** — SMP exposes only RFC 9728 Protected Resource Metadata. Keycloak owns `/.well-known/openid-configuration`, `/authorize`, `/token`, `/revoke`, `/register` (when DCR enabled).                                                                                               |
-| 10 | Workspace injection       | SPA picks workspace / Custom Keycloak authenticator / **Pre-flow signed context**               | **Option A: signed `workspace_context` from SPA → Keycloak protocol mapper** — minimum Keycloak customization, single source of truth (Profile Tailors DB); upgradeable later to a custom authenticator that offers a workspace selector UI.                                              |
+| # | Decision | Options considered | Choice & rationale |
+|---|----------|--------------------|--------------------|
+| 1 | MCP transport | STDIO / Streamable HTTP STATEFUL / Streamable HTTP STATELESS | **STATELESS Streamable HTTP** — cloud-native, no session affinity, every request is independent; aligns with Spring AI 2.0 webflux starter. Stateful is reserved for Phase 3 push notifications. |
+| 2 | Auth integration | Custom OAuth2 handler / Spring Security OAuth2 Resource Server | **Resource Server** — reuse `JwtPrincipalAuthenticationConverter` and `JwtAuthenticatedPrincipalMaterializer`. No new token-validation logic. |
+| 3 | Tool execution boundary | Direct handler calls / Mediator dispatch | **Mediator** — `mediator.send(query)` triggers the same pipeline (audit, validation, telemetry) as REST endpoints. Avoids bypassing cross-cutting concerns. |
+| 4 | Workspace isolation | Trust `X-Workspace-Id` header / Extract from JWT claim | **JWT claim only** — `workspace_id` taken from the validated token and pushed into `ResourceContext` via `RequestContextStore`. Header is **ignored** for `/api/mcp`. |
+| 5 | Scope enforcement | `@PreAuthorize` on tools / WebFilter that parses JSON-RPC body / **Tool invocation authorizer** | **`McpToolInvocationAuthorizer`** — called at tool dispatch after Spring AI resolves the bean; consults a static tool→scope table. The security chain **never** parses the JSON-RPC body. |
+| 6 | Error mapping | New error type / Reuse `ProblemDetail` | **Reuse + new `McpErrorMapper`** — domain exceptions remain shared; mapper converts to `CallToolResult(isError=true, content=…)` carrying `ApplicationError(code, category, message, retryable, correlationId)`. |
+| 7 | Client onboarding | DCR-only / CIMD-only / DCR + CIMD | **DCR confirmed; CIMD is a spike question** — Keycloak 26+ supports RFC 7591 DCR (confirmed by Keycloak docs). CIMD (draft-ietf-oauth-client-id-metadata-document) is unverified; baseline path is **pre-registered clients + DCR**; fallback if CIMD fails is **pre-registration only**. |
+| 8 | Rate limiting | New bucket per tool / Reuse `InMemoryRateLimitAdapter` | **Reuse** — add new bucket names (`mcp-channels-read`, `mcp-publications-read`) wired into existing `RateLimitConfiguration`. |
+| 9 | Authorization Server role | SMP embeds an OAuth server / Keycloak | **Keycloak** — SMP exposes only RFC 9728 Protected Resource Metadata. Keycloak owns `/.well-known/openid-configuration`, `/authorize`, `/token`, `/revoke`, `/register` (when DCR enabled). |
+| 10 | Workspace injection | SPA picks workspace / Custom Keycloak authenticator / **Pre-flow signed context** | **Option A: signed `workspace_context` from SPA → Keycloak protocol mapper** — minimum Keycloak customization, single source of truth (Profile Tailors DB); upgradeable later to a custom authenticator that offers a workspace selector UI. |
 
 ---
 
@@ -81,15 +81,15 @@ SMP — those concerns live in Keycloak.
 
 ### Integration points
 
-| Layer       | Reuse                                                                                                                                                                     | New                                                                                                                                                                                                   |
-|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Security    | `JwtPrincipalAuthenticationConverter`, `JwtAuthenticatedPrincipalMaterializer`, `JwtAudienceValidator`, `RequestContextStore`, `FederatedTokenValidator` (jti revocation) | `McpSecurityConfiguration` (filter chain scoped to `/api/mcp/**` — JWT validity, `iss`, `aud`, `exp`, `workspace_id` presence, authoritative membership check). **No JSON-RPC parsing in the chain.** |
-| Scope auth  | n/a                                                                                                                                                                       | `McpToolInvocationAuthorizer` — static tool→scope map, invoked from each `@McpTool` (or wrapping decorator).                                                                                          |
-| Mediator    | `Mediator` bean from `shared:bus`                                                                                                                                         | none                                                                                                                                                                                                  |
-| Application | `ListPublicationsQuery`, `ListConnectedChannelsQuery`, `GetCalendarPublicationsQuery`, `ListProviderCatalogQuery`                                                         | none                                                                                                                                                                                                  |
-| Errors      | `PublishingProblemDetailsHandler` (REST), existing domain exceptions                                                                                                      | `McpErrorMapper`, shared `ApplicationError` taxonomy                                                                                                                                                  |
-| Rate limit  | `InMemoryRateLimitAdapter`, `RateLimitConfiguration`                                                                                                                      | new bucket names registered in `app.mcp.rate-limit.*`                                                                                                                                                 |
-| Audit       | `AuditHook`, `AuthorizationDecisionAuditFact`                                                                                                                             | `McpToolInvocationAuditFact` (tool name, scope checked, workspace_id, correlation_id)                                                                                                                 |
+| Layer | Reuse | New |
+|-------|-------|-----|
+| Security | `JwtPrincipalAuthenticationConverter`, `JwtAuthenticatedPrincipalMaterializer`, `JwtAudienceValidator`, `RequestContextStore`, `FederatedTokenValidator` (jti revocation) | `McpSecurityConfiguration` (filter chain scoped to `/api/mcp/**` — JWT validity, `iss`, `aud`, `exp`, `workspace_id` presence, authoritative membership check). **No JSON-RPC parsing in the chain.** |
+| Scope auth | n/a | `McpToolInvocationAuthorizer` — static tool→scope map, invoked from each `@McpTool` (or wrapping decorator). |
+| Mediator | `Mediator` bean from `shared:bus` | none |
+| Application | `ListPublicationsQuery`, `ListConnectedChannelsQuery`, `GetCalendarPublicationsQuery`, `ListProviderCatalogQuery` | none |
+| Errors | `PublishingProblemDetailsHandler` (REST), existing domain exceptions | `McpErrorMapper`, shared `ApplicationError` taxonomy |
+| Rate limit | `InMemoryRateLimitAdapter`, `RateLimitConfiguration` | new bucket names registered in `app.mcp.rate-limit.*` |
+| Audit | `AuditHook`, `AuthorizationDecisionAuditFact` | `McpToolInvocationAuditFact` (tool name, scope checked, workspace_id, correlation_id) |
 
 ---
 
@@ -187,14 +187,14 @@ CORS: extend `CorsConfigurationProperties.allowedOrigins` to include MCP client 
 
 ## Security Design
 
-| Concern               | Mechanism                                                                                                                                                                                                                                                                                                                        |
-|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Token signature       | Existing `NimbusJwtDecoder` with `issuer-uri`                                                                                                                                                                                                                                                                                    |
-| `iss` / `aud` / `exp` | Standard Spring Security + `JwtAudienceValidator` (RFC 8707: `aud` MUST include `app.mcp.resource-uri`)                                                                                                                                                                                                                          |
-| `workspace_id` claim  | Extracted by `McpWorkspaceContextResolver`, written to `RequestContextStore`. Existence + authoritative membership validated in the security chain; header is **ignored** for `/api/mcp`                                                                                                                                         |
-| Scopes                | **Not** in the security chain. `McpToolInvocationAuthorizer` checks `Jwt.getClaimAsString("scope")` against the static tool→scope table at tool invocation. On rejection: `403` + `WWW-Authenticate: Bearer error="insufficient_scope", scope="<required>"` + body `{ "required_scope": "<required>", "granted_scopes": [...] }` |
-| Workspace isolation   | Handlers already call `requireWorkspaceContext().workspaceId`; repository queries are tenant-scoped                                                                                                                                                                                                                              |
-| Replay / revocation   | `jti` checked via existing `FederatedTokenValidator`; log via `AuthorizationDecisionAuditFact`                                                                                                                                                                                                                                   |
+| Concern | Mechanism |
+|---------|-----------|
+| Token signature | Existing `NimbusJwtDecoder` with `issuer-uri` |
+| `iss` / `aud` / `exp` | Standard Spring Security + `JwtAudienceValidator` (RFC 8707: `aud` MUST include `app.mcp.resource-uri`) |
+| `workspace_id` claim | Extracted by `McpWorkspaceContextResolver`, written to `RequestContextStore`. Existence + authoritative membership validated in the security chain; header is **ignored** for `/api/mcp` |
+| Scopes | **Not** in the security chain. `McpToolInvocationAuthorizer` checks `Jwt.getClaimAsString("scope")` against the static tool→scope table at tool invocation. On rejection: `403` + `WWW-Authenticate: Bearer error="insufficient_scope", scope="<required>"` + body `{ "required_scope": "<required>", "granted_scopes": [...] }` |
+| Workspace isolation | Handlers already call `requireWorkspaceContext().workspaceId`; repository queries are tenant-scoped |
+| Replay / revocation | `jti` checked via existing `FederatedTokenValidator`; log via `AuthorizationDecisionAuditFact` |
 
 ### Token claim mapping — four independent dimensions
 
@@ -202,21 +202,21 @@ All four claims on a token are validated separately and serve distinct purposes.
 that is correct on one axis but wrong on another is **rejected on that axis**, not
 silently accepted.
 
-| Claim          | Standard / RFC                  | Identifies                                                    | Validated by                                                |
-|----------------|---------------------------------|---------------------------------------------------------------|-------------------------------------------------------------|
-| `sub`          | OIDC core                       | The **user**                                                  | Resource Server (audit, membership check)                   |
-| `aud`          | RFC 8707 (`resource` parameter) | The **MCP server** (`https://api.profiletailors.com/api/mcp`) | `JwtAudienceValidator` in security chain                    |
-| `workspace_id` | Profile Tailors claim           | The **tenant** within the MCP server                          | Security chain (presence) + authoritative membership lookup |
-| `scope`        | RFC 6749 §3.3                   | Which **operations** the token may invoke                     | `McpToolInvocationAuthorizer` at tool invocation            |
+| Claim | Standard / RFC | Identifies | Validated by |
+|-------|---------------|------------|--------------|
+| `sub` | OIDC core | The **user** | Resource Server (audit, membership check) |
+| `aud` | RFC 8707 (`resource` parameter) | The **MCP server** (`https://api.profiletailors.com/api/mcp`) | `JwtAudienceValidator` in security chain |
+| `workspace_id` | Profile Tailors claim | The **tenant** within the MCP server | Security chain (presence) + authoritative membership lookup |
+| `scope` | RFC 6749 §3.3 | Which **operations** the token may invoke | `McpToolInvocationAuthorizer` at tool invocation |
 
 ### Tool→scope static map (`McpToolMetadata`)
 
-| Tool                | Required scope          |
-|---------------------|-------------------------|
-| `list_channels`     | `mcp:channels:read`     |
+| Tool | Required scope |
+|------|---------------|
+| `list_channels` | `mcp:channels:read` |
 | `list_publications` | `mcp:publications:read` |
-| `get_calendar`      | `mcp:publications:read` |
-| `list_providers`    | `mcp:publications:read` |
+| `get_calendar` | `mcp:publications:read` |
+| `list_providers` | `mcp:publications:read` |
 
 `tools/list` advertises **all four tools regardless of granted scopes**. Each
 `@McpTool(description = ...)` names its required scope in natural language (e.g.
@@ -232,7 +232,6 @@ apply time:
 
 **Option 1 — explicit call (recommended for MVP)** (recommended for clarity and unit
 testability):
-
 ```kotlin
 @McpTool(description = "List channels connected in this workspace. Requires scope mcp:channels:read.")
 suspend fun listChannels(
@@ -271,13 +270,11 @@ SPA ◀──access_token { sub, aud = mcp-uri, workspace_id, scope }──
 ```
 
 **Resource Server behavior** — the validator checks, per request:
-
 1. `workspace_id` claim is present.
 2. The token's `sub` holds a current membership grant for that workspace in the
    authoritative store (single read per request, short-lived cache acceptable).
 
 **Why Option A for MVP**:
-
 - Profile Tailors already owns workspace membership; Keycloak does not need a parallel copy.
 - A signed `workspace_context` is unforgeable — Keycloak cannot issue tokens for a
   workspace the user is not part of.
@@ -322,21 +319,21 @@ MVP tools are read-only list/calendar queries, so `publication_not_found` and
 publication ID or channel handle. Those error codes will be added when the
 write tools (Phase 5) ship `get_publication`, `cancel_publication`, etc.
 
-| Layer    | Error                         | Mapping                                                                                                                                                |
-|----------|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Protocol | malformed JSON-RPC            | `-32700` Parse error                                                                                                                                   |
-| Protocol | invalid params                | `-32602` Invalid params                                                                                                                                |
-| Protocol | unknown method                | `-32601` Method not found                                                                                                                              |
-| Auth     | missing/invalid token         | `401` + `WWW-Authenticate: Bearer resource_metadata="<...>"` (RFC 6750 + RFC 9728)                                                                     |
-| Auth     | missing scope                 | `403` + `WWW-Authenticate: Bearer error="insufficient_scope", scope="<required>"` + body `{ "required_scope": "<required>", "granted_scopes": [...] }` |
-| Auth     | cross-workspace token         | `403` + `ApplicationError(code="workspace_mismatch", category="AUTH")`                                                                                 |
-| Tool     | invalid date range            | `CallToolResult.isError=true` + `ApplicationError("invalid_date_range","VALIDATION")`                                                                  |
-| Tool     | invalid timezone              | `CallToolResult.isError=true` + `ApplicationError("invalid_timezone","VALIDATION")`                                                                    |
-| Tool     | date range too large          | `CallToolResult.isError=true` + `ApplicationError("date_range_too_large","VALIDATION")`                                                                |
-| Tool     | invalid channel status filter | `CallToolResult.isError=true` + `ApplicationError("invalid_channel_status","VALIDATION")`                                                              |
-| Tool     | business rule violation       | `CallToolResult.isError=true` + `ApplicationError("rule_violation","VALIDATION")`                                                                      |
-| Tool     | rate limit exceeded           | `CallToolResult.isError=true` + `ApplicationError("rate_limit_exceeded","RATE_LIMITED")`                                                               |
-| Tool     | unexpected                    | `CallToolResult.isError=true` + `ApplicationError("internal","INTERNAL")`; full stack logged, never returned                                           |
+| Layer | Error | Mapping |
+|-------|-------|---------|
+| Protocol | malformed JSON-RPC | `-32700` Parse error |
+| Protocol | invalid params | `-32602` Invalid params |
+| Protocol | unknown method | `-32601` Method not found |
+| Auth | missing/invalid token | `401` + `WWW-Authenticate: Bearer resource_metadata="<...>"` (RFC 6750 + RFC 9728) |
+| Auth | missing scope | `403` + `WWW-Authenticate: Bearer error="insufficient_scope", scope="<required>"` + body `{ "required_scope": "<required>", "granted_scopes": [...] }` |
+| Auth | cross-workspace token | `403` + `ApplicationError(code="workspace_mismatch", category="AUTH")` |
+| Tool | invalid date range | `CallToolResult.isError=true` + `ApplicationError("invalid_date_range","VALIDATION")` |
+| Tool | invalid timezone | `CallToolResult.isError=true` + `ApplicationError("invalid_timezone","VALIDATION")` |
+| Tool | date range too large | `CallToolResult.isError=true` + `ApplicationError("date_range_too_large","VALIDATION")` |
+| Tool | invalid channel status filter | `CallToolResult.isError=true` + `ApplicationError("invalid_channel_status","VALIDATION")` |
+| Tool | business rule violation | `CallToolResult.isError=true` + `ApplicationError("rule_violation","VALIDATION")` |
+| Tool | rate limit exceeded | `CallToolResult.isError=true` + `ApplicationError("rate_limit_exceeded","RATE_LIMITED")` |
+| Tool | unexpected | `CallToolResult.isError=true` + `ApplicationError("internal","INTERNAL")`; full stack logged, never returned |
 
 `correlation_id` is taken from `X-Correlation-Id` request header (generated by
 `RequestContextStore` when absent) and propagated into every tool result for log
@@ -361,7 +358,6 @@ SMP ◀── 200  {
 ```
 
 The 401 response on `POST /api/mcp` carries:
-
 ```
 WWW-Authenticate: Bearer realm="mcp", resource_metadata="<rfc9728-url>"
 ```
@@ -419,21 +415,21 @@ client ──POST /api/mcp  tools/call list_channels──▶ SMP
 
 ## File Changes
 
-| File                                                                                                       | Action | Purpose                                                                                                                             |
-|------------------------------------------------------------------------------------------------------------|--------|-------------------------------------------------------------------------------------------------------------------------------------|
-| `gradle/libs.versions.toml`                                                                                | Modify | Add `springAi` version + 3 library entries                                                                                          |
-| `server/smp/build.gradle.kts`                                                                              | Modify | Import `spring-ai-bom`, add `spring-ai-starter-mcp-server-webflux`                                                                  |
-| `server/smp/src/main/resources/application.yaml`                                                           | Modify | `spring.ai.mcp.server.*` (no `endpoint` without `mcp-` prefix, no `app.mcp.enabled`); `app.mcp.*` for Profile Tailors-specific data |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/**`                                                 | Create | All classes in the package map above                                                                                                |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/ModuleMetadata.kt`                                  | Create | Modulith public API declaration                                                                                                     |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/infrastructure/oauth/ResourceMetadataController.kt` | Create | RFC 9728 — `/.well-known/oauth-protected-resource` and `/.well-known/oauth-protected-resource/api/mcp` only                         |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/infrastructure/McpToolInvocationAuthorizer.kt`      | Create | Static tool→scope table, called at tool invocation                                                                                  |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/McpBddSteps.kt`                                | Create | Cucumber step glue                                                                                                                  |
-| `server/smp/src/test/resources/features/mcp-tools.feature`                                                 | Create | BDD scenarios                                                                                                                       |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/mcp/**`                                                 | Create | Unit + integration tests                                                                                                            |
-| `shared/common/.../error/ApplicationError.kt`                                                              | Create | Shared taxonomy record (DOMAIN / AUTH / SYSTEM categories)                                                                          |
-| `docs/mcp-server.md`                                                                                       | Create | Client config + OAuth flow (workspace injection, RFC 9728, scope matrix)                                                            |
-| `.env.example`                                                                                             | Modify | Document `SMP_MCP_*` env vars                                                                                                       |
+| File | Action | Purpose |
+|------|--------|---------|
+| `gradle/libs.versions.toml` | Modify | Add `springAi` version + 3 library entries |
+| `server/smp/build.gradle.kts` | Modify | Import `spring-ai-bom`, add `spring-ai-starter-mcp-server-webflux` |
+| `server/smp/src/main/resources/application.yaml` | Modify | `spring.ai.mcp.server.*` (no `endpoint` without `mcp-` prefix, no `app.mcp.enabled`); `app.mcp.*` for Profile Tailors-specific data |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/**` | Create | All classes in the package map above |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/ModuleMetadata.kt` | Create | Modulith public API declaration |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/infrastructure/oauth/ResourceMetadataController.kt` | Create | RFC 9728 — `/.well-known/oauth-protected-resource` and `/.well-known/oauth-protected-resource/api/mcp` only |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/infrastructure/McpToolInvocationAuthorizer.kt` | Create | Static tool→scope table, called at tool invocation |
+| `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/McpBddSteps.kt` | Create | Cucumber step glue |
+| `server/smp/src/test/resources/features/mcp-tools.feature` | Create | BDD scenarios |
+| `server/smp/src/test/kotlin/com/profiletailors/smp/mcp/**` | Create | Unit + integration tests |
+| `shared/common/.../error/ApplicationError.kt` | Create | Shared taxonomy record (DOMAIN / AUTH / SYSTEM categories) |
+| `docs/mcp-server.md` | Create | Client config + OAuth flow (workspace injection, RFC 9728, scope matrix) |
+| `.env.example` | Modify | Document `SMP_MCP_*` env vars |
 
 No `OAuthMetadataController.kt`, no `ClientRegistrationService.kt` — those live in Keycloak.
 
@@ -441,14 +437,14 @@ No `OAuthMetadataController.kt`, no `ClientRegistrationService.kt` — those liv
 
 ## Testing Strategy
 
-| Layer       | Tool / Scope                        | What                                                                                                                   | How                                                                                                                                          |
-|-------------|-------------------------------------|------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
-| Unit        | JUnit 5 + MockK                     | `McpErrorMapper`, `McpToolInvocationAuthorizer`, `McpWorkspaceContextResolver`, each `@McpTool` bean (mocked Mediator) | Direct instantiation, no Spring context                                                                                                      |
-| Slice       | `@WebFluxTest`                      | `McpSecurityConfiguration` — invalid token, missing scope (asserted at tool level), valid request                      | `WebTestClient` with `MockJwtDecoder` accepting `valid-token` / `e2e-*` / `mcp-*` prefixes                                                   |
-| Integration | `@SpringBootTest` + `WebTestClient` | End-to-end tool call: MCP POST → handler → repository → response                                                       | `BddDatabaseSupport.resetDatabase()` + seeded workspace; token from `JwtTestSupport` with claims `{iss, aud, exp, sub, workspace_id, scope}` |
-| BDD         | Cucumber (`@mcp @smoke @fast`)      | Happy path + auth failure + not-found per tool + workspace isolation breach + RFC 9728 discovery                       | `features/mcp-tools.feature` + `McpBddSteps.kt`                                                                                              |
-| Security    | `@SpringBootTest` + `WebTestClient` | RFC 9728 metadata, audience mismatch, expired token, revoked jti, missing `workspace_id`                               | Reuses `auth_login.feature`-style glue                                                                                                       |
-| Contract    | `McpContractTest`                   | Pin `tools/list`, `tools/call`, `initialize` JSON shapes against MCP 1.x spec                                          | Snapshot test against pinned `mcp-types.json`                                                                                                |
+| Layer | Tool / Scope | What | How |
+|-------|--------------|------|-----|
+| Unit | JUnit 5 + MockK | `McpErrorMapper`, `McpToolInvocationAuthorizer`, `McpWorkspaceContextResolver`, each `@McpTool` bean (mocked Mediator) | Direct instantiation, no Spring context |
+| Slice | `@WebFluxTest` | `McpSecurityConfiguration` — invalid token, missing scope (asserted at tool level), valid request | `WebTestClient` with `MockJwtDecoder` accepting `valid-token` / `e2e-*` / `mcp-*` prefixes |
+| Integration | `@SpringBootTest` + `WebTestClient` | End-to-end tool call: MCP POST → handler → repository → response | `BddDatabaseSupport.resetDatabase()` + seeded workspace; token from `JwtTestSupport` with claims `{iss, aud, exp, sub, workspace_id, scope}` |
+| BDD | Cucumber (`@mcp @smoke @fast`) | Happy path + auth failure + not-found per tool + workspace isolation breach + RFC 9728 discovery | `features/mcp-tools.feature` + `McpBddSteps.kt` |
+| Security | `@SpringBootTest` + `WebTestClient` | RFC 9728 metadata, audience mismatch, expired token, revoked jti, missing `workspace_id` | Reuses `auth_login.feature`-style glue |
+| Contract | `McpContractTest` | Pin `tools/list`, `tools/call`, `initialize` JSON shapes against MCP 1.x spec | Snapshot test against pinned `mcp-types.json` |
 
 ---
 
@@ -477,15 +473,15 @@ design and Liquibase migration tracked in a separate change.
 
 ## Open Technical Questions
 
-| # | Question                                                                                                                          | Owner              | Impact                                                       | Mitigation                                                                                                                                  |
-|---|-----------------------------------------------------------------------------------------------------------------------------------|--------------------|--------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| 1 | CIMD compatibility — does Keycloak 26+ accept **Client ID Metadata Documents** (draft-ietf-oauth-client-id-metadata-document)?    | Platform           | Required for ergonomic MCP client onboarding in MCP Nov 2025 | Tracked as a spike outcome (Task 2). Baseline path = pre-registered clients + DCR. **Fallback if CIMD fails: pre-registered clients only.** |
-| 2 | Does Keycloak support **RFC 8707 Resource Indicators** with multi-audience tokens?                                                | Platform           | Required for clean resource binding                          | Spike in Phase 0; fallback = single audience `https://api.profiletailors.com/api/mcp`, `workspace_id` carried as a separate claim           |
-| 3 | Workspace injection mechanism in detail — JWS shape, login-URL parameter vs auth-request parameter, protocol mapper configuration | Platform           | Affects Keycloak SPI exposure                                | Option A is the MVP. Phase 3+ may replace with a custom Keycloak authenticator that renders a workspace selector UI.                        |
-| 4 | Consent screen ownership for the workspace confirmation step                                                                      | Product / Security | Affects Keycloak theme config                                | Start with Keycloak default theme; switch to a custom page in Phase 3 if the custom-authenticator option is chosen                          |
-| 5 | MCP spec version pinning — Spring AI 2.0 ships which MCP protocol revision?                                                       | R&D                | Affects `Mcp-Session-Id` / SSE headers                       | Pin `mcp-protocol-version` in `McpConfiguration` once GA docs land                                                                          |
-| 6 | `@McpTool` vs Spring AI 1.0 `@Tool` — annotation migration on upgrade                                                             | Platform           | Need to confirm Spring AI 2.0 GA API                         | Spike verifies final API; design assumes `@McpTool(name, description)` and `@McpToolParam(description, required)`                           |
-| 7 | SSE keep-alive for long tool calls                                                                                                | Platform           | Not needed in Phase 1 (all tools < 5s)                       | Revisit if Phase 2 introduces `create_publication`                                                                                          |
+| # | Question | Owner | Impact | Mitigation |
+|---|----------|-------|--------|------------|
+| 1 | CIMD compatibility — does Keycloak 26+ accept **Client ID Metadata Documents** (draft-ietf-oauth-client-id-metadata-document)? | Platform | Required for ergonomic MCP client onboarding in MCP Nov 2025 | Tracked as a spike outcome (Task 2). Baseline path = pre-registered clients + DCR. **Fallback if CIMD fails: pre-registered clients only.** |
+| 2 | Does Keycloak support **RFC 8707 Resource Indicators** with multi-audience tokens? | Platform | Required for clean resource binding | Spike in Phase 0; fallback = single audience `https://api.profiletailors.com/api/mcp`, `workspace_id` carried as a separate claim |
+| 3 | Workspace injection mechanism in detail — JWS shape, login-URL parameter vs auth-request parameter, protocol mapper configuration | Platform | Affects Keycloak SPI exposure | Option A is the MVP. Phase 3+ may replace with a custom Keycloak authenticator that renders a workspace selector UI. |
+| 4 | Consent screen ownership for the workspace confirmation step | Product / Security | Affects Keycloak theme config | Start with Keycloak default theme; switch to a custom page in Phase 3 if the custom-authenticator option is chosen |
+| 5 | MCP spec version pinning — Spring AI 2.0 ships which MCP protocol revision? | R&D | Affects `Mcp-Session-Id` / SSE headers | Pin `mcp-protocol-version` in `McpConfiguration` once GA docs land |
+| 6 | `@McpTool` vs Spring AI 1.0 `@Tool` — annotation migration on upgrade | Platform | Need to confirm Spring AI 2.0 GA API | Spike verifies final API; design assumes `@McpTool(name, description)` and `@McpToolParam(description, required)` |
+| 7 | SSE keep-alive for long tool calls | Platform | Not needed in Phase 1 (all tools < 5s) | Revisit if Phase 2 introduces `create_publication` |
 
 ---
 

@@ -1,5 +1,5 @@
 /**
- * spec: openspec/specs/email-verification-ui/spec.md
+ * spec: openspec/changes/email-verification-link-flow/specs/email-verification-ui/spec.md
  * section: Verification Landing Route + Session Bootstrap After Verification
  *
  * Covers opening the emailed verify-email link, submitting the token to the

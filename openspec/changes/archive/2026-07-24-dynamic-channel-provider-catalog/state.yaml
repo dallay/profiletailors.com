@@ -36,8 +36,7 @@ history:
     note: PR 3 migrated the sidebar to the resolved catalog, centralized connected-channel fallbacks, and completed focused frontend and backend validation.
   - phase: verify
     completed_at: 2026-07-24
-    note:
-      Verification failed: required BDD coverage for catalog states, capacity/existing-channel behavior, workspace isolation, and OAuth denials is missing despite task 2.5 being marked complete.
+    note: Verification failed: required BDD coverage for catalog states, capacity/existing-channel behavior, workspace isolation, and OAuth denials is missing despite task 2.5 being marked complete.
   - phase: verify
     completed_at: 2026-07-24
     note: Reverification after corrective BDD merge passed with warnings. Forced fast BDD covers available, hidden, locked, capacity/existing-channel, workspace isolation, OAuth policy denial, missing authentication, and missing workspace context; backend checks, coverage generation, SPA tests, and SPA build passed.

@@ -19,7 +19,7 @@ Web Analytics are conditional integrations and are not approved production subpr
 ### Status Vocabulary
 
 | Status            | Meaning                                                                           |
-|-------------------|-----------------------------------------------------------------------------------|
+| ----------------- | --------------------------------------------------------------------------------- |
 | Candidate         | Being evaluated; must not receive production personal data.                       |
 | Contracting       | Due diligence and contract work incomplete; activation blocked.                   |
 | Approved inactive | Approved for a defined configuration but not currently receiving data.            |
@@ -31,7 +31,7 @@ Web Analytics are conditional integrations and are not approved production subpr
 ## Changes
 
 | Version | Date       | Description                                                                   |
-|---------|------------|-------------------------------------------------------------------------------|
+| ------- | ---------- | ----------------------------------------------------------------------------- |
 | 1.0     | 2026-07-17 | Replaced inferred provider lists with an empty-by-default activation register |
 
 ## Usage
@@ -39,13 +39,13 @@ Web Analytics are conditional integrations and are not approved production subpr
 ### Current Approved Register
 
 | Legal entity | Service                                    | Status | Data and people | Processing and access countries | Agreement and transfer evidence | Last verified |
-|--------------|--------------------------------------------|--------|-----------------|---------------------------------|---------------------------------|---------------|
+| ------------ | ------------------------------------------ | ------ | --------------- | ------------------------------- | ------------------------------- | ------------- |
 | None         | No production subprocessor set is approved | —      | —               | —                               | —                               | 2026-07-17    |
 
 ### Known Candidates and Non-Approved Integrations
 
 | Name or category              | Repository evidence                                                                        | Current classification                                         | Required decision                                                                                                                                                                 |
-|-------------------------------|--------------------------------------------------------------------------------------------|----------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Production hosting and CDN    | Static Astro and Vite builds; no deployment adapter or provider selection                  | Not selected                                                   | Select legal entity, product, regions, logs, security, DPA, subprocessors, transfers, retention, deletion, and exit                                                               |
 | Production PostgreSQL host    | R2DBC configuration accepts a production connection                                        | Not selected                                                   | Select service and regions; validate encryption, backup, access, DPA, transfers, retention, deletion, continuity, and exit                                                        |
 | Production object storage     | Local filesystem is default; S3 and R2-compatible adapters exist                           | Not selected                                                   | Select only one approved production configuration and verify every storage, support, telemetry, and backup location                                                               |

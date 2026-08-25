@@ -11,9 +11,7 @@ readiness contracts. CI and quality gates, dependency policy, architecture gover
 test-harness plans, and deployment plumbing belong in the repository's workflows, ADRs, skills,
 testing documentation, or operational documentation instead of `openspec/specs/`. A change may
 include technical design and verification evidence when it implements a product contract, but a
-purely technical task must not create a standalone OpenSpec capability. Within a product change,
-implementation constraints belong in design, tasks, tests, or verification artifacts; the spec
-must describe observable or domain behavior.
+purely technical task must not create a standalone OpenSpec capability.
 
 Use the repository [documentation index](../docs/README.md) for operational, architecture,
 security, infrastructure, and onboarding documentation. Use this directory when you need to
@@ -21,18 +19,15 @@ understand what the product must do, why a change was made, or what evidence ver
 
 ## Changes
 
-- **2026-08-03**: Updated password-recovery artifact references from `changes/password-recovery/...`
-  to `changes/archive/2026-07-29-password-recovery/...` (dead-reference-cleaner automation).
-- **2026-08-24**: Moved Playwright test plans from `specs/e2e/` to `docs/testing/e2e/`; OpenSpec now
-  contains only product and functional contracts.
+- **2026-08-03**: Updated password-recovery artifact references from `changes/password-recovery/...` to `changes/archive/2026-07-29-password-recovery/...` (dead-reference-cleaner automation).
 
 ## Structure
 
-| Path               | Purpose                                   |
-|--------------------|-------------------------------------------|
-| `specs/`           | Current product and capability contracts. |
-| `changes/<name>/`  | Active change artifacts.                  |
-| `changes/archive/` | Completed or superseded change history.   |
+| Path | Purpose |
+| --- | --- |
+| `specs/` | Current product and capability contracts. |
+| `changes/<name>/` | Active change artifacts. |
+| `changes/archive/` | Completed or superseded change history. |
 
 An active change commonly contains:
 

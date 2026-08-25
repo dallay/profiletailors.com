@@ -11,23 +11,23 @@ The server is gated behind `SMP_MCP_ENABLED=true` and requires Spring AI MCP aut
 
 ## Changes
 
-| PR | Scope                                                       |
-|----|-------------------------------------------------------------|
-| 1  | Foundation: bounded context, feature flag, transport wiring |
-| 2  | Security: JWT converter, RFC 9728 metadata, presence filter |
-| 3  | Tools: 4 adapters, error mapper, audit facts, rate limiter  |
-| 4  | Verification: BDD scenarios, tests, documentation (this PR) |
+| PR  | Scope                                                        |
+| --- | ------------------------------------------------------------ |
+| 1   | Foundation: bounded context, feature flag, transport wiring  |
+| 2   | Security: JWT converter, RFC 9728 metadata, presence filter  |
+| 3   | Tools: 4 adapters, error mapper, audit facts, rate limiter   |
+| 4   | Verification: BDD scenarios, tests, documentation (this PR)  |
 
 ## Usage
 
 ### Available Tools
 
-| Tool                | Scope Required          | Rate Limit    | Description                          |
-|---------------------|-------------------------|---------------|--------------------------------------|
-| `list_channels`     | `mcp:channels:read`     | 60 req/min/ws | List connected social media channels |
-| `list_publications` | `mcp:publications:read` | 30 req/min/ws | List publications in a date range    |
-| `get_calendar`      | `mcp:publications:read` | 30 req/min/ws | Calendar view of publications        |
-| `list_providers`    | `mcp:publications:read` | 30 req/min/ws | List available social providers      |
+| Tool               | Scope Required          | Rate Limit         | Description                         |
+| ------------------ | ----------------------- | ------------------ | ----------------------------------- |
+| `list_channels`    | `mcp:channels:read`     | 60 req/min/ws      | List connected social media channels |
+| `list_publications`| `mcp:publications:read` | 30 req/min/ws      | List publications in a date range    |
+| `get_calendar`     | `mcp:publications:read` | 30 req/min/ws      | Calendar view of publications        |
+| `list_providers`   | `mcp:publications:read` | 30 req/min/ws      | List available social providers      |
 
 ### OAuth 2.0 Flow
 
@@ -58,10 +58,10 @@ The server is gated behind `SMP_MCP_ENABLED=true` and requires Spring AI MCP aut
 
 ### Scope Matrix
 
-| Scope                   | Tools                                                 |
-|-------------------------|-------------------------------------------------------|
-| `mcp:channels:read`     | `list_channels`                                       |
-| `mcp:publications:read` | `list_publications`, `get_calendar`, `list_providers` |
+| Scope                  | Tools                                        |
+| ---------------------- | -------------------------------------------- |
+| `mcp:channels:read`    | `list_channels`                              |
+| `mcp:publications:read`| `list_publications`, `get_calendar`, `list_providers` |
 
 ### Client Configuration
 
@@ -101,26 +101,26 @@ Point the OpenAPI action endpoint to `POST /api/mcp` with the Bearer token in he
 
 ### 401 Unauthorized
 
-| Symptom                                | Cause                           | Fix                                                              |
-|----------------------------------------|---------------------------------|------------------------------------------------------------------|
-| Missing `Authorization` header         | No Bearer token sent            | Add `Authorization: Bearer <token>` header                       |
-| `WWW-Authenticate: Bearer realm="mcp"` | Token missing or malformed      | Verify token format and audience claim                           |
-| `JWT audience does not contain ...`    | Token audience mismatch         | Request token with `aud: https://api.profiletailors.com/api/mcp` |
-| `JWT is missing required claim`        | Missing `workspace_id` in token | Ensure authorization server includes `workspace_id` claim        |
+| Symptom                                | Cause                                   | Fix                                                |
+| -------------------------------------- | --------------------------------------- | -------------------------------------------------- |
+| Missing `Authorization` header         | No Bearer token sent                    | Add `Authorization: Bearer <token>` header         |
+| `WWW-Authenticate: Bearer realm="mcp"` | Token missing or malformed              | Verify token format and audience claim             |
+| `JWT audience does not contain ...`    | Token audience mismatch                 | Request token with `aud: https://api.profiletailors.com/api/mcp` |
+| `JWT is missing required claim`        | Missing `workspace_id` in token         | Ensure authorization server includes `workspace_id` claim |
 
 ### 403 Forbidden
 
-| Symptom         | Cause                      | Fix                                                               |
-|-----------------|----------------------------|-------------------------------------------------------------------|
-| `access_denied` | Missing required MCP scope | Request token with `mcp:channels:read` or `mcp:publications:read` |
+| Symptom           | Cause                        | Fix                                     |
+| ----------------- | ---------------------------- | --------------------------------------- |
+| `access_denied`   | Missing required MCP scope   | Request token with `mcp:channels:read` or `mcp:publications:read` |
 
 ### 429 Rate Limited
 
-| Symptom                 | Cause                       | Fix                       |
-|-------------------------|-----------------------------|---------------------------|
-| `rate_limit_exceeded`   | Exceeded bucket limit       | Wait 60 seconds and retry |
-| `mcp-channels-read`     | > 60 requests/min/workspace | Reduce request frequency  |
-| `mcp-publications-read` | > 30 requests/min/workspace | Batch or cache results    |
+| Symptom               | Cause                            | Fix                           |
+| --------------------- | -------------------------------- | ----------------------------- |
+| `rate_limit_exceeded`  | Exceeded bucket limit            | Wait 60 seconds and retry     |
+| `mcp-channels-read`   | > 60 requests/min/workspace      | Reduce request frequency      |
+| `mcp-publications-read`| > 30 requests/min/workspace     | Batch or cache results        |
 
 ## References
 
