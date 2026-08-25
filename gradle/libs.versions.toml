@@ -12,7 +12,7 @@ licenceReport = "3.1.4"
 jdk = "21"
 
 # Libraries
-coroutines = "1.10.2"
+coroutines = "1.11.0"
 jackson = "3.2.2"
 slf4j = "2.0.18"
 commonsText = "1.15.0"
