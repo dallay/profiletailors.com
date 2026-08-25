@@ -1,104 +1,94 @@
-# Shared Storage Module
+# Shared Storage Module (`shared:storage`)
 
-Módulo plug-and-play para abstracción de almacenamiento (Buckets) con soporte multi-provider y streaming reactivo mediante Kotlin Coroutines (Flow).
+Plug-and-play reactive object storage abstraction supporting multi-provider storage backends (Local Filesystem, AWS S3, Cloudflare R2 / S2), path traversal protection, and memory-efficient streaming via Kotlin Coroutines `Flow`.
 
-## Características
-- **Multi-provider**: Soporte para Local Filesystem, AWS S3 y Cloudflare R2 (S2).
-- **Streaming nativo**: Basado en `kotlinx.coroutines.Flow` para eficiencia de memoria con archivos grandes.
-- **Configuración dinámica**: Define N buckets en tu `application.yml` y resuélvelos por nombre.
-- **Seguridad**: Protección contra *Path Traversal* en el provider local.
-- **Interoperabilidad**: Adaptadores incluidos para `Project Reactor` (WebFlux).
+## Role in the platform
 
-## Instalación
+Provides unified file and media asset storage abstractions for Profile Tailors backend services (`server/smp`). It abstracts media bucket storage across local development drives and production S3 / Cloudflare R2 buckets, facilitating media uploads, asset deduplication, signed URLs, and file retrieval.
 
-Añade la dependencia en tu `build.gradle.kts`:
-```kotlin
-implementation(project(":shared-storage"))
+## Tech stack
+
+- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines & Flow
+- **Framework & Cloud SDKs**: AWS S3 SDK v2, Spring Boot 4.0, Project Reactor Bridge
+- **Testing**: JUnit 5, Kotest, MockK
+
+## Getting started
+
+### Prerequisites
+
+- Java JDK `>= 21`
+- Gradle wrapper (`./gradlew`)
+
+### Installation
+
+Included automatically as a Gradle project dependency `:shared:storage`.
+
+### Running locally
+
+Run unit tests:
+
+```bash
+./gradlew :shared:storage:test
 ```
 
-## Configuración (application.yml)
+### Environment variables
+
+| Variable | Required | Description | Default |
+| --- | --- | --- | --- |
+| `PLATFORM_STORAGE_DEFAULT` | No | Default active storage provider (`local`, `s3`, `r2`) | `local` |
+| `AWS_S3_BUCKET` | No | Target S3 bucket name when using S3 provider | `profiletailors-media` |
+| `AWS_S3_REGION` | No | Target AWS region | `us-east-1` |
+
+## Project structure
+
+```text
+shared/storage/
+├── src/main/kotlin/com/profiletailors/storage/
+│   ├── config/      # StorageProperties and Spring Auto-Configuration
+│   ├── domain/      # StorageProvider interface, StorageBucket, StorageObject
+│   ├── provider/    # LocalFileSystemStorageProvider, S3StorageProvider, R2StorageProvider
+│   └── security/    # PathTraversalValidator and file path sanitizers
+└── build.gradle.kts
+```
+
+## Testing
+
+Run unit tests:
+
+```bash
+./gradlew :shared:storage:test
+```
+
+## API / Public interface
+
+Main types in package `com.profiletailors.storage`:
+
+- `StorageProvider`: Core interface for `putObject`, `getObject`, `deleteObject`, and `listObjects`.
+- `StorageBucket`: Named bucket configuration wrapper.
+- `StorageObject`: File metadata and reactive payload container (`Flow<ByteBuffer>`).
+- `LocalFileSystemStorageProvider`: Local file system provider with path traversal safeguards.
+
+## Configuration
+
+Sample properties (`application.yaml`):
 
 ```yaml
 platform:
   storage:
     default: "local"
     providers:
-      # Provider Local
       local:
-        type: local
-        base-path: "/var/app/storage"
-      
-      # Provider AWS S3
-      attachments:
-        type: s3
-        bucket: "my-app-attachments"
-        region: "eu-west-1"
-        # AWS SDK usa default credentials chain (IAM roles, env vars, etc.)
-      
-      # Provider Cloudflare R2 (recomendado)
-      public-images:
-        type: r2
-        bucket: "user-images"
-        account-id: "${R2_ACCOUNT_ID}"  # Requerido para R2
-        region: "auto"
-        # AWS SDK usa default credentials chain
-      
-      # Provider Cloudflare R2 (deprecated - usa "r2" en su lugar)
-      legacy-images:
-        type: s2  # Deprecated: usa "r2" en su lugar
-        bucket: "legacy-images"
-        account-id: "${R2_ACCOUNT_ID}"
-        region: "auto"
+        type: "filesystem"
+        base-path: "./tmp/storage"
 ```
 
-### Notas sobre Configuration
+## Contributing
 
-- **`type: r2`**: Configuración canónica para Cloudflare R2. Requiere `account-id`.
-- **`type: s2`**: Alias deprecated para R2. Logra un warning al iniciar. Migra a `type: r2`.
-- **Credenciales**: El módulo usa AWS SDK default credentials chain (IAM roles en producción, variables de entorno `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, o credentials file).
-- **R2 Endpoint**: Se construye automáticamente como `https://{account-id}.r2.cloudflarestorage.com`.
+Please review the [Root CONTRIBUTING.md](../../CONTRIBUTING.md) for workflow rules, commit conventions, and pull request guidelines.
 
-## Uso
+## License
 
-### Inyectar el Registry o el Storage por defecto
-```kotlin
-@Service
-class MyService(
-    private val storage: Storage, // Storage por defecto configurado
-    private val registry: BucketRegistry // Para resolver buckets específicos
-) {
-    suspend fun saveProfile(userId: String, content: Flow<ByteArray>) {
-        // Guardar en el bucket por defecto
-        storage.upload("profiles", "$userId.jpg", content)
-        
-        // O guardar en uno específico
-        val imagesBucket = registry.getStorage("public-images")
-        imagesBucket.upload("avatars", "$userId.jpg", content)
-    }
-}
-```
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the [Root LICENSE](../../LICENSE) for details.
 
-### Generar Presigned URLs (S3/R2)
-```kotlin
-val url = storage.presignGet("public-images", "avatars/123.jpg", expirySeconds = 600)
-```
-
-## Desarrollo y Tests
-
-Para ejecutar los tests del módulo:
-```bash
-./gradlew :shared:storage:test --tests "*R2Storage*"    # Solo tests de R2
-./gradlew :shared:storage:test --tests "*S3Storage*"   # Solo tests de S3
-./gradlew :shared:storage:test                         # Todos los tests
-```
-
-*Nota: Los tests de integración de S3/R2 requieren Docker para levantar Localstack o un emulador de R2.*
-
-## Providers Soportados
-
-| Type | Provider | Adapter | Presigned URLs |
-|------|----------|---------|----------------|
-| `local` | Local Filesystem | `LocalFilesystemStorage` | ❌ |
-| `s3` | AWS S3 | `S3Storage` | ✅ |
-| `r2` | Cloudflare R2 | `R2StorageAdapter` | ✅ |
-| `s2` | Cloudflare R2 (deprecated) | `R2StorageAdapter` | ✅ |
+---
+Back to [Root README](../../README.md)

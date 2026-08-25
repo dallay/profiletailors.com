@@ -194,11 +194,11 @@ No Spring MVC controller currently handles `GET /api/media/proxy`. A 404 is retu
 **Historical defenses:** The path returned 404 because no controller existed. That did not provide
 an authorization invariant for a future implementation.
 
-**Impact:** If a proxy endpoint is later implemented that fetches arbitrary URLs without authentication, it becomes an unauthenticated SSRF vector  
+**Impact:** If a proxy endpoint is later implemented that fetches arbitrary URLs without authentication, it becomes an unauthenticated SSRF vector
 **Likelihood:** Medium (endpoint is on the roadmap based on its presence in the config)  
 **CWE:** CWE-306 (Missing Authentication for Critical Function)  
 **OWASP:** A01:2025 Broken Access Control, API5:2023 Broken Function Level Authorization  
-**ASVS:** V4.2.1  
+**ASVS:** V4.2.1
 
 **Remediation applied:** `/api/media/proxy` was removed from the `permitAll()` block. If the endpoint
 must serve unauthenticated users (e.g., for email preview images), it may be added back only after
@@ -244,11 +244,11 @@ attacker-controlled workspace.
 `CHANGE_ME`, `changeme`, `placeholder`, and `test-` prefixes. The regression tests and wiring for
 the accepted `bdd-` and `smp-` test-secret prefixes landed in `eed89343`.
 
-**Impact:** OAuth CSRF — attacker can complete the LinkedIn OAuth flow on behalf of a victim and link their own LinkedIn account to an arbitrary workspace, or steal the victim's OAuth authorization code  
-**Likelihood:** Medium (requires LinkedIn integration enabled AND operator oversight of secret rotation)  
+**Impact:** OAuth CSRF — attacker can complete the LinkedIn OAuth flow on behalf of a victim and link their own LinkedIn account to an arbitrary workspace, or steal the victim's OAuth authorization code
+**Likelihood:** Medium (requires LinkedIn integration enabled AND operator oversight of secret rotation)
 **CWE:** CWE-798 (Use of Hard-Coded Credentials)  
 **OWASP:** A07:2025 Authentication Failures, API2:2023 Broken Authentication  
-**ASVS:** V3.5.3  
+**ASVS:** V3.5.3
 
 **Remediation applied:** The signer now fails fast when the resolved secret is blank or matches a
 known placeholder prefix. See the `HmacOAuthStateSigner.kt` change in the Remediation Changelog.
@@ -304,7 +304,7 @@ signer throws `IllegalArgumentException` for `CHANGE_ME_LINKEDIN_STATE`, `CHANGE
 
 ### SEC-001 — Remove pre-authorized unauthenticated proxy path
 
-**Files changed:**  
+**Files changed:**
 - `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/IdentitySecurityConfiguration.kt`
 
 **Security invariant introduced:** `GET /api/media/proxy` requires authentication unless explicitly permitted again at implementation time.
@@ -313,7 +313,7 @@ signer throws `IllegalArgumentException` for `CHANGE_ME_LINKEDIN_STATE`, `CHANGE
 `permitAll()`. Commit `850668ca` adds the corresponding unauthenticated-401 BDD scenario, and
 commit `e3b78d16` contains the production configuration deletion.
 
-**Tests added:**  
+**Tests added:**
 - `server/smp/src/test/resources/features/security-endpoint-authorization.feature` — BDD: 401 on `/api/media/proxy`, `/api/media/assets/*`, `/api/workspaces/**`; 200 only on actuator health/prometheus and capabilities/public (5 scenarios, `@security @smoke @fast`)
 - `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/SecurityAuthorizationBddSteps.kt`
 
@@ -327,7 +327,7 @@ entry.
 
 ### SEC-002 — Fail-fast on predictable LinkedIn OAuth state signing secret
 
-**Files changed:**  
+**Files changed:**
 - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/HmacOAuthStateSigner.kt`
 
 **Security invariant introduced:** Application refuses to start if the OAuth state secret matches the placeholder or is blank.
@@ -335,33 +335,33 @@ entry.
 **Evidence:** Commit `eed89343` adds the guard, test-secret wiring, and placeholder-prefix
 regression tests.
 
-**Tests added:**  
+**Tests added:**
 - `server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/HmacOAuthStateSignerTest.kt` — placeholder-prefix rejection (`CHANGE_ME`, `changeme`, `placeholder`, `test-`) and strong-secret acceptance
 
-**Compatibility impact:** Any deployment that has not set `SMP_LINKEDIN_STATE_SIGNING_SECRET` (or uses the `CHANGE_ME_LINKEDIN_STATE` placeholder) will fail to start when the LinkedIn feature is used. Operators must set a strong secret before deploying.  
-**Deployment impact:** Operators must set `SMP_LINKEDIN_STATE_SIGNING_SECRET` to a strong random value (≥ 32 bytes of entropy, base64 encoded).  
+**Compatibility impact:** Any deployment that has not set `SMP_LINKEDIN_STATE_SIGNING_SECRET` (or uses the `CHANGE_ME_LINKEDIN_STATE` placeholder) will fail to start when the LinkedIn feature is used. Operators must set a strong secret before deploying.
+**Deployment impact:** Operators must set `SMP_LINKEDIN_STATE_SIGNING_SECRET` to a strong random value (≥ 32 bytes of entropy, base64 encoded).
 **Residual risk:** If LinkedIn integration is disabled (`SMP_LINKEDIN_CLIENT_ID` blank), this code path is not triggered and the check may not run at startup.
 
 ---
 
 ### SEC-009 — Raise password minimum length to 12 (ASVS L2 V2.1.1)
 
-**Files changed:**  
-- `server/smp/src/main/kotlin/.../identity/application/LocalAuthHandlers.kt` — `MIN_PASSWORD_LENGTH 8 → 12`  
-- `server/smp/src/main/kotlin/.../identity/application/ResetPasswordHandler.kt` — `MIN_PASSWORD_LENGTH 8 → 12`  
-- `server/smp/src/main/kotlin/.../identity/infrastructure/http/LocalAuthController.kt` — `@Size(min=12)`, `@Schema(minLength=12)`  
-- `apps/web/app/src/shared/lib/validation/schemas.ts` — Zod `min(12)`  
-- `apps/web/app/src/modules/auth/presentation/ResetPasswordView.vue` — `minlength="12"`  
-- `apps/web/app/src/shared/i18n/locales/en/auth.ts`, `en/passwordRecovery.ts`, `es/passwordRecovery.ts` — i18n strings  
+**Files changed:**
+- `server/smp/src/main/kotlin/.../identity/application/LocalAuthHandlers.kt` — `MIN_PASSWORD_LENGTH 8 → 12`
+- `server/smp/src/main/kotlin/.../identity/application/ResetPasswordHandler.kt` — `MIN_PASSWORD_LENGTH 8 → 12`
+- `server/smp/src/main/kotlin/.../identity/infrastructure/http/LocalAuthController.kt` — `@Size(min=12)`, `@Schema(minLength=12)`
+- `apps/web/app/src/shared/lib/validation/schemas.ts` — Zod `min(12)`
+- `apps/web/app/src/modules/auth/presentation/ResetPasswordView.vue` — `minlength="12"`
+- `apps/web/app/src/shared/i18n/locales/en/auth.ts`, `en/passwordRecovery.ts`, `es/passwordRecovery.ts` — i18n strings
 
 **Security invariant introduced:** Passwords shorter than 12 characters are rejected at registration and password reset. Existing hashed passwords are unaffected.
 
-**Tests added:**  
-- `server/smp/src/test/resources/features/auth/registration.feature` — BDD: 11-char rejected, 12-char accepted  
-- `server/smp/src/test/kotlin/.../identity/application/ResetPasswordHandlerTest.kt` — unit: 11-char rejected  
-- `apps/web/app/src/shared/lib/validation/schemas.test.ts` — boundary updated to 12/128  
+**Tests added:**
+- `server/smp/src/test/resources/features/auth/registration.feature` — BDD: 11-char rejected, 12-char accepted
+- `server/smp/src/test/kotlin/.../identity/application/ResetPasswordHandlerTest.kt` — unit: 11-char rejected
+- `apps/web/app/src/shared/lib/validation/schemas.test.ts` — boundary updated to 12/128
 
-**Compatibility impact:** Users with passwords 8–11 characters can still log in and use refresh tokens. New registrations and password resets require ≥ 12 characters.  
+**Compatibility impact:** Users with passwords 8–11 characters can still log in and use refresh tokens. New registrations and password resets require ≥ 12 characters.
 **Deployment impact:** None — no configuration changes required.  
 **Residual risk:** None for the backend enforcement. Existing 8–11-char account passwords remain valid until users voluntarily reset their password. No forced password rotation is performed.
 
@@ -373,9 +373,9 @@ regression tests.
 
 **Trigger:** Horizontal scaling or Cloudflare/ingress deployment  
 **Owner:** Backend platform team  
-**Recommended action:** Implement `ForwardedHeaderFilter` trust (DALLAY-513), validate proxy IP ranges, then switch `clientIdentifier()` to use the trusted `X-Forwarded-For` first IP  
+**Recommended action:** Implement `ForwardedHeaderFilter` trust (DALLAY-513), validate proxy IP ranges, then switch `clientIdentifier()` to use the trusted `X-Forwarded-For` first IP
 **Severity:** Medium (currently compensated by per-email rate limiting)  
-**Compensating controls:** Per-email rate limiting in `RequestPasswordResetHandler`, 20 req/min per-IP filter still prevents fast brute-force against unknown accounts  
+**Compensating controls:** Per-email rate limiting in `RequestPasswordResetHandler`, 20 req/min per-IP filter still prevents fast brute-force against unknown accounts
 **Release impact:** Safe to ship in single-replica `0.1.0`; must be resolved before multi-replica or direct-exposure deployment
 
 ---
@@ -384,9 +384,9 @@ regression tests.
 
 **Trigger:** Horizontal scaling (multiple SMP replicas)  
 **Owner:** Backend platform team  
-**Recommended action:** Enable `application.rate-limit.store.distributed-enabled=true` and configure Redis before any horizontal scaling  
+**Recommended action:** Enable `application.rate-limit.store.distributed-enabled=true` and configure Redis before any horizontal scaling
 **Severity:** Medium (rate limits per-instance, not global)  
-**Compensating controls:** Documented in `application.yaml`; single-replica deployment makes this a non-issue today  
+**Compensating controls:** Documented in `application.yaml`; single-replica deployment makes this a non-issue today
 **Release impact:** Must not scale beyond one replica without this change
 
 ---
@@ -395,9 +395,9 @@ regression tests.
 
 **Trigger:** Incident response / compliance audit  
 **Owner:** DevSecOps / compliance team  
-**Recommended action:** Enable `SMP_PLATFORM_AUDIT_ENABLED=true` in production and ensure audit records are persisted to a separate, tamper-evident store  
+**Recommended action:** Enable `SMP_PLATFORM_AUDIT_ENABLED=true` in production and ensure audit records are persisted to a separate, tamper-evident store
 **Severity:** Low (operational risk)  
-**Compensating controls:** Application logs provide partial observability; structured log events are emitted  
+**Compensating controls:** Application logs provide partial observability; structured log events are emitted
 **Release impact:** No functional impact; security monitoring coverage reduced
 
 ---
@@ -406,9 +406,9 @@ regression tests.
 
 **Trigger:** API abuse or DoS against authenticated endpoints  
 **Owner:** Backend platform team  
-**Recommended action:** Enable `application.rate-limit.business.enabled=true` and configure appropriate bucket capacities once rate-limit store is deployed  
+**Recommended action:** Enable `application.rate-limit.business.enabled=true` and configure appropriate bucket capacities once rate-limit store is deployed
 **Severity:** Low  
-**Compensating controls:** Database-layer constraints, media upload rate limiting (`MediaRateLimitRepository`), authentication requirement on all business endpoints  
+**Compensating controls:** Database-layer constraints, media upload rate limiting (`MediaRateLimitRepository`), authentication requirement on all business endpoints
 **Release impact:** Business endpoints may be subject to excessive request rates from compromised accounts
 
 ---
@@ -417,7 +417,7 @@ regression tests.
 
 **Trigger:** Production deployment of LinkedIn integration  
 **Owner:** Operators / DevSecOps  
-**Recommended action:** Rotate `SMP_LINKEDIN_STATE_SIGNING_SECRET`, `SMP_LINKEDIN_CLIENT_SECRET`, and `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` before each deployment; use Docker Swarm secrets (already configured)  
+**Recommended action:** Rotate `SMP_LINKEDIN_STATE_SIGNING_SECRET`, `SMP_LINKEDIN_CLIENT_SECRET`, and `PUBLISHING_CREDENTIALS_ENCRYPTION_KEY` before each deployment; use Docker Swarm secrets (already configured)
 **Severity:** Medium (if secrets not rotated before deploy)  
-**Compensating controls:** Docker Swarm secret injection, SEC-002 fix adds fail-fast for state secret  
+**Compensating controls:** Docker Swarm secret injection, SEC-002 fix adds fail-fast for state secret
 **Release impact:** LinkedIn integration must not be enabled without secret rotation

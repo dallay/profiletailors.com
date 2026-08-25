@@ -4,7 +4,7 @@ Chain strategy: pending
 400-line budget risk: High
   
   ## Review Workload Forecast
-                        
+
                         | Field | Value |
                         |-------|-------|
                         | Estimated changed lines | ~1000–1100 |
