@@ -102,7 +102,7 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
         .one()
         .awaitSingleOrNull()
 
-    override suspend fun findByTokenHashForUpdate(tokenHash: String): PasswordResetToken? = databaseClient.sql(
+    override suspend fun findForConsumption(tokenHash: String): PasswordResetToken? = databaseClient.sql(
         """
         SELECT id, principal_id, token_hash, requested_at, expires_at, used_at
         FROM password_reset_tokens

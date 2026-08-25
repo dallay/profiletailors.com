@@ -43,7 +43,7 @@ internal class ResetPasswordHandler(
         val newPasswordHash = passwordHasher.hash(command.newPassword)
 
         val principalId = transactionRunner.runAtomically {
-            val stored = passwordResetTokenRepository.findByTokenHashForUpdate(tokenHash)
+            val stored = passwordResetTokenRepository.findForConsumption(tokenHash)
                 ?: throw InvalidPasswordResetTokenException()
 
             when {
