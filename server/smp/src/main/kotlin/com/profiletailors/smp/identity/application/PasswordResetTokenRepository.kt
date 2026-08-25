@@ -29,6 +29,12 @@ interface PasswordResetTokenRepository {
     suspend fun findByTokenHash(tokenHash: String): PasswordResetToken?
 
     /**
+     * Finds a token by hash with a row-level lock (SELECT FOR UPDATE).
+     * Use this within a transaction to prevent concurrent consumption.
+     */
+    suspend fun findByTokenHashForUpdate(tokenHash: String): PasswordResetToken?
+
+    /**
      * Atomically consumes the matching token and updates the principal's
      * password credential in a single database transaction. Returns without
      * exception iff exactly one row was consumed AND the password credential

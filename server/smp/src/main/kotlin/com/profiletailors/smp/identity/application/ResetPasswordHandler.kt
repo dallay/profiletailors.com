@@ -42,16 +42,15 @@ internal class ResetPasswordHandler(
         val now = clock.instant()
         val newPasswordHash = passwordHasher.hash(command.newPassword)
 
-        val stored = passwordResetTokenRepository.findByTokenHash(tokenHash)
-            ?: throw InvalidPasswordResetTokenException()
+        val principalId = transactionRunner.runAtomically {
+            val stored = passwordResetTokenRepository.findByTokenHashForUpdate(tokenHash)
+                ?: throw InvalidPasswordResetTokenException()
 
-        when {
-            stored.isUsed() -> throw UsedPasswordResetTokenException()
-            stored.isExpired(now) -> throw ExpiredPasswordResetTokenException()
-        }
+            when {
+                stored.isUsed() -> throw UsedPasswordResetTokenException()
+                stored.isExpired(now) -> throw ExpiredPasswordResetTokenException()
+            }
 
-        val principalId = stored.principalId
-        transactionRunner.runAtomically {
             try {
                 passwordResetTokenRepository.consumeAndUpdatePassword(
                     tokenHash = tokenHash,
@@ -61,8 +60,8 @@ internal class ResetPasswordHandler(
             } catch (_: PasswordResetCredentialMissingException) {
                 throw InvalidPasswordResetTokenException()
             }
-            refreshSessionLifecycleService.revokeAllForPrincipal(principalId)
-            true
+            refreshSessionLifecycleService.revokeAllForPrincipal(stored.principalId)
+            stored.principalId
         }
 
         try {

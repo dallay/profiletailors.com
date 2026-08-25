@@ -102,6 +102,28 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
         .one()
         .awaitSingleOrNull()
 
+    override suspend fun findByTokenHashForUpdate(tokenHash: String): PasswordResetToken? = databaseClient.sql(
+        """
+        SELECT id, principal_id, token_hash, requested_at, expires_at, used_at
+        FROM password_reset_tokens
+        WHERE token_hash = :tokenHash
+        FOR UPDATE
+        """.trimIndent(),
+    )
+        .bind(TOKEN_HASH_BIND, tokenHash)
+        .map { row, _ ->
+            PasswordResetToken(
+                id = requireNotNull(row.get("id", UUID::class.java)),
+                principalId = requireNotNull(row.get("principal_id", String::class.java)),
+                tokenHash = requireNotNull(row.get("token_hash", String::class.java)),
+                requestedAt = requireNotNull(row.get("requested_at", OffsetDateTime::class.java)).toInstant(),
+                expiresAt = requireNotNull(row.get("expires_at", OffsetDateTime::class.java)).toInstant(),
+                usedAt = row.get("used_at", OffsetDateTime::class.java)?.toInstant(),
+            )
+        }
+        .one()
+        .awaitSingleOrNull()
+
     /**
      * Atomic consume-and-update.
      *
