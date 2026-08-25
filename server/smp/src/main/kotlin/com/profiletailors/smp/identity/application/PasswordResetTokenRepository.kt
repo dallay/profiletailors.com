@@ -26,9 +26,21 @@ interface PasswordResetTokenRepository {
      */
     suspend fun create(principalId: String, tokenHash: String, requestedAt: Instant, expiresAt: Instant)
 
-    suspend fun findByTokenHash(tokenHash: String): PasswordResetToken?
+    /**
+ * Finds a password reset token by its hash.
+ *
+ * @param tokenHash The SHA-256 hash of the password reset token.
+ * @return The matching password reset token, or `null` if no token is found.
+ */
+suspend fun findByTokenHash(tokenHash: String): PasswordResetToken?
 
-    suspend fun findForConsumption(tokenHash: String): PasswordResetToken?
+    /**
+ * Retrieves a password reset token for consumption.
+ *
+ * @param tokenHash The SHA-256 hash of the password reset token.
+ * @return The matching password reset token, or `null` if no token is found.
+ */
+suspend fun findForConsumption(tokenHash: String): PasswordResetToken?
 
     /**
      * Atomically consumes the matching token and updates the principal's

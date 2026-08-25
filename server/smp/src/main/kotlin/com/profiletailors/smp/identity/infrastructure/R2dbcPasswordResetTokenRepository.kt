@@ -81,7 +81,13 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
             .awaitSingle()
     }
 
-    override suspend fun findByTokenHash(tokenHash: String): PasswordResetToken? = databaseClient.sql(
+    /**
+         * Finds a password reset token by its hash.
+         *
+         * @param tokenHash The hashed password reset token to find.
+         * @return The matching password reset token, or `null` if no token exists.
+         */
+        override suspend fun findByTokenHash(tokenHash: String): PasswordResetToken? = databaseClient.sql(
         """
         SELECT id, principal_id, token_hash, requested_at, expires_at, used_at
         FROM password_reset_tokens
@@ -102,7 +108,13 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
         .one()
         .awaitSingleOrNull()
 
-    override suspend fun findForConsumption(tokenHash: String): PasswordResetToken? = databaseClient.sql(
+    /**
+         * Finds a password-reset token by hash while locking the matching row for update.
+         *
+         * @param tokenHash The hashed password-reset token to find.
+         * @return The matching password-reset token, or `null` if no token exists.
+         */
+        override suspend fun findForConsumption(tokenHash: String): PasswordResetToken? = databaseClient.sql(
         """
         SELECT id, principal_id, token_hash, requested_at, expires_at, used_at
         FROM password_reset_tokens

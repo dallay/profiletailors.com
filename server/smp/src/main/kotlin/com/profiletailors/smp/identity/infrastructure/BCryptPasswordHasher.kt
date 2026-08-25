@@ -5,9 +5,22 @@ import org.springframework.security.crypto.bcrypt.BCrypt
 import java.security.MessageDigest
 
 class BCryptPasswordHasher : PasswordHasher {
-    override fun hash(rawPassword: String): String =
+    /**
+         * Hashes a raw password using BCrypt with the configured cost factor.
+         *
+         * @param rawPassword The password to hash.
+         * @return The BCrypt password hash.
+         */
+        override fun hash(rawPassword: String): String =
         BCrypt.hashpw(bcryptInput(rawPassword), BCrypt.gensalt(COST_FACTOR))
 
+    /**
+     * Verifies a raw password against a BCrypt password hash.
+     *
+     * @param rawPassword The password to verify.
+     * @param passwordHash The BCrypt hash to verify against.
+     * @return `true` if the password matches the hash, `false` otherwise or if the input format is invalid.
+     */
     override fun matches(rawPassword: String, passwordHash: String): Boolean = try {
         BCrypt.checkpw(bcryptInput(rawPassword), passwordHash)
     } catch (_: IllegalArgumentException) {
