@@ -1,16 +1,15 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminUserQuery
 import com.profiletailors.smp.platformadmin.application.model.AdminUserDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminUserSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWorkspaceMembershipSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
-import com.profiletailors.smp.platformadmin.application.ports.AdminUserQuery
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.query.ListAdminUsersQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
-import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
 import com.profiletailors.smp.platformadmin.infrastructure.persistence.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
@@ -21,13 +20,12 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin/users")
 class AdminUserController(
     private val userQuery: AdminUserQuery,
-    private val roleAssignmentRepository: PlatformRoleAssignmentRepository,
+    private val operatorAccessResolver: OperatorAccessResolver,
     private val requestContextStore: RequestContextStore,
 ) {
     @GetMapping
@@ -41,8 +39,8 @@ class AdminUserController(
         @RequestParam createdFrom: Instant? = null,
         @RequestParam createdTo: Instant? = null,
     ): ResponseEntity<PagedResult<AdminUserSummary>> {
-        val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        if (PlatformPermission.USERS_READ !in operatorRoles.effectivePermissions()) {
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (PlatformPermission.USERS_READ !in operator.roles.effectivePermissions()) {
             throw PlatformAccessDeniedException(PlatformPermission.USERS_READ)
         }
         if (size > ADMIN_PAGE_MAX_SIZE) return ResponseEntity.badRequest().build()
@@ -63,8 +61,8 @@ class AdminUserController(
 
     @GetMapping("/{principalId}")
     suspend fun getUser(@PathVariable principalId: String): ResponseEntity<AdminUserDetail> {
-        val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        if (PlatformPermission.USERS_READ !in operatorRoles.effectivePermissions()) {
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (PlatformPermission.USERS_READ !in operator.roles.effectivePermissions()) {
             throw PlatformAccessDeniedException(PlatformPermission.USERS_READ)
         }
         val user = userQuery.findById(principalId) ?: return ResponseEntity.notFound().build()
@@ -75,17 +73,15 @@ class AdminUserController(
     suspend fun getUserWorkspaces(
         @PathVariable principalId: String,
     ): ResponseEntity<List<AdminWorkspaceMembershipSummary>> {
-        val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        if (PlatformPermission.USERS_WORKSPACES_READ !in operatorRoles.effectivePermissions()) {
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (PlatformPermission.USERS_WORKSPACES_READ !in operator.roles.effectivePermissions()) {
             throw PlatformAccessDeniedException(PlatformPermission.USERS_WORKSPACES_READ)
         }
         return ResponseEntity.ok(userQuery.findWorkspacesByPrincipalId(principalId))
     }
 
-    private suspend fun resolveOperator(): Pair<UUID, Set<PlatformRole>>? {
+    private suspend fun resolveOperator(): com.profiletailors.smp.platformadmin.application.OperatorAccess? {
         val ctx = requestContextStore.currentPrincipalContext() ?: return null
-        val operatorId = UUID.fromString(ctx.principalId)
-        val assignments = roleAssignmentRepository.findActiveByPrincipalId(operatorId)
-        return operatorId to assignments.map { it.role }.toSet()
+        return operatorAccessResolver.resolve(ctx)
     }
 }

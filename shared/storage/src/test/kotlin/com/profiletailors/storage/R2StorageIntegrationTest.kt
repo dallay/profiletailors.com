@@ -1,6 +1,6 @@
 package com.profiletailors.storage
 
-import com.profiletailors.storage.infrastructure.R2StorageAdapter
+import com.profiletailors.storage.infrastructure.R2Storage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -26,7 +26,7 @@ import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 
 /**
- * Integration tests for R2StorageAdapter using LocalStack.
+ * Integration tests for R2Storage using LocalStack.
  *
  * Note: LocalStack does not fully emulate R2's behavior, but we can test
  * the S3-compatible operations using LocalStack in path-style mode.
@@ -35,7 +35,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
  */
 @Testcontainers
 @EnabledIfEnvironmentVariable(named = "DOCKER_AVAILABLE", matches = "true")
-@DisplayName("R2StorageAdapter Integration Tests")
+@DisplayName("R2Storage Integration Tests")
 class R2StorageIntegrationTest {
 
     companion object {
@@ -83,7 +83,7 @@ class R2StorageIntegrationTest {
 
     @Test
     fun `end-to-end upload and download`() = runBlocking {
-        val storage = R2StorageAdapter(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
+        val storage = R2Storage(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
         val key = "test/upload-download.txt"
         val content = "R2 integration test content".toByteArray()
 
@@ -95,7 +95,7 @@ class R2StorageIntegrationTest {
 
     @Test
     fun `exists returns true for existing object`() = runBlocking {
-        val storage = R2StorageAdapter(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
+        val storage = R2Storage(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
         val key = "test/exists-true.txt"
 
         storage.upload(BUCKET_NAME, key, flowOf("exists".toByteArray()))
@@ -105,14 +105,14 @@ class R2StorageIntegrationTest {
 
     @Test
     fun `exists returns false for non-existent object`() = runBlocking {
-        val storage = R2StorageAdapter(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
+        val storage = R2Storage(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
 
         assertFalse(storage.exists(BUCKET_NAME, "non-existent-key.txt"))
     }
 
     @Test
     fun `delete removes object and exists returns false`() = runBlocking {
-        val storage = R2StorageAdapter(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
+        val storage = R2Storage(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
         val key = "test/delete-verify.txt"
 
         storage.upload(BUCKET_NAME, key, flowOf("to-be-deleted".toByteArray()))
@@ -125,7 +125,7 @@ class R2StorageIntegrationTest {
 
     @Test
     fun `list returns all objects with prefix`() = runBlocking {
-        val storage = R2StorageAdapter(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
+        val storage = R2Storage(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
 
         storage.upload(BUCKET_NAME, "list-prefix/file1.txt", flowOf("1".toByteArray()))
         storage.upload(BUCKET_NAME, "list-prefix/file2.txt", flowOf("2".toByteArray()))
@@ -140,7 +140,7 @@ class R2StorageIntegrationTest {
 
     @Test
     fun `presigned URL generation`() = runBlocking {
-        val storage = R2StorageAdapter(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
+        val storage = R2Storage(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
 
         // Upload a file first
         val key = "test/presigned.txt"
@@ -156,7 +156,7 @@ class R2StorageIntegrationTest {
 
     @Test
     fun `upload with metadata`() = runBlocking {
-        val storage = R2StorageAdapter(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
+        val storage = R2Storage(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
         val key = "test/metadata.txt"
         val metadata = mapOf("content-type" to "text/plain", "author" to "test")
 
@@ -169,7 +169,7 @@ class R2StorageIntegrationTest {
 
     @Test
     fun `concurrent uploads`() = runBlocking {
-        val storage = R2StorageAdapter(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
+        val storage = R2Storage(r2Client, BUCKET_NAME, r2Presigner, TEST_ACCOUNT_ID)
 
         // Upload multiple files concurrently
         val keys = (1..5).map { "concurrent/file$it.txt" }

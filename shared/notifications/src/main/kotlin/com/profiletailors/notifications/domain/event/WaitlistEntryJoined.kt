@@ -9,9 +9,9 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey
  * a waitlist.
  *
  * This event is published by the server-side adapter
- * [com.profiletailors.smp.leadcapture.infrastructure.events.WaitlistEntryJoinedEventAdapter],
+ * [com.profiletailors.smp.leadcapture.infrastructure.events.WaitlistEntryJoinedEventTranslator],
  * which translates the framework-free
- * [com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotification]
+ * [com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotification]
  * into a [DomainEvent] and dispatches it on the bus.
  *
  * @property waitlistEntryId id of the newly-created entry

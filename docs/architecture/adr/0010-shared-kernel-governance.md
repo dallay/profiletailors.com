@@ -9,19 +9,21 @@
 - Related:
     - C4: [Dependency Graph](../shared/dependencies.md)
 
-## Context
+## Overview
+
+### Context
 
 A monorepo with multiple bounded contexts requires shared code to avoid duplication, but an
 ungoverned shared module can quickly lead to tight coupling and a "distributed monolith" inside a
 single build.
 
-## Decision drivers
+### Decision drivers
 
 - Independence (contexts should be able to evolve separately).
 - Stability (changes in shared code should be rare and well-vetted).
 - Framework Isolation (keeping the core domain free of technical details).
 
-## Decision
+### Decision
 
 The `shared/` modules MUST follow strict governance rules:
 
@@ -34,32 +36,60 @@ The `shared/` modules MUST follow strict governance rules:
 4. **Ownership**: Shared modules are owned by the Principal Architect or a cross-team platform
    group.
 
-## Scope and boundaries
+### Scope and boundaries
 
 - All Gradle modules under `shared/`.
 
-## Alternatives considered
+### Alternatives considered
 
-### Duplication
+#### Duplication
 
 - Advantages: Maximum independence between teams.
 - Disadvantages: Inconsistency in core concepts (e.g., how an Email is validated).
 - Reason rejected: Leads to high maintenance effort for cross-cutting security or infrastructure
   changes.
 
-## Consequences
+### Consequences
 
-### Positive
+#### Positive
 
 - Clean, reusable foundation.
 - Enforced architectural layers.
 
-### Negative
+#### Negative
 
 - Higher barrier to sharing code (intentional).
 - Changes to `shared:common` require recompiling the entire system.
 
-## Compliance and enforcement
+## Changes
+
+### PermissionKey — admitted to shared/common
+
+`PermissionKey` was moved from `authorization.domain` to
+`com.profiletailors.common.domain.vo.permission` because it is a domain primitive
+used by three bounded contexts: `authorization`, `governance`, and `tenancy`. A
+typealias in `authorization.domain.PermissionKey` preserves source compatibility for
+existing imports within the authorization context. Cross-context consumers
+(`governance`, `tenancy`) now import directly from `shared/common`.
+
+### CredentialType — exception: admitted with 2 contexts
+
+`CredentialType` was moved from `credentials.domain` to
+`com.profiletailors.common.domain.authentication` despite being used by only two
+bounded contexts (`credentials` and `identity`), which is below the three-context
+admission criterion. The exception is granted because:
+
+- It is an immutable enum (inherently safe to share).
+- Its semantics mirror `PrincipalType`, which already resides in `shared/common`.
+- The alternative (cross-context domain import from `identity` into `credentials`)
+  creates bounded-context coupling that ADR-0010's governance model is designed to
+  prevent.
+
+A typealias in `credentials.domain.CredentialType` preserves source compatibility.
+
+## Usage
+
+### Compliance and enforcement
 
 Enforced via Gradle build configuration and ArchUnit tests.
 
@@ -72,16 +102,18 @@ implemented using:
 - **Gradle dependency constraints**: Configure the `shared:common` module's `build.gradle.kts` to
   explicitly exclude framework dependencies and fail the build if they are transitively introduced
 
-## Verification
+### Verification
 
 - `:shared:common` build file has minimal/no dependencies.
 - No circular dependencies between `:server:smp` and `:shared:*`.
 
-## Migration or remediation
+## Troubleshooting
 
-None required; the current structure is already exceptionally clean.
-
-## Revisit conditions
+### Revisit conditions
 
 - The time to compile the entire project becomes a major productivity bottleneck.
 - The shared kernel grows too large to be understood by a single contributor.
+
+## References
+
+- C4: [Dependency Graph](../shared/dependencies.md)

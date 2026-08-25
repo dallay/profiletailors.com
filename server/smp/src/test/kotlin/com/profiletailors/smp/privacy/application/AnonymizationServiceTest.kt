@@ -10,20 +10,20 @@ import java.time.Instant
 
 class AnonymizationServiceTest {
 
-    private val identityPort = mockk<IdentityAnonymizationPort>(relaxed = true)
-    private val waitlistPort = mockk<WaitlistAnonymizationPort>(relaxed = true)
-    private val credentialsPort = mockk<CredentialsRevocationPort>(relaxed = true)
-    private val tenancyPort = mockk<TenancyDataPort>(relaxed = true)
-    private val publishingPort = mockk<PublishingDeletionPort>(relaxed = true)
-    private val mediaPort = mockk<MediaDeletionPort>(relaxed = true)
+    private val identityAnonymization = mockk<IdentityAnonymization>(relaxed = true)
+    private val waitlistAnonymization = mockk<WaitlistAnonymization>(relaxed = true)
+    private val credentials = mockk<CredentialsRevocation>(relaxed = true)
+    private val tenancyData = mockk<TenancyData>(relaxed = true)
+    private val publishing = mockk<PublishingDeletion>(relaxed = true)
+    private val media = mockk<MediaDeletion>(relaxed = true)
 
     private val service = AnonymizationService(
-        identityPort = identityPort,
-        waitlistPort = waitlistPort,
-        credentialsPort = credentialsPort,
-        tenancyPort = tenancyPort,
-        publishingPort = publishingPort,
-        mediaPort = mediaPort,
+        identityAnonymization = identityAnonymization,
+        waitlistAnonymization = waitlistAnonymization,
+        credentials = credentials,
+        tenancyData = tenancyData,
+        publishing = publishing,
+        media = media,
     )
 
     // ——————— anonymizePII ———————
@@ -36,8 +36,8 @@ class AnonymizationServiceTest {
 
         service.anonymizePII(principalId, email, timestamp)
 
-        coVerify { identityPort.anonymizeUserIdentity(principalId, timestamp) }
-        coVerify { identityPort.anonymizePrincipalDisplayIdentity(principalId) }
+        coVerify { identityAnonymization.anonymizeUserIdentity(principalId, timestamp) }
+        coVerify { identityAnonymization.anonymizePrincipalDisplayIdentity(principalId) }
     }
 
     @Test
@@ -48,7 +48,7 @@ class AnonymizationServiceTest {
 
         service.anonymizePII(principalId, email, timestamp)
 
-        coVerify { waitlistPort.anonymizeByEmail(email, timestamp) }
+        coVerify { waitlistAnonymization.anonymizeByEmail(email, timestamp) }
     }
 
     @Test
@@ -59,8 +59,8 @@ class AnonymizationServiceTest {
 
         service.anonymizePII(principalId, email, timestamp)
 
-        coVerify { credentialsPort.revokeAllSessions(principalId) }
-        coVerify { credentialsPort.deleteAllApiKeys(principalId) }
+        coVerify { credentials.revokeAllSessions(principalId) }
+        coVerify { credentials.deleteAllApiKeys(principalId) }
     }
 
     @Test
@@ -72,11 +72,11 @@ class AnonymizationServiceTest {
         service.anonymizePII(principalId, email, timestamp)
 
         coVerifySequence {
-            identityPort.anonymizeUserIdentity(principalId, timestamp)
-            identityPort.anonymizePrincipalDisplayIdentity(principalId)
-            waitlistPort.anonymizeByEmail(email, timestamp)
-            credentialsPort.revokeAllSessions(principalId)
-            credentialsPort.deleteAllApiKeys(principalId)
+            identityAnonymization.anonymizeUserIdentity(principalId, timestamp)
+            identityAnonymization.anonymizePrincipalDisplayIdentity(principalId)
+            waitlistAnonymization.anonymizeByEmail(email, timestamp)
+            credentials.revokeAllSessions(principalId)
+            credentials.deleteAllApiKeys(principalId)
         }
     }
 
@@ -85,7 +85,7 @@ class AnonymizationServiceTest {
     @Test
     fun `verifyCorrection returns success when email is available`() = runTest {
         val email = "new@example.com"
-        coEvery { identityPort.correctUserIdentityEmail(any(), any()) } returns "old@example.com"
+        coEvery { identityAnonymization.correctUserIdentityEmail(any(), any()) } returns "old@example.com"
 
         val result = service.verifyCorrection("principal-1", CorrectionField.EMAIL, email)
 
@@ -95,7 +95,7 @@ class AnonymizationServiceTest {
     @Test
     fun `verifyCorrection returns not found when principal does not exist`() = runTest {
         val email = "new@example.com"
-        coEvery { identityPort.correctUserIdentityEmail(any(), any()) } returns null
+        coEvery { identityAnonymization.correctUserIdentityEmail(any(), any()) } returns null
 
         val result = service.verifyCorrection("principal-1", CorrectionField.EMAIL, email)
 
@@ -107,10 +107,10 @@ class AnonymizationServiceTest {
         val principalId = "principal-1"
         val newValue = "new@example.com"
 
-        coEvery { identityPort.correctUserIdentityEmail(any(), any()) } returns "old@example.com"
+        coEvery { identityAnonymization.correctUserIdentityEmail(any(), any()) } returns "old@example.com"
         service.verifyCorrection(principalId, CorrectionField.EMAIL, newValue)
 
-        coVerify { identityPort.correctUserIdentityEmail(principalId, newValue) }
+        coVerify { identityAnonymization.correctUserIdentityEmail(principalId, newValue) }
     }
 
     @Test
@@ -118,10 +118,10 @@ class AnonymizationServiceTest {
         val principalId = "principal-1"
         val newValue = "newuser"
 
-        coEvery { identityPort.correctUserIdentityUsername(any(), any()) } returns "olduser"
+        coEvery { identityAnonymization.correctUserIdentityUsername(any(), any()) } returns "olduser"
         service.verifyCorrection(principalId, CorrectionField.USERNAME, newValue)
 
-        coVerify { identityPort.correctUserIdentityUsername(principalId, newValue) }
+        coVerify { identityAnonymization.correctUserIdentityUsername(principalId, newValue) }
     }
 
     // ——————— deleteData ———————
@@ -129,59 +129,59 @@ class AnonymizationServiceTest {
     @Test
     fun `deleteData removes all memberships and collects workspace IDs`() = runTest {
         val principalId = "principal-1"
-        coEvery { tenancyPort.removeAllMemberships(principalId) } returns listOf("ws-1", "ws-2")
-        coEvery { publishingPort.deleteSocialConnections(principalId) } returns Unit
-        coEvery { publishingPort.deleteSecureCredentials(principalId) } returns Unit
-        coEvery { publishingPort.cancelPendingPublications(principalId) } returns Unit
-        coEvery { mediaPort.markAssetsDeleted(principalId, listOf("ws-1", "ws-2")) } returns Unit
-        coEvery { mediaPort.markBlobsReadyForGc(principalId, listOf("ws-1", "ws-2")) } returns Unit
+        coEvery { tenancyData.removeAllMemberships(principalId) } returns listOf("ws-1", "ws-2")
+        coEvery { publishing.deleteSocialConnections(principalId) } returns Unit
+        coEvery { publishing.deleteSecureCredentials(principalId) } returns Unit
+        coEvery { publishing.cancelPendingPublications(principalId) } returns Unit
+        coEvery { media.markAssetsDeleted(principalId, listOf("ws-1", "ws-2")) } returns Unit
+        coEvery { media.markBlobsReadyForGc(principalId, listOf("ws-1", "ws-2")) } returns Unit
 
         service.deleteData(principalId)
 
-        coVerify { tenancyPort.removeAllMemberships(principalId) }
+        coVerify { tenancyData.removeAllMemberships(principalId) }
     }
 
     @Test
     fun `deleteData passes workspace IDs to media deletion`() = runTest {
         val principalId = "principal-1"
-        coEvery { tenancyPort.removeAllMemberships(principalId) } returns listOf("ws-1", "ws-2")
+        coEvery { tenancyData.removeAllMemberships(principalId) } returns listOf("ws-1", "ws-2")
 
         service.deleteData(principalId)
 
-        coVerify { mediaPort.markAssetsDeleted(principalId, listOf("ws-1", "ws-2")) }
-        coVerify { mediaPort.markBlobsReadyForGc(principalId, listOf("ws-1", "ws-2")) }
+        coVerify { media.markAssetsDeleted(principalId, listOf("ws-1", "ws-2")) }
+        coVerify { media.markBlobsReadyForGc(principalId, listOf("ws-1", "ws-2")) }
     }
 
     @Test
     fun `deleteData revokes credentials and deletes publishing data`() = runTest {
         val principalId = "principal-1"
-        coEvery { tenancyPort.removeAllMemberships(principalId) } returns emptyList()
+        coEvery { tenancyData.removeAllMemberships(principalId) } returns emptyList()
 
         service.deleteData(principalId)
 
-        coVerify { publishingPort.deleteSocialConnections(principalId) }
-        coVerify { publishingPort.deleteSecureCredentials(principalId) }
-        coVerify { publishingPort.cancelPendingPublications(principalId) }
-        coVerify { credentialsPort.revokeAllSessions(principalId) }
-        coVerify { credentialsPort.deleteAllApiKeys(principalId) }
+        coVerify { publishing.deleteSocialConnections(principalId) }
+        coVerify { publishing.deleteSecureCredentials(principalId) }
+        coVerify { publishing.cancelPendingPublications(principalId) }
+        coVerify { credentials.revokeAllSessions(principalId) }
+        coVerify { credentials.deleteAllApiKeys(principalId) }
     }
 
     @Test
     fun `deleteData chains operations in expected order`() = runTest {
         val principalId = "principal-1"
-        coEvery { tenancyPort.removeAllMemberships(principalId) } returns listOf("ws-1")
+        coEvery { tenancyData.removeAllMemberships(principalId) } returns listOf("ws-1")
 
         service.deleteData(principalId)
 
         coVerifySequence {
-            tenancyPort.removeAllMemberships(principalId)
-            mediaPort.markAssetsDeleted(principalId, listOf("ws-1"))
-            mediaPort.markBlobsReadyForGc(principalId, listOf("ws-1"))
-            publishingPort.deleteSocialConnections(principalId)
-            publishingPort.deleteSecureCredentials(principalId)
-            publishingPort.cancelPendingPublications(principalId)
-            credentialsPort.revokeAllSessions(principalId)
-            credentialsPort.deleteAllApiKeys(principalId)
+            tenancyData.removeAllMemberships(principalId)
+            media.markAssetsDeleted(principalId, listOf("ws-1"))
+            media.markBlobsReadyForGc(principalId, listOf("ws-1"))
+            publishing.deleteSocialConnections(principalId)
+            publishing.deleteSecureCredentials(principalId)
+            publishing.cancelPendingPublications(principalId)
+            credentials.revokeAllSessions(principalId)
+            credentials.deleteAllApiKeys(principalId)
         }
     }
 }

@@ -4,12 +4,13 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platformadmin.application.OperatorAccess
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminOperatorQuery
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.model.AdminOperatorSummary
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -25,7 +26,8 @@ class AdminOperatorControllerTest {
     private val operatorId = UUID.fromString("00000000-0000-0000-0000-000000000001")
     private val targetId = UUID.fromString("00000000-0000-0000-0000-0000000000b1")
 
-    private val roleAssignmentRepository = mockk<PlatformRoleAssignmentRepository>()
+    private val operatorQuery = mockk<AdminOperatorQuery>()
+    private val operatorAccessResolver = mockk<OperatorAccessResolver>()
     private val assignRoleHandler = mockk<AssignPlatformRoleHandler>(relaxed = true)
     private val revokeRoleHandler = mockk<RevokePlatformRoleHandler>(relaxed = true)
 
@@ -52,12 +54,23 @@ class AdminOperatorControllerTest {
     }
 
     @Test
-    fun `listOperators groups active assignments by principal`() {
+    fun `listOperators forwards already-grouped summaries in response`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
-        coEvery { roleAssignmentRepository.findAllActive() } returns listOf(
-            assignment(operatorId, PlatformRole.PLATFORM_OWNER),
-            assignment(targetId, PlatformRole.SUPPORT_AGENT),
-            assignment(targetId, PlatformRole.AUDITOR),
+        coEvery { operatorQuery.listAllActive() } returns listOf(
+            AdminOperatorSummary(
+                principalId = operatorId,
+                email = "",
+                displayName = null,
+                platformRoles = listOf("PLATFORM_OWNER"),
+                assignedAt = clock.minusSeconds(3600),
+            ),
+            AdminOperatorSummary(
+                principalId = targetId,
+                email = "",
+                displayName = null,
+                platformRoles = listOf("SUPPORT_AGENT", "AUDITOR"),
+                assignedAt = clock.minusSeconds(3600),
+            ),
         )
 
         webClient()
@@ -140,7 +153,8 @@ class AdminOperatorControllerTest {
     private fun webClient(principal: PrincipalContext? = operatorPrincipal()): WebTestClient = WebTestClient
         .bindToController(
             AdminOperatorController(
-                roleAssignmentRepository = roleAssignmentRepository,
+                operatorQuery = operatorQuery,
+                operatorAccessResolver = operatorAccessResolver,
                 assignRoleHandler = assignRoleHandler,
                 revokeRoleHandler = revokeRoleHandler,
                 requestContextStore = FakeRequestContextStore(principal),
@@ -150,8 +164,7 @@ class AdminOperatorControllerTest {
         .build()
 
     private fun grantRoles(roles: List<PlatformRole>) {
-        coEvery { roleAssignmentRepository.findActiveByPrincipalId(operatorId) } returns
-            roles.map { assignment(operatorId, it) }
+        coEvery { operatorAccessResolver.resolve(any()) } returns OperatorAccess(operatorId, roles.toSet())
     }
 
     private fun operatorPrincipal() = PrincipalContext(
@@ -159,14 +172,6 @@ class AdminOperatorControllerTest {
         principalType = PrincipalType.USER,
         subject = "operator@example.com",
         provider = "jwt",
-    )
-
-    private fun assignment(principalId: UUID, role: PlatformRole) = PlatformRoleAssignment(
-        id = PlatformRoleAssignmentId.generate(),
-        principalId = principalId,
-        role = role,
-        assignedAt = clock.minusSeconds(3600),
-        assignedBy = operatorId,
     )
 
     private class FakeRequestContextStore(private val principal: PrincipalContext?) : RequestContextStore {

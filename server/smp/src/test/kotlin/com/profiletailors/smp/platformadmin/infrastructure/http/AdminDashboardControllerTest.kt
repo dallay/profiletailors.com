@@ -4,11 +4,10 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
-import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.OperatorAccess
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -25,7 +24,7 @@ class AdminDashboardControllerTest {
     private val operatorId = UUID.fromString("00000000-0000-0000-0000-000000000001")
 
     private val waitlistQuery = mockk<AdminWaitlistQuery>()
-    private val roleAssignmentRepository = mockk<PlatformRoleAssignmentRepository>()
+    private val operatorAccessResolver = mockk<OperatorAccessResolver>()
 
     @Test
     fun `getDashboard returns 401 without principal context`() {
@@ -33,7 +32,7 @@ class AdminDashboardControllerTest {
             .bindToController(
                 AdminDashboardController(
                     waitlistQuery = waitlistQuery,
-                    roleAssignmentRepository = roleAssignmentRepository,
+                    operatorAccessResolver = operatorAccessResolver,
                     requestContextStore = FakeRequestContextStore(null),
                     clock = clock,
                 ),
@@ -104,7 +103,7 @@ class AdminDashboardControllerTest {
         .bindToController(
             AdminDashboardController(
                 waitlistQuery = waitlistQuery,
-                roleAssignmentRepository = roleAssignmentRepository,
+                operatorAccessResolver = operatorAccessResolver,
                 requestContextStore = FakeRequestContextStore(principal),
                 clock = clock,
             ),
@@ -113,8 +112,7 @@ class AdminDashboardControllerTest {
         .build()
 
     private fun grantRoles(roles: List<PlatformRole>) {
-        coEvery { roleAssignmentRepository.findActiveByPrincipalId(operatorId) } returns
-            roles.map { assignment(it) }
+        coEvery { operatorAccessResolver.resolve(any()) } returns OperatorAccess(operatorId, roles.toSet())
     }
 
     private fun operatorPrincipal() = PrincipalContext(
@@ -122,14 +120,6 @@ class AdminDashboardControllerTest {
         principalType = PrincipalType.USER,
         subject = "operator@example.com",
         provider = "jwt",
-    )
-
-    private fun assignment(role: PlatformRole) = PlatformRoleAssignment(
-        id = PlatformRoleAssignmentId.generate(),
-        principalId = operatorId,
-        role = role,
-        assignedAt = clock.instant(),
-        assignedBy = operatorId,
     )
 
     private class FakeRequestContextStore(private val principal: PrincipalContext?) : RequestContextStore {

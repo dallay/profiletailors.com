@@ -10,12 +10,12 @@ import java.time.Instant
  * fulfill a data subject request.
  */
 class AnonymizationService(
-    private val identityPort: IdentityAnonymizationPort,
-    private val waitlistPort: WaitlistAnonymizationPort,
-    private val credentialsPort: CredentialsRevocationPort,
-    private val tenancyPort: TenancyDataPort,
-    private val publishingPort: PublishingDeletionPort,
-    private val mediaPort: MediaDeletionPort,
+    private val identityAnonymization: IdentityAnonymization,
+    private val waitlistAnonymization: WaitlistAnonymization,
+    private val credentials: CredentialsRevocation,
+    private val tenancyData: TenancyData,
+    private val publishing: PublishingDeletion,
+    private val media: MediaDeletion,
 ) {
 
     /**
@@ -29,11 +29,11 @@ class AnonymizationService(
      * 5. Delete all API keys
      */
     suspend fun anonymizePII(principalId: String, email: String, timestamp: Instant) {
-        identityPort.anonymizeUserIdentity(principalId, timestamp)
-        identityPort.anonymizePrincipalDisplayIdentity(principalId)
-        waitlistPort.anonymizeByEmail(email, timestamp)
-        credentialsPort.revokeAllSessions(principalId)
-        credentialsPort.deleteAllApiKeys(principalId)
+        identityAnonymization.anonymizeUserIdentity(principalId, timestamp)
+        identityAnonymization.anonymizePrincipalDisplayIdentity(principalId)
+        waitlistAnonymization.anonymizeByEmail(email, timestamp)
+        credentials.revokeAllSessions(principalId)
+        credentials.deleteAllApiKeys(principalId)
     }
 
     /**
@@ -41,9 +41,9 @@ class AnonymizationService(
      * without credential revocation (which is handled in Phase 2).
      */
     suspend fun anonymizeIdentityAndWaitlist(principalId: String, email: String, timestamp: Instant) {
-        identityPort.anonymizeUserIdentity(principalId, timestamp)
-        identityPort.anonymizePrincipalDisplayIdentity(principalId)
-        waitlistPort.anonymizeByEmail(email, timestamp)
+        identityAnonymization.anonymizeUserIdentity(principalId, timestamp)
+        identityAnonymization.anonymizePrincipalDisplayIdentity(principalId)
+        waitlistAnonymization.anonymizeByEmail(email, timestamp)
     }
 
     /**
@@ -51,8 +51,8 @@ class AnonymizationService(
      * Used in deletion Phase 2.
      */
     suspend fun revokeCredentials(principalId: String) {
-        credentialsPort.revokeAllSessions(principalId)
-        credentialsPort.deleteAllApiKeys(principalId)
+        credentials.revokeAllSessions(principalId)
+        credentials.deleteAllApiKeys(principalId)
     }
 
     /**
@@ -60,7 +60,7 @@ class AnonymizationService(
      * Used by the correction handler to propagate email changes.
      */
     suspend fun anonymizeWaitlistByEmail(email: String, timestamp: Instant) {
-        waitlistPort.anonymizeByEmail(email, timestamp)
+        waitlistAnonymization.anonymizeByEmail(email, timestamp)
     }
 
     /**
@@ -68,8 +68,8 @@ class AnonymizationService(
      * Used in deletion Phase 3.
      */
     suspend fun markMediaForGc(principalId: String, workspaceIds: List<String>) {
-        mediaPort.markAssetsDeleted(principalId, workspaceIds)
-        mediaPort.markBlobsReadyForGc(principalId, workspaceIds)
+        media.markAssetsDeleted(principalId, workspaceIds)
+        media.markBlobsReadyForGc(principalId, workspaceIds)
     }
 
     /**
@@ -80,8 +80,8 @@ class AnonymizationService(
      */
     suspend fun verifyCorrection(principalId: String, field: CorrectionField, newValue: String): CorrectionResult {
         val changed = when (field) {
-            CorrectionField.EMAIL -> identityPort.correctUserIdentityEmail(principalId, newValue)
-            CorrectionField.USERNAME -> identityPort.correctUserIdentityUsername(principalId, newValue)
+            CorrectionField.EMAIL -> identityAnonymization.correctUserIdentityEmail(principalId, newValue)
+            CorrectionField.USERNAME -> identityAnonymization.correctUserIdentityUsername(principalId, newValue)
         }
         return if (changed != null) {
             CorrectionResult.Success
@@ -94,18 +94,18 @@ class AnonymizationService(
      * Delete all data associated with a principal across all contexts.
      */
     suspend fun deleteData(principalId: String) {
-        val workspaceIds = tenancyPort.removeAllMemberships(principalId)
+        val workspaceIds = tenancyData.removeAllMemberships(principalId)
 
         if (workspaceIds.isNotEmpty()) {
-            mediaPort.markAssetsDeleted(principalId, workspaceIds)
-            mediaPort.markBlobsReadyForGc(principalId, workspaceIds)
+            media.markAssetsDeleted(principalId, workspaceIds)
+            media.markBlobsReadyForGc(principalId, workspaceIds)
         }
 
-        publishingPort.deleteSocialConnections(principalId)
-        publishingPort.deleteSecureCredentials(principalId)
-        publishingPort.cancelPendingPublications(principalId)
-        credentialsPort.revokeAllSessions(principalId)
-        credentialsPort.deleteAllApiKeys(principalId)
+        publishing.deleteSocialConnections(principalId)
+        publishing.deleteSecureCredentials(principalId)
+        publishing.cancelPendingPublications(principalId)
+        credentials.revokeAllSessions(principalId)
+        credentials.deleteAllApiKeys(principalId)
     }
 
     /**

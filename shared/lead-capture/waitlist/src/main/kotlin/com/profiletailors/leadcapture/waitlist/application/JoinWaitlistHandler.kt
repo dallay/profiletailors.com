@@ -1,11 +1,11 @@
 package com.profiletailors.leadcapture.waitlist.application
 
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecordRequest
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotification
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotifier
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecordRequest
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecorder
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotification
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotifier
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistClosedException
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistNotFoundException

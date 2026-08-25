@@ -1,17 +1,17 @@
 package com.profiletailors.smp.identity.infrastructure
 
-import com.profiletailors.smp.identity.application.PasswordResetTokenCleanupPort
-import com.profiletailors.smp.identity.infrastructure.observability.PasswordRecoveryObservabilityAdapter
+import com.profiletailors.smp.identity.application.PasswordResetTokenCleanup
+import com.profiletailors.smp.identity.infrastructure.observability.PasswordRecoveryObservability
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Clock
 
 @Component
 class PasswordResetTokenCleanupScheduler(
-    private val cleanupPort: PasswordResetTokenCleanupPort,
+    private val tokenCleanup: PasswordResetTokenCleanup,
     private val properties: PasswordRecoveryConfigurationProperties,
     private val clock: Clock,
-    private val observability: PasswordRecoveryObservabilityAdapter,
+    private val observability: PasswordRecoveryObservability,
 ) {
     /**
      * Deletes password reset tokens that have expired beyond the configured retention period.
@@ -30,7 +30,7 @@ class PasswordResetTokenCleanupScheduler(
 
     suspend fun runCleanup(fixedClock: Clock) {
         val cutoff = fixedClock.instant().minus(properties.cleanup.retention)
-        val deleted = cleanupPort.deleteExpiredBefore(cutoff)
+        val deleted = tokenCleanup.deleteExpiredBefore(cutoff)
         observability.recordCleanupDeleted(deleted)
     }
 }

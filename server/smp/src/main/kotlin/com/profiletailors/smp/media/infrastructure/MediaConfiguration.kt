@@ -9,12 +9,12 @@ import com.profiletailors.smp.media.application.MediaAssetRepository
 import com.profiletailors.smp.media.application.MediaImportService
 import com.profiletailors.smp.media.application.MediaPreviewTokenService
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
-import com.profiletailors.smp.media.application.MediaStoragePort
+import com.profiletailors.smp.media.application.MediaStorage
 import com.profiletailors.smp.media.application.SearchUnsplashPhotosHandler
 import com.profiletailors.smp.media.application.UnsplashImportSettings
 import com.profiletailors.smp.media.application.UnsplashPhotoProvider
 import com.profiletailors.smp.media.infrastructure.unsplash.UnsplashProperties
-import com.profiletailors.smp.media.infrastructure.unsplash.UnsplashWebClientAdapter
+import com.profiletailors.smp.media.infrastructure.unsplash.UnsplashWebClient
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.AttachmentsStorageBinding
 import io.netty.channel.ChannelOption
@@ -47,7 +47,7 @@ class MediaConfiguration {
             .baseUrl(properties.baseUrl)
             .clientConnector(ReactorClientHttpConnector(httpClient))
             .build()
-        return UnsplashWebClientAdapter(webClient, properties)
+        return UnsplashWebClient(webClient, properties)
     }
 
     /**
@@ -57,22 +57,28 @@ class MediaConfiguration {
      * @return The configured media storage port.
      */
     @Bean
-    fun mediaStoragePort(storageApplicationService: StorageApplicationService): MediaStoragePort =
-        object : MediaStoragePort {
-            override suspend fun upload(
-                bucket: String,
-                key: String,
-                content: Flow<ByteArray>,
-                uploaderId: String,
-                metadata: Map<String, String>,
-            ) {
-                storageApplicationService.upload(bucket, key, content, uploaderId, metadata)
-            }
-
-            override suspend fun delete(bucket: String, key: String, deleterId: String) {
-                storageApplicationService.delete(bucket, key, deleterId)
-            }
+    fun mediaStorage(storageApplicationService: StorageApplicationService): MediaStorage = object : MediaStorage {
+        override suspend fun upload(
+            bucket: String,
+            key: String,
+            content: Flow<ByteArray>,
+            uploaderId: String,
+            metadata: Map<String, String>,
+        ) {
+            storageApplicationService.upload(bucket, key, content, uploaderId, metadata)
         }
+
+        override suspend fun delete(bucket: String, key: String, deleterId: String) {
+            storageApplicationService.delete(bucket, key, deleterId)
+        }
+
+        override fun download(bucket: String, key: String, downloaderId: String): Flow<ByteArray> =
+            storageApplicationService.download(bucket, key, downloaderId)
+
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+            storageApplicationService.copyObject(bucket, sourceKey, destKey)
+        }
+    }
 
     /**
      * Creates the settings used to import Unsplash media.
@@ -101,14 +107,14 @@ class MediaConfiguration {
     fun mediaImportService(
         provider: UnsplashPhotoProvider,
         mediaAssetRepository: MediaAssetRepository,
-        storagePort: MediaStoragePort,
+        storage: MediaStorage,
         settings: UnsplashImportSettings,
         assetPreviewUrlResolver: AssetPreviewUrlResolver,
         mediaPreviewTokenService: MediaPreviewTokenService,
     ): MediaImportService = MediaImportService(
         provider = provider,
         mediaAssetRepository = mediaAssetRepository,
-        storagePort = storagePort,
+        storage = storage,
         settings = settings,
         assetPreviewUrlResolver = assetPreviewUrlResolver,
         mediaPreviewTokenService = mediaPreviewTokenService,

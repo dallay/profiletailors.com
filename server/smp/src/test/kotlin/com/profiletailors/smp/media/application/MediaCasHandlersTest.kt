@@ -1,7 +1,5 @@
 package com.profiletailors.smp.media.application
 
-import com.profiletailors.common.domain.bus.event.BaseDomainEvent
-import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
@@ -18,9 +16,7 @@ import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.media.domain.MediaStorageKeys
 import com.profiletailors.smp.media.domain.WorkspaceFileBlob
-import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.Storage
-import com.profiletailors.storage.domain.StorageObservation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
@@ -85,7 +81,7 @@ class MediaCasHandlersTest {
         val handler = UploadAssetHandler(
             media,
             InMemoryRateLimitRepository(),
-            storage.service(),
+            storage.port(),
             MediaUploadSettings(1, 200, "bucket"),
             FixedPrincipalContextProvider,
             FixedPrincipalIdentityLookup(EmailStatus.PENDING),
@@ -457,7 +453,7 @@ class MediaCasHandlersTest {
             ),
         )
 
-        val result = BlobGarbageCollector(blobs, media, storage.service(), reconcilerSettings()).run()
+        val result = BlobGarbageCollector(blobs, media, storage.port(), reconcilerSettings()).run()
 
         assertEquals(1, result.blobsDeleted)
         assertEquals(BlobStatus.GARBAGE_COLLECTED, blobs.blob(WORKSPACE, HASH_A)?.status)
@@ -477,7 +473,7 @@ class MediaCasHandlersTest {
             ),
         )
 
-        val result = BlobGarbageCollector(blobs, media, storage.service(), reconcilerSettings()).run()
+        val result = BlobGarbageCollector(blobs, media, storage.port(), reconcilerSettings()).run()
 
         assertEquals(0, result.blobsScanned)
         assertEquals(BlobStatus.READY_FOR_GC, blobs.blob(WORKSPACE, HASH_A)?.status)
@@ -839,7 +835,7 @@ class MediaCasHandlersTest {
         val handler = UploadAssetHandler(
             failingRepo,
             InMemoryRateLimitRepository(),
-            storage.service(),
+            storage.port(),
             MediaUploadSettings(1, 200, "bucket"),
             FixedPrincipalContextProvider,
             FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
@@ -1064,7 +1060,24 @@ private class FakeStorage : Storage {
     val uploaded = linkedMapOf<String, List<ByteArray>>()
     val deletedKeys = mutableListOf<String>()
     val copies = mutableListOf<Pair<String, String>>()
-    fun service() = StorageApplicationService(this, NoopEventPublisher(), NoopStorageObservation())
+    fun port(): MediaStorage = object : MediaStorage {
+        override suspend fun upload(
+            bucket: String,
+            key: String,
+            content: Flow<ByteArray>,
+            uploaderId: String,
+            metadata: Map<String, String>,
+        ) = this@FakeStorage.upload(bucket, key, content, metadata)
+
+        override suspend fun delete(bucket: String, key: String, deleterId: String) =
+            this@FakeStorage.delete(bucket, key)
+
+        override fun download(bucket: String, key: String, downloaderId: String): Flow<ByteArray> =
+            this@FakeStorage.download(bucket, key)
+
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) =
+            this@FakeStorage.copyObject(bucket, sourceKey, destKey)
+    }
     override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
         uploaded[key] = content.toList()
     }
@@ -1078,25 +1091,6 @@ private class FakeStorage : Storage {
         if (sourceKey !in uploaded) throw IllegalStateException("copyObject: source not found: $sourceKey")
         copies += sourceKey to destKey
     }
-}
-
-private class NoopEventPublisher : EventPublisher<BaseDomainEvent> {
-    override suspend fun publish(event: BaseDomainEvent) = Unit
-    override suspend fun publish(events: List<BaseDomainEvent>) = Unit
-}
-
-private class NoopStorageObservation : StorageObservation {
-    override fun recordOperation(operation: String, provider: String, bucket: String, success: Boolean) = Unit
-    override fun recordBytesUploaded(bytes: Long, provider: String, bucket: String) = Unit
-    override fun recordBytesDownloaded(bytes: Long, provider: String, bucket: String) = Unit
-    override fun recordOperationLatency(operation: String, provider: String, durationNanos: Long) = Unit
-    override fun recordError(operation: String, provider: String, bucket: String, errorType: String) = Unit
-    override fun recordPresignedUrlGenerated(provider: String, success: Boolean) = Unit
-    override suspend fun <T : Any> recordOperationTime(
-        operation: String,
-        provider: String,
-        action: suspend () -> T,
-    ): T = action()
 }
 
 private fun putHandler(
@@ -1122,7 +1116,7 @@ private fun uploadHandler(
 ) = CasUploadAssetHandler(
     media,
     blobs,
-    storage.service(),
+    storage.port(),
     MediaUploadSettings(1, 200, "bucket"),
     NoopAtomicTransactionRunner,
     FixedPrincipalContextProvider,
@@ -1139,7 +1133,7 @@ private fun uploadLegacyHandler(
 ) = UploadAssetHandler(
     media,
     rateLimitRepository,
-    storage.service(),
+    storage.port(),
     MediaUploadSettings(1, 200, "bucket"),
     FixedPrincipalContextProvider,
     FixedPrincipalIdentityLookup(emailStatus),
