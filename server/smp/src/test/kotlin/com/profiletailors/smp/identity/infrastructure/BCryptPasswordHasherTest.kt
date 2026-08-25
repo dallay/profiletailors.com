@@ -1,59 +1,61 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldStartWith
 import org.junit.jupiter.api.Test
 import org.springframework.security.crypto.bcrypt.BCrypt
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class BCryptPasswordHasherTest {
 
     private val hasher = BCryptPasswordHasher()
 
     @Test
-    fun `hash uses BCrypt cost factor 12`() {
+    fun `should use BCrypt cost factor 12 when hashing a password`() {
         val hash = hasher.hash("test-password-123")
 
-        assertTrue(hash.startsWith("\$2a\$12\$"), "New hashes must use cost 12, got: $hash")
+        hash shouldStartWith "\$2a\$12\$"
     }
 
     @Test
-    fun `matches returns true for a freshly hashed password`() {
+    fun `should return true when matching a freshly hashed password`() {
         val raw = "another-secure-password"
         val hash = hasher.hash(raw)
 
-        assertTrue(hasher.matches(raw, hash))
+        hasher.matches(raw, hash).shouldBeTrue()
     }
 
     @Test
-    fun `matches returns false for wrong password`() {
+    fun `should return false when matching a wrong password`() {
         val hash = hasher.hash("correct-password-here")
 
-        assertTrue(!hasher.matches("wrong-password-here", hash))
+        hasher.matches("wrong-password-here", hash).shouldBeFalse()
     }
 
     @Test
-    fun `matches verifies legacy hashes with cost 10 (backward compatible)`() {
+    fun `should verify legacy hashes with cost 10 when ensuring backward compatibility`() {
         val raw = "legacy-user-password"
         val legacyHash = BCrypt.hashpw(raw, BCrypt.gensalt(10))
 
-        assertTrue(hasher.matches(raw, legacyHash), "Cost-10 hashes must still verify after upgrade to cost 12")
+        hasher.matches(raw, legacyHash).shouldBeTrue()
     }
 
     @Test
-    fun `matches returns false for malformed hash`() {
-        assertTrue(!hasher.matches("any-password", "not-a-valid-bcrypt-hash"))
+    fun `should return false when matching against a malformed hash`() {
+        hasher.matches("any-password", "not-a-valid-bcrypt-hash").shouldBeFalse()
     }
 
     @Test
-    fun `hash truncates passwords longer than 72 bytes via SHA-256 pre-hash`() {
+    fun `should truncate passwords longer than 72 bytes via SHA-256 pre-hash when hashing`() {
         val longPassword = "x".repeat(200)
         val hash = hasher.hash(longPassword)
 
-        assertTrue(hasher.matches(longPassword, hash))
+        hasher.matches(longPassword, hash).shouldBeTrue()
     }
 
     @Test
-    fun `algorithm property returns bcrypt`() {
-        assertEquals("bcrypt", hasher.algorithm)
+    fun `should return bcrypt when querying the algorithm property`() {
+        hasher.algorithm shouldBe "bcrypt"
     }
 }
