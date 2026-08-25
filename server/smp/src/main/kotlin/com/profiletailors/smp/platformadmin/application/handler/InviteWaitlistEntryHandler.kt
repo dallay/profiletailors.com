@@ -1,11 +1,16 @@
 package com.profiletailors.smp.platformadmin.application.handler
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
+import com.profiletailors.notifications.domain.event.InvitationCreated
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
+import com.profiletailors.smp.platformadmin.application.ports.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
 import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
+import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationContext
 import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
@@ -30,12 +35,14 @@ open class InviteWaitlistEntryHandler(
     private val waitlistEntryPort: WaitlistEntryAdminPort,
     private val invitationRepository: WaitlistInvitationRepository,
     private val auditPublisher: AdministrativeAuditPublisher,
+    private val eventPublisher: EventPublisher<DomainEvent>,
     private val clock: Clock,
     private val invitationTtl: Duration,
     private val tokenHasher: TokenHasher,
+    private val acceptUrlTemplate: AcceptUrlTemplate,
 ) {
 
-    @Suppress("ThrowsCount")
+    @Suppress("ThrowsCount", "LongMethod")
     suspend fun handle(command: InviteWaitlistEntryCommand): AdminInvitationSummary {
         val permissions = command.operatorRoles.effectivePermissions()
         if (PlatformPermission.WAITLIST_INVITE !in permissions) {
@@ -43,6 +50,9 @@ open class InviteWaitlistEntryHandler(
         }
 
         val entry = waitlistEntryPort.findById(command.waitlistEntryId)
+            ?: throw WaitlistEntryNotFoundException(command.waitlistEntryId)
+
+        val context: WaitlistInvitationContext = waitlistEntryPort.findInvitationContext(command.waitlistEntryId)
             ?: throw WaitlistEntryNotFoundException(command.waitlistEntryId)
 
         when (entry.status) {
@@ -99,6 +109,19 @@ open class InviteWaitlistEntryHandler(
             ),
         )
 
+        eventPublisher.publish(
+            InvitationCreated(
+                invitationId = invitation.id.value,
+                waitlistEntryId = command.waitlistEntryId,
+                operatorPrincipalId = command.operatorPrincipalId,
+                recipient = context.recipientEmail,
+                workspaceName = context.workspaceName,
+                acceptUrl = acceptUrlTemplate.build(rawToken),
+                locale = context.locale,
+                rawToken = rawToken,
+            ),
+        )
+
         return invitation.toSummary()
     }
 
@@ -116,4 +139,13 @@ open class InviteWaitlistEntryHandler(
         deliveryAttemptCount = deliveryAttemptCount,
         version = version,
     )
+}
+
+/**
+ * Builds the fully-formed accept URL with the raw token embedded. Centralised so the URL
+ * shape stays consistent across invite/resend flows and so the raw token never has to be
+ * mixed into controller code.
+ */
+fun interface AcceptUrlTemplate {
+    fun build(rawToken: String): String
 }

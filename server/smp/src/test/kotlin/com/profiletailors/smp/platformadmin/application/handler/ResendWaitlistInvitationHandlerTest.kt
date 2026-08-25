@@ -1,8 +1,14 @@
 package com.profiletailors.smp.platformadmin.application.handler
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.notifications.domain.event.InvitationResent
 import com.profiletailors.smp.platformadmin.application.command.ResendWaitlistInvitationCommand
+import com.profiletailors.smp.platformadmin.application.ports.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
+import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
+import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationContext
 import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
@@ -16,9 +22,10 @@ import com.profiletailors.smp.platformadmin.domain.WaitlistInvitation
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationStatus
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -35,15 +42,27 @@ class ResendWaitlistInvitationHandlerTest {
     private val ttl = Duration.ofDays(7)
     private val operatorId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
     private val invitationId = UUID.fromString("00000000-0000-0000-0000-0000000000a1")
-    private val entryId = "entry-abc-123"
+    private val entryId = "abcdef01-2345-6789-abcd-ef0123456789"
 
     private val invitationRepository = mockk<WaitlistInvitationRepository>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
+    private val eventPublisher = mockk<EventPublisher<DomainEvent>>()
+    private val waitlistEntryPort = mockk<WaitlistEntryAdminPort>()
 
     private val tokenHasher = object : TokenHasher {
         override fun hash(rawToken: String): String = "hashed-$rawToken"
         override fun matches(rawToken: String, storedHash: String): Boolean = false
     }
+
+    private val acceptUrlTemplate = AcceptUrlTemplate { rawToken ->
+        "https://app.profiletailors.com/invitations/accept?token=$rawToken"
+    }
+
+    private val invitationContext = WaitlistInvitationContext(
+        recipientEmail = "candidate@example.com",
+        workspaceName = "Profile Tailors Beta",
+        locale = "en",
+    )
 
     private val handler = ResendWaitlistInvitationHandler(
         invitationRepository = invitationRepository,
@@ -53,6 +72,9 @@ class ResendWaitlistInvitationHandlerTest {
         resendLimit = 3,
         resendWindowHours = 24,
         tokenHasher = tokenHasher,
+        eventPublisher = eventPublisher,
+        acceptUrlTemplate = acceptUrlTemplate,
+        waitlistEntryPort = waitlistEntryPort,
     )
 
     private val ownerRoles = setOf(PlatformRole.PLATFORM_OWNER)
@@ -90,8 +112,12 @@ class ResendWaitlistInvitationHandlerTest {
     fun `resends invitation by superseding existing and saving new active invitation`() = runTest {
         coEvery { invitationRepository.findById(WaitlistInvitationId(invitationId)) } returns activeInvitation()
         coEvery { invitationRepository.countResendsSince(any(), any()) } returns 0
-        coEvery { invitationRepository.update(any()) } answers { firstArg() }
-        coEvery { invitationRepository.save(any()) } answers { firstArg() }
+        coEvery { waitlistEntryPort.findInvitationContext(entryId) } returns invitationContext
+        val supersededSlot = slot<WaitlistInvitation>()
+        coEvery { invitationRepository.update(capture(supersededSlot)) } answers { supersededSlot.captured }
+        val savedSlot = slot<WaitlistInvitation>()
+        coEvery { invitationRepository.save(capture(savedSlot)) } answers { savedSlot.captured }
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } answers { Unit }
 
         val result = handler.handle(command())
 
@@ -102,39 +128,34 @@ class ResendWaitlistInvitationHandlerTest {
         assertEquals(clock.instant(), result.issuedAt)
         assertEquals(clock.instant() + ttl, result.expiresAt)
 
-        coVerify { invitationRepository.update(match { it.status == WaitlistInvitationStatus.SUPERSEDED }) }
-        coVerify {
-            invitationRepository.save(
-                match {
-                    it.waitlistEntryId == entryId &&
-                        it.status == WaitlistInvitationStatus.ACTIVE &&
-                        it.createdBy == operatorId &&
-                        it.tokenHash.startsWith("hashed-")
-                },
-            )
-        }
+        assertThat(supersededSlot.captured.status).isEqualTo(WaitlistInvitationStatus.SUPERSEDED)
+        val saved = savedSlot.captured
+        assertThat(saved.waitlistEntryId).isEqualTo(entryId)
+        assertThat(saved.status).isEqualTo(WaitlistInvitationStatus.ACTIVE)
+        assertThat(saved.createdBy).isEqualTo(operatorId)
+        assertThat(saved.tokenHash).startsWith("hashed-")
     }
 
     @Test
-    fun `publishes INVITATION_RESENT audit event after successful resend`() = runTest {
+    fun `publishes INVITATION_RESENT audit event and InvitationResent domain event`() = runTest {
         coEvery { invitationRepository.findById(WaitlistInvitationId(invitationId)) } returns activeInvitation()
         coEvery { invitationRepository.countResendsSince(any(), any()) } returns 0
+        coEvery { waitlistEntryPort.findInvitationContext(entryId) } returns invitationContext
         coEvery { invitationRepository.update(any()) } answers { firstArg() }
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
+        val auditSlot = slot<AdminAuditEvent>()
+        coEvery { auditPublisher.publish(capture(auditSlot)) } answers { Unit }
+        val eventSlot = slot<DomainEvent>()
+        coEvery { eventPublisher.publish(capture(eventSlot)) } answers { Unit }
 
         handler.handle(command())
 
-        coVerify {
-            auditPublisher.publish(
-                match { event ->
-                    event.action == AdminAuditAction.INVITATION_RESENT &&
-                        event.targetId == invitationId.toString() &&
-                        event.operatorPrincipalId == operatorId &&
-                        event.result.name == "SUCCEEDED"
-                },
-            )
-        }
-        coVerify(exactly = 1) { auditPublisher.publish(any<AdminAuditEvent>()) }
+        assertThat(auditSlot.captured.action).isEqualTo(AdminAuditAction.INVITATION_RESENT)
+        assertThat(auditSlot.captured.targetId).isEqualTo(invitationId.toString())
+        assertThat(auditSlot.captured.operatorPrincipalId).isEqualTo(operatorId)
+        assertThat(eventSlot.captured).isInstanceOf(InvitationResent::class.java)
+        val published = eventSlot.captured as InvitationResent
+        assertThat(published.previousInvitationId).isEqualTo(invitationId)
     }
 
     private fun command(roles: Set<PlatformRole> = ownerRoles) = ResendWaitlistInvitationCommand(

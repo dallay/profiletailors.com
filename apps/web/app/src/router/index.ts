@@ -45,6 +45,12 @@ const router = createRouter({
       meta: { standalone: true },
     },
     {
+      path: '/invitations/accept',
+      name: 'invitations-accept',
+      component: () => import('../views/AcceptInvitationRoute.vue'),
+      meta: { standalone: true },
+    },
+    {
       path: '/',
       name: 'dashboard',
       component: HomeView,

@@ -9,12 +9,14 @@ import { fetchPublicCapabilities } from '@modules/auth/infrastructure/auth-api'
 const CLOSED_CAPABILITIES: PublicCapabilities = {
   registrationEnabled: false,
   passwordRecoveryEnabled: false,
+  invitationAcceptanceEnabled: false,
 }
 
 function normalizeCapabilities(response: PublicCapabilitiesDto): PublicCapabilities {
   return {
     registrationEnabled: response.registrationEnabled === true,
     passwordRecoveryEnabled: response.passwordRecoveryEnabled === true,
+    invitationAcceptanceEnabled: response.invitationAcceptanceEnabled === true,
   }
 }
 
@@ -27,6 +29,7 @@ export const usePublicCapabilitiesStore = defineStore('public-capabilities', () 
 
   const registrationEnabled = computed(() => capabilities.value.registrationEnabled)
   const passwordRecoveryEnabled = computed(() => capabilities.value.passwordRecoveryEnabled)
+  const invitationAcceptanceEnabled = computed(() => capabilities.value.invitationAcceptanceEnabled)
 
   function load(): Promise<void> {
     if (loadPromise) return loadPromise
@@ -59,6 +62,7 @@ export const usePublicCapabilitiesStore = defineStore('public-capabilities', () 
   return {
     capabilitiesLoaded: resolved,
     error,
+    invitationAcceptanceEnabled,
     isLoading,
     load,
     passwordRecoveryEnabled,

@@ -11,6 +11,7 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
+import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationContext
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -18,6 +19,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+
 /**
  * Delegates waitlist entry reads and status updates for admin use cases.
  * Reuses the R2dbcWaitlistEntryRepository mapping logic via a dedicated query.
@@ -46,6 +48,19 @@ class R2dbcWaitlistEntryAdminAdapter(private val databaseClient: DatabaseClient)
             .awaitSingle()
         return requireNotNull(findById(entry.id.value))
     }
+
+    override suspend fun findInvitationContext(id: String): WaitlistInvitationContext? =
+        databaseClient.sql(SELECT_INVITATION_CONTEXT)
+            .bind("id", id)
+            .map { row, _ ->
+                WaitlistInvitationContext(
+                    recipientEmail = requireNotNull(row.get("normalized_email", String::class.java)),
+                    workspaceName = requireNotNull(row.get("waitlist_name", String::class.java)),
+                    locale = row.get("locale", String::class.java),
+                )
+            }
+            .one()
+            .awaitSingleOrNull()
 
     private fun Readable.toWaitlistEntry(): WaitlistEntry {
         val id = WaitlistEntryId(
@@ -96,6 +111,12 @@ class R2dbcWaitlistEntryAdminAdapter(private val databaseClient: DatabaseClient)
             UPDATE waitlist_entries
             SET status = :status, invited_at = :invitedAt, converted_at = :convertedAt, cancelled_at = :cancelledAt
             WHERE id = :id
+        """
+        private const val SELECT_INVITATION_CONTEXT = """
+            SELECT we.normalized_email AS normalized_email, we.locale AS locale, w.name AS waitlist_name
+            FROM waitlist_entries we
+            JOIN waitlists w ON w.id = we.waitlist_id
+            WHERE we.id = :id
         """
     }
 }
