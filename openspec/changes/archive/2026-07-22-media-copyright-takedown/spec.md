@@ -1,7 +1,7 @@
 # Delta: Media Copyright, Attribution & Takedown
 
 > **Incremental**: Phase 1 (Attribution) and Phase 2 (Takedown) independently shippable.
-> 
+>
 > **Archive note**: Delta reconciled to match shipped implementation. See verify-report.md for
 > the full deviation log (W-01 through W-05). Counter-notice flow removed from scope by
 > recorded simplification.

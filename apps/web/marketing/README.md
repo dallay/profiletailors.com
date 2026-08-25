@@ -1,92 +1,138 @@
 # Profile Tailors Marketing Site
 
-## Overview
+Public-facing, static-first Astro 7 application serving product marketing content, bilingual landing pages, legal compliance policies, and the client-side waitlist acquisition flow for Profile Tailors.
 
-The marketing site is the static-first Astro 7 application at `apps/web/marketing/`. It serves the
-public Profile Tailors website, including English and Spanish locale routes, legal pages, consent
-UI, and the client-side waitlist flow.
+## Role in the platform
 
-The app is part of the workspace. Use the root `just` command hub for normal development and
-validation.
+Serves as the primary public entry point (`https://profiletailors.localhost`) for prospects and leads. It depends on `@profiletailors/shared-web` for GDPR consent contracts and validation, and sources shared branding assets from `shared/assets/web/`. It captures waitlist signups client-side and directs registered users to the dashboard application (`apps/web/app`).
 
-## Usage
+## Tech stack
 
-### Start development
+- **Runtime & Language**: Node.js (`>=22.12.0`), TypeScript 6.0
+- **Framework**: Astro 7.2
+- **Styling**: Tailwind CSS 4.3
+- **Testing**: Vitest 3.2 (Unit), Playwright 1.62 (E2E)
+- **Code Quality**: Biome 2.5 (Linting & Formatting)
+
+## Getting started
+
+### Prerequisites
+
+- Node.js `>= 22.12.0`
+- pnpm `>= 11.8.0`
+- `just` task runner (`>= 1.30`)
+
+### Installation
+
+Install workspace dependencies from the monorepo root:
+
+```bash
+just setup
+```
+
+Or directly via pnpm:
+
+```bash
+pnpm install
+```
+
+### Running locally
+
+Start development server along with Portless domain routing:
 
 ```bash
 just dev-frontend
 ```
 
-This starts the marketing site and dashboard through worktree-aware Portless URLs. To
-start only the marketing site from the repository root:
+To run only the marketing site without other apps:
 
 ```bash
 pnpm --filter marketing dev
 ```
 
-### Build and check
+Target URL: `https://profiletailors.localhost` (or `http://localhost:4321` fallback).
+
+### Environment variables
+
+| Variable | Required | Description | Default |
+| --- | --- | --- | --- |
+| `PUBLIC_SITE_URL` | No | Base site URL for canonical tags and OpenGraph meta | `https://profiletailors.com` |
+| `PLAYWRIGHT` | No | Disables devtools overlay during Playwright test runs | `false` |
+
+## Project structure
+
+```text
+apps/web/marketing/
+├── src/
+│   ├── components/  # Astro components and interactive islands
+│   ├── i18n/        # English (en.ts) and Spanish (es.ts) copy dictionaries
+│   ├── legal/       # Legal publication gate configurations
+│   ├── pages/       # Localized Astro routes (English default, Spanish /es/)
+│   └── styles/      # Tailwind styles and custom design tokens
+├── public/          # Static favicons and public assets
+├── tests/           # Vitest unit test suites
+└── e2e/             # Playwright E2E browser test scenarios
+```
+
+## Testing
+
+### Unit tests
+
+Run Vitest unit tests:
 
 ```bash
-just frontend-check
-just frontend-build
-just frontend-lint
 just frontend-test
 ```
 
-Preview the production build with:
+Run with coverage report:
 
 ```bash
-just frontend-preview
+pnpm --filter marketing test:coverage
 ```
 
-### End-to-end tests
+### Type and content check
+
+```bash
+just frontend-check
+```
+
+### E2E tests
+
+Run Playwright browser tests:
 
 ```bash
 just frontend-test-e2e
 ```
 
-Marketing Playwright specs are under `e2e/`. Consent behavior is covered by
-`e2e/consent.spec.ts`.
+### Linting
 
-## Structure
+```bash
+just frontend-lint
+```
 
-- `src/pages/` — localized routes and public pages.
-- `src/components/` — Astro components and interactive islands.
-- `src/i18n/` — English and Spanish marketing/legal copy.
-- `src/styles/` — site-level styling and design tokens.
-- `e2e/` — Playwright configuration and browser scenarios.
+## API / Public interface
 
-## Legal Baseline
+This subproject renders public web routes:
 
-The marketing site publishes the active legal policies for the current operator-hosted instance:
+- `/` — English homepage & waitlist signup
+- `/es/` — Spanish homepage & waitlist signup
+- `/privacy/`, `/es/privacy/` — Privacy Policy
+- `/terms/`, `/es/terms/` — Terms of Service
+- `/cookies/`, `/es/cookies/` — Cookie Policy
+- `/acceptable-use/`, `/es/acceptable-use/` — Acceptable Use Policy
 
-- `/privacy/` and `/es/privacy/`
-- `/terms/` and `/es/terms/`
-- `/cookies/` and `/es/cookies/`
-- `/acceptable-use/` and `/es/acceptable-use/`
+## Configuration
 
-Policy source of truth is maintained in:
+- `astro.config.mjs`: Configures Tailwind CSS V4, Vite path aliases (`@shared/assets` pointing to `../../shared/assets`), and locale routing (`en` default, `es` prefixed).
+- `src/legal/legal-publication.ts`: Controls publication gate status for legal pages.
 
-- `src/i18n/en.ts`
-- `src/i18n/es.ts`
+## Contributing
 
-Reference mapping from the Awesome Legal guide to Profile Tailors artifacts is documented in
-[`docs/compliance/marketing-legal-baseline.md`](../../../docs/compliance/marketing-legal-baseline.md).
+Please review the [Root CONTRIBUTING.md](../../../CONTRIBUTING.md) for workflow rules, commit conventions, and pull request guidelines.
 
-Shared web assets and consent primitives live under `shared/` and are consumed through workspace
-aliases. See [consent-management.md](../../../docs/consent-management.md) for the cross-surface
-consent contract.
+## License
 
-## Troubleshooting
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the [Root LICENSE](../../../LICENSE) for details.
 
-- Spanish copy is often longer than English; avoid fixed-width containers when changing layouts.
-- If the named dashboard URL is unavailable while running both apps, install/start Portless with
-  `pnpm exec portless proxy start`.
-- If dependencies are missing, run `just install` from the repository root.
-
-## References
-
-- [Repository onboarding](../../../docs/getting-started.md)
-- [Astro/Vue split decision](../../../docs/architecture/adr/0007-astro-and-vue-frontend-split.md)
-- [Consent management](../../../docs/consent-management.md)
-- [Root documentation index](../../../docs/README.md)
+---
+Back to [Root README](../../../README.md)
