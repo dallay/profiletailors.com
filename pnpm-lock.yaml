@@ -8,12 +8,10 @@ overrides:
   esbuild: '>=0.28.2'
   undici: '>=7.28.0 <9.0.0'
   hono: '>=4.13.1'
-  js-yaml: 4.3.1
+  js-yaml: 5.3.0
   devalue: '>=5.9.0'
   yaml: ^2.9.0
   '@babel/core': '>=8.0.1'
-
-pnpmfileChecksum: sha256-zLUKYMlMGmK1Z65XZuKnph1LsNY3paYsKTrmMhWg6FI=
 
 importers:
 
@@ -3892,8 +3890,8 @@ packages:
   js-tokens@9.0.1:
     resolution: {integrity: sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ==}
 
-  js-yaml@4.3.1:
-    resolution: {integrity: sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==}
+  js-yaml@5.3.0:
+    resolution: {integrity: sha512-muutsYr+e2+d3rTgUGslq5rxbBlUy3cJ61IsHag2QNDQV+7zXWjkUpmALIajhrlLlrgRUiymj6U3zUr/TMK84Q==}
     hasBin: true
 
   jsdom@25.0.1:
@@ -6069,7 +6067,7 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.5
       '@types/mdast': 4.0.4
-      js-yaml: 4.3.1
+      js-yaml: 5.3.0
       picomatch: 4.0.5
       retext-smartypants: 6.2.0
       shiki: 4.4.1
@@ -8317,7 +8315,7 @@ snapshots:
       github-slugger: 2.0.0
       html-escaper: 3.0.3
       http-cache-semantics: 4.2.0
-      js-yaml: 4.3.1
+      js-yaml: 5.3.0
       jsonc-parser: 3.3.1
       magic-string: 1.1.0
       magicast: 0.5.4
@@ -9674,7 +9672,7 @@ snapshots:
 
   js-tokens@9.0.1: {}
 
-  js-yaml@4.3.1:
+  js-yaml@5.3.0:
     dependencies:
       argparse: 2.0.1
 
