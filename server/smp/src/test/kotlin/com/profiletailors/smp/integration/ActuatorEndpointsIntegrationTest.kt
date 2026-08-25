@@ -41,6 +41,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "spring.liquibase.enabled=false",
         "spring.main.allow-bean-definition-overriding=true",
         "management.server.port=0",
+        "management.endpoints.web.exposure.include=health,prometheus",
         "management.endpoint.health.show-details=always",
         "management.endpoint.health.group.readiness.include=readinessState",
         "management.endpoint.health.group.liveness.include=livenessState",
@@ -183,7 +184,7 @@ class ActuatorEndpointsIntegrationTest {
             .get()
             .uri("/actuator/info")
             .exchange()
-            .expectStatus().isNotFound
+            .expectStatus().isUnauthorized
     }
 
     companion object {
