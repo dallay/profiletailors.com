@@ -45,9 +45,3 @@ databaseChangeLog:
       rollback:
         - sql:
             sql: DROP INDEX IF EXISTS uq_media_assets_active_per_hash
-
-  # ── 2. H2 variant is intentionally omitted ──
-  # H2 does not support partial unique indexes (WHERE clause on CREATE UNIQUE INDEX).
-  # Handler-level dedup in PutAssetHandler + the existing tests cover this on H2.
-  # The DB-level safety net runs only on Postgres (and in @Tag("postgres") tests
-  # via Testcontainers).

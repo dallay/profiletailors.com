@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 
 /**
- * Provides a [StorageApplicationService] stub for H2 test contexts where the
+ * Provides a [StorageApplicationService] stub for full application test contexts where the
  * real storage infrastructure (Cloudflare R2, AWS S3) is not available.
  *
  * This configuration is imported by full-context tests that need the Spring
@@ -98,7 +98,7 @@ class TestStorageConfiguration {
     /**
      * Provides a [StorageApplicationService] backed by the in-memory stub.
      * This bean satisfies [StaleAssetReconciler] and [UploadAssetHandler]
-     * dependencies in full-context H2 tests.
+     * dependencies in full application context tests.
      */
     @Bean
     @Primary
