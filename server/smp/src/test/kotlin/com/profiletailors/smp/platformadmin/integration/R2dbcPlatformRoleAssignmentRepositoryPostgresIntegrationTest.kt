@@ -3,7 +3,7 @@ package com.profiletailors.smp.platformadmin.integration
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId

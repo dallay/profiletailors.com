@@ -6,8 +6,8 @@ import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
-import com.profiletailors.smp.platformadmin.application.ports.InvitationTokenCandidateKey
-import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
+import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException

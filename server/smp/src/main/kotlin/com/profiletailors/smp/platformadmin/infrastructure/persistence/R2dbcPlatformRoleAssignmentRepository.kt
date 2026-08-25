@@ -1,6 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
 import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId

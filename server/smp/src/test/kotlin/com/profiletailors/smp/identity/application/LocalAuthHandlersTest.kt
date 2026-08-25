@@ -1038,7 +1038,7 @@ class LocalAuthHandlersTest {
         return handler
     }
 
-    private class FakeRegistrationAvailability(private val enabled: Boolean = true) : RegistrationAvailabilityPort {
+    private class FakeRegistrationAvailability(private val enabled: Boolean = true) : RegistrationAvailability {
         override fun isRegistrationEnabled(): Boolean = enabled
     }
 }

@@ -2,7 +2,6 @@ package com.profiletailors.smp.integration.support
 
 import io.kotest.matchers.ints.shouldBeLessThan
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
@@ -62,33 +61,10 @@ class PostgresTestContainerSupportTest {
     }
 
     @Test
-    fun `password resolver returns env value when set`() {
-        val resolved = PostgresTestContainerSupport.resolvePassword { "env-supplied-password" }
-
-        assertEquals("env-supplied-password", resolved)
-    }
-
-    @Test
-    fun `password resolver fails fast when env var is missing`() {
-        val ex = assertThrows(IllegalStateException::class.java) {
-            PostgresTestContainerSupport.resolvePassword { null }
-        }
-
+    fun `new containers use the fixed test password by default`() {
         assertEquals(
-            "${PostgresTestContainerSupport.PASSWORD_ENV} must be set to run PostgreSQL-backed tests",
-            ex.message,
-        )
-    }
-
-    @Test
-    fun `password resolver fails fast when env var is blank`() {
-        val ex = assertThrows(IllegalStateException::class.java) {
-            PostgresTestContainerSupport.resolvePassword { "" }
-        }
-
-        assertEquals(
-            "${PostgresTestContainerSupport.PASSWORD_ENV} must be set to run PostgreSQL-backed tests",
-            ex.message,
+            PostgresTestContainerSupport.DEFAULT_PASSWORD,
+            PostgresTestContainerSupport.newContainer("password_default").password,
         )
     }
 

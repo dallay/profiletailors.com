@@ -2,10 +2,10 @@ package com.profiletailors.smp.leadcapture.infrastructure.configuration
 
 import com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandler
 import com.profiletailors.leadcapture.waitlist.application.WaitlistEntryIdGenerator
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotifier
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecorder
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotifier
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

@@ -210,7 +210,7 @@ class StorageAutoConfigurationR2Test {
 
             val storage = config.createR2Storage(providerConfig)
 
-            // Return type is R2StorageAdapter; assert it builds without throwing.
+            // Return type is R2Storage; assert it builds without throwing.
             assertNotNull(storage)
 
             // Assert credentialsProvider was called on the S3AsyncClient builder
@@ -229,7 +229,7 @@ class StorageAutoConfigurationR2Test {
 
             val storage = config.createR2Storage(providerConfig)
 
-            // Return type is R2StorageAdapter; assert it builds without throwing.
+            // Return type is R2Storage; assert it builds without throwing.
             assertNotNull(storage)
 
             // Assert credentialsProvider was called on the S3Presigner builder

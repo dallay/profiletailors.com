@@ -1,7 +1,7 @@
 package com.profiletailors.smp.governance.domain
 
 import com.profiletailors.common.domain.ValueObject
-import com.profiletailors.smp.authorization.domain.PermissionKey
+import com.profiletailors.common.domain.vo.permission.PermissionKey
 
 /**
  * Centralized governance permission keys.

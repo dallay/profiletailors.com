@@ -1,7 +1,7 @@
 package com.profiletailors.storage
 
 import com.profiletailors.storage.domain.Storage
-import com.profiletailors.storage.infrastructure.R2StorageAdapter
+import com.profiletailors.storage.infrastructure.R2Storage
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import org.testcontainers.containers.localstack.LocalStackContainer
@@ -17,9 +17,9 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import java.nio.file.Path
 
 /**
- * Contract tests for R2StorageAdapter using LocalStack.
+ * Contract tests for R2Storage using LocalStack.
  *
- * These tests verify that R2StorageAdapter satisfies the [StorageContractTest] contract
+ * These tests verify that R2Storage satisfies the [StorageContractTest] contract
  * for all base [Storage] operations.
  */
 @Testcontainers
@@ -67,6 +67,5 @@ class R2StorageContractTest : StorageContractTest() {
         }
     }
 
-    override fun createStorage(tempDir: Path): Storage =
-        R2StorageAdapter(r2Client, TEST_BUCKET, r2Presigner, TEST_ACCOUNT_ID)
+    override fun createStorage(tempDir: Path): Storage = R2Storage(r2Client, TEST_BUCKET, r2Presigner, TEST_ACCOUNT_ID)
 }

@@ -4,18 +4,17 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platformadmin.application.OperatorAccess
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistQueryTelemetry
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntryDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntrySummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
-import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistQueryTelemetryPort
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -35,8 +34,8 @@ class AdminWaitlistControllerTest {
     private val waitlistQuery = mockk<AdminWaitlistQuery>()
     private val inviteHandler = mockk<InviteWaitlistEntryHandler>(relaxed = true)
     private val cancelHandler = mockk<CancelWaitlistEntryHandler>(relaxed = true)
-    private val roleAssignmentRepository = mockk<PlatformRoleAssignmentRepository>()
-    private val waitlistQueryTelemetry = mockk<WaitlistQueryTelemetryPort>(relaxed = true)
+    private val operatorAccessResolver = mockk<OperatorAccessResolver>()
+    private val waitlistQueryTelemetry = mockk<WaitlistQueryTelemetry>(relaxed = true)
 
     @Test
     fun `listEntries returns 401 without principal context`() {
@@ -261,7 +260,7 @@ class AdminWaitlistControllerTest {
                 waitlistQuery = waitlistQuery,
                 inviteHandler = inviteHandler,
                 cancelHandler = cancelHandler,
-                roleAssignmentRepository = roleAssignmentRepository,
+                operatorAccessResolver = operatorAccessResolver,
                 requestContextStore = FakeRequestContextStore(principal),
                 waitlistQueryTelemetry = waitlistQueryTelemetry,
             ),
@@ -270,8 +269,7 @@ class AdminWaitlistControllerTest {
         .build()
 
     private fun grantRoles(roles: List<PlatformRole>) {
-        coEvery { roleAssignmentRepository.findActiveByPrincipalId(operatorId) } returns
-            roles.map { assignment(it) }
+        coEvery { operatorAccessResolver.resolve(any()) } returns OperatorAccess(operatorId, roles.toSet())
     }
 
     private fun operatorPrincipal() = PrincipalContext(
@@ -279,14 +277,6 @@ class AdminWaitlistControllerTest {
         principalType = PrincipalType.USER,
         subject = "operator@example.com",
         provider = "jwt",
-    )
-
-    private fun assignment(role: PlatformRole) = PlatformRoleAssignment(
-        id = PlatformRoleAssignmentId.generate(),
-        principalId = operatorId,
-        role = role,
-        assignedAt = clock,
-        assignedBy = operatorId,
     )
 
     private fun summary() = AdminWaitlistEntrySummary(

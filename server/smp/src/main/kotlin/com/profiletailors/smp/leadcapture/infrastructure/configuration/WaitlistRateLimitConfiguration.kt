@@ -2,12 +2,12 @@ package com.profiletailors.smp.leadcapture.infrastructure.configuration
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.ratelimit.application.RateLimitingService
-import com.profiletailors.ratelimit.infrastructure.adapter.ApiKeyParser
-import com.profiletailors.ratelimit.infrastructure.adapter.Bucket4jRateLimiter
-import com.profiletailors.ratelimit.infrastructure.adapter.ReactiveRateLimitingAdapter
-import com.profiletailors.ratelimit.infrastructure.adapter.SpringRateLimitEventPublisher
 import com.profiletailors.ratelimit.infrastructure.config.RateLimitConfiguration
 import com.profiletailors.ratelimit.infrastructure.filter.RateLimitingFilter
+import com.profiletailors.ratelimit.infrastructure.gateway.ApiKeyParser
+import com.profiletailors.ratelimit.infrastructure.gateway.Bucket4jRateLimiter
+import com.profiletailors.ratelimit.infrastructure.gateway.ReactiveRateLimiting
+import com.profiletailors.ratelimit.infrastructure.gateway.SpringRateLimitEventPublisher
 import com.profiletailors.ratelimit.infrastructure.metrics.RateLimitMetrics
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Import
         RateLimitingService::class,
         ApiKeyParser::class,
         Bucket4jRateLimiter::class,
-        ReactiveRateLimitingAdapter::class,
+        ReactiveRateLimiting::class,
         SpringRateLimitEventPublisher::class,
         RateLimitingFilter::class,
         RateLimitMetrics::class,

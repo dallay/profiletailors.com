@@ -3,8 +3,8 @@ package com.profiletailors.smp.platformadmin.integration
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
-import com.profiletailors.smp.platformadmin.application.ports.AdminAuditQuery
-import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.AdminAuditQuery
+import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.query.ListAdminAuditEventsQuery
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent

@@ -234,20 +234,6 @@ container storage.
 
 ### Optional / Environment-specific
 
-#### `SMP_DB_TEST_PASSWORD`
-
-- **Type:** String
-- **Description:** Password for Testcontainers-backed integration tests (CI only).
-- **Risk:** LOW (ephemeral container, not production data)
-- **Generation:**
-
-  ```bash
-  openssl rand -base64 16
-  ```
-
-- **Rotation:** No rotation required (ephemeral). Change if CI environment is compromised.
-- **Access:** CI/CD pipeline only.
-
 #### `GRAFANA_ADMIN_PASSWORD`
 
 - **Type:** String

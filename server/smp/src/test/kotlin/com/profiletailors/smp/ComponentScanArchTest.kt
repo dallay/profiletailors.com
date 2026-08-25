@@ -1,5 +1,7 @@
 package com.profiletailors.smp
 
+import com.tngtech.archunit.base.DescribedPredicate
+import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
@@ -102,6 +104,26 @@ internal class ComponentScanArchTest {
                     "a nested @ComponentScan is the bug we are guarding against",
             )
             .allowEmptyShould(true)
+            .check(importedClasses)
+    }
+
+    @Test
+    fun `should reject repository-port dependencies when HTTP infrastructure depends on them`() {
+        val predicate = object : DescribedPredicate<JavaClass>(
+            "a *Repository in the application layer",
+        ) {
+            override fun test(input: JavaClass): Boolean = input.packageName.contains("application") &&
+                input.simpleName.endsWith("Repository")
+        }
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..infrastructure.http..")
+            .should()
+            .dependOnClassesThat(predicate)
+            .because(
+                "controllers must dispatch to application use-case handlers or query ports, " +
+                    "never bypass the application layer to call a *Repository directly",
+            )
             .check(importedClasses)
     }
 }

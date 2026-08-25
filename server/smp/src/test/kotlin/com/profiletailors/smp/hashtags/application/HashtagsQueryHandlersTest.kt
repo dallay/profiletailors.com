@@ -4,7 +4,7 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.hashtags.domain.HashtagAnalysis
-import com.profiletailors.smp.hashtags.domain.HashtagAnalysisPort
+import com.profiletailors.smp.hashtags.domain.HashtagAnalyzer
 import com.profiletailors.smp.hashtags.domain.HashtagPopularity
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSet
 import com.profiletailors.smp.hashtags.domain.HashtagSavedSetRepository
@@ -18,7 +18,7 @@ import java.time.Instant
 class HashtagsQueryHandlersTest {
     @Test
     fun `analysis port can be supplied as a suspend function`() = runTest {
-        val port = HashtagAnalysisPort { content ->
+        val port = HashtagAnalyzer { content ->
             HashtagAnalysis(
                 content = content,
                 detectedTopics = listOf("testing"),
@@ -34,7 +34,7 @@ class HashtagsQueryHandlersTest {
 
     @Test
     fun `trending handler keeps only trending suggestions`() = runTest {
-        val port = HashtagAnalysisPort {
+        val port = HashtagAnalyzer {
             HashtagAnalysis(
                 content = "",
                 detectedTopics = emptyList(),
@@ -68,7 +68,7 @@ class HashtagsQueryHandlersTest {
 
     @Test
     fun `analysis handler maps all returned fields`() = runTest {
-        val port = HashtagAnalysisPort {
+        val port = HashtagAnalyzer {
             HashtagAnalysis(
                 content = "Content",
                 detectedTopics = listOf("technology"),

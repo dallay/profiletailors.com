@@ -6,7 +6,7 @@ interface WorkspaceMembershipProvisioner {
     suspend fun reconcile(workspaceId: String, principalId: String): WorkspaceMembershipSnapshot
 }
 
-class WorkspaceMembershipProvisionerAdapter(private val repository: WorkspaceMembershipRepository) :
+class R2dbcWorkspaceMembershipProvisioner(private val repository: WorkspaceMembershipRepository) :
     WorkspaceMembershipProvisioner {
     override suspend fun reconcile(workspaceId: String, principalId: String): WorkspaceMembershipSnapshot =
         repository.reconcile(workspaceId, principalId)

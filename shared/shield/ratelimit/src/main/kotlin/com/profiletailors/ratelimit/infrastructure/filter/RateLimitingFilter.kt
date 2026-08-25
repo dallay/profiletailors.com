@@ -2,8 +2,8 @@ package com.profiletailors.ratelimit.infrastructure.filter
 
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
-import com.profiletailors.ratelimit.infrastructure.adapter.ReactiveRateLimitingAdapter
 import com.profiletailors.ratelimit.infrastructure.config.BucketConfigurationFactory
+import com.profiletailors.ratelimit.infrastructure.gateway.ReactiveRateLimiting
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpStatus
@@ -18,7 +18,7 @@ import java.time.Instant
 
 /**
  * WebFlux filter for rate limiting endpoints based on configured strategies.
- * This filter uses the application's [ReactiveRateLimitingAdapter] to apply rate limits
+ * This filter uses the application's [ReactiveRateLimiting] to apply rate limits
  * based on IP addresses or other identifiers, following the hexagonal architecture.
  *
  * Supported strategies:
@@ -34,7 +34,7 @@ import java.time.Instant
  */
 @Component
 class RateLimitingFilter(
-    private val reactiveRateLimitingAdapter: ReactiveRateLimitingAdapter,
+    private val reactiveRateLimitingAdapter: ReactiveRateLimiting,
     private val jsonMapper: JsonMapper,
     private val configurationFactory: BucketConfigurationFactory,
 ) : WebFilter {

@@ -10,7 +10,7 @@ import com.profiletailors.notifications.domain.NotificationId
 import com.profiletailors.notifications.domain.NotificationRepository
 import com.profiletailors.notifications.domain.NotificationStatus
 import com.profiletailors.notifications.domain.Recipient
-import com.profiletailors.smp.governance.application.PrincipalIdentityPort
+import com.profiletailors.smp.governance.application.PrincipalIdentity
 import com.profiletailors.smp.governance.domain.event.TakedownApproved
 import com.profiletailors.smp.governance.domain.event.TakedownRejected
 import com.profiletailors.smp.governance.domain.event.TakedownReported
@@ -32,7 +32,7 @@ internal class SendTakedownReportedEmailConsumer(
     private val emailDispatcher: EmailDispatcher,
     private val notificationRepository: NotificationRepository,
     private val workspaceOwnershipRepository: WorkspaceOwnershipRepository,
-    private val principalIdentityPort: PrincipalIdentityPort,
+    private val principalIdentity: PrincipalIdentity,
     private val clock: Clock,
 ) : EventConsumer<TakedownReported> {
 
@@ -55,7 +55,7 @@ internal class SendTakedownReportedEmailConsumer(
     }
 
     private suspend fun sendToOwner(event: TakedownReported, ownerPrincipalId: String) {
-        val recipient = principalIdentityPort.findEmailByPrincipalId(ownerPrincipalId)
+        val recipient = principalIdentity.findEmailByPrincipalId(ownerPrincipalId)
         if (recipient.isNullOrBlank()) {
             log.warn(
                 "Could not resolve email for owner '{}' on workspace '{}'; skipping",

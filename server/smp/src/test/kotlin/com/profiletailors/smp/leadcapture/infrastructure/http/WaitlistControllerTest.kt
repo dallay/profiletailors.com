@@ -4,8 +4,8 @@ import com.profiletailors.controllers.GlobalExceptionHandler
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.JoinWaitlistHandler
 import com.profiletailors.leadcapture.waitlist.application.WaitlistEntryIdGenerator
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId

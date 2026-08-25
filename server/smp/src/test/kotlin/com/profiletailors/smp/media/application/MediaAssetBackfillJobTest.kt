@@ -5,7 +5,6 @@ import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.media.domain.MediaStorageKeys
-import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.Storage
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -297,15 +296,26 @@ class MediaAssetBackfillJobTest {
         blobs: BackfillInMemoryWorkspaceFileBlobRepository,
         storage: BackfillInMemoryFakeStorage,
     ): MediaAssetBackfillJob {
-        val storageService = StorageApplicationService(
-            storage,
-            BackfillNoopEventPublisher(),
-            BackfillNoopStorageObservation(),
-        )
+        val storage = object : MediaStorage {
+            override suspend fun upload(
+                bucket: String,
+                key: String,
+                content: kotlinx.coroutines.flow.Flow<ByteArray>,
+                uploaderId: String,
+                metadata: Map<String, String>,
+            ) = storage.upload(bucket, key, content, metadata)
+
+            override suspend fun delete(bucket: String, key: String, deleterId: String) = storage.delete(bucket, key)
+
+            override fun download(bucket: String, key: String, downloaderId: String) = storage.download(bucket, key)
+
+            override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) =
+                storage.copyObject(bucket, sourceKey, destKey)
+        }
         return MediaAssetBackfillJob(
             mediaAssetRepository = media,
             workspaceFileBlobRepository = blobs,
-            storageApplicationService = storageService,
+            storage = storage,
             uploadSettings = MediaUploadSettings(5, 200, "bucket"),
             transactionRunner = BackfillNoopAtomicTransactionRunner,
         )
@@ -517,28 +527,6 @@ private class BackfillInMemoryFakeStorage : Storage {
         objects["$bucket/$destKey"] = data
         uploadedKeys += destKey
     }
-}
-
-private class BackfillNoopEventPublisher :
-    com.profiletailors.common.domain.bus.event.EventPublisher<
-        com.profiletailors.common.domain.bus.event.BaseDomainEvent,
-        > {
-    override suspend fun publish(event: com.profiletailors.common.domain.bus.event.BaseDomainEvent) = Unit
-    override suspend fun publish(events: List<com.profiletailors.common.domain.bus.event.BaseDomainEvent>) = Unit
-}
-
-private class BackfillNoopStorageObservation : com.profiletailors.storage.domain.StorageObservation {
-    override fun recordOperation(operation: String, provider: String, bucket: String, success: Boolean) = Unit
-    override fun recordBytesUploaded(bytes: Long, provider: String, bucket: String) = Unit
-    override fun recordBytesDownloaded(bytes: Long, provider: String, bucket: String) = Unit
-    override fun recordOperationLatency(operation: String, provider: String, durationNanos: Long) = Unit
-    override fun recordError(operation: String, provider: String, bucket: String, errorType: String) = Unit
-    override fun recordPresignedUrlGenerated(provider: String, success: Boolean) = Unit
-    override suspend fun <T : Any> recordOperationTime(
-        operation: String,
-        provider: String,
-        action: suspend () -> T,
-    ): T = action()
 }
 
 private object BackfillNoopAtomicTransactionRunner : AtomicTransactionRunner {

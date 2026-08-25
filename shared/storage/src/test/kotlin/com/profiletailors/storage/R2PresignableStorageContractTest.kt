@@ -1,7 +1,7 @@
 package com.profiletailors.storage
 
 import com.profiletailors.storage.domain.PresignableStorage
-import com.profiletailors.storage.infrastructure.R2StorageAdapter
+import com.profiletailors.storage.infrastructure.R2Storage
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import org.testcontainers.containers.localstack.LocalStackContainer
@@ -17,9 +17,9 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import java.nio.file.Path
 
 /**
- * Presignable storage contract tests for R2StorageAdapter using LocalStack.
+ * Presignable storage contract tests for R2Storage using LocalStack.
  *
- * These tests verify that R2StorageAdapter satisfies the [PresignableStorageContractTest]
+ * These tests verify that R2Storage satisfies the [PresignableStorageContractTest]
  * contract for presigned URL generation.
  */
 @Testcontainers
@@ -68,5 +68,5 @@ class R2PresignableStorageContractTest : PresignableStorageContractTest() {
     }
 
     override fun createStorage(tempDir: Path): PresignableStorage =
-        R2StorageAdapter(r2Client, TEST_BUCKET, r2Presigner, TEST_ACCOUNT_ID)
+        R2Storage(r2Client, TEST_BUCKET, r2Presigner, TEST_ACCOUNT_ID)
 }

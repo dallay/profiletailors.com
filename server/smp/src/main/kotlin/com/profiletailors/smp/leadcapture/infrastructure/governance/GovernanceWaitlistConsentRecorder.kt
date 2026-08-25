@@ -1,8 +1,8 @@
 package com.profiletailors.smp.leadcapture.infrastructure.governance
 
 import com.profiletailors.leadcapture.common.NormalizedEmail
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecordRequest
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecordRequest
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecorder
 import com.profiletailors.smp.governance.application.RecordConsentCommand
 import com.profiletailors.smp.governance.application.RecordConsentHandler
 import com.profiletailors.smp.governance.domain.ConsentType

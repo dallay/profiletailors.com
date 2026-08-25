@@ -24,8 +24,8 @@ import java.time.Duration
  */
 @Service
 class CloseAccountHandler(
-    private val orchestrationPort: CloseAccountOrchestrationPort,
-    private val rateLimitPort: RateLimitPort,
+    private val orchestration: CloseAccountOrchestration,
+    private val rateLimit: RateLimit,
     private val clock: Clock = Clock.systemUTC(),
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -42,7 +42,7 @@ class CloseAccountHandler(
         enforceRateLimit(command.principalId)
 
         logger.info("Initiating account closure for principal {}", command.principalId)
-        orchestrationPort.execute(command.principalId)
+        orchestration.execute(command.principalId)
         logger.info("Account closure completed for principal {}", command.principalId)
     }
 
@@ -55,7 +55,7 @@ class CloseAccountHandler(
     }
 
     private fun enforceRateLimit(principalId: String) {
-        if (!rateLimitPort.tryAcquire(principalId, RATE_LIMIT_DURATION, clock.instant())) {
+        if (!rateLimit.tryAcquire(principalId, RATE_LIMIT_DURATION, clock.instant())) {
             val minutes = RATE_LIMIT_DURATION.toMinutes()
             throw CloseAccountRateLimitException(
                 "Account closure rate limit exceeded. " +

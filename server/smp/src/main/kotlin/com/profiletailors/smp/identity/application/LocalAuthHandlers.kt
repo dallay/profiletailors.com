@@ -54,7 +54,7 @@ internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSes
 
 @Service
 internal class RegisterUserHandler(
-    private val registrationAvailability: RegistrationAvailabilityPort,
+    private val registrationAvailability: RegistrationAvailability,
     private val identityRegistrationGateway: IdentityRegistrationGateway,
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val localPasswordCredentialGateway: LocalPasswordCredentialGateway,

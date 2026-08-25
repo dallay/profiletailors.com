@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono
 
 @Component
 @Order(Ordered.LOWEST_PRECEDENCE)
-class PasswordResetOutcomeWebFilter(private val observability: PasswordRecoveryObservabilityAdapter) : WebFilter {
+class PasswordResetOutcomeWebFilter(private val observability: PasswordRecoveryObservability) : WebFilter {
 
     /**
      * Filters password reset requests and records their completion status or internal failure.
@@ -34,7 +34,7 @@ class PasswordResetOutcomeWebFilter(private val observability: PasswordRecoveryO
      *
      * @param status The HTTP response status used to determine the reset outcome.
      */
-    private fun PasswordRecoveryObservabilityAdapter.recordResetStatus(status: HttpStatusCode?) {
+    private fun PasswordRecoveryObservability.recordResetStatus(status: HttpStatusCode?) {
         when {
             status?.value() == NO_CONTENT -> recordResetCompleted()
             status?.is4xxClientError == true -> recordResetFailed(PasswordResetFailureCategory.INVALID_REQUEST)

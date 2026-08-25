@@ -2,8 +2,8 @@ package com.profiletailors.smp.platformadmin.application.handler
 
 import com.profiletailors.smp.platformadmin.application.command.AssignPlatformRoleCommand
 import com.profiletailors.smp.platformadmin.application.command.RevokePlatformRoleCommand
-import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import com.profiletailors.smp.platformadmin.domain.AdminAuditResult

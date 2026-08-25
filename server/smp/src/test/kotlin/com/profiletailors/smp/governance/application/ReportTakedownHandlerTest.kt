@@ -31,7 +31,7 @@ internal class ReportTakedownHandlerTest {
     private val repository: TakedownReportRepository = mockk()
     private val resourceContextProvider: ResourceContextProvider = mockk()
     private val principalContextProvider: com.profiletailors.common.domain.context.PrincipalContextProvider = mockk()
-    private val principalIdentityPort: PrincipalIdentityPort = mockk()
+    private val principalIdentity: PrincipalIdentity = mockk()
     private val authorizationDecider: WorkspaceAuthorizationDecider = mockk()
     private val auditHook: AuditHook = mockk()
     private val eventPublisher: EventPublisher<DomainEvent> = mockk()
@@ -41,7 +41,7 @@ internal class ReportTakedownHandlerTest {
         repository = repository,
         resourceContextProvider = resourceContextProvider,
         principalContextProvider = principalContextProvider,
-        principalIdentityPort = principalIdentityPort,
+        principalIdentity = principalIdentity,
         authorizationService = authorizationService,
         auditHook = auditHook,
         eventPublisher = eventPublisher,
@@ -61,7 +61,7 @@ internal class ReportTakedownHandlerTest {
                 principalType = PrincipalType.USER,
                 subject = "user-001",
             )
-        coEvery { principalIdentityPort.findEmailByPrincipalId("user-001") } returns "reporter@example.com"
+        coEvery { principalIdentity.findEmailByPrincipalId("user-001") } returns "reporter@example.com"
         coEvery { repository.findExisting("ws-001", "asset-001", "user-001") } returns null
         coEvery { repository.save(any()) } answers { firstArg() }
         coEvery { auditHook.onMutation(any()) } returns Unit

@@ -1,10 +1,10 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
+import com.profiletailors.smp.platformadmin.application.contracts.AdminUserQuery
 import com.profiletailors.smp.platformadmin.application.model.AdminUserDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminUserSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWorkspaceMembershipSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
-import com.profiletailors.smp.platformadmin.application.ports.AdminUserQuery
 import com.profiletailors.smp.platformadmin.application.query.ListAdminUsersQuery
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle

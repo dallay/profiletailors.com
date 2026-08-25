@@ -9,7 +9,7 @@ import com.profiletailors.smp.publishing.domain.ProviderCatalogPolicy
 import com.profiletailors.smp.publishing.domain.ProviderWorkspaceCapacityPolicy
 import com.profiletailors.smp.publishing.domain.ProviderWorkspaceEntitlementPolicy
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInAuthorizationUrlBuilderAdapter
+import com.profiletailors.smp.publishing.infrastructure.linkedin.ConfigurableLinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
@@ -25,7 +25,7 @@ class PublishingApplicationConfiguration {
     @Bean
     fun providerCatalogPolicy(
         linkedInPublishingProperties: LinkedInPublishingProperties,
-        linkedInAuthorizationUrlBuilder: LinkedInAuthorizationUrlBuilderAdapter,
+        linkedInAuthorizationUrlBuilder: ConfigurableLinkedInAuthorizationUrlBuilder,
         connectedSocialChannelReadRepository: ConnectedSocialChannelReadRepository,
     ): ProviderCatalogPolicy = DefaultProviderCatalogPolicy(
         availability = ProviderCatalogAvailability { provider ->

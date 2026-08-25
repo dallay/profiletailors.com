@@ -16,7 +16,7 @@ internal class ResetPasswordHandler(
     private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val passwordRecoveryEnabled: () -> Boolean,
-    private val passwordResetAuditPort: PasswordResetAuditPort,
+    private val passwordResetAudit: PasswordResetAudit,
 ) : CommandWithResultHandler<ResetPasswordCommand, ResetPasswordResult> {
 
     private val log = LoggerFactory.getLogger(ResetPasswordHandler::class.java)
@@ -66,7 +66,7 @@ internal class ResetPasswordHandler(
         }
 
         try {
-            passwordResetAuditPort.recordCompleted(
+            passwordResetAudit.recordCompleted(
                 PasswordResetAuditEvent(
                     principalId = principalId,
                     occurredAt = now,

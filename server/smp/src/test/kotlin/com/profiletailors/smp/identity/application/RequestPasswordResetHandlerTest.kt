@@ -33,7 +33,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = NoopAtomicTransactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { true },
         )
@@ -63,7 +63,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = NoopAtomicTransactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { true },
         )
@@ -127,7 +127,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = NoopAtomicTransactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { true },
         )
@@ -160,7 +160,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = transactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { true },
         )
@@ -195,7 +195,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = NoopAtomicTransactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { true },
         )
@@ -234,7 +234,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = NoopAtomicTransactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { false },
         )
@@ -272,7 +272,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = NoopAtomicTransactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { true },
         )
@@ -309,7 +309,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = transactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { true },
         )
@@ -345,7 +345,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = transactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { true },
         )
@@ -382,7 +382,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = NoopAtomicTransactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { true },
         )
@@ -411,7 +411,7 @@ class RequestPasswordResetHandlerTest {
             passwordResetTokenRepository = tokenRepository,
             transactionRunner = NoopAtomicTransactionRunner,
             eventPublisher = eventPublisher,
-            rateLimitPort = rateLimit,
+            rateLimit = rateLimit,
             clock = fixedClock,
             passwordRecoveryEnabled = { true },
         )
@@ -435,7 +435,7 @@ class RequestPasswordResetHandlerTest {
         passwordResetTokenRepository = OrderRecordingTokenRepository(order),
         transactionRunner = NoopAtomicTransactionRunner,
         eventPublisher = RecordingEventPublisher(order),
-        rateLimitPort = FakeRateLimitPort(),
+        rateLimit = FakeRateLimitPort(),
         clock = fixedClock,
         passwordRecoveryEnabled = { true },
         timingEqualizer = timingEqualizer,
@@ -579,7 +579,7 @@ class RequestPasswordResetHandlerTest {
         }
     }
 
-    private class FakeRateLimitPort(var admit: Boolean = true) : RateLimitPort {
+    private class FakeRateLimitPort(var admit: Boolean = true) : RateLimit {
         var acquireCalls: Int = 0
         var lastKey: String? = null
 

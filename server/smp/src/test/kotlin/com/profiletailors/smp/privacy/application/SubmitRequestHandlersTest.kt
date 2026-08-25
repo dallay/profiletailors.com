@@ -68,16 +68,16 @@ class SubmitExportRequestHandlerTest {
 
     private val repository = mockk<DataSubjectRequestRepository>()
     private val dataAggregationService = mockk<DataAggregationService>()
-    private val storagePort = mockk<StoragePort>()
+    private val storage = mockk<Storage>()
     private val auditor = mockk<PrivacyMutationAuditor>(relaxed = true)
     private val clock = Clock.fixed(Instant.parse("2026-07-19T10:00:00Z"), ZoneId.of("UTC"))
     private val handler: CommandWithResultHandler<SubmitExportRequestCommand, DataSubjectRequestResponse> =
-        SubmitExportRequestHandler(repository, dataAggregationService, storagePort, auditor, clock)
+        SubmitExportRequestHandler(repository, dataAggregationService, storage, auditor, clock)
 
     @Test
     fun `handle creates EXPORT request and generates JSON`() = runTest {
         coEvery { dataAggregationService.aggregate(any(), any()) } returns mapOf("identity" to null)
-        coEvery { storagePort.uploadJson(any(), any()) } returns "https://storage.example.com/export.json"
+        coEvery { storage.uploadJson(any(), any()) } returns "https://storage.example.com/export.json"
         coEvery { repository.save(any()) } returns Unit
 
         val command = SubmitExportRequestCommand(
@@ -96,7 +96,7 @@ class SubmitExportRequestHandlerTest {
     @Test
     fun `handle uploads JSON and stores download URL`() = runTest {
         coEvery { dataAggregationService.aggregate(any(), any()) } returns mapOf("identity" to null)
-        coEvery { storagePort.uploadJson(any(), any()) } returns "https://storage.example.com/export.json"
+        coEvery { storage.uploadJson(any(), any()) } returns "https://storage.example.com/export.json"
         coEvery { repository.save(any()) } returns Unit
 
         val command = SubmitExportRequestCommand(
@@ -108,13 +108,13 @@ class SubmitExportRequestHandlerTest {
 
         handler.handle(command)
 
-        coVerify { storagePort.uploadJson(match { it.startsWith("dsar-exports/") }, any()) }
+        coVerify { storage.uploadJson(match { it.startsWith("dsar-exports/") }, any()) }
     }
 
     @Test
     fun `handle persists completed request with download URL`() = runTest {
         coEvery { dataAggregationService.aggregate(any(), any()) } returns mapOf("identity" to null)
-        coEvery { storagePort.uploadJson(any(), any()) } returns "https://storage.example.com/export.json"
+        coEvery { storage.uploadJson(any(), any()) } returns "https://storage.example.com/export.json"
         coEvery { repository.save(any()) } returns Unit
 
         val command = SubmitExportRequestCommand(
@@ -237,8 +237,8 @@ class SubmitDeletionRequestHandlerTest {
 
     private val repository = mockk<DataSubjectRequestRepository>()
     private val anonymizationService = mockk<AnonymizationService>()
-    private val tenancyPort = mockk<TenancyDataPort>()
-    private val publishingPort = mockk<PublishingDeletionPort>()
+    private val tenancyData = mockk<TenancyData>()
+    private val publishing = mockk<PublishingDeletion>()
     private val auditor = mockk<PrivacyMutationAuditor>(relaxed = true)
     private val transactionRunner = object : AtomicTransactionRunner {
         override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
@@ -248,8 +248,8 @@ class SubmitDeletionRequestHandlerTest {
         SubmitDeletionRequestHandler(
             repository = repository,
             anonymizationService = anonymizationService,
-            tenancyPort = tenancyPort,
-            publishingPort = publishingPort,
+            tenancyData = tenancyData,
+            publishing = publishing,
             transactionRunner = transactionRunner,
             auditor = auditor,
             clock = clock,
@@ -257,14 +257,14 @@ class SubmitDeletionRequestHandlerTest {
 
     @Test
     fun `handle creates DELETION request with COMPLETED status`() = runTest {
-        coEvery { tenancyPort.isSoleOwnerInAnyWorkspace(any()) } returns false
+        coEvery { tenancyData.isSoleOwnerInAnyWorkspace(any()) } returns false
         coEvery { anonymizationService.anonymizeIdentityAndWaitlist(any(), any(), any()) } returns Unit
         coEvery { anonymizationService.revokeCredentials(any()) } returns Unit
-        coEvery { publishingPort.deleteSocialConnections(any()) } returns Unit
-        coEvery { publishingPort.deleteSecureCredentials(any()) } returns Unit
-        coEvery { publishingPort.cancelPendingPublications(any()) } returns Unit
-        coEvery { tenancyPort.removeAllMemberships(any()) } returns emptyList()
-        coEvery { tenancyPort.getMembershipWorkspaceIds(any()) } returns emptyList()
+        coEvery { publishing.deleteSocialConnections(any()) } returns Unit
+        coEvery { publishing.deleteSecureCredentials(any()) } returns Unit
+        coEvery { publishing.cancelPendingPublications(any()) } returns Unit
+        coEvery { tenancyData.removeAllMemberships(any()) } returns emptyList()
+        coEvery { tenancyData.getMembershipWorkspaceIds(any()) } returns emptyList()
         coEvery { repository.save(any()) } returns Unit
 
         val command = SubmitDeletionRequestCommand(
@@ -282,7 +282,7 @@ class SubmitDeletionRequestHandlerTest {
 
     @Test
     fun `handle rejects sole owner deletions`() = runTest {
-        coEvery { tenancyPort.isSoleOwnerInAnyWorkspace(any()) } returns true
+        coEvery { tenancyData.isSoleOwnerInAnyWorkspace(any()) } returns true
 
         val command = SubmitDeletionRequestCommand(
             requestedByPrincipalId = "principal-1",
@@ -301,14 +301,14 @@ class SubmitDeletionRequestHandlerTest {
 
     @Test
     fun `handle runs Phase 1 inside atomic transaction`() = runTest {
-        coEvery { tenancyPort.isSoleOwnerInAnyWorkspace(any()) } returns false
+        coEvery { tenancyData.isSoleOwnerInAnyWorkspace(any()) } returns false
         coEvery { anonymizationService.anonymizeIdentityAndWaitlist(any(), any(), any()) } returns Unit
         coEvery { anonymizationService.revokeCredentials(any()) } returns Unit
-        coEvery { publishingPort.deleteSocialConnections(any()) } returns Unit
-        coEvery { publishingPort.deleteSecureCredentials(any()) } returns Unit
-        coEvery { publishingPort.cancelPendingPublications(any()) } returns Unit
-        coEvery { tenancyPort.removeAllMemberships(any()) } returns emptyList()
-        coEvery { tenancyPort.getMembershipWorkspaceIds(any()) } returns emptyList()
+        coEvery { publishing.deleteSocialConnections(any()) } returns Unit
+        coEvery { publishing.deleteSecureCredentials(any()) } returns Unit
+        coEvery { publishing.cancelPendingPublications(any()) } returns Unit
+        coEvery { tenancyData.removeAllMemberships(any()) } returns emptyList()
+        coEvery { tenancyData.getMembershipWorkspaceIds(any()) } returns emptyList()
         coEvery { repository.save(any()) } returns Unit
 
         val command = SubmitDeletionRequestCommand(
@@ -326,14 +326,14 @@ class SubmitDeletionRequestHandlerTest {
 
     @Test
     fun `handle runs Phase 2 and Phase 3 after transaction`() = runTest {
-        coEvery { tenancyPort.isSoleOwnerInAnyWorkspace(any()) } returns false
+        coEvery { tenancyData.isSoleOwnerInAnyWorkspace(any()) } returns false
         coEvery { anonymizationService.anonymizeIdentityAndWaitlist(any(), any(), any()) } returns Unit
         coEvery { anonymizationService.revokeCredentials(any()) } returns Unit
-        coEvery { publishingPort.deleteSocialConnections(any()) } returns Unit
-        coEvery { publishingPort.deleteSecureCredentials(any()) } returns Unit
-        coEvery { publishingPort.cancelPendingPublications(any()) } returns Unit
-        coEvery { tenancyPort.removeAllMemberships(any()) } returns listOf("ws-1")
-        coEvery { tenancyPort.getMembershipWorkspaceIds(any()) } returns listOf("ws-1")
+        coEvery { publishing.deleteSocialConnections(any()) } returns Unit
+        coEvery { publishing.deleteSecureCredentials(any()) } returns Unit
+        coEvery { publishing.cancelPendingPublications(any()) } returns Unit
+        coEvery { tenancyData.removeAllMemberships(any()) } returns listOf("ws-1")
+        coEvery { tenancyData.getMembershipWorkspaceIds(any()) } returns listOf("ws-1")
         coEvery { anonymizationService.markMediaForGc(any(), any()) } returns Unit
         coEvery { repository.save(any()) } returns Unit
 
@@ -348,10 +348,10 @@ class SubmitDeletionRequestHandlerTest {
 
         // Phase 2
         coVerify { anonymizationService.revokeCredentials("principal-1") }
-        coVerify { publishingPort.deleteSocialConnections("principal-1") }
-        coVerify { publishingPort.deleteSecureCredentials("principal-1") }
-        coVerify { publishingPort.cancelPendingPublications("principal-1") }
-        coVerify { tenancyPort.removeAllMemberships("principal-1") }
+        coVerify { publishing.deleteSocialConnections("principal-1") }
+        coVerify { publishing.deleteSecureCredentials("principal-1") }
+        coVerify { publishing.cancelPendingPublications("principal-1") }
+        coVerify { tenancyData.removeAllMemberships("principal-1") }
 
         // Phase 3
         coVerify { anonymizationService.markMediaForGc("principal-1", listOf("ws-1")) }

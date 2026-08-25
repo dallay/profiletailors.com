@@ -2,9 +2,9 @@ package com.profiletailors.ratelimit.infrastructure
 
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
-import com.profiletailors.ratelimit.infrastructure.adapter.Bucket4jRateLimiter
 import com.profiletailors.ratelimit.infrastructure.config.BucketConfigurationFactory
 import com.profiletailors.ratelimit.infrastructure.config.RateLimitProperties
+import com.profiletailors.ratelimit.infrastructure.gateway.Bucket4jRateLimiter
 import com.profiletailors.ratelimit.infrastructure.metrics.RateLimitMetrics
 import io.kotest.matchers.longs.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
@@ -101,7 +101,7 @@ class Bucket4jRateLimiterTest {
             ),
         )
         val configFactory = BucketConfigurationFactory(properties)
-        val apiKeyParser = com.profiletailors.ratelimit.infrastructure.adapter.ApiKeyParser(properties)
+        val apiKeyParser = com.profiletailors.ratelimit.infrastructure.gateway.ApiKeyParser(properties)
         val meterRegistry = SimpleMeterRegistry()
         val metrics = RateLimitMetrics(meterRegistry)
         // Use system clock by default for existing tests
@@ -543,7 +543,7 @@ class Bucket4jRateLimiterTest {
         val fixedNow = Instant.parse("2025-01-01T00:00:00Z")
         val fixedClock = Clock.fixed(fixedNow, java.time.ZoneOffset.UTC)
         val configFactory = BucketConfigurationFactory(properties)
-        val apiKeyParser = com.profiletailors.ratelimit.infrastructure.adapter.ApiKeyParser(properties)
+        val apiKeyParser = com.profiletailors.ratelimit.infrastructure.gateway.ApiKeyParser(properties)
         val meterRegistry = SimpleMeterRegistry()
         val metrics = RateLimitMetrics(meterRegistry)
         val deterministicLimiter = Bucket4jRateLimiter(
@@ -593,7 +593,7 @@ class Bucket4jRateLimiterTest {
         val fixedNow = Instant.parse("2025-01-01T00:00:00Z")
         val fixedClock = Clock.fixed(fixedNow, java.time.ZoneOffset.UTC)
         val configFactory = BucketConfigurationFactory(customProperties)
-        val apiKeyParser = com.profiletailors.ratelimit.infrastructure.adapter.ApiKeyParser(customProperties)
+        val apiKeyParser = com.profiletailors.ratelimit.infrastructure.gateway.ApiKeyParser(customProperties)
         val meterRegistry = SimpleMeterRegistry()
         val metrics = RateLimitMetrics(meterRegistry)
         val customLimiter = Bucket4jRateLimiter(

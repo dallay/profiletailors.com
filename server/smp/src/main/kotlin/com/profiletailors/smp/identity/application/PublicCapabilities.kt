@@ -21,7 +21,7 @@ class GetPublicCapabilitiesQuery : Query<PublicCapabilities>
 
 @Service
 internal class GetPublicCapabilitiesHandler(
-    private val registrationAvailability: RegistrationAvailabilityPort,
+    private val registrationAvailability: RegistrationAvailability,
     private val passwordRecoveryEnabled: () -> Boolean,
 ) : QueryHandler<GetPublicCapabilitiesQuery, PublicCapabilities> {
     override suspend fun handle(query: GetPublicCapabilitiesQuery): PublicCapabilities = PublicCapabilities(

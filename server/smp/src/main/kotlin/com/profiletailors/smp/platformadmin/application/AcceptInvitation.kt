@@ -5,8 +5,8 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.platformadmin.application.ports.InvitationTokenCandidateKey
-import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
+import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException

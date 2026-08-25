@@ -4,12 +4,11 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platformadmin.application.OperatorAccess
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminUserQuery
 import com.profiletailors.smp.platformadmin.application.model.AdminUserDetail
-import com.profiletailors.smp.platformadmin.application.ports.AdminUserQuery
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignment
-import com.profiletailors.smp.platformadmin.domain.PlatformRoleAssignmentId
 import io.mockk.coEvery
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
@@ -22,7 +21,7 @@ class AdminSessionControllerTest {
     private val clock = Instant.parse("2026-07-30T10:00:00Z")
     private val operatorId = UUID.fromString("00000000-0000-0000-0000-000000000001")
 
-    private val roleAssignmentRepository = mockk<PlatformRoleAssignmentRepository>()
+    private val operatorAccessResolver = mockk<OperatorAccessResolver>()
     private val userQuery = mockk<AdminUserQuery>()
 
     @Test
@@ -82,7 +81,7 @@ class AdminSessionControllerTest {
     private fun webClient(principal: PrincipalContext? = operatorPrincipal()): WebTestClient = WebTestClient
         .bindToController(
             AdminSessionController(
-                roleAssignmentRepository = roleAssignmentRepository,
+                operatorAccessResolver = operatorAccessResolver,
                 userQuery = userQuery,
                 requestContextStore = FakeRequestContextStore(principal),
             ),
@@ -91,8 +90,7 @@ class AdminSessionControllerTest {
         .build()
 
     private fun grantRoles(roles: List<PlatformRole>) {
-        coEvery { roleAssignmentRepository.findActiveByPrincipalId(operatorId) } returns
-            roles.map { assignment(it) }
+        coEvery { operatorAccessResolver.resolve(any()) } returns OperatorAccess(operatorId, roles.toSet())
     }
 
     private fun operatorPrincipal() = PrincipalContext(
@@ -100,14 +98,6 @@ class AdminSessionControllerTest {
         principalType = PrincipalType.USER,
         subject = "operator@example.com",
         provider = "jwt",
-    )
-
-    private fun assignment(role: PlatformRole) = PlatformRoleAssignment(
-        id = PlatformRoleAssignmentId.generate(),
-        principalId = operatorId,
-        role = role,
-        assignedAt = clock,
-        assignedBy = operatorId,
     )
 
     private fun userDetail() = AdminUserDetail(

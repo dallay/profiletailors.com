@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.smp.identity.application.PasswordResetNotificationFailure
-import com.profiletailors.smp.identity.application.PasswordResetNotificationFailurePort
+import com.profiletailors.smp.identity.application.PasswordResetNotificationFailureRecorder
 import kotlinx.coroutines.reactive.awaitSingle
 import org.springframework.dao.DataAccessException
 import org.springframework.r2dbc.core.DatabaseClient
@@ -12,7 +12,7 @@ import java.util.UUID
 
 @Repository
 class R2dbcPasswordResetNotificationFailureRepository(private val databaseClient: DatabaseClient) :
-    PasswordResetNotificationFailurePort {
+    PasswordResetNotificationFailureRecorder {
     /**
      * Records a password reset notification failure.
      *

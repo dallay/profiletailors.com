@@ -2,11 +2,11 @@ package com.profiletailors.smp.platformadmin.application.handler
 
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
+import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
-import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
-import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import com.profiletailors.smp.platformadmin.domain.AdminAuditResult
@@ -27,7 +27,7 @@ import java.time.Duration
 import java.util.UUID
 
 open class InviteWaitlistEntryHandler(
-    private val waitlistEntryPort: WaitlistEntryAdminPort,
+    private val waitlistEntryAdmin: WaitlistEntryAdmin,
     private val invitationRepository: WaitlistInvitationRepository,
     private val auditPublisher: AdministrativeAuditPublisher,
     private val clock: Clock,
@@ -42,7 +42,7 @@ open class InviteWaitlistEntryHandler(
             throw PlatformAccessDeniedException(PlatformPermission.WAITLIST_INVITE)
         }
 
-        val entry = waitlistEntryPort.findById(command.waitlistEntryId)
+        val entry = waitlistEntryAdmin.findById(command.waitlistEntryId)
             ?: throw WaitlistEntryNotFoundException(command.waitlistEntryId)
 
         when (entry.status) {
@@ -83,7 +83,7 @@ open class InviteWaitlistEntryHandler(
 
         if (entry.status == WaitlistEntryStatus.PENDING) {
             entry.invite(now)
-            waitlistEntryPort.save(entry)
+            waitlistEntryAdmin.save(entry)
         }
 
         auditPublisher.publish(

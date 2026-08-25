@@ -1,6 +1,6 @@
 package com.profiletailors.smp.mcp.infrastructure
 
-import com.profiletailors.smp.mcp.adapter.McpToolMetadata
+import com.profiletailors.smp.mcp.tools.McpToolMetadata
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap

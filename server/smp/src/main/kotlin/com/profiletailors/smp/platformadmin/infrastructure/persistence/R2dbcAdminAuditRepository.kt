@@ -1,9 +1,9 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
+import com.profiletailors.smp.platformadmin.application.contracts.AdminAuditQuery
+import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.model.AdminAuditEventSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
-import com.profiletailors.smp.platformadmin.application.ports.AdminAuditQuery
-import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.query.ListAdminAuditEventsQuery
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import io.r2dbc.spi.Readable

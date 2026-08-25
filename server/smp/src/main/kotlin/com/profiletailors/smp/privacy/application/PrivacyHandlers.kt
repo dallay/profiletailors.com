@@ -21,9 +21,9 @@ private const val ACTION_DSAR_COMPLETED = "dsar.completed"
  * Creates an ACCESS request, aggregates the user's data across all
  * contexts, stores the result, and transitions to COMPLETED synchronously.
  *
- * NOTE: `@Service` is intentionally omitted until all port implementations
- * (`IdentityDataPort`, `CredentialsDataPort`, etc.) are available in the
- * infrastructure layer. See `PrivacyPorts.kt`.
+ * NOTE: `@Service` is intentionally omitted until all implementations
+ * (`IdentityData`, `CredentialsData`, etc.) are available in the
+ * infrastructure layer. See `PrivacyContracts.kt`.
  */
 internal class SubmitAccessRequestHandler(
     private val repository: DataSubjectRequestRepository,
@@ -83,12 +83,12 @@ internal class SubmitAccessRequestHandler(
  * a download URL.
  *
  * NOTE: `@Service` intentionally omitted — depends on `DataAggregationService`
- * and `StoragePort`, which are not yet Spring beans.
+ * and `Storage`, which are not yet Spring beans.
  */
 internal class SubmitExportRequestHandler(
     private val repository: DataSubjectRequestRepository,
     private val dataAggregationService: DataAggregationService,
-    private val storagePort: StoragePort,
+    private val storage: Storage,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
 ) : CommandWithResultHandler<SubmitExportRequestCommand, DataSubjectRequestResponse> {
@@ -120,7 +120,7 @@ internal class SubmitExportRequestHandler(
 
         val jsonContent = mapToJson(aggregatedData)
         val exportKey = "dsar-exports/${request.id.value}.json"
-        val downloadUrl = storagePort.uploadJson(exportKey, jsonContent)
+        val downloadUrl = storage.uploadJson(exportKey, jsonContent)
 
         val completedRequest = request.transitionTo(
             target = DataSubjectRequestStatus.COMPLETED,
@@ -225,14 +225,14 @@ internal class SubmitCorrectionRequestHandler(
  * 3. Mark media for garbage collection
  *
  * NOTE: `@Service` intentionally omitted — depends on `AnonymizationService`
- * and multiple ports (`TenancyDataPort`, `PublishingDeletionPort`, etc.)
+ * and multiple ports (`TenancyData`, `PublishingDeletion`, etc.)
  * that are not yet implemented in the infrastructure layer.
  */
 internal class SubmitDeletionRequestHandler(
     private val repository: DataSubjectRequestRepository,
     private val anonymizationService: AnonymizationService,
-    private val tenancyPort: TenancyDataPort,
-    private val publishingPort: PublishingDeletionPort,
+    private val tenancyData: TenancyData,
+    private val publishing: PublishingDeletion,
     private val transactionRunner: AtomicTransactionRunner,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
@@ -240,7 +240,7 @@ internal class SubmitDeletionRequestHandler(
 
     override suspend fun handle(command: SubmitDeletionRequestCommand): DataSubjectRequestResponse {
         // Fail-fast: prevent deletion if user is sole owner in any workspace
-        val isSoleOwner = tenancyPort.isSoleOwnerInAnyWorkspace(command.requestedByPrincipalId)
+        val isSoleOwner = tenancyData.isSoleOwnerInAnyWorkspace(command.requestedByPrincipalId)
         require(!isSoleOwner) {
             "Cannot delete principal ${command.requestedByPrincipalId}: is sole owner in one or more workspaces"
         }
@@ -255,14 +255,14 @@ internal class SubmitDeletionRequestHandler(
         }
 
         // Phase 2: Capture workspace IDs before revoking memberships
-        val workspaceIds = tenancyPort.getMembershipWorkspaceIds(command.requestedByPrincipalId)
+        val workspaceIds = tenancyData.getMembershipWorkspaceIds(command.requestedByPrincipalId)
 
         // Phase 3: Revoke credentials and memberships (best-effort)
         anonymizationService.revokeCredentials(command.requestedByPrincipalId)
-        publishingPort.deleteSocialConnections(command.requestedByPrincipalId)
-        publishingPort.deleteSecureCredentials(command.requestedByPrincipalId)
-        publishingPort.cancelPendingPublications(command.requestedByPrincipalId)
-        tenancyPort.removeAllMemberships(command.requestedByPrincipalId)
+        publishing.deleteSocialConnections(command.requestedByPrincipalId)
+        publishing.deleteSecureCredentials(command.requestedByPrincipalId)
+        publishing.cancelPendingPublications(command.requestedByPrincipalId)
+        tenancyData.removeAllMemberships(command.requestedByPrincipalId)
 
         // Phase 4: Mark media for GC
         if (workspaceIds.isNotEmpty()) {

@@ -10,9 +10,9 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.smp.platformadmin.application.command.CancelWaitlistEntryCommand
-import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
+import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
@@ -38,12 +38,12 @@ class CancelWaitlistEntryHandlerTest {
     private val operatorId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
     private val entryId = "entry-xyz-456"
 
-    private val waitlistEntryPort = mockk<WaitlistEntryAdminPort>()
+    private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
     private val invitationRepository = mockk<WaitlistInvitationRepository>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
 
     private val handler = CancelWaitlistEntryHandler(
-        waitlistEntryPort = waitlistEntryPort,
+        waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
         clock = clock,
@@ -61,25 +61,25 @@ class CancelWaitlistEntryHandlerTest {
 
     @Test
     fun `throws WaitlistEntryNotFoundException when entry does not exist`() = runTest {
-        coEvery { waitlistEntryPort.findById(entryId) } returns null
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns null
         assertThrows<WaitlistEntryNotFoundException> { handler.handle(command()) }
     }
 
     @Test
     fun `throws WaitlistEntryAlreadyConvertedException for converted entry`() = runTest {
-        coEvery { waitlistEntryPort.findById(entryId) } returns entry(WaitlistEntryStatus.CONVERTED)
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.CONVERTED)
         assertThrows<WaitlistEntryAlreadyConvertedException> { handler.handle(command()) }
     }
 
     @Test
     fun `cancels pending entry and records audit event`() = runTest {
-        coEvery { waitlistEntryPort.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
-        coEvery { waitlistEntryPort.save(any()) } answers { firstArg() }
+        coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
 
         handler.handle(command())
 
-        coVerify { waitlistEntryPort.save(match { it.status == WaitlistEntryStatus.CANCELLED }) }
+        coVerify { waitlistEntryAdmin.save(match { it.status == WaitlistEntryStatus.CANCELLED }) }
         coVerify { auditPublisher.publish(match { it.action.name == "WAITLIST_ENTRY_CANCELLED" }) }
     }
 
@@ -96,22 +96,22 @@ class CancelWaitlistEntryHandlerTest {
             createdBy = operatorId,
             deliveryStatus = InvitationDeliveryStatus.SENT,
         )
-        coEvery { waitlistEntryPort.findById(entryId) } returns invitedEntry
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns invitedEntry
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns activeInv
         coEvery { invitationRepository.update(any()) } answers { firstArg() }
-        coEvery { waitlistEntryPort.save(any()) } answers { firstArg() }
+        coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
 
         handler.handle(command())
 
         coVerify { invitationRepository.update(match { it.status == WaitlistInvitationStatus.REVOKED }) }
-        coVerify { waitlistEntryPort.save(match { it.status == WaitlistEntryStatus.CANCELLED }) }
+        coVerify { waitlistEntryAdmin.save(match { it.status == WaitlistEntryStatus.CANCELLED }) }
     }
 
     @Test
     fun `cancellation reason is included in audit event`() = runTest {
-        coEvery { waitlistEntryPort.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
-        coEvery { waitlistEntryPort.save(any()) } answers { firstArg() }
+        coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
 
         handler.handle(command(reason = "spam"))
 

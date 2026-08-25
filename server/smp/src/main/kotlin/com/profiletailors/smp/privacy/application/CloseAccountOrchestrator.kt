@@ -1,10 +1,10 @@
 package com.profiletailors.smp.privacy.application
 
-import com.profiletailors.smp.identity.application.CloseAccountOrchestrationPort
+import com.profiletailors.smp.identity.application.CloseAccountOrchestration
 import org.slf4j.LoggerFactory
 
 /**
- * Implementation of [CloseAccountOrchestrationPort] that coordinates all
+ * Implementation of [CloseAccountOrchestration] that coordinates all
  * account closure deletion steps across privacy sub-domains.
  *
  * Lives in [com.profiletailors.smp.privacy.application] because it requires
@@ -13,19 +13,19 @@ import org.slf4j.LoggerFactory
  * tenancy data removal.
  *
  * NOTE: [@Service] annotation intentionally omitted because the 5 sub-ports
- * ([IdentityAnonymizationPort], [CredentialsRevocationPort], [PublishingDeletionPort],
- * [MediaDeletionPort], [TenancyDataPort]) do not yet have infrastructure-layer
+ * ([IdentityAnonymization], [CredentialsRevocation], [PublishingDeletion],
+ * [MediaDeletion], [TenancyData]) do not yet have infrastructure-layer
  * implementations. This class will be registered as a Spring bean once those
  * ports are wired. Until then, [CloseAccountHandler] receives a stub
- * [CloseAccountOrchestrationPort] from [com.profiletailors.smp.identity.infrastructure.RateLimitConfiguration].
+ * [CloseAccountOrchestration] from [com.profiletailors.smp.identity.infrastructure.RateLimitConfiguration].
  */
 class CloseAccountOrchestrator(
-    private val identityAnonymizationPort: IdentityAnonymizationPort,
-    private val credentialsRevocationPort: CredentialsRevocationPort,
-    private val publishingDeletionPort: PublishingDeletionPort,
-    private val mediaDeletionPort: MediaDeletionPort,
-    private val tenancyDataPort: TenancyDataPort,
-) : CloseAccountOrchestrationPort {
+    private val identityAnonymization: IdentityAnonymization,
+    private val credentialsRevocation: CredentialsRevocation,
+    private val publishingDeletion: PublishingDeletion,
+    private val mediaDeletion: MediaDeletion,
+    private val tenancyData: TenancyData,
+) : CloseAccountOrchestration {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -33,34 +33,34 @@ class CloseAccountOrchestrator(
         logger.info("Executing account closure for principal {}", principalId)
 
         // Step 1: Revoke credentials (sessions + API keys)
-        credentialsRevocationPort.revokeAllSessions(principalId)
-        credentialsRevocationPort.deleteAllApiKeys(principalId)
+        credentialsRevocation.revokeAllSessions(principalId)
+        credentialsRevocation.deleteAllApiKeys(principalId)
         logger.debug("Revoked credentials for principal {}", principalId)
 
         // Step 2: Clean up publishing context
-        publishingDeletionPort.cancelPendingPublications(principalId)
-        publishingDeletionPort.deleteSocialConnections(principalId)
-        publishingDeletionPort.deleteSecureCredentials(principalId)
+        publishingDeletion.cancelPendingPublications(principalId)
+        publishingDeletion.deleteSocialConnections(principalId)
+        publishingDeletion.deleteSecureCredentials(principalId)
         logger.debug("Cleaned up publishing data for principal {}", principalId)
 
         // Step 3: Capture workspace IDs before removing memberships
-        val workspaceIds = tenancyDataPort.getMembershipWorkspaceIds(principalId)
+        val workspaceIds = tenancyData.getMembershipWorkspaceIds(principalId)
 
         // Step 4: Mark media for deletion
         if (workspaceIds.isNotEmpty()) {
-            mediaDeletionPort.markAssetsDeleted(principalId, workspaceIds)
-            mediaDeletionPort.markBlobsReadyForGc(principalId, workspaceIds)
+            mediaDeletion.markAssetsDeleted(principalId, workspaceIds)
+            mediaDeletion.markBlobsReadyForGc(principalId, workspaceIds)
             logger.debug("Marked media assets for GC for principal {}", principalId)
         }
 
         // Step 5: Remove workspace memberships
-        tenancyDataPort.removeAllMemberships(principalId)
+        tenancyData.removeAllMemberships(principalId)
         logger.debug("Removed workspace memberships for principal {}", principalId)
 
         // Step 6: Anonymize identity
         val now = java.time.Clock.systemUTC().instant()
-        identityAnonymizationPort.anonymizeUserIdentity(principalId, now)
-        identityAnonymizationPort.anonymizePrincipalDisplayIdentity(principalId)
+        identityAnonymization.anonymizeUserIdentity(principalId, now)
+        identityAnonymization.anonymizePrincipalDisplayIdentity(principalId)
         logger.debug("Anonymized identity for principal {}", principalId)
 
         logger.info("Account closure completed for principal {}", principalId)

@@ -5,10 +5,10 @@ import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
 import com.profiletailors.smp.identity.application.PasswordResetNotificationFailure
-import com.profiletailors.smp.identity.application.PasswordResetNotificationFailurePort
+import com.profiletailors.smp.identity.application.PasswordResetNotificationFailureRecorder
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetry
-import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryPort
-import com.profiletailors.smp.identity.application.RegistrationAvailabilityPort
+import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryRecorder
+import com.profiletailors.smp.identity.application.RegistrationAvailability
 import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
@@ -114,7 +114,8 @@ class CommonBddTestConfiguration {
      */
     @Bean
     @Primary
-    fun recordingPasswordResetFailurePort(): RecordingPasswordResetFailurePort = RecordingPasswordResetFailurePort()
+    fun recordingPasswordResetFailureRecorder(): RecordingPasswordResetFailureRecorder =
+        RecordingPasswordResetFailureRecorder()
 
     /**
      * Provides the password reset notification retry policy for BDD tests.
@@ -136,8 +137,8 @@ class CommonBddTestConfiguration {
      */
     @Bean
     @Primary
-    fun recordingPasswordResetTelemetryPort(): RecordingPasswordResetTelemetryPort =
-        RecordingPasswordResetTelemetryPort()
+    fun recordingPasswordResetTelemetryRecorder(): RecordingPasswordResetTelemetryRecorder =
+        RecordingPasswordResetTelemetryRecorder()
 
     /**
      * Provides a mutable flag for controlling password recovery in BDD tests.
@@ -152,8 +153,8 @@ class CommonBddTestConfiguration {
 
     @Bean
     @Primary
-    fun bddRegistrationAvailability(flag: MutableRegistrationFlag): RegistrationAvailabilityPort =
-        RegistrationAvailabilityPort(flag::isEnabled)
+    fun bddRegistrationAvailability(flag: MutableRegistrationFlag): RegistrationAvailability =
+        RegistrationAvailability(flag::isEnabled)
 
     @Bean("bddPasswordRecoveryEnabled")
     @Primary
@@ -280,7 +281,7 @@ class MutablePasswordRecoveryFlag {
     }
 }
 
-class RecordingPasswordResetFailurePort : PasswordResetNotificationFailurePort {
+class RecordingPasswordResetFailureRecorder : PasswordResetNotificationFailureRecorder {
     private val recorded = java.util.concurrent.CopyOnWriteArrayList<PasswordResetNotificationFailure>()
     val records: List<PasswordResetNotificationFailure>
         get() = recorded.toList()
@@ -300,7 +301,7 @@ class RecordingPasswordResetFailurePort : PasswordResetNotificationFailurePort {
     fun reset() = recorded.clear()
 }
 
-class RecordingPasswordResetTelemetryPort : PasswordResetNotificationTelemetryPort {
+class RecordingPasswordResetTelemetryRecorder : PasswordResetNotificationTelemetryRecorder {
     private val recorded = java.util.concurrent.CopyOnWriteArrayList<PasswordResetNotificationTelemetry>()
     val events: List<PasswordResetNotificationTelemetry>
         get() = recorded.toList()
