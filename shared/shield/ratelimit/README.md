@@ -1,59 +1,92 @@
-# shared:shield:ratelimit
+# Shared Shield Rate Limit Module (`shared:shield:ratelimit`)
 
-Rate limiting infrastructure for the Profile Tailors API. Implements token-bucket rate limiting with Bucket4j and Caffeine caching, integrated into Spring WebFlux via a reactive `WebFilter`.
+Token-bucket rate limiting infrastructure using Bucket4j, Caffeine in-memory caching, Spring WebFlux reactive filters, Micrometer metrics, and rate-limiting domain event publishing.
 
-## Overview
+## Role in the platform
 
-Provides configurable rate limiting per API key or IP address using the token-bucket algorithm. Emits domain events when limits are exceeded and exposes Micrometer metrics for monitoring.
+Protects Profile Tailors API endpoints against brute-force attacks, abuse, and resource exhaustion. Integrated into `server/smp` via a reactive Spring `WebFilter`, it evaluates incoming request IP addresses or API tokens against configurable Bucket4j token-bucket strategies.
 
-## Key Types
+## Tech stack
 
-| Type | Purpose |
-|------|---------|
-| `RateLimiter` | Domain interface — `allowRequest(key)` returns `RateLimitResult` |
-| `RateLimitResult` | Result with allowed/denied + remaining tokens + reset time |
-| `RateLimitStrategy` | Strategy definition (capacity, refill rate, refill period) |
-| `Bucket4jRateLimiter` | Bucket4j-based implementation with Caffeine cache |
-| `RateLimitingFilter` | Spring `WebFilter` — intercepts requests and enforces limits |
-| `RateLimitingService` | Application service — coordinates rate limiting logic |
-| `RateLimitProperties` | Configuration properties (`profiletailors.ratelimit.*`) |
-| `RateLimitConfiguration` | Spring auto-configuration |
+- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines
+- **Framework & Libraries**: Spring WebFlux, Bucket4j 8.10, Caffeine 3.1, Micrometer
+- **Testing**: JUnit 5, AssertJ, Kotest, MockK
 
-### Events
+## Getting started
 
-| Type | Purpose |
-|------|---------|
-| `RateLimitExceededEvent` | Published via shared bus when rate limit is exceeded |
+### Prerequisites
 
-## Usage
+- Java JDK `>= 21`
+- Gradle wrapper (`./gradlew`)
+
+### Installation
+
+Included automatically as a Gradle project dependency `:shared:shield:ratelimit`.
+
+### Running locally
+
+Run unit tests:
+
+```bash
+./gradlew :shared:shield:ratelimit:test
+```
+
+### Environment variables
+
+| Variable | Required | Description | Default |
+| --- | --- | --- | --- |
+| `SMP_PLATFORM_RATE_LIMIT_ENABLED` | No | Master toggle to enable rate limiting filter | `false` |
+
+## Project structure
+
+```text
+shared/shield/ratelimit/
+├── src/main/kotlin/com/profiletailors/shield/ratelimit/
+│   ├── config/     # Spring Auto-Configuration and RateLimitProperties
+│   ├── domain/     # RateLimiter interface, RateLimitResult, RateLimitStrategy
+│   ├── event/      # RateLimitExceededEvent
+│   ├── filter/     # Reactive WebFilter interceptor
+│   └── service/    # Bucket4jRateLimiter implementation
+└── build.gradle.kts
+```
+
+## Testing
+
+Run unit tests:
+
+```bash
+./gradlew :shared:shield:ratelimit:test
+```
+
+## API / Public interface
+
+Main types in package `com.profiletailors.shield.ratelimit`:
+
+- `RateLimiter`: Domain contract (`allowRequest(key) -> RateLimitResult`).
+- `Bucket4jRateLimiter`: Bucket4j and Caffeine implementation.
+- `RateLimitingFilter`: Reactive `WebFilter` for WebFlux request interception.
+- `RateLimitExceededEvent`: Domain event emitted when request limit is breached.
+
+## Configuration
+
+Configuration properties (`application.yaml`):
 
 ```yaml
 profiletailors:
   ratelimit:
-    default-strategy:
-      capacity: 100
-      refill-rate: 10
-      refill-period: SECONDS
-    enabled: true
+    enabled: false
+    capacity: 100
+    refill-rate: 10
+    refill-period: 1s
 ```
 
-```kotlin
-// Programmatic check
-val result = rateLimiter.allowRequest("api-key-123")
-if (result.isAllowed) {
-    // process request
-} else {
-    // return 429 Too Many Requests
-}
-```
+## Contributing
 
-## Dependencies
+Please review the [Root CONTRIBUTING.md](../../../CONTRIBUTING.md) for workflow rules, commit conventions, and pull request guidelines.
 
-- `shared:common` — domain primitives
-- `shared:bus` — event publishing
-- `shared:spring-boot-common` — Spring integration, EventEmitter
+## License
 
-## Related
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the [Root LICENSE](../../../LICENSE) for details.
 
-- [shared:spring-boot-common](../../spring-boot-common/README.md) — base Spring integration
-- [shared:bus](../../bus/README.md) — event types for RateLimitExceededEvent
+---
+Back to [Root README](../../../README.md)

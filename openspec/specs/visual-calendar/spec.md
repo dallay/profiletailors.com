@@ -137,11 +137,7 @@ A filter dropdown MUST let users select a social account. The selection MUST pro
 
 ### Requirement: Imported Page Posts Are Calendar Read Models
 
-The visual calendar backend MAY surface imported Company Page posts through
-`GET /api/publishing/social-content/calendar`, using the existing workspace, version, range,
-lifecycle, actor, cursor, and limit contract. Imported items MUST remain distinguishable from
-Profile Tailors publications by provider, actor, origin, and lifecycle. Calendar responses MUST
-preserve `nextCursor` and MUST NOT expose credentials.
+The visual calendar backend MAY surface imported Company Page posts through `GET /api/publishing/social-content/calendar`, using the existing workspace, version, range, lifecycle, actor, cursor, and limit contract. Imported items MUST remain distinguishable from Profile Tailors publications by provider, actor, origin, and lifecycle. Calendar responses MUST preserve `nextCursor` and MUST NOT expose credentials.
 
 #### Scenario: Calendar displays an imported Page post
 
@@ -152,10 +148,7 @@ preserve `nextCursor` and MUST NOT expose credentials.
 
 ### Requirement: Imported Page Posts Cannot Enter Publication Writes
 
-Imported Company Page posts MUST be informational calendar/detail records only. They MUST NOT be
-draggable, rescheduled, edited, cancelled, deleted, quick-created from, or submitted to
-personal-profile publishing endpoints. Existing personal-profile calendar and publication behavior
-MUST remain unchanged.
+Imported Company Page posts MUST be informational calendar/detail records only. They MUST NOT be draggable, rescheduled, edited, cancelled, deleted, quick-created from, or submitted to personal-profile publishing endpoints. Existing personal-profile calendar and publication behavior MUST remain unchanged.
 
 #### Scenario: Read-only Page item is not reschedulable
 

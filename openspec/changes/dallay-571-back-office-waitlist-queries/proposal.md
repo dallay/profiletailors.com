@@ -57,23 +57,23 @@ not individually audited as mutations.
 
 ### Affected Areas
 
-| Area                                                                                                 | Impact   | Description                             |
-|------------------------------------------------------------------------------------------------------|----------|-----------------------------------------|
-| `server/smp/src/main/kotlin/.../platformadmin/infrastructure/http/AdminWaitlistController.kt`        | Modified | List/detail endpoints, telemetry wiring |
-| `server/smp/src/main/kotlin/.../platformadmin/application/ports/`                                    | Modified | Query and telemetry ports               |
-| `server/smp/src/main/kotlin/.../platformadmin/infrastructure/persistence/R2dbcAdminWaitlistQuery.kt` | Modified | R2DBC list/detail/count projection      |
-| `server/smp/src/main/kotlin/.../platformadmin/infrastructure/observability/`                         | New      | Micrometer telemetry adapter            |
-| `server/smp/src/test/`                                                                               | Modified | Unit, integration, and BDD coverage     |
+| Area | Impact | Description |
+|---|---|---|
+| `server/smp/src/main/kotlin/.../platformadmin/infrastructure/http/AdminWaitlistController.kt` | Modified | List/detail endpoints, telemetry wiring |
+| `server/smp/src/main/kotlin/.../platformadmin/application/ports/` | Modified | Query and telemetry ports |
+| `server/smp/src/main/kotlin/.../platformadmin/infrastructure/persistence/R2dbcAdminWaitlistQuery.kt` | Modified | R2DBC list/detail/count projection |
+| `server/smp/src/main/kotlin/.../platformadmin/infrastructure/observability/` | New | Micrometer telemetry adapter |
+| `server/smp/src/test/` | Modified | Unit, integration, and BDD coverage |
 
 ## Usage
 
 ### Risks
 
-| Risk                                                   | Likelihood | Mitigation                                                                      |
-|--------------------------------------------------------|------------|---------------------------------------------------------------------------------|
-| Over-exposing PII in list responses                    | Low        | List returns operationally necessary fields only; detail is a separate endpoint |
-| Filter cardinality explosion in metrics                | Low        | Telemetry uses low-cardinality boolean/enum tags, not raw values                |
-| Confusing waitlist entry status with invitation status | Medium     | Detail returns invitation history as a separate concept                         |
+| Risk | Likelihood | Mitigation |
+|---|---|---|
+| Over-exposing PII in list responses | Low | List returns operationally necessary fields only; detail is a separate endpoint |
+| Filter cardinality explosion in metrics | Low | Telemetry uses low-cardinality boolean/enum tags, not raw values |
+| Confusing waitlist entry status with invitation status | Medium | Detail returns invitation history as a separate concept |
 
 ### Dependencies
 

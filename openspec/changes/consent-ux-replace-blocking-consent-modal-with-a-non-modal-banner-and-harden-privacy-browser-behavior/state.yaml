@@ -1,6 +1,6 @@
 change: consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior
 current_phase: qa
-completed: [ init, explore, propose, spec, design, tasks, apply, verify, qa ]
+completed: [init, explore, propose, spec, design, tasks, apply, verify, qa]
 next: archive (pending outstanding warnings)
 decisions_approved:
   - delivery: single PR with size:exception (user approved)

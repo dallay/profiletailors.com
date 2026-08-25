@@ -36,8 +36,8 @@ production-safety warnings remain mitigated by WAITLIST rate limiting being defa
 
 ### Incomplete Tasks
 
-| Task                                                                                        | Severity | Verification judgment                                                                       |
-|---------------------------------------------------------------------------------------------|----------|---------------------------------------------------------------------------------------------|
+| Task                                                                                                                                              | Severity | Verification judgment                                                                       |
+|---------------------------------------------------------------------------------------------------------------------------------------------------|----------|---------------------------------------------------------------------------------------------|
 | 9.4 — After `sdd-archive`, add the canonical `openspec/specs/lead-capture-waitlist/spec.md` | WARNING  | Correctly deferred. Canonical spec sync is archive-phase work, not an apply/verify blocker. |
 
 ## Build and Test Evidence

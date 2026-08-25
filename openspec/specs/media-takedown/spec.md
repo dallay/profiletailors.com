@@ -45,12 +45,12 @@ identity, category, description, evidence URLs, status, and timestamps.
 
 ### Requirement: REST API
 
-| Method | Path                                                  | Auth                                  | Description    |
-|--------|-------------------------------------------------------|---------------------------------------|----------------|
-| POST   | `/api/governance/media/takedown-reports`              | `workspace:governance:media-read`     | Submit report  |
-| GET    | `/api/governance/media/takedown-reports`              | `workspace:governance:media-read`     | List reports   |
-| POST   | `/api/governance/media/takedown-reports/{id}/approve` | `workspace:governance:media-takedown` | Approve report |
-| POST   | `/api/governance/media/takedown-reports/{id}/reject`  | `workspace:governance:media-takedown` | Reject report  |
+| Method | Path                                                    | Auth                                     | Description     |
+|--------|---------------------------------------------------------|------------------------------------------|-----------------|
+| POST   | `/api/governance/media/takedown-reports`                | `workspace:governance:media-read`        | Submit report   |
+| GET    | `/api/governance/media/takedown-reports`                | `workspace:governance:media-read`        | List reports    |
+| POST   | `/api/governance/media/takedown-reports/{id}/approve`   | `workspace:governance:media-takedown`    | Approve report  |
+| POST   | `/api/governance/media/takedown-reports/{id}/reject`    | `workspace:governance:media-takedown`    | Reject report   |
 
 The detail endpoint `GET /api/governance/media/takedown-reports/{id}` was intentionally omitted as
 YAGNI — the list endpoint plus the per-report approve/reject sub-paths provide sufficient
@@ -97,11 +97,11 @@ recorded, and `TakedownRejected` domain event published.
 
 Three email templates dispatched via domain-event consumers:
 
-| Template              | Trigger          | Consumer                            |
-|-----------------------|------------------|-------------------------------------|
-| Takedown Confirmation | Report submitted | `SendTakedownReportedEmailConsumer` |
-| Takedown Approved     | Staff approves   | `SendTakedownApprovedEmailConsumer` |
-| Takedown Rejected     | Staff rejects    | `SendTakedownRejectedEmailConsumer` |
+| Template              | Trigger               | Consumer                                |
+|-----------------------|-----------------------|-----------------------------------------|
+| Takedown Confirmation | Report submitted      | `SendTakedownReportedEmailConsumer`     |
+| Takedown Approved     | Staff approves        | `SendTakedownApprovedEmailConsumer`     |
+| Takedown Rejected     | Staff rejects         | `SendTakedownRejectedEmailConsumer`     |
 
 Templates live in `TakedownEmailTemplates.kt` under `governance/infrastructure/email/`. Consumers
 resolve workspace admins via `WorkspaceOwnershipRepository` + `PrincipalIdentityLookup`. All emails
@@ -117,7 +117,6 @@ generic `AuditHook` contract — no dedicated event-type enum was added.
 ### Out of Scope
 
 The following capabilities were explicitly removed from scope:
-
 - Counter-notice submit / review / accept / reject / restore workflow
 - Detail endpoint `GET /reports/{id}`
 - Feature flag for takedown endpoints (always-on)

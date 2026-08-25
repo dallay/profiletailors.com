@@ -39,7 +39,7 @@ const appPort = Number(process.env.PLAYWRIGHT_PORT || '5173')
  *   npx playwright test -c e2e/playwright.scheduler.config.ts
  *
  * @see fixtures/scheduler-mocks.ts for mock definitions
- * @see docs/testing/e2e/scheduler-posts-test-plan.md
+ * @see specs/e2e/scheduler-posts-test-plan.md
  */
 export default defineConfig({
   testDir: path.resolve(__dirname, 'specs'),

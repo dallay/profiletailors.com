@@ -9,10 +9,24 @@ Profile Tailors backend tests run with **no exclusions by default** in CI and lo
 test tags serve as **defense mechanisms** for specific infrastructure requirements, but they do not
 hide failures — tests must pass unconditionally before merge.
 
-## Infrastructure Requirements
+## Required Environment Variables
 
-PostgreSQL-backed tests use Testcontainers with a fixed test-only credential defined by the shared
-test fixture. Docker must be running before executing those tests.
+### `SMP_DB_TEST_PASSWORD`
+
+**Required for:** Testcontainers-backed PostgreSQL integration tests.
+
+**Setup:**
+
+1. Copy `.env.example` → `.env` at the project root
+2. Set `SMP_DB_TEST_PASSWORD` to any non-empty value (e.g., the same as `SMP_POSTGRES_PASSWORD`)
+
+**Example:**
+
+```bash
+SMP_DB_TEST_PASSWORD=CHANGE_ME_gK2fcFZg5cgVu9U
+```
+
+The `bootRun` and test tasks automatically load this variable from the root `.env` file.
 
 ## Running Tests Locally
 
@@ -61,7 +75,7 @@ database-backed features.
 
 **CI behavior:** These tests **run by default** in CI. No exclusions.
 
-**Local requirement:** Docker must be available to Testcontainers.
+**Local requirement:** `SMP_DB_TEST_PASSWORD` must be set in `.env`.
 
 ### `@Tag("modularity")` (RESOLVED)
 
@@ -120,12 +134,12 @@ fun `should fetch data from LinkedIn API`() {
 
 ### "Testcontainers could not start PostgreSQL container"
 
-**Cause:** Docker is not running or is not reachable by Testcontainers.
+**Cause:** Docker is not running, or `SMP_DB_TEST_PASSWORD` is missing.
 
 **Fix:**
 
 1. Start Docker Desktop or Docker daemon
-2. Verify Docker is reachable with `docker info`
+2. Verify `.env` contains `SMP_DB_TEST_PASSWORD`
 
 ### "Test passed locally but failed in CI"
 

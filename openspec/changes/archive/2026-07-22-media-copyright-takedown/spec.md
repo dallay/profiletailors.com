@@ -44,34 +44,34 @@ convention. The detail endpoint (TD-5) was intentionally omitted as YAGNI. The
 `TakedownReportStatus.SUSPENDED` value is reserved for future use but not produced by the
 state machine.
 
-| ID    | Req                                                                                                  | Strength |
-|-------|------------------------------------------------------------------------------------------------------|----------|
-| TD-1  | `MediaAssetStatus` MUST include `SUSPENDED`                                                          | MUST     |
-| TD-2a | `TakedownReportStatus`: `REPORTED`, `APPROVED`, `DISMISSED`, `SUSPENDED` (reserved, future use)      | MUST     |
-| TD-2b | `POST .../approve` → status `APPROVED`; `POST .../reject` → status `DISMISSED`                       | MUST     |
-| TD-3  | `POST /api/governance/media/takedown-reports` — submit                                               | MUST     |
-| TD-4  | `GET .../takedown-reports` — list (`workspace:governance:media-read`)                                | MUST     |
-| TD-5  | Detail endpoint `GET .../{id}` — **intentionally omitted** (YAGNI; list + action sub-paths suffice)  | WONT     |
-| TD-6  | `POST .../takedown-reports/{id}/approve` — approve (`workspace:governance:media-takedown`)           | MUST     |
-| TD-6b | `POST .../takedown-reports/{id}/reject` — reject (`workspace:governance:media-takedown`)             | MUST     |
-| TD-7  | `POST .../counter-notice` — **removed from scope** (simplification)                                  | WONT     |
-| TD-8  | Approve → asset `SUSPENDED` + email + audit `MEDIA_TAKEDOWN_APPROVED`                                | MUST     |
-| TD-9  | Reject → asset stays `READY` + email + audit `MEDIA_TAKEDOWN_REJECTED`                               | MUST     |
-| TD-10 | Counter-notice accepted → **removed from scope**                                                     | WONT     |
-| TD-11 | Counter-notice rejected → **removed from scope**                                                     | WONT     |
-| TD-12 | `SUSPENDED` excluded from picker/composer/previews/public API                                        | MUST     |
-| TD-13 | Every transition SHALL record via `AuditHook.onMutation` with string actions (`MEDIA_TAKEDOWN_*`)    | MUST     |
-| TD-14 | No feature flag — endpoints are always-on per simplification                                         | MUST     |
-| TD-15 | Permission keys use dashes: `workspace:governance:media-read`, `workspace:governance:media-takedown` | MUST     |
+| ID    | Req                                                                                                                      | Strength |
+|-------|--------------------------------------------------------------------------------------------------------------------------|----------|
+| TD-1  | `MediaAssetStatus` MUST include `SUSPENDED`                                                                              | MUST     |
+| TD-2a | `TakedownReportStatus`: `REPORTED`, `APPROVED`, `DISMISSED`, `SUSPENDED` (reserved, future use)                         | MUST     |
+| TD-2b | `POST .../approve` → status `APPROVED`; `POST .../reject` → status `DISMISSED`                                          | MUST     |
+| TD-3  | `POST /api/governance/media/takedown-reports` — submit                                                                   | MUST     |
+| TD-4  | `GET .../takedown-reports` — list (`workspace:governance:media-read`)                                                    | MUST     |
+| TD-5  | Detail endpoint `GET .../{id}` — **intentionally omitted** (YAGNI; list + action sub-paths suffice)                     | WONT     |
+| TD-6  | `POST .../takedown-reports/{id}/approve` — approve (`workspace:governance:media-takedown`)                              | MUST     |
+| TD-6b | `POST .../takedown-reports/{id}/reject` — reject (`workspace:governance:media-takedown`)                                | MUST     |
+| TD-7  | `POST .../counter-notice` — **removed from scope** (simplification)                                                      | WONT     |
+| TD-8  | Approve → asset `SUSPENDED` + email + audit `MEDIA_TAKEDOWN_APPROVED`                                                    | MUST     |
+| TD-9  | Reject → asset stays `READY` + email + audit `MEDIA_TAKEDOWN_REJECTED`                                                   | MUST     |
+| TD-10 | Counter-notice accepted → **removed from scope**                                                                         | WONT     |
+| TD-11 | Counter-notice rejected → **removed from scope**                                                                         | WONT     |
+| TD-12 | `SUSPENDED` excluded from picker/composer/previews/public API                                                            | MUST     |
+| TD-13 | Every transition SHALL record via `AuditHook.onMutation` with string actions (`MEDIA_TAKEDOWN_*`)                       | MUST     |
+| TD-14 | No feature flag — endpoints are always-on per simplification                                                             | MUST     |
+| TD-15 | Permission keys use dashes: `workspace:governance:media-read`, `workspace:governance:media-takedown`                    | MUST     |
 
 ### Endpoint Surface (shipped)
 
-| Method | Path                                                  | Auth                                  | Notes            |
-|--------|-------------------------------------------------------|---------------------------------------|------------------|
-| POST   | `/api/governance/media/takedown-reports`              | `workspace:governance:media-read`     | Submit report    |
-| GET    | `/api/governance/media/takedown-reports`              | `workspace:governance:media-read`     | List reports     |
-| POST   | `/api/governance/media/takedown-reports/{id}/approve` | `workspace:governance:media-takedown` | Approve takedown |
-| POST   | `/api/governance/media/takedown-reports/{id}/reject`  | `workspace:governance:media-takedown` | Reject takedown  |
+| Method | Path                                                    | Auth                                       | Notes                          |
+|--------|---------------------------------------------------------|--------------------------------------------|--------------------------------|
+| POST   | `/api/governance/media/takedown-reports`                | `workspace:governance:media-read`          | Submit report                  |
+| GET    | `/api/governance/media/takedown-reports`                | `workspace:governance:media-read`          | List reports                   |
+| POST   | `/api/governance/media/takedown-reports/{id}/approve`   | `workspace:governance:media-takedown`      | Approve takedown               |
+| POST   | `/api/governance/media/takedown-reports/{id}/reject`    | `workspace:governance:media-takedown`      | Reject takedown                |
 
 ### Scenarios
 

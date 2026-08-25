@@ -47,6 +47,18 @@ tasks.bootRun {
     }
 }
 
+val postgresTestPassword =
+    providers.environmentVariable("SMP_DB_TEST_PASSWORD").orElse(
+        providers.fileContents(rootProject.layout.projectDirectory.file(".env")).asText.map { contents ->
+            contents
+                .lineSequence()
+                .firstOrNull { it.startsWith("SMP_DB_TEST_PASSWORD=") }
+                ?.substringAfter('=')
+                ?.trim()
+                .orEmpty()
+        },
+    )
+
 tasks.withType<Test>().configureEach {
     // Increase heap for integration tests that load full Spring contexts with Testcontainers.
     // Default 512m is insufficient for tests like PublishingWorkerTransactionPostgresIntegrationTest.
@@ -55,6 +67,16 @@ tasks.withType<Test>().configureEach {
     // Expose the monorepo root so file-system tests (runbook, migration contract) find
     // project artefacts reliably in both local and CI environments.
     systemProperty("project.root", rootProject.projectDir.absolutePath)
+}
+
+// SMP_DB_TEST_PASSWORD is needed only by PostgreSQL tests (registered via build-logic's afterEvaluate);
+// keep it off unit-test JVMs. These task names are not known until after project evaluation.
+afterEvaluate {
+    postgresTestPassword.orNull?.takeIf { it.isNotBlank() }?.let { password ->
+        listOf("postgresIntegrationTest", "bddPostgresTest", "bddFastTest").forEach { name ->
+            tasks.named<Test>(name) { environment("SMP_DB_TEST_PASSWORD", password) }
+        }
+    }
 }
 
 dependencies {

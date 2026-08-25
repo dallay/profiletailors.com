@@ -104,11 +104,10 @@ the calendar (via `PostDetailModal`) → `handleEditPublication` in `SchedulerVi
 -
 
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/http/PublishingControllers.kt`
-
 - **L176–192** `editPublication` PATCH endpoint — accepts `PublicationUpsertRequest`, passes
-  `assetIds` straight into the command.
+`assetIds` straight into the command.
 - **L327–341** `PublicationUpsertRequest` DTO — `assetIds: List<String> = emptyList()`; no
-  nullable / sentinel to distinguish "absent" from "explicitly empty".
+nullable / sentinel to distinguish "absent" from "explicitly empty".
 
 - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/application/PublishingHandlers.kt`
     - **L432–554** `EditPublicationHandler.handle` — at **L468–476** does

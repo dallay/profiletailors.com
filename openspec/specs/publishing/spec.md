@@ -11,30 +11,21 @@ publishing as the first implemented provider slice.
 
 ### Requirement: Workspace-Resolved Provider Catalog API
 
-`GET /api/publishing/channels/providers` MUST return workspace catalog. Entries MUST include
-provider, account kinds, `state` (`AVAILABLE`, `LOCKED`, `HIDDEN`), typed `reason` (or `null`),
-`channelLimit: null`, `connectedChannelCount`, and `canConnectMore: true`. The server MUST resolve
-implementation, configuration/enabling, entitlement, and capacity; it MUST NOT infer plans or
-limits. `HIDDEN` MUST cover unavailable implementation/configuration. Capacity MUST restrict new
-connections. BDD MUST cover headers, states/reasons, hidden omission, capacity, and no secrets or
-plans.
+`GET /api/publishing/channels/providers` MUST return workspace catalog. Entries MUST include provider, account kinds, `state` (`AVAILABLE`, `LOCKED`, `HIDDEN`), typed `reason` (or `null`), `channelLimit: null`, `connectedChannelCount`, and `canConnectMore: true`. The server MUST resolve implementation, configuration/enabling, entitlement, and capacity; it MUST NOT infer plans or limits. `HIDDEN` MUST cover unavailable implementation/configuration. Capacity MUST restrict new connections. BDD MUST cover headers, states/reasons, hidden omission, capacity, and no secrets or plans.
 
 #### Scenario: Available LinkedIn personal-profile entry
-
 - GIVEN LinkedIn personal-profile connection is available
 - WHEN the workspace requests the catalog
 - THEN it MUST be `AVAILABLE` with reason `null` and account kind `PERSONAL_PROFILE`
 - AND `channelLimit` MUST be `null` and `canConnectMore` MUST be `true`
 
 #### Scenario: Policy and hidden results are distinguishable
-
 - GIVEN a provider is denied by entitlement or capacity
 - WHEN the catalog is resolved
 - THEN it MUST be `LOCKED` with a typed reason such as `NOT_ENTITLED` or `CAPACITY_REACHED`
 - AND a provider lacking implementation, enablement, or valid credentials MUST be `HIDDEN`
 
 #### Scenario: Capacity preserves channels
-
 - GIVEN a connected channel and unavailable new-connection capacity
 - WHEN catalog and channel data are requested
 - THEN only another connection MUST be blocked
@@ -1151,10 +1142,7 @@ URL. If LinkedIn returns data-URI or non-HTTPS, sanitize or reject and leave col
 
 ### Requirement: Typed Failures and CQRS Boundaries
 
-Capability denials MUST be REAUTH_REQUIRED, ROLE_REQUIRED, MISSING_SCOPE, or UNSUPPORTED; provider
-failures MUST be UNAUTHORIZED, ROLE_FORBIDDEN, or RATE_LIMITED. A denial MUST make no provider call.
-Discovery, post sync, comment sync, and reply MUST have dedicated CQRS command/query handler
-boundaries. Only rate limits MAY be retried, with a finite limit.
+Capability denials MUST be REAUTH_REQUIRED, ROLE_REQUIRED, MISSING_SCOPE, or UNSUPPORTED; provider failures MUST be UNAUTHORIZED, ROLE_FORBIDDEN, or RATE_LIMITED. A denial MUST make no provider call. Discovery, post sync, comment sync, and reply MUST have dedicated CQRS command/query handler boundaries. Only rate limits MAY be retried, with a finite limit.
 
 #### Scenario: Denial is safe
 
@@ -1164,18 +1152,13 @@ boundaries. Only rate limits MAY be retried, with a finite limit.
 
 ### Requirement: Bounded Pagination and Checkpoints
 
-Post and comment sync MUST honor pageSize and maxPages, detect repeated non-null cursors, and fail
-without looping. Persistence and post tombstoning MUST occur only after bounded completion.
-Checkpoints MUST be workspace/actor/resource scoped, resume from their cursor, preserve a high-water
-mark unless newer, and update lastSuccessfulAt only after success. Failure, bound exhaustion, or
-repetition MUST leave prior checkpoint and tombstone state unchanged.
+Post and comment sync MUST honor pageSize and maxPages, detect repeated non-null cursors, and fail without looping. Persistence and post tombstoning MUST occur only after bounded completion. Checkpoints MUST be workspace/actor/resource scoped, resume from their cursor, preserve a high-water mark unless newer, and update lastSuccessfulAt only after success. Failure, bound exhaustion, or repetition MUST leave prior checkpoint and tombstone state unchanged.
 
 #### Scenario: Successful resume
 
 - GIVEN a checkpoint cursor C1
 - WHEN synchronization completes within the page bound
-- THEN the first call MUST use C1 and the checkpoint MUST record terminal cursor, high-water mark,
-  and success time
+- THEN the first call MUST use C1 and the checkpoint MUST record terminal cursor, high-water mark, and success time
 
 #### Scenario: Guard failure is safe
 
@@ -1185,10 +1168,7 @@ repetition MUST leave prior checkpoint and tombstone state unchanged.
 
 ### Requirement: Reply Idempotency States
 
-Reply idempotency MUST be keyed by workspace and key and validate scope, actor, parent, thread,
-expiry, and capability before provider execution. Existing SUCCEEDED, FAILED, or PROCESSING results
-MUST be returned unchanged without provider calls; recovery MUST be explicit. A new claim MUST
-persist PROCESSING, then exactly one terminal success with external ID or failure.
+Reply idempotency MUST be keyed by workspace and key and validate scope, actor, parent, thread, expiry, and capability before provider execution. Existing SUCCEEDED, FAILED, or PROCESSING results MUST be returned unchanged without provider calls; recovery MUST be explicit. A new claim MUST persist PROCESSING, then exactly one terminal success with external ID or failure.
 
 #### Scenario: Duplicate reply is deterministic
 
@@ -1198,10 +1178,7 @@ persist PROCESSING, then exactly one terminal success with external ID or failur
 
 ### Requirement: Domain Invariants and ByteArray Equality
 
-SocialPost and SocialComment MUST reject blank identity/body values and preserve workspace/external
-identity. mutationAllowed MUST require PROFILETAILORS origin plus a non-blank local publication ID.
-Expiry MUST be inclusive at the boundary. PayloadCache equality and hash code MUST compare encrypted
-bytes by content, not array reference.
+SocialPost and SocialComment MUST reject blank identity/body values and preserve workspace/external identity. mutationAllowed MUST require PROFILETAILORS origin plus a non-blank local publication ID. Expiry MUST be inclusive at the boundary. PayloadCache equality and hash code MUST compare encrypted bytes by content, not array reference.
 
 #### Scenario: Invalid values and equal payloads
 
@@ -1211,9 +1188,7 @@ bytes by content, not array reference.
 
 ### Requirement: API Month and Workspace FK Validation
 
-apiVersion MUST be six digits in YYYYMM with month 01..12; impossible months MUST fail construction.
-Social-content tables referencing social_accounts MUST enforce a composite workspace/account
-relationship, preserving uniqueness and rollback.
+apiVersion MUST be six digits in YYYYMM with month 01..12; impossible months MUST fail construction. Social-content tables referencing social_accounts MUST enforce a composite workspace/account relationship, preserving uniqueness and rollback.
 
 #### Scenario: Invalid month or account scope fails
 
@@ -1223,14 +1198,7 @@ relationship, preserving uniqueness and rollback.
 
 ### Requirement: Fakes, Cleanup, and Test Integration Scope
 
-Tests MUST directly cover fake pagination, typed failures, identity isolation, upsert/tombstone
-scope, and reply claim/save transitions. Mutable fixtures MUST be reset or recreated. This
-foundation has no public HTTP surface, so Cucumber coverage is NOT required unless one is
-introduced. This is an explicit, approved BDD exception: backend handler-level features without HTTP
-endpoints use direct handler tests and static migration tests as applicable coverage. Static
-Liquibase tests MUST cover changelog inclusion, constraints, indexes, and rollback;
-Postgres/Testcontainers coverage is required only when composite-FK or migration behavior needs live
-proof.
+Tests MUST directly cover fake pagination, typed failures, identity isolation, upsert/tombstone scope, and reply claim/save transitions. Mutable fixtures MUST be reset or recreated. This foundation has no public HTTP surface, so Cucumber coverage is NOT required unless one is introduced. This is an explicit, approved BDD exception: backend handler-level features without HTTP endpoints use direct handler tests and static migration tests as applicable coverage. Static Liquibase tests MUST cover changelog inclusion, constraints, indexes, and rollback; Postgres/Testcontainers coverage is required only when composite-FK or migration behavior needs live proof.
 
 #### Scenario: Fake state is isolated
 
@@ -1240,11 +1208,7 @@ proof.
 
 ### Requirement: Review-Thread Responses
 
-Remediation MUST provide classification, evidence, and scope decisions for stale/out-of-scope
-comments. The missing architecture-docs-sync.md comment MUST state documentation status and a
-bounded decision. Ratelimit feedback outside PR #624 MUST be answered out of scope without changing
-shared/shield/ratelimit or PR #625. The already-addressed mutationAllowed comment MUST cite current
-behavior and its test without duplicate code.
+Remediation MUST provide classification, evidence, and scope decisions for stale/out-of-scope comments. The missing architecture-docs-sync.md comment MUST state documentation status and a bounded decision. Ratelimit feedback outside PR #624 MUST be answered out of scope without changing shared/shield/ratelimit or PR #625. The already-addressed mutationAllowed comment MUST cite current behavior and its test without duplicate code.
 
 #### Scenario: Non-code comment is closed
 
@@ -2545,11 +2509,7 @@ untrusted values can still be served.
 
 ### Requirement: Community Read Wiring Does Not Change Personal Publishing
 
-The PR2 Community Management adapter MUST remain behind provider-neutral ports and Spring/Mediator
-application handlers. It MUST be used only for gated Company Page discovery and read import. It MUST
-NOT become the credential, OAuth, or publisher path for personal LinkedIn profiles, and it MUST NOT
-change the existing `/v2/userinfo`, signed OAuth state, `w_member_social`, or
-`RealLinkedInPublisher` semantics.
+The PR2 Community Management adapter MUST remain behind provider-neutral ports and Spring/Mediator application handlers. It MUST be used only for gated Company Page discovery and read import. It MUST NOT become the credential, OAuth, or publisher path for personal LinkedIn profiles, and it MUST NOT change the existing `/v2/userinfo`, signed OAuth state, `w_member_social`, or `RealLinkedInPublisher` semantics.
 
 #### Scenario: Personal OAuth regression remains absent
 
@@ -2567,10 +2527,7 @@ change the existing `/v2/userinfo`, signed OAuth state, `w_member_social`, or
 
 ### Requirement: No Real Community Operation by Default
 
-Spring wiring MAY register the provider adapter and deterministic fakes, but default configuration
-MUST keep discovery, import, inbox, replies, and Page publishing disabled. Disabled operations MUST
-fail closed before external HTTP or credential resolution; enabling them requires explicit approved
-configuration and evidence.
+Spring wiring MAY register the provider adapter and deterministic fakes, but default configuration MUST keep discovery, import, inbox, replies, and Page publishing disabled. Disabled operations MUST fail closed before external HTTP or credential resolution; enabling them requires explicit approved configuration and evidence.
 
 #### Scenario: Disabled Page operation makes no external call
 

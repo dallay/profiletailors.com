@@ -1,8 +1,7 @@
 # Legal Document Register
 
 > **Classification:** Internal — Legal and Compliance
-> **Status:** Active register — current marketing legal publication approved (future controls
-> staged)
+> **Status:** Active register — current marketing legal publication approved (future controls staged)
 > **Register date:** 2026-07-17
 
 ## Overview
@@ -21,7 +20,7 @@ after the global document set and the applicable country overlays have immutable
 ### Status Vocabulary
 
 | Status               | Meaning                                                                                                              |
-|----------------------|----------------------------------------------------------------------------------------------------------------------|
+| -------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Implemented evidence | The record describes current repository behaviour and has technical validation; legal approval may still be pending. |
 | Draft blocked        | A draft exists but must not be relied on or published.                                                               |
 | Missing              | No adequate artifact exists.                                                                                         |
@@ -31,7 +30,7 @@ after the global document set and the applicable country overlays have immutable
 ## Changes
 
 | Version | Date       | Description                                                                          |
-|---------|------------|--------------------------------------------------------------------------------------|
+| ------- | ---------- | ------------------------------------------------------------------------------------ |
 | 1.1     | 2026-07-31 | Reconciled register status with approved operator-hosted marketing legal publication |
 | 1.0     | 2026-07-17 | Added the global public, contractual, operational, and country-overlay register      |
 
@@ -40,7 +39,7 @@ after the global document set and the applicable country overlays have immutable
 ### Public Documents
 
 | Document                                     | Current artifact                                                                                                                                                                    | Status                       | Publication blocker                                                                                                                  |
-|----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | Legal notice / service-provider disclosure   | None                                                                                                                                                                                | Missing                      | Operating legal person, address, registration, tax, contact, and hosting-domain disclosures unresolved                               |
 | Privacy policy — English                     | `apps/web/marketing/src/i18n/en.ts`                                                                                                                                                 | Implemented evidence         | Published for the current operator-hosted instance. Future market/entity expansion requires a new approval cycle.                    |
 | Privacy policy — Spanish                     | `apps/web/marketing/src/i18n/es.ts`                                                                                                                                                 | Implemented evidence         | Published for the current operator-hosted instance. Keep EN/ES parity and update both locales together.                              |
@@ -61,7 +60,7 @@ after the global document set and the applicable country overlays have immutable
 ### Customer and Provider Contracts
 
 | Document                                       | Status                                                                                           | Activation condition or blocker                                                                                       |
-|------------------------------------------------|--------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | Customer service agreement or order form       | Missing                                                                                          | Contracting entity, product, pricing, service level, support, countries, and customer type                            |
 | Customer data processing addendum              | [`customer-dpa-template.md`](customer-dpa-template.md)                                           | Non-executable template                                                                                               | Parties, controller/processor allocation, instructions, security annex, subprocessors, transfers, deletion, audit, incident terms, and regional schedules |
 | Controller-to-processor agreements             | Missing or unverified                                                                            | Required for every selected production processor before personal data is sent                                         |
@@ -75,7 +74,7 @@ after the global document set and the applicable country overlays have immutable
 ### Internal Operational Records
 
 | Record                                           | Artifact                                                                         | Status                         | Remaining work                                                                                               |
-|--------------------------------------------------|----------------------------------------------------------------------------------|--------------------------------|--------------------------------------------------------------------------------------------------------------|
+| ------------------------------------------------ | -------------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | Global legal readiness                           | [`global-legal-readiness.md`](global-legal-readiness.md)                         | Draft blocked                  | Country activation approvals and local counsel evidence                                                      |
 | Country activation record                        | [`country-activation-record-template.md`](country-activation-record-template.md) | Template                       | Complete per country, subdivision, customer class, entity, product configuration, and immutable document set |
 | Publication gate                                 | [`legal-publication-gate.md`](legal-publication-gate.md)                         | Implemented evidence           | All unchecked approval items remain blockers                                                                 |

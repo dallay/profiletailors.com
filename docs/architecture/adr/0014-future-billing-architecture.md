@@ -42,11 +42,11 @@ hexagonal architecture within the modular monolith.
 
 ### Bounded context map
 
-| Bounded Context         | Responsibility                                         | Depends on                                 |
-|-------------------------|--------------------------------------------------------|--------------------------------------------|
-| **Billing**             | Plans, subscriptions, payments, invoices, entitlements | Identity (principal lookup), shared kernel |
-| **Identity**            | Authentication, `RateLimitTier`                        | None                                       |
-| **Workspace** (Tenancy) | Multi-tenancy, memberships                             | Identity                                   |
+| Bounded Context | Responsibility | Depends on |
+|---|---|---|
+| **Billing** | Plans, subscriptions, payments, invoices, entitlements | Identity (principal lookup), shared kernel |
+| **Identity** | Authentication, `RateLimitTier` | None |
+| **Workspace** (Tenancy) | Multi-tenancy, memberships | Identity |
 
 ### Core domain model
 

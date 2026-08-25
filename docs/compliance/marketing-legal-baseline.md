@@ -10,7 +10,7 @@ It is a practical implementation map, not legal advice.
 ## Changes
 
 | Version | Date       | Description                                                                                        |
-|---------|------------|----------------------------------------------------------------------------------------------------|
+| ------- | ---------- | -------------------------------------------------------------------------------------------------- |
 | 1.0     | 2026-07-31 | Added Awesome Legal to Profile Tailors mapping for marketing legal pages and supporting templates. |
 
 ## Usage
@@ -38,7 +38,7 @@ Publication control:
 The table below maps the Awesome Legal categories to this project's current state.
 
 | Awesome Legal category    | Profile Tailors implementation status                                       | Main artifact(s)                                                                         |
-|---------------------------|-----------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| ------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Site Policies             | Implemented for active operator-hosted instance                             | `apps/web/marketing/src/i18n/en.ts`, `apps/web/marketing/src/i18n/es.ts`                 |
 | Customer Agreements       | Planned/future baseline depending on commercial model                       | `docs/compliance/customer-dpa-template.md`, `docs/compliance/legal-document-register.md` |
 | Employee Agreements       | Future baseline (not part of current operator-hosted legal publication set) | `docs/compliance/legal-document-register.md`                                             |
@@ -66,11 +66,9 @@ Use these references as drafting input with legal review, especially for plain-l
 
 - Keep legal text in marketing i18n files only; avoid duplicating operative policy text across docs.
 - Keep EN and ES legal structures in strict key parity.
-- Treat `docs/compliance/` as planning and control evidence unless a document is explicitly marked
-  as
+- Treat `docs/compliance/` as planning and control evidence unless a document is explicitly marked as
   active and published for users.
-- Any new market-specific legal requirement must be staged in `docs/compliance/` first, then
-  promoted
+- Any new market-specific legal requirement must be staged in `docs/compliance/` first, then promoted
   to active marketing policy text after product, technical, business, and legal approvals.
 
 ## Troubleshooting
@@ -79,10 +77,8 @@ Use these references as drafting input with legal review, especially for plain-l
   `apps/web/marketing/src/legal/legal-publication.ts`.
 - If EN and ES legal pages diverge, run frontend tests and fix key parity in
   `apps/web/marketing/src/i18n/{en,es}.ts`.
-- If compliance docs conflict with published policy wording, treat the published marketing policy
-  pages
-  as operative for the current operator-hosted instance and open a documentation reconciliation
-  task.
+- If compliance docs conflict with published policy wording, treat the published marketing policy pages
+  as operative for the current operator-hosted instance and open a documentation reconciliation task.
 
 ## References
 

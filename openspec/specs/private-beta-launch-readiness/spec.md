@@ -10,13 +10,11 @@ implemented behavior, automated test results, managed-VPS observations, and user
 
 ### Requirement: Evidence Ledger Has Explicit Boundaries
 
-Every prerequisite MUST have a UTC timestamp, environment, deployment/revision identity when
-relevant,
+Every prerequisite MUST have a UTC timestamp, environment, deployment/revision identity when relevant,
 scope, source, observed result, owner, and classification: `CODE_VERIFIED`, `TEST_VERIFIED`,
 `VPS_OBSERVED`, `OPERATOR_REPORTED`, or `UNVERIFIED`. Code/test evidence MUST describe code behavior
 only. VPS evidence MUST describe only the observed managed instance. Publishing outcomes MUST remain
-`USER_REPORTED_OPERATIONAL` unless separate provider evidence exists; this gate MUST NOT create
-provider
+`USER_REPORTED_OPERATIONAL` unless separate provider evidence exists; this gate MUST NOT create provider
 or `MULTI_USER_VERIFIED` claims.
 
 #### Scenario: Evidence is accepted with provenance
@@ -37,8 +35,7 @@ or `MULTI_USER_VERIFIED` claims.
 
 DALLAY-559 MUST evaluate dated evidence for waitlist activation/conversion, invite acceptance and
 membership, publishing failure/stale visibility, worker safe-off, route/readiness, backup/restore,
-rollback, and the invitee E2E journey. A failed privacy/security check, unsafe cross-workspace
-access,
+rollback, and the invitee E2E journey. A failed privacy/security check, unsafe cross-workspace access,
 exposed secret, unavailable rollback, or missing recovery action MUST be a launch blocker.
 
 #### Scenario: Complete gate returns GO
@@ -59,8 +56,7 @@ exposed secret, unavailable rollback, or missing recovery action MUST be a launc
 ### Requirement: Rollback and Evidence Handling Are Safe
 
 The operator MUST be able to disable new invitations and worker execution, revoke outstanding
-invitations, restore the last known-good deployment/data state, and retain historical evidence.
-Evidence
+invitations, restore the last known-good deployment/data state, and retain historical evidence. Evidence
 MUST exclude tokens, credentials, provider secrets, raw payloads, and unnecessary customer content.
 
 #### Scenario: Reversible gate failure

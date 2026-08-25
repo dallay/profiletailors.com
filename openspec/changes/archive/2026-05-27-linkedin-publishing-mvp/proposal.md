@@ -68,7 +68,7 @@ in the publishing domain.
 | `server/smp/src/main/resources/application.yaml`                | Modified | Add publishing and LinkedIn provider configuration properties.                                          |
 | `server/smp/src/main/resources/db/changelog/`                   | Modified | Add Liquibase migrations for publishing, assets, jobs, attempts, and social connections.                |
 | `server/smp/src/test/kotlin/com/profiletailors/smp/publishing/` | New      | Add unit, repository, controller, and integration tests for the new slice.                              |
-| `openspec/specs/iam/spec.md`                                    | Modified | Workspace authorization may need to acknowledge the new publishing capability.                          |
+| `openspec/specs/platform/spec.md`                               | Modified | Platform architecture may need to acknowledge the new publishing bounded context.                       |
 | `openspec/specs/tenancy/spec.md`                                | Modified | Tenancy behavior may need to clarify workspace ownership of connected social accounts and publications. |
 | `openspec/changes/linkedin-publishing-mvp/`                     | New      | Proposal, specs, design, and tasks for this change.                                                     |
 

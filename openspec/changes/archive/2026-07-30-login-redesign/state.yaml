@@ -1,6 +1,6 @@
 change: login-redesign
 current_phase: archive
-completed: [ explore, propose, spec, design, tasks, apply, verify, archive ]
+completed: [explore, propose, spec, design, tasks, apply, verify, archive]
 next: none
 apply_outcome: PASS
 verify_outcome: PASS_WITH_WARNINGS

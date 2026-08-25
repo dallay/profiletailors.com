@@ -12,13 +12,11 @@
 
 ## Context
 
-The identity module currently defines a `RateLimitTier` enum (`FREE`, `BASIC`, `PROFESSIONAL`) on
-the
+The identity module currently defines a `RateLimitTier` enum (`FREE`, `BASIC`, `PROFESSIONAL`) on the
 `Principal` entity. These tiers control API rate limits and feature access gating. However, there is
 no billing system, subscription management, or payment processing in the codebase.
 
-The naming overlap with commercial subscription plans (e.g., "Basic Plan", "Professional Plan")
-creates
+The naming overlap with commercial subscription plans (e.g., "Basic Plan", "Professional Plan") creates
 ambiguity: a `RateLimitTier` is a technical enforcement policy, not a commercial offering. Mixing
 these concerns would couple the identity context to future billing domain logic, violating hexagonal
 architecture boundaries.

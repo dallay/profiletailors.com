@@ -36,7 +36,7 @@ for every deployment environment.
 ## Current Compliance Posture
 
 | Requirement                           | Current state                                                                    | Gap                                   |
-|---------------------------------------|----------------------------------------------------------------------------------|---------------------------------------|
+| ------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------- |
 | Source is publicly available          | Yes — `github.com/dallay/profiletailors.com`                                     | None                                  |
 | Offer is prominent in UI              | **No** — no footer link yet                                                      | Add "Source" link to footer           |
 | Deployed version is identifiable      | **Partial** — release tags exist but no automated SHA injection                  | Automate `DEPLOYED_SHA` env var in CI |

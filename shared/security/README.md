@@ -1,52 +1,78 @@
-# shared:security
+# Shared Security Module (`shared:security`)
 
-Security primitives for the Profile Tailors backend — hashing, principal context, and workspace authorization interfaces. Framework-agnostic (pure Kotlin, no Spring).
+Framework-agnostic security primitives, password hashing contracts, principal context abstractions, and multi-tenant resource resolution interfaces for the Profile Tailors backend.
 
-## Overview
+## Role in the platform
 
-Defines the core security abstractions used across all bounded contexts. The `Hasher` interface supports multiple algorithms (SHA-256, HMAC) with a pluggable registry, while `PrincipalContext` and `ResourceContext` provide type-safe access to the authenticated principal and workspace.
+Defines core security interfaces used across all bounded contexts in `server/smp` and shared Kotlin libraries. It establishes the `Hasher` interface (SHA-256 and HMAC-SHA256 implementations), `PrincipalContext`, and `ResourceContext` for workspace authorization without depending on Spring Security or WebFlux.
 
-## Key Types
+## Tech stack
 
-### Hashing
+- **Runtime & Language**: Java 21, Kotlin 2.4
+- **Testing**: JUnit 5, AssertJ, Kotest, MockK
 
-| Type | Purpose |
-|------|---------|
-| `Hasher` | `fun interface` — single method `hash(input: String): String` |
-| `Sha256Hasher` | SHA-256 implementation |
-| `HmacHasher` | HMAC-SHA256 implementation (requires non-blank secret) |
-| `HasherSecurityConfig` | Named hasher bean configuration contract |
+## Getting started
 
-### Context
+### Prerequisites
 
-| Type | Purpose |
-|------|---------|
-| `PrincipalContext` | Holds `AuthenticatedPrincipal` for current request |
-| `ResourceContext` | Holds `WorkspaceId` for multi-tenant resolution |
-| `ContextProviders` | Reactive providers for principal and workspace |
+- Java JDK `>= 21`
+- Gradle wrapper (`./gradlew`)
 
-### Authorization
+### Installation
 
-| Type | Purpose |
-|------|---------|
-| `WorkspaceAuthorization` | Authorization check interface |
+Included automatically as a Gradle project dependency `:shared:security`.
 
-## Usage
+### Running locally
 
-```kotlin
-// Hash a value
-val hasher: Hasher = Sha256Hasher()
-val digest = hasher.hash("my-api-key")
+Run unit tests:
 
-// Use the registry (with Spring auto-configuration)
-val hasher: Hasher = hasherRegistry.get("sha256")
-val digest = hasher.hash(secret)
+```bash
+./gradlew :shared:security:test
 ```
 
-## Dependencies
+### Environment variables
 
-- `shared:common` (api) — domain primitives
+No environment variables required.
 
-## Related
+## Project structure
 
-- [shared:spring-boot-common](../spring-boot-common/README.md) — Spring auto-configuration for `HasherRegistry` and `SecurityProperties`
+```text
+shared/security/
+├── src/main/kotlin/com/profiletailors/security/
+│   ├── hashing/  # Hasher interface, Sha256Hasher, HmacHasher
+│   └── context/  # PrincipalContext, ResourceContext, AuthenticatedPrincipal
+└── build.gradle.kts
+```
+
+## Testing
+
+Run unit tests:
+
+```bash
+./gradlew :shared:security:test
+```
+
+## API / Public interface
+
+Main types in package `com.profiletailors.security`:
+
+- `Hasher`: Functional interface for secure hashing (`hash(input)`).
+- `Sha256Hasher`: Standard SHA-256 implementation.
+- `HmacHasher`: HMAC-SHA256 implementation requiring non-blank secret key.
+- `PrincipalContext`: Thread-local / reactive context accessor for the current `AuthenticatedPrincipal`.
+- `ResourceContext`: Type-safe accessor for current `WorkspaceId`.
+
+## Configuration
+
+- `build.gradle.kts`: Configured via `com.profiletailors.kotlin.library` convention plugin.
+
+## Contributing
+
+Please review the [Root CONTRIBUTING.md](../../CONTRIBUTING.md) for workflow rules, commit conventions, and pull request guidelines.
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the [Root LICENSE](../../LICENSE) for details.
+
+---
+Back to [Root README](../../README.md)

@@ -1,100 +1,81 @@
-# shared:spring-boot-common
+# Shared Spring Boot Common Module (`shared:spring-boot-common`)
 
-Spring Boot 4 integration layer for the Profile Tailors backend. Bridges the framework-agnostic shared modules to Spring WebFlux — exception handlers, request filters, pagination presenters, repository base classes, and auto-configuration.
+Spring Boot 4 integration layer for Profile Tailors shared Kotlin libraries, offering global RFC 9457 ProblemDetail exception handlers, WebFilter workspace context resolvers, Jackson Kotlin serialization, reactive base repositories, and HasherRegistry beans.
 
-## Overview
+## Role in the platform
 
-This module is the **Spring adapter** for the shared kernel. It provides:
+Serves as the Spring WebFlux adapter bridge for Profile Tailors shared modules and the `server/smp` monolith. It translates domain exceptions (`EntityNotFoundException`, `BusinessRuleValidationException`) into RFC 9457 `ProblemDetail` HTTP error responses, configures reactive workspace context filters (`X-Workspace-Id`), and provides Spring-managed event emitters.
 
-- Global exception handling with RFC 9457 `ProblemDetail`
-- Workspace context resolution via `WebFilter`
-- Jackson serialization configuration
-- PageResponse HTTP serialization (offset and cursor)
-- Reactive repository base classes with criteria support
-- EventEmitter for Spring-managed event publishing
-- HasherRegistry with property-driven configuration
+## Tech stack
 
-## Key Types
+- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines & Flow
+- **Framework & Libraries**: Spring Boot 4.0, Spring WebFlux, Jackson Kotlin, Spring Data R2DBC
+- **Testing**: JUnit 5, AssertJ, Kotest, MockK
 
-### HTTP & Controllers
+## Getting started
 
-| Type | Purpose |
-|------|---------|
-| `ApiController` | Base class for all REST controllers — consistent envelope, error handling |
-| `ConstraintViolationAdvice` | Jakarta validation → `ProblemDetail` (400) |
-| `GlobalExceptionHandler` | Entity not found (404), illegal argument (400), generic (500) |
-| `ProblemDetailFactory` | RFC 9457 ProblemDetail builder |
+### Prerequisites
 
-### Request Context
+- Java JDK `>= 21`
+- Gradle wrapper (`./gradlew`)
 
-| Type | Purpose |
-|------|---------|
-| `WorkspaceContextWebFilter` | Extracts `X-Workspace-Id` header → reactive context |
-| `WorkspaceContextHolder` | Reactor `Context` accessor for workspace + principal |
+### Installation
 
-### Pagination
+Included automatically as a Gradle project dependency `:shared:spring-boot-common`.
 
-| Type | Purpose |
-|------|---------|
-| `OffsetPagePresenter` | `OffsetPageResponse` → HTTP headers + JSON body |
-| `OffsetPageResponseHandler` | `@ControllerAdvice` for automatic wrapping |
-| `CursorApiResponse` / `OffsetApiResponse` | Response DTOs with CORS-safe headers |
+### Running locally
 
-### Events
+Run unit tests:
 
-| Type | Purpose |
-|------|---------|
-| `EventEmitter` | Spring bean for publishing domain events via the shared bus |
-
-### Repository
-
-| Type | Purpose |
-|------|---------|
-| `ReactiveSearchRepository<T>` | Reactive R2DBC repository with criteria-based search |
-| `R2DBCCriteriaParser` | `Criteria` tree → R2DBC `Statement` predicates |
-
-### Security
-
-| Type | Purpose |
-|------|---------|
-| `HasherRegistry` | Named hasher lookup (sha256, hmac) |
-| `SecurityProperties` | `profiletailors.security.*` configuration properties |
-| `DataMaskingService` / `LogMasker` | Sensitive data masking for audit logs |
-
-## Usage
-
-Spring Boot auto-configuration is enabled via `spring.factories`. Include as a dependency and configure:
-
-```yaml
-profiletailors:
-  security:
-    hashers:
-      sha256: com.profiletailors.common.infrastructure.security.Sha256Hasher
-      hmac: com.profiletailors.common.infrastructure.security.HmacHasher
+```bash
+./gradlew :shared:spring-boot-common:test
 ```
 
-```kotlin
-@ApiController
-class PostsController(private val emitter: EventEmitter) {
+### Environment variables
 
-    @PostMapping
-    suspend fun create(@RequestBody @Valid command: CreatePost): Post {
-        emitter.publish(PostCreatedEvent(command.id))
-        return mediator.send(command)
-    }
-}
+No environment variables required for unit testing.
+
+## Project structure
+
+```text
+shared/spring-boot-common/
+├── src/main/kotlin/com/profiletailors/springboot/
+│   ├── web/        # ApiController, GlobalExceptionHandler, ProblemDetail builders
+│   ├── filter/     # WorkspaceContextWebFilter (X-Workspace-Id resolver)
+│   ├── event/      # EventEmitter Spring application event publisher
+│   ├── json/       # Jackson ObjectMapper custom serializers
+│   └── config/     # Spring Auto-Configuration
+└── build.gradle.kts
 ```
 
-## Dependencies
+## Testing
 
-- `shared:common` (api) — domain primitives
-- `shared:bus` (api) — event types and mediator
-- `shared:security` (api) — hasher interfaces
-- `shared:presentation` (api) — PageResponse, Criteria
+Run unit tests:
 
-## Related
+```bash
+./gradlew :shared:spring-boot-common:test
+```
 
-- [shared:bus](../bus/README.md) — event bus types
-- [shared:presentation](../presentation/README.md) — PageResponse DTOs
-- [shared:security](../security/README.md) — hasher interfaces
-- [shared:shield:ratelimit](../shield/ratelimit/README.md) — depends on this module for Spring integration
+## API / Public interface
+
+Main types in package `com.profiletailors.springboot`:
+
+- `ApiController`: Base controller providing standardized HTTP response envelopes and error mapping.
+- `GlobalExceptionHandler`: Exception handler producing RFC 9457 `ProblemDetail` payloads.
+- `WorkspaceContextWebFilter`: Reactive WebFilter extracting `X-Workspace-Id` into `ResourceContext`.
+- `EventEmitter`: Spring application event publisher adapter for `EventPublisher`.
+
+## Configuration
+
+- `build.gradle.kts`: Configured via `com.profiletailors.spring.boot.library` convention plugin.
+
+## Contributing
+
+Please review the [Root CONTRIBUTING.md](../../CONTRIBUTING.md) for workflow rules, commit conventions, and pull request guidelines.
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the [Root LICENSE](../../LICENSE) for details.
+
+---
+Back to [Root README](../../README.md)

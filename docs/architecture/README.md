@@ -13,7 +13,7 @@ architecture at different levels of abstraction.
 ### Quick Navigation
 
 | Level       | Document                                  | Description                           | Audience               |
-|-------------|-------------------------------------------|---------------------------------------|------------------------|
+| ----------- | ----------------------------------------- | ------------------------------------- | ---------------------- |
 | **Summary** | [SUMMARY.md](c4/SUMMARY.md)               | Executive summary and roadmap         | Everyone               |
 | **Level 1** | [System Context](c4/01-system-context.md) | Big picture, external dependencies    | Everyone               |
 | **Level 2** | [Container](c4/02-container.md)           | Deployable units, technology stack    | Technical leadership   |
@@ -69,8 +69,7 @@ architecture at different levels of abstraction.
 
 ### 2. Domain-Driven Design (DDD)
 
-- **Bounded Contexts**: 19 modular bounded contexts in `server/smp` (Analytics, Audit,
-  Authorization,
+- **Bounded Contexts**: 19 modular bounded contexts in `server/smp` (Analytics, Audit, Authorization,
   Config, Credentials, Governance, Hashtags, Ideas, Identity, Lead Capture, MCP, Media,
   Notifications, Observability, Platform, Platformadmin, Privacy, Publishing, Tenancy)
 - **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md)

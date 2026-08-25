@@ -18,9 +18,26 @@ object PostgresTestContainerSupport {
     const val IMAGE = "postgres:16.4-alpine"
     const val DATABASE = "profiletailors_test"
     const val USERNAME = "profiletailors"
-    const val DEFAULT_PASSWORD = "profiletailors-test"
 
-    fun newContainer(databaseName: String = DATABASE, password: String = DEFAULT_PASSWORD): PostgreSQLContainer<*> =
+    /**
+     * Env var that overrides the PostgreSQL test container password. The default
+     * is empty so the application refuses to start with no configured credential,
+     * matching the production policy. CI sets this in the workflow; local dev
+     * can set it in the shell or a `gradle.properties` env block.
+     */
+    const val PASSWORD_ENV = "SMP_DB_TEST_PASSWORD"
+
+    /**
+     * Resolves the password at container-creation time. The value is sourced from
+     * the environment so this file holds no hardcoded credentials.
+     */
+    fun resolvePassword(envSupplier: (String) -> String? = System::getenv): String {
+        val fromEnv = envSupplier(PASSWORD_ENV).orEmpty()
+        if (fromEnv.isNotBlank()) return fromEnv
+        error("$PASSWORD_ENV must be set to run PostgreSQL-backed tests")
+    }
+
+    fun newContainer(databaseName: String = DATABASE, password: String = resolvePassword()): PostgreSQLContainer<*> =
         PostgreSQLContainer(IMAGE)
             .withDatabaseName(databaseName)
             .withUsername(USERNAME)

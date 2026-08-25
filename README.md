@@ -6,8 +6,7 @@
 
 **Schedule smarter. Post everywhere.**
 
-Monorepo for the Profile Tailors social media management platform (marketing, dashboard, backend,
-shared modules, and infrastructure).
+Monorepo for the Profile Tailors social media management platform (marketing, dashboard, backend, shared modules, and infrastructure).
 
 </div>
 
@@ -26,6 +25,32 @@ shared modules, and infrastructure).
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![codecov](https://codecov.io/gh/dallay/profiletailors.com/graph/badge.svg?token=B70EGR3KBD)](https://codecov.io/gh/dallay/profiletailors.com)
+
+---
+
+## Subprojects Index
+
+This monorepo contains 17 dedicated subprojects across web applications, backend services, shared libraries, compliance tooling, and build infrastructure. Each subproject contains an independently useful `README.md` file detailing its role, tech stack, configuration, and developer commands:
+
+| Category | Subproject Path | Purpose | Dedicated README |
+| --- | --- | --- | --- |
+| **Web App** | [`apps/web/marketing`](apps/web/marketing) | Public-facing Astro 7 marketing site, bilingual landing pages, and client-side waitlist acquisition flow. | [README](apps/web/marketing/README.md) |
+| **Web App** | [`apps/web/app`](apps/web/app) | Core Vue 3 dashboard single-page application for post scheduling, social publishing, media, and analytics. | [README](apps/web/app/README.md) |
+| **Web App** | [`apps/web/admin`](apps/web/admin) | Internal Vue 3 platform administration portal for waitlist management, user accounts, and system auditing. | [README](apps/web/admin/README.md) |
+| **Shared Web** | [`shared/web`](shared/web) | Framework-agnostic TypeScript workspace package defining canonical GDPR consent contracts and validation rules. | [README](shared/web/README.md) |
+| **Tooling** | [`tools/compliance`](tools/compliance) | Node.js CLI tool and schema validator verifying GDPR data inventory schemas and security drift rules. | [README](tools/compliance/README.md) |
+| **Build Infrastructure** | [`gradle/build-logic`](gradle/build-logic) | Centralized Gradle Kotlin DSL convention plugins for Spring Boot, Spotless formatting, OWASP, and Detekt. | [README](gradle/build-logic/README.md) |
+| **Backend Service** | [`server/smp`](server/smp) | Reactive Spring Boot 4 Kotlin monolith providing core REST APIs, R2DBC persistence, and publishing services. | [README](server/smp/README.md) |
+| **Shared Backend** | [`shared/common`](shared/common) | Pure Kotlin domain primitives, immutable value objects (`Email`, `Username`, `WorkspaceId`), and domain events. | [README](shared/common/README.md) |
+| **Shared Backend** | [`shared/bus`](shared/bus) | Framework-agnostic in-process CQRS mediator, command/query dispatcher, and pipeline behavior middleware chain. | [README](shared/bus/README.md) |
+| **Shared Backend** | [`shared/lead-capture/common`](shared/lead-capture/common) | Domain models and interface contracts for prospect acquisition and lead capture. | [README](shared/lead-capture/common/README.md) |
+| **Shared Backend** | [`shared/lead-capture/waitlist`](shared/lead-capture/waitlist) | Waitlist domain logic, signup processing, invite status tracking, and duplicate checks. | [README](shared/lead-capture/waitlist/README.md) |
+| **Shared Backend** | [`shared/notifications`](shared/notifications) | Email alert abstractions, transactional messaging, and event-driven notification dispatch services. | [README](shared/notifications/README.md) |
+| **Shared Backend** | [`shared/presentation`](shared/presentation) | Framework-agnostic API presentation envelopes, page response structures (`PageResponse`), and opaque cursor encoders. | [README](shared/presentation/README.md) |
+| **Shared Backend** | [`shared/security`](shared/security) | Pure Kotlin security abstractions (`Hasher`, `Sha256Hasher`, `HmacHasher`), `PrincipalContext`, and tenant context. | [README](shared/security/README.md) |
+| **Shared Backend** | [`shared/shield/ratelimit`](shared/shield/ratelimit) | Reactive Spring WebFlux rate-limiting filter using Bucket4j, Caffeine cache, and Micrometer metrics. | [README](shared/shield/ratelimit/README.md) |
+| **Shared Backend** | [`shared/spring-boot-common`](shared/spring-boot-common) | Spring WebFlux integration adapter offering RFC 9457 `ProblemDetail` handlers and workspace `WebFilter`. | [README](shared/spring-boot-common/README.md) |
+| **Shared Backend** | [`shared/storage`](shared/storage) | Reactive multi-provider object storage abstraction (Local FS, AWS S3, Cloudflare R2) with path traversal protection. | [README](shared/storage/README.md) |
 
 ---
 
@@ -168,6 +193,7 @@ Docker commands separately. Run `just -l` to list everything.
 profiletailors.com/
 ├── apps/
 │   └── web/
+│       ├── admin/                # Vue 3 platform-admin SPA
 │       ├── app/                  # Vue 3 dashboard application
 │       └── marketing/            # Astro marketing site
 ├── server/

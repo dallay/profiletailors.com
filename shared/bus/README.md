@@ -1,54 +1,81 @@
-# shared:bus
+# Shared Bus Module (`shared:bus`)
 
-In-process CQRS mediator and event bus for the Profile Tailors backend. Provides command, query, notification, and event dispatching with pipeline behaviors — all within a single process.
+Framework-agnostic, in-process CQRS mediator, command/query dispatcher, pipeline behavior middleware chain, and event bus implementation for the Profile Tailors backend.
 
-## Overview
+## Role in the platform
 
-This module implements the **Mediator pattern** for internal communication between bounded contexts. It is framework-agnostic (pure Kotlin, no Spring dependencies) and serves as the backbone for all command/query dispatch in the application layer.
+Provides the Mediator pattern implementation for internal communication between bounded contexts in `server/smp` and shared backend modules. It enables loose coupling by dispatching commands, queries, notifications, and domain events within a single process without framework dependencies.
 
-## Key Types
+## Tech stack
 
-| Package | Type | Purpose |
-|---------|------|---------|
-| `bus.command` | `Command`, `CommandHandler`, `CommandProvider` | Command dispatch — mutate state |
-| `bus.query` | `Query`, `QueryHandler`, `QueryProvider` | Query dispatch — read state |
-| `bus.event` | `EventPublisher`, `EventMultiplexer`, `EventConsumer`, `EventFilter`, `Subscribe` | In-process event pub/sub |
-| `bus.notification` | `Notification`, `NotificationHandler`, `NotificationProvider` | Fire-and-forget notifications |
-| `bus.pipeline` | `PipelineBehavior`, `PipelineProvider` | Middleware chain (logging, validation, metrics) |
-| root | `Mediator`, `MediatorBuilder`, `Registry`, `Registrar` | Bootstrap and dispatch |
+- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines
+- **Testing**: JUnit 5, Kotest, MockK
 
-## Usage
+## Getting started
 
-```kotlin
-// 1. Define a command
-data class CreatePost(val title: String) : Command<Post>
+### Prerequisites
 
-// 2. Implement handler
-class CreatePostHandler : CommandHandler<CreatePost, Post> {
-    override suspend fun handle(command: CreatePost): Post { ... }
-}
+- Java JDK `>= 21`
+- Gradle wrapper (`./gradlew`)
 
-// 3. Register and dispatch
-val mediator = MediatorBuilder()
-    .registerCommandHandler<CreatePost, Post> { CreatePostHandler() }
-    .build()
+### Installation
 
-val post = mediator.send(CreatePost("Hello"))
+Included automatically as a Gradle project dependency `:shared:bus`.
+
+### Running locally
+
+Run unit tests:
+
+```bash
+./gradlew :shared:bus:test
 ```
 
-For events:
-```kotlin
-@Subscribe
-class PostCreatedHandler : EventConsumer<PostCreatedEvent> {
-    override suspend fun consume(event: PostCreatedEvent) { ... }
-}
+### Environment variables
+
+No environment variables required.
+
+## Project structure
+
+```text
+shared/bus/
+├── src/main/kotlin/com/profiletailors/bus/
+│   ├── command/      # Command, CommandHandler, CommandProvider
+│   ├── event/        # EventPublisher, EventConsumer, Subscribe, EventMultiplexer
+│   ├── notification/ # Notification, NotificationHandler, NotificationProvider
+│   ├── pipeline/     # PipelineBehavior middleware chain
+│   ├── query/        # Query, QueryHandler, QueryProvider
+│   └── Mediator.kt   # Mediator interface and builder registry
+└── build.gradle.kts
 ```
 
-## Dependencies
+## Testing
 
-- `shared:common` (api) — domain primitives
+Run unit tests:
 
-## Related
+```bash
+./gradlew :shared:bus:test
+```
 
-- [shared:spring-boot-common](../spring-boot-common/README.md) — Spring auto-configuration for EventEmitter and mediator wiring
-- [shared:presentation](../presentation/README.md) — PageResponse DTOs used by query handlers
+## API / Public interface
+
+Main types in package `com.profiletailors.bus`:
+
+- `Mediator`: Central dispatch interface for `send(command)`, `query(query)`, and `publish(event)`.
+- `Command<R>` / `CommandHandler<C, R>`: Mutation contract and handler.
+- `Query<R>` / `QueryHandler<Q, R>`: Read query contract and handler.
+- `PipelineBehavior<C, R>`: Pipeline interceptor for cross-cutting validation, logging, and metrics.
+
+## Configuration
+
+- `build.gradle.kts`: Configured via `com.profiletailors.kotlin.library` convention plugin.
+
+## Contributing
+
+Please review the [Root CONTRIBUTING.md](../../CONTRIBUTING.md) for workflow rules, commit conventions, and pull request guidelines.
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the [Root LICENSE](../../LICENSE) for details.
+
+---
+Back to [Root README](../../README.md)

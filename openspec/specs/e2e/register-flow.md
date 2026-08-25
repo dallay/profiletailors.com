@@ -78,7 +78,7 @@ PENDING user logs in/registers successfully
 ### Key Contracts
 
 | Endpoint             | Method | Request                    | Success          | Failure                                  |
-|----------------------|--------|----------------------------|------------------|------------------------------------------|
+| -------------------- | ------ | -------------------------- | ---------------- | ---------------------------------------- |
 | `/api/auth/register` | POST   | `{ email, password }`      | 201 + AuthTokens | 409 UserAlreadyExists / 400 InvalidInput |
 | `/api/auth/login`    | POST   | `{ email, password }`      | 200 + AuthTokens | 401 InvalidCredentials                   |
 | `/api/auth/refresh`  | POST   | (HttpOnly cookie)          | 200 + AuthTokens | 401 RefreshSessionNotActive              |
@@ -818,7 +818,7 @@ And the button text indicates loading ("...")
 ## 13. Test Scenarios Matrix
 
 | ID   | Area               | Scenario                                     | Priority | Auth Required | API Required |
-|------|--------------------|----------------------------------------------|----------|---------------|--------------|
+| ---- | ------------------ | -------------------------------------------- | -------- | ------------- | ------------ |
 | 1.1  | Rendering          | Register page renders fully                  | P0       | No            | No           |
 | 1.2  | Rendering          | Email input attributes                       | P1       | No            | No           |
 | 1.3  | Rendering          | Password input attributes                    | P1       | No            | No           |
@@ -931,7 +931,7 @@ DELETE FROM workspaces WHERE name LIKE 'e2e-register-%';
 ## Appendix A: Routes Map
 
 | Path         | Component     | Auth Required | Guest Only |
-|--------------|---------------|---------------|------------|
+| ------------ | ------------- | ------------- | ---------- |
 | `/login`     | AuthView      | No            | Yes        |
 | `/register`  | AuthView      | No            | Yes        |
 | `/`          | HomeView      | Yes           | No         |
