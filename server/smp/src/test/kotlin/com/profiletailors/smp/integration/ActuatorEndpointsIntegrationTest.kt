@@ -7,6 +7,11 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Primary
+import org.springframework.security.config.web.server.ServerHttpSecurity
+import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -27,13 +32,14 @@ import org.testcontainers.junit.jupiter.Testcontainers
  *
  */
 @ContextConfiguration(
-    classes = [TestStorageConfiguration::class],
+    classes = [ActuatorEndpointsIntegrationTest.TestSecurityConfig::class, TestStorageConfiguration::class],
 )
 @ActiveProfiles("test")
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
         "spring.liquibase.enabled=false",
+        "spring.main.allow-bean-definition-overriding=true",
         "management.server.port=0",
         "management.endpoints.web.exposure.include=health,prometheus",
         "management.endpoint.health.show-details=always",
@@ -59,6 +65,18 @@ class ActuatorEndpointsIntegrationTest {
 
     private fun actuatorClient(): WebTestClient =
         WebTestClient.bindToServer().baseUrl("http://localhost:$managementPort").build()
+
+    @TestConfiguration
+    class TestSecurityConfig {
+        @Bean
+        @Primary
+        fun testSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+            .csrf { it.disable() }
+            .authorizeExchange {
+                it.anyExchange().permitAll()
+            }
+            .build()
+    }
 
     @Test
     fun `TC001 - health endpoint returns service health status`() {
