@@ -1,11 +1,10 @@
 package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.smp.media.application.AssetNotFoundException
-import com.profiletailors.smp.media.application.MediaAssetRepository
+import com.profiletailors.smp.media.application.MediaAssetPreview
 import com.profiletailors.smp.media.application.MediaPreviewTokenService
 import com.profiletailors.smp.media.application.MediaUploadSettings
 import com.profiletailors.smp.media.domain.MediaAssetStatus
-import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.infrastructure.asFlux
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -27,9 +26,8 @@ import java.time.Duration
 @RequestMapping(value = ["/api/media/assets"])
 @Tag(name = "Media Preview", description = "Signed public preview URLs for media assets")
 class MediaAssetPreviewController(
-    private val mediaAssetRepository: MediaAssetRepository,
+    private val mediaAssetPreview: MediaAssetPreview,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
-    private val storageApplicationService: StorageApplicationService,
     private val mediaUploadSettings: MediaUploadSettings,
 ) {
     companion object {
@@ -108,7 +106,7 @@ class MediaAssetPreviewController(
         expiresAt: Long,
         signature: String,
     ) = if (mediaPreviewTokenService.isValid(assetId, workspaceId, expiresAt, signature)) {
-        mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
+        mediaAssetPreview.findAsset(workspaceId, assetId)
             ?: throw AssetNotFoundException(assetId)
     } else {
         null
@@ -120,7 +118,7 @@ class MediaAssetPreviewController(
         status == MediaAssetStatus.READY && mediaType.startsWith("image/", ignoreCase = true)
 
     private suspend fun downloadBody(assetId: String, storageKey: String, purpose: String): Flux<DataBuffer> =
-        storageApplicationService
+        mediaAssetPreview
             .download(
                 bucket = mediaUploadSettings.storageBucket,
                 key = storageKey,

@@ -165,7 +165,7 @@ class ResetPasswordHandlerTest {
                 return block().also { calls += "transaction-committed" }
             }
         }
-        val auditPort = PasswordResetAuditPort { event ->
+        val auditPort = PasswordResetAudit { event ->
             calls += "audit"
             event.principalId shouldBe "user-1"
             event.occurredAt shouldBe fixedClock.instant()
@@ -197,7 +197,7 @@ class ResetPasswordHandlerTest {
             tokenRepository = tokenRepository,
             refreshSessionLifecycleService = refreshSvc,
             transactionRunner = transactionRunner,
-            auditPort = PasswordResetAuditPort {
+            auditPort = PasswordResetAudit {
                 throw org.springframework.dao.DataAccessResourceFailureException("audit sink unavailable")
             },
         )
@@ -356,7 +356,7 @@ class ResetPasswordHandlerTest {
         refreshSessionLifecycleService: RefreshSessionLifecycleService,
         enabled: Boolean = true,
         transactionRunner: AtomicTransactionRunner = NoopAtomicTransactionRunner,
-        auditPort: PasswordResetAuditPort = PasswordResetAuditPort { },
+        auditPort: PasswordResetAudit = PasswordResetAudit { },
     ): ResetPasswordHandler = ResetPasswordHandler(
         passwordResetTokenRepository = tokenRepository,
         passwordHasher = passwordHasher,
@@ -364,7 +364,7 @@ class ResetPasswordHandlerTest {
         transactionRunner = transactionRunner,
         clock = fixedClock,
         passwordRecoveryEnabled = { enabled },
-        passwordResetAuditPort = auditPort,
+        passwordResetAudit = auditPort,
     )
 
     private fun validStoredToken() = PasswordResetToken(

@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.smp.identity.application.PasswordResetCredentialMissingException
-import com.profiletailors.smp.identity.application.PasswordResetTokenCleanupPort
+import com.profiletailors.smp.identity.application.PasswordResetTokenCleanup
 import com.profiletailors.smp.identity.application.PasswordResetTokenRepository
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
@@ -280,7 +280,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
     @Test
     fun `cleanup deletes only tokens expired before the retention cutoff and is idempotent`() = runTest {
         seedPrincipal()
-        val cleanupPort: PasswordResetTokenCleanupPort = R2dbcPasswordResetTokenRepository(databaseClient)
+        val tokenCleanup: PasswordResetTokenCleanup = R2dbcPasswordResetTokenRepository(databaseClient)
         val cutoff = Instant.parse("2026-07-20T12:00:00Z")
 
         repository.create("user-1", "expired-old", cutoff.minusSeconds(3600), cutoff.minusSeconds(1))
@@ -290,14 +290,14 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
         repository.create("user-1", "recently-used", cutoff.minusSeconds(7200), cutoff.minusSeconds(1))
         markTokenUsed("recently-used", cutoff)
 
-        assertEquals(1L, cleanupPort.deleteExpiredBefore(cutoff))
+        assertEquals(1L, tokenCleanup.deleteExpiredBefore(cutoff))
         assertNull(repository.findByTokenHash("expired-old"))
         assertNotNull(repository.findByTokenHash("expired-at-cutoff"))
         assertNotNull(repository.findByTokenHash("expired-recent"))
         assertNotNull(repository.findByTokenHash("active"))
         assertNotNull(repository.findByTokenHash("recently-used"))
 
-        assertEquals(0L, cleanupPort.deleteExpiredBefore(cutoff))
+        assertEquals(0L, tokenCleanup.deleteExpiredBefore(cutoff))
     }
 
     @Test

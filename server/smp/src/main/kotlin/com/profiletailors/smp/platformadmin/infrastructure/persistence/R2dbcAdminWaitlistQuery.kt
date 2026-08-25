@@ -1,10 +1,10 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntryDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntrySummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
-import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.query.ListAdminWaitlistEntriesQuery
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle

@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.smp.identity.application.PasswordResetCredentialMissingException
-import com.profiletailors.smp.identity.application.PasswordResetTokenCleanupPort
+import com.profiletailors.smp.identity.application.PasswordResetTokenCleanup
 import com.profiletailors.smp.identity.application.PasswordResetTokenRepository
 import com.profiletailors.smp.identity.domain.PasswordResetToken
 import kotlinx.coroutines.reactor.awaitSingle
@@ -15,7 +15,7 @@ import java.util.UUID
 @Repository
 class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClient) :
     PasswordResetTokenRepository,
-    PasswordResetTokenCleanupPort {
+    PasswordResetTokenCleanup {
 
     /**
      * Deletes password reset tokens that expired before the specified cutoff.

@@ -3,7 +3,7 @@ package com.profiletailors.smp.platformadmin.integration
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
-import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.query.ListAdminWaitlistEntriesQuery
 import com.profiletailors.smp.test.TestStorageConfiguration
 import kotlinx.coroutines.reactor.awaitSingle

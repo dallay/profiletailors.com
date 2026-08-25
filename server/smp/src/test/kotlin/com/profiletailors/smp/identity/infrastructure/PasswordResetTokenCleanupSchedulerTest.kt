@@ -1,6 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure
 
-import com.profiletailors.smp.identity.application.PasswordResetTokenCleanupPort
+import com.profiletailors.smp.identity.application.PasswordResetTokenCleanup
 import io.kotest.matchers.shouldBe
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.micrometer.observation.ObservationRegistry
@@ -17,7 +17,7 @@ class PasswordResetTokenCleanupSchedulerTest {
     fun `uses the configured retention window to calculate the exclusive cutoff`() = runTest {
         val now = Instant.parse("2026-07-29T12:00:00Z")
         var capturedCutoff: Instant? = null
-        val cleanupPort = PasswordResetTokenCleanupPort { cutoff ->
+        val tokenCleanup = PasswordResetTokenCleanup { cutoff ->
             capturedCutoff = cutoff
             3L
         }
@@ -25,11 +25,11 @@ class PasswordResetTokenCleanupSchedulerTest {
             cleanup = PasswordRecoveryConfigurationProperties.Cleanup(retention = Duration.ofDays(30)),
         )
         val scheduler = PasswordResetTokenCleanupScheduler(
-            cleanupPort = cleanupPort,
+            tokenCleanup = tokenCleanup,
             properties = properties,
             clock = Clock.fixed(now, ZoneOffset.UTC),
             observability = com.profiletailors.smp.identity.infrastructure.observability
-                .PasswordRecoveryObservabilityAdapter(SimpleMeterRegistry(), ObservationRegistry.NOOP),
+                .PasswordRecoveryObservability(SimpleMeterRegistry(), ObservationRegistry.NOOP),
         )
 
         scheduler.runCleanup()
@@ -40,13 +40,13 @@ class PasswordResetTokenCleanupSchedulerTest {
     fun `records the deleted row count via observability`() = runTest {
         val meters = SimpleMeterRegistry()
         val now = Instant.parse("2026-07-29T12:00:00Z")
-        val cleanupPort = PasswordResetTokenCleanupPort { 5L }
+        val tokenCleanup = PasswordResetTokenCleanup { 5L }
         val scheduler = PasswordResetTokenCleanupScheduler(
-            cleanupPort = cleanupPort,
+            tokenCleanup = tokenCleanup,
             properties = PasswordRecoveryConfigurationProperties(),
             clock = Clock.fixed(now, ZoneOffset.UTC),
             observability = com.profiletailors.smp.identity.infrastructure.observability
-                .PasswordRecoveryObservabilityAdapter(meters, ObservationRegistry.NOOP),
+                .PasswordRecoveryObservability(meters, ObservationRegistry.NOOP),
         )
 
         scheduler.runCleanup()
