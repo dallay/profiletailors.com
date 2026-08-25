@@ -1,68 +1,77 @@
-# shared:presentation
+# Shared Presentation Module (`shared:presentation`)
 
-Presentation-layer types for the Profile Tailors API — pagination, sorting, filtering, and response envelopes. All types are framework-agnostic (pure Kotlin).
+Framework-agnostic presentation DTOs, pagination wrappers, opaque cursor encoders, sorting primitives, and API response envelopes for the Profile Tailors backend.
 
-## Overview
+## Role in the platform
 
-Provides domain-level DTOs and utilities for building consistent API responses. Used by application-layer query handlers to return paginated, sorted, and filtered results without leaking HTTP concerns into domain logic.
+Provides domain-level response structures used by application-layer query handlers and REST controllers in `server/smp`. It enables offset-based and cursor-based pagination (`PageResponse`, `OffsetPageResponse`, `CursorPageResponse`) and sorting without leaking HTTP or framework dependencies into core domain logic.
 
-## Key Types
+## Tech stack
 
-### Pagination
+- **Runtime & Language**: Java 21, Kotlin 2.4
+- **Testing**: JUnit 5, AssertJ, Kotest, MockK
 
-| Type | Purpose |
-|------|---------|
-| `PageResponse<T>` | Generic page envelope (items + total + page info) |
-| `OffsetPageResponse<T>` | Offset-based page (page number + size) |
-| `CursorPageResponse<T>` | Cursor-based page (opaque cursor for infinite scroll) |
-| `RequestPageable` | Inbound pagination request (page/size or cursor) |
-| `CursorEncoder` | Encode/decode opaque cursors |
-| `TimestampCursor` | Time-based cursor implementation |
+## Getting started
 
-### Filtering
+### Prerequisites
 
-| Type | Purpose |
-|------|---------|
-| `Criteria` | Composable filter criteria tree |
-| `CriteriaParser` | Parse filter strings into `Criteria` trees |
-| `RHSFilterParser` | Parse right-hand side filter expressions |
+- Java JDK `>= 21`
+- Gradle wrapper (`./gradlew`)
 
-### Sorting
+### Installation
 
-| Type | Purpose |
-|------|---------|
-| `Sort` | Sort specification (field + direction) |
+Included automatically as a Gradle project dependency `:shared:presentation`.
 
-### Response Envelopes
+### Running locally
 
-| Type | Purpose |
-|------|---------|
-| `SimpleMessageResponse` | Simple message wrapper |
-| `PresentationException` | Base exception for presentation errors |
+Run unit tests:
 
-## Usage
-
-```kotlin
-// Return from a query handler
-data class ListPostsQuery : Query<PageResponse<PostSummary>>
-
-class ListPostsHandler : QueryHandler<ListPostsQuery, PageResponse<PostSummary>> {
-    override suspend fun handle(query: ListPostsQuery): PageResponse<PostSummary> {
-        val items = repository.findAll(pageable)
-        return OffsetPageResponse(
-            items = items,
-            total = repository.count(),
-            page = pageable.page,
-            size = pageable.size
-        )
-    }
-}
+```bash
+./gradlew :shared:presentation:test
 ```
 
-## Dependencies
+### Environment variables
 
-- `shared:common` (api) — domain primitives
+No environment variables required.
 
-## Related
+## Project structure
 
-- [shared:spring-boot-common](../spring-boot-common/README.md) — Spring HTTP serialization of PageResponse via `OffsetPagePresenter` and `SortMapper`
+```text
+shared/presentation/
+├── src/main/kotlin/com/profiletailors/presentation/
+│   ├── pagination/ # PageResponse, CursorEncoder, TimestampCursor, OffsetPageResponse
+│   └── filter/     # Filter and sort request criteria primitives
+└── build.gradle.kts
+```
+
+## Testing
+
+Run unit tests:
+
+```bash
+./gradlew :shared:presentation:test
+```
+
+## API / Public interface
+
+Main types in package `com.profiletailors.presentation`:
+
+- `PageResponse<T>`: Unified response envelope for paginated collections.
+- `OffsetPageResponse<T>`: Page number and page size envelope.
+- `CursorPageResponse<T>`: Opaque cursor-based envelope for infinite scrolling.
+- `CursorEncoder`: Utilities to encode and decode base64 opaque cursors.
+
+## Configuration
+
+- `build.gradle.kts`: Configured via `com.profiletailors.kotlin.library` convention plugin.
+
+## Contributing
+
+Please review the [Root CONTRIBUTING.md](../../CONTRIBUTING.md) for workflow rules, commit conventions, and pull request guidelines.
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the [Root LICENSE](../../LICENSE) for details.
+
+---
+Back to [Root README](../../README.md)

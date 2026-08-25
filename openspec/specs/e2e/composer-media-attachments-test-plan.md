@@ -1,9 +1,9 @@
 # E2E Test Plan — Composer Media Attachments
 
-> Last updated: 2026-07-08  
-> Primary UI: `https://pt-app.localhost:1355/` → `Create Post` modal  
+> Last updated: 2026-07-08
+> Primary UI: `https://pt-app.localhost:1355/` → `Create Post` modal
 > Scope: composer inline attachments, local upload UX, media-library staging, social preview
-> reconciliation, and attachment-limit behavior  
+> reconciliation, and attachment-limit behavior
 > Evidence: live authenticated browser exploration with `dev@profiletailors.com` on the running
 > frontend
 
