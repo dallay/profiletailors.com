@@ -4,7 +4,7 @@ import com.profiletailors.leadcapture.common.CaptureLocale
 import com.profiletailors.leadcapture.common.CaptureSource
 import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.NormalizedEmail
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecordRequest
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecordRequest
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistKey

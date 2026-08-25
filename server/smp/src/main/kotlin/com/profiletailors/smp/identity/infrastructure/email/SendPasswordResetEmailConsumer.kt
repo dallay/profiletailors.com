@@ -5,10 +5,10 @@ import com.profiletailors.common.domain.bus.event.Subscribe
 import com.profiletailors.smp.identity.application.EmailFailureCategory
 import com.profiletailors.smp.identity.application.EmailSender
 import com.profiletailors.smp.identity.application.PasswordResetNotificationFailure
-import com.profiletailors.smp.identity.application.PasswordResetNotificationFailurePort
+import com.profiletailors.smp.identity.application.PasswordResetNotificationFailureRecorder
 import com.profiletailors.smp.identity.application.PasswordResetNotificationStatus
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetry
-import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryPort
+import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryRecorder
 import com.profiletailors.smp.identity.domain.PasswordResetRequested
 import com.profiletailors.smp.identity.infrastructure.PasswordRecoveryConfigurationProperties
 import kotlinx.coroutines.runBlocking
@@ -35,8 +35,8 @@ class SendPasswordResetEmailConsumer(
     @Qualifier("passwordResetEmailTaskExecutor") private val taskExecutor: TaskExecutor,
     private val retryPolicy: PasswordRecoveryConfigurationProperties.NotificationRetry,
     private val retryDelay: PasswordResetRetryDelay,
-    private val failurePort: PasswordResetNotificationFailurePort,
-    private val telemetryPort: PasswordResetNotificationTelemetryPort,
+    private val failureRecorder: PasswordResetNotificationFailureRecorder,
+    private val telemetryRecorder: PasswordResetNotificationTelemetryRecorder,
     private val clock: Clock,
 ) : EventConsumer<PasswordResetRequested> {
 
@@ -73,7 +73,7 @@ class SendPasswordResetEmailConsumer(
                 message = message,
             )
             if (result.success) {
-                telemetryPort.record(telemetry(PasswordResetNotificationStatus.SENT, attempt))
+                telemetryRecorder.record(telemetry(PasswordResetNotificationStatus.SENT, attempt))
                 log.info("Password reset email sent for principal '{}'", event.principalId)
                 return
             }
@@ -84,7 +84,7 @@ class SendPasswordResetEmailConsumer(
                 return
             }
 
-            telemetryPort.record(telemetry(PasswordResetNotificationStatus.RETRYING, attempt, category))
+            telemetryRecorder.record(telemetry(PasswordResetNotificationStatus.RETRYING, attempt, category))
             log.warn(
                 "Password reset email delivery retry scheduled for principal '{}' with category '{}' and attempt '{}'",
                 event.principalId,
@@ -111,7 +111,7 @@ class SendPasswordResetEmailConsumer(
     ) {
         var persistenceFailure: org.springframework.dao.DataAccessException? = null
         try {
-            failurePort.record(
+            failureRecorder.record(
                 PasswordResetNotificationFailure(
                     principalId = event.principalId,
                     notificationType = NOTIFICATION_TYPE,
@@ -123,7 +123,7 @@ class SendPasswordResetEmailConsumer(
         } catch (failure: org.springframework.dao.DataAccessException) {
             persistenceFailure = failure
         } finally {
-            telemetryPort.record(telemetry(PasswordResetNotificationStatus.FAILED, attempts, category))
+            telemetryRecorder.record(telemetry(PasswordResetNotificationStatus.FAILED, attempts, category))
         }
         if (persistenceFailure != null) {
             log.error("Password reset terminal failure persistence failed for principal '{}'", event.principalId)

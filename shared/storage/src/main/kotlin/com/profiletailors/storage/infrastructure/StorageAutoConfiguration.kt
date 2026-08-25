@@ -135,12 +135,12 @@ open class StorageAutoConfiguration {
     }
 
     /**
-     * Creates an R2StorageAdapter for Cloudflare R2.
+     * Creates an R2Storage for Cloudflare R2.
      *
      * R2 has no AWS credentials chain — the access/secret keys MUST be supplied
      * explicitly via [ProviderConfig.accessKeyId] / [ProviderConfig.secretAccessKey].
      */
-    internal fun createR2Storage(config: ProviderConfig): R2StorageAdapter {
+    internal fun createR2Storage(config: ProviderConfig): R2Storage {
         val bucket = config.bucket
             ?: throw IllegalArgumentException("Bucket name is required for R2")
 
@@ -179,7 +179,7 @@ open class StorageAutoConfiguration {
             .endpointOverride(r2Endpoint(accountId))
             .credentialsProvider(credentialsProvider)
 
-        return R2StorageAdapter(
+        return R2Storage(
             clientBuilder.build(),
             bucket,
             presignerBuilder.build(),

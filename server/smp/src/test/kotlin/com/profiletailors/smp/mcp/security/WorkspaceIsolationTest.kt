@@ -1,8 +1,8 @@
 package com.profiletailors.smp.mcp.security
 
-import com.profiletailors.smp.mcp.adapter.McpToolMetadata
 import com.profiletailors.smp.mcp.infrastructure.security.McpAuthenticationToken
 import com.profiletailors.smp.mcp.infrastructure.security.McpToolInvocationAuthorizer
+import com.profiletailors.smp.mcp.tools.McpToolMetadata
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest

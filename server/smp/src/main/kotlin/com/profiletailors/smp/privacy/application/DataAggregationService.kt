@@ -10,13 +10,13 @@ import java.time.Instant
  * context that may hold it.
  */
 class DataAggregationService(
-    private val identityPort: IdentityDataPort,
-    private val credentialsPort: CredentialsDataPort,
-    private val tenancyPort: TenancyAggregationPort,
-    private val publishingPort: PublishingDataPort,
-    private val mediaPort: MediaDataPort,
-    private val governancePort: GovernanceDataPort,
-    private val leadCapturePort: LeadCaptureDataPort,
+    private val identityAnonymization: IdentityData,
+    private val credentials: CredentialsData,
+    private val tenancyData: TenancyAggregation,
+    private val publishing: PublishingData,
+    private val media: MediaData,
+    private val governanceData: GovernanceData,
+    private val leadCaptureData: LeadCaptureData,
 ) {
 
     /**
@@ -33,16 +33,16 @@ class DataAggregationService(
      *   - leadCapture: { waitlistEntries }
      */
     suspend fun aggregate(principalId: String, email: String): Map<String, Any?> {
-        val identityFacts = identityPort.getIdentityFacts(principalId)
-        val sessions = credentialsPort.getSessions(principalId)
-        val apiKeys = credentialsPort.getApiKeys(principalId)
-        val workspaceMemberships = tenancyPort.getWorkspaceMemberships(principalId)
-        val socialConnections = publishingPort.getSocialConnections(principalId)
-        val socialAccounts = publishingPort.getSocialAccounts(principalId)
-        val publications = publishingPort.getPublications(principalId)
-        val mediaAssets = mediaPort.getMediaAssets(principalId)
-        val consentRecords = governancePort.getConsentRecords(email)
-        val waitlistEntries = leadCapturePort.getWaitlistEntries(email)
+        val identityFacts = identityAnonymization.getIdentityFacts(principalId)
+        val sessions = credentials.getSessions(principalId)
+        val apiKeys = credentials.getApiKeys(principalId)
+        val workspaceMemberships = tenancyData.getWorkspaceMemberships(principalId)
+        val socialConnections = publishing.getSocialConnections(principalId)
+        val socialAccounts = publishing.getSocialAccounts(principalId)
+        val publications = publishing.getPublications(principalId)
+        val mediaAssets = media.getMediaAssets(principalId)
+        val consentRecords = governanceData.getConsentRecords(email)
+        val waitlistEntries = leadCaptureData.getWaitlistEntries(email)
 
         return buildMap {
             put(

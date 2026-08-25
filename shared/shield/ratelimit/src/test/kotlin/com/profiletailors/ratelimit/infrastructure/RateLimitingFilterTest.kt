@@ -2,9 +2,9 @@ package com.profiletailors.ratelimit.infrastructure
 
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
-import com.profiletailors.ratelimit.infrastructure.adapter.ReactiveRateLimitingAdapter
 import com.profiletailors.ratelimit.infrastructure.config.BucketConfigurationFactory
 import com.profiletailors.ratelimit.infrastructure.filter.RateLimitingFilter
+import com.profiletailors.ratelimit.infrastructure.gateway.ReactiveRateLimiting
 import io.kotest.matchers.shouldBe
 import io.mockk.clearMocks
 import io.mockk.every
@@ -25,7 +25,7 @@ import java.time.Instant
 
 class RateLimitingFilterTest {
 
-    private lateinit var reactiveRateLimitingAdapter: ReactiveRateLimitingAdapter
+    private lateinit var reactiveRateLimitingAdapter: ReactiveRateLimiting
     private lateinit var configurationFactory: BucketConfigurationFactory
     private lateinit var chain: WebFilterChain
     private lateinit var filter: RateLimitingFilter

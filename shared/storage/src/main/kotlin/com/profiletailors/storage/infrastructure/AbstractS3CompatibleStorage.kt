@@ -24,7 +24,7 @@ import java.time.Duration
 
 /**
  * Abstract base class for S3-compatible storage providers.
- * Contains all shared logic between S3Storage and R2StorageAdapter.
+ * Contains all shared logic between S3Storage and R2Storage.
  *
  * Extracted to eliminate code duplication between the two adapters.
  * All cloud operations are wrapped with retry logic via [S3RetryHelper].

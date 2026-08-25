@@ -4,7 +4,6 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaStorageKeys
-import com.profiletailors.storage.application.StorageApplicationService
 import kotlinx.coroutines.flow.collect
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
@@ -25,7 +24,7 @@ private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(i
 class MediaAssetBackfillJob(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
-    private val storageApplicationService: StorageApplicationService,
+    private val storage: MediaStorage,
     private val uploadSettings: MediaUploadSettings,
     private val transactionRunner: AtomicTransactionRunner,
 ) {
@@ -82,7 +81,7 @@ class MediaAssetBackfillJob(
             val canonicalKey = MediaStorageKeys.canonicalKey(asset.workspaceId, fileHash, detectedMediaType)
 
             if (canonicalKey != currentStorageKey) {
-                storageApplicationService.copyObject(
+                storage.copyObject(
                     bucket = uploadSettings.storageBucket,
                     sourceKey = currentStorageKey,
                     destKey = canonicalKey,
@@ -124,7 +123,7 @@ class MediaAssetBackfillJob(
         val digest = MessageDigest.getInstance("SHA-256")
         var size = 0L
 
-        storageApplicationService.download(
+        storage.download(
             bucket = uploadSettings.storageBucket,
             key = storageKey,
             downloaderId = "media-backfill:$workspaceId",

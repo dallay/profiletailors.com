@@ -5,7 +5,6 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAsset.Companion.GC_RETENTION_DAYS
 import com.profiletailors.smp.media.domain.WorkspaceFileBlob
-import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.onEach
@@ -30,7 +29,7 @@ import java.time.Instant
 class BlobGarbageCollector(
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val mediaAssetRepository: MediaAssetRepository,
-    private val storageApplicationService: StorageApplicationService,
+    private val storage: MediaStorage,
     private val reconcilerSettings: MediaReconcilerSettings,
 ) {
     private val logger = LoggerFactory.getLogger(BlobGarbageCollector::class.java)
@@ -103,7 +102,7 @@ class BlobGarbageCollector(
 
         return try {
             withTimeout(GC_LOCK_TIMEOUT_MILLIS) {
-                storageApplicationService.delete(
+                storage.delete(
                     bucket = reconcilerSettings.storageBucket,
                     key = storageKey,
                     deleterId = "blob-gc",

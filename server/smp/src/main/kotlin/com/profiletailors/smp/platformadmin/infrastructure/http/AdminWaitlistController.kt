@@ -1,19 +1,18 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistQueryTelemetry
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntryDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminWaitlistEntrySummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
-import com.profiletailors.smp.platformadmin.application.ports.AdminWaitlistQuery
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistQueryTelemetryPort
 import com.profiletailors.smp.platformadmin.application.query.ListAdminWaitlistEntriesQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
-import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
 import com.profiletailors.smp.platformadmin.infrastructure.persistence.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
@@ -27,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin/waitlist-entries")
@@ -35,9 +33,9 @@ class AdminWaitlistController(
     private val waitlistQuery: AdminWaitlistQuery,
     private val inviteHandler: InviteWaitlistEntryHandler,
     private val cancelHandler: CancelWaitlistEntryHandler,
-    private val roleAssignmentRepository: PlatformRoleAssignmentRepository,
+    private val operatorAccessResolver: OperatorAccessResolver,
     private val requestContextStore: RequestContextStore,
-    private val waitlistQueryTelemetry: WaitlistQueryTelemetryPort,
+    private val waitlistQueryTelemetry: WaitlistQueryTelemetry,
 ) {
 
     @GetMapping
@@ -55,8 +53,8 @@ class AdminWaitlistController(
         @RequestParam invitedFrom: Instant? = null,
         @RequestParam invitedTo: Instant? = null,
     ): ResponseEntity<PagedResult<AdminWaitlistEntrySummary>> {
-        val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        if (PlatformPermission.WAITLIST_READ !in operatorRoles.effectivePermissions()) {
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (PlatformPermission.WAITLIST_READ !in operator.roles.effectivePermissions()) {
             throw PlatformAccessDeniedException(PlatformPermission.WAITLIST_READ)
         }
         if (size > ADMIN_PAGE_MAX_SIZE) return ResponseEntity.badRequest().build()
@@ -85,8 +83,8 @@ class AdminWaitlistController(
 
     @GetMapping("/{entryId}")
     suspend fun getEntry(@PathVariable entryId: String): ResponseEntity<AdminWaitlistEntryDetail> {
-        val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        if (PlatformPermission.WAITLIST_READ !in operatorRoles.effectivePermissions()) {
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (PlatformPermission.WAITLIST_READ !in operator.roles.effectivePermissions()) {
             throw PlatformAccessDeniedException(PlatformPermission.WAITLIST_READ)
         }
         val detail = waitlistQuery.findById(entryId) ?: return ResponseEntity.notFound().build()
@@ -96,12 +94,12 @@ class AdminWaitlistController(
     @PostMapping("/{entryId}/invitations")
     @Transactional
     suspend fun invite(@PathVariable entryId: String): ResponseEntity<AdminInvitationSummary> {
-        val (operatorId, operatorRoles) = resolveOperator()
+        val operator = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val result = inviteHandler.handle(
             com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand(
-                operatorPrincipalId = operatorId,
-                operatorRoles = operatorRoles,
+                operatorPrincipalId = operator.principalId,
+                operatorRoles = operator.roles,
                 waitlistEntryId = entryId,
             ),
         )
@@ -114,12 +112,12 @@ class AdminWaitlistController(
         @PathVariable entryId: String,
         @RequestBody request: CancelRequest,
     ): ResponseEntity<Map<String, String>> {
-        val (operatorId, operatorRoles) = resolveOperator()
+        val operator = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         cancelHandler.handle(
             com.profiletailors.smp.platformadmin.application.command.CancelWaitlistEntryCommand(
-                operatorPrincipalId = operatorId,
-                operatorRoles = operatorRoles,
+                operatorPrincipalId = operator.principalId,
+                operatorRoles = operator.roles,
                 waitlistEntryId = entryId,
                 reason = request.reason,
             ),
@@ -127,11 +125,9 @@ class AdminWaitlistController(
         return ResponseEntity.ok(mapOf("status" to "cancelled"))
     }
 
-    private suspend fun resolveOperator(): Pair<UUID, Set<PlatformRole>>? {
+    private suspend fun resolveOperator(): com.profiletailors.smp.platformadmin.application.OperatorAccess? {
         val ctx = requestContextStore.currentPrincipalContext() ?: return null
-        val operatorId = UUID.fromString(ctx.principalId)
-        val assignments = roleAssignmentRepository.findActiveByPrincipalId(operatorId)
-        return operatorId to assignments.map { it.role }.toSet()
+        return operatorAccessResolver.resolve(ctx)
     }
 
     data class CancelRequest(val reason: String)

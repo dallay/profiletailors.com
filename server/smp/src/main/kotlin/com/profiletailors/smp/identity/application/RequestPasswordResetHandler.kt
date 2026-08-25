@@ -19,7 +19,7 @@ internal class RequestPasswordResetHandler(
     private val passwordResetTokenRepository: PasswordResetTokenRepository,
     private val transactionRunner: AtomicTransactionRunner,
     private val eventPublisher: EventPublisher<DomainEvent>,
-    private val rateLimitPort: RateLimitPort,
+    private val rateLimit: RateLimit,
     private val clock: Clock,
     private val passwordRecoveryEnabled: () -> Boolean,
     private val timingEqualizer: PasswordRecoveryTimingEqualizer =
@@ -37,7 +37,7 @@ internal class RequestPasswordResetHandler(
         val normalizedEmail = normalizeEmail(command.email)
 
         val now = clock.instant()
-        val admitted = rateLimitPort.tryAcquire(
+        val admitted = rateLimit.tryAcquire(
             key = "$passwordResetEmailBucket:$normalizedEmail",
             window = passwordResetEmailWindow,
             now = now,

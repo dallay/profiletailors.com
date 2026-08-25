@@ -30,7 +30,7 @@ import java.time.ZoneOffset
 @Service
 internal class ApproveTakedownHandler(
     private val repository: TakedownReportRepository,
-    private val mediaAssetStatusPort: MediaAssetStatusPort,
+    private val mediaAssetStatus: MediaAssetStatusUpdater,
     private val resourceContextProvider: ResourceContextProvider,
     private val principalContextProvider: PrincipalContextProvider,
     private val authorizationService: GovernanceAuthorizationService,
@@ -53,7 +53,7 @@ internal class ApproveTakedownHandler(
         val saved = repository.save(approved)
 
         // Suspend the underlying media asset
-        mediaAssetStatusPort.updateAssetStatus(
+        mediaAssetStatus.updateAssetStatus(
             AssetStatusUpdate(
                 workspaceId = workspaceId,
                 assetId = report.assetId,
