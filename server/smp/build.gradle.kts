@@ -129,8 +129,8 @@ dependencies {
         implementation(libs.okio.jvm)
         implementation(libs.bouncycastle.prov)
         implementation(libs.bouncycastle.pgp)
-        implementation("com.ongres.scram:scram-client:3.3")
-        implementation("com.ongres.scram:scram-common:3.3")
+        implementation("com.ongres.scram:scram-client:3.4")
+        implementation("com.ongres.scram:scram-common:3.4")
     }
 }
 
@@ -194,8 +194,8 @@ val verifySecurityVersions =
         doLast {
             val expected =
                 mapOf(
-                    "com.ongres.scram:scram-client" to "3.3",
-                    "com.ongres.scram:scram-common" to "3.3",
+                    "com.ongres.scram:scram-client" to "3.4",
+                    "com.ongres.scram:scram-common" to "3.4",
                     "io.netty:netty-codec-http" to "4.2.16.Final",
                     "io.netty:netty-codec-http2" to "4.2.16.Final",
                     "io.netty:netty-codec-http3" to "4.2.16.Final",
