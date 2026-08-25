@@ -41,7 +41,6 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "spring.liquibase.enabled=false",
         "spring.main.allow-bean-definition-overriding=true",
         "management.server.port=0",
-        "management.endpoints.web.exposure.include=health,prometheus",
         "management.endpoint.health.show-details=always",
         "management.endpoint.health.group.readiness.include=readinessState",
         "management.endpoint.health.group.liveness.include=livenessState",
@@ -176,6 +175,15 @@ class ActuatorEndpointsIntegrationTest {
                 assert(body!!.contains("# HELP")) { "Should contain metric help text" }
                 assert(body.contains("# TYPE")) { "Should contain metric type definitions" }
             }
+    }
+
+    @Test
+    fun `actuator info endpoint should be inaccessible when not in configured exposure list`() {
+        actuatorClient()
+            .get()
+            .uri("/actuator/info")
+            .exchange()
+            .expectStatus().isNotFound
     }
 
     companion object {
