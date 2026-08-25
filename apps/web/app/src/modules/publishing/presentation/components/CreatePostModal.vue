@@ -1245,7 +1245,7 @@ async function handleCreateSubmit(
               ref="composerTextareaEl"
               v-model="postText"
               :placeholder="$t('composer.placeholder')"
-              class="min-h-65 w-full flex-1 resize-none bg-transparent p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
+              class="min-h-55 w-full flex-1 resize-none bg-transparent p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
               data-testid="composer-textarea"
               @dragover="handleComposerSurfaceDragOver"
               @dragleave="handleComposerSurfaceDragLeave"
