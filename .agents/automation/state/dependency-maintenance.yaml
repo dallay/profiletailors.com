@@ -1,5 +1,26 @@
 schemaVersion: 1
 task: dependency-maintenance
-lastExecution: null
+lastExecution:
+  timestamp: "2026-03-30T18:15:00Z"
+  outcome: NO_DRIFT_DETECTED
+  runIdentifier: "jules-18079216847528425469-2f21c759"
+  branch: "jules-18079216847528425469-2f21c759"
+  commit: "5ec1fdc59ac8a9dcfc3e152b1dafc5a4cf60251b"
 findings: []
-checks: []
+checks:
+  - name: pnpm-licence-check
+    target: "apps/web/*, shared/web, tools/compliance"
+    status: Passed
+    notes: "All npm workspace package licences compliant with AGPL-3.0 policy."
+  - name: gradle-licence-report
+    target: "server/smp"
+    status: Passed
+    notes: "Gradle dependency licences compliant."
+  - name: pnpm-outdated-check
+    target: "root, apps/web/*, shared/web, tools/compliance"
+    status: Passed
+    notes: "No unpinned safe patch or minor updates available; major tooling/runtime updates restricted by framework."
+  - name: gradle-dependency-check
+    target: "gradle/libs.versions.toml"
+    status: Passed
+    notes: "Spring Boot 4.0.8, Kotlin 2.4.10, and key backend libraries aligned."
