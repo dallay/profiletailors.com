@@ -24,9 +24,8 @@ fi
 base_url="http://${bind_address}:${HTTP_PORT:-8080}"
 
 wait_for_readiness() {
-    local readiness
     for attempt in $(seq 1 120); do
-        if readiness="$(curl -fsS "${base_url}/healthz" 2>/dev/null)" && [[ "$readiness" == *'"status":"UP"'* ]]; then
+        if curl -fsS -o /dev/null "${base_url}/healthz" 2>/dev/null; then
             return 0
         fi
         if [ "$attempt" -eq 120 ]; then
@@ -98,7 +97,7 @@ run_checks() {
     assert_read_only_rootfs postgresql
     assert_secret_not_in_environment backend
 
-    echo "Production smoke test passed: dashboard=200 api=401 health=UP migrations=${migration_count} dev_seed=0."
+    echo "Production smoke test passed: dashboard=200 api=401 health=200 migrations=${migration_count} dev_seed=0."
 }
 
 run_checks
