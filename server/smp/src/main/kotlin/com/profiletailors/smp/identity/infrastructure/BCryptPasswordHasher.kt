@@ -6,12 +6,12 @@ import java.security.MessageDigest
 
 class BCryptPasswordHasher : PasswordHasher {
     /**
-         * Hashes a password using BCrypt with a cost factor of 12.
-         *
-         * @param rawPassword The password to hash.
-         * @return The BCrypt password hash.
-         */
-        override fun hash(rawPassword: String): String =
+     * Hashes a password using BCrypt with a cost factor of 12.
+     *
+     * @param rawPassword The password to hash.
+     * @return The BCrypt password hash.
+     */
+    override fun hash(rawPassword: String): String =
         BCrypt.hashpw(bcryptInput(rawPassword), BCrypt.gensalt(COST_FACTOR))
 
     /**
