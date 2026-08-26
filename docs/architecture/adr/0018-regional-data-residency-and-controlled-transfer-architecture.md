@@ -7,9 +7,10 @@
 - Supersedes: None
 - Superseded by: None
 - Related:
-  - ADR-0001: Use a Modular Monolith Backend
-  - ADR-0008: Application-Level Multi-tenancy
-  - Compliance: `docs/compliance/market-entry-asia.md`, `docs/compliance/data-inventory.yaml`
+  - [ADR-0001: Use a Modular Monolith Backend](0001-use-a-modular-monolith-backend.md)
+  - [ADR-0008: Application-Level Multi-tenancy](0008-application-level-multi-tenancy.md)
+  - [docs/compliance/market-entry-asia.md](../../compliance/market-entry-asia.md)
+  - [docs/compliance/data-inventory.yaml](../../compliance/data-inventory.yaml)
 
 ## Context
 
@@ -62,7 +63,7 @@ Under this model:
 
 To guarantee zero accidental tenant data drift across regions:
 
-- **Immutable Region Identifier**: Every workspace record contains an immutable `region_id` (e.g., `eu-central-1`, `us-east-1`). This attribute is set during workspace creation and embedded in the workspace JWT claims (`rg` claim) and workspace metadata.
+- **Immutable Region Identifier**: Every workspace record contains a `region_id` (e.g., `eu-central-1`, `us-east-1`) that is immutable for the lifetime of a session and normal request routing. This attribute is set during workspace creation and embedded in the workspace JWT claims (`rg` claim) and workspace metadata. Region migration is an explicit, exceptional administrative operation authorized only through the Cold Migration Pipeline (see below), which reissues the `region_id` binding and rotates all tokens after the target region import completes and source-region purge is verified.
 - **Ingress Gateway Validation**:
   - The regional Ingress Gateway / API Router inspects incoming request JWT tokens and the `X-Workspace-Id` header.
   - If a request targeting Region A carries a tenant token bound to Region B, the gateway **MUST** immediately reject the request with `HTTP 421 Misdirected Request` or `HTTP 403 Forbidden` and log a security audit alert.
@@ -115,9 +116,9 @@ Profile Tailors integrates with external third-party services to deliver core ca
 | **X (Twitter) API** | Social Publishing & Analytics | Post text, image/video binaries, handle IDs | US (X Corp servers) | User-directed outbound API call; explicit customer publishing action |
 | **Meta Graph API (Facebook / Instagram)** | Social Publishing & Analytics | Media assets, captions, account IDs, page tokens | US (Meta Platforms servers) | User-directed outbound API call; Meta standard contractual clauses (SCCs) |
 | **Threads API** | Social Publishing | Post text, images, container IDs | US (Meta Platforms servers) | User-directed outbound API call; OAuth authorization |
-| **Transactional Email (e.g. Resend / SendGrid)** | System Notifications, Account Verifications | Recipient email address, name, transactional message body | EU or US (Provider dependent) | Local regional egress proxy; EU region endpoint selected where available; TLS 1.3 |
-| **Transactional SMS (e.g. Twilio)** | Multi-Factor Authentication | Phone number, verification code | Global / US | Minimal payload (code only, no PII/workspace details) |
-| **LLM / AI Providers (e.g. OpenAI / Anthropic)** | Content Generation & Assistance | Prompt text, post draft snippets | Provider API endpoint (US/EU) | Opt-in per workspace; zero data retention (ZDR) enterprise agreements; strict PII filtering prior to request |
+| **Transactional Email** | System Notifications, Account Verifications | Recipient email address, name, transactional message body | TBD — no approved production subprocessor selected | Feature disabled/not activated in production until a provider is approved and a valid transfer mechanism (DPA/SCC) is executed |
+| **Transactional SMS** | Multi-Factor Authentication | Phone number, verification code | TBD — no approved production subprocessor selected | Feature disabled/not activated in production until a provider is approved and a valid transfer mechanism (DPA/SCC) is executed |
+| **LLM / AI Providers** | Content Generation & Assistance | Prompt text, post draft snippets | TBD — no approved production subprocessor selected | Feature disabled/not activated in production until a provider is approved and a valid transfer mechanism (DPA/SCC) is executed |
 
 #### Transfer Safeguards & Egress Governance
 1. **User Direction**: Social media post publishing occurs exclusively under explicit user direction when scheduling or publishing content to third-party networks.
@@ -135,8 +136,8 @@ When an enterprise tenant requests a region migration (e.g., migrating workspace
    - Export tenant database slice (using `workspace_id` filter) and object storage CAS assets to an encrypted export archive.
    - Cryptographically re-encrypt the archive using the target region's KMS key.
    - Import archive into target region database and S3 bucket.
-   - Update workspace global routing map `region_id` to target region.
    - Purge tenant source data from origin region following the Retention & Erasure Control Plan.
+   - Update workspace global routing map `region_id` to target region and reissue fresh tokens with the new region binding (old tokens carrying the prior region are invalidated).
 
 #### Disaster Recovery (DR) Protocols
 - **RPO / RTO Targets**: RPO ≤ 1 hour, RTO ≤ 4 hours for regional restore.
@@ -148,13 +149,13 @@ When an enterprise tenant requests a region migration (e.g., migrating workspace
 Due to severe regulatory requirements, local hosting mandates, and state access laws, **China and Vietnam cannot be served by generic global or regional SaaS infrastructure**.
 
 #### China (PIPL, Data Security Law, Cybersecurity Law)
-- **Legal Mandates**: PIPL and DSL mandate strict local data storage within mainland China for critical data/personal information above statutory thresholds. Outbound data export requires Cyberspace Administration of China (CAC) security assessments, CAC Standard Contracts, or formal certification.
-- **Infrastructure Mandates**: Requires local hosting inside mainland China (e.g., AWS China in Beijing/Ningxia), a licensed local entity / Joint Venture, and an Internet Content Provider (ICP) license / app filing.
-- **Architectural Conclusion**: **UNSUPPORTED**. Profile Tailors standard SaaS instances MUST NOT accept registrations or route traffic for mainland China data residency compliance without a dedicated, isolated China air-gapped deployment architecture.
+- **Legal Mandates**: PIPL and DSL mandate strict local data storage within mainland China for critical data/personal information above statutory thresholds (e.g., processing data of over 1 million individuals or exporting sensitive/important data). Outbound data export requires Cyberspace Administration of China (CAC) security assessments, CAC Standard Contracts, or formal certification.
+- **Infrastructure Mandates**: When applicable thresholds are met or when actively targeting the Chinese market, local hosting inside mainland China (e.g., AWS China in Beijing/Ningxia), a licensed local entity / Joint Venture, and an Internet Content Provider (ICP) license / app filing are required.
+- **Architectural Conclusion**: **UNSUPPORTED** without a dedicated architecture. Profile Tailors standard SaaS instances MUST NOT accept registrations or route traffic for mainland China data residency compliance without a dedicated, isolated China air-gapped deployment architecture.
 
 #### Vietnam (Decree 13/2023/ND-CP & Cybersecurity Decree 53)
-- **Legal Mandates**: Decree 53 mandates that foreign enterprises providing digital/SaaS services in Vietnam store designated user data locally within Vietnam for at least 24 months and establish a local branch office or representative upon official notice from the Ministry of Public Security (MPS). Decree 13 requires a detailed Outbound Transfer Impact Assessment Dossier (Article 43) submitted to MPS A05 within 60 days of processing.
-- **Architectural Conclusion**: **UNSUPPORTED**. Profile Tailors standard global infrastructure MUST NOT process localized Vietnamese tenant data without an approved, dedicated local cloud footprint and legal entity structure.
+- **Legal Mandates**: Decree 13 Article 43 requires a detailed Outbound Transfer Impact Assessment Dossier submitted to MPS A05 within 60 days of processing for transfers of Vietnamese citizens' data abroad. Decree 53's local storage and local representative obligations apply to foreign enterprises providing telecommunications, internet, or digital services in Vietnam when they receive a security warning or order from the Ministry of Public Security (not unconditionally to all foreign SaaS providers).
+- **Architectural Conclusion**: **UNSUPPORTED** pending dedicated architecture/legal package. Profile Tailors standard global infrastructure MUST NOT process localized Vietnamese tenant data without an approved, dedicated local cloud footprint and legal entity structure.
 
 #### Operational Mandate
 > **China and Vietnam are explicitly marked as UNSUPPORTED in standard Profile Tailors regional deployments.** Enabling support for China or Vietnam requires a dedicated, individually approved architectural and legal design package.
@@ -173,10 +174,10 @@ Due to severe regulatory requirements, local hosting mandates, and state access 
 
 ### Positive
 
-- **Uncompromising Compliance**: Fully satisfies GDPR, LGPD, APPI, PDPA, and enterprise customer data residency mandates.
+- **Uncompromising Compliance**: Designed to satisfy GDPR, LGPD, APPI, PDPA, and enterprise customer data residency mandates.
 - **Zero Accidental Tenant Drift**: Ingress token validation (`421 Misdirected Request`) and database isolation prevent misrouting and accidental cross-border data leakage.
 - **Cryptographic Isolation**: Per-region KMS keys ensure tenant data cannot be decrypted outside its designated region.
-- **Clean Disaster Recovery Boundaries**: Backups remain strictly within local legal jurisdictions, preventing accidental compliance breaches during disaster recovery.
+- **Clean Disaster Recovery Boundaries**: Architecturally enforces backups remaining strictly within local legal jurisdictions, preventing accidental compliance breaches during disaster recovery.
 - **Architectural Clarity**: Clear, explicit identification of all third-party outbound data flows (LinkedIn, X, Meta, Threads, LLMs, email/SMS gateways).
 
 ### Negative
