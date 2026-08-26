@@ -178,6 +178,15 @@ class ActuatorEndpointsIntegrationTest {
             }
     }
 
+    @Test
+    fun `actuator info endpoint should be inaccessible when not in configured exposure list`() {
+        actuatorClient()
+            .get()
+            .uri("/actuator/info")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
     companion object {
         @Container
         @JvmStatic

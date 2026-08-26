@@ -4,6 +4,8 @@ import com.profiletailors.smp.identity.application.PasswordResetCredentialMissin
 import com.profiletailors.smp.identity.application.PasswordResetTokenCleanup
 import com.profiletailors.smp.identity.application.PasswordResetTokenRepository
 import com.profiletailors.smp.identity.domain.PasswordResetToken
+import io.r2dbc.spi.Row
+import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
@@ -89,16 +91,20 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
         """.trimIndent(),
     )
         .bind(TOKEN_HASH_BIND, tokenHash)
-        .map { row, _ ->
-            PasswordResetToken(
-                id = requireNotNull(row.get("id", UUID::class.java)),
-                principalId = requireNotNull(row.get("principal_id", String::class.java)),
-                tokenHash = requireNotNull(row.get("token_hash", String::class.java)),
-                requestedAt = requireNotNull(row.get("requested_at", OffsetDateTime::class.java)).toInstant(),
-                expiresAt = requireNotNull(row.get("expires_at", OffsetDateTime::class.java)).toInstant(),
-                usedAt = row.get("used_at", OffsetDateTime::class.java)?.toInstant(),
-            )
-        }
+        .map(TOKEN_ROW_MAPPER)
+        .one()
+        .awaitSingleOrNull()
+
+    override suspend fun findForConsumption(tokenHash: String): PasswordResetToken? = databaseClient.sql(
+        """
+        SELECT id, principal_id, token_hash, requested_at, expires_at, used_at
+        FROM password_reset_tokens
+        WHERE token_hash = :tokenHash
+        FOR UPDATE
+        """.trimIndent(),
+    )
+        .bind(TOKEN_HASH_BIND, tokenHash)
+        .map(TOKEN_ROW_MAPPER)
         .one()
         .awaitSingleOrNull()
 
@@ -158,3 +164,14 @@ class R2dbcPasswordResetTokenRepository(private val databaseClient: DatabaseClie
 }
 
 private const val TOKEN_HASH_BIND = "tokenHash"
+
+private val TOKEN_ROW_MAPPER: (Row, RowMetadata) -> PasswordResetToken = { row, _ ->
+    PasswordResetToken(
+        id = requireNotNull(row.get("id", UUID::class.java)),
+        principalId = requireNotNull(row.get("principal_id", String::class.java)),
+        tokenHash = requireNotNull(row.get("token_hash", String::class.java)),
+        requestedAt = requireNotNull(row.get("requested_at", OffsetDateTime::class.java)).toInstant(),
+        expiresAt = requireNotNull(row.get("expires_at", OffsetDateTime::class.java)).toInstant(),
+        usedAt = row.get("used_at", OffsetDateTime::class.java)?.toInstant(),
+    )
+}
