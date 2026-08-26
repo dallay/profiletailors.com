@@ -1,8 +1,14 @@
 package com.profiletailors.smp.platformadmin.application.handler
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.notifications.domain.event.InvitationResent
 import com.profiletailors.smp.platformadmin.application.command.ResendWaitlistInvitationCommand
+import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
@@ -32,9 +38,12 @@ open class ResendWaitlistInvitationHandler(
     private val resendLimit: Int,
     private val resendWindowHours: Int,
     private val tokenHasher: TokenHasher,
+    private val eventPublisher: EventPublisher<DomainEvent>,
+    private val acceptUrlTemplate: AcceptUrlTemplate,
+    private val waitlistEntryAdmin: WaitlistEntryAdmin,
 ) {
 
-    @Suppress("ThrowsCount")
+    @Suppress("ThrowsCount", "LongMethod")
     suspend fun handle(command: ResendWaitlistInvitationCommand): AdminInvitationSummary {
         val permissions = command.operatorRoles.effectivePermissions()
         if (PlatformPermission.INVITATIONS_RESEND !in permissions) {
@@ -58,9 +67,13 @@ open class ResendWaitlistInvitationHandler(
 
         invitationRepository.update(existing.supersede())
 
+        val context: WaitlistInvitationContext = waitlistEntryAdmin.findInvitationContext(existing.waitlistEntryId)
+            ?: throw InvitationNotFoundException(command.invitationId.toString())
+
         val rawToken = InvitationTokenGenerator.generate()
         val tokenHash: String = tokenHasher.hash(rawToken)
 
+        val previousInvitationId = existing.id.value
         val newInvitation = invitationRepository.save(
             WaitlistInvitation(
                 id = WaitlistInvitationId.generate(),
@@ -84,6 +97,20 @@ open class ResendWaitlistInvitationHandler(
                 targetType = "WaitlistInvitation",
                 targetId = command.invitationId.toString(),
                 result = AdminAuditResult.SUCCEEDED,
+            ),
+        )
+
+        eventPublisher.publish(
+            InvitationResent(
+                invitationId = newInvitation.id.value,
+                waitlistEntryId = existing.waitlistEntryId,
+                operatorPrincipalId = command.operatorPrincipalId,
+                recipient = context.recipientEmail,
+                workspaceName = context.workspaceName,
+                acceptUrl = acceptUrlTemplate.build(rawToken),
+                locale = context.locale,
+                rawToken = rawToken,
+                previousInvitationId = previousInvitationId,
             ),
         )
 
