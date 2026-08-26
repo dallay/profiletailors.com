@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.3...admin@v0.0.4) (2026-08-26)
+
+
+### Documentation
+
+* **readme:** generate professional README for every subproject ([#847](https://github.com/dallay/profiletailors.com/issues/847)) ([0824ad7](https://github.com/dallay/profiletailors.com/commit/0824ad7daef98bf3bcc5d146663c750281a71856))
+
 ## [0.0.3](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.2...admin@v0.0.3) (2026-08-24)
 
 

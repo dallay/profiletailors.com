@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.5](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.4...smp@v0.4.5) (2026-08-26)
+
+
+### Features
+
+* **app:** complete private beta invitation acceptance ([#853](https://github.com/dallay/profiletailors.com/issues/853)) ([e23aea9](https://github.com/dallay/profiletailors.com/commit/e23aea9eb15d9bcddecd2277f796b1d7fcb43fa3))
+
+
+### Bug Fixes
+
+* **smp:** enforce hexagonal layer boundaries in media and platformadmin ([#844](https://github.com/dallay/profiletailors.com/issues/844)) ([90efe84](https://github.com/dallay/profiletailors.com/commit/90efe84b5208fb1c95352a197bf9923edd927adc))
+
+
+### Refactoring
+
+* replace H2 with PostgreSQL Testcontainers ([#855](https://github.com/dallay/profiletailors.com/issues/855)) ([d516309](https://github.com/dallay/profiletailors.com/commit/d516309aaffbbc9a955e512e8a7eae5e3ce01ec5))
+
+
+### Documentation
+
+* **readme:** generate professional README for every subproject ([#847](https://github.com/dallay/profiletailors.com/issues/847)) ([0824ad7](https://github.com/dallay/profiletailors.com/commit/0824ad7daef98bf3bcc5d146663c750281a71856))
+
 ## [0.4.4](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.3...smp@v0.4.4) (2026-08-24)
 
 
