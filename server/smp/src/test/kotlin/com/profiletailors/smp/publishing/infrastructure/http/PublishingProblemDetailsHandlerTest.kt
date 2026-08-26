@@ -194,4 +194,14 @@ class PublishingProblemDetailsHandlerTest {
         problem.properties?.get("errorCode") shouldBe "ASSET_NOT_READY"
         problem.properties?.get("assetId").shouldBeNull()
     }
+
+    @Test
+    fun `maps IllegalArgumentException to 400 BAD_REQUEST`() {
+        val exception = IllegalArgumentException("limit must be between 1 and 100")
+        val problem = handler.handle(exception)
+
+        problem.status shouldBe HttpStatus.BAD_REQUEST.value()
+        problem.title shouldBe "Bad Request"
+        problem.detail shouldBe "limit must be between 1 and 100"
+    }
 }

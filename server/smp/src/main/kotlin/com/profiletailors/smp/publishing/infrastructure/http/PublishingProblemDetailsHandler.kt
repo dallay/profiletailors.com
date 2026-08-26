@@ -107,6 +107,14 @@ class PublishingProblemDetailsHandler {
         title = "Social content workspace conflict"
     }
 
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handle(exception: IllegalArgumentException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.BAD_REQUEST,
+        exception.message ?: "Invalid request argument",
+    ).apply {
+        title = "Bad Request"
+    }
+
     @ExceptionHandler(ExpiredOAuthStateException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: ExpiredOAuthStateException): ProblemDetail =

@@ -45,8 +45,8 @@ Chain strategy: size-exception
 
 ## Phase 3: HTTP and Spring integration
 
-- [ ] 3.1 **RED→GREEN:** Test v1 headers, invalid range/cursor/limit, isolation, detail immutability, and problem details; complete explicit version mappings and validation in `PublishingControllers.kt`.
-- [ ] 3.2 **RED→GREEN:** Add application-context tests for `SocialContentConfiguration.kt`; bind production/fake beans conditionally so disabled operations resolve neither credentials nor external transport.
+- [x] 3.1 **RED→GREEN:** Test v1 headers, invalid range/cursor/limit, isolation, detail immutability, and problem details; complete explicit version mappings and validation in `PublishingControllers.kt`. RED captured missing `version = "1"` on `SocialContentController` endpoints and lack of limit validation; GREEN verified explicit version mappings, range/limit bounds validation, post detail immutability (`mutationAllowed = false`), and problem details in `SocialContentControllersTest` and `PublishingProblemDetailsHandlerTest`.
+- [x] 3.2 **RED→GREEN:** Add application-context tests for `SocialContentConfiguration.kt`; bind production/fake beans conditionally so disabled operations resolve neither credentials nor external transport. RED captured missing property assertions; GREEN verified bean loading, default disabled feature flags, and zero external transport / credential resolution via `SocialContentConfigurationTest`.
 
 ## Phase 4: Cucumber and focused verification
 

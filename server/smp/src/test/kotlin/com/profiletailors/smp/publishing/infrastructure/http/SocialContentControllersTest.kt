@@ -31,6 +31,11 @@ class SocialContentControllersTest {
     private val mediator = StubMediator()
     private val client = WebTestClient
         .bindToController(SocialContentController(mediator))
+        .controllerAdvice(PublishingProblemDetailsHandler())
+        .apiVersioning {
+            it.useVersionResolver(com.profiletailors.smp.platform.infrastructure.http.WebFluxConfiguration.MediaTypeVersionResolver())
+                .setDefaultVersion("1")
+        }
         .build()
 
     @Test
@@ -135,6 +140,54 @@ class SocialContentControllersTest {
             .jsonPath("$.status").isEqualTo("COMPLETED")
 
         assertEquals(SocialContentSyncCommand(actorId = "page-1"), mediator.lastCommand)
+    }
+
+    @Test
+    fun `GET calendar rejects invalid limit parameter`() = runTest {
+        client.get()
+            .uri(
+                "/api/publishing/social-content/calendar" +
+                    "?from=2026-08-01T00:00:00Z" +
+                    "&to=2026-08-08T00:00:00Z" +
+                    "&limit=0",
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+
+        client.get()
+            .uri(
+                "/api/publishing/social-content/calendar" +
+                    "?from=2026-08-01T00:00:00Z" +
+                    "&to=2026-08-08T00:00:00Z" +
+                    "&limit=150",
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `POST sync rejects blank actorId`() = runTest {
+        client.post()
+            .uri("/api/publishing/social-content/sync")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"actorId":""}""")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `social content controller endpoints map explicit version 1`() {
+        val syncMethod = SocialContentController::class.java.declaredMethods.single { it.name == "sync" }
+        val postMethod = SocialContentController::class.java.declaredMethods.single { it.name == "post" }
+        val calendarMethod = SocialContentController::class.java.declaredMethods.single { it.name == "calendar" }
+
+        val syncMapping = syncMethod.getAnnotation(org.springframework.web.bind.annotation.PostMapping::class.java)
+        val postMapping = postMethod.getAnnotation(org.springframework.web.bind.annotation.GetMapping::class.java)
+        val calendarMapping = calendarMethod.getAnnotation(org.springframework.web.bind.annotation.GetMapping::class.java)
+
+        assertEquals("1", syncMapping.version)
+        assertEquals("1", postMapping.version)
+        assertEquals("1", calendarMapping.version)
     }
 
     private class StubMediator : Mediator {
