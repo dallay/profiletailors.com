@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.6](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.5...smp@v0.4.6) (2026-08-26)
+
+
+### Features
+
+* **security:** update BCryptPasswordHasher to use cost factor 12 and add unit tests ([#850](https://github.com/dallay/profiletailors.com/issues/850)) ([14efd1a](https://github.com/dallay/profiletailors.com/commit/14efd1ac1a34f6b6b964baaccf852843c3f2adb3))
+
+
+### Bug Fixes
+
+* **infra:** make release image smoke test reliable ([#864](https://github.com/dallay/profiletailors.com/issues/864)) ([1f67258](https://github.com/dallay/profiletailors.com/commit/1f67258714aa94e5da3f2469bc5c870ff47e3f35))
+
+
+### Documentation
+
+* 📝 Add docstrings to `OWASP` ([#851](https://github.com/dallay/profiletailors.com/issues/851)) ([8773207](https://github.com/dallay/profiletailors.com/commit/8773207961fcdcd64ee76a68f4d83b5cbe278e64))
+
 ## [0.4.5](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.4...smp@v0.4.5) (2026-08-26)
 
 
