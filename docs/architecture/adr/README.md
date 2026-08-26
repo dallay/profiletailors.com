@@ -42,6 +42,7 @@ as a historical record and a guide for current and future development.
 | 0015 | [Aggregate Root Is the Sole Entry Point to an Aggregate](./0015-aggregate-root-as-sole-entry-point.md) | Accepted | 2026-08-08 |
 | 0016 | [Aggregates Communicate by Identity Only Across Bounded Contexts](./0016-aggregates-communicate-by-identity-only.md) | Accepted | 2026-08-09 |
 | 0017 | [Value Objects Are Immutable and Validate at Construction](./0017-value-objects-are-immutable.md) | Accepted | 2026-08-09 |
+| 0018 | [Regional Data Residency and Controlled Transfer Architecture](./0018-regional-data-residency-and-controlled-transfer-architecture.md) | Accepted | 2026-08-26 |
 
 ## Relationship with other docs
 
