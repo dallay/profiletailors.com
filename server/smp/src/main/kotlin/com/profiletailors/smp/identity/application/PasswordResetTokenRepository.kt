@@ -28,6 +28,8 @@ interface PasswordResetTokenRepository {
 
     suspend fun findByTokenHash(tokenHash: String): PasswordResetToken?
 
+    suspend fun findForConsumption(tokenHash: String): PasswordResetToken?
+
     /**
      * Atomically consumes the matching token and updates the principal's
      * password credential in a single database transaction. Returns without

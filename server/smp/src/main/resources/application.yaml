@@ -193,7 +193,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,metrics,prometheus
       base-path: /actuator
   endpoint:
     health:
@@ -208,7 +208,7 @@ management:
           include: livenessState
           show-details: never
     info:
-      enabled: true
+      enabled: false
     prometheus:
       enabled: true
     metrics:
