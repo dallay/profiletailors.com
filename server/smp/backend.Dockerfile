@@ -37,6 +37,12 @@ RUN --mount=type=cache,id=gradle,target=/root/.gradle/caches \
 # linux/arm64).
 FROM eclipse-temurin:25-jre-noble@sha256:fbcf915c585659b30eb766ada4d6d7cfc9ec1040bf521e95bf61b10a25af73db AS runtime
 
+USER root
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends --yes wget=1.21.4-1ubuntu4.5 \
+    && rm -rf /var/lib/apt/lists/*
+
 ARG SMP_VERSION="dev"
 ARG IMAGE_CREATED=""
 ARG IMAGE_REVISION=""
