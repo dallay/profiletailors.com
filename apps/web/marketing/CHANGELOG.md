@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.6](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.5...landing@v0.2.6) (2026-08-26)
+
+
+### Features
+
+* **app:** complete private beta invitation acceptance ([#853](https://github.com/dallay/profiletailors.com/issues/853)) ([e23aea9](https://github.com/dallay/profiletailors.com/commit/e23aea9eb15d9bcddecd2277f796b1d7fcb43fa3))
+
+
+### Documentation
+
+* **readme:** generate professional README for every subproject ([#847](https://github.com/dallay/profiletailors.com/issues/847)) ([0824ad7](https://github.com/dallay/profiletailors.com/commit/0824ad7daef98bf3bcc5d146663c750281a71856))
+
 ## [0.2.5](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.4...landing@v0.2.5) (2026-08-24)
 
 
