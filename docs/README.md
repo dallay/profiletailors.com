@@ -32,6 +32,14 @@
   services
 - [Private Beta Launch Readiness Runbook](./infrastructure/private-beta-launch-readiness-runbook.md) -
   Operator procedures for publishing safe-off, stale visibility, and rollback (DALLAY-555/557)
+- [Private Beta Operator Checklist](./infrastructure/private-beta-operator-checklist.md) -
+  Per-surface read-only checks for readiness, database, media, auth, waitlist, invitation, and publishing worker (DALLAY-557)
+- [Private Beta Incident Response](./infrastructure/private-beta-incident-response.md) -
+  Incident owner, severity ladder, communication templates, and threshold review cadence (DALLAY-557)
+- [Private Beta Correlation Matrix](./infrastructure/private-beta-correlation-matrix.md) -
+  Pivot recipes across `jobId`, `invitationId`, `waitlistEntryId`, and the redaction contract (DALLAY-557)
+- [Private Beta Backup and Restore Status](./infrastructure/private-beta-backup-restore-status.md) -
+  Rehearsed / documented-not-exercised / explicitly-not-rehearsed status of backup and restore (DALLAY-557)
 - [PostgreSQL Setup](../infra/postgres/) - Database configuration
 
 ### Monitoring & Observability

@@ -279,3 +279,7 @@ LinkedIn integration runbook.
 - [`docs/README.md`](../README.md)
 - [`docs/architecture/adr/README.md`](../architecture/adr/README.md)
 - [`docs/infrastructure/production-docker-swarm.md`](./production-docker-swarm.md)
+- [`docs/infrastructure/private-beta-operator-checklist.md`](./private-beta-operator-checklist.md) — full per-surface checklist for DALLAY-557
+- [`docs/infrastructure/private-beta-incident-response.md`](./private-beta-incident-response.md) — incident owner, severity ladder, communication templates, threshold review cadence
+- [`docs/infrastructure/private-beta-correlation-matrix.md`](./private-beta-correlation-matrix.md) — pivot recipes and redaction contract
+- [`docs/infrastructure/private-beta-backup-restore-status.md`](./private-beta-backup-restore-status.md) — rehearsed / documented-not-exercised / explicitly-not-rehearsed status

@@ -1,10 +1,15 @@
 package com.profiletailors.smp.platformadmin.application.handler
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
+import com.profiletailors.notifications.domain.event.InvitationCreated
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
+import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
@@ -30,12 +35,14 @@ open class InviteWaitlistEntryHandler(
     private val waitlistEntryAdmin: WaitlistEntryAdmin,
     private val invitationRepository: WaitlistInvitationRepository,
     private val auditPublisher: AdministrativeAuditPublisher,
+    private val eventPublisher: EventPublisher<DomainEvent>,
     private val clock: Clock,
     private val invitationTtl: Duration,
     private val tokenHasher: TokenHasher,
+    private val acceptUrlTemplate: AcceptUrlTemplate,
 ) {
 
-    @Suppress("ThrowsCount")
+    @Suppress("ThrowsCount", "LongMethod")
     suspend fun handle(command: InviteWaitlistEntryCommand): AdminInvitationSummary {
         val permissions = command.operatorRoles.effectivePermissions()
         if (PlatformPermission.WAITLIST_INVITE !in permissions) {
@@ -43,6 +50,9 @@ open class InviteWaitlistEntryHandler(
         }
 
         val entry = waitlistEntryAdmin.findById(command.waitlistEntryId)
+            ?: throw WaitlistEntryNotFoundException(command.waitlistEntryId)
+
+        val context: WaitlistInvitationContext = waitlistEntryAdmin.findInvitationContext(command.waitlistEntryId)
             ?: throw WaitlistEntryNotFoundException(command.waitlistEntryId)
 
         when (entry.status) {
@@ -96,6 +106,19 @@ open class InviteWaitlistEntryHandler(
                 targetType = "WaitlistEntry",
                 targetId = command.waitlistEntryId,
                 result = AdminAuditResult.SUCCEEDED,
+            ),
+        )
+
+        eventPublisher.publish(
+            InvitationCreated(
+                invitationId = invitation.id.value,
+                waitlistEntryId = command.waitlistEntryId,
+                operatorPrincipalId = command.operatorPrincipalId,
+                recipient = context.recipientEmail,
+                workspaceName = context.workspaceName,
+                acceptUrl = acceptUrlTemplate.build(rawToken),
+                locale = context.locale,
+                rawToken = rawToken,
             ),
         )
 

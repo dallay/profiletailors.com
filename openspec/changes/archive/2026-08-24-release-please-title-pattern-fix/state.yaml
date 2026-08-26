@@ -1,5 +1,5 @@
 change: release-please-title-pattern-fix
-current_phase: verify
+current_phase: archive
 completed:
   - explore
   - propose
@@ -7,5 +7,7 @@ completed:
   - design
   - tasks
   - apply
-next: archive
+  - verify
+  - archive
+next: none
 updated: 2026-08-24
