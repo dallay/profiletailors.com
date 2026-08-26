@@ -224,7 +224,8 @@ class ResetPasswordHandlerTest {
             // expected
         }
 
-        tokenRepository.lastLookedUpHash shouldBe PasswordResetTokenHasher.hash("raw-token")
+        tokenRepository.findForConsumptionCalls shouldBe 1
+        tokenRepository.lastConsumptionLookupHash shouldBe PasswordResetTokenHasher.hash("raw-token")
     }
 
     @Test
@@ -388,6 +389,8 @@ class ResetPasswordHandlerTest {
         var lastConsumedToken: String? = null
         var lastConsumedNewHash: String? = null
         var lastLookedUpHash: String? = null
+        var findForConsumptionCalls: Int = 0
+        var lastConsumptionLookupHash: String? = null
 
         override suspend fun invalidateActiveTokens(principalId: String, invalidatedAt: Instant) = Unit
 
@@ -400,7 +403,8 @@ class ResetPasswordHandlerTest {
         }
 
         override suspend fun findForConsumption(tokenHash: String): PasswordResetToken? {
-            lastLookedUpHash = tokenHash
+            findForConsumptionCalls += 1
+            lastConsumptionLookupHash = tokenHash
             return stored
         }
 
