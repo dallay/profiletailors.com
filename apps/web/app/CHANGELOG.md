@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.4](https://github.com/dallay/profiletailors.com/compare/app@v0.3.3...app@v0.3.4) (2026-08-26)
+
+
+### Features
+
+* **app:** complete private beta invitation acceptance ([#853](https://github.com/dallay/profiletailors.com/issues/853)) ([e23aea9](https://github.com/dallay/profiletailors.com/commit/e23aea9eb15d9bcddecd2277f796b1d7fcb43fa3))
+* **publishing:** add Markdown editor to post composer ([#848](https://github.com/dallay/profiletailors.com/issues/848)) ([ff2c023](https://github.com/dallay/profiletailors.com/commit/ff2c023c546ad22709f824756325ad4e2bf74182))
+
+
+### Documentation
+
+* **readme:** generate professional README for every subproject ([#847](https://github.com/dallay/profiletailors.com/issues/847)) ([0824ad7](https://github.com/dallay/profiletailors.com/commit/0824ad7daef98bf3bcc5d146663c750281a71856))
+
 ## [0.3.3](https://github.com/dallay/profiletailors.com/compare/app@v0.3.2...app@v0.3.3) (2026-08-24)
 
 
