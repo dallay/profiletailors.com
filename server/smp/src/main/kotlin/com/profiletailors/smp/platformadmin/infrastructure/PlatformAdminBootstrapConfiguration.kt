@@ -6,20 +6,20 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceRepository
+import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
+import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
-import com.profiletailors.smp.platformadmin.application.ports.AcceptUrlTemplate
-import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
-import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
+import com.profiletailors.smp.tenancy.application.R2dbcWorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
-import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisionerAdapter
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
@@ -31,11 +31,17 @@ import java.time.Duration
 class PlatformAdminBootstrapConfiguration {
 
     @Bean
+    fun operatorAccessResolver(
+        roleAssignmentRepository: PlatformRoleAssignmentRepository,
+    ): com.profiletailors.smp.platformadmin.application.OperatorAccessResolver =
+        com.profiletailors.smp.platformadmin.application.OperatorAccessResolver(roleAssignmentRepository)
+
+    @Bean
     fun tokenHasher(): TokenHasher = BCryptTokenHasher()
 
     @Bean
     fun workspaceMembershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
-        WorkspaceMembershipProvisionerAdapter(repository)
+        R2dbcWorkspaceMembershipProvisioner(repository)
 
     @Bean
     fun acceptInvitationHandler(
@@ -61,7 +67,7 @@ class PlatformAdminBootstrapConfiguration {
 
     @Bean
     fun inviteWaitlistEntryHandler(
-        waitlistEntryPort: WaitlistEntryAdminPort,
+        waitlistEntryAdmin: WaitlistEntryAdmin,
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
         eventPublisher: EventPublisher<DomainEvent>,
@@ -70,7 +76,7 @@ class PlatformAdminBootstrapConfiguration {
         acceptUrlTemplate: AcceptUrlTemplate,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
     ): InviteWaitlistEntryHandler = InviteWaitlistEntryHandler(
-        waitlistEntryPort = waitlistEntryPort,
+        waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
@@ -88,7 +94,7 @@ class PlatformAdminBootstrapConfiguration {
         clock: Clock,
         tokenHasher: TokenHasher,
         acceptUrlTemplate: AcceptUrlTemplate,
-        waitlistEntryPort: WaitlistEntryAdminPort,
+        waitlistEntryAdmin: WaitlistEntryAdmin,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
         @Value("\${platform.admin.invitation.resend-limit:3}") resendLimit: Int,
         @Value("\${platform.admin.invitation.resend-window-hours:24}") resendWindowHours: Int,
@@ -102,7 +108,7 @@ class PlatformAdminBootstrapConfiguration {
         tokenHasher = tokenHasher,
         eventPublisher = eventPublisher,
         acceptUrlTemplate = acceptUrlTemplate,
-        waitlistEntryPort = waitlistEntryPort,
+        waitlistEntryAdmin = waitlistEntryAdmin,
     )
 
     @Bean
@@ -118,12 +124,12 @@ class PlatformAdminBootstrapConfiguration {
 
     @Bean
     fun cancelWaitlistEntryHandler(
-        waitlistEntryPort: WaitlistEntryAdminPort,
+        waitlistEntryAdmin: WaitlistEntryAdmin,
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
         clock: Clock,
     ): CancelWaitlistEntryHandler = CancelWaitlistEntryHandler(
-        waitlistEntryPort = waitlistEntryPort,
+        waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
         clock = clock,

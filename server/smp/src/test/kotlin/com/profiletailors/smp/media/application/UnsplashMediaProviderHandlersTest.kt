@@ -150,7 +150,7 @@ class UnsplashMediaProviderHandlersTest {
         val provider = mockk<UnsplashPhotoProvider>()
         val repository = mockk<MediaAssetRepository>()
         val rateLimitRepository = mockk<MediaRateLimitRepository>()
-        val storage = mockk<MediaStoragePort>()
+        val storage = mockk<MediaStorage>()
         coEvery { provider.get("photo-1") } returns photo
         every { provider.download(photo) } returns content
         coEvery { provider.trackDownload(photo) } returns Unit
@@ -171,7 +171,7 @@ class UnsplashMediaProviderHandlersTest {
         val mediaImportService = MediaImportService(
             provider = provider,
             mediaAssetRepository = repository,
-            storagePort = storage,
+            storage = storage,
             settings = settings,
             assetPreviewUrlResolver = assetPreviewUrlResolver,
             mediaPreviewTokenService = MediaPreviewTokenService("test-signing-secret", 3600),
@@ -188,6 +188,6 @@ class UnsplashMediaProviderHandlersTest {
         val handler: ImportUnsplashPhotoHandler,
         val provider: UnsplashPhotoProvider,
         val repository: MediaAssetRepository,
-        val storage: MediaStoragePort,
+        val storage: MediaStorage,
     )
 }

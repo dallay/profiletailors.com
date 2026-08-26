@@ -8,22 +8,22 @@ import org.junit.jupiter.api.Test
 
 class DataAggregationServiceTest {
 
-    private val identityPort = mockk<IdentityDataPort>()
-    private val credentialsPort = mockk<CredentialsDataPort>()
-    private val tenancyPort = mockk<TenancyAggregationPort>()
-    private val publishingPort = mockk<PublishingDataPort>()
-    private val mediaPort = mockk<MediaDataPort>()
-    private val governancePort = mockk<GovernanceDataPort>()
-    private val leadCapturePort = mockk<LeadCaptureDataPort>()
+    private val identityAnonymization = mockk<IdentityData>()
+    private val credentials = mockk<CredentialsData>()
+    private val tenancyData = mockk<TenancyAggregation>()
+    private val publishing = mockk<PublishingData>()
+    private val media = mockk<MediaData>()
+    private val governanceData = mockk<GovernanceData>()
+    private val leadCaptureData = mockk<LeadCaptureData>()
 
     private val service = DataAggregationService(
-        identityPort = identityPort,
-        credentialsPort = credentialsPort,
-        tenancyPort = tenancyPort,
-        publishingPort = publishingPort,
-        mediaPort = mediaPort,
-        governancePort = governancePort,
-        leadCapturePort = leadCapturePort,
+        identityAnonymization = identityAnonymization,
+        credentials = credentials,
+        tenancyData = tenancyData,
+        publishing = publishing,
+        media = media,
+        governanceData = governanceData,
+        leadCaptureData = leadCaptureData,
     )
 
     @Test
@@ -31,16 +31,16 @@ class DataAggregationServiceTest {
         val principalId = "principal-1"
         val email = "user@example.com"
 
-        coEvery { identityPort.getIdentityFacts(principalId) } returns null
-        coEvery { credentialsPort.getSessions(principalId) } returns emptyList()
-        coEvery { credentialsPort.getApiKeys(principalId) } returns emptyList()
-        coEvery { tenancyPort.getWorkspaceMemberships(principalId) } returns emptyList()
-        coEvery { publishingPort.getSocialConnections(principalId) } returns emptyList()
-        coEvery { publishingPort.getSocialAccounts(principalId) } returns emptyList()
-        coEvery { publishingPort.getPublications(principalId) } returns emptyList()
-        coEvery { mediaPort.getMediaAssets(principalId) } returns emptyList()
-        coEvery { governancePort.getConsentRecords(email) } returns emptyList()
-        coEvery { leadCapturePort.getWaitlistEntries(email) } returns emptyList()
+        coEvery { identityAnonymization.getIdentityFacts(principalId) } returns null
+        coEvery { credentials.getSessions(principalId) } returns emptyList()
+        coEvery { credentials.getApiKeys(principalId) } returns emptyList()
+        coEvery { tenancyData.getWorkspaceMemberships(principalId) } returns emptyList()
+        coEvery { publishing.getSocialConnections(principalId) } returns emptyList()
+        coEvery { publishing.getSocialAccounts(principalId) } returns emptyList()
+        coEvery { publishing.getPublications(principalId) } returns emptyList()
+        coEvery { media.getMediaAssets(principalId) } returns emptyList()
+        coEvery { governanceData.getConsentRecords(email) } returns emptyList()
+        coEvery { leadCaptureData.getWaitlistEntries(email) } returns emptyList()
 
         val result = service.aggregate(principalId, email)
 
@@ -59,29 +59,29 @@ class DataAggregationServiceTest {
         val principalId = "principal-1"
         val email = "user@example.com"
 
-        coEvery { identityPort.getIdentityFacts(principalId) } returns null
-        coEvery { credentialsPort.getSessions(principalId) } returns emptyList()
-        coEvery { credentialsPort.getApiKeys(principalId) } returns emptyList()
-        coEvery { tenancyPort.getWorkspaceMemberships(principalId) } returns emptyList()
-        coEvery { publishingPort.getSocialConnections(principalId) } returns emptyList()
-        coEvery { publishingPort.getSocialAccounts(principalId) } returns emptyList()
-        coEvery { publishingPort.getPublications(principalId) } returns emptyList()
-        coEvery { mediaPort.getMediaAssets(principalId) } returns emptyList()
-        coEvery { governancePort.getConsentRecords(email) } returns emptyList()
-        coEvery { leadCapturePort.getWaitlistEntries(email) } returns emptyList()
+        coEvery { identityAnonymization.getIdentityFacts(principalId) } returns null
+        coEvery { credentials.getSessions(principalId) } returns emptyList()
+        coEvery { credentials.getApiKeys(principalId) } returns emptyList()
+        coEvery { tenancyData.getWorkspaceMemberships(principalId) } returns emptyList()
+        coEvery { publishing.getSocialConnections(principalId) } returns emptyList()
+        coEvery { publishing.getSocialAccounts(principalId) } returns emptyList()
+        coEvery { publishing.getPublications(principalId) } returns emptyList()
+        coEvery { media.getMediaAssets(principalId) } returns emptyList()
+        coEvery { governanceData.getConsentRecords(email) } returns emptyList()
+        coEvery { leadCaptureData.getWaitlistEntries(email) } returns emptyList()
 
         service.aggregate(principalId, email)
 
-        coVerify { identityPort.getIdentityFacts(principalId) }
-        coVerify { credentialsPort.getSessions(principalId) }
-        coVerify { credentialsPort.getApiKeys(principalId) }
-        coVerify { tenancyPort.getWorkspaceMemberships(principalId) }
-        coVerify { publishingPort.getSocialConnections(principalId) }
-        coVerify { publishingPort.getSocialAccounts(principalId) }
-        coVerify { publishingPort.getPublications(principalId) }
-        coVerify { mediaPort.getMediaAssets(principalId) }
-        coVerify { governancePort.getConsentRecords(email) }
-        coVerify { leadCapturePort.getWaitlistEntries(email) }
+        coVerify { identityAnonymization.getIdentityFacts(principalId) }
+        coVerify { credentials.getSessions(principalId) }
+        coVerify { credentials.getApiKeys(principalId) }
+        coVerify { tenancyData.getWorkspaceMemberships(principalId) }
+        coVerify { publishing.getSocialConnections(principalId) }
+        coVerify { publishing.getSocialAccounts(principalId) }
+        coVerify { publishing.getPublications(principalId) }
+        coVerify { media.getMediaAssets(principalId) }
+        coVerify { governanceData.getConsentRecords(email) }
+        coVerify { leadCaptureData.getWaitlistEntries(email) }
     }
 
     @Test
@@ -89,16 +89,16 @@ class DataAggregationServiceTest {
         val principalId = "principal-1"
         val email = "user@example.com"
 
-        coEvery { identityPort.getIdentityFacts(principalId) } returns null
-        coEvery { credentialsPort.getSessions(principalId) } returns emptyList()
-        coEvery { credentialsPort.getApiKeys(principalId) } returns emptyList()
-        coEvery { tenancyPort.getWorkspaceMemberships(principalId) } returns emptyList()
-        coEvery { publishingPort.getSocialConnections(principalId) } returns emptyList()
-        coEvery { publishingPort.getSocialAccounts(principalId) } returns emptyList()
-        coEvery { publishingPort.getPublications(principalId) } returns emptyList()
-        coEvery { mediaPort.getMediaAssets(principalId) } returns emptyList()
-        coEvery { governancePort.getConsentRecords(email) } returns emptyList()
-        coEvery { leadCapturePort.getWaitlistEntries(email) } returns emptyList()
+        coEvery { identityAnonymization.getIdentityFacts(principalId) } returns null
+        coEvery { credentials.getSessions(principalId) } returns emptyList()
+        coEvery { credentials.getApiKeys(principalId) } returns emptyList()
+        coEvery { tenancyData.getWorkspaceMemberships(principalId) } returns emptyList()
+        coEvery { publishing.getSocialConnections(principalId) } returns emptyList()
+        coEvery { publishing.getSocialAccounts(principalId) } returns emptyList()
+        coEvery { publishing.getPublications(principalId) } returns emptyList()
+        coEvery { media.getMediaAssets(principalId) } returns emptyList()
+        coEvery { governanceData.getConsentRecords(email) } returns emptyList()
+        coEvery { leadCaptureData.getWaitlistEntries(email) } returns emptyList()
 
         val result = service.aggregate(principalId, email)
 
@@ -114,16 +114,16 @@ class DataAggregationServiceTest {
         val principalId = "principal-1"
         val email = "user@example.com"
 
-        coEvery { identityPort.getIdentityFacts(principalId) } returns null
-        coEvery { credentialsPort.getSessions(principalId) } returns emptyList()
-        coEvery { credentialsPort.getApiKeys(principalId) } returns emptyList()
-        coEvery { tenancyPort.getWorkspaceMemberships(principalId) } returns emptyList()
-        coEvery { publishingPort.getSocialConnections(principalId) } returns emptyList()
-        coEvery { publishingPort.getSocialAccounts(principalId) } returns emptyList()
-        coEvery { publishingPort.getPublications(principalId) } returns emptyList()
-        coEvery { mediaPort.getMediaAssets(principalId) } returns emptyList()
-        coEvery { governancePort.getConsentRecords(email) } returns emptyList()
-        coEvery { leadCapturePort.getWaitlistEntries(email) } returns emptyList()
+        coEvery { identityAnonymization.getIdentityFacts(principalId) } returns null
+        coEvery { credentials.getSessions(principalId) } returns emptyList()
+        coEvery { credentials.getApiKeys(principalId) } returns emptyList()
+        coEvery { tenancyData.getWorkspaceMemberships(principalId) } returns emptyList()
+        coEvery { publishing.getSocialConnections(principalId) } returns emptyList()
+        coEvery { publishing.getSocialAccounts(principalId) } returns emptyList()
+        coEvery { publishing.getPublications(principalId) } returns emptyList()
+        coEvery { media.getMediaAssets(principalId) } returns emptyList()
+        coEvery { governanceData.getConsentRecords(email) } returns emptyList()
+        coEvery { leadCaptureData.getWaitlistEntries(email) } returns emptyList()
 
         val result = service.aggregate(principalId, email)
 
@@ -136,16 +136,16 @@ class DataAggregationServiceTest {
         val principalId = "principal-1"
         val email = "user@example.com"
 
-        coEvery { identityPort.getIdentityFacts(principalId) } returns null
-        coEvery { credentialsPort.getSessions(principalId) } returns emptyList()
-        coEvery { credentialsPort.getApiKeys(principalId) } returns emptyList()
-        coEvery { tenancyPort.getWorkspaceMemberships(principalId) } returns emptyList()
-        coEvery { publishingPort.getSocialConnections(principalId) } returns emptyList()
-        coEvery { publishingPort.getSocialAccounts(principalId) } returns emptyList()
-        coEvery { publishingPort.getPublications(principalId) } returns emptyList()
-        coEvery { mediaPort.getMediaAssets(principalId) } returns emptyList()
-        coEvery { governancePort.getConsentRecords(email) } returns emptyList()
-        coEvery { leadCapturePort.getWaitlistEntries(email) } returns emptyList()
+        coEvery { identityAnonymization.getIdentityFacts(principalId) } returns null
+        coEvery { credentials.getSessions(principalId) } returns emptyList()
+        coEvery { credentials.getApiKeys(principalId) } returns emptyList()
+        coEvery { tenancyData.getWorkspaceMemberships(principalId) } returns emptyList()
+        coEvery { publishing.getSocialConnections(principalId) } returns emptyList()
+        coEvery { publishing.getSocialAccounts(principalId) } returns emptyList()
+        coEvery { publishing.getPublications(principalId) } returns emptyList()
+        coEvery { media.getMediaAssets(principalId) } returns emptyList()
+        coEvery { governanceData.getConsentRecords(email) } returns emptyList()
+        coEvery { leadCaptureData.getWaitlistEntries(email) } returns emptyList()
 
         val result = service.aggregate(principalId, email)
 

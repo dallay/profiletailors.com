@@ -3,11 +3,11 @@ package com.profiletailors.smp.leadcapture.infrastructure.configuration
 import com.profiletailors.leadcapture.common.EmailAddress
 import com.profiletailors.leadcapture.common.NormalizedEmail
 import com.profiletailors.leadcapture.waitlist.application.JoinResult
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistConsentRecorder
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotification
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryJoinedNotifier
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistEntryRepository
-import com.profiletailors.leadcapture.waitlist.application.ports.WaitlistRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistConsentRecorder
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotification
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryJoinedNotifier
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistEntryRepository
+import com.profiletailors.leadcapture.waitlist.application.contracts.WaitlistRepository
 import com.profiletailors.leadcapture.waitlist.domain.Waitlist
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId

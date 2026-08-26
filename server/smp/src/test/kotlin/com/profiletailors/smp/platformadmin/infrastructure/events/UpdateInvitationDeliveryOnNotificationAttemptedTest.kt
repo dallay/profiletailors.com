@@ -1,7 +1,7 @@
 package com.profiletailors.smp.platformadmin.infrastructure.events
 
 import com.profiletailors.notifications.domain.event.InvitationDeliveryAttempted
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitation
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId

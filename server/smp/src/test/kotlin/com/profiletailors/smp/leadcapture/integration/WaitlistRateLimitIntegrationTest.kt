@@ -1,6 +1,6 @@
 package com.profiletailors.smp.leadcapture.integration
 
-import com.profiletailors.ratelimit.infrastructure.adapter.Bucket4jRateLimiter
+import com.profiletailors.ratelimit.infrastructure.gateway.Bucket4jRateLimiter
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport

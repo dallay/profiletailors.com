@@ -17,7 +17,7 @@ class PasswordResetOutcomeWebFilterTest {
     @Test
     fun `records completed and stable failed reset outcomes without request secrets`() {
         val meters = SimpleMeterRegistry()
-        val adapter = PasswordRecoveryObservabilityAdapter(meters, ObservationRegistry.NOOP)
+        val adapter = PasswordRecoveryObservability(meters, ObservationRegistry.NOOP)
         val filter = PasswordResetOutcomeWebFilter(adapter)
 
         filter.filter(exchange("raw-token-sensitive", "NewPassword123!"), chain(HttpStatus.NO_CONTENT)).block()
@@ -41,7 +41,7 @@ class PasswordResetOutcomeWebFilterTest {
     fun `ignores unrelated endpoints`() {
         val meters = SimpleMeterRegistry()
         val filter = PasswordResetOutcomeWebFilter(
-            PasswordRecoveryObservabilityAdapter(meters, ObservationRegistry.NOOP),
+            PasswordRecoveryObservability(meters, ObservationRegistry.NOOP),
         )
         val exchange = MockServerWebExchange.from(MockServerHttpRequest.post("/api/auth/login").build())
 
@@ -53,7 +53,7 @@ class PasswordResetOutcomeWebFilterTest {
     @Test
     fun `records internal failure outcome when the chain emits an error`() {
         val meters = SimpleMeterRegistry()
-        val adapter = PasswordRecoveryObservabilityAdapter(meters, ObservationRegistry.NOOP)
+        val adapter = PasswordRecoveryObservability(meters, ObservationRegistry.NOOP)
         val filter = PasswordResetOutcomeWebFilter(adapter)
         val exchange = exchange("raw-token-sensitive", "NewPassword123!")
         val failingChain = WebFilterChain {

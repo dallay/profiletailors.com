@@ -1,13 +1,12 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platform.domain.RequestContextStore
+import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.contracts.AdminAuditQuery
 import com.profiletailors.smp.platformadmin.application.model.AdminAuditEventSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
-import com.profiletailors.smp.platformadmin.application.ports.AdminAuditQuery
-import com.profiletailors.smp.platformadmin.application.ports.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.query.ListAdminAuditEventsQuery
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
-import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
 import com.profiletailors.smp.platformadmin.infrastructure.persistence.ADMIN_PAGE_MAX_SIZE
 import org.springframework.http.HttpStatus
@@ -24,7 +23,7 @@ import java.util.UUID
 @RequestMapping("/api/admin/audit-events")
 class AdminAuditController(
     private val auditQuery: AdminAuditQuery,
-    private val roleAssignmentRepository: PlatformRoleAssignmentRepository,
+    private val operatorAccessResolver: OperatorAccessResolver,
     private val requestContextStore: RequestContextStore,
 ) {
     @GetMapping
@@ -40,8 +39,8 @@ class AdminAuditController(
         @RequestParam occurredTo: Instant? = null,
         @RequestParam correlationId: String? = null,
     ): ResponseEntity<PagedResult<AdminAuditEventSummary>> {
-        val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        if (PlatformPermission.AUDIT_READ !in operatorRoles.effectivePermissions()) {
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (PlatformPermission.AUDIT_READ !in operator.roles.effectivePermissions()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         }
         if (size > ADMIN_PAGE_MAX_SIZE) return ResponseEntity.badRequest().build()
@@ -62,18 +61,16 @@ class AdminAuditController(
 
     @GetMapping("/{eventId}")
     suspend fun getEvent(@PathVariable eventId: UUID): ResponseEntity<AdminAuditEventSummary> {
-        val (_, operatorRoles) = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        if (PlatformPermission.AUDIT_READ !in operatorRoles.effectivePermissions()) {
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (PlatformPermission.AUDIT_READ !in operator.roles.effectivePermissions()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
         }
         val event = auditQuery.findById(eventId) ?: return ResponseEntity.notFound().build()
         return ResponseEntity.ok(event)
     }
 
-    private suspend fun resolveOperator(): Pair<UUID, Set<PlatformRole>>? {
+    private suspend fun resolveOperator(): com.profiletailors.smp.platformadmin.application.OperatorAccess? {
         val ctx = requestContextStore.currentPrincipalContext() ?: return null
-        val operatorId = UUID.fromString(ctx.principalId)
-        val assignments = roleAssignmentRepository.findActiveByPrincipalId(operatorId)
-        return operatorId to assignments.map { it.role }.toSet()
+        return operatorAccessResolver.resolve(ctx)
     }
 }

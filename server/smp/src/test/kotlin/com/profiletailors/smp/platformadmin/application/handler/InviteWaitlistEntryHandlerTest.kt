@@ -14,12 +14,12 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.notifications.domain.event.InvitationCreated
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
-import com.profiletailors.smp.platformadmin.application.ports.AcceptUrlTemplate
-import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
-import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationContext
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
+import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
+import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
@@ -53,7 +53,7 @@ class InviteWaitlistEntryHandlerTest {
     private val operatorId: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
     private val entryId = "abcdef01-2345-6789-abcd-ef0123456789"
 
-    private val waitlistEntryPort = mockk<WaitlistEntryAdminPort>()
+    private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
     private val invitationRepository = mockk<WaitlistInvitationRepository>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
     private val eventPublisher = mockk<EventPublisher<DomainEvent>>()
@@ -68,7 +68,7 @@ class InviteWaitlistEntryHandlerTest {
     }
 
     private val handler = InviteWaitlistEntryHandler(
-        waitlistEntryPort = waitlistEntryPort,
+        waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
@@ -96,28 +96,28 @@ class InviteWaitlistEntryHandlerTest {
 
     @Test
     fun `throws WaitlistEntryNotFoundException when entry does not exist`() = runTest {
-        coEvery { waitlistEntryPort.findById(entryId) } returns null
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns null
         assertThrows<WaitlistEntryNotFoundException> { handler.handle(command()) }
     }
 
     @Test
     fun `throws WaitlistEntryNotFoundException when invitation context cannot be resolved`() = runTest {
-        coEvery { waitlistEntryPort.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
-        coEvery { waitlistEntryPort.findInvitationContext(entryId) } returns null
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns null
         assertThrows<WaitlistEntryNotFoundException> { handler.handle(command()) }
     }
 
     @Test
     fun `throws WaitlistEntryAlreadyConvertedException for converted entry`() = runTest {
-        coEvery { waitlistEntryPort.findById(entryId) } returns entry(WaitlistEntryStatus.CONVERTED)
-        coEvery { waitlistEntryPort.findInvitationContext(entryId) } returns invitationContext
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.CONVERTED)
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
         assertThrows<WaitlistEntryAlreadyConvertedException> { handler.handle(command()) }
     }
 
     @Test
     fun `throws InvitationAlreadyActiveException when active invitation exists for pending entry`() = runTest {
-        coEvery { waitlistEntryPort.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
-        coEvery { waitlistEntryPort.findInvitationContext(entryId) } returns invitationContext
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns activeInvitation()
         assertThrows<InvitationAlreadyActiveException> { handler.handle(command()) }
     }
@@ -125,12 +125,12 @@ class InviteWaitlistEntryHandlerTest {
     @Test
     fun `creates invitation, transitions entry from PENDING to INVITED, and publishes InvitationCreated`() = runTest {
         val pendingEntry = entry(WaitlistEntryStatus.PENDING)
-        coEvery { waitlistEntryPort.findById(entryId) } returns pendingEntry
-        coEvery { waitlistEntryPort.findInvitationContext(entryId) } returns invitationContext
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns pendingEntry
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
         val savedEntrySlot = slot<WaitlistEntry>()
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
-        coEvery { waitlistEntryPort.save(capture(savedEntrySlot)) } answers { savedEntrySlot.captured }
+        coEvery { waitlistEntryAdmin.save(capture(savedEntrySlot)) } answers { savedEntrySlot.captured }
         val eventSlot = slot<DomainEvent>()
         coEvery { eventPublisher.publish(capture(eventSlot)) } answers { Unit }
 
@@ -157,8 +157,8 @@ class InviteWaitlistEntryHandlerTest {
     fun `supersedes existing active invitation when entry is already INVITED`() = runTest {
         val invitedEntry = entry(WaitlistEntryStatus.INVITED)
         val existing = activeInvitation()
-        coEvery { waitlistEntryPort.findById(entryId) } returns invitedEntry
-        coEvery { waitlistEntryPort.findInvitationContext(entryId) } returns invitationContext
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns invitedEntry
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns existing
         val supersededSlot = slot<WaitlistInvitation>()
         coEvery { invitationRepository.update(capture(supersededSlot)) } answers { supersededSlot.captured }
@@ -174,11 +174,11 @@ class InviteWaitlistEntryHandlerTest {
 
     @Test
     fun `audit event is published after successful invitation`() = runTest {
-        coEvery { waitlistEntryPort.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
-        coEvery { waitlistEntryPort.findInvitationContext(entryId) } returns invitationContext
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
-        coEvery { waitlistEntryPort.save(any()) } answers { firstArg() }
+        coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
         coEvery { eventPublisher.publish(any<DomainEvent>()) } answers { Unit }
 
         handler.handle(command())

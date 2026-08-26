@@ -39,7 +39,7 @@
     <ID>ComplexInterface:MediaRepositories.kt:WorkspaceFileBlobRepository</ID>
     <ID>ComplexInterface:PublishingRepositories.kt:PublicationRepository</ID>
     <ID>CyclomaticComplexMethod:MediaHandlers.kt:CasUploadAssetHandler$private suspend fun claimUploadSlot: CasUploadAssetResult?</ID>
-    <ID>EmptyFunctionBlock:LinkedInPublishingAdaptersTest.kt:LinkedInPublishingAdaptersTest.FakeStorage${}</ID>
+    <ID>EmptyFunctionBlock:LinkedInPublishingWiringTest.kt:LinkedInPublishingWiringTest.FakeStorage${}</ID>
     <ID>EmptyFunctionBlock:MediaAssetPreviewControllerTest.kt:MediaAssetPreviewControllerTest.&lt;no name provided&gt;${}</ID>
     <ID>EmptyFunctionBlock:SmpApplicationTests.kt:SmpApplicationTests${ }</ID>
     <ID>EmptyFunctionBlock:StorageAssetPreviewUrlResolverTest.kt:StorageAssetPreviewUrlResolverTest.FailingPresignableStorage${}</ID>
@@ -51,7 +51,7 @@
     <ID>FunctionNameMaxLength:IdentitySecurityConfiguration.kt:IdentitySecurityConfiguration$@Bean fun jwtPrincipalAuthenticationConverter: JwtPrincipalAuthenticationConverter</ID>
     <ID>FunctionNameMaxLength:IdentitySecurityConfiguration.kt:IdentitySecurityConfiguration$@Bean fun revokedCredentialAuditWebFilter: WebFilter</ID>
     <ID>FunctionNameMaxLength:IdentitySecurityConfiguration.kt:IdentitySecurityConfiguration.Companion$internal fun Throwable.findServiceAccountCredentialException: ServiceAccountCredentialNotActiveException?</ID>
-    <ID>FunctionNameMaxLength:LinkedInPublishingAdapters.kt:LinkedInPublishingConfiguration$@Bean fun linkedInAuthorizationUrlBuilder: LinkedInAuthorizationUrlBuilder</ID>
+    <ID>FunctionNameMaxLength:LinkedInPublishingWiring.kt:LinkedInPublishingConfiguration$@Bean fun linkedInAuthorizationUrlBuilder: LinkedInAuthorizationUrlBuilder</ID>
     <ID>FunctionNameMaxLength:LocalAuthExceptions.kt:fun permissivePrincipalContextProvider: PrincipalContextProvider</ID>
     <ID>FunctionNameMaxLength:MediaHandlers.kt:CreateUploadedAssetHandler$private fun validateOriginalFilenameForOoxml</ID>
     <ID>FunctionNameMaxLength:PlatformAdminBootstrapConfiguration.kt:PlatformAdminBootstrapConfiguration$@Bean fun resendWaitlistInvitationHandler: ResendWaitlistInvitationHandler</ID>
@@ -76,10 +76,10 @@
     <ID>InvalidPackageDeclaration:TenancyProblemDetailsHandlerTest.kt:package com.profiletailors.smp.tenancy.infrastructure.http</ID>
     <ID>LabeledExpression:MediaAssetResolverImpl.kt:MediaAssetResolverImpl$@mapNotNull</ID>
     <ID>LabeledExpression:StaleAssetReconciler.kt:MediaAssetExpirationJob$@runAtomically</ID>
-    <ID>LargeClass:LinkedInPublishingAdaptersTest.kt:LinkedInPublishingAdaptersTest</ID>
+    <ID>LargeClass:LinkedInPublishingWiringTest.kt:LinkedInPublishingWiringTest</ID>
     <ID>LargeClass:PublishingHandlersTest.kt:PublishingHandlersTest</ID>
-    <ID>LongMethod:LinkedInPublishingAdaptersTest.kt:LinkedInPublishingAdaptersTest$@Test fun `real publisher builds post with asset content entities and article link`</ID>
-    <ID>LongMethod:LinkedInPublishingAdaptersTest.kt:LinkedInPublishingAdaptersTest$@Test fun `real publisher builds post with assets only no article link`</ID>
+    <ID>LongMethod:LinkedInPublishingWiringTest.kt:LinkedInPublishingWiringTest$@Test fun `real publisher builds post with asset content entities and article link`</ID>
+    <ID>LongMethod:LinkedInPublishingWiringTest.kt:LinkedInPublishingWiringTest$@Test fun `real publisher builds post with assets only no article link`</ID>
     <ID>LongMethod:MediaHandlers.kt:CasUploadAssetHandler$override suspend fun handle: CasUploadAssetResult</ID>
     <ID>LongMethod:MediaHandlers.kt:CasUploadAssetHandler$private suspend fun finalizeBlobWithinTransaction: CasUploadAssetResult</ID>
     <ID>LongMethod:MediaHandlers.kt:CasUploadAssetHandler$private suspend fun streamToTemp: UploadOutcome</ID>
@@ -112,7 +112,7 @@
     <ID>MaxLineLength:R2dbcWaitlistInvitationRepository.kt:R2dbcWaitlistInvitationRepository$val lastDeliveryAttemptAt = invitation.lastDeliveryAttemptAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }</ID>
     <ID>RethrowCaughtException:MediaHandlers.kt:CasUploadAssetHandler$throw e</ID>
     <ID>ReturnCount:MediaHandlers.kt:CasUploadAssetHandler$private suspend fun claimUploadSlot: CasUploadAssetResult?</ID>
-    <ID>SpacingAfterPackageAndImports:R2dbcWaitlistEntryAdminAdapter.kt: </ID>
+    <ID>SpacingAfterPackageAndImports:R2dbcWaitlistEntryAdmin.kt: </ID>
     <ID>StringLiteralDuplication:MediaProblemDetailsHandler.kt:MediaProblemDetailsHandler$"errorCode"</ID>
     <ID>StringLiteralDuplication:PublishingModels.kt:LinkedinCapabilityBundle.PERSONAL_PROFILE_TEXT$"w_member_social"</ID>
     <ID>StringLiteralDuplication:R2dbcAdminUserQuery.kt:R2dbcAdminUserQuery$"email"</ID>
@@ -178,7 +178,7 @@
     <ID>UnnecessaryParentheses:MediaPreviewTokenServiceTest.kt:MediaPreviewTokenServiceTest$(now + 3_500)</ID>
     <ID>UnnecessaryParentheses:MediaPreviewTokenServiceTest.kt:MediaPreviewTokenServiceTest$(now + 3_700)</ID>
     <ID>UnusedParameter:RefreshAwareCredentialResolverTest.kt:RefreshAwareCredentialResolverTest.FakeCredentialGateway$ownerType: String</ID>
-    <ID>UnusedPrivateClass:LinkedInPublishingAdaptersTest.kt:LinkedInPublishingAdaptersTest$FakeSocialConnectionRepository : SocialConnectionRepository</ID>
+    <ID>UnusedPrivateClass:LinkedInPublishingWiringTest.kt:LinkedInPublishingWiringTest$FakeSocialConnectionRepository : SocialConnectionRepository</ID>
     <ID>UnusedPrivateClass:MediaAssetControllerTest.kt:MediaAssetControllerTest$FailingMediator : Mediator</ID>
     <ID>UtilityClassWithPublicConstructor:CucumberPostgresSpringConfiguration.kt:CucumberPostgresSpringConfiguration</ID>
   </CurrentIssues>

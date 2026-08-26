@@ -61,7 +61,7 @@ data class PasswordResetNotificationFailure(
     val category: EmailFailureCategory,
 )
 
-fun interface PasswordResetNotificationFailurePort {
+fun interface PasswordResetNotificationFailureRecorder {
     /**
      * Records a failed password reset notification.
      *
@@ -83,7 +83,7 @@ data class PasswordResetNotificationTelemetry(
     val category: EmailFailureCategory? = null,
 )
 
-fun interface PasswordResetNotificationTelemetryPort {
+fun interface PasswordResetNotificationTelemetryRecorder {
     /**
      * Records telemetry for a password reset notification event.
      *

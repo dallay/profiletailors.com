@@ -41,7 +41,7 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
     @Test
     fun `membership provisioner adapter delegates reconciliation to repository`() = runTest {
         val repository = mockk<WorkspaceMembershipRepository>()
-        val provisioner = WorkspaceMembershipProvisionerAdapter(repository)
+        val provisioner = R2dbcWorkspaceMembershipProvisioner(repository)
         val expected = com.profiletailors.smp.tenancy.domain.WorkspaceMembership(
             workspaceId = "workspace-1",
             principalId = "principal-1",

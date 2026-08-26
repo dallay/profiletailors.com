@@ -1,7 +1,7 @@
 package com.profiletailors.smp.platformadmin.infrastructure
 
-import com.profiletailors.smp.platformadmin.application.ports.InvitationTokenCandidateKey
-import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
+import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest

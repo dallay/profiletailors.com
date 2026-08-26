@@ -14,14 +14,14 @@ class CloseAccountHandlerTest {
 
     private val fixedClock = Clock.fixed(Instant.parse("2026-07-22T10:00:00Z"), ZoneOffset.UTC)
 
-    private val orchestrationPort: CloseAccountOrchestrationPort = mockk(relaxUnitFun = true)
-    private val rateLimitPort: RateLimitPort = mockk {
+    private val orchestration: CloseAccountOrchestration = mockk(relaxUnitFun = true)
+    private val rateLimit: RateLimit = mockk {
         every { tryAcquire(any(), any(), any()) } returns true
     }
 
     private val handler = CloseAccountHandler(
-        orchestrationPort = orchestrationPort,
-        rateLimitPort = rateLimitPort,
+        orchestration = orchestration,
+        rateLimit = rateLimit,
         clock = fixedClock,
     )
 
@@ -46,7 +46,7 @@ class CloseAccountHandlerTest {
 
         @Test
         fun `accepts valid confirmation and invokes orchestration port`() = runTest {
-            every { rateLimitPort.tryAcquire(any(), any(), any()) } returns true
+            every { rateLimit.tryAcquire(any(), any(), any()) } returns true
 
             handler.handle(
                 CloseAccountCommand(
@@ -55,7 +55,7 @@ class CloseAccountHandlerTest {
                 ),
             )
 
-            coVerify { orchestrationPort.execute("principal-1") }
+            coVerify { orchestration.execute("principal-1") }
         }
 
         @Test
@@ -69,7 +69,7 @@ class CloseAccountHandlerTest {
                 )
             }
             assert(result.isFailure)
-            coVerify(exactly = 0) { orchestrationPort.execute(any()) }
+            coVerify(exactly = 0) { orchestration.execute(any()) }
         }
     }
 
@@ -78,7 +78,7 @@ class CloseAccountHandlerTest {
 
         @Test
         fun `throws rate limit exception when rate limit port rejects`() = runTest {
-            every { rateLimitPort.tryAcquire(any(), any(), any()) } returns false
+            every { rateLimit.tryAcquire(any(), any(), any()) } returns false
 
             val result = kotlin.runCatching {
                 handler.handle(CloseAccountCommand(principalId = "rate-limited-user", confirmation = "DELETE"))
@@ -91,12 +91,12 @@ class CloseAccountHandlerTest {
 
         @Test
         fun `does not call orchestration when rate limited`() = runTest {
-            every { rateLimitPort.tryAcquire(any(), any(), any()) } returns false
+            every { rateLimit.tryAcquire(any(), any(), any()) } returns false
 
             kotlin.runCatching {
                 handler.handle(CloseAccountCommand(principalId = "rate-limited-user", confirmation = "DELETE"))
             }
-            coVerify(exactly = 0) { orchestrationPort.execute(any()) }
+            coVerify(exactly = 0) { orchestration.execute(any()) }
         }
     }
 }

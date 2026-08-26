@@ -4,12 +4,12 @@ import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.notifications.domain.event.InvitationResent
 import com.profiletailors.smp.platformadmin.application.command.ResendWaitlistInvitationCommand
-import com.profiletailors.smp.platformadmin.application.ports.AcceptUrlTemplate
-import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
-import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationContext
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
+import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
+import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
@@ -47,7 +47,7 @@ class ResendWaitlistInvitationHandlerTest {
     private val invitationRepository = mockk<WaitlistInvitationRepository>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
     private val eventPublisher = mockk<EventPublisher<DomainEvent>>()
-    private val waitlistEntryPort = mockk<WaitlistEntryAdminPort>()
+    private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
 
     private val tokenHasher = object : TokenHasher {
         override fun hash(rawToken: String): String = "hashed-$rawToken"
@@ -74,7 +74,7 @@ class ResendWaitlistInvitationHandlerTest {
         tokenHasher = tokenHasher,
         eventPublisher = eventPublisher,
         acceptUrlTemplate = acceptUrlTemplate,
-        waitlistEntryPort = waitlistEntryPort,
+        waitlistEntryAdmin = waitlistEntryAdmin,
     )
 
     private val ownerRoles = setOf(PlatformRole.PLATFORM_OWNER)
@@ -112,7 +112,7 @@ class ResendWaitlistInvitationHandlerTest {
     fun `resends invitation by superseding existing and saving new active invitation`() = runTest {
         coEvery { invitationRepository.findById(WaitlistInvitationId(invitationId)) } returns activeInvitation()
         coEvery { invitationRepository.countResendsSince(any(), any()) } returns 0
-        coEvery { waitlistEntryPort.findInvitationContext(entryId) } returns invitationContext
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
         val supersededSlot = slot<WaitlistInvitation>()
         coEvery { invitationRepository.update(capture(supersededSlot)) } answers { supersededSlot.captured }
         val savedSlot = slot<WaitlistInvitation>()
@@ -140,7 +140,7 @@ class ResendWaitlistInvitationHandlerTest {
     fun `publishes INVITATION_RESENT audit event and InvitationResent domain event`() = runTest {
         coEvery { invitationRepository.findById(WaitlistInvitationId(invitationId)) } returns activeInvitation()
         coEvery { invitationRepository.countResendsSince(any(), any()) } returns 0
-        coEvery { waitlistEntryPort.findInvitationContext(entryId) } returns invitationContext
+        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
         coEvery { invitationRepository.update(any()) } answers { firstArg() }
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
         val auditSlot = slot<AdminAuditEvent>()

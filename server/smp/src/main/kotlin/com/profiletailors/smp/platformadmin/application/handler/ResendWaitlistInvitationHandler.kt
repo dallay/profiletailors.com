@@ -4,13 +4,13 @@ import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.notifications.domain.event.InvitationResent
 import com.profiletailors.smp.platformadmin.application.command.ResendWaitlistInvitationCommand
+import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
+import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
-import com.profiletailors.smp.platformadmin.application.ports.AcceptUrlTemplate
-import com.profiletailors.smp.platformadmin.application.ports.AdministrativeAuditPublisher
-import com.profiletailors.smp.platformadmin.application.ports.TokenHasher
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistEntryAdminPort
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationContext
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import com.profiletailors.smp.platformadmin.domain.AdminAuditResult
@@ -40,7 +40,7 @@ open class ResendWaitlistInvitationHandler(
     private val tokenHasher: TokenHasher,
     private val eventPublisher: EventPublisher<DomainEvent>,
     private val acceptUrlTemplate: AcceptUrlTemplate,
-    private val waitlistEntryPort: WaitlistEntryAdminPort,
+    private val waitlistEntryAdmin: WaitlistEntryAdmin,
 ) {
 
     @Suppress("ThrowsCount", "LongMethod")
@@ -67,7 +67,7 @@ open class ResendWaitlistInvitationHandler(
 
         invitationRepository.update(existing.supersede())
 
-        val context: WaitlistInvitationContext = waitlistEntryPort.findInvitationContext(existing.waitlistEntryId)
+        val context: WaitlistInvitationContext = waitlistEntryAdmin.findInvitationContext(existing.waitlistEntryId)
             ?: throw InvitationNotFoundException(command.invitationId.toString())
 
         val rawToken = InvitationTokenGenerator.generate()

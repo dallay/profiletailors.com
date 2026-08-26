@@ -1,6 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
-import com.profiletailors.smp.platformadmin.application.ports.WaitlistInvitationRepository
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
 import com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitation

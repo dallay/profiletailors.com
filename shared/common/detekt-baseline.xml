@@ -8,6 +8,7 @@
     <ID>FunctionNameMinLength:Memoizers.kt:Memoizers$fun &lt;Input, Result&gt; of: (Input) -&gt; Result</ID>
     <ID>FunctionNameMinLength:Memoizers.kt:Memoizers$fun &lt;Result&gt; of: () -&gt; Result</ID>
     <ID>FunctionNameMinLength:Name.kt:Name.Companion$fun of: Name</ID>
+    <ID>FunctionNameMinLength:PermissionKey.kt:PermissionKey.Companion$fun of: PermissionKey</ID>
     <ID>FunctionNameMinLength:Username.kt:Username.Companion$fun of: Username?</ID>
   </CurrentIssues>
 </SmellBaseline>

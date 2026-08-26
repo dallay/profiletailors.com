@@ -3,10 +3,10 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>ClassOrdering:OffsetPagePresenterTest.kt:OffsetPagePresenterTest$private val stubMethodParam: MethodParameter = run { val method = this::class.java.getDeclaredMethod("stubMethod") MethodParameter.forExecutable(method, -1) // -1 = return type }</ID>
-    <ID>ClassOrdering:ResponseBodyResultHandlerAdapterTest.kt:ResponseBodyResultHandlerAdapterTest$private val methodParamForAny: MethodParameter by lazy { MethodParameter.forExecutable( this::class.java.getDeclaredMethod("stubReturningAny"), -1, ) }</ID>
-    <ID>ClassOrdering:ResponseBodyResultHandlerAdapterTest.kt:ResponseBodyResultHandlerAdapterTest$private val methodParamForString: MethodParameter by lazy { MethodParameter.forExecutable( this::class.java.getDeclaredMethod("stubReturningString"), -1, ) }</ID>
-    <ID>ClassOrdering:ResponseBodyResultHandlerAdapterTest.kt:ResponseBodyResultHandlerAdapterTest$private val methodParamForTestEntity: MethodParameter by lazy { MethodParameter.forExecutable( this::class.java.getDeclaredMethod("stubReturningTestEntity"), -1, ) }</ID>
-    <ID>ClassOrdering:ResponseBodyResultHandlerAdapterTest.kt:ResponseBodyResultHandlerAdapterTest$private val methodParamForVoid: MethodParameter by lazy { MethodParameter.forExecutable( this::class.java.getDeclaredMethod("stubReturningVoid"), -1, ) }</ID>
+    <ID>ClassOrdering:ResponseBodyResultHandlerTest.kt:ResponseBodyResultHandlerTest$private val methodParamForAny: MethodParameter by lazy { MethodParameter.forExecutable( this::class.java.getDeclaredMethod("stubReturningAny"), -1, ) }</ID>
+    <ID>ClassOrdering:ResponseBodyResultHandlerTest.kt:ResponseBodyResultHandlerTest$private val methodParamForString: MethodParameter by lazy { MethodParameter.forExecutable( this::class.java.getDeclaredMethod("stubReturningString"), -1, ) }</ID>
+    <ID>ClassOrdering:ResponseBodyResultHandlerTest.kt:ResponseBodyResultHandlerTest$private val methodParamForTestEntity: MethodParameter by lazy { MethodParameter.forExecutable( this::class.java.getDeclaredMethod("stubReturningTestEntity"), -1, ) }</ID>
+    <ID>ClassOrdering:ResponseBodyResultHandlerTest.kt:ResponseBodyResultHandlerTest$private val methodParamForVoid: MethodParameter by lazy { MethodParameter.forExecutable( this::class.java.getDeclaredMethod("stubReturningVoid"), -1, ) }</ID>
     <ID>FunctionNameMinLength:EventEmitter.kt:EventEmitter$fun on</ID>
     <ID>MatchingDeclarationName:ProblemDetailFactory.kt:ProblemDetailOptions</ID>
   </CurrentIssues>
