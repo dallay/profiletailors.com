@@ -10,9 +10,13 @@ const read = (path) => readFileSync(resolve(root, path), 'utf8')
 test('backend runtime image provides its healthcheck client', () => {
   const dockerfile = read('server/smp/backend.Dockerfile')
 
-  assert.match(dockerfile, /FROM eclipse-temurin:[^\n]+ AS runtime[\s\S]*USER root/)
-  assert.match(dockerfile, /RUN apt-get update[\s\S]*apt-get install --no-install-recommends --yes wget=/)
-  assert.match(dockerfile, /USER 1002:1001/)
+  const runtimeStage = dockerfile.match(
+    /FROM eclipse-temurin:[^\n]+ AS runtime([\s\S]*?)(?=\nFROM\b|$)/,
+  )?.[1]
+  assert.ok(runtimeStage)
+  assert.match(runtimeStage, /USER root/)
+  assert.match(runtimeStage, /RUN apt-get update[\s\S]*?apt-get install --no-install-recommends --yes wget=/)
+  assert.match(runtimeStage, /USER 1002:1001/)
 })
 
 test('production smoke readiness follows the health endpoint contract', () => {
