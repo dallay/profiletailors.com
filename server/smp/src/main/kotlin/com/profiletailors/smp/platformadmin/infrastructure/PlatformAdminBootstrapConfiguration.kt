@@ -1,9 +1,12 @@
 package com.profiletailors.smp.platformadmin.infrastructure
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceRepository
+import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
@@ -58,28 +61,40 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
+    fun acceptUrlTemplate(
+        @Value("\${platform.admin.accept-url-base:https://app.profiletailors.com/invitations/accept}") base: String,
+    ): AcceptUrlTemplate = AcceptUrlTemplate { rawToken -> "$base?token=$rawToken" }
+
+    @Bean
     fun inviteWaitlistEntryHandler(
         waitlistEntryAdmin: WaitlistEntryAdmin,
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
+        eventPublisher: EventPublisher<DomainEvent>,
         clock: Clock,
         tokenHasher: TokenHasher,
+        acceptUrlTemplate: AcceptUrlTemplate,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
     ): InviteWaitlistEntryHandler = InviteWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
+        eventPublisher = eventPublisher,
         clock = clock,
         invitationTtl = Duration.ofDays(ttlDays),
         tokenHasher = tokenHasher,
+        acceptUrlTemplate = acceptUrlTemplate,
     )
 
     @Bean
     fun resendWaitlistInvitationHandler(
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
+        eventPublisher: EventPublisher<DomainEvent>,
         clock: Clock,
         tokenHasher: TokenHasher,
+        acceptUrlTemplate: AcceptUrlTemplate,
+        waitlistEntryAdmin: WaitlistEntryAdmin,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
         @Value("\${platform.admin.invitation.resend-limit:3}") resendLimit: Int,
         @Value("\${platform.admin.invitation.resend-window-hours:24}") resendWindowHours: Int,
@@ -91,6 +106,9 @@ class PlatformAdminBootstrapConfiguration {
         resendLimit = resendLimit,
         resendWindowHours = resendWindowHours,
         tokenHasher = tokenHasher,
+        eventPublisher = eventPublisher,
+        acceptUrlTemplate = acceptUrlTemplate,
+        waitlistEntryAdmin = waitlistEntryAdmin,
     )
 
     @Bean
