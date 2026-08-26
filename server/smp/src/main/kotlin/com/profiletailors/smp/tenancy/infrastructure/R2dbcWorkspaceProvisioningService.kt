@@ -81,15 +81,11 @@ class R2dbcWorkspaceProvisioningService(private val databaseClient: DatabaseClie
             .rowsUpdated()
             .awaitSingle()
 
-        // 4. Assign the WORKSPACE_OWNER role to the membership
-        //    Errors are swallowed: this is idempotent and the role may already
-        //    exist from a re-run or dev seed.  ON CONFLICT is omitted because
-        //    the H2 R2DBC driver does not support it; PostgreSQL handles it
-        //    natively via the unique PK on (membership_id, role_id).
         databaseClient.sql(
             """
             INSERT INTO membership_roles (membership_id, role_id, created_at)
             VALUES (:membershipId, :roleId, :createdAt)
+            ON CONFLICT (membership_id, role_id) DO NOTHING
             """.trimIndent(),
         )
             .bind("membershipId", membershipId)
@@ -97,10 +93,6 @@ class R2dbcWorkspaceProvisioningService(private val databaseClient: DatabaseClie
             .bind("createdAt", now)
             .fetch()
             .rowsUpdated()
-            .onErrorResume { _ ->
-                // Duplicate-key or constraint violation — already assigned.
-                reactor.core.publisher.Mono.just(0)
-            }
             .awaitSingle()
 
         return WorkspaceProvisioningService.ProvisionedWorkspace(
