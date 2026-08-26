@@ -87,6 +87,29 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `findForConsumption locates an existing token`() = runTest {
+        seedPrincipal()
+
+        val tokenHash = "for-consumption-hash"
+        repository.create(
+            principalId = "user-1",
+            tokenHash = tokenHash,
+            requestedAt = Instant.parse("2026-07-27T12:00:00Z"),
+            expiresAt = Instant.parse("2026-07-27T12:30:00Z"),
+        )
+
+        val stored = repository.findForConsumption(tokenHash)
+        assertNotNull(stored)
+        assertEquals("user-1", stored?.principalId)
+        assertEquals(tokenHash, stored?.tokenHash)
+    }
+
+    @Test
+    fun `findForConsumption returns null for unknown hash`() = runTest {
+        assertNull(repository.findForConsumption("not-stored"))
+    }
+
+    @Test
     fun `create rejects duplicate token hashes`() = runTest {
         seedPrincipal()
 
