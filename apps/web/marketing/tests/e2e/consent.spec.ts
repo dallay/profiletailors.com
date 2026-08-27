@@ -20,11 +20,11 @@ test.describe('Consent Management', () => {
 
   // TASK-014: Accept all scenario
   test('accept-all sets analytics true and loads Ahrefs', async ({ page }) => {
-    // Banner should be visible
     const banner = page.locator('#consent-banner')
     await expect(banner).toBeVisible()
+    await expect(banner).not.toHaveAttribute('aria-modal')
+    await expect(page.locator('.consent-backdrop')).toHaveCount(0)
 
-    // Click accept all
     await page.click('[data-consent-accept-all]')
 
     // Saving triggers a reload; wait for it before asserting
@@ -47,13 +47,19 @@ test.describe('Consent Management', () => {
     expect(analyticsFlag).toBe(true)
   })
 
+  test('keeps landing navigation available before consent is decided', async ({ page }) => {
+    await expect(page.locator('#consent-banner')).toBeVisible()
+
+    await page.locator('a[href="/es/"]').click()
+
+    await expect(page).toHaveURL(/\/es\/$/)
+  })
+
   // TASK-015: Reject all scenario
   test('reject-all sets analytics false and blocks Ahrefs', async ({ page }) => {
-    // Banner should be visible
     const banner = page.locator('#consent-banner')
     await expect(banner).toBeVisible()
 
-    // Click reject all using accessible selector
     await page.getByRole('button', { name: 'Reject all' }).click()
 
     // Saving triggers a reload; wait for it before asserting
@@ -97,15 +103,13 @@ test.describe('Consent Management', () => {
 
     await page.goto('/')
 
-    // Banner should be visible
     const banner = page.locator('#consent-banner')
     await expect(banner).toBeVisible()
 
-    // Analytics toggle is hidden but its state reflects the DNT default
+    await page.getByRole('button', { name: 'Customize' }).click()
     const toggle = page.locator('[data-consent-analytics]')
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
 
-    // User can still override using accessible selector
     await page.getByRole('button', { name: 'Accept all' }).click()
 
     // Saving triggers a reload; wait for it before asserting
@@ -124,16 +128,14 @@ test.describe('Consent Management', () => {
     expect(dntFlag).toBe(true)
   })
 
-  // Save preferences persists the default analytics state (no visible granular toggle)
-  test('save preferences persists default state', async ({ page }) => {
+  test('save preferences persists the customize state', async ({ page }) => {
     const banner = page.locator('#consent-banner')
     await expect(banner).toBeVisible()
 
-    // Without DNT/GPC the default analytics state is enabled
+    await page.getByRole('button', { name: 'Customize' }).click()
     const toggle = page.locator('[data-consent-analytics]')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
 
-    // Save preferences
     await page.click('[data-consent-save]')
 
     // Saving triggers a reload; wait for it before asserting
@@ -148,14 +150,28 @@ test.describe('Consent Management', () => {
     expect(receipt.source).toBe('banner')
   })
 
+  test('cookie settings link reopens the non-modal customize panel', async ({ page }) => {
+    const banner = page.locator('#consent-banner')
+    await expect(banner).toBeVisible()
+
+    await page.getByRole('button', { name: 'Reject all' }).click()
+    await page.waitForLoadState('load')
+    await expect(banner).toBeHidden()
+
+    await page.locator('#cookie-settings-link').click()
+
+    await expect(banner).toBeVisible()
+    await expect(page.locator('[data-consent-customize-panel]')).toBeVisible()
+    await expect(banner).not.toHaveAttribute('aria-modal')
+  })
+
   // Test: Version upgrade requires re-consent
   test('outdated consentVersion shows banner', async ({ page }) => {
-    // Set outdated consent
     await page.evaluate(() => {
       localStorage.setItem(
         'pt-consent',
         JSON.stringify({
-          consentVersion: 0, // Outdated
+          consentVersion: 0,
           policyVersion: '2026-07-23',
           timestamp: '2026-07-01T10:00:00Z',
           region: 'EU',
@@ -168,7 +184,6 @@ test.describe('Consent Management', () => {
 
     await page.goto('/')
 
-    // Banner should be visible
     const banner = page.locator('#consent-banner')
     await expect(banner).toBeVisible()
   })
@@ -186,7 +201,7 @@ test.describe('Consent Management', () => {
 
     await page.goto('/')
 
-    // Analytics toggle reflects the GPC default (off)
+    await page.getByRole('button', { name: 'Customize' }).click()
     const toggle = page.locator('[data-consent-analytics]')
     await expect(toggle).toHaveAttribute('aria-checked', 'false')
   })
