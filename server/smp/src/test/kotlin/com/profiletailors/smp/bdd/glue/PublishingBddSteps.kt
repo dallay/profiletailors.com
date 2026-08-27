@@ -441,7 +441,6 @@ class PublishingBddSteps {
         val response = latestPublishingResponse ?: error("No publishing response captured")
         val body = String(response.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
         val actualStatus = response.status.value()
-        System.err.println("DEBUG_STATUS_CHECK: expected=$status, actual=$actualStatus, body=$body")
         assertEquals(status, actualStatus) {
             "Expected status $status but got $actualStatus. Response body: $body"
         }

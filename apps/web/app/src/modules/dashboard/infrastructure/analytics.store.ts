@@ -45,7 +45,6 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     isLoading.value = true
     try {
       // Mock mode — in production this would call the API
-      console.log('[analytics] refreshAll — mock mode, no-op')
     } finally {
       isLoading.value = false
     }

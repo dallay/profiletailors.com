@@ -124,7 +124,6 @@ class MediaBddSteps {
         val response = latestMediaResponse ?: error("No media response captured")
         val body = String(response.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
         val actualStatus = response.status.value()
-        System.err.println("MEDIA_BDD: expected=$status actual=$actualStatus body='$body'")
         assertEquals(status, actualStatus) {
             "Expected status $status but got $actualStatus. Response body: $body"
         }

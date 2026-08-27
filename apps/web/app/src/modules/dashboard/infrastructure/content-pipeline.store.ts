@@ -60,7 +60,7 @@ export const useContentPipelineStore = defineStore('contentPipeline', () => {
   async function refreshAll(): Promise<void> {
     isLoading.value = true
     try {
-      console.log('[contentPipeline] refreshAll — mock mode, no-op')
+      // Mock mode — in production this would call the API
     } finally {
       isLoading.value = false
     }
