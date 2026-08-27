@@ -20,6 +20,7 @@ import com.profiletailors.smp.publishing.domain.PostOrigin
 import com.profiletailors.smp.publishing.domain.SocialPost
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
+import io.kotest.matchers.nulls.shouldBeNull
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -33,7 +34,9 @@ class SocialContentControllersTest {
         .bindToController(SocialContentController(mediator))
         .controllerAdvice(PublishingProblemDetailsHandler())
         .apiVersioning {
-            it.useVersionResolver(com.profiletailors.smp.platform.infrastructure.http.WebFluxConfiguration.MediaTypeVersionResolver())
+            it.useVersionResolver(
+                com.profiletailors.smp.platform.infrastructure.http.WebFluxConfiguration.MediaTypeVersionResolver(),
+            )
                 .setDefaultVersion("1")
         }
         .build()
@@ -144,25 +147,26 @@ class SocialContentControllersTest {
 
     @Test
     fun `GET calendar rejects invalid limit parameter`() = runTest {
-        client.get()
-            .uri(
-                "/api/publishing/social-content/calendar" +
-                    "?from=2026-08-01T00:00:00Z" +
-                    "&to=2026-08-08T00:00:00Z" +
-                    "&limit=0",
-            )
-            .exchange()
-            .expectStatus().isBadRequest
+        val invalidLimits = listOf(0, 150)
 
-        client.get()
-            .uri(
-                "/api/publishing/social-content/calendar" +
-                    "?from=2026-08-01T00:00:00Z" +
-                    "&to=2026-08-08T00:00:00Z" +
-                    "&limit=150",
-            )
-            .exchange()
-            .expectStatus().isBadRequest
+        invalidLimits.forEach { limit ->
+            client.get()
+                .uri(
+                    "/api/publishing/social-content/calendar" +
+                        "?from=2026-08-01T00:00:00Z" +
+                        "&to=2026-08-08T00:00:00Z" +
+                        "&limit=$limit",
+                )
+                .exchange()
+                .expectStatus().isBadRequest
+                .expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
+                .expectBody()
+                .jsonPath("$.title").isEqualTo("Bad Request")
+                .jsonPath("$.detail").isEqualTo("limit must be between 1 and 100, got $limit")
+                .jsonPath("$.status").isEqualTo(400)
+        }
+
+        mediator.lastQuery.shouldBeNull()
     }
 
     @Test
@@ -173,6 +177,8 @@ class SocialContentControllersTest {
             .bodyValue("""{"actorId":""}""")
             .exchange()
             .expectStatus().isBadRequest
+
+        mediator.lastCommand.shouldBeNull()
     }
 
     @Test
@@ -183,7 +189,9 @@ class SocialContentControllersTest {
 
         val syncMapping = syncMethod.getAnnotation(org.springframework.web.bind.annotation.PostMapping::class.java)
         val postMapping = postMethod.getAnnotation(org.springframework.web.bind.annotation.GetMapping::class.java)
-        val calendarMapping = calendarMethod.getAnnotation(org.springframework.web.bind.annotation.GetMapping::class.java)
+        val calendarMapping = calendarMethod.getAnnotation(
+            org.springframework.web.bind.annotation.GetMapping::class.java,
+        )
 
         assertEquals("1", syncMapping.version)
         assertEquals("1", postMapping.version)

@@ -5,12 +5,13 @@ import com.profiletailors.smp.publishing.domain.SocialContentBatchWriter
 import com.profiletailors.smp.publishing.domain.SocialContentCheckpointRepository
 import com.profiletailors.smp.publishing.domain.SocialContentPostRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialContentBatchWriter
+import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
-import kotlin.test.assertFalse
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 
 class SocialContentConfigurationTest {
     private val contextRunner = ApplicationContextRunner()
@@ -22,9 +23,8 @@ class SocialContentConfigurationTest {
     @Test
     fun `registers SocialContentProperties and SocialContentBatchWriter`() {
         contextRunner.run { context ->
-            assertNotNull(context.getBean(SocialContentProperties::class.java))
-            val batchWriter = context.getBean(SocialContentBatchWriter::class.java)
-            assertIs<R2dbcSocialContentBatchWriter>(batchWriter)
+            context.getBean(SocialContentProperties::class.java).shouldNotBeNull()
+            context.getBean(SocialContentBatchWriter::class.java).shouldBeInstanceOf<R2dbcSocialContentBatchWriter>()
         }
     }
 
@@ -32,25 +32,19 @@ class SocialContentConfigurationTest {
     fun `social content properties default to disabled and fail closed`() {
         contextRunner.run { context ->
             val properties = context.getBean(SocialContentProperties::class.java)
-            assertFalse(properties.discoveryEnabled, "Discovery must default to disabled")
-            assertFalse(properties.importEnabled, "Import must default to disabled")
-            assertFalse(properties.inboxEnabled, "Inbox must default to disabled")
-            assertFalse(properties.repliesEnabled, "Replies must default to disabled")
-            assertFalse(properties.syncEnabled, "Sync must default to disabled")
+            properties.discoveryEnabled.shouldBeFalse()
+            properties.importEnabled.shouldBeFalse()
+            properties.inboxEnabled.shouldBeFalse()
+            properties.repliesEnabled.shouldBeFalse()
+            properties.syncEnabled.shouldBeFalse()
         }
     }
 
     @Test
     fun `disabled operations do not register external transport or credential beans in social content context`() {
         contextRunner.run { context ->
-            assertFalse(
-                context.containsBean("linkedInHttpTransport"),
-                "Social content configuration must not register external HTTP transport",
-            )
-            assertFalse(
-                context.containsBean("linkedInCredentialGateway"),
-                "Social content configuration must not resolve credentials for disabled community operations",
-            )
+            context.containsBean("linkedInHttpTransport") shouldBe false
+            context.containsBean("linkedInCredentialGateway") shouldBe false
         }
     }
 }
