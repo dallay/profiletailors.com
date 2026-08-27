@@ -3,6 +3,7 @@ export const en = {
   nav: {
     name: 'Profile Tailors',
     langSwitch: 'ES',
+    langSwitchLabel: 'Switch to Spanish',
   },
   hero: {
     label: 'EARLY ACCESS PREVIEW',
@@ -55,9 +56,9 @@ export const en = {
       unavailableHref: '/',
     },
     privacy: {
-      title: 'Privacy Policy',
+      title: 'Privacy Policy — Profile Tailors',
       description:
-        'How Profile Tailors handles personal data when you use the operator-hosted instance.',
+        'How Profile Tailors handles your personal data on the operator-hosted instance, including what we collect, who we share it with, and your rights under GDPR.',
       lastUpdated: '22 July 2026',
       section1: '1. Who Operates This Instance',
       section2: '2. What Personal Data We Collect',
@@ -90,12 +91,12 @@ export const en = {
       policyChanges:
         'We may update this policy when our data practices change, new features are added, or legal requirements evolve. Material changes will be notified through the application or via email.\n\nThe current version is always available at `/privacy/`. Your continued use after a change constitutes acceptance of the updated policy.',
       contact:
-        'For privacy enquiries, data subject requests, or complaints, contact the operator:\n\n**Yuniel Acosta** (trading as Profile Tailors)\nEmail: contact@profiletailors.com\n\nIf you are in the EU/EEA and are not satisfied with our response, you may lodge a complaint with your local data protection authority.',
+        'For privacy enquiries, data subject requests, or complaints, contact the operator:\n\n**Yuniel Acosta** (trading as Profile Tailors)\nEmail: [contact@profiletailors.com](mailto:contact@profiletailors.com)\n\nIf you are in the EU/EEA and are not satisfied with our response, you may lodge a complaint with your local data protection authority.',
     },
     terms: {
-      title: 'Terms of Service',
+      title: 'Terms of Service — Profile Tailors',
       description:
-        'Terms governing your use of the operator-hosted Profile Tailors instance.',
+        'Terms governing your use of the operator-hosted Profile Tailors instance, including account eligibility, acceptable use, content licensing, and liability.',
       lastUpdated: '22 July 2026',
       section1: '1. Software Licence vs. Hosted Service',
       section2: '2. Accounts and Eligibility',
@@ -126,11 +127,12 @@ export const en = {
       governingLaw:
         'These terms are governed by the laws of Spain, without regard to its conflict of laws principles.\n\nIf you are a consumer in the EU/EEA, you may also bring proceedings in your country of residence. Nothing in these terms deprives you of the protection of mandatory consumer protection laws in your country.',
       contact:
-        'For questions about these terms, contact:\n\n**Profile Tailors**\nEmail: contact@profiletailors.com',
+        'For questions about these terms, contact:\n\n**Profile Tailors**\nEmail: [contact@profiletailors.com](mailto:contact@profiletailors.com)',
     },
     cookies: {
-      title: 'Cookie and Browser Storage Policy',
-      description: 'How the Profile Tailors hosted instance uses cookies and browser storage.',
+      title: 'Cookie and Browser Storage Policy — Profile Tailors',
+      description:
+        'How the Profile Tailors hosted instance uses cookies and browser storage, including required session cookies, opt-in analytics, and how to manage your choices.',
       lastUpdated: '22 July 2026',
       section1: '1. Scope and Definitions',
       section2: '2. Strictly Necessary Storage',
@@ -149,12 +151,12 @@ export const en = {
       manageCookies:
         'You can manage cookies through your browser settings. Blocking strictly necessary cookies may affect Service functionality.\n\nLocal storage can be cleared through your browser\u2019s developer tools or privacy settings. Deleting your account will remove locally stored data associated with it.',
       contact:
-        'For questions about this policy, contact:\n\n**Profile Tailors**\nEmail: contact@profiletailors.com',
+        'For questions about this policy, contact:\n\n**Profile Tailors**\nEmail: [contact@profiletailors.com](mailto:contact@profiletailors.com)',
     },
     aup: {
-      title: 'Acceptable Use Policy',
+      title: 'Acceptable Use Policy — Profile Tailors',
       description:
-        'Rules for acceptable use of the operator-hosted Profile Tailors instance.',
+        'Rules for acceptable use of the operator-hosted Profile Tailors instance, including prohibited conduct, enforcement actions, and how to report violations.',
       lastUpdated: '22 July 2026',
       section1: '1. Prohibited Conduct and Content',
       section2: '2. Enforcement',
@@ -165,13 +167,14 @@ export const en = {
       enforcement:
         'The operator will assess reported violations based on available evidence and take proportionate action, which may include:\n- Warning the user.\n- Restricting access to specific features.\n- Suspending or terminating the user\u2019s account.\n- Reporting the activity to relevant authorities where required by law.\n\nEnforcement decisions will consider severity, recurrence, legal obligations, and the need to protect other users. Where practicable, the operator will notify the user of the action and the reasons for it, and provide an opportunity to respond.',
       reporting:
-        'To report a violation of this policy, contact the operator at: contact@profiletailors.com\n\nPlease include:\n- The specific content or behaviour you are reporting.\n- The relevant user or account information (if known).\n- Any evidence supporting your report.\n\nThe operator will review reports and take appropriate action. Where required by law, reports may be forwarded to relevant authorities.',
+        'To report a violation of this policy, contact the operator at: [contact@profiletailors.com](mailto:contact@profiletailors.com)\n\nPlease include:\n- The specific content or behaviour you are reporting.\n- The relevant user or account information (if known).\n- Any evidence supporting your report.\n\nThe operator will review reports and take appropriate action. Where required by law, reports may be forwarded to relevant authorities.',
       contact:
-        'This policy is incorporated into the Terms of Service. By using the Service, you agree to comply with this policy.\n\nFor questions about this policy or to report a violation, contact:\n\n**Profile Tailors**\nEmail: contact@profiletailors.com',
+        'This policy is incorporated into the Terms of Service. By using the Service, you agree to comply with this policy.\n\nFor questions about this policy or to report a violation, contact:\n\n**Profile Tailors**\nEmail: [contact@profiletailors.com](mailto:contact@profiletailors.com)',
     },
     accessibility: {
-      title: 'Accessibility Statement',
-      description: 'Our commitment to WCAG 2.2 AA accessibility and how to report issues.',
+      title: 'Accessibility Statement — Profile Tailors',
+      description:
+        'Our commitment to WCAG 2.2 AA accessibility across the Profile Tailors marketing site and dashboard, including known limitations and how to report barriers.',
       lastUpdated: '31 July 2026',
       intro: 'Profile Tailors is committed to making its web presence accessible to all users, including people with disabilities. This statement describes our current conformance level, known limitations, and how to contact us if you encounter an accessibility barrier.',
       section1: '1. Conformance Status',
@@ -181,7 +184,7 @@ export const en = {
       section3: '3. Known Limitations',
       knownLimitations: 'The following issues are known and are being addressed:\n\n- **Calendar keyboard navigation:** Arrow-key navigation between time slots in the scheduler week view is not yet implemented. Workaround: use Tab to move between interactive controls.\n- **Media picker drag-and-drop:** The drag-and-drop reordering interface does not have a keyboard-accessible alternative in the current release. Workaround: media items can be reordered using the action menu accessible via keyboard.\n- **Third-party embeds:** Some social platform preview embeds may not meet contrast requirements. These are rendered by external providers.\n\nWe are actively working to resolve the calendar and media picker issues in upcoming sprints.',
       section4: '4. Feedback and Contact',
-      contact: 'If you experience an accessibility barrier not listed above, or if a listed workaround is not sufficient for your needs, please contact us:\n\n**Email:** accessibility@profiletailors.com\n\nWe aim to respond within **5 business days**. If you are not satisfied with our response, you may contact the relevant national accessibility enforcement body in your country.',
+      contact: 'If you experience an accessibility barrier not listed above, or if a listed workaround is not sufficient for your needs, please contact us:\n\n**Email:** [accessibility@profiletailors.com](mailto:accessibility@profiletailors.com)\n\nWe aim to respond within **5 business days**. If you are not satisfied with our response, you may contact the relevant national accessibility enforcement body in your country.',
       section5: '5. EAA and Regulatory Applicability',
       eaa: 'The **European Accessibility Act (EAA / Directive 2019/882)** applies to certain digital products and services offered to consumers in the EU from June 2025. Profile Tailors is currently an early-access preview platform, not a publicly sold product. We are monitoring our regulatory obligations as the product approaches general availability and will update this statement accordingly.\n\nThe UK **Public Sector Bodies Accessibility Regulations** do not apply to this service, which is provided by a private entity.',
       section6: '6. Enforcement and Escalation',

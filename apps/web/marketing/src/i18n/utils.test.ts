@@ -105,6 +105,70 @@ describe('i18n utils', () => {
     });
   });
 
+  describe('legal SEO (Ahrefs site audit)', () => {
+    const legalSectionKeys = ['privacy', 'terms', 'cookies', 'aup', 'accessibility'] as const;
+
+    type LegalSectionKey = typeof legalSectionKeys[number];
+
+    it.each(legalSectionKeys)(
+      'EN %s.description is between 120 and 160 characters',
+      (key: LegalSectionKey): void => {
+        const t = useTranslations(new URL('https://example.com/'));
+        const description = t.legal[key].description;
+        expect(description.length).toBeGreaterThanOrEqual(120);
+        expect(description.length).toBeLessThanOrEqual(160);
+      }
+    );
+
+    it.each(legalSectionKeys)(
+      'ES %s.description is between 120 and 160 characters',
+      (key: LegalSectionKey): void => {
+        const t = useTranslations(new URL('https://example.com/es/'));
+        const description = t.legal[key].description;
+        expect(description.length).toBeGreaterThanOrEqual(120);
+        expect(description.length).toBeLessThanOrEqual(160);
+      }
+    );
+
+    it('EN /privacy/ title is at least 20 characters to avoid the Ahrefs "Title too short" warning', (): void => {
+      const t = useTranslations(new URL('https://example.com/'));
+      expect(t.legal.privacy.title.length).toBeGreaterThanOrEqual(20);
+    });
+
+    it('ES /es/privacy/ title is at least 20 characters', (): void => {
+      const t = useTranslations(new URL('https://example.com/es/'));
+      expect(t.legal.privacy.title.length).toBeGreaterThanOrEqual(20);
+    });
+
+    it('EN legal copy has no raw @profiletailors.com addresses (Cloudflare email obfuscation safeguard)', (): void => {
+      const enLegal = useTranslations(new URL('https://example.com/')).legal;
+      const rawEmailRegex = /(?<![:[])\b[a-zA-Z0-9._%+-]+@profiletailors\.com\b(?![\])])/g;
+      const matches = JSON.stringify(enLegal).match(rawEmailRegex) ?? [];
+      expect(matches).toEqual([]);
+    });
+
+    it('ES legal copy has no raw @profiletailors.com addresses (Cloudflare email obfuscation safeguard)', (): void => {
+      const esLegal = useTranslations(new URL('https://example.com/es/')).legal;
+      const rawEmailRegex = /(?<![:[])\b[a-zA-Z0-9._%+-]+@profiletailors\.com\b(?![\])])/g;
+      const matches = JSON.stringify(esLegal).match(rawEmailRegex) ?? [];
+      expect(matches).toEqual([]);
+    });
+
+    it('EN legal copy has mailto links for contact and accessibility addresses', (): void => {
+      const enLegal = useTranslations(new URL('https://example.com/')).legal;
+      const enStr = JSON.stringify(enLegal);
+      expect(enStr).toContain('[contact@profiletailors.com](mailto:contact@profiletailors.com)');
+      expect(enStr).toContain('[accessibility@profiletailors.com](mailto:accessibility@profiletailors.com)');
+    });
+
+    it('ES legal copy has mailto links for contact and accessibility addresses', (): void => {
+      const esLegal = useTranslations(new URL('https://example.com/es/')).legal;
+      const esStr = JSON.stringify(esLegal);
+      expect(esStr).toContain('[contact@profiletailors.com](mailto:contact@profiletailors.com)');
+      expect(esStr).toContain('[accessibility@profiletailors.com](mailto:accessibility@profiletailors.com)');
+    });
+  });
+
   describe('consent translations', () => {
     it('EN has a complete consent structure', () => {
       const t = useTranslations(new URL('https://example.com/'));

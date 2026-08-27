@@ -1,6 +1,7 @@
 ---
 import Layout from "@layouts/Layout.astro";
 import Footer from "@components/Footer.astro";
+import Nav from "@components/Nav.astro";
 import { useTranslations } from "@i18n/utils";
 import type { Locale } from "@i18n/utils";
 
@@ -12,6 +13,9 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 const policy = t.legal.accessibility;
 const links = t.footer.legalLinks;
+
+const langHref = locale === "en" ? "/es/accessibility/" : "/accessibility/";
+const langLabel = t.nav.langSwitchLabel;
 
 function renderText(text: string): string {
     return text
@@ -45,6 +49,11 @@ function renderText(text: string): string {
     jsonLdType="WebPage"
 >
     <div id="main-content" class="fade-in" tabindex="-1">
+        <Nav
+            langSwitch={t.nav.langSwitch}
+            langHref={langHref}
+            langLabel={langLabel}
+        />
         <article class="max-w-3xl mx-auto px-6 py-16 sm:py-24">
             <header class="mb-12">
                 <h1
