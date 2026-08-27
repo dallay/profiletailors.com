@@ -24,6 +24,7 @@
 - [Consent Management](./consent-management.md) - Shared consent model and frontend/backend flow
 - [Compliance Baseline](./compliance/README.md) - Current legal controls and future-state compliance boundary
 - [Marketing Legal Baseline Mapping](./compliance/marketing-legal-baseline.md) - Awesome Legal mapping to Profile Tailors legal artifacts
+- [Marketing Site Audit (Ahrefs)](./marketing-site-audit-ahrefs.md) - Ahrefs Site Audit findings, repository fixes, and pending Cloudflare dashboard steps
 - [Publishing Failure Modes](./publishing-failure-modes.md) - User-facing publishing error taxonomy
 - [Release Verification](./release-verification.md) - Evidence required before release readiness
 
