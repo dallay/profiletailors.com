@@ -13,6 +13,10 @@ declare global {
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
+function readConsentBannerSource(): string {
+  return readFileSync(resolve(__dirname, './ConsentBanner.astro'), 'utf-8')
+}
+
 /**
  * ConsentBanner.astro's client `<script>` block uses a TypeScript value
  * import (for the constants module) and a type-only import (for
@@ -24,8 +28,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
  * of it.
  */
 function extractConsentBannerScript(): string {
-  const filePath = resolve(__dirname, './ConsentBanner.astro')
-  const source = readFileSync(filePath, 'utf-8')
+  const source = readConsentBannerSource()
   const scriptBlocks = [...source.matchAll(/<script>([\s\S]*?)<\/script>/g)]
   const clientScript = scriptBlocks.find(([, body]) => body.includes('initConsentBanner'))
   if (!clientScript) {
@@ -53,16 +56,12 @@ function extractConsentBannerScript(): string {
     `const validateConsentReceipt = (receipt) => receipt\n`
   )
 
-  // Strip TypeScript annotations from focus trap helpers.
+  // Strip TypeScript annotations from the browser script.
   code = code
-    .replace('let previousActiveElement: HTMLElement | null = null', 'let previousActiveElement = null')
-    .replace('let focusTrapHandler: ((e: KeyboardEvent) => void) | null = null', 'let focusTrapHandler = null')
-    .replace('function getFocusableElements(container: HTMLElement): HTMLElement[] {', 'function getFocusableElements(container) {')
-    .replace('function activateFocusTrap(container: HTMLElement) {', 'function activateFocusTrap(container) {')
-    .replace('document.activeElement as HTMLElement | null', 'document.activeElement')
     .replaceAll(' as HTMLButtonElement', '')
-    .replace('(e: KeyboardEvent) => {', '(e) => {')
-    .replace('querySelectorAll<HTMLElement>', 'querySelectorAll')
+    .replaceAll(' as HTMLElement', '')
+    .replace('function setAnalyticsToggle(enabled: boolean)', 'function setAnalyticsToggle(enabled)')
+    .replace('function setCustomizeOpen(open: boolean)', 'function setCustomizeOpen(open)')
     .replace('function saveConsentChoice(analytics: boolean) {', 'function saveConsentChoice(analytics) {')
     .replace('function loadConsent(): ConsentReceipt | null {', 'function loadConsent() {')
     .replace('const receipt: ConsentReceipt = {', 'const receipt = {')
@@ -88,12 +87,16 @@ function runConsentBannerScript(): void {
 /** Renders the real markup structure the script queries against. */
 function renderBannerFixture(): void {
   document.body.innerHTML = `
-    <div id="consent-banner" role="dialog" aria-labelledby="consent-heading" aria-modal="true" hidden>
-      <button type="button" role="switch" aria-checked="false" data-consent-analytics class="consent-toggle"></button>
-      <button type="button" data-consent-accept-all class="consent-button consent-button--primary">Accept all</button>
-      <button type="button" data-consent-reject-all class="consent-button consent-button--secondary">Reject all</button>
-      <button type="button" data-consent-save class="consent-button consent-button--secondary">Save preferences</button>
-    </div>
+    <aside id="consent-banner" aria-labelledby="consent-heading" aria-describedby="consent-description" hidden>
+      <button type="button" data-consent-reject-all class="consent-button">Reject all</button>
+      <button type="button" data-consent-customize aria-expanded="false" class="consent-button">Customize</button>
+      <button type="button" data-consent-accept-all class="consent-button">Accept all</button>
+      <div id="consent-customize-panel" data-consent-customize-panel hidden>
+        <button type="button" role="switch" aria-checked="false" data-consent-analytics class="consent-toggle"></button>
+        <button type="button" data-consent-back class="consent-button">Back</button>
+        <button type="button" data-consent-save class="consent-button">Save preferences</button>
+      </div>
+    </aside>
   `
 }
 
@@ -117,27 +120,39 @@ describe('ConsentBanner client script', () => {
     vi.restoreAllMocks()
   })
 
-  it('shows the banner and defaults the analytics toggle ON when there is no stored consent and no DNT signal', () => {
+  it('renders a visible non-modal banner without a blocking overlay or focus trap', () => {
+    const source = readConsentBannerSource()
+
+    expect(source).toContain('<aside')
+    expect(source).not.toContain('aria-modal')
+    expect(source).not.toContain('consent-backdrop')
+    expect(source).not.toContain('backdrop-filter')
+    expect(source).not.toContain('box-shadow')
+    expect(source).not.toContain('activateFocusTrap')
+    expect(source).toContain('bottom: 0;')
+  })
+
+  it('shows the banner without forcing focus when there is no stored consent', () => {
     renderBannerFixture()
     window.__PT_DNT = false
 
     runConsentBannerScript()
 
     const banner = document.getElementById('consent-banner') as HTMLElement
-    const toggle = banner.querySelector('[data-consent-analytics]') as HTMLElement
 
     expect(banner.hasAttribute('hidden')).toBe(false)
-    expect(toggle.getAttribute('aria-checked')).toBe('true')
-    expect(toggle.classList.contains('consent-toggle--on')).toBe(true)
+    expect(document.activeElement).not.toBe(banner)
+    expect(banner.querySelector('[data-consent-customize-panel]')?.hasAttribute('hidden')).toBe(true)
   })
 
-  it('shows the banner and defaults the analytics toggle OFF when a DNT/GPC signal is present', () => {
+  it('defaults analytics OFF in the customize panel when a DNT/GPC signal is present', () => {
     renderBannerFixture()
     window.__PT_DNT = true
 
     runConsentBannerScript()
 
     const banner = document.getElementById('consent-banner') as HTMLElement
+    banner.querySelector('[data-consent-customize]')?.dispatchEvent(new MouseEvent('click'))
     const toggle = banner.querySelector('[data-consent-analytics]') as HTMLElement
 
     expect(banner.hasAttribute('hidden')).toBe(false)
@@ -145,12 +160,20 @@ describe('ConsentBanner client script', () => {
     expect(toggle.classList.contains('consent-toggle--on')).toBe(false)
   })
 
-  it('keeps the banner hidden when any parseable consent value already exists in localStorage', () => {
+  it('keeps the banner hidden when valid consent already exists in localStorage', () => {
     renderBannerFixture()
-    // loadConsent() only checks for parseable JSON — it does not validate the
-    // schema or consentVersion, so even a minimal/outdated object is treated
-    // as "existing consent" and the banner stays hidden.
-    localStorage.setItem(PT_CONSENT_KEY, JSON.stringify({ consentVersion: 0 }))
+    localStorage.setItem(
+      PT_CONSENT_KEY,
+      JSON.stringify({
+        consentVersion: CURRENT_CONSENT_VERSION,
+        policyVersion: CURRENT_POLICY_VERSION,
+        timestamp: '2026-07-23T10:00:00.000Z',
+        region: 'EU',
+        categories: { necessary: true, analytics: false },
+        dnt: false,
+        source: 'banner',
+      })
+    )
 
     runConsentBannerScript()
 
@@ -164,6 +187,7 @@ describe('ConsentBanner client script', () => {
 
     runConsentBannerScript()
 
+    document.querySelector('[data-consent-customize]')?.dispatchEvent(new MouseEvent('click'))
     const toggle = document.querySelector('[data-consent-analytics]') as HTMLElement
     expect(toggle.getAttribute('aria-checked')).toBe('true')
 
@@ -182,8 +206,8 @@ describe('ConsentBanner client script', () => {
 
     runConsentBannerScript()
 
+    document.querySelector('[data-consent-customize]')?.dispatchEvent(new MouseEvent('click'))
     const toggle = document.querySelector('[data-consent-analytics]') as HTMLElement
-    // Turn analytics OFF before saving.
     toggle.dispatchEvent(new MouseEvent('click'))
     expect(toggle.getAttribute('aria-checked')).toBe('false')
 
@@ -204,6 +228,20 @@ describe('ConsentBanner client script', () => {
 
     const banner = document.getElementById('consent-banner') as HTMLElement
     expect(banner.hasAttribute('hidden')).toBe(true)
+  })
+
+  it('opens the customize panel when the cookie settings event is dispatched', () => {
+    renderBannerFixture()
+    window.__PT_DNT = false
+
+    runConsentBannerScript()
+
+    const banner = document.getElementById('consent-banner') as HTMLElement
+    banner.dispatchEvent(new CustomEvent('consent-open-settings'))
+
+    expect(banner.hasAttribute('hidden')).toBe(false)
+    expect(banner.querySelector('[data-consent-customize-panel]')?.hasAttribute('hidden')).toBe(false)
+    expect(banner.querySelector('[data-consent-customize]')?.getAttribute('aria-expanded')).toBe('true')
   })
 
   it('records dnt=true on the saved receipt when a privacy signal was detected', () => {

@@ -229,6 +229,8 @@ export const en = {
     action: {
       acceptAll: 'Accept all',
       rejectAll: 'Reject all',
+      customize: 'Customize',
+      back: 'Back',
       savePreferences: 'Save preferences',
     },
     footer: {
