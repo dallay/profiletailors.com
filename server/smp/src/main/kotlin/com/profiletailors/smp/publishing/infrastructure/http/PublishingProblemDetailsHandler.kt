@@ -117,7 +117,8 @@ class PublishingProblemDetailsHandler {
      * Creates a bad-request problem detail for an invalid request argument.
      *
      * @param exception The invalid argument exception.
-     * @return A problem detail with HTTP status 400 and the exception message, or a fallback message when no message is available.
+     * @return A problem detail with HTTP status 400 and the exception message, or a fallback
+     * message when no message is available.
      */
     @ExceptionHandler(IllegalArgumentException::class)
     fun handle(exception: IllegalArgumentException): ProblemDetail = ProblemDetail.forStatusAndDetail(
@@ -128,12 +129,12 @@ class PublishingProblemDetailsHandler {
     }
 
     /**
-         * Creates a bad-request problem detail for an expired OAuth state.
-         *
-         * @param exception The expired OAuth state exception.
-         * @return A problem detail with an HTTP 400 status and an OAuth state expiration message.
-         */
-        @ExceptionHandler(ExpiredOAuthStateException::class)
+     * Creates a bad-request problem detail for an expired OAuth state.
+     *
+     * @param exception The expired OAuth state exception.
+     * @return A problem detail with an HTTP 400 status and an OAuth state expiration message.
+     */
+    @ExceptionHandler(ExpiredOAuthStateException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: ExpiredOAuthStateException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, OAUTH_STATE_EXPIRED_DETAIL).apply {

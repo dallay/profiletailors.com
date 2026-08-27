@@ -81,23 +81,23 @@ import java.util.Locale
 @Tag(name = "Publishing Social Content", description = "Workspace social-content synchronization endpoints")
 class SocialContentController(private val mediator: Mediator) {
     /**
-         * Synchronizes workspace social content for the requested actor.
-         *
-         * @param request The synchronization request containing the actor identifier.
-         * @return The social content synchronization result.
-         */
-        @Operation(summary = "Synchronize workspace social content")
+     * Synchronizes workspace social content for the requested actor.
+     *
+     * @param request The synchronization request containing the actor identifier.
+     * @return The social content synchronization result.
+     */
+    @Operation(summary = "Synchronize workspace social content")
     @PostMapping("/sync", consumes = ["application/json"], version = "1")
     suspend fun sync(@Valid @RequestBody request: SocialContentSyncRequest): SocialContentSyncResult =
         mediator.send(SocialContentSyncCommand(actorId = request.actorId))
 
     /**
-         * Retrieves an imported social content post by its external identifier.
-         *
-         * @param externalPostId The external identifier of the post.
-         * @return The imported social content post.
-         */
-        @Operation(summary = "Get an imported workspace social content post")
+     * Retrieves an imported social content post by its external identifier.
+     *
+     * @param externalPostId The external identifier of the post.
+     * @return The imported social content post.
+     */
+    @Operation(summary = "Get an imported workspace social content post")
     @GetMapping("/posts/{externalPostId}", version = "1")
     suspend fun post(@PathVariable externalPostId: String): SocialPost =
         mediator.send(SocialContentPostQuery(externalPostId))
