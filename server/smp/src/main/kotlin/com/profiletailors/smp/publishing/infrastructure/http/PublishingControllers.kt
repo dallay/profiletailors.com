@@ -80,16 +80,40 @@ import java.util.Locale
 @RequestMapping(value = ["/api/publishing/social-content"])
 @Tag(name = "Publishing Social Content", description = "Workspace social-content synchronization endpoints")
 class SocialContentController(private val mediator: Mediator) {
-    @Operation(summary = "Synchronize workspace social content")
+    /**
+         * Synchronizes workspace social content for the requested actor.
+         *
+         * @param request The synchronization request containing the actor identifier.
+         * @return The social content synchronization result.
+         */
+        @Operation(summary = "Synchronize workspace social content")
     @PostMapping("/sync", consumes = ["application/json"], version = "1")
     suspend fun sync(@Valid @RequestBody request: SocialContentSyncRequest): SocialContentSyncResult =
         mediator.send(SocialContentSyncCommand(actorId = request.actorId))
 
-    @Operation(summary = "Get an imported workspace social content post")
+    /**
+         * Retrieves an imported social content post by its external identifier.
+         *
+         * @param externalPostId The external identifier of the post.
+         * @return The imported social content post.
+         */
+        @Operation(summary = "Get an imported workspace social content post")
     @GetMapping("/posts/{externalPostId}", version = "1")
     suspend fun post(@PathVariable externalPostId: String): SocialPost =
         mediator.send(SocialContentPostQuery(externalPostId))
 
+    /**
+     * Lists imported social content within a workspace and date range.
+     *
+     * @param from The start of the date range.
+     * @param to The end of the date range.
+     * @param actorId The optional actor identifier used to filter content.
+     * @param lifecycle The optional lifecycle used to filter content.
+     * @param cursor The optional pagination cursor.
+     * @param limit The maximum number of content items to include, from 1 to 100.
+     * @return The imported social content matching the requested filters.
+     * @throws IllegalArgumentException If `limit` is less than 1 or greater than 100.
+     */
     @Operation(summary = "List imported workspace social content for a date range")
     @GetMapping("/calendar", version = "1")
     suspend fun calendar(

@@ -98,6 +98,12 @@ class PublishingProblemDetailsHandler {
         setProperty("code", exception.denial.name)
     }
 
+    /**
+     * Creates a conflict response for social content workspace isolation violations.
+     *
+     * @param exception The social content post isolation exception.
+     * @return A problem detail with HTTP status 409 and a workspace conflict title.
+     */
     @ExceptionHandler(SocialContentPostIsolationException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: SocialContentPostIsolationException): ProblemDetail = ProblemDetail.forStatusAndDetail(
@@ -107,6 +113,12 @@ class PublishingProblemDetailsHandler {
         title = "Social content workspace conflict"
     }
 
+    /**
+     * Creates a bad-request problem detail for an invalid request argument.
+     *
+     * @param exception The invalid argument exception.
+     * @return A problem detail with HTTP status 400 and the exception message, or a fallback message when no message is available.
+     */
     @ExceptionHandler(IllegalArgumentException::class)
     fun handle(exception: IllegalArgumentException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.BAD_REQUEST,
@@ -115,7 +127,13 @@ class PublishingProblemDetailsHandler {
         title = "Bad Request"
     }
 
-    @ExceptionHandler(ExpiredOAuthStateException::class)
+    /**
+         * Creates a bad-request problem detail for an expired OAuth state.
+         *
+         * @param exception The expired OAuth state exception.
+         * @return A problem detail with an HTTP 400 status and an OAuth state expiration message.
+         */
+        @ExceptionHandler(ExpiredOAuthStateException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: ExpiredOAuthStateException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, OAUTH_STATE_EXPIRED_DETAIL).apply {
