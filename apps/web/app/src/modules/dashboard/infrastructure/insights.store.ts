@@ -24,16 +24,24 @@ export const useInsightsStore = defineStore('insights', () => {
     }
   }
 
+  /**
+   * Dismisses all insights.
+   */
   function dismissAll(): void {
     insights.value.forEach((i) => {
       i.dismissed = true
     })
   }
 
+  /**
+   * Updates the loading state for an insights refresh operation.
+   *
+   * In mock mode, the existing insights remain unchanged.
+   */
   async function refreshAll(): Promise<void> {
     isLoading.value = true
     try {
-      console.log('[insights] refreshAll — mock mode, no-op')
+      // Mock mode — in production this would call the API
     } finally {
       isLoading.value = false
     }

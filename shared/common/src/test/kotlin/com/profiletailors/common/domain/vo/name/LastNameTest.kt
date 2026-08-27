@@ -16,7 +16,6 @@ internal class LastNameTest {
             "D'Angelo",
         )
         lastNames.forEach {
-            println("Last Name: $it")
             val lastName = LastName(it)
             assertEquals(it, lastName.value)
         }
@@ -31,7 +30,6 @@ internal class LastNameTest {
             """.trimIndent(),
         )
         invalidLastNames.forEach {
-            println("Last Name: $it")
             assertThrows(IllegalArgumentException::class.java) {
                 LastName(it)
             }

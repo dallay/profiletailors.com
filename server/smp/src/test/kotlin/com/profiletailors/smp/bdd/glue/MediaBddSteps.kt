@@ -116,15 +116,18 @@ class MediaBddSteps {
     }
 
     // ---------------------------------------------------------------------------
-    // Then
-    // ---------------------------------------------------------------------------
+    /**
+     * Verifies that the latest media response has the expected HTTP status.
+     *
+     * @param status The expected HTTP status code.
+     * @throws IllegalStateException If no media response has been captured.
+     */
 
     @Then("the media response status should be {int}")
     fun thenMediaResponseStatusShouldBe(status: Int) {
         val response = latestMediaResponse ?: error("No media response captured")
         val body = String(response.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
         val actualStatus = response.status.value()
-        System.err.println("MEDIA_BDD: expected=$status actual=$actualStatus body='$body'")
         assertEquals(status, actualStatus) {
             "Expected status $status but got $actualStatus. Response body: $body"
         }
