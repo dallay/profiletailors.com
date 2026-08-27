@@ -24,6 +24,9 @@ export const useInsightsStore = defineStore('insights', () => {
     }
   }
 
+  /**
+   * Dismisses all insights.
+   */
   function dismissAll(): void {
     insights.value.forEach((i) => {
       i.dismissed = true
@@ -31,7 +34,9 @@ export const useInsightsStore = defineStore('insights', () => {
   }
 
   /**
-   * Refreshes all insights and updates the loading state during the operation.
+   * Updates the loading state for an insights refresh operation.
+   *
+   * In mock mode, the existing insights remain unchanged.
    */
   async function refreshAll(): Promise<void> {
     isLoading.value = true

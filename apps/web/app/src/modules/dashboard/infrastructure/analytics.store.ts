@@ -42,7 +42,7 @@ export const useAnalyticsStore = defineStore('analytics', () => {
   })
 
   /**
-   * Refreshes analytics data while tracking the loading state.
+   * Refreshes analytics data and updates the loading state.
    */
   async function refreshAll(): Promise<void> {
     isLoading.value = true
