@@ -232,6 +232,8 @@ export const es = {
     action: {
       acceptAll: 'Aceptar todas',
       rejectAll: 'Rechazar todas',
+      customize: 'Personalizar',
+      back: 'Volver',
       savePreferences: 'Guardar preferencias',
     },
     footer: {
