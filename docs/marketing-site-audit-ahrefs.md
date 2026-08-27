@@ -54,7 +54,7 @@ These changes live outside the repository and require operator action in the Clo
 
 Current behavior (verified via `curl -I` on 2026-08-27):
 
-```
+```text
 http://www.profiletailors.com/  → 301 → https://www.profiletailors.com/
 https://www.profiletailors.com/ → 302 → https://profiletailors-com.l.ink/
 ```
@@ -77,7 +77,7 @@ the site over HTTPS. Ahrefs flags every such redirect as a "HTTP to HTTPS redire
 **Resolution:** in the Cloudflare dashboard for `profiletailors.com`, go to **SSL/TLS → Edge
 Certificates → Strict-Transport-Security** and enable HSTS with:
 
-```
+```text
 max-age=63072000; includeSubDomains; preload
 ```
 
