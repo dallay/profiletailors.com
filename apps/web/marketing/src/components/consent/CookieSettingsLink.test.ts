@@ -41,11 +41,16 @@ describe('CookieSettingsLink script', () => {
     runCookieSettingsLinkScript()
 
     const banner = document.getElementById('consent-banner') as HTMLElement
+    let settingsRequested = false
+    banner.addEventListener('consent-open-settings', () => {
+      settingsRequested = true
+    })
     expect(banner.hasAttribute('hidden')).toBe(true)
 
     document.getElementById('cookie-settings-link')?.dispatchEvent(new MouseEvent('click'))
 
     expect(banner.hasAttribute('hidden')).toBe(false)
+    expect(settingsRequested).toBe(true)
   })
 
   it('does not throw when the consent banner is missing from the DOM', () => {

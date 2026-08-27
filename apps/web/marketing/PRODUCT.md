@@ -39,6 +39,7 @@ Not another social media scheduler landing page. Profile Tailors is a focused, o
 - Legal documents (privacy policy, ToS, cookies, AUP, accessibility statement) are published here
 - Accessibility target: WCAG 2.2 Level AA; automated axe-core checks on PRs; manual review ongoing
 - No advertising, tracking, or analytics cookies by default (minimal localStorage + theme preference only)
+- Consent is disclosed in a fixed, non-modal bottom banner that never blocks page navigation; detailed category choices open inline from "Customize" or the footer settings link
 
 ## Brand Commitments
 
