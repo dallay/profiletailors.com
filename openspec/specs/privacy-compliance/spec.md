@@ -113,20 +113,35 @@ The system MUST NOT show the banner when a valid receipt exists for the current 
 
 ### Requirement: Consent Banner UI Structure
 
-The consent banner MUST present two categories with equal-prominence action buttons and i18n support.
+The consent banner MUST present a non-modal first-visit summary with equal-prominence action buttons,
+an inline customization panel, and i18n support.
 
-**Categories displayed**:
+The first-visit prompt MUST render as a fixed bottom banner. It MUST NOT use modal semantics, a
+full-viewport overlay, a backdrop, blur, or a focus trap. The rest of the marketing page MUST remain
+keyboard- and pointer-interactable while the banner is visible.
+
+**Summary actions displayed**:
+- "Accept all" button
+- "Reject all" button
+- "Customize" button
+
+The summary actions MUST have equal visual prominence. "Customize" MUST open the category choices
+inline without creating a modal or overlay.
+
+**Categories available in the inline customization panel**:
 1. **Necessary** (always on, no toggle): Label + description, checkbox disabled/checked
 2. **Analytics** (opt-in toggle): Label + description, toggle switch
 
 Marketing category MUST NOT be shown (not used in MVP).
 
-**Actions**:
-- "Accept all" button (primary styling)
-- "Reject all" button (primary styling, equal visual weight)
-- "Save preferences" button (primary styling)
+**Customization actions**:
+- "Back" button, which returns to the summary without saving
+- "Save preferences" button, which persists the selected categories
 
-**Equal prominence rule**: All three buttons MUST have identical size, color saturation, and position hierarchy. No dark patterns (e.g., green accept + gray reject).
+**Equal prominence rule**: Summary actions MUST have identical size, color saturation, and position hierarchy. No dark patterns (e.g., green accept + gray reject).
+
+The footer "Cookie settings" link MUST reopen the banner directly in its inline customization panel
+without blocking the page.
 
 The banner MUST be theme-independent and always render in a dark palette regardless of the page theme.
 The following fixed WCAG-AA colors MUST be used:

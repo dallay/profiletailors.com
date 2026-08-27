@@ -39,6 +39,7 @@ const t = useTranslations(locale)
       const banner = document.getElementById('consent-banner')
       if (banner) {
         banner.removeAttribute('hidden')
+        banner.dispatchEvent(new CustomEvent('consent-open-settings'))
       }
     })
   }
