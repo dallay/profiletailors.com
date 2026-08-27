@@ -57,6 +57,9 @@ export const useContentPipelineStore = defineStore('contentPipeline', () => {
     }
   }
 
+  /**
+   * Refreshes all content pipeline data and updates the loading state during the operation.
+   */
   async function refreshAll(): Promise<void> {
     isLoading.value = true
     try {

@@ -30,6 +30,9 @@ export const useInsightsStore = defineStore('insights', () => {
     })
   }
 
+  /**
+   * Refreshes all insights and updates the loading state during the operation.
+   */
   async function refreshAll(): Promise<void> {
     isLoading.value = true
     try {

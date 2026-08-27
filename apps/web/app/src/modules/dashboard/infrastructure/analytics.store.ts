@@ -41,6 +41,9 @@ export const useAnalyticsStore = defineStore('analytics', () => {
     )
   })
 
+  /**
+   * Refreshes analytics data while tracking the loading state.
+   */
   async function refreshAll(): Promise<void> {
     isLoading.value = true
     try {
