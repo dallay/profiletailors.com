@@ -1,0 +1,12 @@
+package com.profiletailors.smp.identity.infrastructure
+
+import com.profiletailors.common.domain.Service
+import com.profiletailors.smp.identity.application.RegistrationPolicy
+import com.profiletailors.smp.identity.domain.RegistrationDecision
+
+@Service
+internal class PropertyBackedRegistrationPolicy(private val properties: RegistrationConfigurationProperties) :
+    RegistrationPolicy {
+    override fun evaluate(hasValidInvitation: Boolean): RegistrationDecision =
+        properties.mode.evaluate(hasValidInvitation)
+}

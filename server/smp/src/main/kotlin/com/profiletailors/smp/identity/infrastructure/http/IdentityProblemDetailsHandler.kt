@@ -12,6 +12,7 @@ import com.profiletailors.smp.identity.application.PasswordRecoveryDisabledExcep
 import com.profiletailors.smp.identity.application.PasswordRecoveryPasswordException
 import com.profiletailors.smp.identity.application.PasswordResetRateLimitExceededException
 import com.profiletailors.smp.identity.application.RegistrationDisabledException
+import com.profiletailors.smp.identity.application.RegistrationInvitationRequiredException
 import com.profiletailors.smp.identity.application.RegistrationValidationException
 import com.profiletailors.smp.identity.application.UnverifiedEmailException
 import com.profiletailors.smp.identity.application.UsedPasswordResetTokenException
@@ -80,6 +81,16 @@ class IdentityProblemDetailsHandler {
         title = "Registration disabled"
         type = URI("/problems/registration-disabled")
         setProperty("code", "REGISTRATION_DISABLED")
+    }
+
+    @ExceptionHandler(RegistrationInvitationRequiredException::class)
+    fun handle(exception: RegistrationInvitationRequiredException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.FORBIDDEN,
+        exception.message ?: "A valid invitation is required to register.",
+    ).apply {
+        title = "Invitation required"
+        type = URI("/problems/registration-invitation-required")
+        setProperty("code", "REGISTRATION_INVITATION_REQUIRED")
     }
 
     @ExceptionHandler(RegistrationValidationException::class)
