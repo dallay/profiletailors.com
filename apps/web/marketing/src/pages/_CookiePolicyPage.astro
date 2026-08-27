@@ -1,6 +1,7 @@
 ---
 import Layout from '@layouts/Layout.astro'
 import Footer from '@components/Footer.astro'
+import Nav from '@components/Nav.astro'
 import LegalPolicyUnavailable from '@components/LegalPolicyUnavailable.astro'
 import { useTranslations } from '@i18n/utils'
 import type { Locale } from '@i18n/utils'
@@ -15,6 +16,9 @@ const t = useTranslations(locale)
 const policy = t.legal.cookies
 const links = t.footer.legalLinks
 const publicationApproved = isLegalPublicationApproved()
+
+const langHref = locale === 'en' ? '/es/cookies/' : '/cookies/'
+const langLabel = locale === 'en' ? 'Cambiar a español' : 'Switch to English'
 
 function renderLegalText(text: string): string {
   return text
@@ -39,6 +43,11 @@ function renderLegalText(text: string): string {
   includeStructuredData={publicationApproved}
 >
   <div id="main-content" class="fade-in" tabindex="-1">
+    <Nav
+      langSwitch={t.nav.langSwitch}
+      langHref={langHref}
+      langLabel={langLabel}
+    />
     {publicationApproved ? (
       <article class="max-w-3xl mx-auto px-6 py-16 sm:py-24">
 

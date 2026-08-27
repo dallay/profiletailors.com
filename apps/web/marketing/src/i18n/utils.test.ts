@@ -105,6 +105,59 @@ describe('i18n utils', () => {
     });
   });
 
+  describe('legal SEO (Ahrefs site audit)', () => {
+    const legalSectionKeys = ['privacy', 'terms', 'cookies', 'aup', 'accessibility'] as const;
+
+    it.each(legalSectionKeys)(
+      'EN %s.description is between 120 and 160 characters',
+      (key) => {
+        const t = useTranslations(new URL('https://example.com/'));
+        const description = t.legal[key].description;
+        expect(description.length).toBeGreaterThanOrEqual(120);
+        expect(description.length).toBeLessThanOrEqual(160);
+      }
+    );
+
+    it.each(legalSectionKeys)(
+      'ES %s.description is between 120 and 160 characters',
+      (key) => {
+        const t = useTranslations(new URL('https://example.com/es/'));
+        const description = t.legal[key].description;
+        expect(description.length).toBeGreaterThanOrEqual(120);
+        expect(description.length).toBeLessThanOrEqual(160);
+      }
+    );
+
+    it('EN /privacy/ title is at least 20 characters to avoid the Ahrefs "Title too short" warning', () => {
+      const t = useTranslations(new URL('https://example.com/'));
+      expect(t.legal.privacy.title.length).toBeGreaterThanOrEqual(20);
+    });
+
+    it('ES /es/privacy/ title is at least 20 characters', () => {
+      const t = useTranslations(new URL('https://example.com/es/'));
+      expect(t.legal.privacy.title.length).toBeGreaterThanOrEqual(20);
+    });
+
+    it('every @profiletailors.com address in legal copy is wrapped in a markdown mailto link', () => {
+      const enLegal = useTranslations(new URL('https://example.com/')).legal;
+      const esLegal = useTranslations(new URL('https://example.com/es/')).legal;
+      const legalCopy = JSON.stringify({ en: enLegal, es: esLegal });
+
+      const rawEmailRegex = /(?<![:[])\b[a-zA-Z0-9._%+-]+@profiletailors\.com\b(?![\])])/g;
+      const matches = legalCopy.match(rawEmailRegex) ?? [];
+      expect(matches).toEqual([]);
+    });
+
+    it('every @profiletailors.com address has a corresponding mailto: markdown link', () => {
+      const enLegal = useTranslations(new URL('https://example.com/')).legal;
+      const esLegal = useTranslations(new URL('https://example.com/es/')).legal;
+      const legalCopy = JSON.stringify({ en: enLegal, es: esLegal });
+
+      expect(legalCopy).toContain('[contact@profiletailors.com](mailto:contact@profiletailors.com)');
+      expect(legalCopy).toContain('[accessibility@profiletailors.com](mailto:accessibility@profiletailors.com)');
+    });
+  });
+
   describe('consent translations', () => {
     it('EN has a complete consent structure', () => {
       const t = useTranslations(new URL('https://example.com/'));
