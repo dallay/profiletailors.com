@@ -124,8 +124,7 @@ grep -r "cdn-cgi/l/email-protection" dist/   # must return no matches
 
 ## References
 
-- Ahrefs Site Audit project `9293424` — crawl history and full issue list at
-  <https://app.ahrefs.com/v3/site-audit/9293424/issues>
+- Ahrefs Site Audit project `9293424` — sign in at <https://app.ahrefs.com> to view crawl history and full issue list
 - Cloudflare Email Address Obfuscation — **Scrape Shield → Email Obfuscation** in the
   Cloudflare dashboard
 - Cloudflare HSTS Preload — <https://hstspreload.org>
