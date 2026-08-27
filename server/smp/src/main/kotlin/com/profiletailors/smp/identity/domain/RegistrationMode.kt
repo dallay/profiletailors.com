@@ -1,0 +1,15 @@
+package com.profiletailors.smp.identity.domain
+
+enum class RegistrationMode {
+    OPEN,
+    INVITE_ONLY,
+    CLOSED,
+    ;
+
+    fun evaluate(hasValidInvitation: Boolean): RegistrationDecision = when {
+        this == OPEN -> RegistrationDecision.ALLOWED
+        this == INVITE_ONLY && hasValidInvitation -> RegistrationDecision.ALLOWED
+        this == INVITE_ONLY -> RegistrationDecision.INVITATION_REQUIRED
+        else -> RegistrationDecision.CLOSED
+    }
+}

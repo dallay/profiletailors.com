@@ -21,7 +21,7 @@ class LocalAuthCapabilitiesBddSteps {
     private lateinit var database: BddDatabaseSupport
 
     @Autowired
-    private lateinit var registrationFlag: MutableRegistrationFlag
+    private lateinit var registrationFlag: MutableRegistrationPolicy
 
     @Autowired
     private lateinit var passwordRecoveryFlag: MutablePasswordRecoveryFlag
@@ -51,6 +51,11 @@ class LocalAuthCapabilitiesBddSteps {
     @Given("public registration is disabled")
     fun publicRegistrationIsDisabled() {
         registrationFlag.disable()
+    }
+
+    @Given("public registration is invite-only")
+    fun publicRegistrationIsInviteOnly() {
+        registrationFlag.inviteOnly()
     }
 
     @When("the visitor requests public application capabilities")
@@ -122,6 +127,12 @@ class LocalAuthCapabilitiesBddSteps {
     fun disabledRegistrationCode(code: String) {
         val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
         assertTrue(body.contains(""""code":"$code""""), "Expected $code in $body")
+    }
+
+    @Then("the invite-only registration response code should be {string}")
+    fun inviteOnlyRegistrationCode(code: String) {
+        val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
+        assertTrue(body.contains(""""code":"$code"""), "Expected $code in $body")
     }
 
     @Then("no local account, credential, workspace, consent, event, or session should be created")

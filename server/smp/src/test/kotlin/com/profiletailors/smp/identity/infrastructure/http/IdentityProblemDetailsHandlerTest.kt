@@ -11,6 +11,7 @@ import com.profiletailors.smp.identity.application.InvalidRegistrationInputExcep
 import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
 import com.profiletailors.smp.identity.application.PasswordRecoveryDisabledException
 import com.profiletailors.smp.identity.application.RegistrationDisabledException
+import com.profiletailors.smp.identity.application.RegistrationInvitationRequiredException
 import com.profiletailors.smp.identity.application.RegistrationValidationException
 import com.profiletailors.smp.identity.application.UnverifiedEmailException
 import com.profiletailors.smp.identity.application.UsedPasswordResetTokenException
@@ -44,6 +45,17 @@ class IdentityProblemDetailsHandlerTest {
         result.type shouldBe URI("/problems/registration-disabled")
         result.detail shouldBe "Registration is not available."
         result.properties?.get("code") shouldBe "REGISTRATION_DISABLED"
+    }
+
+    @Test
+    fun `invitation required maps to exact problem detail`() {
+        val result = handler.handle(RegistrationInvitationRequiredException())
+
+        result.status shouldBe HttpStatus.FORBIDDEN.value()
+        result.title shouldBe "Invitation required"
+        result.type shouldBe URI("/problems/registration-invitation-required")
+        result.detail shouldBe "A valid invitation is required to register."
+        result.properties?.get("code") shouldBe "REGISTRATION_INVITATION_REQUIRED"
     }
 
     @Test

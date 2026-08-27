@@ -60,7 +60,7 @@ services:
       SMP_LINKEDIN_REDIRECT_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in production/.env}/integrations/linkedin/callback
       SMP_EMAIL_SENDER: ${SMP_EMAIL_SENDER:-noreply@profiletailors.com}
       SMP_MEDIAPROVIDER_UNSPLASH_ENABLED: ${SMP_MEDIAPROVIDER_UNSPLASH_ENABLED:-false}
-      SMP_REGISTRATION_ENABLED: ${SMP_REGISTRATION_ENABLED:-false}
+      SMP_REGISTRATION_MODE: ${SMP_REGISTRATION_MODE:-CLOSED}
     secrets:
       - source: db_password
         target: SMP_DB_PASSWORD

@@ -59,7 +59,7 @@ application:
 app:
   identity:
     registration:
-      enabled: ${SMP_REGISTRATION_ENABLED:false}
+      mode: ${SMP_REGISTRATION_MODE:CLOSED}
   security:
     cors:
       allowed-origins: ${SMP_CORS_ALLOWED_ORIGINS:}  # comma-separated, empty = no CORS access

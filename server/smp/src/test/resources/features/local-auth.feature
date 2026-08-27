@@ -22,6 +22,13 @@ Feature: Local authentication session lifecycle
     And the disabled registration response code should be "REGISTRATION_DISABLED"
     And no local account, credential, workspace, consent, event, or session should be created
 
+  Scenario: Invite-only registration rejects before mutation
+    Given public registration is invite-only
+    When the visitor submits valid disabled registration details
+    Then the disabled registration response status should be 403
+    And the invite-only registration response code should be "REGISTRATION_INVITATION_REQUIRED"
+    And no local account, credential, workspace, consent, event, or session should be created
+
   Scenario: Disabled password recovery request rejects before token creation
     Given password recovery is disabled
     When the visitor requests a password reset for "user@example.com"
