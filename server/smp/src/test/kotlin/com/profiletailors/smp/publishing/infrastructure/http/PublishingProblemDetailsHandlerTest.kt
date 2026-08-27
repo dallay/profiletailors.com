@@ -204,4 +204,26 @@ class PublishingProblemDetailsHandlerTest {
         problem.title shouldBe "Bad Request"
         problem.detail shouldBe "limit must be between 1 and 100"
     }
+
+    @Test
+    fun `maps PublicationValidationException to 400 BAD_REQUEST`() {
+        val exception = com.profiletailors.smp.publishing.domain.PublicationValidationException(
+            "limit must be between 1 and 100, got 150",
+        )
+        val problem = handler.handle(exception)
+
+        problem.status shouldBe HttpStatus.BAD_REQUEST.value()
+        problem.title shouldBe "Bad Request"
+        problem.detail shouldBe "limit must be between 1 and 100, got 150"
+    }
+
+    @Test
+    fun `maps RecurringScheduleNotFoundException to 404 NOT_FOUND`() {
+        val exception = com.profiletailors.smp.publishing.application.RecurringScheduleNotFoundException("recur-123")
+        val problem = handler.handle(exception)
+
+        problem.status shouldBe HttpStatus.NOT_FOUND.value()
+        problem.title shouldBe "Recurring schedule not found"
+        problem.detail shouldBe "Recurring schedule not found."
+    }
 }

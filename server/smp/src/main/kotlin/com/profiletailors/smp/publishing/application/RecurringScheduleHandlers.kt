@@ -154,7 +154,7 @@ class UpdateRecurringScheduleHandler(
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current =
             scheduleRepository.findByWorkspaceAndId(workspaceId, command.id)
-                ?: throw IllegalArgumentException("Recurring schedule '${command.id}' was not found.")
+                ?: throw RecurringScheduleNotFoundException(command.id)
         val rule = command.recurrenceRule ?: current.recurrenceRule
         val zone = ZoneId.of(command.timezone ?: current.timezone)
         val start = (command.startsAt ?: current.nextScheduledAt ?: clock.instant()).atZone(zone)
@@ -191,8 +191,8 @@ class DeleteRecurringScheduleHandler(
             AuthFeature.SCHEDULE_POST,
         )
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
-        require(scheduleRepository.delete(workspaceId, command.id)) {
-            "Recurring schedule '${command.id}' was not found."
+        if (!scheduleRepository.delete(workspaceId, command.id)) {
+            throw RecurringScheduleNotFoundException(command.id)
         }
     }
 }

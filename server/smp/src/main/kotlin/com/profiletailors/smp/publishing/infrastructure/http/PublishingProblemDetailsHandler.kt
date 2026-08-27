@@ -3,6 +3,7 @@ package com.profiletailors.smp.publishing.infrastructure.http
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.application.PublicationNotFoundException
+import com.profiletailors.smp.publishing.application.RecurringScheduleNotFoundException
 import com.profiletailors.smp.publishing.application.SocialContentActorNotFoundException
 import com.profiletailors.smp.publishing.application.SocialContentPostIsolationException
 import com.profiletailors.smp.publishing.application.SocialContentPostNotFoundException
@@ -17,6 +18,7 @@ import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedExc
 import com.profiletailors.smp.publishing.domain.PublicationEditNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationRetryNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationStateTransitionException
+import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.SocialContentAccessDeniedException
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
@@ -25,7 +27,7 @@ import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = ["com.profiletailors.smp.publishing"])
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Suppress("TooManyFunctions")
 class PublishingProblemDetailsHandler {
@@ -98,12 +100,6 @@ class PublishingProblemDetailsHandler {
         setProperty("code", exception.denial.name)
     }
 
-    /**
-     * Creates a conflict response for social content workspace isolation violations.
-     *
-     * @param exception The social content post isolation exception.
-     * @return A problem detail with HTTP status 409 and a workspace conflict title.
-     */
     @ExceptionHandler(SocialContentPostIsolationException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: SocialContentPostIsolationException): ProblemDetail = ProblemDetail.forStatusAndDetail(
@@ -113,13 +109,14 @@ class PublishingProblemDetailsHandler {
         title = "Social content workspace conflict"
     }
 
-    /**
-     * Creates a bad-request problem detail for an invalid request argument.
-     *
-     * @param exception The invalid argument exception.
-     * @return A problem detail with HTTP status 400 and the exception message, or a fallback
-     * message when no message is available.
-     */
+    @ExceptionHandler(PublicationValidationException::class)
+    fun handle(exception: PublicationValidationException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.BAD_REQUEST,
+        exception.message ?: "Invalid request argument",
+    ).apply {
+        title = "Bad Request"
+    }
+
     @ExceptionHandler(IllegalArgumentException::class)
     fun handle(exception: IllegalArgumentException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.BAD_REQUEST,
@@ -128,12 +125,15 @@ class PublishingProblemDetailsHandler {
         title = "Bad Request"
     }
 
-    /**
-     * Creates a bad-request problem detail for an expired OAuth state.
-     *
-     * @param exception The expired OAuth state exception.
-     * @return A problem detail with an HTTP 400 status and an OAuth state expiration message.
-     */
+    @ExceptionHandler(RecurringScheduleNotFoundException::class)
+    @Suppress("UNUSED_PARAMETER")
+    fun handle(exception: RecurringScheduleNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.NOT_FOUND,
+        RECURRING_SCHEDULE_NOT_FOUND_DETAIL,
+    ).apply {
+        title = "Recurring schedule not found"
+    }
+
     @ExceptionHandler(ExpiredOAuthStateException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: ExpiredOAuthStateException): ProblemDetail =
@@ -214,6 +214,7 @@ class PublishingProblemDetailsHandler {
         private const val PUBLICATION_STATE_CONFLICT_DETAIL =
             "The publication cannot transition from its current state."
         private const val PUBLICATION_NOT_FOUND_DETAIL = "Publication not found."
+        private const val RECURRING_SCHEDULE_NOT_FOUND_DETAIL = "Recurring schedule not found."
         private const val SOCIAL_CONTENT_POST_NOT_FOUND_DETAIL = "Social content post not found."
         private const val SOCIAL_CONTENT_ACTOR_NOT_FOUND_DETAIL = "Social content actor not found."
         private const val SOCIAL_CONTENT_ACCESS_DENIED_DETAIL = "Social content access denied."
