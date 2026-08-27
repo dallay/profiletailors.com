@@ -15,7 +15,7 @@ const policy = t.legal.accessibility;
 const links = t.footer.legalLinks;
 
 const langHref = locale === "en" ? "/es/accessibility/" : "/accessibility/";
-const langLabel = locale === "en" ? "Cambiar a español" : "Switch to English";
+const langLabel = t.nav.langSwitchLabel;
 
 function renderText(text: string): string {
     return text

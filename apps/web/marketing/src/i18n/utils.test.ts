@@ -138,23 +138,32 @@ describe('i18n utils', () => {
       expect(t.legal.privacy.title.length).toBeGreaterThanOrEqual(20);
     });
 
-    it('every @profiletailors.com address in legal copy is wrapped in a markdown mailto link', () => {
+    it('EN legal copy has no raw @profiletailors.com addresses (Cloudflare email obfuscation safeguard)', () => {
       const enLegal = useTranslations(new URL('https://example.com/')).legal;
-      const esLegal = useTranslations(new URL('https://example.com/es/')).legal;
-      const legalCopy = JSON.stringify({ en: enLegal, es: esLegal });
-
       const rawEmailRegex = /(?<![:[])\b[a-zA-Z0-9._%+-]+@profiletailors\.com\b(?![\])])/g;
-      const matches = legalCopy.match(rawEmailRegex) ?? [];
+      const matches = JSON.stringify(enLegal).match(rawEmailRegex) ?? [];
       expect(matches).toEqual([]);
     });
 
-    it('every @profiletailors.com address has a corresponding mailto: markdown link', () => {
-      const enLegal = useTranslations(new URL('https://example.com/')).legal;
+    it('ES legal copy has no raw @profiletailors.com addresses (Cloudflare email obfuscation safeguard)', () => {
       const esLegal = useTranslations(new URL('https://example.com/es/')).legal;
-      const legalCopy = JSON.stringify({ en: enLegal, es: esLegal });
+      const rawEmailRegex = /(?<![:[])\b[a-zA-Z0-9._%+-]+@profiletailors\.com\b(?![\])])/g;
+      const matches = JSON.stringify(esLegal).match(rawEmailRegex) ?? [];
+      expect(matches).toEqual([]);
+    });
 
-      expect(legalCopy).toContain('[contact@profiletailors.com](mailto:contact@profiletailors.com)');
-      expect(legalCopy).toContain('[accessibility@profiletailors.com](mailto:accessibility@profiletailors.com)');
+    it('EN legal copy has mailto links for contact and accessibility addresses', () => {
+      const enLegal = useTranslations(new URL('https://example.com/')).legal;
+      const enStr = JSON.stringify(enLegal);
+      expect(enStr).toContain('[contact@profiletailors.com](mailto:contact@profiletailors.com)');
+      expect(enStr).toContain('[accessibility@profiletailors.com](mailto:accessibility@profiletailors.com)');
+    });
+
+    it('ES legal copy has mailto links for contact and accessibility addresses', () => {
+      const esLegal = useTranslations(new URL('https://example.com/es/')).legal;
+      const esStr = JSON.stringify(esLegal);
+      expect(esStr).toContain('[contact@profiletailors.com](mailto:contact@profiletailors.com)');
+      expect(esStr).toContain('[accessibility@profiletailors.com](mailto:accessibility@profiletailors.com)');
     });
   });
 

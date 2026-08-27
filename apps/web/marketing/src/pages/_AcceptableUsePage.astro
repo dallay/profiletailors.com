@@ -18,7 +18,7 @@ const links = t.footer.legalLinks
 const publicationApproved = isLegalPublicationApproved()
 
 const langHref = locale === 'en' ? '/es/acceptable-use/' : '/acceptable-use/'
-const langLabel = locale === 'en' ? 'Cambiar a español' : 'Switch to English'
+const langLabel = t.nav.langSwitchLabel
 
 function renderLegalText(text: string): string {
   return text

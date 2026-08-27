@@ -3,6 +3,7 @@ export const en = {
   nav: {
     name: 'Profile Tailors',
     langSwitch: 'ES',
+    langSwitchLabel: 'Cambiar a español',
   },
   hero: {
     label: 'EARLY ACCESS PREVIEW',
