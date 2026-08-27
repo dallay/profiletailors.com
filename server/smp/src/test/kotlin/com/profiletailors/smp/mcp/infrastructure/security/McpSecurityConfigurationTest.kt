@@ -54,7 +54,7 @@ import java.util.Date
         "app.security.auth-rate-limit.enabled=false",
         "app.security.refresh-session.cookie-name=pt_refresh",
         "app.security.refresh-session.cookie-path=/api/auth",
-        "app.identity.registration.enabled=false",
+        "app.identity.registration.mode=CLOSED",
         "management.endpoint.health.group.readiness.include=readinessState",
         "management.endpoint.health.group.liveness.include=livenessState",
         "platform.storage.default=attachments",
