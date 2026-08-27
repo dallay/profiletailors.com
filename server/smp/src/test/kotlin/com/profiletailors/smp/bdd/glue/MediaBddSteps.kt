@@ -117,12 +117,6 @@ class MediaBddSteps {
 
     // ---------------------------------------------------------------------------
     // Then
-    /**
-     * Verifies that the latest media response has the expected HTTP status.
-     *
-     * @param status The expected HTTP status code.
-     * @throws IllegalStateException If no media response has been captured.
-     */
 
     @Then("the media response status should be {int}")
     fun thenMediaResponseStatusShouldBe(status: Int) {
