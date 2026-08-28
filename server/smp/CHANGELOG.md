@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.7](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.6...smp@v0.4.7) (2026-08-28)
+
+
+### Features
+
+* [Backend] Close PR2 HTTP and Spring context contract evidence gaps ([#868](https://github.com/dallay/profiletailors.com/issues/868)) ([be75737](https://github.com/dallay/profiletailors.com/commit/be757378b6760475eb77c653202619a884d5d367))
+* **identity:** add typed registration policy modes ([#873](https://github.com/dallay/profiletailors.com/issues/873)) ([ffa1197](https://github.com/dallay/profiletailors.com/commit/ffa1197f14aa45851ad439d697d24476f831601d))
+
 ## [0.4.6](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.5...smp@v0.4.6) (2026-08-26)
 
 
