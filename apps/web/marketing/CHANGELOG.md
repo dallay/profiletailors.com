@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.8](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.7...landing@v0.2.8) (2026-08-28)
+
+
+### Bug Fixes
+
+* **beta:** wire private beta activation flow ([#883](https://github.com/dallay/profiletailors.com/issues/883)) ([e1e7fcf](https://github.com/dallay/profiletailors.com/commit/e1e7fcfeb331416b1445a7868771fcf4d5419d38))
+
 ## [0.2.7](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.6...landing@v0.2.7) (2026-08-28)
 
 
