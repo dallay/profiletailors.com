@@ -101,13 +101,13 @@ The results below are acceptance results. The Fenix observations are cited as en
 
 ## Troubleshooting
 
-## Verdict
+### Verdict
 
 **BLOCKED — local frontend acceptance evidence improved, but the overall acceptance gate remains blocked.**
 
 The invitee frontend scenarios 3.1–3.6 and the fresh-registration first-post scenario 3.1c now have focused local Chromium evidence, in addition to the 8/8 invitation view unit tests and Biome checks. This is a meaningful improvement to the implementation handoff, but it is not managed-beta, deployed-backend, provider-side, operator, or end-user acceptance evidence. Archive remains prohibited until the change is exercised against an approved matching managed-beta release and the remaining operational/provider/post-accept scenarios are completed or explicitly waived by the product owner.
 
-### Blocking conditions
+#### Blocking conditions
 
 - No approved managed-beta environment matching the current implementation was supplied.
 - Fenix is production, not a disposable acceptance environment, and no approved production change window or mutation permission was supplied.
@@ -116,7 +116,7 @@ The invitee frontend scenarios 3.1–3.6 and the fresh-registration first-post s
 - No operator walkthrough, rollback exercise, backup/restore drill, or user acceptance evidence was supplied.
 - Deployed post-accept scheduling and provider publishing behavior remains untested; local schedule-now UI coverage uses mocks.
 
-### Required next evidence
+#### Required next evidence
 
 1. Build and deploy an approved release containing the current backend and frontend changes to a managed beta environment.
 2. Re-run P2-QA-01 through P2-QA-08 in that environment with disposable data, provider test credentials, correlation IDs, and rollback coverage.
@@ -124,7 +124,7 @@ The invitee frontend scenarios 3.1–3.6 and the fresh-registration first-post s
 4. Run post-accept scheduling/publishing acceptance against the matching deployed backend and provider boundary for P3-QA-07.
 5. Obtain product-owner/operator sign-off or an explicit written waiver for any acceptance scenario intentionally deferred.
 
-## Risks
+### Risks
 
 - Treating local mocked auth acceptance as deployed end-to-end acceptance would overstate launch readiness.
 - Exercising worker or provider behavior on Fenix without an approved change window could affect production publications.
