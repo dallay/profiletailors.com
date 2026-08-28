@@ -45,8 +45,8 @@ Chain strategy: size-exception
 
 ## Phase 3: HTTP and Spring integration
 
-- [ ] 3.1 **RED→GREEN:** Test v1 headers, invalid range/cursor/limit, isolation, detail immutability, and problem details; complete explicit version mappings and validation in `PublishingControllers.kt`.
-- [ ] 3.2 **RED→GREEN:** Add application-context tests for `SocialContentConfiguration.kt`; bind production/fake beans conditionally so disabled operations resolve neither credentials nor external transport.
+- [x] 3.1 **RED→GREEN:** Test v1 headers, invalid range/cursor/limit, isolation, detail immutability, and problem details; complete explicit version mappings and validation in `PublishingControllers.kt`. RED captured missing `version = "1"` on `SocialContentController` endpoints and lack of limit validation; GREEN verifies explicit version mappings via annotation check and vendor header negotiation (`application/vnd.api.v1+json`), limit bounds validation with complete Problem Details for invalid limits, and 400 for blank actorId in `SocialContentControllersTest` with Kotest assertions. Remaining coverage gaps: invalid ranges/cursors, workspace isolation, post-detail immutability, and the broader `PublishingProblemDetailsHandlerTest` contract are not demonstrated by this controller test.
+- [x] 3.2 **RED→GREEN:** Add application-context tests for `SocialContentConfiguration.kt`; bind production/fake beans conditionally so disabled operations resolve neither credentials nor external transport. RED captured missing property assertions; GREEN verified bean loading and default disabled feature flags, and that `linkedInHttpTransport` and `linkedInCredentialGateway` are absent from the isolated `SocialContentConfiguration` context via `SocialContentConfigurationTest` (isolated `ApplicationContextRunner` check; not full operation invocation with zero credential-resolver/HTTP-transport call verification).
 
 ## Phase 4: Cucumber and focused verification
 

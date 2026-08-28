@@ -431,10 +431,40 @@ class PublishingControllersTest {
 
     @Test
     fun `requiredScheduleMode throws when scheduleMode is null`() {
-        val error = assertThrows(IllegalArgumentException::class.java) {
+        val error = assertThrows(com.profiletailors.smp.publishing.domain.PublicationValidationException::class.java) {
             PublicationRescheduleRequest().requiredScheduleMode()
         }
         assertEquals("scheduleMode is required for reschedule.", error.message)
+    }
+
+    @Test
+    fun `listPublications rejects invalid limit`() = runTest {
+        val controller = PublishingPublicationController(CapturingMediator())
+        val error = assertThrows(com.profiletailors.smp.publishing.domain.PublicationValidationException::class.java) {
+            runBlocking { controller.listPublications(limit = 0) }
+        }
+        assertTrue(error.message!!.contains("limit must be between"))
+    }
+
+    @Test
+    fun `listPublications rejects negative offset`() = runTest {
+        val controller = PublishingPublicationController(CapturingMediator())
+        val error = assertThrows(com.profiletailors.smp.publishing.domain.PublicationValidationException::class.java) {
+            runBlocking { controller.listPublications(offset = -1) }
+        }
+        assertTrue(error.message!!.contains("offset must be non-negative"))
+    }
+
+    @Test
+    fun `recurring schedule controller rejects mismatched workspace`() = runTest {
+        val controller = RecurringScheduleController(
+            mediator = CapturingMediator(),
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+        )
+        val error = assertThrows(com.profiletailors.smp.publishing.domain.PublicationValidationException::class.java) {
+            runBlocking { controller.list("workspace-2") }
+        }
+        assertEquals("Workspace path does not match the authenticated workspace.", error.message)
     }
 
     @Test
