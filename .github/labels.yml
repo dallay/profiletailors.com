@@ -37,3 +37,7 @@
 - name: "status:stale"
   color: "ffffff"
   description: "Marked as inactive, pending closure"
+
+- name: "do-not-review"
+  color: "d73a4a"
+  description: "Skip automatic review. Applied by the author when a PR is not ready."
