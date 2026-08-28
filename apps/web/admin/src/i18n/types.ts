@@ -4,6 +4,7 @@ export type MessageSchema = {
     waitlist: string
     users: string
     audit: string
+    platformAdministration: string
   }
   common: {
     loading: string
@@ -78,6 +79,8 @@ export type MessageSchema = {
     cancelReasonRequired: string
     revokeConfirmTitle: string
     revokeConfirmMessage: string
+    entries: string
+    invitationHistory: string
     statuses: { pending: string; invited: string; converted: string; cancelled: string }
     filters: { status: string; search: string; all: string }
   }
@@ -90,6 +93,7 @@ export type MessageSchema = {
     authMethods: string
     workspaces: string
     platformRoles: string
+    workspaceMemberships: string
   }
   audit: {
     title: string
@@ -101,6 +105,8 @@ export type MessageSchema = {
     targetId: string
     result: string
     reason: string
+    filterByAction: string
+    allResults: string
     results: { succeeded: string; rejected: string; failed: string }
   }
   operators: {

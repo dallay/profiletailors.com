@@ -227,7 +227,7 @@ container storage.
 - **Type:** Comma-separated URLs
 - **Description:** Allowed origins for CORS preflight requests.
 - **Risk:** LOW (misconfiguration risk, not a secret)
-- **Example:** `https://app.profiletailors.com,https://admin.profiletailors.com,https://staging.profiletailors.com`
+- **Example:** `https://app.profiletailors.com,https://admin.profiletailors.com`
 - **Generation:** Define based on deployed frontend URLs.
 - **Rotation:** Update when frontend domains change, restart app.
 - **Access:** Infrastructure admins, deployment automation.

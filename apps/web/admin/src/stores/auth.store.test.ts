@@ -147,11 +147,58 @@ describe('useAdminAuthStore', () => {
     expect(store.accessToken).toBe('access-token')
     expect(store.principal).toEqual(mockPrincipal)
     const sessionRequest = fetchMock.mock.calls[1]
-    expect(sessionRequest?.[0]).toBe('/api/admin/session')
+    expect(sessionRequest?.[0]).toBe('http://localhost:7638/api/admin/session')
     expect(sessionRequest?.[1]?.credentials).toBe('include')
     expect(new Headers(sessionRequest?.[1]?.headers).get('Authorization')).toBe(
       'Bearer access-token',
     )
+  })
+
+  it('coalesces concurrent refreshes before retrying protected requests', async () => {
+    let protectedRequestCount = 0
+    let refreshRequestCount = 0
+    let resolveRefresh: (response: Response) => void = () => {}
+    const refreshResponse = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const path = String(input)
+        if (path.endsWith('/api/auth/refresh')) {
+          refreshRequestCount += 1
+          return refreshResponse
+        }
+        protectedRequestCount += 1
+        if (protectedRequestCount <= 2) return Promise.resolve(errorResponse(401))
+        return Promise.resolve(jsonResponse({ ok: true }))
+      }),
+    )
+    const store = useAdminAuthStore()
+
+    const requests = [store.request('/api/admin/one'), store.request('/api/admin/two')]
+    await vi.waitFor(() => expect(refreshRequestCount).toBe(1))
+    resolveRefresh(jsonResponse({ accessToken: 'refreshed-token' }))
+    const responses = await Promise.all(requests)
+
+    expect(responses.every((response) => response.ok)).toBe(true)
+    expect(refreshRequestCount).toBe(1)
+    expect(protectedRequestCount).toBe(4)
+  })
+
+  it('preserves the session and propagates an unsuccessful logout response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(errorResponse(500)))
+    const store = useAdminAuthStore()
+    store.principal = {
+      principalId: 'test-id',
+      email: 'admin@example.com',
+      displayName: null,
+      platformRoles: ['PLATFORM_OWNER'],
+    }
+
+    await expect(store.signOut()).rejects.toMatchObject({ status: 500 })
+
+    expect(store.principal?.principalId).toBe('test-id')
   })
 })
 
@@ -160,5 +207,13 @@ function jsonResponse(body: unknown): Response {
     ok: true,
     status: 200,
     json: async () => body,
+  } as Response
+}
+
+function errorResponse(status: number): Response {
+  return {
+    ok: false,
+    status,
+    json: async () => ({}),
   } as Response
 }

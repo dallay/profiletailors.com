@@ -53,7 +53,7 @@ Target URL: `https://pt-admin.localhost` (or `http://localhost:5174` fallback).
 | --- | --- | --- | --- |
 | `VITE_API_BASE_URL` | No | Build-time base URL for backend administrative endpoints | `http://localhost:7638` |
 
-For the production admin build, set `VITE_API_BASE_URL=https://api.profiletailors.com`. The admin browser client sends credentialed requests directly to that origin, so the backend deployment must also include both `https://app.profiletailors.com` and `https://admin.profiletailors.com` in `SMP_CORS_ALLOWED_ORIGIN` before the new admin build is published.
+For the production admin build, set `VITE_API_BASE_URL=https://api.profiletailors.com`. The admin browser client sends credentialed requests directly to that origin, so the backend deployment must also include both `https://app.profiletailors.com` and `https://admin.profiletailors.com` in `SMP_CORS_ALLOWED_ORIGINS` before the new admin build is published.
 
 ## Project structure
 

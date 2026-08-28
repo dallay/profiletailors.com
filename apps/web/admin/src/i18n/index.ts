@@ -6,6 +6,7 @@ export const en: MessageSchema = {
     waitlist: 'Waitlist',
     users: 'Users',
     audit: 'Audit',
+    platformAdministration: 'Platform administration navigation',
   },
   common: {
     loading: 'Loading...',
@@ -82,6 +83,8 @@ export const en: MessageSchema = {
     revokeConfirmTitle: 'Revoke invitation?',
     revokeConfirmMessage:
       'The active invitation for {email} will be revoked. The waitlist entry will remain invited.',
+    entries: 'Waitlist entries',
+    invitationHistory: 'Invitation History',
     statuses: {
       pending: 'Pending',
       invited: 'Invited',
@@ -103,6 +106,7 @@ export const en: MessageSchema = {
     authMethods: 'Auth Methods',
     workspaces: 'Workspaces',
     platformRoles: 'Platform Roles',
+    workspaceMemberships: 'Workspace memberships',
   },
   audit: {
     title: 'Audit Events',
@@ -114,6 +118,8 @@ export const en: MessageSchema = {
     targetId: 'Target ID',
     result: 'Result',
     reason: 'Reason',
+    filterByAction: 'Filter by action',
+    allResults: 'All results',
     results: {
       succeeded: 'Succeeded',
       rejected: 'Rejected',
@@ -145,6 +151,7 @@ export const es: MessageSchema = {
     waitlist: 'Lista de espera',
     users: 'Usuarios',
     audit: 'Auditoría',
+    platformAdministration: 'Navegación de administración de plataforma',
   },
   common: {
     loading: 'Cargando...',
@@ -221,6 +228,8 @@ export const es: MessageSchema = {
     revokeConfirmTitle: '¿Revocar invitación?',
     revokeConfirmMessage:
       'Se revocará la invitación activa de {email}. La entrada permanecerá como invitada.',
+    entries: 'Entradas de la lista de espera',
+    invitationHistory: 'Historial de invitaciones',
     statuses: {
       pending: 'Pendiente',
       invited: 'Invitado',
@@ -242,6 +251,7 @@ export const es: MessageSchema = {
     authMethods: 'Métodos de autenticación',
     workspaces: 'Espacios de trabajo',
     platformRoles: 'Roles de plataforma',
+    workspaceMemberships: 'Membresías de espacios de trabajo',
   },
   audit: {
     title: 'Eventos de auditoría',
@@ -253,6 +263,8 @@ export const es: MessageSchema = {
     targetId: 'ID de objetivo',
     result: 'Resultado',
     reason: 'Motivo',
+    filterByAction: 'Filtrar por acción',
+    allResults: 'Todos los resultados',
     results: {
       succeeded: 'Exitoso',
       rejected: 'Rechazado',

@@ -26,11 +26,11 @@ describe('LoginView', () => {
     const wrapper = mountLogin()
 
     await wrapper.get('[data-testid="admin-login-email"]').setValue(' Admin@Example.com ')
-    await wrapper.get('[data-testid="admin-login-password"]').setValue('password')
+    await wrapper.get('[data-testid="admin-login-password"]').setValue(' password ')
     await wrapper.get('[data-testid="admin-login-form"]').trigger('submit')
     await flushPromises()
 
-    expect(signIn).toHaveBeenCalledWith('admin@example.com', 'password')
+    expect(signIn).toHaveBeenCalledWith('admin@example.com', ' password ')
     expect(replace).toHaveBeenCalledWith('/waitlist')
   })
 

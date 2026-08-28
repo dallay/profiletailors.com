@@ -146,9 +146,9 @@ onMounted(fetchEntry)
 
       <div v-if="actionError" role="alert" class="mb-4 text-sm text-error">{{ actionError }}</div>
 
-      <h2 class="mb-3 text-lg font-semibold text-text-display">Invitation History</h2>
+      <h2 class="mb-3 text-lg font-semibold text-text-display">{{ t('waitlist.invitationHistory') }}</h2>
       <div v-if="!entry.invitationHistory?.length" class="text-sm text-text-secondary">{{ t('common.noData') }}</div>
-      <table v-else class="admin-table w-full text-left text-sm" aria-label="Invitation history">
+      <table v-else class="admin-table w-full text-left text-sm" :aria-label="t('waitlist.invitationHistory')">
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">Status</th>

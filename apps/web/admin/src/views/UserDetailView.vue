@@ -80,7 +80,7 @@ onMounted(fetchUser)
 
       <h2 class="mb-3 text-lg font-semibold text-text-display">{{ t('users.workspaces') }}</h2>
       <div v-if="!workspaces.length" class="text-sm text-text-secondary">{{ t('common.noData') }}</div>
-      <table v-else class="admin-table w-full text-left text-sm" aria-label="Workspace memberships">
+      <table v-else class="admin-table w-full text-left text-sm" :aria-label="t('users.workspaceMemberships')">
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">Workspace</th>
