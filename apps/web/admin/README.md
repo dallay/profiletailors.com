@@ -8,7 +8,7 @@ Serves as an internal-only administration surface (`https://pt-admin.localhost`)
 
 ## Tech stack
 
-- **Runtime & Language**: Node.js (`>=22.12.0`), TypeScript 6.0
+- **Runtime & Language**: Node.js (`>=24.19.0`), TypeScript 6.0
 - **Framework & State**: Vue 3.5, Pinia 4.0, Vue Router 5.2
 - **UI & Styling**: Tailwind CSS 4.3, Reka UI, shadcn-vue, Lucide Vue, TanStack Table
 - **Internationalization**: Vue I18n 11.4
@@ -19,7 +19,7 @@ Serves as an internal-only administration surface (`https://pt-admin.localhost`)
 
 ### Prerequisites
 
-- Node.js `>= 22.12.0`
+- Node.js `>= 24.19.0`
 - pnpm `>= 11.8.0`
 - `just` task runner (`>= 1.30`)
 

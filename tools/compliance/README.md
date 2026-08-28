@@ -8,7 +8,7 @@ Acts as an automated compliance gate in local development and CI pipelines. It p
 
 ## Tech stack
 
-- **Runtime & Language**: Node.js (`>=22.12.0`), TypeScript 5.9
+- **Runtime & Language**: Node.js (`>=24.19.0`), TypeScript 5.9
 - **Validation**: Zod 4.4, YAML 2.9, JSON Schema
 - **Testing**: Vitest 4.1
 
@@ -16,7 +16,7 @@ Acts as an automated compliance gate in local development and CI pipelines. It p
 
 ### Prerequisites
 
-- Node.js `>= 22.12.0`
+- Node.js `>= 24.19.0`
 - pnpm `>= 11.8.0`
 
 ### Installation
