@@ -29,6 +29,12 @@ internal data class AuthSessionContext(
     val refreshSessionLifecycleService: RefreshSessionLifecycleService,
 )
 
+/**
+ * Creates an authenticated session containing access and refresh tokens.
+ *
+ * @param context The identity, workspace, token, and refresh-session data used to create the session.
+ * @return The access token details and refresh token for the authenticated session.
+ */
 internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSessionResult {
     val token = context.localJwtIssuer.issue(
         principalId = context.principalId,
@@ -72,6 +78,15 @@ internal class RegisterUserHandler(
     private val recordConsentHandler: RecordConsentHandler,
 ) : CommandWithResultHandler<RegisterUserCommand, LocalAuthSessionResult> {
 
+    /**
+     * Registers a user and issues an authenticated session with pending email status.
+     *
+     * @param command The registration details, including optional invitation and consent information.
+     * @return The authenticated access and refresh session for the newly registered user.
+     * @throws RegistrationInvitationRequiredException If registration requires an invitation and none is provided.
+     * @throws RegistrationDisabledException If registration is currently closed.
+     * @throws UserAlreadyExistsException If the email is already associated with a user.
+     */
     override suspend fun handle(command: RegisterUserCommand): LocalAuthSessionResult {
         val invitationToken = command.invitationToken?.trim()?.takeIf { it.isNotEmpty() }
         when (registrationPolicy.evaluate(hasInvitationToken = invitationToken != null)) {
@@ -133,6 +148,17 @@ internal class RegisterUserHandler(
         )
     }
 
+    /**
+     * Creates the user's identity, credentials, workspace membership, consent records, and email-verification token atomically.
+     *
+     * @param command Registration data, including the optional invitation token and accepted terms version.
+     * @param principalId The principal identifier for the new user.
+     * @param subject The local subject identifier for the new user.
+     * @param normalizedEmail The normalized email address.
+     * @param normalizedUsername The normalized username.
+     * @return The raw email-verification token and resolved workspace identifier.
+     * @throws UserAlreadyExistsException If a unique-constraint violation indicates that the email is already registered.
+     */
     private suspend fun runRegistrationTransaction(
         command: RegisterUserCommand,
         principalId: String,

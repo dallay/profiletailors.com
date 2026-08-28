@@ -92,6 +92,9 @@ class LocalAuthCapabilitiesBddSteps {
         assertEquals(status, response().status.value())
     }
 
+    /**
+     * Verifies that the public capabilities response contains exactly the allow-listed capabilities, all enabled, without SSO capabilities.
+     */
     @Then("the public capabilities response should equal the exact allow-listed contract")
     fun exactPublicCapabilitiesContract() {
         val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
@@ -105,6 +108,12 @@ class LocalAuthCapabilitiesBddSteps {
         assertFalse(body.contains("sso"))
     }
 
+    /**
+     * Verifies that the public capabilities response contains exactly the disabled capability contract.
+     *
+     * The contract requires registration and password recovery to be disabled, while invitation acceptance
+     * remains enabled.
+     */
     @Then("the public capabilities response should equal the exact disabled allow-listed contract")
     fun exactDisabledPublicCapabilitiesContract() {
         val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
@@ -118,6 +127,11 @@ class LocalAuthCapabilitiesBddSteps {
         assertTrue(json.get("invitationAcceptanceEnabled").booleanValue())
     }
 
+    /**
+     * Verifies the HTTP status of the disabled registration response.
+     *
+     * @param status The expected HTTP status code.
+     */
     @Then("the disabled registration response status should be {int}")
     fun disabledRegistrationStatus(status: Int) {
         val captured = response()

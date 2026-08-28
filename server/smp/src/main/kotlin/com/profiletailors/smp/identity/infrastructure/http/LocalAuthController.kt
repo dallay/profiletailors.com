@@ -48,6 +48,12 @@ class LocalAuthController(
     private val refreshSessionProperties: RefreshSessionProperties,
 ) {
 
+    /**
+     * Registers a new user account and establishes an authenticated session.
+     *
+     * @param request The validated registration details.
+     * @return A created response containing authentication tokens and a refresh-session cookie.
+     */
     @Operation(summary = "Register a new user account")
     @PostMapping("/register", consumes = ["application/json"], version = "1")
     suspend fun register(@Valid @RequestBody request: RegisterUserRequest): ResponseEntity<AuthTokens> {
