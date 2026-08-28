@@ -3,8 +3,8 @@
   "release-type": "simple",
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": true,
+  "separate-pull-requests": true,
   "pull-request-title-pattern": "chore${scope}: release${component} ${version}",
-  "group-pull-request-title-pattern": "chore${scope}: release${component} ${version}",
   "changelog-sections": [
     { "type": "feat",     "section": "Features"        },
     { "type": "fix",      "section": "Bug Fixes"       },
