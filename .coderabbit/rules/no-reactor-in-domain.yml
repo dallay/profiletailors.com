@@ -2,7 +2,7 @@ id: no-reactor-in-domain
 language: Kotlin
 severity: error
 message: |
-  � Domain layer MUST NOT depend on Reactor. Keep domain code framework-free
+  🚨 Domain layer MUST NOT depend on Reactor. Keep domain code framework-free
   and transport-agnostic. Use suspend functions or pure Kotlin abstractions.
 rule:
   any:

@@ -301,6 +301,8 @@ reviews:
     auto_pause_after_reviewed_commits: 10  # pause after 10 reviewed pushes
     base_branches:
       - '.*'                           # review against any base branch
+    labels:
+      - '!do-not-review'               # exclude PRs with do-not-review label
     ignore_title_keywords:
       - 'WIP'
       - 'DO NOT MERGE'
