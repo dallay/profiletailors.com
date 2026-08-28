@@ -9,10 +9,10 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
 }))
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
 
-function mountForm() {
+function mountForm(invitationToken?: string) {
   return mount(RegisterForm, {
     attachTo: document.body,
-    props: { email: '' },
+    props: { email: '', invitationToken },
     global: { stubs: { RouterLink: { props: ['to'], template: '<a><slot /></a>' } } },
   })
 }
@@ -97,5 +97,21 @@ describe('RegisterForm', () => {
       '',
     )
     expect((second.get('#terms').element as HTMLInputElement).checked).toBe(false)
+  })
+
+  it('passes the invitation token to registration', async () => {
+    registerWithPassword.mockResolvedValue(undefined)
+    const wrapper = mountForm('raw-token')
+    await setEmail(wrapper, 'invitee@example.com')
+    const passwords = wrapper.findAll('input[type="password"]')
+    await passwords[0]!.setValue('Str0ng!Passw0rd')
+    await passwords[1]!.setValue('Str0ng!Passw0rd')
+    await wrapper.get('#ageEligibility').setValue(true)
+    await wrapper.get('#terms').setValue(true)
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+    expect(registerWithPassword).toHaveBeenCalledWith(
+      expect.objectContaining({ invitationToken: 'raw-token' }),
+    )
   })
 })

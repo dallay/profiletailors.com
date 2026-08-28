@@ -149,7 +149,7 @@ describe('AcceptInvitationView branch coverage', () => {
     expect(wrapper.text()).toContain('invitation.errors.notFound')
   })
 
-  it('shows requiresLogin canonical copy', async () => {
+  it('redirects unauthenticated invitees to registration with the token', async () => {
     accept.mockImplementation(async () => {
       state.errorCode = 'INVITATION_REQUIRES_LOGIN'
       state.errorStatus = 401
@@ -167,7 +167,10 @@ describe('AcceptInvitationView branch coverage', () => {
     await wrapper.find('form').trigger('submit.prevent')
     await flushPromises()
     await flushPromises()
-    expect(wrapper.text()).toContain('invitation.errors.requiresLogin')
+    expect(routerReplace).toHaveBeenCalledWith({
+      name: 'register',
+      query: { invitationToken: 'raw-token' },
+    })
   })
 
   it('shows rateLimited canonical copy', async () => {

@@ -82,6 +82,40 @@ class LocalAuthControllerTest {
     }
 
     @Test
+    fun `dispatches invitation token with register command`() = runTest {
+        val registrationResult = sessionResult(
+            "token-invited",
+            "user-invited",
+            "invitee@example.com",
+            "invitee",
+            "PENDING",
+        )
+        val mediator = CapturingMediator(sessionResult = registrationResult)
+        val controller = controller(mediator)
+
+        controller.register(
+            RegisterUserRequest(
+                email = "invitee@example.com",
+                password = validPassword,
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
+                invitationToken = "raw-token",
+            ),
+        )
+
+        assertEquals(
+            RegisterUserCommand(
+                email = "invitee@example.com",
+                password = validPassword,
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
+                invitationToken = "raw-token",
+            ),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
     fun `dispatches login command for pending user and sets refresh cookie`() = runTest {
         val expected = sessionResult("token-2", "user-2", "login@example.com", "login", "PENDING")
         val mediator = CapturingMediator(sessionResult = expected)

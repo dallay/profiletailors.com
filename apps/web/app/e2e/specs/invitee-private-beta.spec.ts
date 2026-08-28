@@ -14,8 +14,12 @@
  * the live backend + `UPDATE_HAR=true` to record responses.
  */
 
-import { test, expect } from '../fixtures/base-test'
+import { test, expect } from '../fixtures/scheduler-base-test'
 import { APP_URL } from '../fixtures/test-data'
+import { mockRegisterSuccess } from '../fixtures/auth-helpers'
+import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
+import { ComposeModalPage } from '../pages/compose-modal-page'
+import { SchedulerPage } from '../pages/scheduler-page'
 
 test.describe('Invitee Private Beta Journey @integration', () => {
   test.beforeEach(async ({ resetSession }) => {
@@ -92,6 +96,134 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     expect(acceptResponse.ok()).toBe(true)
 
     await expect(page).toHaveURL(/\/$/)
+  })
+
+  test('3.1b Fresh invitee registers with the invitation token', async ({ page }) => {
+    await page.route('**/api/capabilities/public', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.api.v1+json',
+        body: JSON.stringify({
+          registrationEnabled: false,
+          passwordRecoveryEnabled: true,
+          invitationAcceptanceEnabled: true,
+        }),
+      })
+    })
+
+    await page.route('**/api/invitations/accept', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({ code: 'INVITATION_REQUIRES_LOGIN', status: 401 }),
+      })
+    })
+
+    let registrationPayload: Record<string, unknown> | undefined
+    await page.route('**/api/auth/register', async (route) => {
+      registrationPayload = route.request().postDataJSON() as Record<string, unknown>
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/vnd.api.v1+json',
+        body: JSON.stringify({
+          accessToken: 'invitation-access-token',
+          tokenType: 'Bearer',
+          expiresIn: 3600,
+          principalId: 'invitee-principal',
+          email: 'invitee@example.com',
+          username: 'invitee',
+          emailStatus: 'PENDING',
+          workspaceId: 'invitation-workspace',
+        }),
+      })
+    })
+
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.api.v1+json',
+        body: JSON.stringify({
+          principalId: 'invitee-principal',
+          email: 'invitee@example.com',
+          username: 'invitee',
+          displayIdentity: 'invitee',
+          emailStatus: 'PENDING',
+        }),
+      })
+    })
+
+    await page.goto(`${APP_URL.dashboard}invitations/accept?token=raw-token-e2e`)
+    await page.getByRole('button', { name: /accept invitation/i }).click()
+    await expect(page).toHaveURL(/\/register\?invitationToken=raw-token-e2e/)
+
+    await page.locator('#register-email').fill('invitee@example.com')
+    await page.locator('#register-password').fill('Str0ng!Passw0rd')
+    await page.locator('#confirm-password').fill('Str0ng!Passw0rd')
+    await page.locator('#ageEligibility').check()
+    await page.locator('#terms').check()
+    await page.getByRole('button', { name: /create account/i }).click()
+
+    await expect
+      .poll(() => registrationPayload)
+      .toEqual(expect.objectContaining({ invitationToken: 'raw-token-e2e' }))
+    await expect(page).toHaveURL(/\/$/)
+  })
+
+  test('3.1c Fresh invitee schedules the first post in the accepted workspace', async ({
+    page,
+  }) => {
+    await page.route('**/api/capabilities/public', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/vnd.api.v1+json',
+        body: JSON.stringify({
+          registrationEnabled: false,
+          passwordRecoveryEnabled: true,
+          invitationAcceptanceEnabled: true,
+        }),
+      })
+    })
+
+    await page.route('**/api/invitations/accept', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({ code: 'INVITATION_REQUIRES_LOGIN', status: 401 }),
+      })
+    })
+
+    await mockRegisterSuccess(page, {
+      accessToken: 'invitee-schedule-token',
+      principalId: 'invitee-schedule-user',
+      email: 'invitee-schedule@example.com',
+      username: 'invitee-schedule',
+      emailStatus: 'PENDING',
+      workspaceId: 'workspace-001',
+    })
+
+    await page.goto(`${APP_URL.dashboard}invitations/accept?token=raw-token-schedule`)
+    await page.getByRole('button', { name: /accept invitation/i }).click()
+    await expect(page).toHaveURL(/\/register\?invitationToken=raw-token-schedule/)
+
+    await page.locator('#register-email').fill('invitee-schedule@example.com')
+    await page.locator('#register-password').fill('Str0ng!Passw0rd')
+    await page.locator('#confirm-password').fill('Str0ng!Passw0rd')
+    await page.locator('#ageEligibility').check()
+    await page.locator('#terms').check()
+    await page.getByRole('button', { name: /create account/i }).click()
+    await expect(page).toHaveURL(/\/$/)
+
+    const scheduler = new SchedulerPage(page)
+    const composeModal = new ComposeModalPage(page)
+    await scheduler.goto()
+    await ensureChannelsLoaded(page)
+    await scheduler.clickNewPost()
+    await composeModal.expectVisible()
+    await composeModal.fillText('First invitee workspace post')
+    await composeModal.clickScheduleNow()
+    await composeModal.expectHidden()
+    await scheduler.switchToList()
+    await expect(page.getByText('First invitee workspace post').first()).toBeVisible()
   })
 
   test('3.2 Empty invitation token shows the missing-token error without calling the API', async ({

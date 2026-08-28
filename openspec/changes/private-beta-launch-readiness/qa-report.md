@@ -2,6 +2,14 @@
 
 ## Overview
 
+## Current follow-up audit — 2026-08-26
+
+The current isolated follow-up adds the missing invite-only registration handoff needed for a fresh invitee when public registration is disabled. The frontend now sends the backend's `token` contract for invitation acceptance, public capabilities expose `invitationAcceptanceEnabled`, and registration atomically validates and consumes an invitation while preserving its workspace membership. The marketing configuration now uses the Astro-consumed `WAITLIST_ENABLED` and `WAITLIST_API_BASE` variables.
+
+Local evidence for this follow-up is complete: 60 focused Vitest tests, Vue type-check, changed-file Biome checks, targeted SMP Gradle tests, Detekt, Spring context, two PostgreSQL/Testcontainers registration cases, the full 8-scenario mocked Chromium invitee suite including fresh registration and the first schedule-now post, the 6-scenario mocked Chromium waitlist suite, and a successful Astro production build containing the active waitlist form. Temporary validation symlinks were removed and `git diff --check` passes.
+
+This does not change the acceptance verdict. The changes remain uncommitted in `/private/tmp/profiletailors-beta-launch`; GitHub has no open PR, `smp v0.4.5` remains the latest published release, and no matching release has been deployed. Live waitlist submission/email, deployed invitee activation, operator evidence, provider delivery, and deployed post-accept scheduling/publishing remain outstanding.
+
 ### Identity
 
 - **Change:** `private-beta-launch-readiness`
@@ -83,13 +91,13 @@ The results below are acceptance results. The Fenix observations are cited as en
 | P3-QA-04 | Error handling | A backend invitation acceptance error surfaces the canonical not-acceptable copy. | **PASS — LOCAL FRONTEND ACCEPTANCE** | Chromium Playwright scenario 3.4 passed against an isolated local Vite server. |
 | P3-QA-05 | Token safety | Raw invitation tokens do not appear in the rendered DOM. | **PASS — LOCAL FRONTEND ACCEPTANCE** | Chromium Playwright scenario 3.5 passed against an isolated local Vite server. |
 | P3-QA-06 | Safe failure | A 5xx failure surfaces generic copy without exposing raw tokens. | **PASS — LOCAL FRONTEND ACCEPTANCE** | Chromium Playwright scenario 3.6 passed against an isolated local Vite server. |
-| P3-QA-07 | Post-accept product behavior | After acceptance, the invitee can schedule and publish according to the private-beta capability gates. | **NOT TESTED** | The focused journey covers acceptance and auth hydration only. Scheduling and publishing after acceptance require additional application/provider acceptance coverage. |
+| P3-QA-07 | Post-accept product behavior | After acceptance, the invitee can schedule and publish according to the private-beta capability gates. | **PARTIAL — LOCAL FRONTEND ACCEPTANCE** | Chromium scenario 3.1c now carries a fresh invitee through registration into the accepted workspace and creates a schedule-now post against scheduler mocks. It does not establish deployed backend behavior, provider delivery, or a real publish result. |
 
 ## Verdict
 
 **BLOCKED — local frontend acceptance evidence improved, but the overall acceptance gate remains blocked.**
 
-The invitee frontend scenarios 3.1–3.6 now have focused local Chromium evidence, in addition to the 8/8 invitation view unit tests and Biome checks. This is a meaningful improvement to the implementation handoff, but it is not managed-beta, deployed-backend, provider-side, operator, or end-user acceptance evidence. Archive remains prohibited until the change is exercised against an approved matching managed-beta release and the remaining operational/provider/post-accept scenarios are completed or explicitly waived by the product owner.
+The invitee frontend scenarios 3.1–3.6 and the fresh-registration first-post scenario 3.1c now have focused local Chromium evidence, in addition to the 8/8 invitation view unit tests and Biome checks. This is a meaningful improvement to the implementation handoff, but it is not managed-beta, deployed-backend, provider-side, operator, or end-user acceptance evidence. Archive remains prohibited until the change is exercised against an approved matching managed-beta release and the remaining operational/provider/post-accept scenarios are completed or explicitly waived by the product owner.
 
 ### Blocking conditions
 
@@ -98,14 +106,14 @@ The invitee frontend scenarios 3.1–3.6 now have focused local Chromium evidenc
 - The deployed `v0.4.1` image predates the current Phase 2 implementation and does not include the current uncommitted Phase 3 frontend changes.
 - No provider-side test account, credential, or request/outcome evidence was supplied.
 - No operator walkthrough, rollback exercise, backup/restore drill, or user acceptance evidence was supplied.
-- Post-accept scheduling and publishing behavior remains untested.
+- Deployed post-accept scheduling and provider publishing behavior remains untested; local schedule-now UI coverage uses mocks.
 
 ### Required next evidence
 
 1. Build and deploy an approved release containing the current backend and frontend changes to a managed beta environment.
 2. Re-run P2-QA-01 through P2-QA-08 in that environment with disposable data, provider test credentials, correlation IDs, and rollback coverage.
 3. Execute the invitee journey 3.1–3.6 against the matching deployed environment without replacing backend/auth behavior with test mocks.
-4. Add and run post-accept scheduling/publishing acceptance coverage for P3-QA-07.
+4. Run post-accept scheduling/publishing acceptance against the matching deployed backend and provider boundary for P3-QA-07.
 5. Obtain product-owner/operator sign-off or an explicit written waiver for any acceptance scenario intentionally deferred.
 
 ## Risks

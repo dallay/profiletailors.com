@@ -7,7 +7,11 @@ const routeState = vi.hoisted(() => ({ name: 'login', query: {} as Record<string
 const route = reactive(routeState)
 const replace = vi.hoisted(() => vi.fn())
 const load = vi.hoisted(() => vi.fn())
-const capabilityState = vi.hoisted(() => ({ resolved: false, registrationEnabled: false }))
+const capabilityState = vi.hoisted(() => ({
+  resolved: false,
+  registrationEnabled: false,
+  invitationAcceptanceEnabled: false,
+}))
 const capabilities = reactive(capabilityState)
 vi.mock('vue-router', () => ({ useRoute: () => route, useRouter: () => ({ replace }) }))
 vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
@@ -19,6 +23,9 @@ vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
     },
     get registrationEnabled() {
       return capabilities.registrationEnabled
+    },
+    get invitationAcceptanceEnabled() {
+      return capabilities.invitationAcceptanceEnabled
     },
   }),
 }))
@@ -57,6 +64,7 @@ describe('AuthView orchestration', () => {
     route.query = {}
     capabilities.resolved = false
     capabilities.registrationEnabled = false
+    capabilities.invitationAcceptanceEnabled = false
     load.mockReset()
     replace.mockReset()
   })
@@ -83,5 +91,15 @@ describe('AuthView orchestration', () => {
     route.name = 'register'
     await wrapper.vm.$nextTick()
     expect(wrapper.get('[data-testid="register"]').text()).toBe('kept@example.com')
+  })
+
+  it('allows invitation registration while public registration is disabled', () => {
+    route.name = 'register'
+    route.query = { invitationToken: 'raw-token' }
+    capabilities.resolved = true
+    capabilities.invitationAcceptanceEnabled = true
+    const wrapper = mountView()
+    expect(wrapper.find('[data-testid="register"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="unavailable"]').exists()).toBe(false)
   })
 })

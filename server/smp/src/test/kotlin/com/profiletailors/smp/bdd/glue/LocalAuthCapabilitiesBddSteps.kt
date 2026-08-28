@@ -91,11 +91,12 @@ class LocalAuthCapabilitiesBddSteps {
     fun exactPublicCapabilitiesContract() {
         val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
         assertEquals(
-            setOf("registrationEnabled", "passwordRecoveryEnabled"),
+            setOf("registrationEnabled", "passwordRecoveryEnabled", "invitationAcceptanceEnabled"),
             com.fasterxml.jackson.databind.ObjectMapper().readTree(body).fieldNames().asSequence().toSet(),
         )
         assertTrue(body.contains("\"registrationEnabled\":true"))
         assertTrue(body.contains("\"passwordRecoveryEnabled\":true"))
+        assertTrue(body.contains("\"invitationAcceptanceEnabled\":true"))
         assertFalse(body.contains("sso"))
     }
 
@@ -104,11 +105,12 @@ class LocalAuthCapabilitiesBddSteps {
         val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
         val json = com.fasterxml.jackson.databind.ObjectMapper().readTree(body)
         assertEquals(
-            setOf("registrationEnabled", "passwordRecoveryEnabled"),
+            setOf("registrationEnabled", "passwordRecoveryEnabled", "invitationAcceptanceEnabled"),
             json.fieldNames().asSequence().toSet(),
         )
         assertFalse(json.get("registrationEnabled").booleanValue())
         assertFalse(json.get("passwordRecoveryEnabled").booleanValue())
+        assertTrue(json.get("invitationAcceptanceEnabled").booleanValue())
     }
 
     @Then("the disabled registration response status should be {int}")

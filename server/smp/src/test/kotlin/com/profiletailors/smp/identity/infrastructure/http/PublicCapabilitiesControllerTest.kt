@@ -21,6 +21,7 @@ class PublicCapabilitiesControllerTest {
         response shouldBe PublicCapabilitiesResponse(
             registrationEnabled = false,
             passwordRecoveryEnabled = true,
+            invitationAcceptanceEnabled = true,
         )
     }
 
@@ -31,6 +32,7 @@ class PublicCapabilitiesControllerTest {
         response shouldBe PublicCapabilitiesResponse(
             registrationEnabled = true,
             passwordRecoveryEnabled = true,
+            invitationAcceptanceEnabled = true,
         )
     }
 

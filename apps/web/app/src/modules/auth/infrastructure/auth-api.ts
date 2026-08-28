@@ -33,6 +33,7 @@ export type LoginPayload = {
 export type RegisterPayload = LoginPayload & {
   confirmedAgeEligibility: boolean
   acceptedTermsVersion: string
+  invitationToken?: string
 }
 
 export type ApiError = {
