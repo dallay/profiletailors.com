@@ -148,13 +148,6 @@ class UpdateRecurringScheduleHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<UpdateRecurringScheduleCommand, RecurringScheduleResult> {
-    /**
-     * Updates a recurring publication schedule within the current workspace.
-     *
-     * @param command The command containing the schedule identifier and optional updated settings.
-     * @return The updated recurring schedule.
-     * @throws RecurringScheduleNotFoundException If the schedule does not exist in the current workspace.
-     */
     override suspend fun handle(command: UpdateRecurringScheduleCommand): RecurringScheduleResult {
         val principal = principalContextProvider.require()
         requireEmailVerification(principal, principalIdentityLookup, emailVerificationPolicy, AuthFeature.SCHEDULE_POST)
@@ -190,12 +183,6 @@ class DeleteRecurringScheduleHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<DeleteRecurringScheduleCommand, Unit> {
-    /**
-     * Deletes a recurring schedule from the current workspace.
-     *
-     * @param command The command identifying the recurring schedule to delete.
-     * @throws RecurringScheduleNotFoundException If the schedule does not exist in the current workspace.
-     */
     override suspend fun handle(command: DeleteRecurringScheduleCommand) {
         requireEmailVerification(
             principalContextProvider.require(),

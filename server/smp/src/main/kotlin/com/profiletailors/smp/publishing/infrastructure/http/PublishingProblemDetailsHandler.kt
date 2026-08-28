@@ -100,12 +100,6 @@ class PublishingProblemDetailsHandler {
         setProperty("code", exception.denial.name)
     }
 
-    /**
-     * Creates a conflict response for a social content workspace isolation violation.
-     *
-     * @param exception The workspace isolation exception.
-     * @return A conflict problem detail describing the social content workspace conflict.
-     */
     @ExceptionHandler(SocialContentPostIsolationException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: SocialContentPostIsolationException): ProblemDetail = ProblemDetail.forStatusAndDetail(
@@ -115,12 +109,6 @@ class PublishingProblemDetailsHandler {
         title = "Social content workspace conflict"
     }
 
-    /**
-     * Creates a bad-request problem detail for a publication validation failure.
-     *
-     * @param exception The publication validation exception.
-     * @return A problem detail containing the exception message or a default validation message.
-     */
     @ExceptionHandler(PublicationValidationException::class)
     fun handle(exception: PublicationValidationException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.BAD_REQUEST,
@@ -129,12 +117,6 @@ class PublishingProblemDetailsHandler {
         title = "Bad Request"
     }
 
-    /**
-     * Creates a bad request response for an invalid request argument.
-     *
-     * @param exception The exception describing the invalid argument.
-     * @return A problem detail with the exception message or a default validation message.
-     */
     @ExceptionHandler(IllegalArgumentException::class)
     fun handle(exception: IllegalArgumentException): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.BAD_REQUEST,
@@ -143,12 +125,6 @@ class PublishingProblemDetailsHandler {
         title = "Bad Request"
     }
 
-    /**
-     * Creates a not-found problem detail for a missing recurring schedule.
-     *
-     * @param exception The exception indicating that the recurring schedule was not found.
-     * @return A problem detail with HTTP 404 status and a recurring-schedule-not-found message.
-     */
     @ExceptionHandler(RecurringScheduleNotFoundException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: RecurringScheduleNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
@@ -158,13 +134,7 @@ class PublishingProblemDetailsHandler {
         title = "Recurring schedule not found"
     }
 
-    /**
-         * Handles expired OAuth state errors as bad requests.
-         *
-         * @param exception The expired OAuth state exception.
-         * @return A problem detail with a bad request status and OAuth state expiration information.
-         */
-        @ExceptionHandler(ExpiredOAuthStateException::class)
+    @ExceptionHandler(ExpiredOAuthStateException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: ExpiredOAuthStateException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, OAUTH_STATE_EXPIRED_DETAIL).apply {

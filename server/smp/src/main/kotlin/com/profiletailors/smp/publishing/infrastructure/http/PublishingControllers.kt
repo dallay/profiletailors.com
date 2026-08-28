@@ -81,40 +81,16 @@ import java.util.Locale
 @RequestMapping(value = ["/api/publishing/social-content"])
 @Tag(name = "Publishing Social Content", description = "Workspace social-content synchronization endpoints")
 class SocialContentController(private val mediator: Mediator) {
-    /**
-         * Synchronizes social content for the requested actor.
-         *
-         * @param request The request containing the actor identifier.
-         * @return The result of the social content synchronization.
-         */
-        @Operation(summary = "Synchronize workspace social content")
+    @Operation(summary = "Synchronize workspace social content")
     @PostMapping("/sync", consumes = ["application/json"], version = "1")
     suspend fun sync(@Valid @RequestBody request: SocialContentSyncRequest): SocialContentSyncResult =
         mediator.send(SocialContentSyncCommand(actorId = request.actorId))
 
-    /**
-         * Retrieves an imported social content post by its external identifier.
-         *
-         * @param externalPostId The external identifier of the post.
-         * @return The imported social content post.
-         */
-        @Operation(summary = "Get an imported workspace social content post")
+    @Operation(summary = "Get an imported workspace social content post")
     @GetMapping("/posts/{externalPostId}", version = "1")
     suspend fun post(@PathVariable externalPostId: String): SocialPost =
         mediator.send(SocialContentPostQuery(externalPostId))
 
-    /**
-     * Lists imported social content within a specified date range.
-     *
-     * @param from The start of the date range.
-     * @param to The end of the date range.
-     * @param actorId The optional actor identifier used to filter content.
-     * @param lifecycle The optional post lifecycle used to filter content.
-     * @param cursor The optional pagination cursor.
-     * @param limit The maximum number of content items to return, from 1 to 100.
-     * @return The imported social content matching the specified filters.
-     * @throws PublicationValidationException If `limit` is outside the range 1 to 100.
-     */
     @Operation(summary = "List imported workspace social content for a date range")
     @GetMapping("/calendar", version = "1")
     suspend fun calendar(
@@ -387,18 +363,6 @@ class PublishingPublicationController(private val mediator: Mediator) {
         ),
     )
 
-    /**
-     * Lists publications with optional status, account, date-range, and pagination filters.
-     *
-     * @param status The publication status filter.
-     * @param socialAccountId The social account identifier filter.
-     * @param from The start of the publication date range.
-     * @param to The end of the publication date range.
-     * @param limit The maximum number of publications to return.
-     * @param offset The number of publications to skip.
-     * @return The filtered publications.
-     * @throws PublicationValidationException If `limit` is outside 1–100 or `offset` is negative.
-     */
     @Operation(summary = "List publications with optional filtering")
     @GetMapping(version = "1")
     suspend fun listPublications(
@@ -486,13 +450,7 @@ data class PublicationRescheduleRequest(
     val nextSlotAfter: Instant? = null,
     val priority: Boolean? = null,
 ) {
-    /**
-         * Resolves the required schedule mode for rescheduling a publication.
-         *
-         * @return The configured schedule mode.
-         * @throws PublicationValidationException If no schedule mode is configured.
-         */
-        fun requiredScheduleMode(): ScheduleMode = scheduleMode?.let(ScheduleMode::valueOf)
+    fun requiredScheduleMode(): ScheduleMode = scheduleMode?.let(ScheduleMode::valueOf)
         ?: throw PublicationValidationException("scheduleMode is required for reschedule.")
 }
 
@@ -541,12 +499,6 @@ class RecurringScheduleController(
         mediator.send(DeleteRecurringScheduleCommand(id))
     }
 
-    /**
-     * Validates that the path workspace matches the authenticated workspace.
-     *
-     * @param pathWorkspaceId The workspace identifier from the request path.
-     * @throws PublicationValidationException If the path workspace differs from the authenticated workspace.
-     */
     private fun requireWorkspacePath(pathWorkspaceId: String) {
         val contextWorkspaceId = resourceContextProvider.requireWorkspaceContext().workspaceId
         if (pathWorkspaceId != contextWorkspaceId) {
