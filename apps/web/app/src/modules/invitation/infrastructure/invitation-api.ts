@@ -14,15 +14,10 @@ export type AcceptInvitationResult = {
 }
 
 /**
- * Submit a raw invitation token to the platform-admin invitation acceptance endpoint.
+ * Submits an invitation token to the invitation acceptance endpoint.
  *
- * The call is intentionally un-authenticated: the backend identifies the invitation by
- * the token alone. On success the backend establishes a refresh-token cookie so the
- * subsequent SPA session can use the regular `hydrateSession` path. We send
- * `credentials: 'include'` so that cookie reaches the server.
- *
- * If the server already has an authenticated session for the invitee, the same cookie
- * carries the identity and the backend binds the invitation to that identity.
+ * @param token - The raw invitation token to submit.
+ * @returns The invitation acceptance result, including workspace and membership data on success or error details on failure.
  */
 export async function acceptInvitationRequest(token: string): Promise<AcceptInvitationResult> {
   let response: Response

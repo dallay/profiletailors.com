@@ -152,11 +152,23 @@ class CommonBddTestConfiguration {
     @Bean
     fun mutableRegistrationPolicy(): MutableRegistrationPolicy = MutableRegistrationPolicy()
 
+    /**
+     * Provides the mutable registration policy used by BDD tests.
+     *
+     * @param policy The mutable registration policy to evaluate.
+     * @return The registration policy configured for BDD tests.
+     */
     @Bean
     @Primary
     fun bddRegistrationPolicy(policy: MutableRegistrationPolicy): RegistrationPolicy =
         RegistrationPolicy { hasInvitationToken -> policy.mode().evaluate(hasInvitationToken) }
 
+    /**
+     * Exposes the current password-recovery enabled state.
+     *
+     * @param flag The mutable password-recovery state provider.
+     * @return A function that provides whether password recovery is enabled.
+     */
     @Bean("bddPasswordRecoveryEnabled")
     @Primary
     fun bddPasswordRecoveryEnabled(flag: MutablePasswordRecoveryFlag): () -> Boolean = flag::isEnabled
