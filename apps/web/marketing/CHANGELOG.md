@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.7](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.6...landing@v0.2.7) (2026-08-28)
+
+
+### Bug Fixes
+
+* **deps:** update astro ([#875](https://github.com/dallay/profiletailors.com/issues/875)) ([17f5e45](https://github.com/dallay/profiletailors.com/commit/17f5e453f4c929e8476b25001f9786445079e62f))
+* **marketing:** ahrefs site audit remediation — clear broken email-protection links, expand meta, add legal-page nav ([#869](https://github.com/dallay/profiletailors.com/issues/869)) ([7eaf763](https://github.com/dallay/profiletailors.com/commit/7eaf7639fc954c6f623ec84f977559386be85ffc))
+* **marketing:** replace blocking consent modal ([#870](https://github.com/dallay/profiletailors.com/issues/870)) ([b175b73](https://github.com/dallay/profiletailors.com/commit/b175b73a5cd6f98d52caa5c5215988eddce81e50))
+
 ## [0.2.6](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.5...landing@v0.2.6) (2026-08-26)
 
 
