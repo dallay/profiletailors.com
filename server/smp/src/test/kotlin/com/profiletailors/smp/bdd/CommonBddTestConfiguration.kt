@@ -8,7 +8,8 @@ import com.profiletailors.smp.identity.application.PasswordResetNotificationFail
 import com.profiletailors.smp.identity.application.PasswordResetNotificationFailureRecorder
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetry
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryRecorder
-import com.profiletailors.smp.identity.application.RegistrationAvailability
+import com.profiletailors.smp.identity.application.RegistrationPolicy
+import com.profiletailors.smp.identity.domain.RegistrationMode
 import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
@@ -149,12 +150,12 @@ class CommonBddTestConfiguration {
     fun mutablePasswordRecoveryFlag(): MutablePasswordRecoveryFlag = MutablePasswordRecoveryFlag()
 
     @Bean
-    fun mutableRegistrationFlag(): MutableRegistrationFlag = MutableRegistrationFlag()
+    fun mutableRegistrationPolicy(): MutableRegistrationPolicy = MutableRegistrationPolicy()
 
     @Bean
     @Primary
-    fun bddRegistrationAvailability(flag: MutableRegistrationFlag): RegistrationAvailability =
-        RegistrationAvailability(flag::isEnabled)
+    fun bddRegistrationPolicy(policy: MutableRegistrationPolicy): RegistrationPolicy =
+        RegistrationPolicy { hasValidInvitation -> policy.mode().evaluate(hasValidInvitation) }
 
     @Bean("bddPasswordRecoveryEnabled")
     @Primary
@@ -252,16 +253,20 @@ private fun extractMcpWorkspaceId(token: String): String {
     return BddDatabaseSupport.WORKSPACE_ID
 }
 
-class MutableRegistrationFlag {
-    private var enabled: Boolean = true
+class MutableRegistrationPolicy {
+    private var mode: RegistrationMode = RegistrationMode.OPEN
 
-    fun isEnabled(): Boolean = enabled
+    fun mode(): RegistrationMode = mode
     fun enable() {
-        enabled = true
+        mode = RegistrationMode.OPEN
+    }
+
+    fun inviteOnly() {
+        mode = RegistrationMode.INVITE_ONLY
     }
 
     fun disable() {
-        enabled = false
+        mode = RegistrationMode.CLOSED
     }
 }
 

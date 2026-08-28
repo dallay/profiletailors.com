@@ -18,7 +18,6 @@ internal class NameTest {
         )
 
         names.forEach { (firstname, lastname) ->
-            println("Fullname: $firstname $lastname")
             val name = Name.of(firstname, lastname)
             assertEquals(firstname, name.firstName.value)
             assertEquals(lastname, name.lastName?.value)

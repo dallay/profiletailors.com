@@ -12,6 +12,7 @@ import com.profiletailors.smp.governance.application.RecordConsentHandler
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
 import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.RegistrationDecision
 import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
 import java.util.UUID
@@ -56,7 +57,7 @@ private data class RegistrationTransactionResult(val rawVerificationToken: Strin
 
 @Service
 internal class RegisterUserHandler(
-    private val registrationAvailability: RegistrationAvailability,
+    private val registrationPolicy: RegistrationPolicy,
     private val identityRegistrationGateway: IdentityRegistrationGateway,
     private val invitationRegistrationGateway: InvitationRegistrationGateway,
     private val principalIdentityLookup: PrincipalIdentityLookup,
@@ -73,8 +74,10 @@ internal class RegisterUserHandler(
 
     override suspend fun handle(command: RegisterUserCommand): LocalAuthSessionResult {
         val invitationToken = command.invitationToken?.trim()?.takeIf { it.isNotEmpty() }
-        if (!registrationAvailability.isRegistrationEnabled() && invitationToken == null) {
-            throw RegistrationDisabledException()
+        when (registrationPolicy.evaluate(hasValidInvitation = invitationToken != null)) {
+            RegistrationDecision.ALLOWED -> Unit
+            RegistrationDecision.INVITATION_REQUIRED -> throw RegistrationInvitationRequiredException()
+            RegistrationDecision.CLOSED -> throw RegistrationDisabledException()
         }
         val normalizedEmail = normalizeEmail(command.email)
         val normalizedUsername = normalizeUsername(command.username, normalizedEmail)

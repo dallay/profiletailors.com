@@ -50,7 +50,7 @@ import javax.crypto.spec.SecretKeySpec
         "app.security.cors.allowed-origins=http://localhost",
         "app.security.refresh-session.cookie-name=pt_refresh",
         "app.security.refresh-session.cookie-path=/api/auth",
-        "app.identity.registration.enabled=true",
+        "app.identity.registration.mode=OPEN",
         "app.security.auth-rate-limit.enabled=false",
         "management.endpoint.health.group.readiness.include=readinessState",
         "management.endpoint.health.group.liveness.include=livenessState",

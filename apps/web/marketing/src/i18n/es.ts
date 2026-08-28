@@ -3,6 +3,7 @@ export const es = {
   nav: {
     name: 'Profile Tailors',
     langSwitch: 'EN',
+    langSwitchLabel: 'Cambiar a inglés',
   },
   hero: {
     label: 'VISTA PREVIA DE ACCESO ANTICIPADO',
@@ -55,9 +56,9 @@ export const es = {
       unavailableHref: '/es/',
     },
     privacy: {
-      title: 'Pol\u00EDtica de Privacidad',
+      title: 'Pol\u00EDtica de Privacidad — Profile Tailors',
       description:
-        'C\u00F3mo Profile Tailors trata los datos personales cuando usas la instancia alojada por el operador.',
+        'C\u00F3mo Profile Tailors trata tus datos personales en la instancia alojada, incluyendo qu\u00E9 recogemos y tus derechos bajo el RGPD.',
       lastUpdated: '22 de julio de 2026',
       section1: '1. Qui\u00E9n Opera Esta Instancia',
       section2: '2. Qu\u00E9 Datos Personales Recogemos',
@@ -90,12 +91,12 @@ export const es = {
       policyChanges:
         'Podemos actualizar esta pol\u00EDtica cuando cambien nuestras pr\u00E1cticas de datos, se a\u00F1adan nuevas funciones o evolucionen los requisitos legales. Los cambios materiales se notificar\u00E1n a trav\u00E9s de la aplicaci\u00F3n o por correo electr\u00F3nico.\n\nLa versi\u00F3n actual est\u00E1 siempre disponible en `/es/privacy/`. El uso continuado tras un cambio constituye aceptaci\u00F3n de la pol\u00EDtica actualizada.',
       contact:
-        'Para consultas de privacidad, solicitudes de derechos de los interesados o reclamaciones, contacta con el operador:\n\n**Yuniel Acosta** (que opera bajo el nombre de Profile Tailors)\nCorreo electr\u00F3nico: contact@profiletailors.com\n\nSi est\u00E1s en la UE/EEE y no est\u00E1s satisfecho con nuestra respuesta, puedes presentar una reclamaci\u00F3n ante tu autoridad de protecci\u00F3n de datos local.',
+        'Para consultas de privacidad, solicitudes de derechos de los interesados o reclamaciones, contacta con el operador:\n\n**Yuniel Acosta** (que opera bajo el nombre de Profile Tailors)\nCorreo electr\u00F3nico: [contact@profiletailors.com](mailto:contact@profiletailors.com)\n\nSi est\u00E1s en la UE/EEE y no est\u00E1s satisfecho con nuestra respuesta, puedes presentar una reclamaci\u00F3n ante tu autoridad de protecci\u00F3n de datos local.',
     },
     terms: {
-      title: 'T\u00E9rminos del Servicio',
+      title: 'T\u00E9rminos del Servicio — Profile Tailors',
       description:
-        'T\u00E9rminos que rigen el uso de la instancia de Profile Tailors alojada por el operador.',
+        'T\u00E9rminos que rigen el uso de la instancia de Profile Tailors, incluyendo elegibilidad, uso aceptable y l\u00EDmites de responsabilidad.',
       lastUpdated: '22 de julio de 2026',
       section1: '1. Licencia del Software vs. Servicio Alojado',
       section2: '2. Cuentas y Elegibilidad',
@@ -126,12 +127,12 @@ export const es = {
       governingLaw:
         'Estos t\u00E9rminos se rigen por las leyes de Espa\u00F1a, sin consideraci\u00F3n a sus principios de conflicto de leyes.\n\nSi eres un consumidor en la UE/EEE, tambi\u00E9n puedes presentar demandas en tu pa\u00EDs de residencia. Nada en estos t\u00E9rminos te priva de la protecci\u00F3n de las leyes imperativas de protecci\u00F3n al consumidor de tu pa\u00EDs.',
       contact:
-        'Si tienes preguntas sobre estos t\u00E9rminos, contacta con:\n\n**Profile Tailors**\nCorreo electr\u00F3nico: contact@profiletailors.com',
+        'Si tienes preguntas sobre estos t\u00E9rminos, contacta con:\n\n**Profile Tailors**\nCorreo electr\u00F3nico: [contact@profiletailors.com](mailto:contact@profiletailors.com)',
     },
     cookies: {
-      title: 'Pol\u00EDtica de Cookies y Almacenamiento del Navegador',
+      title: 'Pol\u00EDtica de Cookies y Almacenamiento — Profile Tailors',
       description:
-        'C\u00F3mo la instancia alojada de Profile Tailors utiliza cookies y almacenamiento del navegador.',
+        'C\u00F3mo Profile Tailors utiliza cookies y almacenamiento del navegador, incluyendo cookies de sesi\u00F3n obligatorias y c\u00F3mo gestionar tus preferencias.',
       lastUpdated: '22 de julio de 2026',
       section1: '1. Alcance y Definiciones',
       section2: '2. Almacenamiento Estrictamente Necesario',
@@ -150,12 +151,12 @@ export const es = {
       manageCookies:
         'Puedes gestionar las cookies mediante la configuraci\u00F3n de tu navegador. Bloquear las cookies estrictamente necesarias puede afectar la funcionalidad del Servicio.\n\nEl almacenamiento local puede eliminarse a trav\u00E9s de las herramientas de desarrollo o la configuraci\u00F3n de privacidad de tu navegador. Al eliminar tu cuenta, se eliminar\u00E1n los datos almacenados localmente asociados a ella.',
       contact:
-        'Si tienes preguntas sobre esta pol\u00EDtica, contacta con:\n\n**Profile Tailors**\nCorreo electr\u00F3nico: contact@profiletailors.com',
+        'Si tienes preguntas sobre esta pol\u00EDtica, contacta con:\n\n**Profile Tailors**\nCorreo electr\u00F3nico: [contact@profiletailors.com](mailto:contact@profiletailors.com)',
     },
     aup: {
-      title: 'Pol\u00EDtica de Uso Aceptable',
+      title: 'Pol\u00EDtica de Uso Aceptable — Profile Tailors',
       description:
-        'Reglas para el uso aceptable de la instancia de Profile Tailors alojada por el operador.',
+        'Reglas para el uso aceptable de la instancia de Profile Tailors, incluyendo conductas prohibidas y c\u00F3mo denunciar infracciones.',
       lastUpdated: '22 de julio de 2026',
       section1: '1. Conductas y Contenidos Prohibidos',
       section2: '2. Aplicaci\u00F3n',
@@ -166,13 +167,14 @@ export const es = {
       enforcement:
         'El operador evaluar\u00E1 las denuncias de infracciones bas\u00E1ndose en la evidencia disponible y tomar\u00E1 medidas proporcionadas, que pueden incluir:\n- Advertir al usuario.\n- Restringir el acceso a funciones espec\u00EDficas.\n- Suspender o cancelar la cuenta del usuario.\n- Denunciar la actividad a las autoridades competentes cuando lo exija la ley.\n\nLas decisiones de aplicaci\u00F3n considerar\u00E1n la gravedad, la reincidencia, las obligaciones legales y la necesidad de proteger a otros usuarios. Cuando sea factible, el operador notificar\u00E1 al usuario la medida adoptada y sus motivos, y le dar\u00E1 la oportunidad de responder.',
       reporting:
-        'Para denunciar una infracci\u00F3n de esta pol\u00EDtica, contacta con el operador en: contact@profiletailors.com\n\nIncluye:\n- El contenido o comportamiento espec\u00EDfico que denuncias.\n- La informaci\u00F3n del usuario o cuenta relevante (si la conoces).\n- Cualquier evidencia que respalde tu denuncia.\n\nEl operador revisar\u00E1 las denuncias y tomar\u00E1 las medidas oportunas. Cuando lo exija la ley, las denuncias podr\u00E1n remitirse a las autoridades competentes.',
+        'Para denunciar una infracci\u00F3n de esta pol\u00EDtica, contacta con el operador en: [contact@profiletailors.com](mailto:contact@profiletailors.com)\n\nIncluye:\n- El contenido o comportamiento espec\u00EDfico que denuncias.\n- La informaci\u00F3n del usuario o cuenta relevante (si la conoces).\n- Cualquier evidencia que respalde tu denuncia.\n\nEl operador revisar\u00E1 las denuncias y tomar\u00E1 las medidas oportunas. Cuando lo exija la ley, las denuncias podr\u00E1n remitirse a las autoridades competentes.',
       contact:
-        'Esta pol\u00EDtica est\u00E1 incorporada a los T\u00E9rminos del Servicio. Al usar el Servicio, aceptas cumplir con esta pol\u00EDtica.\n\nPara preguntas sobre esta pol\u00EDtica o para denunciar una infracci\u00F3n, contacta con:\n\n**Profile Tailors**\nCorreo electr\u00F3nico: contact@profiletailors.com',
+        'Esta pol\u00EDtica est\u00E1 incorporada a los T\u00E9rminos del Servicio. Al usar el Servicio, aceptas cumplir con esta pol\u00EDtica.\n\nPara preguntas sobre esta pol\u00EDtica o para denunciar una infracci\u00F3n, contacta con:\n\n**Profile Tailors**\nCorreo electr\u00F3nico: [contact@profiletailors.com](mailto:contact@profiletailors.com)',
     },
     accessibility: {
-      title: 'Declaraci\u00F3n de Accesibilidad',
-      description: 'Nuestro compromiso con la accesibilidad WCAG 2.2 AA y c\u00f3mo informar de problemas.',
+      title: 'Declaraci\u00F3n de Accesibilidad — Profile Tailors',
+      description:
+        'Nuestro compromiso con la accesibilidad WCAG 2.2 AA en el sitio y panel, incluyendo limitaciones conocidas y c\u00F3mo informar de barreras.',
       lastUpdated: '31 de julio de 2026',
       intro: 'Profile Tailors se compromete a hacer su presencia web accesible para todos los usuarios, incluidas las personas con discapacidad. Esta declaraci\u00f3n describe nuestro nivel de conformidad actual, las limitaciones conocidas y c\u00f3mo contactarnos si encuentras una barrera de accesibilidad.',
       section1: '1. Estado de Conformidad',
@@ -182,7 +184,7 @@ export const es = {
       section3: '3. Limitaciones Conocidas',
       knownLimitations: 'Los siguientes problemas son conocidos y se est\u00e1n abordando:\n\n- **Navegaci\u00f3n por teclado en el calendario:** La navegaci\u00f3n con teclas de flecha entre franjas horarias en la vista semanal del programador a\u00fan no est\u00e1 implementada. Soluci\u00f3n alternativa: usa Tab para moverte entre los controles interactivos.\n- **Arrastrar y soltar en el selector de medios:** La interfaz de reordenaci\u00f3n por arrastre no tiene una alternativa accesible por teclado en la versi\u00f3n actual. Soluci\u00f3n alternativa: los elementos multimedia se pueden reordenar mediante el men\u00fa de acci\u00f3n accesible con teclado.\n- **Incrustaciones de terceros:** Algunas vistas previas de plataformas sociales pueden no cumplir los requisitos de contraste. Estas son renderizadas por proveedores externos.\n\nEstamos trabajando activamente para resolver los problemas del calendario y el selector de medios en pr\u00f3ximos sprints.',
       section4: '4. Comentarios y Contacto',
-      contact: 'Si encuentras una barrera de accesibilidad no indicada anteriormente, o si la soluci\u00f3n alternativa indicada no es suficiente para tus necesidades, cont\u00e1ctanos:\n\n**Correo electr\u00f3nico:** accessibility@profiletailors.com\n\nNuestro objetivo es responder en un plazo de **5 d\u00edas h\u00e1biles**. Si no est\u00e1s satisfecho con nuestra respuesta, puedes contactar con el organismo nacional de aplicaci\u00f3n de accesibilidad de tu pa\u00eds.',
+      contact: 'Si encuentras una barrera de accesibilidad no indicada anteriormente, o si la soluci\u00f3n alternativa indicada no es suficiente para tus necesidades, cont\u00e1ctanos:\n\n**Correo electr\u00f3nico:** [accessibility@profiletailors.com](mailto:accessibility@profiletailors.com)\n\nNuestro objetivo es responder en un plazo de **5 d\u00edas h\u00e1biles**. Si no est\u00e1s satisfecho con nuestra respuesta, puedes contactar con el organismo nacional de aplicaci\u00f3n de accesibilidad de tu pa\u00eds.',
       section5: '5. Aplicabilidad de la EAA y Normativa',
       eaa: 'La **Ley Europea de Accesibilidad (EAA / Directiva 2019/882)** se aplica a ciertos productos y servicios digitales ofrecidos a consumidores en la UE desde junio de 2025. Profile Tailors es actualmente una plataforma en vista previa de acceso anticipado, no un producto de venta p\u00fablica. Estamos supervisando nuestras obligaciones regulatorias a medida que el producto se acerca a la disponibilidad general y actualizaremos esta declaraci\u00f3n en consecuencia.\n\nLos **Reglamentos de Accesibilidad de Organismos del Sector P\u00fablico** del Reino Unido no se aplican a este servicio, prestado por una entidad privada.',
       section6: '6. Aplicaci\u00f3n y Escalada',
@@ -230,6 +232,8 @@ export const es = {
     action: {
       acceptAll: 'Aceptar todas',
       rejectAll: 'Rechazar todas',
+      customize: 'Personalizar',
+      back: 'Volver',
       savePreferences: 'Guardar preferencias',
     },
     footer: {

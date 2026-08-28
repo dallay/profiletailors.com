@@ -1,5 +1,106 @@
 schemaVersion: 1
 task: logging-hygiene-auditor
-lastExecution: null
-findings: []
-checks: []
+lastExecution: "2026-03-31T12:40:00Z"
+outcome: "CHANGES_APPLIED"
+findings:
+  - id: "log-hygiene-bdd-glue-debug-print-001"
+    file: "server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/MediaBddSteps.kt"
+    rule: "debug output"
+    risk: "LOW"
+    status: "resolved"
+    firstDetected: "2026-03-31T12:40:00Z"
+    lastVerified: "2026-03-31T12:40:00Z"
+    occurrences: 1
+    remediation:
+      status: "implemented"
+      pullRequest: null
+  - id: "log-hygiene-bdd-glue-debug-print-002"
+    file: "server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/PublishingBddSteps.kt"
+    rule: "debug output"
+    risk: "LOW"
+    status: "resolved"
+    firstDetected: "2026-03-31T12:40:00Z"
+    lastVerified: "2026-03-31T12:40:00Z"
+    occurrences: 1
+    remediation:
+      status: "implemented"
+      pullRequest: null
+  - id: "log-hygiene-common-test-println-001"
+    file: "shared/common/src/test/kotlin/com/profiletailors/common/domain/vo/name/LastNameTest.kt"
+    rule: "println"
+    risk: "LOW"
+    status: "resolved"
+    firstDetected: "2026-03-31T12:40:00Z"
+    lastVerified: "2026-03-31T12:40:00Z"
+    occurrences: 1
+    remediation:
+      status: "implemented"
+      pullRequest: null
+  - id: "log-hygiene-common-test-println-002"
+    file: "shared/common/src/test/kotlin/com/profiletailors/common/domain/vo/name/NameTest.kt"
+    rule: "println"
+    risk: "LOW"
+    status: "resolved"
+    firstDetected: "2026-03-31T12:40:00Z"
+    lastVerified: "2026-03-31T12:40:00Z"
+    occurrences: 1
+    remediation:
+      status: "implemented"
+      pullRequest: null
+  - id: "log-hygiene-marketing-e2e-console-log-001"
+    file: "apps/web/marketing/tests/e2e/accessibility.spec.ts"
+    rule: "console.log"
+    risk: "LOW"
+    status: "resolved"
+    firstDetected: "2026-03-31T12:40:00Z"
+    lastVerified: "2026-03-31T12:40:00Z"
+    occurrences: 1
+    remediation:
+      status: "implemented"
+      pullRequest: null
+  - id: "log-hygiene-dashboard-store-console-log-001"
+    file: "apps/web/app/src/modules/dashboard/infrastructure/analytics.store.ts"
+    rule: "console.log"
+    risk: "LOW"
+    status: "resolved"
+    firstDetected: "2026-03-31T12:40:00Z"
+    lastVerified: "2026-03-31T12:40:00Z"
+    occurrences: 1
+    remediation:
+      status: "implemented"
+      pullRequest: null
+  - id: "log-hygiene-dashboard-store-console-log-002"
+    file: "apps/web/app/src/modules/dashboard/infrastructure/content-pipeline.store.ts"
+    rule: "console.log"
+    risk: "LOW"
+    status: "resolved"
+    firstDetected: "2026-03-31T12:40:00Z"
+    lastVerified: "2026-03-31T12:40:00Z"
+    occurrences: 1
+    remediation:
+      status: "implemented"
+      pullRequest: null
+  - id: "log-hygiene-dashboard-store-console-log-003"
+    file: "apps/web/app/src/modules/dashboard/infrastructure/insights.store.ts"
+    rule: "console.log"
+    risk: "LOW"
+    status: "resolved"
+    firstDetected: "2026-03-31T12:40:00Z"
+    lastVerified: "2026-03-31T12:40:00Z"
+    occurrences: 1
+    remediation:
+      status: "implemented"
+      pullRequest: null
+checks:
+  - name: "kotlin-common-tests"
+    target: ":shared:common:test"
+    status: "Passed"
+    notes: "Ran ./gradlew :shared:common:test successfully."
+  - name: "frontend-app-unit-tests"
+    target: "apps/web/app vitest"
+    status: "Passed"
+    notes: "Ran pnpm --filter app test:run (125 test files passed)."
+  - name: "frontend-biome-linter"
+    target: "biome check ."
+    status: "Passed"
+    notes: "Ran pnpm lint across workspace projects."

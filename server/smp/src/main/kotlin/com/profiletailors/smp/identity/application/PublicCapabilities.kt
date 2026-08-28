@@ -3,6 +3,7 @@ package com.profiletailors.smp.identity.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.bus.query.QueryHandler
+import com.profiletailors.smp.identity.domain.RegistrationDecision
 
 /**
  * Public projection of the unauthenticated capabilities advertised by the platform.
@@ -25,11 +26,11 @@ class GetPublicCapabilitiesQuery : Query<PublicCapabilities>
 
 @Service
 internal class GetPublicCapabilitiesHandler(
-    private val registrationAvailability: RegistrationAvailability,
+    private val registrationPolicy: RegistrationPolicy,
     private val passwordRecoveryEnabled: () -> Boolean,
 ) : QueryHandler<GetPublicCapabilitiesQuery, PublicCapabilities> {
     override suspend fun handle(query: GetPublicCapabilitiesQuery): PublicCapabilities = PublicCapabilities(
-        registrationEnabled = registrationAvailability.isRegistrationEnabled(),
+        registrationEnabled = registrationPolicy.evaluate(hasValidInvitation = false) == RegistrationDecision.ALLOWED,
         passwordRecoveryEnabled = passwordRecoveryEnabled(),
     )
 }
