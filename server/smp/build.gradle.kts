@@ -86,7 +86,7 @@ dependencies {
     implementation(libs.jackson.module.kotlin)
     // Jackson 2.x compat — PlatformBootstrapConfiguration uses kotlinModule() from the 2.x line
     @Suppress("GradleDependency")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.1")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.22.2")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation(libs.resend.java)
     implementation(libs.spring.boot.starter.actuator)
