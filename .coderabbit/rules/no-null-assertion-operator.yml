@@ -1,0 +1,11 @@
+id: no-null-assertion-operator
+language: Kotlin
+severity: warning
+message: |
+  Avoid the `!!` operator — it bypasses null safety and can cause
+  NullPointerException. Use `?.`, `?:`, `requireNotNull()`,
+  `checkNotNull()`, or sealed-class error paths instead.
+rule:
+  pattern: '$EXPR!!'
+note: |
+  See AGENTS.md Kotlin conventions.

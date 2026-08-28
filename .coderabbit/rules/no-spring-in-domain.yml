@@ -1,0 +1,16 @@
+id: no-spring-in-domain
+language: Kotlin
+severity: error
+message: |
+  🚨 Hexagonal Architecture violation: the domain layer MUST NOT depend on
+  Spring. Move this to the infrastructure layer.
+rule:
+  pattern: 'import org.springframework.$REST'
+constraints:
+  REST:
+    regex: '.*'
+note: |
+  Pure Kotlin domain. See AGENTS.md and .agents/skills/hexagonal-architecture/SKILL.md.
+paths:
+  include:
+    - 'server/smp/src/main/kotlin/**/domain/**'
