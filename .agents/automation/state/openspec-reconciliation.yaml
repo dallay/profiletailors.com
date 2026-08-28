@@ -1,5 +1,18 @@
 schemaVersion: 1
 task: openspec-reconciliation
-lastExecution: null
+lastExecution: "2026-08-28T18:26:00Z"
+outcome: NO_DRIFT_DETECTED
 findings: []
-checks: []
+checks:
+  - name: active-changes-audit
+    target: openspec/changes
+    status: Passed
+    notes: All 4 active changes audited; states are accurate and aligned with SDD lifecycle.
+  - name: global-specs-validation
+    target: openspec/specs
+    status: Passed
+    notes: Global specs match current baseline; active changes have not been prematurely archived.
+  - name: frontend-check
+    target: apps/web/marketing
+    status: Passed
+    notes: astro check passed with 0 errors and 0 warnings.
