@@ -1,0 +1,16 @@
+id: no-jakarta-in-domain
+language: Kotlin
+severity: error
+message: |
+  🚨 Domain layer MUST NOT depend on Jakarta. JPA annotations belong in the
+  infrastructure layer's persistence models.
+rule:
+  any:
+    - pattern: 'import jakarta.$REST'
+    - pattern: 'import javax.persistence.$REST'
+constraints:
+  REST:
+    regex: '.*'
+paths:
+  include:
+    - 'server/smp/src/main/kotlin/**/domain/**'

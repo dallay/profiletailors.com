@@ -1,0 +1,18 @@
+id: no-spring-annotations-in-domain
+language: Kotlin
+severity: error
+message: |
+  🚨 Domain layer MUST NOT use Spring stereotypes (@Component, @Service,
+  @Repository, @Controller, @Configuration). Use
+  `com.profiletailors.common.domain.Service` for application services and
+  plain Kotlin for aggregates/value objects.
+rule:
+  any:
+    - pattern: '@org.springframework.stereotype.Component'
+    - pattern: '@org.springframework.stereotype.Service'
+    - pattern: '@org.springframework.stereotype.Repository'
+    - pattern: '@org.springframework.stereotype.Controller'
+    - pattern: '@org.springframework.context.annotation.Configuration'
+paths:
+  include:
+    - 'server/smp/src/main/kotlin/**/domain/**'

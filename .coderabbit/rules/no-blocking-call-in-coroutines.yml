@@ -1,0 +1,10 @@
+id: no-blocking-call-in-coroutines
+language: Kotlin
+severity: error
+message: |
+  Do not call `.block()` inside coroutine code. Use `awaitFirst`, `collect`,
+  `awaitSingle`, or chain suspending operators instead.
+rule:
+  pattern: '$RX.block()'
+note: |
+  Blocking in reactive flows blocks the event loop thread.

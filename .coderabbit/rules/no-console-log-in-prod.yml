@@ -1,0 +1,24 @@
+id: no-console-log-in-prod
+language: TypeScript
+severity: warning
+message: |
+  Avoid `console.log` in non-test code. Use the project logger or
+  `console.error` inside catch blocks only.
+rule:
+  any:
+    - pattern: 'console.log($$$ARGS)'
+    - pattern: 'console.debug($$$ARGS)'
+      not:
+        inside:
+          kind: catch_clause
+          stopBy: end
+    - pattern: 'console.warn($$$ARGS)'
+      not:
+        inside:
+          kind: catch_clause
+          stopBy: end
+paths:
+  exclude:
+    - '**/__tests__/**'
+    - '**/*.spec.ts'
+    - '**/*.test.ts'

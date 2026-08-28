@@ -1,0 +1,10 @@
+id: no-any-type-annotation
+language: TypeScript
+severity: error
+message: |
+  Avoid `any`. Use `unknown` and narrow the type, or define a precise type.
+rule:
+  pattern: ': any'
+  kind: type_annotation
+note: |
+  See AGENTS.md TypeScript conventions.

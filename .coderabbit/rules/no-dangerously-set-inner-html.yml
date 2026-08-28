@@ -1,0 +1,10 @@
+id: no-dangerously-set-inner-html
+language: TypeScript
+severity: error
+message: |
+  Avoid `dangerouslySetInnerHTML` with unsanitized input. Use text content
+  or a vetted sanitizer (DOMPurify). XSS risk if user data flows here.
+rule:
+  pattern: 'dangerouslySetInnerHTML={$X}'
+note: |
+  Also flagged by tools.semgrep. See AGENTS.md security rules.

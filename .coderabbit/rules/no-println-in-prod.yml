@@ -1,0 +1,11 @@
+id: no-println-in-prod
+language: Kotlin
+severity: warning
+message: |
+  Prefer the project logger over `println` for non-test code. println goes
+  to stdout and bypasses log levels, redaction, and structured logging.
+rule:
+  pattern: 'println($MSG)'
+paths:
+  exclude:
+    - 'server/**/src/test/**'

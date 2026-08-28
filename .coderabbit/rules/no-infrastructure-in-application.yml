@@ -1,0 +1,20 @@
+id: no-infrastructure-in-application
+language: Kotlin
+severity: error
+message: |
+  🚨 Application layer MUST NOT depend on infrastructure. Handlers depend on
+  domain ports only. Composition roots wire adapters to ports.
+rule:
+  any:
+    - pattern: 'import org.springframework.$REST'
+    - pattern: 'import io.r2dbc.$REST'
+    - pattern: 'import jakarta.$REST'
+    - pattern: 'import reactor.$REST'
+constraints:
+  REST:
+    regex: '.*'
+note: |
+  Dependency rule: domain ← application ← infrastructure.
+paths:
+  include:
+    - 'server/smp/src/main/kotlin/**/application/**'
