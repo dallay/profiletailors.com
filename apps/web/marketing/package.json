@@ -1,7 +1,7 @@
 {
   "name": "marketing",
   "type": "module",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "portless": {
     "name": "profiletailors",
     "script": "dev:app"
