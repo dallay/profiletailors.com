@@ -47,6 +47,10 @@ async function handleSubmit(): Promise<void> {
   if (submitted.value || store.pending) return
   submitted.value = true
   const result = await store.accept(props.token)
+  if (result.errorCode === 'INVITATION_REQUIRES_LOGIN') {
+    await router.replace({ name: 'register', query: { invitationToken: props.token } })
+    return
+  }
   if (result.workspaceId) {
     redirecting.value = true
     try {

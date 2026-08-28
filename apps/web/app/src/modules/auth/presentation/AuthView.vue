@@ -14,7 +14,16 @@ const router = useRouter()
 const capabilities = usePublicCapabilitiesStore()
 const email = ref('')
 const isRegister = computed(() => route.name === 'register')
-const registrationAvailable = computed(() => capabilities.resolved && capabilities.registrationEnabled)
+const invitationToken = computed(() => {
+  const raw = route.query.invitationToken
+  return typeof raw === 'string' && raw.trim() !== '' ? raw : undefined
+})
+const registrationAvailable = computed(
+  () =>
+    capabilities.resolved &&
+    (capabilities.registrationEnabled ||
+      (invitationToken.value !== undefined && capabilities.invitationAcceptanceEnabled)),
+)
 
 onMounted(() => { void capabilities.load() })
 
@@ -31,7 +40,7 @@ async function completeAuthentication() {
       <p class="text-sm leading-6 text-text-secondary">{{ t(isRegister ? 'auth.subtitleRegister' : 'auth.subtitleLogin') }}</p>
     </div>
     <RegistrationUnavailable v-if="isRegister && capabilities.resolved && !registrationAvailable" />
-    <RegisterForm v-else-if="isRegister && registrationAvailable" v-model:email="email" @success="completeAuthentication" />
+    <RegisterForm v-else-if="isRegister && registrationAvailable" v-model:email="email" :invitation-token="invitationToken" @success="completeAuthentication" />
     <template v-else>
       <LoginForm v-model:email="email" :show-forgot-password="capabilities.resolved && capabilities.passwordRecoveryEnabled" @success="completeAuthentication" />
       <p v-if="capabilities.resolved && capabilities.registrationEnabled" class="mt-6 text-center text-sm text-text-secondary">

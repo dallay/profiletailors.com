@@ -23,6 +23,8 @@ import com.profiletailors.smp.identity.domain.RegistrationMode
 import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
+import io.kotest.matchers.collections.shouldNotContain
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -61,6 +63,7 @@ class LocalAuthHandlersTest {
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
             identityRegistrationGateway = identityRegistrationGateway,
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(order),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = passwordGateway,
             passwordHasher = FakePasswordHasher(),
@@ -107,6 +110,7 @@ class LocalAuthHandlersTest {
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.CLOSED),
             identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
             passwordHasher = FakePasswordHasher(),
@@ -136,12 +140,50 @@ class LocalAuthHandlersTest {
     }
 
     @Test
-    fun `requires an invitation before registering in invite only mode`() = runTest {
+    fun `should allow invitation registration when mode is invite only`() = runTest {
+        val order = mutableListOf<String>()
+        val invitationGateway = FakeInvitationRegistrationGateway(order)
+        val handler = RegisterUserHandler(
+            registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.INVITE_ONLY),
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
+            invitationRegistrationGateway = invitationGateway,
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(order),
+            eventPublisher = RecordingEventPublisher(order),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(order),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
+            transactionRunner = RecordingAtomicTransactionRunner(order),
+            recordConsentHandler = recordConsentHandler(order),
+        )
+
+        val result = handler.handle(
+            RegisterUserCommand(
+                email = "invitee@example.com",
+                password = validPassword,
+                username = "invitee",
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
+                invitationToken = " raw-invitation-token ",
+            ),
+        )
+
+        invitationGateway.rawToken shouldBe "raw-invitation-token"
+        invitationGateway.email shouldBe "invitee@example.com"
+        result.tokens.workspaceId shouldBe "invited-workspace"
+        order shouldNotContain "workspace:provision"
+    }
+
+    @Test
+    fun `should require an invitation when mode is invite only`() = runTest {
         val order = mutableListOf<String>()
         val transactionRunner = RecordingAtomicTransactionRunner(order)
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.INVITE_ONLY),
             identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(order),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
             passwordHasher = FakePasswordHasher(),
@@ -178,6 +220,7 @@ class LocalAuthHandlersTest {
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
             identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
             passwordHasher = FakePasswordHasher(),
@@ -211,6 +254,7 @@ class LocalAuthHandlersTest {
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
             identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
             passwordHasher = FakePasswordHasher(),
@@ -247,6 +291,7 @@ class LocalAuthHandlersTest {
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
             identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(order),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
             passwordHasher = FakePasswordHasher(),
@@ -286,6 +331,7 @@ class LocalAuthHandlersTest {
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
             identityRegistrationGateway = identityRegistrationGateway,
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(),
             principalIdentityLookup = principalLookup,
             localPasswordCredentialGateway = passwordGateway,
             passwordHasher = passwordHasher,
@@ -339,6 +385,7 @@ class LocalAuthHandlersTest {
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
             identityRegistrationGateway = identityRegistrationGateway,
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
             passwordHasher = FakePasswordHasher(),
@@ -372,6 +419,7 @@ class LocalAuthHandlersTest {
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
             identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 existingEmail = "yuniel@example.com",
             ),
@@ -968,6 +1016,19 @@ class LocalAuthHandlersTest {
         override val algorithm: String = "fake"
     }
 
+    private class FakeInvitationRegistrationGateway(private val order: MutableList<String>? = null) :
+        InvitationRegistrationGateway {
+        var rawToken: String? = null
+        var email: String? = null
+
+        override suspend fun acceptForRegistration(rawToken: String, email: String, principalId: String): String {
+            order?.add("invitation:accept")
+            this.rawToken = rawToken
+            this.email = email
+            return "invited-workspace"
+        }
+    }
+
     private open class FakeLocalJwtIssuer(private val order: MutableList<String>? = null) : LocalJwtIssuer {
         override fun issue(
             principalId: String,
@@ -1079,6 +1140,6 @@ class LocalAuthHandlersTest {
 
     private class FakeRegistrationPolicy(private val mode: RegistrationMode = RegistrationMode.OPEN) :
         RegistrationPolicy {
-        override fun evaluate(hasValidInvitation: Boolean) = mode.evaluate(hasValidInvitation)
+        override fun evaluate(hasInvitationToken: Boolean) = mode.evaluate(hasInvitationToken)
     }
 }

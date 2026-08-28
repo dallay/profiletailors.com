@@ -16,7 +16,7 @@ class PublicCapabilitiesHandlerTest {
     }
 
     private fun handler(mode: RegistrationMode) = GetPublicCapabilitiesHandler(
-        registrationPolicy = RegistrationPolicy { hasValidInvitation -> mode.evaluate(hasValidInvitation) },
+        registrationPolicy = RegistrationPolicy { hasInvitationToken -> mode.evaluate(hasInvitationToken) },
         passwordRecoveryEnabled = { true },
     )
 }

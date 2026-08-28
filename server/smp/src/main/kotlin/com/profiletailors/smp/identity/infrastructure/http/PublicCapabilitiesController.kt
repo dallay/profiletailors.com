@@ -16,8 +16,13 @@ class PublicCapabilitiesController(private val mediator: Mediator) {
         return PublicCapabilitiesResponse(
             registrationEnabled = capabilities.registrationEnabled,
             passwordRecoveryEnabled = capabilities.passwordRecoveryEnabled,
+            invitationAcceptanceEnabled = capabilities.invitationAcceptanceEnabled,
         )
     }
 }
 
-data class PublicCapabilitiesResponse(val registrationEnabled: Boolean, val passwordRecoveryEnabled: Boolean)
+data class PublicCapabilitiesResponse(
+    val registrationEnabled: Boolean,
+    val passwordRecoveryEnabled: Boolean,
+    val invitationAcceptanceEnabled: Boolean,
+)

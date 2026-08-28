@@ -6,9 +6,9 @@ enum class RegistrationMode {
     CLOSED,
     ;
 
-    fun evaluate(hasValidInvitation: Boolean): RegistrationDecision = when {
+    fun evaluate(hasInvitationToken: Boolean): RegistrationDecision = when {
         this == OPEN -> RegistrationDecision.ALLOWED
-        this == INVITE_ONLY && hasValidInvitation -> RegistrationDecision.ALLOWED
+        this == INVITE_ONLY && hasInvitationToken -> RegistrationDecision.ALLOWED
         this == INVITE_ONLY -> RegistrationDecision.INVITATION_REQUIRED
         else -> RegistrationDecision.CLOSED
     }

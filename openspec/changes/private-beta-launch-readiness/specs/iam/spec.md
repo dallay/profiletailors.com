@@ -18,6 +18,18 @@ An invitation acceptance flow MUST validate the invitation before creating membe
 - AND the invitee MUST be able to load workspace-scoped data for A
 - AND the acceptance record MUST be attributable to the invitation and actor
 
+### Requirement: Newly Registered Invitees Preserve Invitation Workspace (DALLAY-556)
+
+When public registration is disabled, a valid invitation token MUST allow the invited email to complete registration. Identity creation, invitation consumption, consent recording, and membership reconciliation MUST commit atomically, and the issued session MUST carry the invitation workspace context. An invalid, expired, revoked, consumed, or email-mismatched invitation MUST roll back registration artifacts and membership changes.
+
+#### Scenario: Fresh invitee registers from an invitation
+
+- GIVEN public registration is disabled and a valid invitation targets email E in workspace A
+- WHEN E submits the registration form with the invitation token
+- THEN one user identity and one membership for workspace A MUST be created
+- AND the invitation MUST be marked accepted for that principal
+- AND the issued session MUST select workspace A
+
 #### Scenario: Invalid or expired invitation is rejected
 
 - GIVEN an invitation token is missing, altered, expired, revoked, or already consumed

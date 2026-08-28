@@ -57,7 +57,7 @@ describe('acceptInvitationRequest', () => {
       'Content-Type': 'application/json',
       Accept: 'application/vnd.api.v1+json',
     })
-    expect(init.body).toBe(JSON.stringify({ invitationToken: 'raw-token-123' }))
+    expect(init.body).toBe(JSON.stringify({ token: 'raw-token-123' }))
   })
 
   it('uses custom API base URL when configured', async () => {

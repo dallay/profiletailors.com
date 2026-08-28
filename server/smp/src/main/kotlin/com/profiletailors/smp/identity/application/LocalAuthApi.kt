@@ -10,6 +10,7 @@ data class RegisterUserCommand(
     val username: String? = null,
     val confirmedAgeEligibility: Boolean,
     val acceptedTermsVersion: String,
+    val invitationToken: String? = null,
 ) : CommandWithResult<LocalAuthSessionResult>
 
 data class LoginUserCommand(val email: String, val password: String) : CommandWithResult<LocalAuthSessionResult>

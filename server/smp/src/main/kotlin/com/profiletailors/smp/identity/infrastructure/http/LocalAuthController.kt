@@ -57,6 +57,7 @@ class LocalAuthController(
                 password = request.password,
                 confirmedAgeEligibility = request.confirmedAgeEligibility,
                 acceptedTermsVersion = request.acceptedTermsVersion,
+                invitationToken = request.invitationToken,
             ),
         )
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -213,6 +214,13 @@ data class RegisterUserRequest(
         required = true,
     )
     val acceptedTermsVersion: String,
+
+    @field:Schema(
+        description = "Invitation token for invite-only registration",
+        example = "opaque-invitation-token",
+        required = false,
+    )
+    val invitationToken: String? = null,
 )
 
 /**

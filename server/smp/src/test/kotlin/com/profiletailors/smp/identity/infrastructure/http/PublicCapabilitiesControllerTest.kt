@@ -16,21 +16,31 @@ class PublicCapabilitiesControllerTest {
 
     @Test
     fun `returns only disabled registration capability`() = runTest {
-        val response = controller(registrationEnabled = false, passwordRecoveryEnabled = true).publicCapabilities()
+        val response = controller(
+            registrationEnabled = false,
+            passwordRecoveryEnabled = true,
+            invitationAcceptanceEnabled = false,
+        ).publicCapabilities()
 
         response shouldBe PublicCapabilitiesResponse(
             registrationEnabled = false,
             passwordRecoveryEnabled = true,
+            invitationAcceptanceEnabled = false,
         )
     }
 
     @Test
     fun `returns only enabled registration capability`() = runTest {
-        val response = controller(registrationEnabled = true, passwordRecoveryEnabled = true).publicCapabilities()
+        val response = controller(
+            registrationEnabled = true,
+            passwordRecoveryEnabled = true,
+            invitationAcceptanceEnabled = true,
+        ).publicCapabilities()
 
         response shouldBe PublicCapabilitiesResponse(
             registrationEnabled = true,
             passwordRecoveryEnabled = true,
+            invitationAcceptanceEnabled = true,
         )
     }
 
@@ -48,20 +58,25 @@ class PublicCapabilitiesControllerTest {
         response.passwordRecoveryEnabled shouldBe false
     }
 
-    private fun controller(registrationEnabled: Boolean, passwordRecoveryEnabled: Boolean) =
-        PublicCapabilitiesController(
-            mediator = FakeMediator(registrationEnabled, passwordRecoveryEnabled),
-        )
+    private fun controller(
+        registrationEnabled: Boolean,
+        passwordRecoveryEnabled: Boolean,
+        invitationAcceptanceEnabled: Boolean = true,
+    ) = PublicCapabilitiesController(
+        mediator = FakeMediator(registrationEnabled, passwordRecoveryEnabled, invitationAcceptanceEnabled),
+    )
 
     private class FakeMediator(
         private val registrationEnabled: Boolean,
         private val passwordRecoveryEnabled: Boolean,
+        private val invitationAcceptanceEnabled: Boolean,
     ) : Mediator {
         @Suppress("UNCHECKED_CAST")
         override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = when (query) {
             is GetPublicCapabilitiesQuery -> PublicCapabilities(
                 registrationEnabled = registrationEnabled,
                 passwordRecoveryEnabled = passwordRecoveryEnabled,
+                invitationAcceptanceEnabled = invitationAcceptanceEnabled,
             ) as TResponse
             else -> error("Unexpected query: $query")
         }

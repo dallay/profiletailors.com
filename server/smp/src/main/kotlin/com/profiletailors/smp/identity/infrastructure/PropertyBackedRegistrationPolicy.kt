@@ -7,6 +7,6 @@ import com.profiletailors.smp.identity.domain.RegistrationDecision
 @Service
 internal class PropertyBackedRegistrationPolicy(private val properties: RegistrationConfigurationProperties) :
     RegistrationPolicy {
-    override fun evaluate(hasValidInvitation: Boolean): RegistrationDecision =
-        properties.mode.evaluate(hasValidInvitation)
+    override fun evaluate(hasInvitationToken: Boolean): RegistrationDecision =
+        properties.mode.evaluate(hasInvitationToken)
 }
