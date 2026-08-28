@@ -17,6 +17,15 @@ class InvitationRegistrationGatewayAdapter(
     private val membershipProvisioner: WorkspaceMembershipProvisioner,
     private val clock: Clock,
 ) : InvitationRegistrationGateway {
+    /**
+     * Accepts an invitation for registration and provisions workspace membership.
+     *
+     * @param rawToken The raw invitation token.
+     * @param email The email address associated with the registration.
+     * @param principalId The principal identifier to provision in the workspace.
+     * @return The identifier of the invitation's workspace.
+     * @throws InvitationNotAcceptableException If the invitation cannot be validated or accepted.
+     */
     override suspend fun acceptForRegistration(rawToken: String, email: String, principalId: String): String {
         val now = clock.instant()
         val candidateKey = (tokenHasher as? InvitationTokenCandidateKey)
@@ -35,7 +44,18 @@ class InvitationRegistrationGatewayAdapter(
         return invitation.workspaceId
     }
 
+    /**
+     * Creates the generic exception used when an invitation cannot be accepted.
+     *
+     * @return An exception indicating that the invitation is unavailable.
+     */
     private fun invalidInvitation(): InvitationNotAcceptableException = InvitationNotAcceptableException("unavailable")
 
+    /**
+     * Normalizes text by trimming surrounding whitespace and converting it to lowercase.
+     *
+     * @param value The text to normalize.
+     * @return The normalized text.
+     */
     private fun normalize(value: String): String = value.trim().lowercase()
 }
