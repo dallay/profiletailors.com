@@ -29,6 +29,12 @@ internal class GetPublicCapabilitiesHandler(
     private val registrationPolicy: RegistrationPolicy,
     private val passwordRecoveryEnabled: () -> Boolean,
 ) : QueryHandler<GetPublicCapabilitiesQuery, PublicCapabilities> {
+    /**
+     * Determines the platform capabilities available to unauthenticated users.
+     *
+     * @param query The query requesting the current public capabilities.
+     * @return The current public capabilities.
+     */
     override suspend fun handle(query: GetPublicCapabilitiesQuery): PublicCapabilities = PublicCapabilities(
         registrationEnabled = registrationPolicy.evaluate(hasInvitationToken = false) == RegistrationDecision.ALLOWED,
         passwordRecoveryEnabled = passwordRecoveryEnabled(),

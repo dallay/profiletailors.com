@@ -10,6 +10,11 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/capabilities")
 class PublicCapabilitiesController(private val mediator: Mediator) {
 
+    /**
+     * Retrieves the capabilities available to unauthenticated users.
+     *
+     * @return The current public capability settings.
+     */
     @GetMapping("/public", version = "1")
     suspend fun publicCapabilities(): PublicCapabilitiesResponse {
         val capabilities = mediator.send(GetPublicCapabilitiesQuery())
