@@ -45,7 +45,7 @@ const canRevoke = authStore.hasPermission('platform.invitations.revoke')
 async function fetchEntry() {
   loading.value = true
   try {
-    const res = await fetch(`/api/admin/waitlist-entries/${entryId}`)
+    const res = await authStore.request(`/api/admin/waitlist-entries/${entryId}`)
     if (res.ok) entry.value = await res.json()
     else error.value = t('common.error')
   } catch {
@@ -59,7 +59,7 @@ async function invite() {
   inviting.value = true
   actionError.value = null
   try {
-    const res = await fetch(`/api/admin/waitlist-entries/${entryId}/invitations`, { method: 'POST' })
+    const res = await authStore.request(`/api/admin/waitlist-entries/${entryId}/invitations`, { method: 'POST' })
     if (!res.ok) {
       actionError.value = await errorMessage(res)
       return
@@ -83,7 +83,7 @@ async function confirmRevoke() {
   showRevokeDialog.value = false
   actionError.value = null
   try {
-    const res = await fetch(`/api/admin/invitations/${revokeTargetId.value}/revoke`, { method: 'POST' })
+    const res = await authStore.request(`/api/admin/invitations/${revokeTargetId.value}/revoke`, { method: 'POST' })
     if (!res.ok) {
       actionError.value = await errorMessage(res)
       return
@@ -102,9 +102,7 @@ async function errorMessage(res: Response): Promise<string> {
     if (body?.properties?.code && t(`errors.${body.properties.code}`) !== `errors.${body.properties.code}`) {
       return t(`errors.${body.properties.code}`)
     }
-  } catch {
-    // Non-JSON error bodies fall through to the generic message.
-  }
+  } catch {}
   return t('common.error')
 }
 
@@ -112,19 +110,19 @@ onMounted(fetchEntry)
 </script>
 
 <template>
-  <div class="p-8">
+  <div class="admin-page p-5 sm:p-8">
     <button
-      class="text-sm text-slate-400 hover:text-white mb-6 flex items-center gap-1 transition-colors"
+      class="mb-6 flex items-center gap-1 text-sm text-text-secondary transition-colors hover:text-text-display"
       @click="router.push({ name: 'waitlist' })"
     >
       ← {{ t('waitlist.title') }}
     </button>
 
-    <div v-if="loading" class="text-slate-400">{{ t('common.loading') }}</div>
-    <div v-else-if="error" role="alert" class="text-red-400">{{ error }}</div>
+    <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
+    <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
     <div v-else-if="entry">
-      <h1 class="text-2xl font-bold text-slate-100 mb-1">{{ entry.email }}</h1>
-      <p class="text-sm text-slate-400 mb-6">{{ entryId }}</p>
+      <h1 class="mb-1 text-2xl font-semibold text-text-display">{{ entry.email }}</h1>
+      <p class="mb-6 font-mono text-sm text-text-secondary">{{ entryId }}</p>
 
       <div class="grid grid-cols-2 gap-4 mb-8">
         <Field :label="t('common.status')" :value="entry.status" />
@@ -135,26 +133,24 @@ onMounted(fetchEntry)
         <Field :label="t('waitlist.cancelledAt')" :value="entry.cancelledAt ? new Date(entry.cancelledAt).toLocaleString(locale) : '—'" />
       </div>
 
-      <!-- Actions -->
       <div class="flex gap-3 mb-8">
         <button
           v-if="canInvite && (entry.status === 'PENDING' || entry.status === 'INVITED')"
           :disabled="inviting"
-          class="px-4 py-2 rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 disabled:opacity-50 font-medium text-sm transition-colors"
+          class="admin-button-primary disabled:opacity-50"
           @click="invite"
         >
           {{ inviting ? t('common.loading') : t('waitlist.invite') }}
         </button>
       </div>
 
-      <div v-if="actionError" role="alert" class="text-red-400 text-sm mb-4">{{ actionError }}</div>
+      <div v-if="actionError" role="alert" class="mb-4 text-sm text-error">{{ actionError }}</div>
 
-      <!-- Invitation history -->
-      <h2 class="text-lg font-semibold text-slate-100 mb-3">Invitation History</h2>
-      <div v-if="!entry.invitationHistory?.length" class="text-slate-400 text-sm">{{ t('common.noData') }}</div>
-      <table v-else class="w-full text-sm text-left border-collapse" aria-label="Invitation history">
+      <h2 class="mb-3 text-lg font-semibold text-text-display">Invitation History</h2>
+      <div v-if="!entry.invitationHistory?.length" class="text-sm text-text-secondary">{{ t('common.noData') }}</div>
+      <table v-else class="admin-table w-full text-left text-sm" aria-label="Invitation history">
         <thead>
-          <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs">
+          <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">Status</th>
             <th scope="col" class="py-2 pr-4">Issued</th>
             <th scope="col" class="py-2 pr-4">Expires</th>
@@ -163,15 +159,15 @@ onMounted(fetchEntry)
           </tr>
         </thead>
         <tbody>
-          <tr v-for="inv in entry.invitationHistory" :key="inv.id" class="border-b border-slate-800/50">
+          <tr v-for="inv in entry.invitationHistory" :key="inv.id" class="border-b border-border-subtle">
             <td class="py-2 pr-4">{{ inv.status }}</td>
-            <td class="py-2 pr-4 text-slate-400">{{ new Date(inv.issuedAt).toLocaleString(locale) }}</td>
-            <td class="py-2 pr-4 text-slate-400">{{ new Date(inv.expiresAt).toLocaleString(locale) }}</td>
-            <td class="py-2 pr-4 text-slate-400">{{ inv.deliveryStatus }}</td>
+            <td class="py-2 pr-4 text-text-secondary">{{ new Date(inv.issuedAt).toLocaleString(locale) }}</td>
+            <td class="py-2 pr-4 text-text-secondary">{{ new Date(inv.expiresAt).toLocaleString(locale) }}</td>
+            <td class="py-2 pr-4 text-text-secondary">{{ inv.deliveryStatus }}</td>
             <td class="py-2">
               <button
                 v-if="canRevoke && inv.status === 'ACTIVE'"
-                class="px-2 py-1 rounded text-xs bg-red-500/20 text-red-300 hover:bg-red-500/30 transition-colors"
+                class="admin-button-danger min-h-0 px-2 py-1 text-xs"
                 @click="openRevokeDialog(inv.id)"
               >
                 {{ t('waitlist.revoke') }}
@@ -182,7 +178,6 @@ onMounted(fetchEntry)
       </table>
     </div>
 
-    <!-- Revoke dialog -->
     <div
       v-if="showRevokeDialog"
       role="dialog"
@@ -191,22 +186,22 @@ onMounted(fetchEntry)
       class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
       @keydown.esc="showRevokeDialog = false"
     >
-      <div class="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md">
-        <h2 id="revoke-dialog-title" class="text-lg font-semibold text-slate-100 mb-2">
+      <div class="admin-card w-full max-w-md p-6">
+        <h2 id="revoke-dialog-title" class="mb-2 text-lg font-semibold text-text-display">
           {{ t('waitlist.revokeConfirmTitle') }}
         </h2>
-        <p class="text-sm text-slate-400 mb-6">
+        <p class="mb-6 text-sm text-text-secondary">
           {{ t('waitlist.revokeConfirmMessage', { email: entry?.email }) }}
         </p>
         <div class="flex gap-2 justify-end">
           <button
-            class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition-colors"
+            class="admin-button-secondary"
             @click="showRevokeDialog = false"
           >
             {{ t('common.cancel') }}
           </button>
           <button
-            class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition-colors"
+            class="admin-button-danger"
             @click="confirmRevoke"
           >
             {{ t('waitlist.revoke') }}
@@ -223,9 +218,9 @@ import { defineComponent } from 'vue'
 const Field = defineComponent({
   props: { label: { type: String, required: true }, value: { type: String, required: true } },
   template: `
-    <div class="bg-slate-900 border border-slate-800 rounded-lg p-4">
-      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">{{ label }}</p>
-      <p class="text-sm text-slate-200">{{ value }}</p>
+    <div class="admin-card p-4">
+      <p class="label-mono mb-1 text-text-secondary">{{ label }}</p>
+      <p class="text-sm text-text-body">{{ value }}</p>
     </div>
   `,
 })

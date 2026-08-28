@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAdminAuthStore } from '@/stores/auth.store'
 
 const { t, locale } = useI18n()
+const authStore = useAdminAuthStore()
 
 interface AuditEvent {
   eventId: string
@@ -42,7 +44,7 @@ async function fetchEvents() {
     const params = new URLSearchParams({ page: String(page.value), size: '25' })
     if (actionFilter.value) params.set('action', actionFilter.value)
     if (resultFilter.value) params.set('result', resultFilter.value)
-    const res = await fetch(`/api/admin/audit-events?${params}`, { signal: controller.signal })
+    const res = await authStore.request(`/api/admin/audit-events?${params}`, { signal: controller.signal })
     if (!res.ok) throw new Error()
     result.value = await res.json()
   } catch (err) {
@@ -59,20 +61,20 @@ onBeforeUnmount(() => activeRequest?.abort())
 </script>
 
 <template>
-  <div class="p-8">
-    <h1 class="text-2xl font-bold text-slate-100 mb-6">{{ t('audit.title') }}</h1>
+  <div class="admin-page p-5 sm:p-8">
+    <h1 class="mb-6 text-2xl font-semibold text-text-display">{{ t('audit.title') }}</h1>
 
     <div class="flex gap-3 mb-4">
       <input
         v-model="actionFilter"
         type="text"
         placeholder="Filter by action"
-        class="bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-1.5 text-sm w-48"
+        class="admin-input w-48 text-sm"
         :aria-label="t('audit.action')"
       />
       <select
         v-model="resultFilter"
-        class="bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-1.5 text-sm"
+        class="admin-input text-sm"
         :aria-label="t('audit.result')"
       >
         <option value="">All results</option>
@@ -82,12 +84,12 @@ onBeforeUnmount(() => activeRequest?.abort())
       </select>
     </div>
 
-    <div v-if="loading" class="text-slate-400">{{ t('common.loading') }}</div>
-    <div v-else-if="error" role="alert" class="text-red-400">{{ error }}</div>
+    <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
+    <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
     <template v-else-if="result">
-      <table class="w-full text-sm text-left border-collapse" aria-label="Audit events">
+      <table class="admin-table w-full text-left text-sm" aria-label="Audit events">
         <thead>
-          <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs">
+          <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">{{ t('audit.occurredAt') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('audit.action') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('audit.targetType') }}</th>
@@ -99,19 +101,19 @@ onBeforeUnmount(() => activeRequest?.abort())
           <tr
             v-for="event in result.items"
             :key="event.eventId"
-            class="border-b border-slate-800/50 hover:bg-slate-900/50"
+            class="border-b border-border-subtle hover:bg-bg-surface"
           >
-            <td class="py-2 pr-4 text-slate-400">{{ new Date(event.occurredAt).toLocaleString(locale) }}</td>
-            <td class="py-2 pr-4 text-slate-200 font-mono text-xs">{{ event.action }}</td>
-            <td class="py-2 pr-4 text-slate-400">{{ event.targetType }}</td>
-            <td class="py-2 pr-4 text-slate-500 text-xs font-mono truncate max-w-32">{{ event.targetId }}</td>
+            <td class="py-2 pr-4 text-text-secondary">{{ new Date(event.occurredAt).toLocaleString(locale) }}</td>
+            <td class="py-2 pr-4 font-mono text-text-body text-xs">{{ event.action }}</td>
+            <td class="py-2 pr-4 text-text-secondary">{{ event.targetType }}</td>
+            <td class="max-w-32 truncate py-2 pr-4 font-mono text-text-secondary text-xs">{{ event.targetId }}</td>
             <td class="py-2">
               <span
-                class="px-2 py-0.5 rounded-full text-xs"
+                class="status-badge"
                 :class="{
-                  'bg-green-500/20 text-green-300': event.result === 'SUCCEEDED',
-                  'bg-red-500/20 text-red-300': event.result === 'FAILED',
-                  'bg-yellow-500/20 text-yellow-300': event.result === 'REJECTED',
+                  'bg-success/15 text-success': event.result === 'SUCCEEDED',
+                  'bg-error/15 text-error': event.result === 'FAILED',
+                  'bg-warning/15 text-warning': event.result === 'REJECTED',
                 }"
               >
                 {{ t(`audit.results.${event.result.toLowerCase()}`) }}
@@ -121,17 +123,17 @@ onBeforeUnmount(() => activeRequest?.abort())
         </tbody>
       </table>
 
-      <div class="flex items-center justify-between mt-4 text-sm text-slate-400">
+      <div class="mt-4 flex items-center justify-between text-sm text-text-secondary">
         <span>{{ t('common.page') }} {{ result.page + 1 }} {{ t('common.of') }} {{ result.totalPages }}</span>
         <div class="flex gap-2">
           <button
             :disabled="!result.hasPrevious"
-            class="px-3 py-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 transition-colors"
+            class="admin-button-secondary disabled:opacity-40"
             @click="page--; fetchEvents()"
           >{{ t('common.previous') }}</button>
           <button
             :disabled="!result.hasNext"
-            class="px-3 py-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 transition-colors"
+            class="admin-button-secondary disabled:opacity-40"
             @click="page++; fetchEvents()"
           >{{ t('common.next') }}</button>
         </div>

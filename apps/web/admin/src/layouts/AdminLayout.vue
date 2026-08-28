@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import lightOnDarkLogoUrl from '@shared/assets/profiletailors-logotype-light.svg'
 import { useAdminAuthStore, type PlatformPermission } from '@/stores/auth.store'
 
 const { t } = useI18n()
@@ -22,71 +23,68 @@ const navItems = computed<NavItem[]>(() =>
         name: 'dashboard',
         label: t('nav.dashboard'),
         permission: 'platform.dashboard.read',
-        icon: '⊞',
+        icon: '◈',
       },
       {
         name: 'waitlist',
         label: t('nav.waitlist'),
         permission: 'platform.waitlist.read',
-        icon: '☰',
+        icon: '≡',
       },
       {
         name: 'users',
         label: t('nav.users'),
         permission: 'platform.users.read',
-        icon: '👥',
+        icon: '◎',
       },
       {
         name: 'audit',
         label: t('nav.audit'),
         permission: 'platform.audit.read',
-        icon: '📋',
+        icon: '▤',
       },
     ] as NavItem[]
   ).filter(item => authStore.hasPermission(item.permission)),
 )
 
 async function signOut() {
-  await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined)
-  authStore.clearSession()
+  await authStore.signOut()
   router.push({ name: 'login' })
 }
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-slate-950 text-slate-100">
-    <!-- Sidebar -->
+  <div class="admin-shell flex min-h-screen bg-bg-primary text-text-body">
     <aside
-      class="w-64 flex flex-col bg-slate-900 border-r border-slate-800"
+      class="admin-sidebar flex w-64 shrink-0 flex-col border-r border-border-subtle bg-bg-surface"
       aria-label="Platform administration navigation"
     >
-      <!-- Brand header -->
-      <div class="p-6 border-b border-slate-800">
-        <p class="text-xs uppercase tracking-widest text-amber-400 font-semibold mb-1">
+      <div class="border-b border-border-subtle p-6">
+        <img :src="lightOnDarkLogoUrl" alt="" class="mb-5 h-10 w-9" aria-hidden="true">
+        <p class="label-mono mb-1 text-text-secondary">
           {{ t('auth.platformAdmin') }}
         </p>
-        <p class="text-sm text-slate-400 truncate">
+        <p class="truncate text-sm text-text-secondary">
           {{ authStore.principal?.email }}
         </p>
         <div class="mt-2 flex flex-wrap gap-1">
           <span
             v-for="role in authStore.principal?.platformRoles"
             :key="role"
-            class="text-xs px-2 py-0.5 rounded bg-amber-900/40 text-amber-300"
+            class="status-badge status-badge-neutral"
           >
             {{ role }}
           </span>
         </div>
       </div>
 
-      <!-- Nav links -->
-      <nav class="flex-1 p-4 space-y-1">
+      <nav class="flex-1 space-y-1 p-4">
         <RouterLink
           v-for="item in navItems"
           :key="item.name"
           :to="{ name: item.name }"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-          active-class="bg-slate-800 text-white"
+          class="admin-nav-link flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-text-secondary transition-colors"
+          active-class="admin-nav-link-active"
           :aria-label="item.label"
         >
           <span aria-hidden="true">{{ item.icon }}</span>
@@ -94,10 +92,9 @@ async function signOut() {
         </RouterLink>
       </nav>
 
-      <!-- Sign out -->
-      <div class="p-4 border-t border-slate-800">
+      <div class="border-t border-border-subtle p-4">
         <button
-          class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          class="admin-nav-link w-full rounded-xl px-3 py-2 text-left text-sm text-text-secondary transition-colors"
           @click="signOut"
         >
           {{ t('auth.signOut') }}
@@ -105,8 +102,7 @@ async function signOut() {
       </div>
     </aside>
 
-    <!-- Main content -->
-    <main class="flex-1 overflow-auto" id="main-content" tabindex="-1">
+    <main class="min-w-0 flex-1 overflow-auto" id="main-content" tabindex="-1">
       <RouterView />
     </main>
   </div>

@@ -27,6 +27,18 @@ export type MessageSchema = {
     signIn: string
     signOut: string
     platformAdmin: string
+    email: string
+    password: string
+    emailRequired: string
+    emailInvalid: string
+    passwordRequired: string
+    invalidCredentials: string
+    loginError: string
+    signingIn: string
+    show: string
+    hide: string
+    showPassword: string
+    hidePassword: string
     accessDenied: string
     accessDeniedMessage: string
     notAuthenticated: string
