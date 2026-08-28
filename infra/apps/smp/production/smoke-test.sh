@@ -104,7 +104,7 @@ run_checks
 
 if [ "${1:-}" = "--restart" ]; then
     "${compose[@]}" stop
-    "${compose[@]}" up -d --wait
+    "${compose[@]}" up -d --wait --wait-timeout 120
     run_checks
     echo "Production restart and persistence check passed."
 elif [ -n "${1:-}" ]; then
