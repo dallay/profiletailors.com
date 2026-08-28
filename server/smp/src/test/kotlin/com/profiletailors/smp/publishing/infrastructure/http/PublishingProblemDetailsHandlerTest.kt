@@ -226,4 +226,14 @@ class PublishingProblemDetailsHandlerTest {
         problem.title shouldBe "Recurring schedule not found"
         problem.detail shouldBe "Recurring schedule not found."
     }
+
+    @Test
+    fun `maps IllegalArgumentException without message to fallback detail`() {
+        val exception = IllegalArgumentException()
+        val problem = handler.handle(exception)
+
+        problem.status shouldBe HttpStatus.BAD_REQUEST.value()
+        problem.title shouldBe "Bad Request"
+        problem.detail shouldBe "Invalid request argument"
+    }
 }
