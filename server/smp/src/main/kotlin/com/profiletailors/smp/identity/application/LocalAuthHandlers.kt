@@ -149,7 +149,8 @@ internal class RegisterUserHandler(
     }
 
     /**
-     * Creates the user's identity, credentials, workspace membership, consent records, and email-verification token atomically.
+     * Creates the user's identity, credentials, workspace membership,
+     * consent records, and email-verification token atomically.
      *
      * @param command Registration data, including the optional invitation token and accepted terms version.
      * @param principalId The principal identifier for the new user.
@@ -157,7 +158,8 @@ internal class RegisterUserHandler(
      * @param normalizedEmail The normalized email address.
      * @param normalizedUsername The normalized username.
      * @return The raw email-verification token and resolved workspace identifier.
-     * @throws UserAlreadyExistsException If a unique-constraint violation indicates that the email is already registered.
+     * @throws UserAlreadyExistsException If a unique-constraint violation
+     * indicates that the email is already registered.
      */
     private suspend fun runRegistrationTransaction(
         command: RegisterUserCommand,
