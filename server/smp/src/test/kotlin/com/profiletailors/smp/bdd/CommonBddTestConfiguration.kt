@@ -153,12 +153,12 @@ class CommonBddTestConfiguration {
     fun mutableRegistrationPolicy(): MutableRegistrationPolicy = MutableRegistrationPolicy()
 
     /**
-         * Provides the mutable registration policy used by BDD tests.
-         *
-         * @param policy The mutable registration policy to evaluate.
-         * @return The registration policy configured for BDD tests.
-         */
-        @Bean
+     * Provides the mutable registration policy used by BDD tests.
+     *
+     * @param policy The mutable registration policy to evaluate.
+     * @return The registration policy configured for BDD tests.
+     */
+    @Bean
     @Primary
     fun bddRegistrationPolicy(policy: MutableRegistrationPolicy): RegistrationPolicy =
         RegistrationPolicy { hasInvitationToken -> policy.mode().evaluate(hasInvitationToken) }

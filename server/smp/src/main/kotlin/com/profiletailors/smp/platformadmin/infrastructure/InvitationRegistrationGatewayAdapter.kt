@@ -45,17 +45,17 @@ class InvitationRegistrationGatewayAdapter(
     }
 
     /**
- * Creates the generic exception used when an invitation cannot be accepted.
- *
- * @return An exception indicating that the invitation is unavailable.
- */
-private fun invalidInvitation(): InvitationNotAcceptableException = InvitationNotAcceptableException("unavailable")
+     * Creates the generic exception used when an invitation cannot be accepted.
+     *
+     * @return An exception indicating that the invitation is unavailable.
+     */
+    private fun invalidInvitation(): InvitationNotAcceptableException = InvitationNotAcceptableException("unavailable")
 
     /**
- * Normalizes text by trimming surrounding whitespace and converting it to lowercase.
- *
- * @param value The text to normalize.
- * @return The normalized text.
- */
-private fun normalize(value: String): String = value.trim().lowercase()
+     * Normalizes text by trimming surrounding whitespace and converting it to lowercase.
+     *
+     * @param value The text to normalize.
+     * @return The normalized text.
+     */
+    private fun normalize(value: String): String = value.trim().lowercase()
 }

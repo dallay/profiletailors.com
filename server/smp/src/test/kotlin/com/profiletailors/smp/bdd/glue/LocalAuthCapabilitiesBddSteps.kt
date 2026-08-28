@@ -94,7 +94,8 @@ class LocalAuthCapabilitiesBddSteps {
     }
 
     /**
-     * Verifies that the public capabilities response contains exactly the allow-listed capabilities, all enabled, without SSO capabilities.
+     * Verifies that the public capabilities response contains
+     * exactly the allow-listed capabilities, all enabled, without SSO capabilities.
      */
     @Then("the public capabilities response should equal the exact allow-listed contract")
     fun exactPublicCapabilitiesContract() {
