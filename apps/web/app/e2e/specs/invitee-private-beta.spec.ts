@@ -99,7 +99,11 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     await expect(page).toHaveURL(/\/$/)
   })
 
-  test('3.1b Fresh invitee registers with the invitation token', async ({ page }: { page: Page }): Promise<void> => {
+  test('3.1b Fresh invitee registers with the invitation token', async ({
+    page,
+  }: {
+    page: Page
+  }): Promise<void> => {
     await page.route('**/api/capabilities/public', async (route: Route): Promise<void> => {
       await route.fulfill({
         status: 200,
@@ -172,7 +176,9 @@ test.describe('Invitee Private Beta Journey @integration', () => {
 
   test('3.1c Fresh invitee schedules the first post in the accepted workspace', async ({
     page,
-  }: { page: Page }): Promise<void> => {
+  }: {
+    page: Page
+  }): Promise<void> => {
     await page.route('**/api/capabilities/public', async (route: Route): Promise<void> => {
       await route.fulfill({
         status: 200,
