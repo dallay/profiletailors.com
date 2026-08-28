@@ -1,5 +1,6 @@
 package com.profiletailors.smp.bdd.glue
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.cucumber.java.Before
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
@@ -98,13 +99,17 @@ class LocalAuthCapabilitiesBddSteps {
     @Then("the public capabilities response should equal the exact allow-listed contract")
     fun exactPublicCapabilitiesContract() {
         val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
+        val json = ObjectMapper().readTree(body)
         assertEquals(
             setOf("registrationEnabled", "passwordRecoveryEnabled", "invitationAcceptanceEnabled"),
-            com.fasterxml.jackson.databind.ObjectMapper().readTree(body).fieldNames().asSequence().toSet(),
+            json.fieldNames().asSequence().toSet(),
         )
-        assertTrue(body.contains("\"registrationEnabled\":true"))
-        assertTrue(body.contains("\"passwordRecoveryEnabled\":true"))
-        assertTrue(body.contains("\"invitationAcceptanceEnabled\":true"))
+        assertTrue(json.get("registrationEnabled").isBoolean)
+        assertTrue(json.get("registrationEnabled").booleanValue())
+        assertTrue(json.get("passwordRecoveryEnabled").isBoolean)
+        assertTrue(json.get("passwordRecoveryEnabled").booleanValue())
+        assertTrue(json.get("invitationAcceptanceEnabled").isBoolean)
+        assertTrue(json.get("invitationAcceptanceEnabled").booleanValue())
         assertFalse(body.contains("sso"))
     }
 
