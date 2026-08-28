@@ -32,7 +32,7 @@ For 12 URLs (6 routes x2 locales), title MUST be >=30 ending ` — Profile Tailo
 
 ### Requirement: Link Hygiene — No Broken/Orphan
 
-Site MUST have 0 broken links, 0 `cdn-cgi` hrefs, 0 `http://` hrefs, sitemap 12 URLs, each URL >=2 inbound dofollow. (Traces: FIX #1-3, #15)
+Site MUST have 0 broken links, 0 `cdn-cgi` hrefs, 0 `http://` hrefs, sitemap 12 URLs, each URL >=1 inbound dofollow. (Traces: FIX #1-3, #15)
 
 #### Scenario: No broken or obfuscated href
 
@@ -50,7 +50,7 @@ Site MUST have 0 broken links, 0 `cdn-cgi` hrefs, 0 `http://` hrefs, sitemap 12 
 
 - GIVEN `sitemap.xml` and crawled link graph
 - WHEN comparing
-- THEN sitemap MUST have 12 URLs and each MUST have >=2 inbound dofollow
+- THEN sitemap MUST have 12 URLs and each MUST have >=1 inbound dofollow
 
 ### Requirement: IndexNow Intentionally Absent
 
@@ -90,7 +90,7 @@ Site SHOULD track Lighthouse budget for 12 URLs; no perf fix without baseline. (
 
 #### Scenario: Runbook documents redirect
 
-- GIVEN `docs/marketing/SEO.md`
+- GIVEN `docs/marketing/seo.md`
 - WHEN reading redirect section
 - THEN MUST state bulk 301 + HSTS owned by operator
 

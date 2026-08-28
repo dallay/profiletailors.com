@@ -179,7 +179,7 @@ Every one of the 15 issues has a disposition — none silently omitted.
 - `openspec/specs/marketing-a11y-seo/spec.md` — add SEO invariants: title >=50-60 guideline / branded suffix, description 120-160, single `<h1>`, canonical + hreflang triple, sitemap coverage, robots allow-all decision.
 - `apps/web/marketing/tests/e2e/seo.spec.ts` (new) — preview-crawl assertions: (a) every internal href resolves <400, (b) no `http://` href, (c) sitemap lists 12 URLs with `lastmod`/`changefreq`, (d) each page's title/description/h1/canonical/hreflang/og pass.
 - `apps/web/marketing/src/pages/robots.txt.ts` — optional explicit per-bot `Allow` (if proposal opts for Approach 2).
-- `docs/` — operator runbook entry for www bulk 301 + HSTS + re-crawl steps (or a `docs/marketing/SEO.md` if absent).
+- `docs/` — operator runbook entry for www bulk 301 + HSTS + re-crawl steps (or a `docs/marketing/seo.md` if absent).
 
 **Explicitly out of scope:**
 

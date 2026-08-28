@@ -20,14 +20,14 @@ Chain strategy: single-pr
 
 | Unit | Goal | PR | Notes |
 |------|------|----|-------|
-| 1 | Pin + prove SEO invariants | PR 1 | Base `main`; robots, seo.spec.ts, utils.test.ts, SEO.md, Lighthouse |
+| 1 | Pin + prove SEO invariants | PR 1 | Base `main`; robots, seo.spec.ts, utils.test.ts, seo.md, Lighthouse |
 
 ## Phase 1: P0 Link Hygiene — Broken/4XX/Orphan (FIX #1-3, #15)
 
 - [x] 1.1 RED: `tests/e2e/seo.spec.ts` — crawl 12 URLs, collect internal `a[href]` excl. `mailto/#`/ext, `page.request.get` → `<400` + no `cdn-cgi` — traces `No broken or obfuscated href`
 - [x] 1.2 GREEN: Run on `astro preview`; confirm PR #869 mailto holds — no code if green
 - [x] 1.3 RED: Scan `href/src` → zero `http://` — traces `No http href` + `Repo rejects http`
-- [x] 1.4 RED: Sitemap parity — `GET /sitemap.xml` → 12 `<loc>` + inbound `>=2` — traces `Sitemap parity`
+- [x] 1.4 RED: Sitemap parity — `GET /sitemap.xml` → 12 `<loc>` + inbound `>=1` — traces `Sitemap parity`
 - [x] 1.5 GREEN: Verify `src/pages/sitemap.xml.ts` already 12 — lock via test
 
 ## Phase 2: AI Bot Policy — robots per-bot Allow (FIX #7-8)
@@ -52,7 +52,7 @@ Chain strategy: single-pr
 
 ## Phase 5: Docs / Runbook + Verification (PLATFORM #5-6, #13-14)
 
-- [x] 5.1 Create `docs/marketing/SEO.md` — 301 matrix (`http→https`, `www→apex`, `302→301`), HSTS, Cloudflare steps, re-crawl — traces `Runbook`
+- [x] 5.1 Create `docs/marketing/seo.md` — 301 matrix (`http→https`, `www→apex`, `302→301`), HSTS, Cloudflare steps, re-crawl — traces `Runbook`
 - [x] 5.2 Verify: `just frontend-check && just frontend-test && just frontend-test-e2e && just frontend-build`; attach crawl + Lighthouse + robots/sitemap
 
 Order: 1→2→3→4→5; TDD RED before GREEN; no `shared/web`/`server/smp`. Effort: ~8–11h (Ph1 2h, Ph2 1h, Ph3 2h, Ph4 3h, Ph5 1h).

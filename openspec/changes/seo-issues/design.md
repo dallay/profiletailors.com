@@ -53,7 +53,7 @@ i18n (en.ts/es.ts) → Layout.astro → 12 HTML (canonical/hreflang/og/robots)
        sitemap.xml.ts (12 URLs) ─────────────────┤→ seo.spec.ts (preview)
                                                 │  1) head invariants 2) crawl graph <400
                                                 │  3) no http/cdn-cgi 4) sitemap parity 5) robots
-       docs/marketing/SEO.md (runbook) is out-of-band; Lighthouse JSON is artifact
+       docs/marketing/seo.md (runbook) is out-of-band; Lighthouse JSON is artifact
 ```
 
 ## File Changes
@@ -65,7 +65,7 @@ i18n (en.ts/es.ts) → Layout.astro → 12 HTML (canonical/hreflang/og/robots)
 | `src/layouts/Layout.astro` | Verify | No change; canonical/hreflang/robots already correct |
 | `src/i18n/utils.test.ts` | Modify | Extend: title >=30 + suffix, H1 pin if needed |
 | `tests/e2e/seo.spec.ts` | Create | 12-URL crawl: head, link graph, sitemap, robots |
-| `docs/marketing/SEO.md` | Create | Runbook: bulk 301 matrix + HSTS + re-crawl |
+| `docs/marketing/seo.md` | Create | Runbook: bulk 301 matrix + HSTS + re-crawl |
 | `astro.config.mjs`/`shared/web`/`server/smp` | None | Out of scope |
 
 ## Interfaces / Contracts

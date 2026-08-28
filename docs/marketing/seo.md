@@ -15,7 +15,7 @@ Covers operator-owned PLATFORM fixes for Ahrefs 2026-08-27 (9293424) and AI-craw
 - IndexNow intentionally absent — sitemap + Search Console is discovery
 - Lighthouse baseline measure-only under `docs/marketing/lighthouse/baseline.json`
 
-## 301 Matrix — Cloudflare Bulk Redirects (PLATFORM)
+### 301 Matrix — Cloudflare Bulk Redirects (PLATFORM)
 
 Operator executes; repo cannot prove edge redirects.
 
@@ -49,7 +49,7 @@ curl -I https://www.profiletailors.com/ | grep -i location
 curl -I https://profiletailors.com/ | grep -i strict-transport
 ```
 
-## AI Crawler Policy
+### AI Crawler Policy
 
 Allow-all deliberate: `Layout.astro` sets `robots=index,follow` on all 12 URLs. `robots.txt` explicit per-bot `Allow: /` silences Ahrefs AI heuristic (12 inconsistent + 12 blocked). No `Disallow`, no `llms.txt`. If policy changes, update `src/pages/robots.txt.ts` and this doc together.
 

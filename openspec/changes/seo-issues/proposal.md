@@ -7,6 +7,7 @@ Ahrefs reports 15 issues on 12 marketing URLs (6 routes ×2 locales). PR #869 fi
 ## Scope
 
 ### In Scope
+
 - Pin title (>=30/branded suffix), description 120-160, single H1 (EN/ES) + regressions
 - Link hygiene E2E: no 404/4XX, no `http://` href lint, sitemap-vs-graph parity (12 URLs)
 - Robots: explicit per-bot `Allow: /` + sitemap line, docs for allow-all decision
@@ -15,6 +16,7 @@ Ahrefs reports 15 issues on 12 marketing URLs (6 routes ×2 locales). PR #869 fi
 - Docs: runbook for 301/HSTS/re-crawl
 
 ### Out of Scope
+
 - IndexNow (intentionally absent; sitemap + Search Console sufficient)
 - Bulk-redirect/HSTS execution (operator)
 - `shared/web`, `server/smp`, `apps/web/app`, `admin`
@@ -23,9 +25,11 @@ Ahrefs reports 15 issues on 12 marketing URLs (6 routes ×2 locales). PR #869 fi
 ## Capabilities
 
 ### New Capabilities
+
 - None
 
 ### Modified Capabilities
+
 - `marketing-a11y-seo`: SEO invariants (title/meta/H1, canonical/hreflang, robots/sitemap, link hygiene, perf budget)
 
 ## Issue Disposition (15)
@@ -35,7 +39,7 @@ Ahrefs reports 15 issues on 12 marketing URLs (6 routes ×2 locales). PR #869 fi
 |1|10 broken links|FIX|Fixed 7eaf7639; pin graph-crawl|
 |2|1×404|FIX|Same `cdn-cgi` dest; pin|
 |3|1×4XX|FIX|Same; pin|
-|4|6 slow (+2)|FIX|Measure Lighthouse; budget only|
+|4|6 slow (+2)|INVESTIGATE|Measure-only Lighthouse budget; no perf fix in this change|
 |5|3×3XX|PLATFORM|Operator bulk 301|
 |6|1×302|PLATFORM|302→301|
 |7|12 inconsistent AI|FIX|Per-bot `Allow: /` docs|
@@ -60,7 +64,7 @@ Minimal + AI docs. Keep allow-all, add `Allow: /` for OAI-SearchBot, GPTBot, Per
 | `src/i18n/utils.test.ts` | Modified | Extend pins |
 | `tests/e2e/seo.spec.ts` | New | 12-URL crawl checks |
 | `marketing-a11y-seo` | Modified | Invariants |
-| `docs/marketing/SEO.md` | New | 301/HSTS runbook |
+| `docs/marketing/seo.md` | New | 301/HSTS runbook |
 | `astro.config.mjs`/`Layout.astro`/`sitemap.xml.ts` | Verify | No code change |
 
 ## Risks

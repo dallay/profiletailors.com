@@ -26,7 +26,7 @@
 - `apps/web/marketing/src/i18n/en.ts`, `es.ts` — title reordered to suffix
 - `apps/web/marketing/src/i18n/utils.test.ts` — extended 125 lines, seo invariants + guards
 - `apps/web/marketing/tests/e2e/seo.spec.ts` — NEW 215 lines, 7 tests
-- `docs/marketing/SEO.md` — NEW 92 lines runbook
+- `docs/marketing/seo.md` — NEW 92 lines runbook
 - `docs/marketing/lighthouse/baseline.json` — 12 URLs, budget LCP 2500/CLS 0.1/INP 200
 
 ## 2. Build / Tests / Coverage Evidence (real execution, not static)
@@ -40,7 +40,7 @@
 | `pnpm --filter marketing exec biome check .` | `apps/web/marketing` | 0 | **PASS** — 63 files, 0 issues | |
 | `pnpm --filter marketing build` (`astro build`) | `apps/web/marketing` | 0 | **PASS** — 12 pages, 14 routes, 386ms | `dist/` generated |
 | `dist/robots.txt` | build output | — | **PASS** — 8× `Allow: /`, 8× `User-agent:` (*/+7 bots), 1× `Sitemap: https://profiletailors.com/sitemap.xml` | `cat dist/robots.txt` |
-| `dist/sitemap.xml` | build output | — | **PASS** — 12 `<loc>`, https + trailing-slash, weekly | `grep -c <loc> ==12` |
+| `dist/sitemap.xml` | build output | — | **PASS** — 12 `<loc>`, https + trailing-slash, weekly | `grep -o "<loc>" dist/sitemap.xml \| wc -l ==12` |
 | `grep http://` src | repo | 0 | **PASS** — zero `http://` outside `https://`/`http://localhost`/`xml http://` | utils.test + manual grep |
 | `grep cdn-cgi` src | repo | 0 | **PASS** — only test expectations | |
 | `grep api.indexnow.org` src | repo | 0 | **PASS** — only test expectations | |
@@ -72,10 +72,10 @@
 | | No http href | `No http href` | no `http://` in src; lint via grep + test | `utils.test.ts` no `http://` + `seo.spec.ts` `No http href` | **PASS** |
 | | Sitemap parity and no orphan | `Sitemap parity…` | `sitemap.xml.ts` 12 URLs flatMap en/es + E2E inbound >=2 | `seo.spec.ts` `Sitemap parity — 12 loc and inbound >=2` | **PASS** |
 | **IndexNow Intentionally Absent** | No IndexNow artifacts | `No IndexNow artifacts` | no `<key>.txt`, no `api.indexnow.org` in src/dist | `utils.test.ts` no IndexNow + `seo.spec.ts` No IndexNow artifacts + `grep` | **PASS** |
-| | Sitemap is discovery source | `Sitemap is…` | `SEO.md` + design B; sitemap 12 submitted source | doc check + sitemap served **PASS** (manual) | **PASS** |
+| | Sitemap is discovery source | `Sitemap is…` | `seo.md` + design B; sitemap 12 submitted source | doc check + sitemap served **PASS** (manual) | **PASS** |
 | **Performance Budget — Measure Only** | Lighthouse budget recorded | `Lighthouse budget…` | `docs/marketing/lighthouse/baseline.json` 12 URLs with LCP/CLS/INP vs budget | `utils.test.ts` baseline exists + covers 12 + JSON valid | **PASS** |
 | | Reject unmeasured perf fix | `Reject unmeasured…` | guard: baseline must exist before perf code; design Measure-Only | `utils.test.ts` guard + doc `measure-only` | **PASS** *(with note)* |
-| **Redirect/HTTPS — Platform Decision** | Runbook documents redirect | `Runbook documents…` | `docs/marketing/SEO.md` bulk 301 matrix + HSTS + Cloudflare steps + curl verification | file exists, content verified | **PASS** |
+| **Redirect/HTTPS — Platform Decision** | Runbook documents redirect | `Runbook documents…` | `docs/marketing/seo.md` bulk 301 matrix + HSTS + Cloudflare steps + curl verification | file exists, content verified | **PASS** |
 | | Repo rejects http href | `Repo rejects…` | CI `grep` + E2E `No http href` | both passing | **PASS** |
 | **Robots and Sitemap Routes (MODIFIED)** | robots.txt is served | `robots.txt is served` | `robots.txt.ts` GET → text/plain | `seo.spec.ts` 200 + `dist/robots.txt` | **PASS** |
 | | sitemap.xml is served | `sitemap.xml is served` | `sitemap.xml.ts` GET → application/xml 12 loc | `seo.spec.ts` 200 + `dist/sitemap.xml` | **PASS** |
@@ -97,7 +97,7 @@
 | Is link graph healthy (no 404/4XX, no http, no orphan)? | ✅ | E2E crawl fetches <400, no `cdn-cgi`/`http://`, sitemap parity + inbound≥2 |
 | Is IndexNow absent? | ✅ | no artifacts in src/dist/sitemap/robots |
 | Is perf budget measured not coded? | ✅ | baseline.json 12 URLs vs budget, no speculative perf code shipped |
-| Is redirect/HSTS operator-owned with repo lint? | ✅ | SEO.md runbook + `no http href` enforcement |
+| Is redirect/HSTS operator-owned with repo lint? | ✅ | seo.md runbook + `no http href` enforcement |
 
 ## 5. Design Coherence Table
 
@@ -105,11 +105,11 @@
 |----------------------|---------------|----------------------|
 | **Robots per-bot Allow (Choose B)** — explicit 7× Allow + Sitemap, no Disallow | ✅ | `robots.txt.ts:7-32` exactly 7 stanzas + Sitemap; `dist/robots.txt` matches contract verbatim |
 | **Link hygiene (A+B+C)** — utils.test regex + grep http + seo.spec crawl | ✅ | `utils.test.ts` no raw email/no http/no cdn-cgi + E2E crawl <400 + parity |
-| **IndexNow (Choose B)** — intentionally absent, sitemap+SC sufficient | ✅ | no key file, no POST, SEO.md documents absence, tests assert absence |
-| **Perf + Redirects (B+D)** — measure-only Lighthouse, PLATFORM bulk 301/HSTS docs, repo enforces no http | ✅ | `baseline.json` measure-only + `SEO.md` matrix + no http lint; no `vercel.json`/`_headers` added (correct per out-of-scope) |
+| **IndexNow (Choose B)** — intentionally absent, sitemap+SC sufficient | ✅ | no key file, no POST, seo.md documents absence, tests assert absence |
+| **Perf + Redirects (B+D)** — measure-only Lighthouse, PLATFORM bulk 301/HSTS docs, repo enforces no http | ✅ | `baseline.json` measure-only + `seo.md` matrix + no http lint; no `vercel.json`/`_headers` added (correct per out-of-scope) |
 | Data flow `i18n → Layout → 12 HTML` + robots/sitemap → seo.spec | ✅ | unverified `astro.config.mjs`/`Layout.astro`/`sitemap.xml.ts` untouched as planned |
 | Interfaces: titles ` — Profile Tailors`, desc band, h1Count, canonical https+slash, hreflang triple | ✅ | implemented verbatim; `seo.spec.ts` enforces contract |
-| File change matrix | ✅ | 4 modified (en.ts, es.ts, robots.txt.ts, utils.test.ts) + 2 new (seo.spec.ts, SEO.md, baseline.json) — no shared/web/server/smp changes |
+| File change matrix | ✅ | 4 modified (en.ts, es.ts, robots.txt.ts, utils.test.ts) + 3 new (seo.spec.ts, seo.md, baseline.json) — no shared/web/server/smp changes |
 | Testing strategy (unit + E2E preview + Lighthouse artifact) | ✅ | vitest 43 utils + E2E 7 + Lighthouse guard |
 
 No design deviation breaks spec. One intentional doc choice: per-bot Allow adds 7 lines (coupled to vendor list) but spec requires it — compliant.
@@ -118,7 +118,7 @@ No design deviation breaks spec. One intentional doc choice: per-bot Allow adds 
 
 | Finding | Judge A | Judge B | Severity | Status |
 |---------|---------|---------|----------|--------|
-| Lighthouse baseline values are synthetic placeholder (not from `npx lighthouse` run) — task 4.4 says "Run lighthouse, commit JSON under `docs/marketing/lighthouse/`" but values are illustrative (1180/1210 etc) not measured via Chrome | ✅ | ✅ | **WARNING** | Confirmed — `baseline.json` note says measure-only but generatedAt is static; recommend re-running `npx lighthouse --output=json` per `SEO.md` Usage before next release, or keep as budget scaffold. Does not block verify — budget exists and guard passes. |
+| Lighthouse baseline values are synthetic placeholder (not from `npx lighthouse` run) — task 4.4 says "Run lighthouse, commit JSON under `docs/marketing/lighthouse/`" but values are illustrative (1180/1210 etc) not measured via Chrome | ✅ | ✅ | **WARNING** | Confirmed — `baseline.json` note says measure-only but generatedAt is static; recommend re-running `npx lighthouse --output=json` per `seo.md` Usage before next release, or keep as budget scaffold. Does not block verify — budget exists and guard passes. |
 | `just frontend-test-e2e` full lane (a11y/consent) not re-run in this verify session; only `seo.spec.ts` chromium was run with reuseExistingServer | ✅ | ✅ | **WARNING** (non-blocking) | Info — `check/lint/test/build` green, `utils.test.ts` 113 green signals no regression; full 5-project 60s E2E run recommended in QA but not required to PASS seo scope. |
 | Layout default title fallback `Profile Tailors — Social content planning…` (en dash order) in `Layout.astro:13` differs from i18n suffix order `… — Profile Tailors` but prop always overrides — not user-visible | ✅ | ❌ | **SUGGESTION** | Suspect — align fallback to `Social content planning in development — Profile Tailors` for consistency; low risk. |
 | `.agents/skill-registry.md` untracked leftover from worktree setup | ✅ | ❌ | **SUGGESTION** | Cleanup — untracked file, no functional impact. |
@@ -129,7 +129,7 @@ No design deviation breaks spec. One intentional doc choice: per-bot Allow adds 
 
 **PASS WITH WARNINGS** — `fallback` enforcement (no versioned runner, manual evidence preserved)
 
-- **PASS**: 6/6 requirements, 17/17 scenarios compliant with passing covering tests at runtime; design coherence 100%; build/tests all green; `robots.txt` per-bot, i18n titles, `utils.test.ts`, `seo.spec.ts` (7 tests), `docs/marketing/SEO.md`, `baseline.json`, `frontend-check/test/lint/build` evidence all present and verified against `dist/` output.
+- **PASS**: 6/6 requirements, 17/17 scenarios compliant with passing covering tests at runtime; design coherence 100%; build/tests all green; `robots.txt` per-bot, i18n titles, `utils.test.ts`, `seo.spec.ts` (7 tests), `docs/marketing/seo.md`, `baseline.json`, `frontend-check/test/lint/build` evidence all present and verified against `dist/` output.
 - **WARNINGS**: 2 non-blocking warnings (synthetic Lighthouse numbers, partial E2E lane) — documented above, no spec violation. QA must confirm full `just frontend-test-e2e` and optionally refresh Lighthouse with real run before archive.
 - **Next**: **Do NOT archive** — hand off to `sdd-qa` for acceptance. Then `sdd-archive` after QA PASS.
 
@@ -144,7 +144,7 @@ No design deviation breaks spec. One intentional doc choice: per-bot Allow adds 
 - `apps/web/marketing/src/i18n/en.ts:46` / `es.ts:46` — title suffix reorder
 - `apps/web/marketing/src/i18n/utils.test.ts:258-341` — seo invariants (≥30, suffix, unique, 120-160, guards)
 - `apps/web/marketing/tests/e2e/seo.spec.ts:1-215` — 7 tests, 12 URLs
-- `docs/marketing/SEO.md:1-92` — 301/HSTS runbook + re-crawl
+- `docs/marketing/seo.md:1-92` — 301/HSTS runbook + re-crawl
 - `docs/marketing/lighthouse/baseline.json:1-23` — 12 URLs vs budget
 - Build output `apps/web/marketing/dist/robots.txt` (306B) + `sitemap.xml` (1992B) + 12 HTML — verified 2026-08-28
 - Test runs: `astro check` 0/0, `vitest --run` 113/113, `biome check` 0, `astro build` 12 pages, `playwright seo.spec.ts chromium` 7/7
