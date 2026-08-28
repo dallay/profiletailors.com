@@ -436,12 +436,17 @@ class PublishingBddSteps {
         )
     }
 
+    /**
+     * Verifies that the latest publishing response has the expected HTTP status.
+     *
+     * @param status The expected HTTP status code.
+     * @throws IllegalStateException If no publishing response has been captured.
+     */
     @Then("the publishing response status should be {int}")
     fun thenPublishingResponseStatusShouldBe(status: Int) {
         val response = latestPublishingResponse ?: error("No publishing response captured")
         val body = String(response.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
         val actualStatus = response.status.value()
-        System.err.println("DEBUG_STATUS_CHECK: expected=$status, actual=$actualStatus, body=$body")
         assertEquals(status, actualStatus) {
             "Expected status $status but got $actualStatus. Response body: $body"
         }

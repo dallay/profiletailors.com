@@ -29,7 +29,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
     properties = [
         "spring.liquibase.enabled=true",
         "bdd.variant=fast",
-        "app.identity.registration.enabled=true",
+        "app.identity.registration.mode=OPEN",
         "management.health.defaults.enabled=false",
         "management.endpoint.health.probes.enabled=false",
         "management.endpoint.health.group.readiness.include=",
