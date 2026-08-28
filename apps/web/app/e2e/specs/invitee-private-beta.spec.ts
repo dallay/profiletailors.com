@@ -18,7 +18,6 @@ import { test, expect } from '../fixtures/scheduler-base-test'
 import type { Page, Route } from '@playwright/test'
 import { APP_URL } from '../fixtures/test-data'
 import { mockRegisterSuccess } from '../fixtures/auth-helpers'
-import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { SchedulerPage } from '../pages/scheduler-page'
 
@@ -223,7 +222,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     const scheduler = new SchedulerPage(page)
     const composeModal = new ComposeModalPage(page)
     await scheduler.goto()
-    await ensureChannelsLoaded(page)
+    await scheduler.linkedInFilterButton.click()
     await scheduler.clickNewPost()
     await composeModal.expectVisible()
     await composeModal.fillText('First invitee workspace post')

@@ -105,7 +105,7 @@ export class SchedulerPage {
 
   async switchToList(): Promise<void> {
     await this.listViewButton.click()
-    await this.page.waitForTimeout(300)
+    await expect(this.listViewButton).toHaveClass(/bg-text-display/)
   }
 
   async clickNewPost(): Promise<void> {

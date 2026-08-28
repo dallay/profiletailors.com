@@ -83,7 +83,117 @@ class InvitationRegistrationGatewayAdapterTest {
         coVerify(exactly = 0) { invitationRepository.markAccepted(any(), any(), any()) }
     }
 
-    private fun adapter() = InvitationRegistrationGatewayAdapter(
+    @Test
+    fun `should reject invitation when token has no candidate key`() = runTest {
+        shouldThrow<InvitationNotAcceptableException> {
+            adapter(tokenHasher = mockk()).acceptForRegistration(
+                rawToken = "raw-token",
+                email = "invitee@example.com",
+                principalId = "principal-1",
+            )
+        }
+
+        coVerify(exactly = 0) { invitationRepository.findByCandidateKeyForUpdate(any()) }
+    }
+
+    @Test
+    fun `should reject invitation when token hash does not match`() = runTest {
+        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
+        every { tokenHasher.matches("raw-token", "hashed-token") } returns false
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
+
+        shouldThrow<InvitationNotAcceptableException> {
+            adapter().acceptForRegistration(
+                rawToken = "raw-token",
+                email = "invitee@example.com",
+                principalId = "principal-1",
+            )
+        }
+
+        coVerify(exactly = 0) { membershipProvisioner.reconcile(any(), any()) }
+        coVerify(exactly = 0) { invitationRepository.markAccepted(any(), any(), any()) }
+    }
+
+    @Test
+    fun `should reject invitation when invitation is not active`() = runTest {
+        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
+        every { tokenHasher.matches("raw-token", "hashed-token") } returns true
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns
+            invitation.copy(status = InvitationStatus.REVOKED)
+
+        shouldThrow<InvitationNotAcceptableException> {
+            adapter().acceptForRegistration(
+                rawToken = "raw-token",
+                email = "invitee@example.com",
+                principalId = "principal-1",
+            )
+        }
+
+        coVerify(exactly = 0) { membershipProvisioner.reconcile(any(), any()) }
+        coVerify(exactly = 0) { invitationRepository.markAccepted(any(), any(), any()) }
+    }
+
+    @Test
+    fun `should reject invitation when invitation is expired`() = runTest {
+        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
+        every { tokenHasher.matches("raw-token", "hashed-token") } returns true
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns
+            invitation.copy(expiresAt = now)
+
+        shouldThrow<InvitationNotAcceptableException> {
+            adapter().acceptForRegistration(
+                rawToken = "raw-token",
+                email = "invitee@example.com",
+                principalId = "principal-1",
+            )
+        }
+
+        coVerify(exactly = 0) { membershipProvisioner.reconcile(any(), any()) }
+        coVerify(exactly = 0) { invitationRepository.markAccepted(any(), any(), any()) }
+    }
+
+    @Test
+    fun `should reject invitation when repository has no matching invitation`() = runTest {
+        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns null
+
+        shouldThrow<InvitationNotAcceptableException> {
+            adapter().acceptForRegistration(
+                rawToken = "raw-token",
+                email = "invitee@example.com",
+                principalId = "principal-1",
+            )
+        }
+
+        coVerify(exactly = 0) { membershipProvisioner.reconcile(any(), any()) }
+        coVerify(exactly = 0) { invitationRepository.markAccepted(any(), any(), any()) }
+    }
+
+    @Test
+    fun `should reject invitation when acceptance update changes no row`() = runTest {
+        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
+        every { tokenHasher.matches("raw-token", "hashed-token") } returns true
+        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
+        coEvery {
+            membershipProvisioner.reconcile("workspace-a", "principal-1")
+        } returns mockk<WorkspaceMembershipSnapshot>()
+        coEvery { invitationRepository.markAccepted(invitation.id, now, "principal-1") } returns false
+
+        shouldThrow<InvitationNotAcceptableException> {
+            adapter().acceptForRegistration(
+                rawToken = "raw-token",
+                email = "invitee@example.com",
+                principalId = "principal-1",
+            )
+        }
+
+        coVerifyOrder {
+            membershipProvisioner.reconcile("workspace-a", "principal-1")
+            invitationRepository.markAccepted(invitation.id, now, "principal-1")
+        }
+    }
+
+    private fun adapter(tokenHasher: TokenHasher = this.tokenHasher) = InvitationRegistrationGatewayAdapter(
         invitationRepository = invitationRepository,
         tokenHasher = tokenHasher,
         membershipProvisioner = membershipProvisioner,

@@ -2,17 +2,17 @@
 
 ## Overview
 
-The private-beta implementation remains blocked for deployed, operator, provider, and user-acceptance evidence. PR #883 contains the current activation fixes, while production still runs the previously deployed SMP v0.4.7 artifact that does not contain them.
+The private-beta implementation remains blocked for deployed, operator, provider, and user-acceptance evidence. PR #883 contains the current activation fixes and was merged on 2026-08-28, while the latest verified production deployment is SMP v0.4.7, whose release tag predates that merge and does not contain the fixes.
 
 ## Changes
 
-### Current follow-up audit — 2026-08-26
+### Current follow-up audit — 2026-08-28
 
-The current follow-up adds the missing invite-only registration handoff needed for a fresh invitee when public registration is disabled. The frontend now sends the backend's `token` contract for invitation acceptance, public capabilities expose `invitationAcceptanceEnabled`, and registration atomically validates and consumes an invitation while preserving its workspace membership. The marketing configuration now uses the Astro-consumed `WAITLIST_ENABLED` and `WAITLIST_API_BASE` variables. The changes are committed in the isolated branch and published as PR #883 after merging current `origin/main`.
+The private-beta activation implementation adds the missing invite-only registration handoff needed for a fresh invitee when public registration is disabled. The frontend now sends the backend's `token` contract for invitation acceptance, public capabilities expose `invitationAcceptanceEnabled`, and registration atomically validates and consumes an invitation while preserving its workspace membership. The marketing configuration now uses the Astro-consumed `WAITLIST_ENABLED` and `WAITLIST_API_BASE` variables. The implementation was committed and published as PR #883, merged on 2026-08-28. The review follow-up is committed and published separately as PR #887 and remains open.
 
 Local evidence for this follow-up is complete: 60 focused Vitest tests, Vue type-check, changed-file Biome checks, targeted SMP Gradle tests, Detekt, Spring context, two PostgreSQL/Testcontainers registration cases, the full 8-scenario mocked Chromium invitee suite including fresh registration and the first schedule-now post, the 6-scenario mocked Chromium waitlist suite, and a successful Astro production build containing the active waitlist form. Temporary validation symlinks were removed and `git diff --check` passes.
 
-This does not change the acceptance verdict. Production has SMP v0.4.7 deployed, but that release predates these fixes; PR #883 is open and no matching release has been deployed. Live waitlist submission/email, deployed invitee activation, operator evidence, provider delivery, and deployed post-accept scheduling/publishing remain outstanding.
+This does not change the acceptance verdict. Production has SMP v0.4.7 deployed, but that release predates the PR #883 fixes; PR #883 is merged and PR #887 contains only the review follow-up tests and QA documentation. Live waitlist submission/email, deployed invitee activation, operator evidence, provider delivery, and deployed post-accept scheduling/publishing remain outstanding.
 
 ## Usage
 
@@ -22,11 +22,12 @@ This does not change the acceptance verdict. Production has SMP v0.4.7 deployed,
 - **Unit:** `apply-unit-2-publishing-controls` — DALLAY-555/557
 - **Mode:** OpenSpec
 - **QA phase:** `qa` — Phase 2 acceptance gate
-- **Date:** 2026-08-25
+- **Date:** 2026-08-28
 - **Execution:** `fallback` — no `sdd-quality-runner`/FSM was available; direct local commands and the authorized read-only production inspection are not deterministic runner evidence.
-- **Read-only observation time:** `2026-08-23T10:27:18Z` UTC
-- **Release state:** The current Phase 2 implementation and the Phase 3 invitee frontend journey are uncommitted in the worktree; no deployment was performed.
-- **Mutation boundary:** No deploy, restart, environment edit, migration, provider call, publish, data mutation, commit, or push was performed.
+- **Historical read-only observation time:** `2026-08-23T10:27:18Z` UTC
+- **Release/deployment evidence snapshot:** `2026-08-28` UTC; deployment PR #8 merged at `2026-08-28T09:29:28Z` UTC and PR #883 merged at `2026-08-28T11:08:48Z` UTC.
+- **Release state:** The Phase 2 implementation and the Phase 3 invitee frontend journey are committed and published as PR #883, merged on 2026-08-28; the review follow-up is committed and published as PR #887 and remains open. The latest verified production deployment is SMP v0.4.7, which predates PR #883.
+- **Mutation boundary:** No deploy, restart, environment edit, migration, provider call, publish, or data mutation was performed during this QA follow-up; commits and pushes were limited to the implementation PR #883 and review follow-up PR #887.
 
 ### Sources of Truth and Technical Verification Handoff
 
@@ -70,10 +71,10 @@ The inspection produced `VPS_OBSERVED` environment evidence. It is not an accept
 |---|---|---|
 | SSH target | `ssh -o BatchMode=yes -o ConnectTimeout=10 fenix` succeeded through Tailscale; the host reported `fenix-icloud`. | Establishes read-only target reachability only. |
 | Docker stack and service convergence | Stack `profiletailors-smp-dz2yer` was present with `backend 1/1`, `cloudflared 1/1`, and `postgresql 1/1`; the backend task was `Running 8 days ago`. | Inventory/readiness evidence only; no rollout, restart, or behavior transition was exercised. |
-| Deployed backend release | Service image was `ghcr.io/dallay/profiletailors-smp:v0.4.1@sha256:990c7341441c7362b4a29b2d933b8438b4b1dc137c603f99bc125fbcacaba165`; service updated `2026-08-14`; local image created `2026-08-08T21:52:44.851150213Z`. | Release identity was observed, but the deployed artifact has not been proven to contain the current uncommitted Phase 2 code. |
-| Fenix image labels | Read-only image metadata reported `org.opencontainers.image.version=v0.4.1` and `org.opencontainers.image.source=https://github.com/dallay/profiletailors.com`. | The labels identify the deployed release and source repository, but do not by themselves prove the image digest-to-commit mapping. |
-| Local release tag | `smp@v0.4.1` resolves to commit `50429460991d81205dbafbf6f664b945fd89ace5`, dated `2026-08-08 23:48:43 +0200`, subject `chore: release main (#545)`. | The tagged release predates the current Phase 2 stale-jobs endpoint and permission changes. |
-| Registry SLSA provenance | Read-only GHCR inspection of the deployed OCI index confirmed provenance metadata for the observed image. | Provenance for the old image does not establish current-change acceptance. |
+| Deployed backend release | The latest verified deployment evidence is the merged deployment PR #8, which updated production to `ghcr.io/dallay/profiletailors-smp:v0.4.7` on 2026-08-28. | The deployed release identity is known, but its tag predates the PR #883 merge and therefore does not establish acceptance of the current activation fixes. |
+| Fenix image labels | No new read-only Fenix image-label inspection was performed for the v0.4.7 rollout. | The deployment PR identifies the intended release, but no fresh runtime digest-to-commit inspection is being treated as acceptance evidence. |
+| Local release tag | `smp@v0.4.7` resolves to commit `6ae4da5de1f51ad4b86168ec0a5f10a95f07377a`, dated `2026-08-28 10:09:13 +0200`, subject `chore(main): release smp 0.4.7 (#881)`. | The tagged release is an ancestor of the PR #883 merge and predates the current activation fixes. |
+| Registry SLSA provenance | No fresh deployed OCI-index provenance inspection was performed for v0.4.7 in this follow-up. | Release and deployment identity are recorded separately from deployed behavioral acceptance. |
 | Backend readiness | Readiness endpoint returned `UP`. | Health only; readiness does not prove invitation, publishing, operator, or provider behavior. |
 | Worker configuration | Observed `SMP_PUBLISHING_WORKER_ENABLED=true`. | Configuration observation only; safe-off/re-enable and persisted-job behavior were not exercised. |
 
@@ -83,9 +84,9 @@ The results below are acceptance results. The Fenix observations are cited as en
 
 | ID | Capability | Acceptance scenario | Result | Evidence or reason |
 |---|---|---|---|---|
-| P2-QA-01 | Managed operations | Operator sets worker safe-off, redeploys, and due persisted jobs cause no new provider delivery while remaining recoverable. | **BLOCKED** | Fenix is production; no explicit change window or mutation permission was supplied. Read-only inventory observed `SMP_PUBLISHING_WORKER_ENABLED=true`, but safe-off was not performed. The observed v0.4.1 release is confirmed as a Phase 2 mismatch/pre-change deployment from the tag evidence. |
+| P2-QA-01 | Managed operations | Operator sets worker safe-off, redeploys, and due persisted jobs cause no new provider delivery while remaining recoverable. | **BLOCKED** | Fenix is production; no explicit change window or mutation permission was supplied. Read-only inventory observed `SMP_PUBLISHING_WORKER_ENABLED=true`, but safe-off was not performed. The v0.4.7 tag contains the stale-job implementation, but no production lifecycle acceptance was performed. |
 | P2-QA-02 | Managed operations | Operator re-enables the worker and observes polling resume, stale claims release before claiming, and recoverable jobs remain unmarked as published. | **BLOCKED** | Requires a production restart, live logs/data, and an explicitly approved release containing this change. None was authorized; no deployment was performed. Readiness `UP` does not establish the lifecycle transition. |
-| P2-QA-03 | API/data | Authorized operator lists a stale claim and sees publication ID, workspace ID, age, attempt, and `RELEASE_AND_RETRY`. | **BLOCKED** | No successful product API request was observed; localhost `8080` refused the connection. The image label identifies v0.4.1, while the corresponding local tag lacks `ListStaleJobsQuery`; the deployed endpoint contents and live operator authorization were not acceptance-tested. |
+| P2-QA-03 | API/data | Authorized operator lists a stale claim and sees publication ID, workspace ID, age, attempt, and `RELEASE_AND_RETRY`. | **BLOCKED** | No successful product API request was observed; localhost `8080` refused the connection. The v0.4.7 release tag contains `ListStaleJobsQuery`, but the deployed endpoint contents and live operator authorization were not acceptance-tested. |
 | P2-QA-04 | Persistence/state transition | A claim older than the stale threshold is automatically reset to `PENDING` before the next claim and remains retryable. | **BLOCKED** | Requires live queue state and a controlled worker lifecycle transition. No restart, queue mutation, or provider call was authorized. |
 | P2-QA-05 | Security/redaction | Operator diagnostics expose operationally useful metadata without raw access tokens or provider secrets. | **BLOCKED** | Local tests verify the redaction contract, but no deployed endpoint response was obtained from a matching release. |
 | P2-QA-06 | Authorization | A permitted operator can use the stale-jobs endpoint while an unauthorized principal is denied. | **BLOCKED** | Local tests verify authorization behavior, but no matching deployed API and live principals were acceptance-tested. |
@@ -101,22 +102,22 @@ The results below are acceptance results. The Fenix observations are cited as en
 
 ## Troubleshooting
 
-## Verdict
+### Verdict
 
 **BLOCKED — local frontend acceptance evidence improved, but the overall acceptance gate remains blocked.**
 
 The invitee frontend scenarios 3.1–3.6 and the fresh-registration first-post scenario 3.1c now have focused local Chromium evidence, in addition to the 8/8 invitation view unit tests and Biome checks. This is a meaningful improvement to the implementation handoff, but it is not managed-beta, deployed-backend, provider-side, operator, or end-user acceptance evidence. Archive remains prohibited until the change is exercised against an approved matching managed-beta release and the remaining operational/provider/post-accept scenarios are completed or explicitly waived by the product owner.
 
-### Blocking conditions
+#### Blocking conditions
 
 - No approved managed-beta environment matching the current implementation was supplied.
 - Fenix is production, not a disposable acceptance environment, and no approved production change window or mutation permission was supplied.
-- The deployed `v0.4.1` image predates the current Phase 2 implementation and does not include the current uncommitted Phase 3 frontend changes.
+- The deployed `v0.4.7` image predates the PR #883 private-beta activation implementation and does not include its frontend changes.
 - No provider-side test account, credential, or request/outcome evidence was supplied.
 - No operator walkthrough, rollback exercise, backup/restore drill, or user acceptance evidence was supplied.
 - Deployed post-accept scheduling and provider publishing behavior remains untested; local schedule-now UI coverage uses mocks.
 
-### Required next evidence
+#### Required next evidence
 
 1. Build and deploy an approved release containing the current backend and frontend changes to a managed beta environment.
 2. Re-run P2-QA-01 through P2-QA-08 in that environment with disposable data, provider test credentials, correlation IDs, and rollback coverage.
@@ -124,7 +125,7 @@ The invitee frontend scenarios 3.1–3.6 and the fresh-registration first-post s
 4. Run post-accept scheduling/publishing acceptance against the matching deployed backend and provider boundary for P3-QA-07.
 5. Obtain product-owner/operator sign-off or an explicit written waiver for any acceptance scenario intentionally deferred.
 
-## Risks
+### Risks
 
 - Treating local mocked auth acceptance as deployed end-to-end acceptance would overstate launch readiness.
 - Exercising worker or provider behavior on Fenix without an approved change window could affect production publications.

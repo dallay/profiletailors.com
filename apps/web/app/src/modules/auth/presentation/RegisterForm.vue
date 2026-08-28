@@ -5,7 +5,9 @@ import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { registerSchema } from '@shared/lib/validation/schemas'
 import PasswordField from './PasswordField.vue'
 
-const props = defineProps<{ email: string; invitationToken?: string }>()
+type Props = { email: string; invitationToken?: string }
+
+const props = defineProps<Props>()
 const emit = defineEmits<{ 'update:email': [value: string]; success: [] }>()
 const { t } = useI18n()
 const auth = useAuthStore()

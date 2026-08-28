@@ -177,6 +177,40 @@ class LocalAuthHandlersTest {
     }
 
     @Test
+    fun `should provision a default workspace when invitation token is blank`() = runTest {
+        val order = mutableListOf<String>()
+        val handler = RegisterUserHandler(
+            registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(order),
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(order),
+            eventPublisher = RecordingEventPublisher(order),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(order),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
+            transactionRunner = RecordingAtomicTransactionRunner(order),
+            recordConsentHandler = recordConsentHandler(order),
+        )
+
+        handler.handle(
+            RegisterUserCommand(
+                email = "blank-invitation@example.com",
+                password = validPassword,
+                username = "blank-invitation",
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
+                invitationToken = "   ",
+            ),
+        )
+
+        order shouldNotContain "invitation:accept"
+        order.contains("workspace:provision") shouldBe true
+    }
+
+    @Test
     fun `should require an invitation when mode is invite only`() = runTest {
         val order = mutableListOf<String>()
         val transactionRunner = RecordingAtomicTransactionRunner(order)
