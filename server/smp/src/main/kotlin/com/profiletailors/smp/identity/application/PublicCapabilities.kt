@@ -11,7 +11,11 @@ import com.profiletailors.smp.identity.domain.RegistrationDecision
  * @property registrationEnabled whether [RegisterUserCommand] is accepted by the application.
  * @property passwordRecoveryEnabled whether password recovery flows are operational.
  */
-data class PublicCapabilities(val registrationEnabled: Boolean, val passwordRecoveryEnabled: Boolean)
+data class PublicCapabilities(
+    val registrationEnabled: Boolean,
+    val passwordRecoveryEnabled: Boolean,
+    val invitationAcceptanceEnabled: Boolean = true,
+)
 
 /**
  * Query requesting the current public capabilities. Routed by the [Mediator] to
@@ -26,7 +30,7 @@ internal class GetPublicCapabilitiesHandler(
     private val passwordRecoveryEnabled: () -> Boolean,
 ) : QueryHandler<GetPublicCapabilitiesQuery, PublicCapabilities> {
     override suspend fun handle(query: GetPublicCapabilitiesQuery): PublicCapabilities = PublicCapabilities(
-        registrationEnabled = registrationPolicy.evaluate(hasValidInvitation = false) == RegistrationDecision.ALLOWED,
+        registrationEnabled = registrationPolicy.evaluate(hasInvitationToken = false) == RegistrationDecision.ALLOWED,
         passwordRecoveryEnabled = passwordRecoveryEnabled(),
     )
 }

@@ -5,7 +5,7 @@ import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { registerSchema } from '@shared/lib/validation/schemas'
 import PasswordField from './PasswordField.vue'
 
-const props = defineProps<{ email: string }>()
+const props = defineProps<{ email: string; invitationToken?: string }>()
 const emit = defineEmits<{ 'update:email': [value: string]; success: [] }>()
 const { t } = useI18n()
 const auth = useAuthStore()
@@ -59,6 +59,7 @@ async function submit() {
       password: result.data.password,
       confirmedAgeEligibility: true,
       acceptedTermsVersion: 'terms-v1.0.0',
+      invitationToken: props.invitationToken,
     })
     emit('success')
   } catch {

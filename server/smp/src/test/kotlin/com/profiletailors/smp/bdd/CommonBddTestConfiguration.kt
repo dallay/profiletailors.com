@@ -155,7 +155,7 @@ class CommonBddTestConfiguration {
     @Bean
     @Primary
     fun bddRegistrationPolicy(policy: MutableRegistrationPolicy): RegistrationPolicy =
-        RegistrationPolicy { hasValidInvitation -> policy.mode().evaluate(hasValidInvitation) }
+        RegistrationPolicy { hasInvitationToken -> policy.mode().evaluate(hasInvitationToken) }
 
     @Bean("bddPasswordRecoveryEnabled")
     @Primary

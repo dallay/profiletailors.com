@@ -53,10 +53,13 @@ internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSes
     )
 }
 
+private data class RegistrationTransactionResult(val rawVerificationToken: String, val workspaceId: String)
+
 @Service
 internal class RegisterUserHandler(
     private val registrationPolicy: RegistrationPolicy,
     private val identityRegistrationGateway: IdentityRegistrationGateway,
+    private val invitationRegistrationGateway: InvitationRegistrationGateway,
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val localPasswordCredentialGateway: LocalPasswordCredentialGateway,
     private val passwordHasher: PasswordHasher,
@@ -70,7 +73,8 @@ internal class RegisterUserHandler(
 ) : CommandWithResultHandler<RegisterUserCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: RegisterUserCommand): LocalAuthSessionResult {
-        when (registrationPolicy.evaluate(hasValidInvitation = false)) {
+        val invitationToken = command.invitationToken?.trim()?.takeIf { it.isNotEmpty() }
+        when (registrationPolicy.evaluate(hasInvitationToken = invitationToken != null)) {
             RegistrationDecision.ALLOWED -> Unit
             RegistrationDecision.INVITATION_REQUIRED -> throw RegistrationInvitationRequiredException()
             RegistrationDecision.CLOSED -> throw RegistrationDisabledException()
@@ -96,7 +100,7 @@ internal class RegisterUserHandler(
         val principalId = "user-${UUID.randomUUID()}"
         val subject = "local:$normalizedEmail"
 
-        val rawVerificationToken = runRegistrationTransaction(
+        val registrationResult = runRegistrationTransaction(
             command = command,
             principalId = principalId,
             subject = subject,
@@ -110,7 +114,7 @@ internal class RegisterUserHandler(
                 principalId = principalId,
                 email = normalizedEmail,
                 username = normalizedUsername,
-                rawVerificationToken = rawVerificationToken,
+                rawVerificationToken = registrationResult.rawVerificationToken,
             ),
         )
 
@@ -121,6 +125,7 @@ internal class RegisterUserHandler(
                 email = normalizedEmail,
                 username = normalizedUsername,
                 emailStatus = EmailStatus.PENDING,
+                workspaceId = registrationResult.workspaceId,
                 clock = clock,
                 localJwtIssuer = localJwtIssuer,
                 refreshSessionLifecycleService = refreshSessionLifecycleService,
@@ -134,7 +139,7 @@ internal class RegisterUserHandler(
         subject: String,
         normalizedEmail: String,
         normalizedUsername: String,
-    ): String {
+    ): RegistrationTransactionResult {
         // Compute password hash BEFORE the transaction to avoid blocking
         // the reactive connection pool with CPU-bound bcrypt hashing.
         val passwordHash = passwordHasher.hash(command.password)
@@ -155,13 +160,16 @@ internal class RegisterUserHandler(
                     passwordHash = passwordHash,
                 )
 
-                // Provision a default workspace for the new user
-                val workspace = workspaceProvisioningService.provisionDefaultWorkspace(
-                    principalId = principalId,
-                    displayName = normalizedUsername,
-                )
+                val workspaceId = command.invitationToken
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { invitationRegistrationGateway.acceptForRegistration(it, normalizedEmail, principalId) }
+                    ?: workspaceProvisioningService.provisionDefaultWorkspace(
+                        principalId = principalId,
+                        displayName = normalizedUsername,
+                    ).workspaceId
 
-                recordConsentRecords(principalId, workspace.workspaceId, command.acceptedTermsVersion)
+                recordConsentRecords(principalId, workspaceId, command.acceptedTermsVersion)
 
                 // Generate verification token and store hashed
                 val generated = EmailVerificationTokenHasher.generate(clock.instant())
@@ -170,7 +178,10 @@ internal class RegisterUserHandler(
                     tokenHash = generated.tokenHash,
                     expiresAt = generated.expiresAt,
                 )
-                generated.rawToken
+                RegistrationTransactionResult(
+                    rawVerificationToken = generated.rawToken,
+                    workspaceId = workspaceId,
+                )
             }
         } catch (e: RuntimeException) {
             // Map duplicate-key constraint violations (from concurrent registration

@@ -20,6 +20,7 @@ describe('usePublicCapabilitiesStore', () => {
 
     expect(store.registrationEnabled).toBe(false)
     expect(store.passwordRecoveryEnabled).toBe(false)
+    expect(store.invitationAcceptanceEnabled).toBe(false)
     expect(store.resolved).toBe(true)
   })
 
@@ -39,6 +40,7 @@ describe('usePublicCapabilitiesStore', () => {
     await Promise.all([first, secondLoad])
     expect(store.registrationEnabled).toBe(true)
     expect(store.passwordRecoveryEnabled).toBe(true)
+    expect(store.invitationAcceptanceEnabled).toBe(false)
   })
 
   it('fails closed, resolves the attempt, and can retry', async () => {
@@ -52,6 +54,7 @@ describe('usePublicCapabilitiesStore', () => {
 
     expect(store.registrationEnabled).toBe(false)
     expect(store.passwordRecoveryEnabled).toBe(false)
+    expect(store.invitationAcceptanceEnabled).toBe(false)
     expect(store.resolved).toBe(true)
     expect(store.error).toBe('Network error')
 
@@ -60,6 +63,20 @@ describe('usePublicCapabilitiesStore', () => {
     expect(fetch).toHaveBeenCalledTimes(2)
     expect(store.registrationEnabled).toBe(true)
     expect(store.passwordRecoveryEnabled).toBe(true)
+    expect(store.invitationAcceptanceEnabled).toBe(false)
     expect(store.error).toBeNull()
+  })
+
+  it('enables invitation acceptance only for an explicit boolean true', async (): Promise<void> => {
+    vi.spyOn(authApi, 'fetchPublicCapabilities').mockResolvedValue({
+      registrationEnabled: false,
+      passwordRecoveryEnabled: true,
+      invitationAcceptanceEnabled: true,
+    })
+
+    const store = usePublicCapabilitiesStore()
+    await store.load()
+
+    expect(store.invitationAcceptanceEnabled).toBe(true)
   })
 })

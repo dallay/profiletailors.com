@@ -16,11 +16,12 @@ completed:
   - apply-unit-2-publishing-controls
   - verify
 next: archive (blocked by acceptance QA)
-note: "Local frontend acceptance for invitee scenarios 3.1-3.6 is PASS, but overall acceptance QA remains BLOCKED until matching managed-beta, deployed-backend, provider, operator, and post-accept evidence is supplied. Do not archive yet."
+note: "Local frontend acceptance for invitee scenarios 3.1-3.6, fresh invitee registration, and a first schedule-now post is PASS/PARTIAL, but overall acceptance QA remains BLOCKED until a matching managed-beta release supplies deployed-backend, provider, operator, and post-accept evidence. Do not archive yet."
 warnings:
   - "Fenix production is reachable read-only, but no approved production change window or mutation permissions are available."
   - "The deployed v0.4.1 image is a confirmed pre-change/mismatched release; its ancestor tag lacks ListStaleJobsQuery and PUBLISHING_STALE_READ."
   - "just swarm-config remains unavailable because DASHBOARD_IMAGE is missing."
   - "Local invitee frontend acceptance scenarios 3.1-3.6 passed with mocked auth refresh/profile responses; deployed backend acceptance remains untested."
-  - "Post-accept scheduling and publishing acceptance coverage remains not tested."
-updated: 2026-08-25
+  - "Fresh invitee registration, invalid-invitation rollback, and first schedule-now post pass locally with PostgreSQL/Testcontainers and mocked Chromium coverage; the matching release is not published or deployed."
+  - "Post-accept provider delivery and deployed scheduling/publishing acceptance remain not tested."
+updated: 2026-08-26

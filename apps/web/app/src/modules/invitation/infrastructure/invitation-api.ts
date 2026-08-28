@@ -34,7 +34,7 @@ export async function acceptInvitationRequest(token: string): Promise<AcceptInvi
         'Content-Type': 'application/json',
         Accept: 'application/vnd.api.v1+json',
       },
-      body: JSON.stringify({ invitationToken: token }),
+      body: JSON.stringify({ token }),
     })
   } catch {
     return {

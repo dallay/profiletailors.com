@@ -6,6 +6,7 @@ import com.profiletailors.smp.identity.application.EmailVerificationTokenHasher
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import com.profiletailors.smp.platformadmin.infrastructure.BCryptTokenHasher
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import com.profiletailors.smp.tenancy.infrastructure.R2dbcWorkspaceProvisioningService
 import io.mockk.coEvery
@@ -35,6 +36,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.UUID
 import javax.crypto.spec.SecretKeySpec
 
 @AutoConfigureWebTestClient
@@ -196,6 +198,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
     override fun cleanupStatements(): List<String> = listOf(
         "DELETE FROM refresh_sessions",
+        "DELETE FROM invitations",
         "DELETE FROM local_password_credentials",
         "DELETE FROM email_verification_tokens",
         "DELETE FROM audit_events",
@@ -222,7 +225,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
-                """{"registrationEnabled":true,"passwordRecoveryEnabled":true}""",
+                """{"registrationEnabled":true,"passwordRecoveryEnabled":true,"invitationAcceptanceEnabled":true}""",
                 true,
             )
     }
@@ -446,6 +449,60 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         kotlinx.coroutines.runBlocking {
             assertRegistrationArtifactsCreated(email)
         }
+    }
+
+    @Test
+    fun `should register invitee into the invitation workspace when invitation is valid`() {
+        val rawToken = "private-beta-invitation-token"
+        val invitationId = kotlinx.coroutines.runBlocking { seedInvitationForRegistration(rawToken) }
+
+        val result = webTestClient.post()
+            .uri("/api/auth/register")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(
+                mapOf(
+                    "email" to "invitee@example.com",
+                    "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
+                    "invitationToken" to rawToken,
+                ),
+            )
+            .exchange()
+            .expectStatus().isCreated
+            .expectBody()
+            .jsonPath("$.workspaceId").isEqualTo("invited-workspace")
+            .returnResult()
+
+        val principalId = Regex(""""principalId":"([^"]+)"""")
+            .find(String(result.responseBody ?: error("Missing response body")))
+            ?.groupValues
+            ?.get(1)
+            ?: error("Missing principal id")
+
+        kotlinx.coroutines.runBlocking { assertInvitationRegistrationPersisted(invitationId, principalId) }
+    }
+
+    @Test
+    fun `should roll back registration artifacts when invitation is invalid`() {
+        val email = "invalid-invitation@example.com"
+
+        webTestClient.post()
+            .uri("/api/auth/register")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(
+                mapOf(
+                    "email" to email,
+                    "password" to "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
+                    "confirmedAgeEligibility" to true,
+                    "acceptedTermsVersion" to "terms-v1.0.0",
+                    "invitationToken" to "invalid-invitation-token",
+                ),
+            )
+            .exchange()
+            .expectStatus().isBadRequest
+
+        kotlinx.coroutines.runBlocking { assertNoRegistrationArtifacts(email) }
     }
 
     @Test
@@ -696,6 +753,63 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
     }
 
     private data class RegisterResult(val accessToken: String, val refreshCookie: String)
+
+    private suspend fun seedInvitationForRegistration(rawToken: String): UUID {
+        val invitationId = UUID.randomUUID()
+        val tokenHasher = BCryptTokenHasher()
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('invitation-issuer', 'USER', 'local:issuer@example.com', NULL, 'issuer')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('invited-workspace', 'Invited Workspace', 'ACTIVE', NULL)
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO invitations (
+                id, source, source_reference_id, workspace_id, invited_email_normalized,
+                candidate_key, token_hash, status, issued_by, created_at, expires_at
+            ) VALUES (
+                :id, 'DIRECT', NULL, 'invited-workspace', 'invitee@example.com',
+                :candidateKey, :tokenHash, 'ACTIVE', 'invitation-issuer', :createdAt, :expiresAt
+            )
+            """.trimIndent(),
+        )
+            .bind("id", invitationId)
+            .bind("candidateKey", tokenHasher.candidateKey(rawToken))
+            .bind("tokenHash", tokenHasher.hash(rawToken))
+            .bind("createdAt", Instant.parse("2026-08-01T00:00:00Z"))
+            .bind("expiresAt", Instant.parse("2099-01-01T00:00:00Z"))
+            .fetch().rowsUpdated().awaitSingle()
+        return invitationId
+    }
+
+    private suspend fun assertInvitationRegistrationPersisted(invitationId: UUID, principalId: String) {
+        assertEquals(
+            1,
+            countRows(
+                """
+                SELECT COUNT(*) FROM invitations
+                WHERE id = '$invitationId' AND status = 'ACCEPTED'
+                  AND accepted_principal_id = '$principalId'
+                """.trimIndent(),
+            ),
+        )
+        assertEquals(
+            1,
+            countRows(
+                """
+                SELECT COUNT(*) FROM workspace_memberships
+                WHERE workspace_id = 'invited-workspace' AND principal_id = '$principalId'
+                """.trimIndent(),
+            ),
+        )
+    }
 
     private suspend fun seedVerificationCandidate(
         email: String,

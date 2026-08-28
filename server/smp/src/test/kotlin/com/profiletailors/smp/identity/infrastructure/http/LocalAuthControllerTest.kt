@@ -20,6 +20,7 @@ import com.profiletailors.smp.identity.application.RegisterUserCommand
 import com.profiletailors.smp.identity.application.ResendVerificationCommand
 import com.profiletailors.smp.identity.application.ResendVerificationResult
 import com.profiletailors.smp.identity.application.VerifyEmailCommand
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -79,6 +80,38 @@ class LocalAuthControllerTest {
             ),
             mediator.lastRequest,
         )
+    }
+
+    @Test
+    fun `should dispatch invitation token when registering an invitee`() = runTest {
+        val registrationResult = sessionResult(
+            "token-invited",
+            "user-invited",
+            "invitee@example.com",
+            "invitee",
+            "PENDING",
+        )
+        val mediator = CapturingMediator(sessionResult = registrationResult)
+        val controller = controller(mediator)
+
+        controller.register(
+            RegisterUserRequest(
+                email = "invitee@example.com",
+                password = validPassword,
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
+                invitationToken = "raw-token",
+            ),
+        )
+
+        mediator.lastRequest shouldBe
+            RegisterUserCommand(
+                email = "invitee@example.com",
+                password = validPassword,
+                confirmedAgeEligibility = true,
+                acceptedTermsVersion = "terms-v1.0.0",
+                invitationToken = "raw-token",
+            )
     }
 
     @Test
