@@ -1,0 +1,8 @@
+id: no-v-html
+language: TypeScript
+severity: error
+message: |
+  Avoid `v-html` with unsanitized input. Use interpolation `{{ }}` or a
+  vetted sanitizer. XSS risk if user data flows here.
+rule:
+  pattern: 'v-html="$X"'

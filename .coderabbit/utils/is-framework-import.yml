@@ -1,0 +1,19 @@
+# ============================================================================
+# AST-grep Utility Rules
+# ----------------------------------------------------------------------------
+# Reusable rule fragments that other rules can reference via `matches:`.
+# Each utility has a unique `id` and a single-language `rule`.
+# ============================================================================
+
+id: is-framework-import
+language: Kotlin
+rule:
+  any:
+    - pattern: 'import org.springframework.$_'
+    - pattern: 'import io.r2dbc.$_'
+    - pattern: 'import org.reactivestreams.$_'
+    - pattern: 'import reactor.$_'
+    - pattern: 'import jakarta.$_'
+    - pattern: 'import javax.persistence.$_'
+    - pattern: 'import org.hibernate.$_'
+    - pattern: 'import com.fasterxml.jackson.$_'

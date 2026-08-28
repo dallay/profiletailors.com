@@ -1,0 +1,18 @@
+id: no-r2dbc-in-domain
+language: Kotlin
+severity: error
+message: |
+  🚨 Domain layer MUST NOT depend on R2DBC. Repositories in domain are ports
+  (interfaces); R2DBC adapters live in the infrastructure layer.
+rule:
+  any:
+    - pattern: 'import io.r2dbc.$REST'
+    - pattern: 'import org.springframework.data.$REST'
+constraints:
+  REST:
+    regex: '.*'
+note: |
+  See ADR-0002 (Hexagonal Architecture).
+paths:
+  include:
+    - 'server/smp/src/main/kotlin/**/domain/**'
