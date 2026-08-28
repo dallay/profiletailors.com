@@ -43,7 +43,7 @@ export const en = {
     ],
   },
   meta: {
-    title: 'Profile Tailors — Social content planning in development',
+    title: 'Social content planning in development — Profile Tailors',
     description:
       'Preview Profile Tailors, a social content planning workspace currently in development. Early-access registration is not open yet.',
   },

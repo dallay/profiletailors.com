@@ -43,7 +43,7 @@ export const es = {
     ],
   },
   meta: {
-    title: 'Profile Tailors — Planificación de contenido social en desarrollo',
+    title: 'Planificación de contenido social en desarrollo — Profile Tailors',
     description:
       'Descubre Profile Tailors, un espacio de planificación de contenido social en desarrollo. La inscripción al acceso anticipado todavía no está abierta.',
   },

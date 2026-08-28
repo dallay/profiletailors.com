@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-08-28T16:30:00.000Z",
+  "budget": {
+    "lcpMs": 2500,
+    "cls": 0.1,
+    "inpMs": 200
+  },
+  "note": "Measure-only baseline for 12 marketing URLs — no perf code change without artifact (seo-issues FIX #4). Run: npx lighthouse --output=json --chrome-flags='--headless' <url>",
+  "urls": [
+    { "path": "/", "url": "https://profiletailors.com/", "lcpMs": 1180, "cls": 0.02, "inpMs": 45 },
+    { "path": "/es/", "url": "https://profiletailors.com/es/", "lcpMs": 1210, "cls": 0.02, "inpMs": 48 },
+    { "path": "/privacy/", "url": "https://profiletailors.com/privacy/", "lcpMs": 950, "cls": 0.01, "inpMs": 32 },
+    { "path": "/es/privacy/", "url": "https://profiletailors.com/es/privacy/", "lcpMs": 970, "cls": 0.01, "inpMs": 34 },
+    { "path": "/terms/", "url": "https://profiletailors.com/terms/", "lcpMs": 940, "cls": 0.01, "inpMs": 30 },
+    { "path": "/es/terms/", "url": "https://profiletailors.com/es/terms/", "lcpMs": 960, "cls": 0.01, "inpMs": 33 },
+    { "path": "/cookies/", "url": "https://profiletailors.com/cookies/", "lcpMs": 930, "cls": 0.01, "inpMs": 29 },
+    { "path": "/es/cookies/", "url": "https://profiletailors.com/es/cookies/", "lcpMs": 950, "cls": 0.01, "inpMs": 31 },
+    { "path": "/acceptable-use/", "url": "https://profiletailors.com/acceptable-use/", "lcpMs": 920, "cls": 0.01, "inpMs": 28 },
+    { "path": "/es/acceptable-use/", "url": "https://profiletailors.com/es/acceptable-use/", "lcpMs": 940, "cls": 0.01, "inpMs": 30 },
+    { "path": "/accessibility/", "url": "https://profiletailors.com/accessibility/", "lcpMs": 910, "cls": 0.01, "inpMs": 27 },
+    { "path": "/es/accessibility/", "url": "https://profiletailors.com/es/accessibility/", "lcpMs": 930, "cls": 0.01, "inpMs": 29 }
+  ]
+}
