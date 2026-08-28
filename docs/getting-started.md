@@ -17,8 +17,8 @@ Run `just -l` to see every available recipe.
 | Requirement | Version      | Install                                                                |
 | ----------- | ------------ | ---------------------------------------------------------------------- |
 | Java        | `>= 21`      | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
-| Node.js     | `>= 22.12.0` | [nodejs.org](https://nodejs.org)                                       |
-| pnpm        | `11.11.0`    | `npm install -g pnpm@11.11.0`                                          |
+| Node.js     | `>= 24.19.0` | [nodejs.org](https://nodejs.org)                                       |
+| pnpm        | `>= 11.20.0` | `npm install -g pnpm@11.20.0`                                          |
 | just        | `>= 1.30`    | See below                                                              |
 | Docker      | latest       | [docs.docker.com](https://docs.docker.com)                             |
 
@@ -178,11 +178,11 @@ Key recipes:
 
 ### pnpm install fails with "Unsupported engine"
 
-Node.js version is too old. Upgrade to `>= 22.12.0`:
+Node.js version is too old. Upgrade to `>= 24.19.0`:
 
 ```bash
-nvm install 22
-nvm use 22
+nvm install 24
+nvm use 24
 ```
 
 ### Port already in use

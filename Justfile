@@ -22,7 +22,7 @@
 # ────────────────────────────────────────────────────────────────
 # Before running any `just` command, ensure you have:
 #
-#   1. Node.js >= 22.12.0 (for pnpm)
+#   1. Node.js >= 24.19.0 (for pnpm)
 #   2. pnpm (npm install -g pnpm)
 #   3. Docker & Docker Compose (for infra)
 #   4. just command runner

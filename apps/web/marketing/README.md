@@ -8,7 +8,7 @@ Serves as the primary public entry point (`https://profiletailors.localhost`) fo
 
 ## Tech stack
 
-- **Runtime & Language**: Node.js (`>=22.12.0`), TypeScript 6.0
+- **Runtime & Language**: Node.js (`>=24.19.0`), TypeScript 6.0
 - **Framework**: Astro 7.2
 - **Styling**: Tailwind CSS 4.3
 - **Testing**: Vitest 3.2 (Unit), Playwright 1.62 (E2E)
@@ -18,7 +18,7 @@ Serves as the primary public entry point (`https://profiletailors.localhost`) fo
 
 ### Prerequisites
 
-- Node.js `>= 22.12.0`
+- Node.js `>= 24.19.0`
 - pnpm `>= 11.8.0`
 - `just` task runner (`>= 1.30`)
 

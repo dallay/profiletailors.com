@@ -1,5 +1,43 @@
 schemaVersion: 1
 task: documentation-maintainer
-lastExecution: null
-findings: []
-checks: []
+lastExecution: "2026-08-28T18:04:29Z"
+runId: "documentation-maintainer-run-20260828-180429"
+outcome: "CHANGES_APPLIED"
+findings:
+  - id: "DOC-20260828-01"
+    category: "documentation-drift"
+    description: "Documentation referenced Node.js >= 22.12.0 instead of >= 24.19.0 as specified in .nvmrc and package.json"
+    risk: "LOW"
+    status: "resolved"
+    firstDetected: "2026-08-28T18:04:29Z"
+    lastVerified: "2026-08-28T18:04:29Z"
+    occurrences: 1
+    remediation:
+      status: "implemented"
+      pullRequest: "draft"
+      details: "Reconciled Node.js version across README.md, docs/getting-started.md, Justfile, CONTRIBUTING.md, and subproject READMEs to >= 24.19.0."
+  - id: "DOC-20260828-02"
+    category: "documentation-drift"
+    description: "docs/getting-started.md referenced pnpm version 11.11.0 instead of >= 11.20.0 specified in package.json"
+    risk: "LOW"
+    status: "resolved"
+    firstDetected: "2026-08-28T18:04:29Z"
+    lastVerified: "2026-08-28T18:04:29Z"
+    occurrences: 1
+    remediation:
+      status: "implemented"
+      pullRequest: "draft"
+      details: "Updated docs/getting-started.md pnpm version to >= 11.20.0."
+checks:
+  - name: "node-version-alignment"
+    target: "README.md, docs/getting-started.md, Justfile, subproject READMEs"
+    status: "Passed"
+    notes: "All Node.js version claims reconciled with .nvmrc and package.json (>= 24.19.0)."
+  - name: "pnpm-version-alignment"
+    target: "docs/getting-started.md"
+    status: "Passed"
+    notes: "pnpm version claim reconciled with package.json packageManager (pnpm@11.20.0)."
+  - name: "relative-links-audit"
+    target: "docs/, README.md"
+    status: "Passed"
+    notes: "Relative links audited. Deployed route links validated as intentional."
