@@ -15,6 +15,7 @@
  */
 
 import { test, expect } from '../fixtures/scheduler-base-test'
+import type { Page, Route } from '@playwright/test'
 import { APP_URL } from '../fixtures/test-data'
 import { mockRegisterSuccess } from '../fixtures/auth-helpers'
 import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
@@ -98,8 +99,8 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     await expect(page).toHaveURL(/\/$/)
   })
 
-  test('3.1b Fresh invitee registers with the invitation token', async ({ page }) => {
-    await page.route('**/api/capabilities/public', async (route) => {
+  test('3.1b Fresh invitee registers with the invitation token', async ({ page }: { page: Page }): Promise<void> => {
+    await page.route('**/api/capabilities/public', async (route: Route): Promise<void> => {
       await route.fulfill({
         status: 200,
         contentType: 'application/vnd.api.v1+json',
@@ -111,7 +112,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       })
     })
 
-    await page.route('**/api/invitations/accept', async (route) => {
+    await page.route('**/api/invitations/accept', async (route: Route): Promise<void> => {
       await route.fulfill({
         status: 401,
         contentType: 'application/problem+json',
@@ -120,7 +121,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     })
 
     let registrationPayload: Record<string, unknown> | undefined
-    await page.route('**/api/auth/register', async (route) => {
+    await page.route('**/api/auth/register', async (route: Route): Promise<void> => {
       registrationPayload = route.request().postDataJSON() as Record<string, unknown>
       await route.fulfill({
         status: 201,
@@ -138,7 +139,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       })
     })
 
-    await page.route('**/api/auth/me', async (route) => {
+    await page.route('**/api/auth/me', async (route: Route): Promise<void> => {
       await route.fulfill({
         status: 200,
         contentType: 'application/vnd.api.v1+json',
@@ -156,23 +157,23 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     await page.getByRole('button', { name: /accept invitation/i }).click()
     await expect(page).toHaveURL(/\/register\?invitationToken=raw-token-e2e/)
 
-    await page.locator('#register-email').fill('invitee@example.com')
-    await page.locator('#register-password').fill('Str0ng!Passw0rd')
-    await page.locator('#confirm-password').fill('Str0ng!Passw0rd')
-    await page.locator('#ageEligibility').check()
-    await page.locator('#terms').check()
+    await page.getByLabel(/^email$/i).fill('invitee@example.com')
+    await page.getByLabel(/^password$/i).fill('Str0ng!Passw0rd')
+    await page.getByLabel(/^confirm password$/i).fill('Str0ng!Passw0rd')
+    await page.getByLabel(/age/i).check()
+    await page.getByLabel(/terms/i).check()
     await page.getByRole('button', { name: /create account/i }).click()
 
     await expect
-      .poll(() => registrationPayload)
+      .poll((): Record<string, unknown> | undefined => registrationPayload)
       .toEqual(expect.objectContaining({ invitationToken: 'raw-token-e2e' }))
     await expect(page).toHaveURL(/\/$/)
   })
 
   test('3.1c Fresh invitee schedules the first post in the accepted workspace', async ({
     page,
-  }) => {
-    await page.route('**/api/capabilities/public', async (route) => {
+  }: { page: Page }): Promise<void> => {
+    await page.route('**/api/capabilities/public', async (route: Route): Promise<void> => {
       await route.fulfill({
         status: 200,
         contentType: 'application/vnd.api.v1+json',
@@ -184,7 +185,7 @@ test.describe('Invitee Private Beta Journey @integration', () => {
       })
     })
 
-    await page.route('**/api/invitations/accept', async (route) => {
+    await page.route('**/api/invitations/accept', async (route: Route): Promise<void> => {
       await route.fulfill({
         status: 401,
         contentType: 'application/problem+json',
@@ -205,11 +206,11 @@ test.describe('Invitee Private Beta Journey @integration', () => {
     await page.getByRole('button', { name: /accept invitation/i }).click()
     await expect(page).toHaveURL(/\/register\?invitationToken=raw-token-schedule/)
 
-    await page.locator('#register-email').fill('invitee-schedule@example.com')
-    await page.locator('#register-password').fill('Str0ng!Passw0rd')
-    await page.locator('#confirm-password').fill('Str0ng!Passw0rd')
-    await page.locator('#ageEligibility').check()
-    await page.locator('#terms').check()
+    await page.getByLabel(/^email$/i).fill('invitee-schedule@example.com')
+    await page.getByLabel(/^password$/i).fill('Str0ng!Passw0rd')
+    await page.getByLabel(/^confirm password$/i).fill('Str0ng!Passw0rd')
+    await page.getByLabel(/age/i).check()
+    await page.getByLabel(/terms/i).check()
     await page.getByRole('button', { name: /create account/i }).click()
     await expect(page).toHaveURL(/\/$/)
 

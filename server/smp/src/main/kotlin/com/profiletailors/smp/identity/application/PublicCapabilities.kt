@@ -30,7 +30,7 @@ internal class GetPublicCapabilitiesHandler(
     private val passwordRecoveryEnabled: () -> Boolean,
 ) : QueryHandler<GetPublicCapabilitiesQuery, PublicCapabilities> {
     override suspend fun handle(query: GetPublicCapabilitiesQuery): PublicCapabilities = PublicCapabilities(
-        registrationEnabled = registrationPolicy.evaluate(hasValidInvitation = false) == RegistrationDecision.ALLOWED,
+        registrationEnabled = registrationPolicy.evaluate(hasInvitationToken = false) == RegistrationDecision.ALLOWED,
         passwordRecoveryEnabled = passwordRecoveryEnabled(),
     )
 }

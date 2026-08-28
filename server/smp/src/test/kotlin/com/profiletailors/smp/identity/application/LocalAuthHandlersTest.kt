@@ -23,6 +23,8 @@ import com.profiletailors.smp.identity.domain.RegistrationMode
 import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
+import io.kotest.matchers.collections.shouldNotContain
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -138,7 +140,7 @@ class LocalAuthHandlersTest {
     }
 
     @Test
-    fun `invitation registration is allowed in invite only mode`() = runTest {
+    fun `should allow invitation registration when mode is invite only`() = runTest {
         val order = mutableListOf<String>()
         val invitationGateway = FakeInvitationRegistrationGateway(order)
         val handler = RegisterUserHandler(
@@ -168,14 +170,14 @@ class LocalAuthHandlersTest {
             ),
         )
 
-        assertEquals("raw-invitation-token", invitationGateway.rawToken)
-        assertEquals("invitee@example.com", invitationGateway.email)
-        assertEquals("invited-workspace", result.tokens.workspaceId)
-        assertTrue("workspace:provision" !in order)
+        invitationGateway.rawToken shouldBe "raw-invitation-token"
+        invitationGateway.email shouldBe "invitee@example.com"
+        result.tokens.workspaceId shouldBe "invited-workspace"
+        order shouldNotContain "workspace:provision"
     }
 
     @Test
-    fun `requires an invitation before registering in invite only mode`() = runTest {
+    fun `should require an invitation when mode is invite only`() = runTest {
         val order = mutableListOf<String>()
         val transactionRunner = RecordingAtomicTransactionRunner(order)
         val handler = RegisterUserHandler(
@@ -1138,6 +1140,6 @@ class LocalAuthHandlersTest {
 
     private class FakeRegistrationPolicy(private val mode: RegistrationMode = RegistrationMode.OPEN) :
         RegistrationPolicy {
-        override fun evaluate(hasValidInvitation: Boolean) = mode.evaluate(hasValidInvitation)
+        override fun evaluate(hasInvitationToken: Boolean) = mode.evaluate(hasInvitationToken)
     }
 }

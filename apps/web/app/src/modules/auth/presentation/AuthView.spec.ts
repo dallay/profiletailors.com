@@ -34,7 +34,7 @@ vi.mock('vue-i18n', async (importOriginal) => ({
   useI18n: () => ({ t: (key: string) => key }),
 }))
 
-function mountView() {
+function mountView(): ReturnType<typeof mount> {
   return mount(AuthView, {
     global: {
       stubs: {
@@ -69,13 +69,13 @@ describe('AuthView orchestration', () => {
     replace.mockReset()
   })
 
-  it('renders login immediately without waiting for capabilities', () => {
+  it('renders login immediately without waiting for capabilities', (): void => {
     const wrapper = mountView()
     expect(wrapper.find('[data-testid="login"]').exists()).toBe(true)
     expect(load).toHaveBeenCalledOnce()
   })
 
-  it('fails closed in place on register after capabilities resolve', async () => {
+  it('fails closed in place on register after capabilities resolve', (): void => {
     route.name = 'register'
     capabilities.resolved = true
     const wrapper = mountView()
@@ -83,7 +83,7 @@ describe('AuthView orchestration', () => {
     expect(wrapper.find('[data-testid="register"]').exists()).toBe(false)
   })
 
-  it('preserves only email when switching from login to registration', async () => {
+  it('preserves only email when switching from login to registration', async (): Promise<void> => {
     capabilities.resolved = true
     capabilities.registrationEnabled = true
     const wrapper = mountView()
@@ -93,7 +93,7 @@ describe('AuthView orchestration', () => {
     expect(wrapper.get('[data-testid="register"]').text()).toBe('kept@example.com')
   })
 
-  it('allows invitation registration while public registration is disabled', () => {
+  it('allows invitation registration while public registration is disabled', (): void => {
     route.name = 'register'
     route.query = { invitationToken: 'raw-token' }
     capabilities.resolved = true

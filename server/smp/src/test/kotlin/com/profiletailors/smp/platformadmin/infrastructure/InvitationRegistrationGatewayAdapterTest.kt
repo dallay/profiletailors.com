@@ -10,15 +10,15 @@ import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableExcept
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -43,7 +43,7 @@ class InvitationRegistrationGatewayAdapterTest {
     )
 
     @Test
-    fun `accepts matching invitation and returns its workspace`() = runTest {
+    fun `should return the workspace when invitation matches`() = runTest {
         every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
         every { tokenHasher.matches("raw-token", "hashed-token") } returns true
         coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
@@ -58,7 +58,7 @@ class InvitationRegistrationGatewayAdapterTest {
             principalId = "principal-1",
         )
 
-        assertEquals("workspace-a", workspaceId)
+        workspaceId shouldBe "workspace-a"
         coVerifyOrder {
             membershipProvisioner.reconcile("workspace-a", "principal-1")
             invitationRepository.markAccepted(invitation.id, now, "principal-1")
@@ -66,12 +66,12 @@ class InvitationRegistrationGatewayAdapterTest {
     }
 
     @Test
-    fun `rejects invitation when registration email does not match`() = runTest {
+    fun `should reject invitation when registration email does not match`() = runTest {
         every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
         every { tokenHasher.matches("raw-token", "hashed-token") } returns true
         coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
 
-        assertThrows<InvitationNotAcceptableException> {
+        shouldThrow<InvitationNotAcceptableException> {
             adapter().acceptForRegistration(
                 rawToken = "raw-token",
                 email = "other@example.com",

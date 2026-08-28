@@ -9,7 +9,7 @@ vi.mock('@modules/auth/infrastructure/auth.store', () => ({
 }))
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
 
-function mountForm(invitationToken?: string) {
+function mountForm(invitationToken?: string): ReturnType<typeof mount> {
   return mount(RegisterForm, {
     attachTo: document.body,
     props: { email: '', invitationToken },
@@ -17,7 +17,7 @@ function mountForm(invitationToken?: string) {
   })
 }
 
-async function setEmail(wrapper: ReturnType<typeof mountForm>, email: string) {
+async function setEmail(wrapper: ReturnType<typeof mountForm>, email: string): Promise<void> {
   await wrapper.get('input[type="email"]').setValue(email)
   await wrapper.setProps({ email })
 }
@@ -28,7 +28,7 @@ describe('RegisterForm', () => {
     document.body.innerHTML = ''
   })
 
-  it('submits registration once and disables mutable navigation while pending', async () => {
+  it('submits registration once and disables mutable navigation while pending', async (): Promise<void> => {
     let resolve!: () => void
     registerWithPassword.mockReturnValue(
       new Promise<void>((done) => {
@@ -51,7 +51,7 @@ describe('RegisterForm', () => {
     await flushPromises()
   })
 
-  it('focuses the actual first invalid registration field', async () => {
+  it('focuses the actual first invalid registration field', async (): Promise<void> => {
     const wrapper = mountForm()
     await setEmail(wrapper, 'user@example.com')
     await wrapper.get('form').trigger('submit.prevent')
@@ -62,7 +62,7 @@ describe('RegisterForm', () => {
     expect(registerWithPassword).not.toHaveBeenCalled()
   })
 
-  it('removes mutable navigation while registration is pending', async () => {
+  it('removes mutable navigation while registration is pending', async (): Promise<void> => {
     registerWithPassword.mockReturnValue(new Promise<void>(() => undefined))
     const wrapper = mountForm()
     await setEmail(wrapper, 'user@example.com')
@@ -78,7 +78,7 @@ describe('RegisterForm', () => {
     expect(navigation.attributes('aria-disabled')).toBe('true')
   })
 
-  it('keeps passwords and consent local so unmounting clears them', async () => {
+  it('keeps passwords and consent local so unmounting clears them', async (): Promise<void> => {
     const first = mountForm()
     await setEmail(first, 'kept@example.com')
     const passwords = first.findAll('input[type="password"]')
@@ -99,7 +99,7 @@ describe('RegisterForm', () => {
     expect((second.get('#terms').element as HTMLInputElement).checked).toBe(false)
   })
 
-  it('passes the invitation token to registration', async () => {
+  it('passes the invitation token to registration', async (): Promise<void> => {
     registerWithPassword.mockResolvedValue(undefined)
     const wrapper = mountForm('raw-token')
     await setEmail(wrapper, 'invitee@example.com')

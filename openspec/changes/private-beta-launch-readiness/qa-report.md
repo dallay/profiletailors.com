@@ -2,13 +2,19 @@
 
 ## Overview
 
-## Current follow-up audit — 2026-08-26
+The private-beta implementation remains blocked for deployed, operator, provider, and user-acceptance evidence. PR #883 contains the current activation fixes, while production still runs the previously deployed SMP v0.4.7 artifact that does not contain them.
 
-The current isolated follow-up adds the missing invite-only registration handoff needed for a fresh invitee when public registration is disabled. The frontend now sends the backend's `token` contract for invitation acceptance, public capabilities expose `invitationAcceptanceEnabled`, and registration atomically validates and consumes an invitation while preserving its workspace membership. The marketing configuration now uses the Astro-consumed `WAITLIST_ENABLED` and `WAITLIST_API_BASE` variables.
+## Changes
+
+### Current follow-up audit — 2026-08-26
+
+The current follow-up adds the missing invite-only registration handoff needed for a fresh invitee when public registration is disabled. The frontend now sends the backend's `token` contract for invitation acceptance, public capabilities expose `invitationAcceptanceEnabled`, and registration atomically validates and consumes an invitation while preserving its workspace membership. The marketing configuration now uses the Astro-consumed `WAITLIST_ENABLED` and `WAITLIST_API_BASE` variables. The changes are committed in the isolated branch and published as PR #883 after merging current `origin/main`.
 
 Local evidence for this follow-up is complete: 60 focused Vitest tests, Vue type-check, changed-file Biome checks, targeted SMP Gradle tests, Detekt, Spring context, two PostgreSQL/Testcontainers registration cases, the full 8-scenario mocked Chromium invitee suite including fresh registration and the first schedule-now post, the 6-scenario mocked Chromium waitlist suite, and a successful Astro production build containing the active waitlist form. Temporary validation symlinks were removed and `git diff --check` passes.
 
-This does not change the acceptance verdict. The changes remain uncommitted in `/private/tmp/profiletailors-beta-launch`; GitHub has no open PR, `smp v0.4.5` remains the latest published release, and no matching release has been deployed. Live waitlist submission/email, deployed invitee activation, operator evidence, provider delivery, and deployed post-accept scheduling/publishing remain outstanding.
+This does not change the acceptance verdict. Production has SMP v0.4.7 deployed, but that release predates these fixes; PR #883 is open and no matching release has been deployed. Live waitlist submission/email, deployed invitee activation, operator evidence, provider delivery, and deployed post-accept scheduling/publishing remain outstanding.
+
+## Usage
 
 ### Identity
 
@@ -93,6 +99,8 @@ The results below are acceptance results. The Fenix observations are cited as en
 | P3-QA-06 | Safe failure | A 5xx failure surfaces generic copy without exposing raw tokens. | **PASS — LOCAL FRONTEND ACCEPTANCE** | Chromium Playwright scenario 3.6 passed against an isolated local Vite server. |
 | P3-QA-07 | Post-accept product behavior | After acceptance, the invitee can schedule and publish according to the private-beta capability gates. | **PARTIAL — LOCAL FRONTEND ACCEPTANCE** | Chromium scenario 3.1c now carries a fresh invitee through registration into the accepted workspace and creates a schedule-now post against scheduler mocks. It does not establish deployed backend behavior, provider delivery, or a real publish result. |
 
+## Troubleshooting
+
 ## Verdict
 
 **BLOCKED — local frontend acceptance evidence improved, but the overall acceptance gate remains blocked.**
@@ -121,3 +129,11 @@ The invitee frontend scenarios 3.1–3.6 and the fresh-registration first-post s
 - Treating local mocked auth acceptance as deployed end-to-end acceptance would overstate launch readiness.
 - Exercising worker or provider behavior on Fenix without an approved change window could affect production publications.
 - Archiving now would hide unresolved operational, provider, and post-accept evidence gaps.
+
+## References
+
+- `openspec/changes/private-beta-launch-readiness/proposal.md`
+- `openspec/changes/private-beta-launch-readiness/design.md`
+- `openspec/changes/private-beta-launch-readiness/tasks.md`
+- `openspec/changes/private-beta-launch-readiness/verify-report.md`
+- `docs/infrastructure/private-beta-launch-readiness-runbook.md`

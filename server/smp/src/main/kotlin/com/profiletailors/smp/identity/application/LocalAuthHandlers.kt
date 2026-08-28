@@ -74,7 +74,7 @@ internal class RegisterUserHandler(
 
     override suspend fun handle(command: RegisterUserCommand): LocalAuthSessionResult {
         val invitationToken = command.invitationToken?.trim()?.takeIf { it.isNotEmpty() }
-        when (registrationPolicy.evaluate(hasValidInvitation = invitationToken != null)) {
+        when (registrationPolicy.evaluate(hasInvitationToken = invitationToken != null)) {
             RegistrationDecision.ALLOWED -> Unit
             RegistrationDecision.INVITATION_REQUIRED -> throw RegistrationInvitationRequiredException()
             RegistrationDecision.CLOSED -> throw RegistrationDisabledException()

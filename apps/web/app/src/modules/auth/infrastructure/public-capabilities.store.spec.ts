@@ -67,7 +67,7 @@ describe('usePublicCapabilitiesStore', () => {
     expect(store.error).toBeNull()
   })
 
-  it('enables invitation acceptance only for an explicit boolean true', async () => {
+  it('enables invitation acceptance only for an explicit boolean true', async (): Promise<void> => {
     vi.spyOn(authApi, 'fetchPublicCapabilities').mockResolvedValue({
       registrationEnabled: false,
       passwordRecoveryEnabled: true,

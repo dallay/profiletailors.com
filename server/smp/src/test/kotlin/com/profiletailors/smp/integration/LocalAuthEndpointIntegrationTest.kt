@@ -452,7 +452,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
     }
 
     @Test
-    fun `registers invitee into the invitation workspace and consumes the invitation`() {
+    fun `should register invitee into the invitation workspace when invitation is valid`() {
         val rawToken = "private-beta-invitation-token"
         val invitationId = kotlinx.coroutines.runBlocking { seedInvitationForRegistration(rawToken) }
 
@@ -484,7 +484,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
     }
 
     @Test
-    fun `invalid invitation registration rolls back all registration artifacts`() {
+    fun `should roll back registration artifacts when invitation is invalid`() {
         val email = "invalid-invitation@example.com"
 
         webTestClient.post()

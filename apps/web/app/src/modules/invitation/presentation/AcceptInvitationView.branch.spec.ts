@@ -149,7 +149,7 @@ describe('AcceptInvitationView branch coverage', () => {
     expect(wrapper.text()).toContain('invitation.errors.notFound')
   })
 
-  it('redirects unauthenticated invitees to registration with the token', async () => {
+  it('redirects unauthenticated invitees to registration with the token', async (): Promise<void> => {
     accept.mockImplementation(async () => {
       state.errorCode = 'INVITATION_REQUIRES_LOGIN'
       state.errorStatus = 401
