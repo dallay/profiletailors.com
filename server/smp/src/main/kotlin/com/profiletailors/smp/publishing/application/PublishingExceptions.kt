@@ -5,3 +5,6 @@ class PublicationNotFoundException(publicationId: String) :
 
 class SocialAccountNotFoundException(socialAccountId: String) :
     IllegalArgumentException("Social account '$socialAccountId' was not found in the active workspace.")
+
+class RecurringScheduleNotFoundException(scheduleId: String) :
+    IllegalArgumentException("Recurring schedule '$scheduleId' was not found in the active workspace.")

@@ -20,9 +20,12 @@ import com.profiletailors.smp.publishing.domain.PostOrigin
 import com.profiletailors.smp.publishing.domain.SocialPost
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.time.Instant
@@ -31,7 +34,16 @@ class SocialContentControllersTest {
     private val mediator = StubMediator()
     private val client = WebTestClient
         .bindToController(SocialContentController(mediator))
+        .controllerAdvice(PublishingProblemDetailsHandler())
+        .apiVersioning {
+            it.useVersionResolver(
+                com.profiletailors.smp.platform.infrastructure.http.WebFluxConfiguration.MediaTypeVersionResolver(),
+            )
+        }
         .build()
+
+    private fun WebTestClient.RequestHeadersSpec<*>.withV1Accept() =
+        header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
 
     @Test
     fun `GET calendar returns filtered social content page`() = runTest {
@@ -62,6 +74,7 @@ class SocialContentControllersTest {
                     "&cursor=cursor-1" +
                     "&limit=20",
             )
+            .withV1Accept()
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -73,16 +86,13 @@ class SocialContentControllersTest {
             .jsonPath("$.items[0].mutationAllowed").isEqualTo(false)
             .jsonPath("$.nextCursor").isEqualTo("cursor-2")
 
-        assertEquals(
-            WorkspaceSocialContentCalendarQuery(
-                from = Instant.parse("2026-08-01T00:00:00Z"),
-                to = Instant.parse("2026-08-08T00:00:00Z"),
-                actorId = "page-1",
-                lifecycle = PostLifecycle.PUBLISHED,
-                cursor = PageCursor("cursor-1"),
-                limit = 20,
-            ),
-            mediator.lastQuery,
+        mediator.lastQuery shouldBe WorkspaceSocialContentCalendarQuery(
+            from = Instant.parse("2026-08-01T00:00:00Z"),
+            to = Instant.parse("2026-08-08T00:00:00Z"),
+            actorId = "page-1",
+            lifecycle = PostLifecycle.PUBLISHED,
+            cursor = PageCursor("cursor-1"),
+            limit = 20,
         )
     }
 
@@ -102,6 +112,7 @@ class SocialContentControllersTest {
 
         client.get()
             .uri("/api/publishing/social-content/posts/{externalPostId}", "post-1")
+            .withV1Accept()
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -111,7 +122,7 @@ class SocialContentControllersTest {
             .jsonPath("$.origin").isEqualTo("EXTERNAL_OR_UNKNOWN")
             .jsonPath("$.lifecycle").isEqualTo("PUBLISHED")
 
-        assertEquals(SocialContentPostQuery("post-1"), mediator.lastQuery)
+        mediator.lastQuery shouldBe SocialContentPostQuery("post-1")
     }
 
     @Test
@@ -125,6 +136,7 @@ class SocialContentControllersTest {
 
         client.post()
             .uri("/api/publishing/social-content/sync")
+            .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue("""{"actorId":"page-1"}""")
             .exchange()
@@ -134,7 +146,80 @@ class SocialContentControllersTest {
             .jsonPath("$.importedCount").isEqualTo(2)
             .jsonPath("$.status").isEqualTo("COMPLETED")
 
-        assertEquals(SocialContentSyncCommand(actorId = "page-1"), mediator.lastCommand)
+        mediator.lastCommand shouldBe SocialContentSyncCommand(actorId = "page-1")
+    }
+
+    @Test
+    fun `GET calendar rejects invalid limit parameter`() = runTest {
+        val invalidLimits = listOf(0, 150)
+
+        invalidLimits.forEach { limit ->
+            client.get()
+                .uri(
+                    "/api/publishing/social-content/calendar" +
+                        "?from=2026-08-01T00:00:00Z" +
+                        "&to=2026-08-08T00:00:00Z" +
+                        "&limit=$limit",
+                )
+                .withV1Accept()
+                .exchange()
+                .expectStatus().isBadRequest
+                .expectHeader().contentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE)
+                .expectBody()
+                .jsonPath("$.title").isEqualTo("Bad Request")
+                .jsonPath("$.detail").isEqualTo("limit must be between 1 and 100, got $limit")
+                .jsonPath("$.status").isEqualTo(400)
+        }
+
+        mediator.lastQuery.shouldBeNull()
+    }
+
+    @Test
+    fun `POST sync rejects blank actorId`() = runTest {
+        client.post()
+            .uri("/api/publishing/social-content/sync")
+            .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"actorId":""}""")
+            .exchange()
+            .expectStatus().isBadRequest
+
+        mediator.lastCommand.shouldBeNull()
+    }
+
+    @Test
+    fun `social content controller endpoints map explicit version 1`() {
+        val syncMethod = SocialContentController::class.java.declaredMethods.single { it.name == "sync" }
+        val postMethod = SocialContentController::class.java.declaredMethods.single { it.name == "post" }
+        val calendarMethod = SocialContentController::class.java.declaredMethods.single { it.name == "calendar" }
+
+        val syncMapping = syncMethod.getAnnotation(org.springframework.web.bind.annotation.PostMapping::class.java)
+        val postMapping = postMethod.getAnnotation(org.springframework.web.bind.annotation.GetMapping::class.java)
+        val calendarMapping = calendarMethod.getAnnotation(
+            org.springframework.web.bind.annotation.GetMapping::class.java,
+        )
+
+        syncMapping.version shouldBe "1"
+        postMapping.version shouldBe "1"
+        calendarMapping.version shouldBe "1"
+    }
+
+    @Test
+    fun `version negotiation succeeds with vendor media type header`() = runTest {
+        mediator.nextQueryResult = SocialContentCalendarResponse(items = emptyList(), nextCursor = null)
+
+        client.get()
+            .uri(
+                "/api/publishing/social-content/calendar" +
+                    "?from=2026-08-01T00:00:00Z" +
+                    "&to=2026-08-08T00:00:00Z",
+            )
+            .header(HttpHeaders.ACCEPT, "application/vnd.api.v1+json")
+            .exchange()
+            .expectStatus().isOk
+
+        mediator.lastQuery.shouldNotBeNull()
+        (mediator.lastQuery as WorkspaceSocialContentCalendarQuery).limit shouldBe 50
     }
 
     private class StubMediator : Mediator {

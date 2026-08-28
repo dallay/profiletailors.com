@@ -38,6 +38,7 @@ import com.profiletailors.smp.publishing.domain.PageCursor
 import com.profiletailors.smp.publishing.domain.PostLifecycle
 import com.profiletailors.smp.publishing.domain.ProviderCatalogItem
 import com.profiletailors.smp.publishing.domain.PublicationStatus
+import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.RecurrenceFrequency
 import com.profiletailors.smp.publishing.domain.RecurrenceRule
 import com.profiletailors.smp.publishing.domain.RecurringScheduleStatus
@@ -81,17 +82,17 @@ import java.util.Locale
 @Tag(name = "Publishing Social Content", description = "Workspace social-content synchronization endpoints")
 class SocialContentController(private val mediator: Mediator) {
     @Operation(summary = "Synchronize workspace social content")
-    @PostMapping("/sync", consumes = ["application/json"])
+    @PostMapping("/sync", consumes = ["application/json"], version = "1")
     suspend fun sync(@Valid @RequestBody request: SocialContentSyncRequest): SocialContentSyncResult =
         mediator.send(SocialContentSyncCommand(actorId = request.actorId))
 
     @Operation(summary = "Get an imported workspace social content post")
-    @GetMapping("/posts/{externalPostId}")
+    @GetMapping("/posts/{externalPostId}", version = "1")
     suspend fun post(@PathVariable externalPostId: String): SocialPost =
         mediator.send(SocialContentPostQuery(externalPostId))
 
     @Operation(summary = "List imported workspace social content for a date range")
-    @GetMapping("/calendar")
+    @GetMapping("/calendar", version = "1")
     suspend fun calendar(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant,
@@ -99,16 +100,26 @@ class SocialContentController(private val mediator: Mediator) {
         @RequestParam(required = false) lifecycle: PostLifecycle? = null,
         @RequestParam(required = false) cursor: String? = null,
         @RequestParam(required = false, defaultValue = "50") limit: Int = 50,
-    ): SocialContentCalendarResponse = mediator.send(
-        WorkspaceSocialContentCalendarQuery(
-            from = from,
-            to = to,
-            actorId = actorId,
-            lifecycle = lifecycle,
-            cursor = cursor?.let(::PageCursor),
-            limit = limit,
-        ),
-    )
+    ): SocialContentCalendarResponse {
+        if (limit !in MIN_LIMIT..MAX_LIMIT) {
+            throw PublicationValidationException("limit must be between $MIN_LIMIT and $MAX_LIMIT, got $limit")
+        }
+        return mediator.send(
+            WorkspaceSocialContentCalendarQuery(
+                from = from,
+                to = to,
+                actorId = actorId,
+                lifecycle = lifecycle,
+                cursor = cursor?.let(::PageCursor),
+                limit = limit,
+            ),
+        )
+    }
+
+    private companion object {
+        const val MIN_LIMIT = 1
+        const val MAX_LIMIT = 100
+    }
 }
 
 data class SocialContentSyncRequest(@field:NotBlank val actorId: String)
@@ -362,10 +373,12 @@ class PublishingPublicationController(private val mediator: Mediator) {
         @RequestParam(required = false, defaultValue = "50") limit: Int = 50,
         @RequestParam(required = false, defaultValue = "0") offset: Int = 0,
     ): ListPublicationsResponse {
-        require(limit in MIN_LIMIT..MAX_LIMIT) {
-            "limit must be between $MIN_LIMIT and $MAX_LIMIT, got $limit"
+        if (limit !in MIN_LIMIT..MAX_LIMIT) {
+            throw PublicationValidationException("limit must be between $MIN_LIMIT and $MAX_LIMIT, got $limit")
         }
-        require(offset >= 0) { "offset must be non-negative, got $offset" }
+        if (offset < 0) {
+            throw PublicationValidationException("offset must be non-negative, got $offset")
+        }
         return mediator.send(
             ListPublicationsQuery(
                 status = status,
@@ -438,7 +451,7 @@ data class PublicationRescheduleRequest(
     val priority: Boolean? = null,
 ) {
     fun requiredScheduleMode(): ScheduleMode = scheduleMode?.let(ScheduleMode::valueOf)
-        ?: throw IllegalArgumentException("scheduleMode is required for reschedule.")
+        ?: throw PublicationValidationException("scheduleMode is required for reschedule.")
 }
 
 @Schema(description = "List of configured publishing providers")
@@ -488,7 +501,9 @@ class RecurringScheduleController(
 
     private fun requireWorkspacePath(pathWorkspaceId: String) {
         val contextWorkspaceId = resourceContextProvider.requireWorkspaceContext().workspaceId
-        require(pathWorkspaceId == contextWorkspaceId) { "Workspace path does not match the authenticated workspace." }
+        if (pathWorkspaceId != contextWorkspaceId) {
+            throw PublicationValidationException("Workspace path does not match the authenticated workspace.")
+        }
     }
 }
 
