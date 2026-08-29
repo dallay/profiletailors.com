@@ -160,18 +160,30 @@ configurations.all {
     resolutionStrategy {
         eachDependency {
             if (requested.group == "io.netty" && requested.name.startsWith("netty-codec")) {
-                useVersion("4.2.16.Final")
+                useVersion("4.2.17.Final")
+            }
+            if (requested.group == "org.apache.httpcomponents.client5" && requested.name == "httpclient5") {
+                useVersion("5.6.4")
+            }
+            if (requested.group == "org.apache.httpcomponents.core5") {
+                useVersion("5.4.3")
             }
             if (requested.group.startsWith("com.fasterxml.jackson")) {
                 useVersion(
                     when (requested.name) {
                         "jackson-annotations" -> "2.22"
-                        else -> "2.22.1"
+                        else -> "2.22.2"
                     },
                 )
             }
             if (requested.group == "tools.jackson.core") {
-                useVersion("3.1.5")
+                useVersion("3.2.2")
+            }
+            if (requested.group == "tools.jackson.module") {
+                useVersion("3.2.2")
+            }
+            if (requested.group == "tools.jackson.dataformat") {
+                useVersion("3.2.2")
             }
             if (requested.group == "org.postgresql" && requested.name == "postgresql") {
                 useVersion("42.7.12")
@@ -196,20 +208,24 @@ val verifySecurityVersions =
                 mapOf(
                     "com.ongres.scram:scram-client" to "3.4",
                     "com.ongres.scram:scram-common" to "3.4",
-                    "io.netty:netty-codec-http" to "4.2.16.Final",
-                    "io.netty:netty-codec-http2" to "4.2.16.Final",
-                    "io.netty:netty-codec-http3" to "4.2.16.Final",
-                    "io.netty:netty-codec-dns" to "4.2.16.Final",
-                    "io.netty:netty-codec-compression" to "4.2.16.Final",
-                    "com.fasterxml.jackson:jackson-bom" to "2.22.1",
+                    "io.netty:netty-codec-http" to "4.2.17.Final",
+                    "io.netty:netty-codec-http2" to "4.2.17.Final",
+                    "io.netty:netty-codec-http3" to "4.2.17.Final",
+                    "io.netty:netty-codec-dns" to "4.2.17.Final",
+                    "io.netty:netty-codec-compression" to "4.2.17.Final",
+                    "org.apache.httpcomponents.client5:httpclient5" to "5.6.4",
+                    "org.apache.httpcomponents.core5:httpcore5" to "5.4.3",
+                    "org.apache.httpcomponents.core5:httpcore5-h2" to "5.4.3",
+                    "com.fasterxml.jackson:jackson-bom" to "2.22.2",
                     "com.fasterxml.jackson.core:jackson-annotations" to "2.22",
-                    "com.fasterxml.jackson.core:jackson-core" to "2.22.1",
-                    "com.fasterxml.jackson.core:jackson-databind" to "2.22.1",
-                    "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to "2.22.1",
-                    "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml" to "2.22.1",
-                    "com.fasterxml.jackson.module:jackson-module-kotlin" to "2.22.1",
-                    "tools.jackson.core:jackson-core" to "3.1.5",
-                    "tools.jackson.core:jackson-databind" to "3.1.5",
+                    "com.fasterxml.jackson.core:jackson-core" to "2.22.2",
+                    "com.fasterxml.jackson.core:jackson-databind" to "2.22.2",
+                    "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to "2.22.2",
+                    "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml" to "2.22.2",
+                    "com.fasterxml.jackson.module:jackson-module-kotlin" to "2.22.2",
+                    "tools.jackson.core:jackson-core" to "3.2.2",
+                    "tools.jackson.core:jackson-databind" to "3.2.2",
+                    "tools.jackson.module:jackson-module-kotlin" to "3.2.2",
                     "org.postgresql:postgresql" to "42.7.12",
                 )
             val violations =
