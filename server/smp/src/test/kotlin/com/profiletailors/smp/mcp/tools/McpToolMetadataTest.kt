@@ -23,8 +23,13 @@ class McpToolMetadataTest {
     }
 
     @Test
-    fun `list_providers requires mcp publications read scope`() {
-        assertThat(McpToolMetadata.requiredScope("list_providers")).isEqualTo("mcp:publications:read")
+    fun `list_providers requires mcp providers read scope`() {
+        assertThat(McpToolMetadata.requiredScope("list_providers")).isEqualTo("mcp:providers:read")
+    }
+
+    @Test
+    fun `mcp_ping requires no scope`() {
+        assertThat(McpToolMetadata.requiredScope("mcp_ping")).isNull()
     }
 
     @Test
@@ -35,10 +40,16 @@ class McpToolMetadataTest {
     @Test
     fun `allTools returns all registered tool names`() {
         assertThat(McpToolMetadata.allTools()).containsExactlyInAnyOrder(
+            "mcp_ping",
             "list_channels",
             "list_publications",
             "get_calendar",
             "list_providers",
+            "create_publication",
+            "edit_publication",
+            "delete_publication",
+            "cancel_publication",
+            "retry_publication",
         )
     }
 
@@ -48,5 +59,20 @@ class McpToolMetadataTest {
         assertThat(McpToolMetadata.rateLimitBucket("list_publications")).isEqualTo("mcp-publications-read")
         assertThat(McpToolMetadata.rateLimitBucket("get_calendar")).isEqualTo("mcp-publications-read")
         assertThat(McpToolMetadata.rateLimitBucket("list_providers")).isEqualTo("mcp-publications-read")
+        assertThat(McpToolMetadata.rateLimitBucket("mcp_ping")).isNull()
+    }
+
+    @Test
+    fun `isRegistered reports the ten declared tools`() {
+        assertThat(McpToolMetadata.isRegistered("mcp_ping")).isTrue()
+        assertThat(McpToolMetadata.isRegistered("list_publications")).isTrue()
+        assertThat(McpToolMetadata.isRegistered("get_calendar")).isTrue()
+        assertThat(McpToolMetadata.isRegistered("list_channels")).isTrue()
+        assertThat(McpToolMetadata.isRegistered("list_providers")).isTrue()
+        assertThat(McpToolMetadata.isRegistered("create_publication")).isTrue()
+        assertThat(McpToolMetadata.isRegistered("edit_publication")).isTrue()
+        assertThat(McpToolMetadata.isRegistered("delete_publication")).isTrue()
+        assertThat(McpToolMetadata.isRegistered("cancel_publication")).isTrue()
+        assertThat(McpToolMetadata.isRegistered("retry_publication")).isTrue()
     }
 }

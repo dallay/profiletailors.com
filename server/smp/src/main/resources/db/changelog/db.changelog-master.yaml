@@ -105,6 +105,9 @@ databaseChangeLog:
       file: db/changelog/ideas/001-create-ideas.yaml
 
   - include:
+      file: db/changelog/mcp/001-create-idempotency-records.yaml
+
+  - include:
       file: db/changelog/hashtags/001-create-hashtag-saved-sets.yaml
   - include:
       file: db/changelog/media/001-create-media-assets.yaml
