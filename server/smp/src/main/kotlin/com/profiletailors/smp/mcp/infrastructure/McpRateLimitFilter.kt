@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Buckets:
  * - `mcp-channels-read`: 60 requests/minute/workspace
  * - `mcp-publications-read`: 30 requests/minute/workspace
+ * - `mcp-publications-write`: 15 requests/minute/workspace
  *
  * Returns null if allowed, or an [ApplicationError] if rate-limited.
  */
@@ -21,7 +22,10 @@ class McpRateLimitFilter {
     private val bucketLimits: Map<String, Int> = mapOf(
         "mcp-channels-read" to 60,
         "mcp-publications-read" to 30,
+        "mcp-publications-write" to 15,
     )
+
+    fun bucketLimit(bucket: String): Int? = bucketLimits[bucket]
 
     /**
      * Checks whether the tool invocation is within the rate limit.
@@ -30,6 +34,19 @@ class McpRateLimitFilter {
      */
     fun checkRateLimit(toolName: String, workspaceId: String, now: Instant): ApplicationError? {
         val bucket = McpToolMetadata.rateLimitBucket(toolName) ?: return null
+        return checkRateLimitForBucket(bucket, workspaceId, now)
+    }
+
+    @Suppress("UnusedParameter")
+    fun checkRateLimit(toolName: String, workspaceId: String): ApplicationError? =
+        checkRateLimit(toolName, workspaceId, Instant.now())
+
+    /**
+     * Checks whether a call to the given bucket would be allowed.
+     *
+     * @return null if allowed, [ApplicationError] if rate-limited.
+     */
+    fun checkRateLimitForBucket(bucket: String, workspaceId: String, now: Instant): ApplicationError? {
         val maxRequests = bucketLimits[bucket] ?: return null
         val key = "$bucket:$workspaceId"
 

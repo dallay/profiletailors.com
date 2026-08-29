@@ -32,7 +32,7 @@ class ResourceMetadataController {
         ResourceMetadata(
             resource = "https://api.profiletailors.com/api/mcp",
             authorizationServers = listOf("https://auth.profiletailors.com/realms/profiletailors"),
-            scopesSupported = listOf("mcp:channels:read", "mcp:publications:read"),
+            scopesSupported = listOf("mcp:channels:read", "mcp:publications:read", "mcp:publications:write"),
             bearerMethodsSupported = listOf("header"),
         ),
     )

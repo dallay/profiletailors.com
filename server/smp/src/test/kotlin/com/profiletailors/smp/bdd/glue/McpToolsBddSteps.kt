@@ -10,6 +10,7 @@ import io.cucumber.java.en.When
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import kotlinx.coroutines.runBlocking
+import org.assertj.core.api.Assertions.assertThat
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -38,7 +39,7 @@ class McpToolsBddSteps {
     @Given("the MCP workspace is seeded")
     fun givenMcpWorkspaceIsSeeded() = runBlocking {
         bddDatabaseSupport.resetDatabase()
-        bddDatabaseSupport.seedWorkspace()
+        bddDatabaseSupport.seedAuthenticatedUserWithWorkspace()
     }
 
     @Given("a connected LinkedIn social account exists for MCP")
@@ -92,6 +93,120 @@ class McpToolsBddSteps {
             .exchange()
             .expectBody()
             .returnResult()
+    }
+
+    @When("the MCP client requests tools list")
+    fun whenMcpClientRequestsToolsList() {
+        latestResponse = webTestClient.post()
+            .uri(MCP_ENDPOINT)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON, MediaType.TEXT_EVENT_STREAM)
+            .header(HttpHeaders.AUTHORIZATION, MCP_READER_BEARER)
+            .bodyValue(
+                objectMapper.writeValueAsString(
+                    mapOf(
+                        "jsonrpc" to "2.0",
+                        "id" to 1,
+                        "method" to "tools/list",
+                    ),
+                ),
+            )
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the MCP client calls tool {string} with status filter {string}")
+    fun whenMcpClientCallsToolWithStatusFilter(toolName: String, status: String) {
+        val args = mapOf(
+            "from" to "2026-01-01T00:00:00Z",
+            "to" to "2026-12-31T23:59:59Z",
+            "status" to status,
+        )
+        latestResponse = postMcpToolCall(toolName, args, MCP_READER_BEARER)
+        parseResponseBody()
+    }
+
+    @Given("a publication exists in FAILED status for MCP")
+    fun givenPublicationExistsInFailedStatusForMcp() = runBlocking {
+        bddDatabaseSupport.seedFailedPublication("pub-failed-mcp-1", "social-acc-mcp-1")
+    }
+
+    @Given("a publication exists in CANCELLED status for MCP")
+    fun givenPublicationExistsInCancelledStatusForMcp() = runBlocking {
+        bddDatabaseSupport.seedCancelledPublication("pub-cancelled-mcp-1", "social-acc-mcp-1")
+    }
+
+    @Given("a publication exists in SCHEDULED status for MCP")
+    fun givenPublicationExistsInScheduledStatusForMcp() = runBlocking {
+        bddDatabaseSupport.seedScheduledPublication(
+            publicationId = "pub-scheduled-mcp-1",
+            socialAccountId = "social-acc-mcp-1",
+            scheduledFor = java.time.Instant.now().plusSeconds(3600),
+            title = "scheduled title",
+            bodyText = "scheduled body",
+        )
+    }
+
+    @When("the MCP client invokes cancel_publication for that publication")
+    fun whenMcpClientInvokesCancelPublication() {
+        val args = mapOf("publicationId" to "pub-scheduled-mcp-1")
+        latestResponse = postMcpToolCall("cancel_publication", args, MCP_WRITER_BEARER)
+        parseResponseBody()
+    }
+
+    @When("the MCP client invokes retry_publication for that publication with scheduleMode {string}")
+    fun whenMcpClientInvokesRetryPublication(mode: String) {
+        val args = mapOf("publicationId" to "pub-failed-mcp-1", "scheduleMode" to mode)
+        latestResponse = postMcpToolCall("retry_publication", args, MCP_WRITER_BEARER)
+        parseResponseBody()
+    }
+
+    @Then("the MCP catalog should contain exactly:")
+    fun thenMcpCatalogShouldContainExactly(dataTable: io.cucumber.datatable.DataTable) {
+        val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
+        val expected = dataTable.asList(String::class.java).toSet()
+        val body: Map<String, Any?> = objectMapper.readValue(raw)
+
+        @Suppress("UNCHECKED_CAST")
+        val tools = (body["tools"] as? List<Map<String, Any?>>).orEmpty().map { it["name"] as String }.toSet()
+        tools shouldBe expected
+    }
+
+    @Then("the MCP result publications should include the FAILED publication id")
+    fun thenMcpResultPublicationsShouldIncludeFailedPublicationId() {
+        mcpPublicationIdsShouldInclude("pub-failed-mcp-1")
+    }
+
+    @Then("the MCP result publications should include the CANCELLED publication id")
+    fun thenMcpResultPublicationsShouldIncludeCancelledPublicationId() {
+        mcpPublicationIdsShouldInclude("pub-cancelled-mcp-1")
+    }
+
+    @Then("the MCP result publication status should be CANCELLED")
+    fun thenMcpResultPublicationStatusShouldBeCancelled() {
+        assertPublicationStatus("CANCELLED")
+    }
+
+    @Then("the MCP result publication status should be QUEUED")
+    fun thenMcpResultPublicationStatusShouldBeQueued() {
+        assertPublicationStatus("QUEUED")
+    }
+
+    private fun mcpPublicationIdsShouldInclude(expected: String) {
+        val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
+        val body: Map<String, Any?> = objectMapper.readValue(raw)
+        val data = body["data"] as? Map<*, *>
+        val publications = data?.get("publications") as? List<Map<String, Any?>> ?: emptyList()
+        val ids = publications.mapNotNull { it["id"] as? String }
+        assertThat(ids).contains(expected)
+    }
+
+    private fun assertPublicationStatus(expected: String) {
+        val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
+        val body: Map<String, Any?> = objectMapper.readValue(raw)
+        val data = body["data"] as? Map<*, *>
+        assertThat(data?.get("status")).isEqualTo(expected)
     }
 
     @When("the MCP client with wrong workspace calls tool {string}")
@@ -199,5 +314,6 @@ class McpToolsBddSteps {
     companion object {
         private const val MCP_ENDPOINT = "/api/mcp"
         private const val MCP_READER_BEARER = "Bearer mcp-reader-token"
+        private const val MCP_WRITER_BEARER = "Bearer mcp-writer-token"
     }
 }

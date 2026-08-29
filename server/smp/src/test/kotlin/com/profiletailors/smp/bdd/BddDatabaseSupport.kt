@@ -1058,6 +1058,56 @@ class BddDatabaseSupport(
     }
 
     /**
+     * Seeds a [publications] row in **FAILED** status with NOW schedule mode and a
+     * populated `failed_at` / `last_error_code`.
+     */
+    suspend fun seedFailedPublication(publicationId: String, socialAccountId: String) {
+        databaseClient.sql(
+            """
+            INSERT INTO publications (id, workspace_id, author_principal_id, provider, social_account_id,
+                                      status, schedule_mode, priority, title, body_text,
+                                      failed_at, last_error_code, last_error_message,
+                                      created_at, updated_at)
+            VALUES (:id, :workspaceId, :authorPrincipalId, 'LINKEDIN', :socialAccountId,
+                    'FAILED', 'NOW', FALSE, 'failed title', 'failed body',
+                    :failedAt, 'LINKEDIN_API_ERROR', 'simulated failure for BDD',
+                    NOW(), NOW())
+            """.trimIndent(),
+        )
+            .bind("id", publicationId)
+            .bind("workspaceId", WORKSPACE_ID)
+            .bind("authorPrincipalId", PRINCIPAL_ID)
+            .bind("socialAccountId", socialAccountId)
+            .bind("failedAt", Instant.now().minusSeconds(60))
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
+     * Seeds a [publications] row in **CANCELLED** status with NOW schedule mode.
+     */
+    suspend fun seedCancelledPublication(publicationId: String, socialAccountId: String) {
+        databaseClient.sql(
+            """
+            INSERT INTO publications (id, workspace_id, author_principal_id, provider, social_account_id,
+                                      status, schedule_mode, priority, title, body_text,
+                                      created_at, updated_at)
+            VALUES (:id, :workspaceId, :authorPrincipalId, 'LINKEDIN', :socialAccountId,
+                    'CANCELLED', 'NOW', FALSE, 'cancelled title', 'cancelled body',
+                    NOW(), NOW())
+            """.trimIndent(),
+        )
+            .bind("id", publicationId)
+            .bind("workspaceId", WORKSPACE_ID)
+            .bind("authorPrincipalId", PRINCIPAL_ID)
+            .bind("socialAccountId", socialAccountId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
      * Returns the social-profile URN for a given [provider] and [providerAccountId].
      *
      * Known providers:

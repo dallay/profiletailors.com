@@ -10,10 +10,10 @@ class McpErrorMapperTest {
     private val mapper = McpErrorMapper()
 
     @Test
-    fun `maps IllegalArgumentException to invalid input error`() {
+    fun `maps IllegalArgumentException to publication_validation_failed`() {
         val result = mapper.mapToError(IllegalArgumentException("bad date range"))
 
-        assertThat(result.code).isEqualTo("invalid_date_range")
+        assertThat(result.code).isEqualTo("publication_validation_failed")
         assertThat(result.category).isEqualTo("validation")
         assertThat(result.retryable).isFalse()
         assertThat(result.message).doesNotContain("Exception")
