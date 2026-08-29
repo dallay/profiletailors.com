@@ -120,7 +120,7 @@ class R2dbcAdminOperatorQueryTest {
     }
 
     @Test
-    fun `listAllActive resolves a prefixed user identity when the stored uuid has no direct match`() = runTest {
+    fun `should resolve a prefixed user identity when stored uuid has no direct match`() = runTest {
         val principalId = UUID.randomUUID()
         val identity = PrincipalIdentityFacts(
             principalId = "user-$principalId",

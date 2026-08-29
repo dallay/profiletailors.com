@@ -108,7 +108,7 @@ class AdminOperatorControllerTest {
     }
 
     @Test
-    fun `assignRole accepts a prefixed user principal id`() {
+    fun `should assign a role when principal id is prefixed`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
 
         webClient()
@@ -118,6 +118,8 @@ class AdminOperatorControllerTest {
             .bodyValue("""{"role":"SUPPORT_AGENT"}""")
             .exchange()
             .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.status").isEqualTo("assigned")
 
         coVerify {
             assignRoleHandler.handle(
@@ -135,6 +137,19 @@ class AdminOperatorControllerTest {
             .uri("/api/admin/operators/$targetId/roles")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue("""{"role":"NOT_A_ROLE"}""")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `should reject a role assignment when principal id is invalid`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        webClient()
+            .post()
+            .uri("/api/admin/operators/not-a-principal/roles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"role":"SUPPORT_AGENT"}""")
             .exchange()
             .expectStatus().isBadRequest
     }
@@ -159,12 +174,42 @@ class AdminOperatorControllerTest {
     }
 
     @Test
+    fun `should revoke a role when principal id is prefixed`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        webClient()
+            .delete()
+            .uri("/api/admin/operators/user-$targetId/roles/SUPPORT_AGENT")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.status").isEqualTo("revoked")
+
+        coVerify {
+            revokeRoleHandler.handle(
+                match { it.targetPrincipalId == targetId && it.role == PlatformRole.SUPPORT_AGENT },
+            )
+        }
+    }
+
+    @Test
     fun `revokeRole returns 400 for invalid role`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
 
         webClient()
             .delete()
             .uri("/api/admin/operators/$targetId/roles/NOT_A_ROLE")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `should reject role revocation when principal id is invalid`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        webClient()
+            .delete()
+            .uri("/api/admin/operators/not-a-principal/roles/SUPPORT_AGENT")
             .exchange()
             .expectStatus().isBadRequest
     }
