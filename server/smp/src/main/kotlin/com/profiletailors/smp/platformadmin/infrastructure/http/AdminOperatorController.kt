@@ -2,6 +2,7 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.PlatformPrincipalIds
 import com.profiletailors.smp.platformadmin.application.contracts.AdminOperatorQuery
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
@@ -20,7 +21,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin/operators")
@@ -46,19 +46,21 @@ class AdminOperatorController(
     @PostMapping("/{principalId}/roles")
     @Transactional
     suspend fun assignRole(
-        @PathVariable principalId: UUID,
+        @PathVariable principalId: String,
         @RequestBody request: AssignRoleRequest,
     ): ResponseEntity<Map<String, String>> {
         val operator = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val role = runCatching { PlatformRole.valueOf(request.role) }.getOrNull()
             ?: return ResponseEntity.badRequest().build()
+        val targetPrincipalId = runCatching { PlatformPrincipalIds.toUuid(principalId) }.getOrNull()
+            ?: return ResponseEntity.badRequest().build()
 
         assignRoleHandler.handle(
             com.profiletailors.smp.platformadmin.application.command.AssignPlatformRoleCommand(
                 operatorPrincipalId = operator.principalId,
                 operatorRoles = operator.roles,
-                targetPrincipalId = principalId,
+                targetPrincipalId = targetPrincipalId,
                 role = role,
             ),
         )
@@ -68,19 +70,21 @@ class AdminOperatorController(
     @DeleteMapping("/{principalId}/roles/{role}")
     @Transactional
     suspend fun revokeRole(
-        @PathVariable principalId: UUID,
+        @PathVariable principalId: String,
         @PathVariable role: String,
     ): ResponseEntity<Map<String, String>> {
         val operator = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val platformRole = runCatching { PlatformRole.valueOf(role) }.getOrNull()
             ?: return ResponseEntity.badRequest().build()
+        val targetPrincipalId = runCatching { PlatformPrincipalIds.toUuid(principalId) }.getOrNull()
+            ?: return ResponseEntity.badRequest().build()
 
         revokeRoleHandler.handle(
             com.profiletailors.smp.platformadmin.application.command.RevokePlatformRoleCommand(
                 operatorPrincipalId = operator.principalId,
                 operatorRoles = operator.roles,
-                targetPrincipalId = principalId,
+                targetPrincipalId = targetPrincipalId,
                 role = platformRole,
             ),
         )
