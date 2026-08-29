@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAdminAuthStore } from '@/stores/auth.store'
 
 const { t } = useI18n()
+const authStore = useAdminAuthStore()
 
 interface DashboardSummary {
   pendingCount: number
@@ -26,7 +28,7 @@ async function fetchDashboard() {
   loading.value = true
   error.value = null
   try {
-    const res = await fetch(`/api/admin/dashboard?periodDays=${periodDays.value}`)
+    const res = await authStore.request(`/api/admin/dashboard?periodDays=${periodDays.value}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     summary.value = await res.json()
   } catch {
@@ -40,12 +42,12 @@ onMounted(fetchDashboard)
 </script>
 
 <template>
-  <div class="p-8">
+  <div class="admin-page p-5 sm:p-8">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-slate-100">{{ t('dashboard.title') }}</h1>
+      <h1 class="text-2xl font-semibold text-text-display">{{ t('dashboard.title') }}</h1>
       <select
         v-model="periodDays"
-        class="bg-slate-800 text-slate-300 border border-slate-700 rounded-lg px-3 py-1.5 text-sm"
+        class="admin-input text-sm"
         :aria-label="t('dashboard.period')"
         @change="fetchDashboard"
       >
@@ -55,8 +57,8 @@ onMounted(fetchDashboard)
       </select>
     </div>
 
-    <div v-if="loading" class="text-slate-400">{{ t('common.loading') }}</div>
-    <div v-else-if="error" role="alert" class="text-red-400">{{ error }}</div>
+    <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
+    <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
     <div v-else-if="summary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <StatCard :label="t('dashboard.pendingEntries')" :value="summary.pendingCount" />
       <StatCard :label="t('dashboard.invitedEntries')" :value="summary.invitedCount" />
@@ -81,9 +83,9 @@ const StatCard = defineComponent({
     warn: { type: Boolean, default: false },
   },
   template: `
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">{{ label }}</p>
-      <p class="text-3xl font-bold" :class="warn && value > 0 ? 'text-amber-400' : 'text-slate-100'">{{ value }}</p>
+    <div class="admin-card p-5">
+      <p class="label-mono mb-1 text-text-secondary">{{ label }}</p>
+      <p class="text-3xl font-semibold" :class="warn && value > 0 ? 'text-warning' : 'text-text-display'">{{ value }}</p>
     </div>
   `,
 })

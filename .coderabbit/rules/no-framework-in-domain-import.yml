@@ -1,0 +1,8 @@
+id: no-framework-in-domain-import
+language: Kotlin
+severity: error
+message: Domain code must not import application frameworks
+files:
+  - server/smp/src/main/kotlin/**/domain/**/*.kt
+rule:
+  matches: kotlin-framework-import

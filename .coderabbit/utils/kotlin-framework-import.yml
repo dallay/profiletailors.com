@@ -1,0 +1,5 @@
+id: kotlin-framework-import
+language: Kotlin
+rule:
+  kind: import_header
+  regex: '^import\s+(com\.fasterxml\.jackson|io\.r2dbc|jakarta\.|javax\.persistence|org\.hibernate|org\.springframework|reactor\.)'

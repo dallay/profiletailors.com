@@ -4,7 +4,7 @@ Internal Vue 3 single-page application for platform operators to manage waitlist
 
 ## Role in the platform
 
-Serves as an internal-only administration surface (`https://pt-admin.localhost`). It consumes administrative REST endpoints from the Spring Boot backend (`server/smp`), depends on `@profiletailors/shared-web` for shared validation utilities, and allows operators (such as system administrators) to review early-access waitlist entries and audit system activity.
+Serves as an internal-only administration surface (`https://admin.profiletailors.com` in production and `https://pt-admin.localhost` locally). It consumes administrative REST endpoints from the Spring Boot backend (`server/smp`), depends on `@profiletailors/shared-web` for shared validation utilities, and allows operators (such as system administrators) to review early-access waitlist entries and audit system activity.
 
 ## Tech stack
 
@@ -51,7 +51,9 @@ Target URL: `https://pt-admin.localhost` (or `http://localhost:5174` fallback).
 
 | Variable | Required | Description | Default |
 | --- | --- | --- | --- |
-| `VITE_API_BASE_URL` | No | Base URL for backend administrative endpoints | `http://localhost:7638` |
+| `VITE_API_BASE_URL` | No | Build-time base URL for backend administrative endpoints | `http://localhost:7638` |
+
+For the production admin build, set `VITE_API_BASE_URL=https://api.profiletailors.com`. The admin browser client sends credentialed requests directly to that origin, so the backend deployment must also include both `https://app.profiletailors.com` and `https://admin.profiletailors.com` in `SMP_CORS_ALLOWED_ORIGINS` before the new admin build is published.
 
 ## Project structure
 

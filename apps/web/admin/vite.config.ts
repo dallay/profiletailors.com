@@ -23,6 +23,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@shared/assets': fileURLToPath(new URL('../../../shared/assets', import.meta.url)),
     },
   },
   test: {

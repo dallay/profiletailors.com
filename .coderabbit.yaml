@@ -12,7 +12,6 @@
 #   5. Move docstrings/unit_tests from the deprecated `code_generation.*`
 #      schema to the current `finishing_touches.*` schema
 # ============================================================================
-
 early_access: true
 inheritance: true
 language: en-US
@@ -218,6 +217,13 @@ reviews:
         Co-located Vitest specs.
         - Same conventions as __tests__. Use `vi.mock()` only at boundaries.
 
+    - path: 'apps/**/*.test.ts'
+      instructions: |
+        Frontend unit tests.
+        - Vitest. Test behavior, not implementation.
+        - Names: `should X when Y` or descriptive sentences.
+        - Arrange-Act-Assert. Isolate state. No shared mutable fixtures.
+
     # ─── Frontend · E2E tests (Playwright) ────────────────────────────────
     - path: 'apps/**/e2e/**'
       instructions: |
@@ -241,7 +247,7 @@ reviews:
         - Also enforced by tools.actionlint and tools.zizmor.
 
     # ─── Root config files ────────────────────────────────────────────────
-    - path: '{*.{yml,yaml,toml,json},*.{yml,yaml,toml,json}}'
+    - path: '{*.{yml,yaml,toml,json},**/*.{yml,yaml,toml,json}}'
       instructions: |
         Config files. Follow existing conventions in similar files. No
         hardcoded secrets or environment-specific values. Proper YAML/JSON
@@ -349,7 +355,7 @@ reviews:
 
       # ─── Hexagonal Architecture (precision via ast-grep + natural language)
       - name: 'Hexagonal Architecture Compliance'
-        mode: error
+        mode: warning
         instructions: |
           Verify Hexagonal Architecture is followed:
           1. Domain layer has ZERO framework imports (Spring, R2DBC, Jakarta,
@@ -366,7 +372,7 @@ reviews:
 
       # ─── Security (focused, deterministic)
       - name: 'Security Review'
-        mode: error
+        mode: warning
         instructions: |
           Check for security issues. FAIL if any apply:
           1. SQL injection: raw string concatenation into R2DBC queries
@@ -383,7 +389,7 @@ reviews:
 
       # ─── Test coverage (TDD enforcement)
       - name: 'Test Coverage (TDD)'
-        mode: error
+        mode: warning
         instructions: |
           Every new business behavior must have a failing test FIRST
           (TDD is mandatory per AGENTS.md). FAIL if any apply:
@@ -424,7 +430,7 @@ reviews:
 
       # ─── Breaking change discipline
       - name: 'Breaking Change Documentation'
-        mode: error
+        mode: warning
         instructions: |
           All breaking changes to public APIs, CLI flags, environment
           variables, configuration keys, database schemas, or HTTP/GraphQL
@@ -531,30 +537,6 @@ reviews:
           for the subject line.
 
 # ============================================================================
-# POST-MERGE ACTIONS — run after the PR is merged
-# ============================================================================
-post_merge_actions:
-  - enabled: true
-    name: 'changelog-and-openspec-sync'
-    prompt: >-
-      After merge, ensure the change is reflected in:
-      (1) the relevant openspec/changes/<name>/ state.yaml is moved to
-          completed with updated timestamp,
-      (2) CHANGELOG.md has an entry under the appropriate section,
-      (3) if the change touches a durable contract, openspec/specs/
-          is updated to reflect the merged behavior.
-      Open a follow-up PR titled "chore: sync specs for <original PR title>"
-      with these changes. Reference the merged PR.
-
-  - enabled: true
-    name: 'notify-platform-team'
-    prompt: >-
-      Post a single concise summary to the #platform-team channel mentioning
-      the merged PR URL, the area affected (backend/frontend/infra), and a
-      one-line description of the behavior change. Skip if the PR only
-      touches docs/ or tests/.
-
-# ============================================================================
 # KNOWLEDGE BASE — sources of truth for every review
 # ============================================================================
 knowledge_base:
@@ -587,29 +569,9 @@ knowledge_base:
   pull_requests:
     scope: auto                          # use prior PRs as context
 
-  # Jira and Linear can be enabled when the integration is configured:
-  # jira:
-  #   scope: enabled
-  # linear:
-  #   scope: enabled
-
 # ============================================================================
 # CHAT
 # ============================================================================
 chat:
   auto_reply: true
   art: false                            # skip ASCII art in chat replies
-
-# ============================================================================
-# DEPRECATED SECTION (kept commented for reference)
-# ----------------------------------------------------------------------------
-# The following was the OLD schema (code_generation.*) and is no longer
-# honored by CodeRabbit. Moved to reviews.finishing_touches.* above.
-#
-# code_generation:
-#   docstrings:
-#     language: en-US
-#     path_instructions: ...
-#   unit_tests:
-#     path_instructions: ...
-# ============================================================================

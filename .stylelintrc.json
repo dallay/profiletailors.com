@@ -1,0 +1,9 @@
+{
+  "extends": ["stylelint-config-standard-scss"],
+  "rules": {
+    "color-hex-length": null,
+    "rule-empty-line-before": null,
+    "selector-class-pattern": null,
+    "scss/at-rule-no-unknown": [true, { "ignoreAtRules": ["theme"] }]
+  }
+}
