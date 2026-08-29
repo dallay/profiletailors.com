@@ -38,7 +38,7 @@ class ProviderToolsTest {
         coEvery { mediator.send(ListProviderCatalogQuery) } returns
             ProviderCatalogResponse(providers = providers)
 
-        val result = adapter.listProviders()
+        val result = adapter.listProviders().block()!!
 
         assertThat(result.isSuccess).isTrue()
         assertThat(result.data).isNotNull
@@ -50,7 +50,7 @@ class ProviderToolsTest {
         coEvery { mediator.send(ListProviderCatalogQuery) } throws
             RuntimeException("provider error")
 
-        val result = adapter.listProviders()
+        val result = adapter.listProviders().block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("internal")

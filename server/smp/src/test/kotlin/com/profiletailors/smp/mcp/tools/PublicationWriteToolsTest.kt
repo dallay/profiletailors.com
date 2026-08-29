@@ -94,7 +94,7 @@ class PublicationWriteToolsTest {
             nextSlotAfter = null,
             priority = false,
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isTrue()
         coVerify {
@@ -129,7 +129,7 @@ class PublicationWriteToolsTest {
             nextSlotAfter = null,
             priority = false,
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("publication_validation_failed")
@@ -156,7 +156,7 @@ class PublicationWriteToolsTest {
             nextSlotAfter = null,
             priority = false,
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("publication_not_found")
@@ -186,7 +186,7 @@ class PublicationWriteToolsTest {
             nextSlotAfter = null,
             priority = false,
             idempotencyKey = "agent-retry-1",
-        )
+        ).block()!!
 
         assertThat(first.isSuccess).withFailMessage {
             "first call failed: code=${first.error?.code} message=${first.error?.message}"
@@ -213,7 +213,7 @@ class PublicationWriteToolsTest {
             nextSlotAfter = null,
             priority = false,
             idempotencyKey = "agent-retry-1",
-        )
+        ).block()!!
 
         assertThat(second.isSuccess).isTrue()
         coVerify(exactly = 0) { secondMediator.send(any<CreatePublicationCommand>()) }
@@ -240,7 +240,7 @@ class PublicationWriteToolsTest {
             nextSlotAfter = null,
             priority = false,
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isTrue()
         coVerify {
@@ -269,7 +269,7 @@ class PublicationWriteToolsTest {
             grantedScopes = grantedScopes,
             publicationId = "pub-del",
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isTrue()
         coVerify { mediator.send(match<DeletePublicationCommand> { it.publicationId == "pub-del" }) }
@@ -295,7 +295,7 @@ class PublicationWriteToolsTest {
             nextSlotAfter = null,
             priority = false,
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("insufficient_scope")
@@ -323,7 +323,7 @@ class PublicationWriteToolsTest {
             nextSlotAfter = null,
             priority = false,
             idempotencyKey = "k1",
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("idempotency_conflict")
@@ -350,7 +350,7 @@ class PublicationWriteToolsTest {
             nextSlotAfter = null,
             priority = false,
             idempotencyKey = null,
-        )
+        ).block()
 
         val facts = auditEmitter.captured
         assertThat(facts).hasSize(1)
@@ -382,7 +382,7 @@ class PublicationWriteToolsTest {
             nextSlotAfter = null,
             priority = false,
             idempotencyKey = null,
-        )
+        ).block()
 
         val fact = auditEmitter.captured.single()
         assertThat(fact.outcome).isEqualTo(McpToolInvocationOutcome.ERROR)
