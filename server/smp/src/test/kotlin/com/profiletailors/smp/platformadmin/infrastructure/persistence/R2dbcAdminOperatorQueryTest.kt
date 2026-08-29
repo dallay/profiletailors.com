@@ -110,12 +110,44 @@ class R2dbcAdminOperatorQueryTest {
             ),
         )
         coEvery { principalIdentityLookup.findByPrincipalId(principalId.toString()) } returns null
+        coEvery { principalIdentityLookup.findByPrincipalId("user-$principalId") } returns null
 
         val result = query.listAllActive()
 
         assertEquals(1, result.size)
         assertEquals("", result[0].email)
         assertEquals(null, result[0].displayName)
+    }
+
+    @Test
+    fun `listAllActive resolves a prefixed user identity when the stored uuid has no direct match`() = runTest {
+        val principalId = UUID.randomUUID()
+        val identity = PrincipalIdentityFacts(
+            principalId = "user-$principalId",
+            principalType = PrincipalType.USER,
+            subject = "subject-1",
+            provider = null,
+            displayIdentity = "Alice",
+            email = "alice@example.com",
+            username = "alice",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+        coEvery { roleAssignmentRepository.findAllActive() } returns listOf(
+            PlatformRoleAssignment(
+                id = PlatformRoleAssignmentId.generate(),
+                principalId = principalId,
+                role = PlatformRole.PLATFORM_OWNER,
+                assignedAt = Instant.parse("2026-01-01T00:00:00Z"),
+                assignedBy = UUID.randomUUID(),
+            ),
+        )
+        coEvery { principalIdentityLookup.findByPrincipalId(principalId.toString()) } returns null
+        coEvery { principalIdentityLookup.findByPrincipalId("user-$principalId") } returns identity
+
+        val result = query.listAllActive()
+
+        assertEquals("alice@example.com", result.single().email)
+        assertEquals("Alice", result.single().displayName)
     }
 
     @Test
@@ -140,6 +172,7 @@ class R2dbcAdminOperatorQueryTest {
             ),
         )
         coEvery { principalIdentityLookup.findByPrincipalId(principalId.toString()) } returns null
+        coEvery { principalIdentityLookup.findByPrincipalId("user-$principalId") } returns null
 
         val result = query.listAllActive()
 

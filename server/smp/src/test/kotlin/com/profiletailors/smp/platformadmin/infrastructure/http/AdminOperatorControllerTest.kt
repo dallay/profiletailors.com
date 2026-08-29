@@ -108,6 +108,25 @@ class AdminOperatorControllerTest {
     }
 
     @Test
+    fun `assignRole accepts a prefixed user principal id`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        webClient()
+            .post()
+            .uri("/api/admin/operators/user-$targetId/roles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"role":"SUPPORT_AGENT"}""")
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            assignRoleHandler.handle(
+                match { it.targetPrincipalId == targetId && it.role == PlatformRole.SUPPORT_AGENT },
+            )
+        }
+    }
+
+    @Test
     fun `assignRole returns 400 for invalid role`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
 
