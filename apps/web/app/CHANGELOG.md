@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.5](https://github.com/dallay/profiletailors.com/compare/app@v0.3.4...app@v0.3.5) (2026-08-29)
+
+
+### Bug Fixes
+
+* **beta:** wire private beta activation flow ([#883](https://github.com/dallay/profiletailors.com/issues/883)) ([e1e7fcf](https://github.com/dallay/profiletailors.com/commit/e1e7fcfeb331416b1445a7868771fcf4d5419d38))
+
+
+### Documentation
+
+* 📝 Add docstrings to `feat/private-beta-launch-config` ([#888](https://github.com/dallay/profiletailors.com/issues/888)) ([ca3e19b](https://github.com/dallay/profiletailors.com/commit/ca3e19bbcf21be13425bf8bee9209d61f250530d))
+* **maintenance:** reconcile Node.js and pnpm version requirements across documentation ([#892](https://github.com/dallay/profiletailors.com/issues/892)) ([b62048b](https://github.com/dallay/profiletailors.com/commit/b62048b6ede9f2a1a99763c1864abe653bbd2e3f))
+
 ## [0.3.4](https://github.com/dallay/profiletailors.com/compare/app@v0.3.3...app@v0.3.4) (2026-08-26)
 
 
