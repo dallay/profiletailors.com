@@ -4,9 +4,11 @@ import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.mcp.infrastructure.McpErrorMapper
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
+import kotlinx.coroutines.reactor.mono
 import org.springframework.ai.mcp.annotation.McpTool
 import org.springframework.ai.mcp.annotation.McpToolParam
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Mono
 
 /**
  * MCP tool adapter for channel-related read operations.
@@ -30,11 +32,17 @@ class ChannelTools(private val mediator: Mediator, private val errorMapper: McpE
             required = false,
         )
         status: String? = null,
-    ): ToolResponse<Any> = runCatching {
-        val connectionStatus = status?.let { SocialConnectionStatus.valueOf(it) }
-        val query = ListConnectedChannelsQuery(status = connectionStatus)
-        ToolResponse.success(mediator.send(query) as Any)
-    }.getOrElse { ex ->
-        ToolResponse.failure(errorMapper.mapToError(ex))
+    ): Mono<ToolResponse<Any>> {
+        val mediatorRef = mediator
+        val errorMapperRef = errorMapper
+        return mono {
+            runCatching {
+                val connectionStatus = status?.let { SocialConnectionStatus.valueOf(it) }
+                val query = ListConnectedChannelsQuery(status = connectionStatus)
+                ToolResponse.success(mediatorRef.send(query) as Any)
+            }.getOrElse { ex ->
+                ToolResponse.failure(errorMapperRef.mapToError(ex))
+            }
+        }
     }
 }

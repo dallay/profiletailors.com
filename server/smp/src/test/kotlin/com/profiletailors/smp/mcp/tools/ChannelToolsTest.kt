@@ -42,7 +42,7 @@ class ChannelToolsTest {
         coEvery { mediator.send(any<ListConnectedChannelsQuery>()) } returns
             ConnectedChannelsResponse(channels = channels)
 
-        val result = adapter.listChannels(status = null)
+        val result = adapter.listChannels(status = null).block()!!
 
         assertThat(result.isSuccess).isTrue()
         assertThat(result.data).isNotNull
@@ -54,7 +54,7 @@ class ChannelToolsTest {
         coEvery { mediator.send(any<ListConnectedChannelsQuery>()) } returns
             ConnectedChannelsResponse(channels = emptyList())
 
-        adapter.listChannels(status = "ACTIVE")
+        adapter.listChannels(status = "ACTIVE").block()
 
         coVerify {
             mediator.send(
@@ -70,7 +70,7 @@ class ChannelToolsTest {
         coEvery { mediator.send(any<ListConnectedChannelsQuery>()) } throws
             RuntimeException("db error")
 
-        val result = adapter.listChannels(status = null)
+        val result = adapter.listChannels(status = null).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("internal")
