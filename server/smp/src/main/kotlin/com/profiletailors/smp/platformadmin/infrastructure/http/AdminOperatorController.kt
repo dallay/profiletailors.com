@@ -43,13 +43,6 @@ class AdminOperatorController(
         return ResponseEntity.ok(operatorQuery.listAllActive())
     }
 
-    /**
-     * Assigns a platform role to the specified principal.
-     *
-     * @param principalId The identifier of the principal receiving the role.
-     * @param request The requested platform role.
-     * @return A response indicating whether the role was assigned, or an appropriate HTTP error response.
-     */
     @PostMapping("/{principalId}/roles")
     @Transactional
     suspend fun assignRole(
@@ -74,13 +67,6 @@ class AdminOperatorController(
         return ResponseEntity.ok(mapOf("status" to "assigned"))
     }
 
-    /**
-     * Revokes a platform role from the specified principal.
-     *
-     * @param principalId The target principal's identifier.
-     * @param role The platform role to revoke.
-     * @return An unauthorized response when no operator is authenticated, a bad request for invalid identifiers or roles, or a confirmation of revocation.
-     */
     @DeleteMapping("/{principalId}/roles/{role}")
     @Transactional
     suspend fun revokeRole(

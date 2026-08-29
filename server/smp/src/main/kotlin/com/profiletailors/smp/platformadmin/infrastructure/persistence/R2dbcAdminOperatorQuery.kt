@@ -13,12 +13,6 @@ class R2dbcAdminOperatorQuery(
     private val principalIdentityLookup: PrincipalIdentityLookup,
 ) : AdminOperatorQuery {
 
-    /**
-     * Retrieves summaries of all active platform role assignments grouped by principal.
-     *
-     * @return A list containing each principal's identity details, assigned platform roles,
-     * and earliest assignment timestamp.
-     */
     override suspend fun listAllActive(): List<AdminOperatorSummary> {
         val allAssignments = roleAssignmentRepository.findAllActive()
         return allAssignments
