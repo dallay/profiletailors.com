@@ -13,15 +13,14 @@ import com.profiletailors.smp.publishing.application.DeletePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsQuery
-import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
-import java.time.Instant
 import org.springframework.ai.mcp.annotation.McpTool
 import org.springframework.ai.mcp.annotation.McpToolParam
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 data class ToolResponse<T>(val isSuccess: Boolean, val data: T? = null, val error: ApplicationError? = null) {
     companion object {
@@ -87,14 +86,20 @@ class PublicationTools(
         from: String,
         @McpToolParam(description = "End of the inclusive range (ISO-8601 instant).")
         to: String,
-        @McpToolParam(description = "Optional publication status filter.",
-            required = false)
+        @McpToolParam(
+            description = "Optional publication status filter.",
+            required = false,
+        )
         status: String? = null,
-        @McpToolParam(description = "Optional social account id (channel) to narrow the query.",
-            required = false)
+        @McpToolParam(
+            description = "Optional social account id (channel) to narrow the query.",
+            required = false,
+        )
         channelId: String? = null,
-        @McpToolParam(description = "Timezone used to render slots, defaults to UTC.",
-            required = false)
+        @McpToolParam(
+            description = "Timezone used to render slots, defaults to UTC.",
+            required = false,
+        )
         timezone: String? = null,
     ): ToolResponse<Any> = runCatching {
         val fromInstant = Instant.parse(from)
@@ -143,8 +148,10 @@ class PublicationTools(
         nextSlotAfter: String? = null,
         @McpToolParam(description = "Mark the publication as priority.", required = false)
         priority: Boolean = false,
-        @McpToolParam(description = "Optional idempotency key (1-128 chars, opaque). Replay returns cached result.",
-            required = false)
+        @McpToolParam(
+            description = "Optional idempotency key (1-128 chars, opaque). Replay returns cached result.",
+            required = false,
+        )
         idempotencyKey: String? = null,
     ): ToolResponse<PublicationResult> = runWriteTool(
         toolName = "create_publication",
@@ -303,13 +310,17 @@ class PublicationTools(
         grantedScopes: Set<String>,
         @McpToolParam(description = "Publication id to retry.")
         publicationId: String,
-        @McpToolParam(description = "Optional override schedule mode (NOW, SCHEDULED_AT, NEXT_SLOT).",
-            required = false)
+        @McpToolParam(
+            description = "Optional override schedule mode (NOW, SCHEDULED_AT, NEXT_SLOT).",
+            required = false,
+        )
         scheduleMode: String? = null,
         @McpToolParam(description = "Optional override scheduledFor (ISO-8601 instant).", required = false)
         scheduledFor: String? = null,
-        @McpToolParam(description = "Optional override for NEXT_SLOT resolution (ISO-8601 instant).",
-            required = false)
+        @McpToolParam(
+            description = "Optional override for NEXT_SLOT resolution (ISO-8601 instant).",
+            required = false,
+        )
         nextSlotAfter: String? = null,
         @McpToolParam(description = "Optional override priority flag.", required = false)
         priority: Boolean? = null,

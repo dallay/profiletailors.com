@@ -32,11 +32,7 @@ class McpPingTool {
         protocolVersion = PROTOCOL_VERSION,
     )
 
-    data class McpPingResponse(
-        val now: String,
-        val featureFlag: String,
-        val protocolVersion: String,
-    )
+    data class McpPingResponse(val now: String, val featureFlag: String, val protocolVersion: String)
 
     companion object {
         private const val PROTOCOL_VERSION = "2025-03-26"

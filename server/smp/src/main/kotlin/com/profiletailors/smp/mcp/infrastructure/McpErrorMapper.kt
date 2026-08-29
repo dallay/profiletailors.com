@@ -13,8 +13,7 @@ class McpPublicationNotFoundException(val publicationId: String) :
 class McpPublicationStateConflictException(val publicationId: String, val currentStatus: String) :
     RuntimeException("Publication '$publicationId' is in status $currentStatus which does not allow this operation.")
 
-class McpPublicationValidationFailedException(message: String) :
-    IllegalArgumentException(message)
+class McpPublicationValidationFailedException(message: String) : IllegalArgumentException(message)
 
 class McpMediaUnavailableException(val assetId: String) :
     RuntimeException("Media asset '$assetId' is not reachable.")
@@ -55,7 +54,8 @@ class McpErrorMapper {
             is McpInsufficientScopeException -> auth(builder, "Token does not carry the required scope.")
             is org.springframework.security.access.AccessDeniedException -> forbidden(builder)
             is com.profiletailors.smp.publishing.application.PublicationNotFoundException,
-            is McpPublicationNotFoundException -> publicationNotFound(builder)
+            is McpPublicationNotFoundException,
+            -> publicationNotFound(builder)
             is McpPublicationStateConflictException -> publicationStateConflict(builder)
             is McpPublicationValidationFailedException -> publicationValidationFailed(builder, exception)
             is McpMediaUnavailableException -> mediaUnavailable(builder)
@@ -132,8 +132,7 @@ class McpErrorMapper {
         builder: ErrorBuilder,
         message: String,
         code: String = PUBLICATION_VALIDATION_FAILED,
-    ): ApplicationError =
-        builder.code(code).category(CATEGORY_VALIDATION).retryable(false).message(message).build()
+    ): ApplicationError = builder.code(code).category(CATEGORY_VALIDATION).retryable(false).message(message).build()
 
     private fun platform(builder: ErrorBuilder, message: String): ApplicationError =
         builder.code(MEDIA_UNAVAILABLE).category(CATEGORY_PLATFORM).retryable(true).message(message).build()

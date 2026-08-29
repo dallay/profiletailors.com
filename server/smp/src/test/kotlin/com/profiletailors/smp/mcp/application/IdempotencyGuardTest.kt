@@ -1,8 +1,8 @@
 package com.profiletailors.smp.mcp.application
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.profiletailors.smp.mcp.domain.IdempotencyRecord
 import com.profiletailors.smp.mcp.application.IdempotencyGuard
+import com.profiletailors.smp.mcp.domain.IdempotencyRecord
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -166,7 +166,10 @@ class IdempotencyGuardTest {
                 toolName = "create_publication",
                 idempotencyKey = "k1",
                 type = Result::class.java,
-                execute = { called += 1; Result(publicationId = "pub-A", value = 1) },
+                execute = {
+                    called += 1
+                    Result(publicationId = "pub-A", value = 1)
+                },
             )
             guard.guard(
                 workspaceId = "ws-1",
@@ -174,7 +177,10 @@ class IdempotencyGuardTest {
                 toolName = "create_publication",
                 idempotencyKey = "k1",
                 type = Result::class.java,
-                execute = { called += 1; Result(publicationId = "pub-B", value = 2) },
+                execute = {
+                    called += 1
+                    Result(publicationId = "pub-B", value = 2)
+                },
             )
 
             assertThat(called).isEqualTo(2)
@@ -194,7 +200,10 @@ class IdempotencyGuardTest {
                 toolName = "create_publication",
                 idempotencyKey = "k1",
                 type = Result::class.java,
-                execute = { called += 1; Result(publicationId = "pub-X", value = 1) },
+                execute = {
+                    called += 1
+                    Result(publicationId = "pub-X", value = 1)
+                },
             )
             guard.guard(
                 workspaceId = "ws-1",
@@ -202,7 +211,10 @@ class IdempotencyGuardTest {
                 toolName = "edit_publication",
                 idempotencyKey = "k1",
                 type = Result::class.java,
-                execute = { called += 1; Result(publicationId = "pub-Y", value = 2) },
+                execute = {
+                    called += 1
+                    Result(publicationId = "pub-Y", value = 2)
+                },
             )
 
             assertThat(called).isEqualTo(2)

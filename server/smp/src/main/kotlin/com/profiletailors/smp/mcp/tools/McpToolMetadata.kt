@@ -10,25 +10,25 @@ object McpToolMetadata {
 
     private data class ToolEntry(val scope: String?, val rateLimitBucket: String?)
 
-    private const val writeScope = "mcp:publications:write"
-    private const val writeBucket = "mcp-publications-write"
-    private const val readPublicationsScope = "mcp:publications:read"
-    private const val readPublicationsBucket = "mcp-publications-read"
-    private const val channelsScope = "mcp:channels:read"
-    private const val channelsBucket = "mcp-channels-read"
-    private const val providersScope = "mcp:providers:read"
+    private const val WRITE_SCOPE = "mcp:publications:write"
+    private const val WRITE_BUCKET = "mcp-publications-write"
+    private const val READ_PUBLICATIONS_SCOPE = "mcp:publications:read"
+    private const val READ_PUBLICATIONS_BUCKET = "mcp-publications-read"
+    private const val CHANNELS_SCOPE = "mcp:channels:read"
+    private const val CHANNELS_BUCKET = "mcp-channels-read"
+    private const val PROVIDERS_SCOPE = "mcp:providers:read"
 
     private val registry: Map<String, ToolEntry> = mapOf(
         "mcp_ping" to ToolEntry(scope = null, rateLimitBucket = null),
-        "list_channels" to ToolEntry(scope = channelsScope, rateLimitBucket = channelsBucket),
-        "list_publications" to ToolEntry(scope = readPublicationsScope, rateLimitBucket = readPublicationsBucket),
-        "get_calendar" to ToolEntry(scope = readPublicationsScope, rateLimitBucket = readPublicationsBucket),
-        "list_providers" to ToolEntry(scope = providersScope, rateLimitBucket = readPublicationsBucket),
-        "create_publication" to ToolEntry(scope = writeScope, rateLimitBucket = writeBucket),
-        "edit_publication" to ToolEntry(scope = writeScope, rateLimitBucket = writeBucket),
-        "delete_publication" to ToolEntry(scope = writeScope, rateLimitBucket = writeBucket),
-        "cancel_publication" to ToolEntry(scope = writeScope, rateLimitBucket = writeBucket),
-        "retry_publication" to ToolEntry(scope = writeScope, rateLimitBucket = writeBucket),
+        "list_channels" to ToolEntry(scope = CHANNELS_SCOPE, rateLimitBucket = CHANNELS_BUCKET),
+        "list_publications" to ToolEntry(scope = READ_PUBLICATIONS_SCOPE, rateLimitBucket = READ_PUBLICATIONS_BUCKET),
+        "get_calendar" to ToolEntry(scope = READ_PUBLICATIONS_SCOPE, rateLimitBucket = READ_PUBLICATIONS_BUCKET),
+        "list_providers" to ToolEntry(scope = PROVIDERS_SCOPE, rateLimitBucket = READ_PUBLICATIONS_BUCKET),
+        "create_publication" to ToolEntry(scope = WRITE_SCOPE, rateLimitBucket = WRITE_BUCKET),
+        "edit_publication" to ToolEntry(scope = WRITE_SCOPE, rateLimitBucket = WRITE_BUCKET),
+        "delete_publication" to ToolEntry(scope = WRITE_SCOPE, rateLimitBucket = WRITE_BUCKET),
+        "cancel_publication" to ToolEntry(scope = WRITE_SCOPE, rateLimitBucket = WRITE_BUCKET),
+        "retry_publication" to ToolEntry(scope = WRITE_SCOPE, rateLimitBucket = WRITE_BUCKET),
     )
 
     fun requiredScope(toolName: String): String? = registry[toolName]?.scope

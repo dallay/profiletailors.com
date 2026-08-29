@@ -18,11 +18,11 @@ import com.profiletailors.smp.publishing.domain.ScheduleMode
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import java.time.Instant
 
 @Tag("fast")
 class PublicationCancelRetryToolsTest {

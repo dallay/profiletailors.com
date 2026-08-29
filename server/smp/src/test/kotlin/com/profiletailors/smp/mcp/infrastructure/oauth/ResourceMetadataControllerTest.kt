@@ -50,6 +50,7 @@ class ResourceMetadataControllerTest {
         @Suppress("UNCHECKED_CAST")
         val body = com.fasterxml.jackson.module.kotlin.jacksonObjectMapper()
             .readValue(raw, Map::class.java) as Map<String, Any?>
+
         @Suppress("UNCHECKED_CAST")
         val scopes = body["scopes_supported"] as List<String>
         org.assertj.core.api.Assertions.assertThat(scopes).contains("mcp:publications:write")

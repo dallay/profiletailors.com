@@ -167,6 +167,7 @@ class McpToolsBddSteps {
         val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
         val expected = dataTable.asList(String::class.java).toSet()
         val body: Map<String, Any?> = objectMapper.readValue(raw)
+
         @Suppress("UNCHECKED_CAST")
         val tools = (body["tools"] as? List<Map<String, Any?>>).orEmpty().map { it["name"] as String }.toSet()
         tools shouldBe expected
