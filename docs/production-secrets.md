@@ -227,7 +227,7 @@ container storage.
 - **Type:** Comma-separated URLs
 - **Description:** Allowed origins for CORS preflight requests.
 - **Risk:** LOW (misconfiguration risk, not a secret)
-- **Example:** `https://app.profiletailors.com,https://staging.profiletailors.com`
+- **Example:** `https://app.profiletailors.com,https://admin.profiletailors.com`
 - **Generation:** Define based on deployed frontend URLs.
 - **Rotation:** Update when frontend domains change, restart app.
 - **Access:** Infrastructure admins, deployment automation.
@@ -270,7 +270,7 @@ Before deploying to production, verify:
 - [ ] `SMP_LINKEDIN_STATE_SIGNING_SECRET` is unique and not a development fallback.
 - [ ] `SMP_DB_PASSWORD` is strong (≥32 chars, randomly generated).
 - [ ] `SMP_LINKEDIN_CLIENT_SECRET` matches active LinkedIn app configuration.
-- [ ] `SMP_CORS_ALLOWED_ORIGINS` includes only production frontend URLs.
+- [ ] `SMP_CORS_ALLOWED_ORIGINS` includes only production frontend and admin URLs.
 - [ ] Persistent object storage is configured; local container storage is disabled.
 - [ ] `SMP_LIQUIBASE_CONTEXTS=prod` is set for deployment.
 
