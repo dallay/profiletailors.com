@@ -3,6 +3,7 @@ package com.profiletailors.buildlogic.legal
 import com.github.jk1.license.LicenseReportExtension
 import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.JsonReportRenderer
+import com.github.jk1.license.render.ReportRenderer
 import com.github.jk1.license.render.TextReportRenderer
 import com.profiletailors.buildlogic.ConventionPlugin
 import org.gradle.api.Project
@@ -23,9 +24,13 @@ internal class LicenceReportPlugin : ConventionPlugin {
     override fun Project.configure() {
         apply(plugin = "com.github.jk1.dependency-license-report")
 
+        val reportDirectory = layout.buildDirectory.dir("reports/dependency-licence")
+        val jsonReport = reportDirectory.map { it.file("dependency-licence.json") }
+        val textReport = reportDirectory.map { it.file("dependency-licence.txt") }
+
         configure<LicenseReportExtension> {
-            outputDir = "$buildDir/reports/dependency-licence"
-            renderers = arrayOf(
+            outputDir = reportDirectory.get().asFile.absolutePath
+            renderers = arrayOf<ReportRenderer>(
                 JsonReportRenderer("dependency-licence.json"),
                 TextReportRenderer("dependency-licence.txt"),
             )
@@ -39,7 +44,7 @@ internal class LicenceReportPlugin : ConventionPlugin {
         // Fail the build if a blocked licence is found in the generated JSON report.
         tasks.named("generateLicenseReport").configure {
             doLast {
-                val report = file("$buildDir/reports/dependency-licence/dependency-licence.json")
+                val report = jsonReport.get().asFile
                 if (!report.exists()) return@doLast
                 val content = report.readText()
                 val violations = BLOCKED_LICENCES.filter { blocked -> content.contains(blocked) }
@@ -47,7 +52,7 @@ internal class LicenceReportPlugin : ConventionPlugin {
                     error(
                         "Dependency licence check FAILED. The following blocked licences were " +
                             "found in the dependency graph: $violations\n" +
-                            "Review $buildDir/reports/dependency-licence/dependency-licence.txt " +
+                            "Review ${textReport.get().asFile} " +
                             "and replace the offending dependency or obtain a legal exception.",
                     )
                 }

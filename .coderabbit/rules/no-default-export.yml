@@ -1,0 +1,10 @@
+id: no-default-export
+language: TypeScript
+severity: warning
+message: |
+  Prefer named exports. Default exports hurt refactoring, auto-imports,
+  and consistency.
+rule:
+  pattern: 'export default $X'
+note: |
+  See AGENTS.md TypeScript conventions.

@@ -58,7 +58,7 @@ async function fetchEntries() {
     if (statusFilter.value) params.set('status', statusFilter.value)
     if (search.value.trim()) params.set('email', search.value.trim())
 
-    const res = await fetch(`/api/admin/waitlist-entries?${params}`)
+    const res = await authStore.request(`/api/admin/waitlist-entries?${params}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     result.value = await res.json()
   } catch {
@@ -72,7 +72,7 @@ async function inviteEntry(entry: WaitlistEntry) {
   if (!confirm(`${t('waitlist.inviteConfirmTitle')}\n${entry.email}`)) return
   invitingId.value = entry.id
   try {
-    const res = await fetch(`/api/admin/waitlist-entries/${entry.id}/invitations`, { method: 'POST' })
+    const res = await authStore.request(`/api/admin/waitlist-entries/${entry.id}/invitations`, { method: 'POST' })
     if (!res.ok) {
       const body = (await res.json()) as { properties?: { code?: string } }
       const code = body.properties?.code
@@ -96,7 +96,7 @@ async function confirmCancel() {
   cancellingId.value = cancelTarget.value.id
   showCancelDialog.value = false
   try {
-    const res = await fetch(`/api/admin/waitlist-entries/${cancelTarget.value.id}/cancel`, {
+    const res = await authStore.request(`/api/admin/waitlist-entries/${cancelTarget.value.id}/cancel`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reason: cancelReason.value }),
@@ -119,21 +119,20 @@ onMounted(fetchEntries)
 </script>
 
 <template>
-  <div class="p-8">
-    <h1 class="text-2xl font-bold text-slate-100 mb-6">{{ t('waitlist.title') }}</h1>
+  <div class="admin-page p-5 sm:p-8">
+    <h1 class="mb-6 text-2xl font-semibold text-text-display">{{ t('waitlist.title') }}</h1>
 
-    <!-- Filters -->
     <div class="flex gap-3 mb-4">
       <input
         v-model="search"
         type="search"
         :placeholder="t('waitlist.filters.search')"
-        class="bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-1.5 text-sm w-64"
+        class="admin-input w-64 text-sm"
         :aria-label="t('waitlist.filters.search')"
       />
       <select
         v-model="statusFilter"
-        class="bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-1.5 text-sm"
+        class="admin-input text-sm"
         :aria-label="t('waitlist.filters.status')"
       >
         <option value="">{{ t('waitlist.filters.all') }}</option>
@@ -144,12 +143,12 @@ onMounted(fetchEntries)
       </select>
     </div>
 
-    <div v-if="loading" class="text-slate-400">{{ t('common.loading') }}</div>
-    <div v-else-if="error" role="alert" class="text-red-400">{{ error }}</div>
+    <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
+    <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
     <template v-else-if="result">
-      <table class="w-full text-sm text-left border-collapse" aria-label="Waitlist entries">
+      <table class="admin-table w-full text-left text-sm" :aria-label="t('waitlist.entries')">
         <thead>
-          <tr class="border-b border-slate-800 text-slate-400 uppercase text-xs">
+          <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">{{ t('common.email') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('common.status') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('waitlist.joinedAt') }}</th>
@@ -161,11 +160,11 @@ onMounted(fetchEntries)
           <tr
             v-for="entry in result.items"
             :key="entry.id"
-            class="border-b border-slate-800/50 hover:bg-slate-900/50"
+            class="border-b border-border-subtle hover:bg-bg-surface"
           >
             <td class="py-2 pr-4">
               <button
-                class="text-amber-400 hover:underline text-left"
+                class="text-text-display hover:underline text-left"
                 @click="router.push({ name: 'waitlist-entry', params: { entryId: entry.id } })"
               >
                 {{ entry.email }}
@@ -174,15 +173,15 @@ onMounted(fetchEntries)
             <td class="py-2 pr-4">
               <StatusBadge :status="entry.status" />
             </td>
-            <td class="py-2 pr-4 text-slate-400">{{ new Date(entry.joinedAt).toLocaleDateString(locale) }}</td>
-            <td class="py-2 pr-4 text-slate-400">
+            <td class="py-2 pr-4 text-text-secondary">{{ new Date(entry.joinedAt).toLocaleDateString(locale) }}</td>
+            <td class="py-2 pr-4 text-text-secondary">
               {{ entry.invitedAt ? new Date(entry.invitedAt).toLocaleDateString(locale) : '—' }}
             </td>
             <td class="py-2 flex gap-2">
               <button
                 v-if="canInvite && (entry.status === 'PENDING' || entry.status === 'INVITED')"
                 :disabled="invitingId === entry.id"
-                class="px-2 py-1 rounded text-xs bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 disabled:opacity-50 transition-colors"
+                class="admin-button-secondary min-h-0 px-2 py-1 text-xs disabled:opacity-50"
                 @click="inviteEntry(entry)"
               >
                 {{ invitingId === entry.id ? t('common.loading') : t('waitlist.invite') }}
@@ -190,7 +189,7 @@ onMounted(fetchEntries)
               <button
                 v-if="canCancel && entry.status !== 'CONVERTED' && entry.status !== 'CANCELLED'"
                 :disabled="cancellingId === entry.id"
-                class="px-2 py-1 rounded text-xs bg-red-500/20 text-red-300 hover:bg-red-500/30 disabled:opacity-50 transition-colors"
+                class="admin-button-danger min-h-0 px-2 py-1 text-xs disabled:opacity-50"
                 @click="openCancelDialog(entry)"
               >
                 {{ t('waitlist.cancel') }}
@@ -200,13 +199,12 @@ onMounted(fetchEntries)
         </tbody>
       </table>
 
-      <!-- Pagination -->
-      <div class="flex items-center justify-between mt-4 text-sm text-slate-400">
+      <div class="mt-4 flex items-center justify-between text-sm text-text-secondary">
         <span>{{ t('common.page') }} {{ result.page + 1 }} {{ t('common.of') }} {{ result.totalPages }}</span>
         <div class="flex gap-2">
           <button
             :disabled="!result.hasPrevious"
-            class="px-3 py-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 transition-colors"
+            class="admin-button-secondary disabled:opacity-40"
             :aria-label="t('common.previous')"
             @click="page--; fetchEntries()"
           >
@@ -214,7 +212,7 @@ onMounted(fetchEntries)
           </button>
           <button
             :disabled="!result.hasNext"
-            class="px-3 py-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 transition-colors"
+            class="admin-button-secondary disabled:opacity-40"
             :aria-label="t('common.next')"
             @click="page++; fetchEntries()"
           >
@@ -224,7 +222,6 @@ onMounted(fetchEntries)
       </div>
     </template>
 
-    <!-- Cancel dialog -->
     <div
       v-if="showCancelDialog"
       role="dialog"
@@ -233,34 +230,34 @@ onMounted(fetchEntries)
       class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
       @keydown.esc="showCancelDialog = false"
     >
-      <div class="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md">
-        <h2 id="cancel-dialog-title" class="text-lg font-semibold text-slate-100 mb-2">
+      <div class="admin-card w-full max-w-md p-6">
+        <h2 id="cancel-dialog-title" class="mb-2 text-lg font-semibold text-text-display">
           {{ t('waitlist.cancelConfirmTitle') }}
         </h2>
-        <p class="text-sm text-slate-400 mb-4">
+        <p class="mb-4 text-sm text-text-secondary">
           {{ t('waitlist.cancelConfirmMessage', { email: cancelTarget?.email }) }}
         </p>
-        <label class="block text-sm text-slate-300 mb-1" for="cancel-reason">
-          {{ t('waitlist.cancelReason') }} <span class="text-red-400">*</span>
+        <label class="mb-1 block text-sm text-text-body" for="cancel-reason">
+          {{ t('waitlist.cancelReason') }} <span class="text-error">*</span>
         </label>
         <input
           id="cancel-reason"
           v-model="cancelReason"
           type="text"
-          class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-3 py-2 text-sm mb-4"
+          class="admin-input mb-4 w-full text-sm"
           required
           :aria-required="true"
         />
         <div class="flex gap-2 justify-end">
           <button
-            class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition-colors"
+            class="admin-button-secondary"
             @click="showCancelDialog = false"
           >
             {{ t('common.cancel') }}
           </button>
           <button
             :disabled="!cancelReason.trim()"
-            class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 disabled:opacity-50 transition-colors"
+            class="admin-button-danger disabled:opacity-50"
             @click="confirmCancel"
           >
             {{ t('waitlist.cancel') }}
@@ -275,10 +272,10 @@ onMounted(fetchEntries)
 import { defineComponent, h } from 'vue'
 
 const STATUS_CLASSES: Record<string, string> = {
-  PENDING: 'bg-yellow-500/20 text-yellow-300',
-  INVITED: 'bg-blue-500/20 text-blue-300',
-  CONVERTED: 'bg-green-500/20 text-green-300',
-  CANCELLED: 'bg-slate-500/20 text-slate-400',
+  PENDING: 'bg-warning/15 text-warning',
+  INVITED: 'bg-text-secondary/15 text-text-secondary',
+  CONVERTED: 'bg-success/15 text-success',
+  CANCELLED: 'bg-text-secondary/15 text-text-secondary',
 }
 
 const StatusBadge = defineComponent({
@@ -286,14 +283,14 @@ const StatusBadge = defineComponent({
   setup(props) {
 const { t, locale } = useI18n()
     return () => {
-      const cls = STATUS_CLASSES[props.status] ?? 'bg-slate-700 text-slate-300'
+      const cls = STATUS_CLASSES[props.status] ?? 'bg-text-secondary/15 text-text-secondary'
       const statusKey = props.status.toLowerCase()
       const label =
         (statusKey in messages.en.waitlist.statuses && t(`waitlist.statuses.${statusKey}`)) ||
         props.status
       return h(
         'span',
-        { class: `px-2 py-0.5 rounded-full text-xs font-medium ${cls}` },
+        { class: `status-badge ${cls}` },
         { default: () => label },
       )
     }

@@ -144,8 +144,8 @@ just backend-build
 when release-please creates an `smp@*` tag:
 
 1. **Trigger**: Push to `main` triggers `release-please.yml`
-2. **Release creation**: If a new version is ready, release-please creates the tag
-   (e.g., `smp@0.1.0`)
+2. **Release creation**: If a new version is ready, release-please opens one release PR
+   per configured component. Merging a component PR creates its tag (e.g., `smp@v0.1.0`)
 3. **Automatic build**: The `release-image.yml` workflow is invoked:
     - Builds the multi-architecture backend via `server/smp/backend.Dockerfile`
     - Builds dashboard via `infra/apps/smp/production/dashboard.Dockerfile`

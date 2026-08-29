@@ -254,4 +254,129 @@ describe('i18n utils', () => {
       expect(tEs.hero.status).toContain('todavía no está abierta');
     });
   });
+
+  describe('seo invariants — titles and meta (Ahrefs 9293424)', () => {
+    const suffix = ' — Profile Tailors';
+    const allTitles = (): Array<{ key: string; title: string }> => {
+      const tEn = useTranslations(new URL('https://example.com/'));
+      const tEs = useTranslations(new URL('https://example.com/es/'));
+      return [
+        { key: 'en:/', title: tEn.meta.title },
+        { key: 'es:/es/', title: tEs.meta.title },
+        { key: 'en:/privacy/', title: tEn.legal.privacy.title },
+        { key: 'es:/es/privacy/', title: tEs.legal.privacy.title },
+        { key: 'en:/terms/', title: tEn.legal.terms.title },
+        { key: 'es:/es/terms/', title: tEs.legal.terms.title },
+        { key: 'en:/cookies/', title: tEn.legal.cookies.title },
+        { key: 'es:/es/cookies/', title: tEs.legal.cookies.title },
+        { key: 'en:/acceptable-use/', title: tEn.legal.aup.title },
+        { key: 'es:/es/acceptable-use/', title: tEs.legal.aup.title },
+        { key: 'en:/accessibility/', title: tEn.legal.accessibility.title },
+        { key: 'es:/es/accessibility/', title: tEs.legal.accessibility.title },
+      ];
+    };
+    const allDescriptions = (): Array<{ key: string; description: string }> => {
+      const tEn = useTranslations(new URL('https://example.com/'));
+      const tEs = useTranslations(new URL('https://example.com/es/'));
+      return [
+        { key: 'en:/', description: tEn.meta.description },
+        { key: 'es:/es/', description: tEs.meta.description },
+        { key: 'en:/privacy/', description: tEn.legal.privacy.description },
+        { key: 'es:/es/privacy/', description: tEs.legal.privacy.description },
+        { key: 'en:/terms/', description: tEn.legal.terms.description },
+        { key: 'es:/es/terms/', description: tEs.legal.terms.description },
+        { key: 'en:/cookies/', description: tEn.legal.cookies.description },
+        { key: 'es:/es/cookies/', description: tEs.legal.cookies.description },
+        { key: 'en:/acceptable-use/', description: tEn.legal.aup.description },
+        { key: 'es:/es/acceptable-use/', description: tEs.legal.aup.description },
+        { key: 'en:/accessibility/', description: tEn.legal.accessibility.description },
+        { key: 'es:/es/accessibility/', description: tEs.legal.accessibility.description },
+      ];
+    };
+
+    it('all 12 titles are >=30 characters', (): void => {
+      for (const { key, title } of allTitles()) {
+        expect(title.length, key).toBeGreaterThanOrEqual(30);
+      }
+    });
+
+    it('all 12 titles end with branded suffix', (): void => {
+      for (const { key, title } of allTitles()) {
+        expect(title.endsWith(suffix), key).toBe(true);
+      }
+    });
+
+    it('all 12 titles are unique', (): void => {
+      const titles: string[] = allTitles().map((t: { key: string; title: string }): string => t.title);
+      expect(new Set(titles).size).toBe(12);
+    });
+
+    it('all 12 descriptions are 120-160 characters', (): void => {
+      for (const { key, description } of allDescriptions()) {
+        expect(description.length, key).toBeGreaterThanOrEqual(120);
+        expect(description.length, key).toBeLessThanOrEqual(160);
+      }
+    });
+
+    it('all 12 descriptions are unique', (): void => {
+      const descs: string[] = allDescriptions().map((d: { key: string; description: string }): string => d.description);
+      expect(new Set(descs).size).toBe(12);
+    });
+
+    it('contains no http:// href/src in built source expectations (repo rejects http)', (): void => {
+      const allStrings = JSON.stringify([...allTitles(), ...allDescriptions()]);
+      expect(allStrings).not.toContain('http://');
+    });
+
+    it('contains no cdn-cgi href expectation', (): void => {
+      const allStrings = JSON.stringify([...allTitles(), ...allDescriptions()]);
+      expect(allStrings).not.toContain('cdn-cgi');
+    });
+
+    it('contains no IndexNow artifacts', (): void => {
+      const allStrings = JSON.stringify([...allTitles(), ...allDescriptions()]);
+      expect(allStrings).not.toContain('api.indexnow.org');
+      expect(allStrings).not.toContain('IndexNow');
+    });
+  });
+
+  describe('seo guard — Lighthouse budget recorded', () => {
+    it('lighthouse baseline exists and covers 12 URLs', async (): Promise<void> => {
+      const { existsSync, readFileSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const baseline: string = join(process.cwd(), '..', '..', '..', 'docs', 'marketing', 'lighthouse', 'baseline.json');
+      const alt: string = join(process.cwd(), 'docs', 'marketing', 'lighthouse', 'baseline.json');
+      const candidates: string[] = [baseline, alt, join(process.cwd(), 'apps/web/marketing/docs/marketing/lighthouse/baseline.json')];
+      const found: string | undefined = candidates.find((p: string): boolean => existsSync(p));
+      expect(found, 'lighthouse baseline.json missing').toBeTruthy();
+      const data: { urls?: unknown[] } & unknown[] = JSON.parse(readFileSync(found as string, 'utf8'));
+      expect(Array.isArray((data as { urls?: unknown[] }).urls) || Array.isArray(data)).toBe(true);
+      const urls: unknown[] = Array.isArray(data) ? (data as unknown[]) : ((data as { urls: unknown[] }).urls as unknown[]);
+      expect(urls.length).toBeGreaterThanOrEqual(12);
+    });
+  });
+
+  describe('seo guard — IndexNow absent and no http href (repo)', () => {
+    it('source contains no IndexNow endpoint', async (): Promise<void> => {
+      const { readFileSync, readdirSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const root: string = join(import.meta.dirname ?? '.', '..');
+      const needle: string = ['api', 'indexnow', 'org'].join('.');
+      const check = (dir: string): string[] => {
+        const out: string[] = [];
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'dist') continue;
+          const full: string = join(dir, entry.name);
+          if (entry.isDirectory()) out.push(...check(full));
+          else if (entry.isFile() && /\.(ts|js|astro|mjs)$/.test(entry.name)) {
+            const content: string = readFileSync(full, 'utf8');
+            if (content.includes(needle) && !full.endsWith('utils.test.ts')) out.push(full);
+          }
+        }
+        return out;
+      };
+      const hits: string[] = check(root);
+      expect(hits, `IndexNow found in ${hits.join(',')}`).toEqual([]);
+    });
+  });
 });

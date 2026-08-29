@@ -1,0 +1,10 @@
+id: no-as-any-cast
+language: TypeScript
+severity: error
+message: Narrow the value instead of casting it as any
+files:
+  - apps/**/*.ts
+rule:
+  pattern: $EXPR as any
+note: |
+  See AGENTS.md TypeScript conventions.

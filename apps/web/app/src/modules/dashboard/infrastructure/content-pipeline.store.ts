@@ -50,6 +50,12 @@ export const useContentPipelineStore = defineStore('contentPipeline', () => {
     }
   }
 
+  /**
+   * Removes a card from the specified pipeline column.
+   *
+   * @param columnId - The ID of the column containing the card
+   * @param cardId - The ID of the card to remove
+   */
   function removeCard(columnId: string, cardId: string): void {
     const col = columns.value.find((c) => c.id === columnId)
     if (col) {
@@ -57,10 +63,13 @@ export const useContentPipelineStore = defineStore('contentPipeline', () => {
     }
   }
 
+  /**
+   * Updates the loading state while refreshing content pipeline data.
+   */
   async function refreshAll(): Promise<void> {
     isLoading.value = true
     try {
-      console.log('[contentPipeline] refreshAll — mock mode, no-op')
+      // Mock mode — in production this would call the API
     } finally {
       isLoading.value = false
     }

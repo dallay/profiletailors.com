@@ -54,7 +54,7 @@ pnpm install
 pnpm dev
 ```
 
-Requirements: Node >= 22.12.0, pnpm.
+Requirements: Node >= 24.19.0, pnpm.
 
 ---
 

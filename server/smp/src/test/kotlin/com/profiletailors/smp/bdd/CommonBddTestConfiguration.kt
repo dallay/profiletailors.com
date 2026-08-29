@@ -8,7 +8,8 @@ import com.profiletailors.smp.identity.application.PasswordResetNotificationFail
 import com.profiletailors.smp.identity.application.PasswordResetNotificationFailureRecorder
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetry
 import com.profiletailors.smp.identity.application.PasswordResetNotificationTelemetryRecorder
-import com.profiletailors.smp.identity.application.RegistrationAvailability
+import com.profiletailors.smp.identity.application.RegistrationPolicy
+import com.profiletailors.smp.identity.domain.RegistrationMode
 import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
@@ -149,13 +150,25 @@ class CommonBddTestConfiguration {
     fun mutablePasswordRecoveryFlag(): MutablePasswordRecoveryFlag = MutablePasswordRecoveryFlag()
 
     @Bean
-    fun mutableRegistrationFlag(): MutableRegistrationFlag = MutableRegistrationFlag()
+    fun mutableRegistrationPolicy(): MutableRegistrationPolicy = MutableRegistrationPolicy()
 
+    /**
+     * Provides the mutable registration policy used by BDD tests.
+     *
+     * @param policy The mutable registration policy to evaluate.
+     * @return The registration policy configured for BDD tests.
+     */
     @Bean
     @Primary
-    fun bddRegistrationAvailability(flag: MutableRegistrationFlag): RegistrationAvailability =
-        RegistrationAvailability(flag::isEnabled)
+    fun bddRegistrationPolicy(policy: MutableRegistrationPolicy): RegistrationPolicy =
+        RegistrationPolicy { hasInvitationToken -> policy.mode().evaluate(hasInvitationToken) }
 
+    /**
+     * Exposes the current password-recovery enabled state.
+     *
+     * @param flag The mutable password-recovery state provider.
+     * @return A function that provides whether password recovery is enabled.
+     */
     @Bean("bddPasswordRecoveryEnabled")
     @Primary
     fun bddPasswordRecoveryEnabled(flag: MutablePasswordRecoveryFlag): () -> Boolean = flag::isEnabled
@@ -252,16 +265,20 @@ private fun extractMcpWorkspaceId(token: String): String {
     return BddDatabaseSupport.WORKSPACE_ID
 }
 
-class MutableRegistrationFlag {
-    private var enabled: Boolean = true
+class MutableRegistrationPolicy {
+    private var mode: RegistrationMode = RegistrationMode.OPEN
 
-    fun isEnabled(): Boolean = enabled
+    fun mode(): RegistrationMode = mode
     fun enable() {
-        enabled = true
+        mode = RegistrationMode.OPEN
+    }
+
+    fun inviteOnly() {
+        mode = RegistrationMode.INVITE_ONLY
     }
 
     fun disable() {
-        enabled = false
+        mode = RegistrationMode.CLOSED
     }
 }
 

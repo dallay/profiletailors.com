@@ -1,0 +1,8 @@
+id: no-null-assertion-in-kotlin
+language: Kotlin
+severity: error
+message: Use safe access or requireNotNull instead of a non-null assertion
+files:
+  - server/**/*.kt
+rule:
+  pattern: $EXPR!!

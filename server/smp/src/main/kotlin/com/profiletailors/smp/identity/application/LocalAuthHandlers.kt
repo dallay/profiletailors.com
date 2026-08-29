@@ -12,6 +12,7 @@ import com.profiletailors.smp.governance.application.RecordConsentHandler
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
 import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.RegistrationDecision
 import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
 import java.util.UUID
@@ -28,6 +29,12 @@ internal data class AuthSessionContext(
     val refreshSessionLifecycleService: RefreshSessionLifecycleService,
 )
 
+/**
+ * Creates an authenticated session containing access and refresh tokens.
+ *
+ * @param context The identity, workspace, token, and refresh-session data used to create the session.
+ * @return The access token details and refresh token for the authenticated session.
+ */
 internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSessionResult {
     val token = context.localJwtIssuer.issue(
         principalId = context.principalId,
@@ -52,10 +59,13 @@ internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSes
     )
 }
 
+private data class RegistrationTransactionResult(val rawVerificationToken: String, val workspaceId: String)
+
 @Service
 internal class RegisterUserHandler(
-    private val registrationAvailability: RegistrationAvailability,
+    private val registrationPolicy: RegistrationPolicy,
     private val identityRegistrationGateway: IdentityRegistrationGateway,
+    private val invitationRegistrationGateway: InvitationRegistrationGateway,
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val localPasswordCredentialGateway: LocalPasswordCredentialGateway,
     private val passwordHasher: PasswordHasher,
@@ -68,9 +78,21 @@ internal class RegisterUserHandler(
     private val recordConsentHandler: RecordConsentHandler,
 ) : CommandWithResultHandler<RegisterUserCommand, LocalAuthSessionResult> {
 
+    /**
+     * Registers a user and issues an authenticated session with pending email status.
+     *
+     * @param command The registration details, including optional invitation and consent information.
+     * @return The authenticated access and refresh session for the newly registered user.
+     * @throws RegistrationInvitationRequiredException If registration requires an invitation and none is provided.
+     * @throws RegistrationDisabledException If registration is currently closed.
+     * @throws UserAlreadyExistsException If the email is already associated with a user.
+     */
     override suspend fun handle(command: RegisterUserCommand): LocalAuthSessionResult {
-        if (!registrationAvailability.isRegistrationEnabled()) {
-            throw RegistrationDisabledException()
+        val invitationToken = command.invitationToken?.trim()?.takeIf { it.isNotEmpty() }
+        when (registrationPolicy.evaluate(hasInvitationToken = invitationToken != null)) {
+            RegistrationDecision.ALLOWED -> Unit
+            RegistrationDecision.INVITATION_REQUIRED -> throw RegistrationInvitationRequiredException()
+            RegistrationDecision.CLOSED -> throw RegistrationDisabledException()
         }
         val normalizedEmail = normalizeEmail(command.email)
         val normalizedUsername = normalizeUsername(command.username, normalizedEmail)
@@ -93,7 +115,7 @@ internal class RegisterUserHandler(
         val principalId = "user-${UUID.randomUUID()}"
         val subject = "local:$normalizedEmail"
 
-        val rawVerificationToken = runRegistrationTransaction(
+        val registrationResult = runRegistrationTransaction(
             command = command,
             principalId = principalId,
             subject = subject,
@@ -107,7 +129,7 @@ internal class RegisterUserHandler(
                 principalId = principalId,
                 email = normalizedEmail,
                 username = normalizedUsername,
-                rawVerificationToken = rawVerificationToken,
+                rawVerificationToken = registrationResult.rawVerificationToken,
             ),
         )
 
@@ -118,6 +140,7 @@ internal class RegisterUserHandler(
                 email = normalizedEmail,
                 username = normalizedUsername,
                 emailStatus = EmailStatus.PENDING,
+                workspaceId = registrationResult.workspaceId,
                 clock = clock,
                 localJwtIssuer = localJwtIssuer,
                 refreshSessionLifecycleService = refreshSessionLifecycleService,
@@ -125,13 +148,26 @@ internal class RegisterUserHandler(
         )
     }
 
+    /**
+     * Creates the user's identity, credentials, workspace membership,
+     * consent records, and email-verification token atomically.
+     *
+     * @param command Registration data, including the optional invitation token and accepted terms version.
+     * @param principalId The principal identifier for the new user.
+     * @param subject The local subject identifier for the new user.
+     * @param normalizedEmail The normalized email address.
+     * @param normalizedUsername The normalized username.
+     * @return The raw email-verification token and resolved workspace identifier.
+     * @throws UserAlreadyExistsException If a unique-constraint violation
+     * indicates that the email is already registered.
+     */
     private suspend fun runRegistrationTransaction(
         command: RegisterUserCommand,
         principalId: String,
         subject: String,
         normalizedEmail: String,
         normalizedUsername: String,
-    ): String {
+    ): RegistrationTransactionResult {
         // Compute password hash BEFORE the transaction to avoid blocking
         // the reactive connection pool with CPU-bound bcrypt hashing.
         val passwordHash = passwordHasher.hash(command.password)
@@ -152,13 +188,16 @@ internal class RegisterUserHandler(
                     passwordHash = passwordHash,
                 )
 
-                // Provision a default workspace for the new user
-                val workspace = workspaceProvisioningService.provisionDefaultWorkspace(
-                    principalId = principalId,
-                    displayName = normalizedUsername,
-                )
+                val workspaceId = command.invitationToken
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { invitationRegistrationGateway.acceptForRegistration(it, normalizedEmail, principalId) }
+                    ?: workspaceProvisioningService.provisionDefaultWorkspace(
+                        principalId = principalId,
+                        displayName = normalizedUsername,
+                    ).workspaceId
 
-                recordConsentRecords(principalId, workspace.workspaceId, command.acceptedTermsVersion)
+                recordConsentRecords(principalId, workspaceId, command.acceptedTermsVersion)
 
                 // Generate verification token and store hashed
                 val generated = EmailVerificationTokenHasher.generate(clock.instant())
@@ -167,7 +206,10 @@ internal class RegisterUserHandler(
                     tokenHash = generated.tokenHash,
                     expiresAt = generated.expiresAt,
                 )
-                generated.rawToken
+                RegistrationTransactionResult(
+                    rawVerificationToken = generated.rawToken,
+                    workspaceId = workspaceId,
+                )
             }
         } catch (e: RuntimeException) {
             // Map duplicate-key constraint violations (from concurrent registration

@@ -3,6 +3,7 @@ package com.profiletailors.smp.identity.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.bus.query.QueryHandler
+import com.profiletailors.smp.identity.domain.RegistrationDecision
 
 /**
  * Public projection of the unauthenticated capabilities advertised by the platform.
@@ -10,7 +11,11 @@ import com.profiletailors.common.domain.bus.query.QueryHandler
  * @property registrationEnabled whether [RegisterUserCommand] is accepted by the application.
  * @property passwordRecoveryEnabled whether password recovery flows are operational.
  */
-data class PublicCapabilities(val registrationEnabled: Boolean, val passwordRecoveryEnabled: Boolean)
+data class PublicCapabilities(
+    val registrationEnabled: Boolean,
+    val passwordRecoveryEnabled: Boolean,
+    val invitationAcceptanceEnabled: Boolean = true,
+)
 
 /**
  * Query requesting the current public capabilities. Routed by the [Mediator] to
@@ -21,11 +26,17 @@ class GetPublicCapabilitiesQuery : Query<PublicCapabilities>
 
 @Service
 internal class GetPublicCapabilitiesHandler(
-    private val registrationAvailability: RegistrationAvailability,
+    private val registrationPolicy: RegistrationPolicy,
     private val passwordRecoveryEnabled: () -> Boolean,
 ) : QueryHandler<GetPublicCapabilitiesQuery, PublicCapabilities> {
+    /**
+     * Determines the platform capabilities available to unauthenticated users.
+     *
+     * @param query The query requesting the current public capabilities.
+     * @return The current public capabilities.
+     */
     override suspend fun handle(query: GetPublicCapabilitiesQuery): PublicCapabilities = PublicCapabilities(
-        registrationEnabled = registrationAvailability.isRegistrationEnabled(),
+        registrationEnabled = registrationPolicy.evaluate(hasInvitationToken = false) == RegistrationDecision.ALLOWED,
         passwordRecoveryEnabled = passwordRecoveryEnabled(),
     )
 }

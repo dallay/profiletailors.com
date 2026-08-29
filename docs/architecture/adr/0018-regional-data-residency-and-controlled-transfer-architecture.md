@@ -91,7 +91,7 @@ To guarantee zero accidental tenant data drift across regions:
 #### Observability, Telemetry & Audit Logs
 - **Local Telemetry Collectors**: Application logs, OpenTelemetry traces, and Prometheus metrics are ingested by regional collector nodes (e.g., OpenTelemetry Collector, Grafana Loki, Tempo).
 - **PII Scrubbing & Anonymization Boundary**: Raw logs and trace spans containing PII (e.g., IP addresses, user emails, workspace names) **MUST NOT** cross regional borders.
-- **Centralized Operational Dashboards**: Global operations teams may only access aggregated, anonymized/pseudonymized metrics (e.g., HTTP request rates, JVM error counts, CPU utilization). Any centralized telemetry aggregator MUST strip all tenant identifiers and PII before egress.
+- **Centralized Operational Dashboards**: Global operations teams may only access aggregated, de-identified metrics (e.g., HTTP request rates, JVM error counts, CPU utilization). Any centralized telemetry aggregator MUST strip all tenant identifiers and PII before egress.
 
 ### 4. Cross-Region Support, Admin Access & Encryption Separation
 

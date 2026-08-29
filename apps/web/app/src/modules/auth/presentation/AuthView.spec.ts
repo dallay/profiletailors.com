@@ -7,7 +7,11 @@ const routeState = vi.hoisted(() => ({ name: 'login', query: {} as Record<string
 const route = reactive(routeState)
 const replace = vi.hoisted(() => vi.fn())
 const load = vi.hoisted(() => vi.fn())
-const capabilityState = vi.hoisted(() => ({ resolved: false, registrationEnabled: false }))
+const capabilityState = vi.hoisted(() => ({
+  resolved: false,
+  registrationEnabled: false,
+  invitationAcceptanceEnabled: false,
+}))
 const capabilities = reactive(capabilityState)
 vi.mock('vue-router', () => ({ useRoute: () => route, useRouter: () => ({ replace }) }))
 vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
@@ -20,14 +24,26 @@ vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
     get registrationEnabled() {
       return capabilities.registrationEnabled
     },
+    get invitationAcceptanceEnabled() {
+      return capabilities.invitationAcceptanceEnabled
+    },
   }),
 }))
-vi.mock('vue-i18n', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('vue-i18n')>()),
-  useI18n: () => ({ t: (key: string) => key }),
-}))
+type VueI18nModule = typeof import('vue-i18n')
+type ImportOriginal = <T extends VueI18nModule = VueI18nModule>() => Promise<T>
+type I18nMock = { useI18n: () => { t: (key: string) => string } }
 
-function mountView() {
+vi.mock(
+  'vue-i18n',
+  async (importOriginal: ImportOriginal): Promise<I18nMock> => ({
+    ...(await importOriginal()),
+    useI18n: (): { t: (key: string) => string } => ({
+      t: (key: string): string => key,
+    }),
+  }),
+)
+
+function mountView(): ReturnType<typeof mount> {
   return mount(AuthView, {
     global: {
       stubs: {
@@ -38,8 +54,10 @@ function mountView() {
             '<div data-testid="login"><button @click="$emit(\'update:email\', \'kept@example.com\')">email</button></div>',
         },
         RegisterForm: {
-          props: ['email'],
-          template: '<div data-testid="register">{{ email }}</div>',
+          name: 'RegisterForm',
+          props: ['email', 'invitationToken'],
+          template:
+            '<div data-testid="register" :data-invitation-token="invitationToken">{{ email }}</div>',
         },
         AuthShell: { template: '<main><slot /></main>' },
         RegistrationUnavailable: {
@@ -57,17 +75,18 @@ describe('AuthView orchestration', () => {
     route.query = {}
     capabilities.resolved = false
     capabilities.registrationEnabled = false
+    capabilities.invitationAcceptanceEnabled = false
     load.mockReset()
     replace.mockReset()
   })
 
-  it('renders login immediately without waiting for capabilities', () => {
+  it('renders login immediately without waiting for capabilities', (): void => {
     const wrapper = mountView()
     expect(wrapper.find('[data-testid="login"]').exists()).toBe(true)
     expect(load).toHaveBeenCalledOnce()
   })
 
-  it('fails closed in place on register after capabilities resolve', async () => {
+  it('fails closed in place on register after capabilities resolve', (): void => {
     route.name = 'register'
     capabilities.resolved = true
     const wrapper = mountView()
@@ -75,7 +94,7 @@ describe('AuthView orchestration', () => {
     expect(wrapper.find('[data-testid="register"]').exists()).toBe(false)
   })
 
-  it('preserves only email when switching from login to registration', async () => {
+  it('preserves only email when switching from login to registration', async (): Promise<void> => {
     capabilities.resolved = true
     capabilities.registrationEnabled = true
     const wrapper = mountView()
@@ -83,5 +102,18 @@ describe('AuthView orchestration', () => {
     route.name = 'register'
     await wrapper.vm.$nextTick()
     expect(wrapper.get('[data-testid="register"]').text()).toBe('kept@example.com')
+  })
+
+  it('allows invitation registration while public registration is disabled', (): void => {
+    route.name = 'register'
+    route.query = { invitationToken: 'raw-token' }
+    capabilities.resolved = true
+    capabilities.invitationAcceptanceEnabled = true
+    const wrapper = mountView()
+    expect(wrapper.find('[data-testid="register"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="unavailable"]').exists()).toBe(false)
+    expect(wrapper.getComponent({ name: 'RegisterForm' }).props('invitationToken')).toBe(
+      'raw-token',
+    )
   })
 })

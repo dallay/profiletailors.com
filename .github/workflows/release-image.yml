@@ -290,7 +290,7 @@ jobs:
           docker compose \
             -f infra/apps/smp/production/compose.yaml \
             --env-file infra/apps/smp/production/.env \
-            up -d --wait
+            up -d --wait --wait-timeout 120
 
       - name: Run smoke test
         run: |

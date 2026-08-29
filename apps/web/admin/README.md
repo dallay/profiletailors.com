@@ -4,11 +4,11 @@ Internal Vue 3 single-page application for platform operators to manage waitlist
 
 ## Role in the platform
 
-Serves as an internal-only administration surface (`https://pt-admin.localhost`). It consumes administrative REST endpoints from the Spring Boot backend (`server/smp`), depends on `@profiletailors/shared-web` for shared validation utilities, and allows operators (such as system administrators) to review early-access waitlist entries and audit system activity.
+Serves as an internal-only administration surface (`https://admin.profiletailors.com` in production and `https://pt-admin.localhost` locally). It consumes administrative REST endpoints from the Spring Boot backend (`server/smp`), depends on `@profiletailors/shared-web` for shared validation utilities, and allows operators (such as system administrators) to review early-access waitlist entries and audit system activity.
 
 ## Tech stack
 
-- **Runtime & Language**: Node.js (`>=22.12.0`), TypeScript 6.0
+- **Runtime & Language**: Node.js (`>=24.19.0`), TypeScript 6.0
 - **Framework & State**: Vue 3.5, Pinia 4.0, Vue Router 5.2
 - **UI & Styling**: Tailwind CSS 4.3, Reka UI, shadcn-vue, Lucide Vue, TanStack Table
 - **Internationalization**: Vue I18n 11.4
@@ -19,7 +19,7 @@ Serves as an internal-only administration surface (`https://pt-admin.localhost`)
 
 ### Prerequisites
 
-- Node.js `>= 22.12.0`
+- Node.js `>= 24.19.0`
 - pnpm `>= 11.8.0`
 - `just` task runner (`>= 1.30`)
 
@@ -51,7 +51,9 @@ Target URL: `https://pt-admin.localhost` (or `http://localhost:5174` fallback).
 
 | Variable | Required | Description | Default |
 | --- | --- | --- | --- |
-| `VITE_API_BASE_URL` | No | Base URL for backend administrative endpoints | `http://localhost:7638` |
+| `VITE_API_BASE_URL` | No | Build-time base URL for backend administrative endpoints | `http://localhost:7638` |
+
+For the production admin build, set `VITE_API_BASE_URL=https://api.profiletailors.com`. The admin browser client sends credentialed requests directly to that origin, so the backend deployment must also include both `https://app.profiletailors.com` and `https://admin.profiletailors.com` in `SMP_CORS_ALLOWED_ORIGINS` before the new admin build is published.
 
 ## Project structure
 

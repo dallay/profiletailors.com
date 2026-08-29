@@ -7,16 +7,16 @@ const router = useRouter()
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-950">
-    <div class="text-center p-8">
-      <h1 class="text-2xl font-bold text-slate-100 mb-2">{{ t('auth.accessDenied') }}</h1>
-      <p class="text-slate-400 mb-6">{{ t('auth.accessDeniedMessage') }}</p>
+  <main class="dot-grid flex min-h-screen items-center justify-center bg-bg-primary px-4 py-10 text-text-body">
+    <div class="admin-card max-w-md p-8 text-center">
+      <h1 class="mb-2 text-2xl font-semibold text-text-display">{{ t('auth.accessDenied') }}</h1>
+      <p class="mb-6 text-text-secondary">{{ t('auth.accessDeniedMessage') }}</p>
       <button
-        class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition-colors"
+        class="admin-button-secondary"
         @click="router.push({ name: 'login' })"
       >
         {{ t('auth.signIn') }}
       </button>
     </div>
-  </div>
+  </main>
 </template>

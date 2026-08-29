@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { apiFetch, ensureApiSuccess, readApiJson } from '@/lib/api'
 
 const ROLE_PERMISSIONS = {
   PLATFORM_OWNER: [
@@ -53,9 +54,22 @@ export type AdminPrincipal = {
   platformRoles: PlatformRole[]
 }
 
+export type AuthTokens = {
+  accessToken: string
+  tokenType: string
+  expiresIn: number
+  principalId: string
+  email: string
+  username: string | null
+  emailStatus: string
+  workspaceId: string | null
+}
+
 export const useAdminAuthStore = defineStore('admin-auth', () => {
   const principal = ref<AdminPrincipal | null>(null)
+  const accessToken = ref<string | null>(null)
   const loading = ref(false)
+  let refreshPromise: Promise<AuthTokens | null> | null = null
 
   const isAuthenticated = computed(() => principal.value !== null)
   const hasPlatformAccess = computed(() => (principal.value?.platformRoles.length ?? 0) > 0)
@@ -68,30 +82,104 @@ export const useAdminAuthStore = defineStore('admin-auth', () => {
   async function hydrateSession(): Promise<void> {
     loading.value = true
     try {
-      const response = await fetch('/api/admin/session')
-      if (response.ok) {
-        principal.value = await response.json()
-      } else {
-        principal.value = null
-      }
+      const tokens = await refreshSession()
+      if (!tokens) return
+      await fetchAdminSession()
     } catch {
-      principal.value = null
+      clearSession()
     } finally {
       loading.value = false
     }
   }
 
-  function clearSession() {
+  async function signIn(email: string, password: string): Promise<void> {
+    loading.value = true
+    try {
+      const response = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      })
+      await ensureApiSuccess(response)
+      const tokens = await readApiJson<AuthTokens>(response)
+      accessToken.value = tokens.accessToken
+      await fetchAdminSession()
+    } catch (error) {
+      clearSession()
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function refreshSession(): Promise<AuthTokens | null> {
+    if (!refreshPromise) {
+      refreshPromise = performRefresh().finally(() => {
+        refreshPromise = null
+      })
+    }
+    return refreshPromise
+  }
+
+  async function performRefresh(): Promise<AuthTokens | null> {
+    const response = await apiFetch('/api/auth/refresh', { method: 'POST' })
+    if (response.status === 401) {
+      clearSession()
+      return null
+    }
+    await ensureApiSuccess(response)
+    const tokens = await readApiJson<AuthTokens>(response)
+    accessToken.value = tokens.accessToken
+    return tokens
+  }
+
+  async function request(path: string, init: RequestInit = {}): Promise<Response> {
+    let response = await apiFetch(path, init, accessToken.value)
+    if (response.status === 401 && path !== '/api/auth/refresh') {
+      const tokens = await refreshSession()
+      if (tokens) response = await apiFetch(path, init, accessToken.value)
+    }
+    return response
+  }
+
+  async function signOut(): Promise<void> {
+    let response: Response
+    try {
+      response = await apiFetch('/api/auth/logout', { method: 'POST' }, accessToken.value)
+    } catch {
+      clearSession()
+      return
+    }
+    await ensureApiSuccess(response)
+    clearSession()
+  }
+
+  function clearSession(): void {
     principal.value = null
+    accessToken.value = null
+  }
+
+  async function fetchAdminSession(): Promise<void> {
+    const response = await request('/api/admin/session')
+    await ensureApiSuccess(response)
+    const candidate = await readApiJson<AdminPrincipal>(response)
+    principal.value = {
+      ...candidate,
+      platformRoles: candidate.platformRoles.filter(isPlatformRole),
+    }
   }
 
   return {
     principal,
+    accessToken,
     loading,
     isAuthenticated,
     hasPlatformAccess,
     hasPermission,
     hydrateSession,
+    signIn,
+    refreshSession,
+    request,
+    signOut,
     clearSession,
   }
 })
@@ -104,4 +192,8 @@ function computePermissions(roles: PlatformRole[]): Set<PlatformPermission> {
     }
   }
   return perms
+}
+
+function isPlatformRole(role: string): role is PlatformRole {
+  return role in ROLE_PERMISSIONS
 }

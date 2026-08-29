@@ -1,5 +1,6 @@
 package com.profiletailors.smp.bdd.glue
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.cucumber.java.Before
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
@@ -21,7 +22,7 @@ class LocalAuthCapabilitiesBddSteps {
     private lateinit var database: BddDatabaseSupport
 
     @Autowired
-    private lateinit var registrationFlag: MutableRegistrationFlag
+    private lateinit var registrationFlag: MutableRegistrationPolicy
 
     @Autowired
     private lateinit var passwordRecoveryFlag: MutablePasswordRecoveryFlag
@@ -51,6 +52,11 @@ class LocalAuthCapabilitiesBddSteps {
     @Given("public registration is disabled")
     fun publicRegistrationIsDisabled() {
         registrationFlag.disable()
+    }
+
+    @Given("public registration is invite-only")
+    fun publicRegistrationIsInviteOnly() {
+        registrationFlag.inviteOnly()
     }
 
     @When("the visitor requests public application capabilities")
@@ -87,30 +93,51 @@ class LocalAuthCapabilitiesBddSteps {
         assertEquals(status, response().status.value())
     }
 
+    /**
+     * Verifies that the public capabilities response contains
+     * exactly the allow-listed capabilities, all enabled, without SSO capabilities.
+     */
     @Then("the public capabilities response should equal the exact allow-listed contract")
     fun exactPublicCapabilitiesContract() {
         val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
+        val json = ObjectMapper().readTree(body)
         assertEquals(
-            setOf("registrationEnabled", "passwordRecoveryEnabled"),
-            com.fasterxml.jackson.databind.ObjectMapper().readTree(body).fieldNames().asSequence().toSet(),
+            setOf("registrationEnabled", "passwordRecoveryEnabled", "invitationAcceptanceEnabled"),
+            json.fieldNames().asSequence().toSet(),
         )
-        assertTrue(body.contains("\"registrationEnabled\":true"))
-        assertTrue(body.contains("\"passwordRecoveryEnabled\":true"))
+        assertTrue(json.get("registrationEnabled").isBoolean)
+        assertTrue(json.get("registrationEnabled").booleanValue())
+        assertTrue(json.get("passwordRecoveryEnabled").isBoolean)
+        assertTrue(json.get("passwordRecoveryEnabled").booleanValue())
+        assertTrue(json.get("invitationAcceptanceEnabled").isBoolean)
+        assertTrue(json.get("invitationAcceptanceEnabled").booleanValue())
         assertFalse(body.contains("sso"))
     }
 
+    /**
+     * Verifies that the public capabilities response contains exactly the disabled capability contract.
+     *
+     * The contract requires registration and password recovery to be disabled, while invitation acceptance
+     * remains enabled.
+     */
     @Then("the public capabilities response should equal the exact disabled allow-listed contract")
     fun exactDisabledPublicCapabilitiesContract() {
         val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
         val json = com.fasterxml.jackson.databind.ObjectMapper().readTree(body)
         assertEquals(
-            setOf("registrationEnabled", "passwordRecoveryEnabled"),
+            setOf("registrationEnabled", "passwordRecoveryEnabled", "invitationAcceptanceEnabled"),
             json.fieldNames().asSequence().toSet(),
         )
         assertFalse(json.get("registrationEnabled").booleanValue())
         assertFalse(json.get("passwordRecoveryEnabled").booleanValue())
+        assertTrue(json.get("invitationAcceptanceEnabled").booleanValue())
     }
 
+    /**
+     * Verifies the HTTP status of the disabled registration response.
+     *
+     * @param status The expected HTTP status code.
+     */
     @Then("the disabled registration response status should be {int}")
     fun disabledRegistrationStatus(status: Int) {
         val captured = response()
@@ -122,6 +149,12 @@ class LocalAuthCapabilitiesBddSteps {
     fun disabledRegistrationCode(code: String) {
         val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
         assertTrue(body.contains(""""code":"$code""""), "Expected $code in $body")
+    }
+
+    @Then("the invite-only registration response code should be {string}")
+    fun inviteOnlyRegistrationCode(code: String) {
+        val body = response().responseBody?.toString(Charsets.UTF_8).orEmpty()
+        assertTrue(body.contains(""""code":"$code"""), "Expected $code in $body")
     }
 
     @Then("no local account, credential, workspace, consent, event, or session should be created")
