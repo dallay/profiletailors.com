@@ -220,7 +220,7 @@ backend-test exclude-tags="":
 
 # Run backend tests (fast)
 backend-test-fast:
-    node scripts/gradle-run.mjs :server:smp:test --no-daemon
+    node scripts/gradle-run.mjs :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
 
 # Run full check: tests + Detekt (aligns with CI — excludes BDD suites)
 backend-check:
@@ -359,8 +359,13 @@ swarm-remove:
     node scripts/run-shell-script.mjs infra/apps/smp/swarm/remove.sh
 
 # ═══════════════════════════════════════════════════════════════
-# LICENCE COMPLIANCE
+# DOCUMENTATION & LICENCE COMPLIANCE
 # ═══════════════════════════════════════════════════════════════
+
+# Validate documentation "Last Updated" dates against git history
+doc-check:
+    @echo "▸ Documentation date freshness check..."
+    node scripts/check-doc-last-updated.mjs
 
 # Scan all dependency licences for AGPL-3.0 compatibility (frontend + backend)
 licence-check:
@@ -382,6 +387,9 @@ ci-local:
     @echo ""
     @echo "▸ Gitleaks (secrets scan)..."
     gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
+    @echo ""
+    @echo "▸ Documentation date freshness check..."
+    just doc-check
     @echo ""
     @echo "▸ Dependency licence scan..."
     just licence-check
@@ -417,7 +425,7 @@ ci-local:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ Backend: unit tests (fast)..."
-    node scripts/gradle-run.mjs :server:smp:test --no-daemon
+    node scripts/gradle-run.mjs :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
     @echo ""
     @echo "▸ Backend: build..."
     node scripts/gradle-run.mjs :server:smp:assemble --no-daemon
@@ -448,6 +456,9 @@ ci:
     @echo ""
     @echo "▸ [1/8] Gitleaks (secrets scan)..."
     gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
+    @echo ""
+    @echo "▸ [1a/8] Documentation date freshness check..."
+    just doc-check
     @echo ""
     @echo "▸ [1b/8] Dependency licence scan..."
     just licence-check
