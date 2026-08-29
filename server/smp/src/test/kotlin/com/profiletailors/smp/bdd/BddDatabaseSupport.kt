@@ -1092,17 +1092,16 @@ class BddDatabaseSupport(
             """
             INSERT INTO publications (id, workspace_id, author_principal_id, provider, social_account_id,
                                       status, schedule_mode, priority, title, body_text,
-                                      failed_at, created_at, updated_at)
+                                      created_at, updated_at)
             VALUES (:id, :workspaceId, :authorPrincipalId, 'LINKEDIN', :socialAccountId,
                     'CANCELLED', 'NOW', FALSE, 'cancelled title', 'cancelled body',
-                    :cancelledAt, NOW(), NOW())
+                    NOW(), NOW())
             """.trimIndent(),
         )
             .bind("id", publicationId)
             .bind("workspaceId", WORKSPACE_ID)
             .bind("authorPrincipalId", PRINCIPAL_ID)
             .bind("socialAccountId", socialAccountId)
-            .bind("cancelledAt", Instant.now().minusSeconds(60))
             .fetch()
             .rowsUpdated()
             .awaitSingle()

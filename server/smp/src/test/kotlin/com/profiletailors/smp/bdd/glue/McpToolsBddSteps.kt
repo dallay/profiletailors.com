@@ -39,7 +39,7 @@ class McpToolsBddSteps {
     @Given("the MCP workspace is seeded")
     fun givenMcpWorkspaceIsSeeded() = runBlocking {
         bddDatabaseSupport.resetDatabase()
-        bddDatabaseSupport.seedWorkspace()
+        bddDatabaseSupport.seedAuthenticatedUserWithWorkspace()
     }
 
     @Given("a connected LinkedIn social account exists for MCP")
