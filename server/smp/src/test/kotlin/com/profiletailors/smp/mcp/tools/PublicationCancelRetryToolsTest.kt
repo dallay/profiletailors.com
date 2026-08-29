@@ -82,7 +82,7 @@ class PublicationCancelRetryToolsTest {
             grantedScopes = grantedScopes,
             publicationId = "pub-cancel",
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isTrue()
         coVerify { mediator.send(match<CancelPublicationCommand> { it.publicationId == "pub-cancel" }) }
@@ -103,7 +103,7 @@ class PublicationCancelRetryToolsTest {
             grantedScopes = grantedScopes,
             publicationId = "pub-cancel",
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("publication_state_conflict")
@@ -123,7 +123,7 @@ class PublicationCancelRetryToolsTest {
             grantedScopes = grantedScopes,
             publicationId = "pub-cancel",
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("publication_not_found")
@@ -144,7 +144,7 @@ class PublicationCancelRetryToolsTest {
             grantedScopes = grantedScopes,
             publicationId = "pub-cancel",
             idempotencyKey = "cancel-key",
-        )
+        ).block()!!
 
         assertThat(first.isSuccess).isTrue()
         coVerify(exactly = 1) { mediator.send(any<CancelPublicationCommand>()) }
@@ -160,7 +160,7 @@ class PublicationCancelRetryToolsTest {
             grantedScopes = grantedScopes,
             publicationId = "pub-cancel",
             idempotencyKey = "cancel-key",
-        )
+        ).block()!!
 
         assertThat(second.isSuccess).isTrue()
         coVerify(exactly = 0) { secondMediator.send(any<CancelPublicationCommand>()) }
@@ -184,7 +184,7 @@ class PublicationCancelRetryToolsTest {
             nextSlotAfter = null,
             priority = true,
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isTrue()
         coVerify {
@@ -218,7 +218,7 @@ class PublicationCancelRetryToolsTest {
             nextSlotAfter = null,
             priority = null,
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("publication_state_conflict")
@@ -241,7 +241,7 @@ class PublicationCancelRetryToolsTest {
             nextSlotAfter = null,
             priority = null,
             idempotencyKey = null,
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("insufficient_scope")
@@ -262,7 +262,7 @@ class PublicationCancelRetryToolsTest {
             grantedScopes = grantedScopes,
             publicationId = "pub-cancel",
             idempotencyKey = null,
-        )
+        ).block()
 
         val fact = auditEmitter.captured.single()
         assertThat(fact.toolName).isEqualTo("cancel_publication")
@@ -289,7 +289,7 @@ class PublicationCancelRetryToolsTest {
             nextSlotAfter = null,
             priority = null,
             idempotencyKey = "retry-key",
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("idempotency_conflict")

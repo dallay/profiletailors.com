@@ -33,7 +33,7 @@ class PublicationToolsTest {
             status = null,
             channelId = null,
             timezone = "UTC",
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isTrue()
         assertThat(result.data).isNotNull
@@ -55,7 +55,7 @@ class PublicationToolsTest {
             status = null,
             channelId = null,
             timezone = "UTC",
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error).isNotNull
@@ -73,7 +73,7 @@ class PublicationToolsTest {
             status = null,
             channelId = null,
             timezone = "America/New_York",
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isTrue()
         coVerify {
@@ -96,7 +96,7 @@ class PublicationToolsTest {
             status = null,
             channelId = null,
             timezone = "UTC",
-        )
+        ).block()!!
 
         assertThat(result.isSuccess).isFalse()
         assertThat(result.error!!.code).isEqualTo("internal")
