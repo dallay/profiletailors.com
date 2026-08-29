@@ -146,7 +146,7 @@ onMounted(fetchEntries)
     <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
     <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
     <template v-else-if="result">
-      <table class="admin-table w-full text-left text-sm" aria-label="Waitlist entries">
+      <table class="admin-table w-full text-left text-sm" :aria-label="t('waitlist.entries')">
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">{{ t('common.email') }}</th>

@@ -57,7 +57,7 @@ async function signOut() {
   <div class="admin-shell flex min-h-screen bg-bg-primary text-text-body">
     <aside
       class="admin-sidebar flex w-64 shrink-0 flex-col border-r border-border-subtle bg-bg-surface"
-      aria-label="Platform administration navigation"
+      :aria-label="t('nav.platformAdministration')"
     >
       <div class="border-b border-border-subtle p-6">
         <img :src="lightOnDarkLogoUrl" alt="" class="mb-5 h-10 w-9" aria-hidden="true">

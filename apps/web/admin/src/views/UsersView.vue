@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
 
 const { t, locale } = useI18n()
-const router = useRouter()
 const authStore = useAdminAuthStore()
 
 const result = ref<PagedResult<AdminUserSummary> | null>(null)
@@ -99,10 +97,16 @@ onBeforeUnmount(() => {
           <tr
             v-for="user in result.items"
             :key="user.principalId"
-            class="border-b border-border-subtle hover:bg-bg-surface cursor-pointer"
-            @click="router.push({ name: 'user-detail', params: { principalId: user.principalId } })"
+            class="border-b border-border-subtle hover:bg-bg-surface"
           >
-            <td class="py-2 pr-4 text-text-display">{{ user.email }}</td>
+            <td class="py-2 pr-4">
+              <RouterLink
+                :to="{ name: 'user-detail', params: { principalId: user.principalId } }"
+                class="text-text-display hover:underline"
+              >
+                {{ user.email ?? user.principalId }}
+              </RouterLink>
+            </td>
             <td class="py-2 pr-4 text-text-body">{{ user.displayIdentity ?? '—' }}</td>
             <td class="py-2 pr-4 text-text-body">{{ user.principalType }}</td>
             <td class="py-2 pr-4 text-text-secondary">{{ new Date(user.createdAt).toLocaleDateString(locale) }}</td>

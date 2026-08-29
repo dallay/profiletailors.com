@@ -1,10 +1,14 @@
 id: no-any-type-annotation
 language: TypeScript
 severity: error
-message: |
-  Avoid `any`. Use `unknown` and narrow the type, or define a precise type.
+message: Use unknown and narrow the value instead of annotating it as any
+files:
+  - apps/**/*.ts
 rule:
-  pattern: ': any'
-  kind: type_annotation
+  kind: predefined_type
+  regex: '^any$'
+  inside:
+    kind: type_annotation
+    stopBy: end
 note: |
   See AGENTS.md TypeScript conventions.

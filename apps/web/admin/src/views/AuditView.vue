@@ -68,7 +68,7 @@ onBeforeUnmount(() => activeRequest?.abort())
       <input
         v-model="actionFilter"
         type="text"
-        placeholder="Filter by action"
+        :placeholder="t('audit.filterByAction')"
         class="admin-input w-48 text-sm"
         :aria-label="t('audit.action')"
       />
@@ -77,7 +77,7 @@ onBeforeUnmount(() => activeRequest?.abort())
         class="admin-input text-sm"
         :aria-label="t('audit.result')"
       >
-        <option value="">All results</option>
+        <option value="">{{ t('audit.allResults') }}</option>
         <option value="SUCCEEDED">{{ t('audit.results.succeeded') }}</option>
         <option value="REJECTED">{{ t('audit.results.rejected') }}</option>
         <option value="FAILED">{{ t('audit.results.failed') }}</option>
@@ -87,7 +87,7 @@ onBeforeUnmount(() => activeRequest?.abort())
     <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
     <div v-else-if="error" role="alert" class="text-error">{{ error }}</div>
     <template v-else-if="result">
-      <table class="admin-table w-full text-left text-sm" aria-label="Audit events">
+      <table class="admin-table w-full text-left text-sm" :aria-label="t('audit.title')">
         <thead>
           <tr class="border-b border-border-subtle text-text-secondary uppercase text-xs">
             <th scope="col" class="py-2 pr-4">{{ t('audit.occurredAt') }}</th>

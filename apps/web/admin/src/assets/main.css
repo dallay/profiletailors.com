@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Doto:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+@import 'https://fonts.googleapis.com/css2?family=Doto:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -35,6 +35,7 @@
   --success-color: #4a9e5c;
   --warning-color: #d4a843;
   --error-color: #ff6b70;
+
   color-scheme: dark;
 }
 
@@ -49,6 +50,7 @@
   --success-color: #337f43;
   --warning-color: #86640d;
   --error-color: #b42318;
+
   color-scheme: light;
 }
 
@@ -178,6 +180,10 @@ select {
   opacity: 0.5;
 }
 
+.admin-table {
+  border-collapse: collapse;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -195,7 +201,7 @@ select {
   color: var(--text-secondary);
 }
 
-@media (max-width: 767px) {
+@media (width <= 767px) {
   .admin-sidebar {
     width: 12rem;
   }

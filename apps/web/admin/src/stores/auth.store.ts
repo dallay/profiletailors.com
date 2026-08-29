@@ -69,6 +69,7 @@ export const useAdminAuthStore = defineStore('admin-auth', () => {
   const principal = ref<AdminPrincipal | null>(null)
   const accessToken = ref<string | null>(null)
   const loading = ref(false)
+  let refreshPromise: Promise<AuthTokens | null> | null = null
 
   const isAuthenticated = computed(() => principal.value !== null)
   const hasPlatformAccess = computed(() => (principal.value?.platformRoles.length ?? 0) > 0)
@@ -110,7 +111,16 @@ export const useAdminAuthStore = defineStore('admin-auth', () => {
     }
   }
 
-  async function refreshSession(): Promise<AuthTokens | null> {
+  function refreshSession(): Promise<AuthTokens | null> {
+    if (!refreshPromise) {
+      refreshPromise = performRefresh().finally(() => {
+        refreshPromise = null
+      })
+    }
+    return refreshPromise
+  }
+
+  async function performRefresh(): Promise<AuthTokens | null> {
     const response = await apiFetch('/api/auth/refresh', { method: 'POST' })
     if (response.status === 401) {
       clearSession()
@@ -132,12 +142,14 @@ export const useAdminAuthStore = defineStore('admin-auth', () => {
   }
 
   async function signOut(): Promise<void> {
+    let response: Response
     try {
-      await apiFetch('/api/auth/logout', { method: 'POST' }, accessToken.value)
+      response = await apiFetch('/api/auth/logout', { method: 'POST' }, accessToken.value)
     } catch {
       clearSession()
       return
     }
+    await ensureApiSuccess(response)
     clearSession()
   }
 

@@ -1,10 +1,10 @@
 id: no-as-any-cast
 language: TypeScript
 severity: error
-message: |
-  Avoid `as any` casts. They erase type safety and are a frequent source of
-  runtime bugs. Use proper typing or `as unknown as T` with a real narrowing.
+message: Narrow the value instead of casting it as any
+files:
+  - apps/**/*.ts
 rule:
-  pattern: '$EXPR as any'
+  pattern: $EXPR as any
 note: |
   See AGENTS.md TypeScript conventions.

@@ -26,11 +26,11 @@ async function submit(): Promise<void> {
   errors.value = {}
   formError.value = null
   const normalizedEmail = email.value.trim().toLowerCase()
-  const normalizedPassword = password.value.trim()
+  const normalizedPassword = password.value
 
   if (!normalizedEmail) errors.value.email = 'emailRequired'
   else if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) errors.value.email = 'emailInvalid'
-  if (!normalizedPassword) errors.value.password = 'passwordRequired'
+  if (!normalizedPassword.trim()) errors.value.password = 'passwordRequired'
 
   if (Object.keys(errors.value).length > 0) {
     await nextTick()
