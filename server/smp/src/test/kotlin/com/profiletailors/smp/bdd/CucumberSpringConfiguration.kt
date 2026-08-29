@@ -23,7 +23,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 
 @CucumberContextConfiguration
 @ActiveProfiles("test")
-@AutoConfigureWebTestClient
+@AutoConfigureWebTestClient(timeout = "PT15S")
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
