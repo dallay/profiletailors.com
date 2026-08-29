@@ -32,7 +32,27 @@ class ResourceMetadataControllerTest {
             .jsonPath("$.authorization_servers[0]").isEqualTo("https://auth.profiletailors.com/realms/profiletailors")
             .jsonPath("$.scopes_supported[0]").isEqualTo("mcp:channels:read")
             .jsonPath("$.scopes_supported[1]").isEqualTo("mcp:publications:read")
+            .jsonPath("$.scopes_supported[2]").isEqualTo("mcp:publications:write")
             .jsonPath("$.bearer_methods_supported[0]").isEqualTo("header")
+    }
+
+    @Test
+    fun `scopes_supported includes the write scope for agent mutations`() {
+        val raw = webTestClient.get()
+            .uri("/.well-known/oauth-protected-resource/api/mcp")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody(String::class.java)
+            .returnResult()
+            .responseBody ?: ""
+
+        @Suppress("UNCHECKED_CAST")
+        val body = com.fasterxml.jackson.module.kotlin.jacksonObjectMapper()
+            .readValue(raw, Map::class.java) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val scopes = body["scopes_supported"] as List<String>
+        org.assertj.core.api.Assertions.assertThat(scopes).contains("mcp:publications:write")
     }
 
     @Test

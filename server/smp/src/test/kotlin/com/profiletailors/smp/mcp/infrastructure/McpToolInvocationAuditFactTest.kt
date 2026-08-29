@@ -24,6 +24,25 @@ class McpToolInvocationAuditFactTest {
         assertThat(fact.workspaceId).isEqualTo("ws-123")
         assertThat(fact.correlationId).isEqualTo("corr-456")
         assertThat(fact.outcome).isEqualTo(McpToolInvocationOutcome.SUCCESS)
+        assertThat(fact.publicationId).isNull()
+        assertThat(fact.clientToolCallId).isNull()
+    }
+
+    @Test
+    fun `creates audit fact with publicationId and clientToolCallId`() {
+        val fact = McpToolInvocationAuditFact(
+            toolName = "create_publication",
+            scopeChecked = "mcp:publications:write",
+            grantedScopes = setOf("mcp:publications:write", "mcp:publications:read"),
+            workspaceId = "ws-123",
+            correlationId = "corr-789",
+            outcome = McpToolInvocationOutcome.SUCCESS,
+            publicationId = "pub-X",
+            clientToolCallId = "call-001",
+        )
+
+        assertThat(fact.publicationId).isEqualTo("pub-X")
+        assertThat(fact.clientToolCallId).isEqualTo("call-001")
     }
 
     @Test
@@ -45,11 +64,14 @@ class McpToolInvocationAuditFactTest {
             workspaceId = "ws-789",
             correlationId = "corr-000",
             outcome = McpToolInvocationOutcome.DENIED,
+            publicationId = "pub-1",
         )
 
         val map = fact.toMap()
         assertThat(map["toolName"]).isEqualTo("get_calendar")
         assertThat(map["outcome"]).isEqualTo("DENIED")
+        assertThat(map["publicationId"]).isEqualTo("pub-1")
+        assertThat(map["clientToolCallId"]).isNull()
         assertThat(map).containsKeys(
             "toolName",
             "scopeChecked",
@@ -57,6 +79,8 @@ class McpToolInvocationAuditFactTest {
             "workspaceId",
             "correlationId",
             "outcome",
+            "publicationId",
+            "clientToolCallId",
         )
     }
 }

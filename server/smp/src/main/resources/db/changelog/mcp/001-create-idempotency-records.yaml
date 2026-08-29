@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: mcp-001-create-idempotency-records
+      author: opencode
+      changes:
+        - createTable:
+            tableName: idempotency_records
+            columns:
+              - column:
+                  name: id
+                  type: bigserial
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: principal_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tool_name
+                  type: varchar(80)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: key_hash
+                  type: char(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: response_json
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: idempotency_records
+            columnNames: workspace_id, principal_id, tool_name, key_hash
+            constraintName: uq_idempotency_records_workspace_principal_tool_hash
+        - createIndex:
+            tableName: idempotency_records
+            indexName: idx_idempotency_records_workspace
+            columns:
+              - column:
+                  name: workspace_id

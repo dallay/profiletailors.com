@@ -1,8 +1,5 @@
 package com.profiletailors.smp.mcp.infrastructure
 
-/**
- * Outcome of an MCP tool invocation attempt.
- */
 enum class McpToolInvocationOutcome {
     SUCCESS,
     DENIED,
@@ -10,12 +7,6 @@ enum class McpToolInvocationOutcome {
     ERROR,
 }
 
-/**
- * Audit fact emitted on every MCP tool invocation.
- *
- * Captures tool name, scope checked, granted scopes, workspace, correlation,
- * and outcome for observability and compliance.
- */
 data class McpToolInvocationAuditFact(
     val toolName: String,
     val scopeChecked: String,
@@ -23,13 +14,19 @@ data class McpToolInvocationAuditFact(
     val workspaceId: String,
     val correlationId: String,
     val outcome: McpToolInvocationOutcome,
+    val publicationId: String? = null,
+    val clientToolCallId: String? = null,
+    val timestamp: java.time.Instant = java.time.Instant.now(),
 ) {
-    fun toMap(): Map<String, Any> = mapOf(
+    fun toMap(): Map<String, Any?> = mapOf(
         "toolName" to toolName,
         "scopeChecked" to scopeChecked,
         "grantedScopes" to grantedScopes.joinToString(","),
         "workspaceId" to workspaceId,
         "correlationId" to correlationId,
         "outcome" to outcome.name,
+        "publicationId" to publicationId,
+        "clientToolCallId" to clientToolCallId,
+        "timestamp" to timestamp.toString(),
     )
 }
