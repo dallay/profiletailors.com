@@ -463,6 +463,9 @@ ci:
     @echo "▸ [1a/8] Documentation date freshness check..."
     just doc-check
     @echo ""
+    @echo "▸ [1a/8] Documentation date freshness check..."
+    just doc-check
+    @echo ""
     @echo "▸ [1b/8] Dependency licence scan..."
     just licence-check
     @echo ""
