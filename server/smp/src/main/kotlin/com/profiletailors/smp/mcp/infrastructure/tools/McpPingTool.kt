@@ -1,23 +1,40 @@
 package com.profiletailors.smp.mcp.infrastructure.tools
 
+import org.springframework.ai.mcp.annotation.McpTool
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
+import java.time.Instant
 
 /**
  * Internal health-check tool for MCP server.
  *
- * Provides a simple ping/pong mechanism to verify the MCP transport is working.
- * Only enabled when `smp.mcp.internal-tools-enabled=true`.
- *
- * Stub implementation for PR 2. Real tool registration will come when
- * Spring AI MCP transport API is clarified.
+ * Returns the server's current time, the MCP feature flag status, and the
+ * protocol version advertised in the handshake. Enabled when
+ * `spring.ai.mcp.server.enabled=true`.
  */
 @Component
 @ConditionalOnProperty(
-    prefix = "smp.mcp",
-    name = ["internal-tools-enabled"],
+    prefix = "spring.ai.mcp.server",
+    name = ["enabled"],
     havingValue = "true",
 )
 class McpPingTool {
-    // Stub: tool registration will be implemented when MCP transport API is available
+
+    @McpTool(
+        name = "mcp_ping",
+        description = "Health check — returns the current server time, feature flag status, " +
+            "and protocol version.",
+        generateOutputSchema = true,
+    )
+    fun ping(): McpPingResponse = McpPingResponse(
+        now = Instant.now().toString(),
+        featureFlag = "spring.ai.mcp.server.enabled=true",
+        protocolVersion = PROTOCOL_VERSION,
+    )
+
+    data class McpPingResponse(val now: String, val featureFlag: String, val protocolVersion: String)
+
+    companion object {
+        private const val PROTOCOL_VERSION = "2025-03-26"
+    }
 }
