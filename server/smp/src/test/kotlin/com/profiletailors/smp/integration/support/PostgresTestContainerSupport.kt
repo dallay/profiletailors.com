@@ -15,7 +15,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
 
 object PostgresTestContainerSupport {
-    const val IMAGE = "postgres:16.4-alpine"
+    const val IMAGE = "postgres:18-alpine"
     const val DATABASE = "profiletailors_test"
     const val USERNAME = "profiletailors"
     const val DEFAULT_PASSWORD = "profiletailors-test"
