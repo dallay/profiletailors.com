@@ -1,6 +1,7 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.platformadmin.application.PlatformPrincipalIds
 import com.profiletailors.smp.platformadmin.application.contracts.AdminOperatorQuery
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.model.AdminOperatorSummary
@@ -18,6 +19,7 @@ class R2dbcAdminOperatorQuery(
             .groupBy { it.principalId }
             .map { (principalId, assignments) ->
                 val identity = principalIdentityLookup.findByPrincipalId(principalId.toString())
+                    ?: principalIdentityLookup.findByPrincipalId(PlatformPrincipalIds.fromUuid(principalId))
                 AdminOperatorSummary(
                     principalId = principalId,
                     email = identity?.email ?: "",
