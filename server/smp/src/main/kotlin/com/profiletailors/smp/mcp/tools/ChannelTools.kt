@@ -24,25 +24,21 @@ class ChannelTools(private val mediator: Mediator, private val errorMapper: McpE
     @McpTool(
         name = "list_channels",
         description = "List the social channels connected in the authenticated workspace.",
-        generateOutputSchema = true,
+
     )
-    suspend fun listChannels(
+    fun listChannels(
         @McpToolParam(
             description = "Optional connection status filter (ACTIVE, EXPIRED, REVOKED).",
             required = false,
         )
         status: String? = null,
-    ): Mono<ToolResponse<Any>> {
-        val mediatorRef = mediator
-        val errorMapperRef = errorMapper
-        return mono {
-            runCatching {
-                val connectionStatus = status?.let { SocialConnectionStatus.valueOf(it) }
-                val query = ListConnectedChannelsQuery(status = connectionStatus)
-                ToolResponse.success(mediatorRef.send(query) as Any)
-            }.getOrElse { ex ->
-                ToolResponse.failure(errorMapperRef.mapToError(ex))
-            }
+    ): Mono<ToolResponse<Any>> = mono {
+        runCatching {
+            val connectionStatus = status?.let { SocialConnectionStatus.valueOf(it) }
+            val query = ListConnectedChannelsQuery(status = connectionStatus)
+            ToolResponse.success(mediator.send(query) as Any)
+        }.getOrElse { ex ->
+            ToolResponse.failure(errorMapper.mapToError(ex))
         }
     }
 }
