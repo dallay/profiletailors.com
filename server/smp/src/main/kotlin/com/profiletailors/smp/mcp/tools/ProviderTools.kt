@@ -21,17 +21,13 @@ class ProviderTools(private val mediator: Mediator, private val errorMapper: Mcp
         name = "list_providers",
         description = "List providers supported by the platform and their current availability " +
             "(with the workspace's quota and remaining connections).",
-        generateOutputSchema = true,
+
     )
-    suspend fun listProviders(): Mono<ToolResponse<Any>> {
-        val mediatorRef = mediator
-        val errorMapperRef = errorMapper
-        return mono {
-            runCatching {
-                ToolResponse.success(mediatorRef.send(ListProviderCatalogQuery) as Any)
-            }.getOrElse { ex ->
-                ToolResponse.failure(errorMapperRef.mapToError(ex))
-            }
+    fun listProviders(): Mono<ToolResponse<Any>> = mono {
+        runCatching {
+            ToolResponse.success(mediator.send(ListProviderCatalogQuery) as Any)
+        }.getOrElse { ex ->
+            ToolResponse.failure(errorMapper.mapToError(ex))
         }
     }
 }
