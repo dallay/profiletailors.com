@@ -44,7 +44,7 @@ internal class SendInvitationEmailConsumerTest {
         coEvery { notificationRepo.update(capture(updatedSlot)) } answers { updatedSlot.captured }
         coEvery { emailDispatcher.dispatch(eq(inviteeEmail), any()) } returns EmailDispatchResult.Success
         val publishedSlot = slot<DomainEvent>()
-        coEvery { eventPublisher.publish(capture(publishedSlot)) } answers { Unit }
+        coEvery { eventPublisher.publish(capture(publishedSlot)) } returns Unit
 
         val consumer = SendInvitationEmailConsumer(
             emailDispatcher = emailDispatcher,
@@ -92,7 +92,7 @@ internal class SendInvitationEmailConsumerTest {
         coEvery { emailDispatcher.dispatch(eq(inviteeEmail), any()) } returns
             EmailDispatchResult.Failure(error = "Resend API key rejected")
         val publishedSlot = slot<DomainEvent>()
-        coEvery { eventPublisher.publish(capture(publishedSlot)) } answers { Unit }
+        coEvery { eventPublisher.publish(capture(publishedSlot)) } returns Unit
 
         val consumer = SendInvitationEmailConsumer(
             emailDispatcher = emailDispatcher,
@@ -133,7 +133,7 @@ internal class SendInvitationEmailConsumerTest {
             notificationRepo.findByIdempotencyKey(IdempotencyKey("platform.invitation:$invitationId"))
         } returns existingNotification
         val publishedSlot = slot<DomainEvent>()
-        coEvery { eventPublisher.publish(capture(publishedSlot)) } answers { Unit }
+        coEvery { eventPublisher.publish(capture(publishedSlot)) } returns Unit
 
         val consumer = SendInvitationEmailConsumer(
             emailDispatcher = emailDispatcher,
@@ -177,7 +177,7 @@ internal class SendInvitationEmailConsumerTest {
         coEvery { notificationRepo.update(any()) } answers { firstArg() }
         coEvery { emailDispatcher.dispatch(eq(inviteeEmail), any()) } returns EmailDispatchResult.Success
         val publishedSlot = slot<DomainEvent>()
-        coEvery { eventPublisher.publish(capture(publishedSlot)) } answers { Unit }
+        coEvery { eventPublisher.publish(capture(publishedSlot)) } returns Unit
 
         val consumer = SendInvitationEmailConsumer(
             emailDispatcher = emailDispatcher,

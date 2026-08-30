@@ -120,6 +120,14 @@ class R2dbcIdeaRepository(private val databaseClient: DatabaseClient, private va
         .rowsUpdated()
         .awaitSingle() > 0
 
+    /**
+     * Maps a database row to an idea.
+     *
+     * Missing tag and link JSON values are represented as empty lists.
+     *
+     * @param row The database row containing the idea fields.
+     * @return The mapped idea.
+     */
     private fun mapIdeaRow(row: io.r2dbc.spi.Row): Idea {
         val tagsJson = row.get("tags_json", String::class.java) ?: "[]"
         val linksJson = row.get("links_json", String::class.java) ?: "[]"
@@ -138,7 +146,7 @@ class R2dbcIdeaRepository(private val databaseClient: DatabaseClient, private va
                 object : com.fasterxml.jackson.core.type.TypeReference<List<IdeaLink>>() {},
             ),
             columnId = requireNotNull(row.get("column_id", String::class.java)),
-            orderInColumn = requireNotNull(row.get("order_in_column", Integer::class.java)).toInt(),
+            orderInColumn = requireNotNull(row.get("order_in_column", Int::class.javaObjectType)),
             convertedToPublicationId = row.get("converted_to_publication_id", String::class.java),
             createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
             updatedAt = requireNotNull(row.get("updated_at", OffsetDateTime::class.java)).toInstant(),

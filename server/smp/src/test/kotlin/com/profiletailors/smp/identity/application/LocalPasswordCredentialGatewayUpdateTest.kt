@@ -13,7 +13,7 @@ class LocalPasswordCredentialGatewayUpdateTest {
     fun `updatePasswordHash stores the new hash for the principal`() = runTest {
         gateway.create(principalId = "user-1", passwordHash = "old-hash")
 
-        gateway.updatePasswordHash(principalId = "user-1", newPasswordHash = "new-hash")
+        gateway.updatePasswordHash(principalId = "user-1", passwordHash = "new-hash")
 
         assertEquals(1, gateway.updateCalls)
         assertEquals("user-1", gateway.lastUpdatedPrincipalId)
@@ -26,7 +26,7 @@ class LocalPasswordCredentialGatewayUpdateTest {
         gateway.create(principalId = "user-1", passwordHash = "user-1-hash")
         gateway.create(principalId = "user-2", passwordHash = "user-2-hash")
 
-        gateway.updatePasswordHash(principalId = "user-1", newPasswordHash = "new-user-1-hash")
+        gateway.updatePasswordHash(principalId = "user-1", passwordHash = "new-user-1-hash")
 
         assertEquals("new-user-1-hash", gateway.findByPrincipalId("user-1")?.passwordHash)
         assertEquals("user-2-hash", gateway.findByPrincipalId("user-2")?.passwordHash)
@@ -54,13 +54,13 @@ class LocalPasswordCredentialGatewayUpdateTest {
         override suspend fun findByEmail(email: String): LocalPasswordCredentialRecord? =
             records.values.firstOrNull { it.email == email }
 
-        override suspend fun updatePasswordHash(principalId: String, newPasswordHash: String) {
+        override suspend fun updatePasswordHash(principalId: String, passwordHash: String) {
             updateCalls += 1
             lastUpdatedPrincipalId = principalId
-            lastUpdatedHash = newPasswordHash
+            lastUpdatedHash = passwordHash
             val existing = records[principalId]
                 ?: error("principalId $principalId not found in test fixture")
-            records[principalId] = existing.copy(passwordHash = newPasswordHash)
+            records[principalId] = existing.copy(passwordHash = passwordHash)
         }
 
         fun findByPrincipalId(principalId: String): LocalPasswordCredentialRecord? = records[principalId]

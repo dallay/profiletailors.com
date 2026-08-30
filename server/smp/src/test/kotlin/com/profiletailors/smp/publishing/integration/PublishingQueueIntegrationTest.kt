@@ -164,14 +164,16 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             scheduleMode = ScheduleMode.NOW,
         )
 
-        val firstClaim = jobRepository.claimNextDue(
-            Instant.parse("2026-05-27T08:01:00Z"),
-            "worker-1",
-            Duration.ofMinutes(2),
+        val firstClaim = requireNotNull(
+            jobRepository.claimNextDue(
+                Instant.parse("2026-05-27T08:01:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            ),
         )
         jobRepository.complete(
             "job-completed",
-            requireNotNull(firstClaim).claimVersion,
+            firstClaim.claimVersion,
             Instant.parse("2026-05-27T08:02:00Z"),
         )
         val secondClaim = jobRepository.claimNextDue(
@@ -180,7 +182,7 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             Duration.ofMinutes(2),
         )
 
-        assertEquals("job-completed", firstClaim?.jobId)
+        assertEquals("job-completed", firstClaim.jobId)
         assertEquals(null, secondClaim)
     }
 

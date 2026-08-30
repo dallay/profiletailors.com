@@ -117,7 +117,7 @@ class ResendWaitlistInvitationHandlerTest {
         coEvery { invitationRepository.update(capture(supersededSlot)) } answers { supersededSlot.captured }
         val savedSlot = slot<WaitlistInvitation>()
         coEvery { invitationRepository.save(capture(savedSlot)) } answers { savedSlot.captured }
-        coEvery { eventPublisher.publish(any<DomainEvent>()) } answers { Unit }
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
         val result = handler.handle(command())
 
@@ -144,9 +144,9 @@ class ResendWaitlistInvitationHandlerTest {
         coEvery { invitationRepository.update(any()) } answers { firstArg() }
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
         val auditSlot = slot<AdminAuditEvent>()
-        coEvery { auditPublisher.publish(capture(auditSlot)) } answers { Unit }
+        coEvery { auditPublisher.publish(capture(auditSlot)) } returns Unit
         val eventSlot = slot<DomainEvent>()
-        coEvery { eventPublisher.publish(capture(eventSlot)) } answers { Unit }
+        coEvery { eventPublisher.publish(capture(eventSlot)) } returns Unit
 
         handler.handle(command())
 

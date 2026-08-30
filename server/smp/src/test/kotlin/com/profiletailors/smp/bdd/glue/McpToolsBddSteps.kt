@@ -162,16 +162,25 @@ class McpToolsBddSteps {
         parseResponseBody()
     }
 
+    /**
+     * Verifies that the MCP catalog contains exactly the expected tool names.
+     *
+     * @param dataTable The table containing the expected tool names.
+     */
     @Then("the MCP catalog should contain exactly:")
     fun thenMcpCatalogShouldContainExactly(dataTable: io.cucumber.datatable.DataTable) {
         val expected = dataTable.asList(String::class.java).drop(1).toSet()
         val payload = extractToolData()
             ?: latestResponse?.responseBody?.let { objectMapper.readValue<Map<String, Any?>>(it) }
 
-        @Suppress("UNCHECKED_CAST")
-        val tools = (payload?.get("tools") as? List<Map<String, Any?>>)
-            .orEmpty()
-            .map { it["name"] as String }
+        val toolEntries = payload?.get("tools") as? List<*>
+            ?: error("Expected MCP response field 'tools' to be a list")
+        val tools = toolEntries.mapIndexed { index, entry ->
+            val tool = entry as? Map<*, *>
+                ?: error("Expected MCP response tools[$index] to be an object")
+            tool["name"] as? String
+                ?: error("Expected MCP response tools[$index].name to be a string")
+        }
             .toSet()
         tools shouldBe expected
     }
@@ -196,10 +205,15 @@ class McpToolsBddSteps {
         assertPublicationStatus("QUEUED")
     }
 
+    /**
+     * Verifies that the latest MCP response contains a publication with the expected ID.
+     *
+     * @param expected The publication ID expected in the response.
+     */
     private fun mcpPublicationIdsShouldInclude(expected: String) {
         val payload = extractToolData()
-        val publications = payload?.get("publications") as? List<Map<String, Any?>> ?: emptyList()
-        val ids = publications.mapNotNull { it["id"] as? String }
+        val publications = payload?.get("publications") as? List<*> ?: emptyList<Any?>()
+        val ids = publications.mapNotNull { (it as? Map<*, *>)?.get("id") as? String }
         assertThat(ids).contains(expected)
     }
 

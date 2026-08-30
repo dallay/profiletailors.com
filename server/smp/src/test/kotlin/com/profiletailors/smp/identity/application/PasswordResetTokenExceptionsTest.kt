@@ -1,7 +1,6 @@
 package com.profiletailors.smp.identity.application
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class PasswordResetTokenExceptionsTest {
@@ -17,8 +16,7 @@ class PasswordResetTokenExceptionsTest {
 
     @Test
     fun `ExpiredPasswordResetTokenException is a subtype of InvalidPasswordResetTokenException`() {
-        val exception = ExpiredPasswordResetTokenException()
-        assertTrue(exception is InvalidPasswordResetTokenException)
+        val exception: InvalidPasswordResetTokenException = ExpiredPasswordResetTokenException()
         assertEquals(
             "This password reset link is invalid or has expired. Request a new one.",
             exception.message,
@@ -27,8 +25,7 @@ class PasswordResetTokenExceptionsTest {
 
     @Test
     fun `UsedPasswordResetTokenException is a subtype of InvalidPasswordResetTokenException`() {
-        val exception = UsedPasswordResetTokenException()
-        assertTrue(exception is InvalidPasswordResetTokenException)
+        val exception: InvalidPasswordResetTokenException = UsedPasswordResetTokenException()
         assertEquals(
             "This password reset link is invalid or has expired. Request a new one.",
             exception.message,

@@ -237,7 +237,7 @@ class PasswordResetTransactionPostgresIntegrationTest : PostgresDatabaseTestBase
     private suspend fun tokenUsed(tokenHash: String): Boolean = databaseClient.sql(
         "SELECT used_at IS NOT NULL AS used FROM password_reset_tokens WHERE token_hash = :tokenHash",
     ).bind("tokenHash", tokenHash)
-        .map { row, _ -> requireNotNull(row.get("used", java.lang.Boolean::class.java)).booleanValue() }
+        .map { row, _ -> requireNotNull(row.get("used", Boolean::class.javaObjectType)) }
         .one().awaitSingle()
 
     private suspend fun activeSessions(): Long = databaseClient.sql(

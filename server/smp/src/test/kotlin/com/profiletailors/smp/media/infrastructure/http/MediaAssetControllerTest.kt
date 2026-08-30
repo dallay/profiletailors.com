@@ -19,12 +19,18 @@ import com.profiletailors.smp.media.application.ListWorkspaceAssetsResult
 import com.profiletailors.smp.media.application.MediaAssetSummary
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
+import org.springframework.http.codec.multipart.FilePart
+import org.springframework.web.server.ResponseStatusException
 
 class MediaAssetControllerTest {
 
@@ -244,6 +250,21 @@ class MediaAssetControllerTest {
         val sent = mediator.lastQuery as GetWorkspaceAssetQuery
         assertEquals("asset-1", sent.assetId)
         assertEquals(workspaceId, sent.workspaceId)
+    }
+
+    @Test
+    fun `uploadAsset rejects oversized multipart files with CONTENT_TOO_LARGE`() = runTest {
+        val filePart = mockk<FilePart>()
+        every { filePart.headers() } returns HttpHeaders().apply {
+            contentLength = MediaAssetController.MAX_FILE_SIZE_BYTES + 1
+        }
+        val controller = controller(FailingMediator())
+
+        val exception = assertThrows<ResponseStatusException> {
+            controller.uploadAsset("asset-1", filePart)
+        }
+
+        assertEquals(HttpStatus.CONTENT_TOO_LARGE, exception.statusCode)
     }
 
     private fun controller(mediator: Mediator): MediaAssetController = MediaAssetController(

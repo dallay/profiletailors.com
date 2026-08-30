@@ -27,6 +27,12 @@ fun ExtensionContainer.commonExtensions() {
     }
 }
 
+/**
+ * Configures Java and Kotlin compilation tasks with the project's JVM target.
+ *
+ * Java compilation uses the configured source and target compatibility, while Kotlin
+ * compilation enables strict JSR-305 nullability handling.
+ */
 fun TaskContainer.commonTasks() {
     withType<JavaCompile>().configureEach {
         sourceCompatibility = AppConfiguration.jvmTargetStr
@@ -34,6 +40,6 @@ fun TaskContainer.commonTasks() {
     }
     withType<KotlinCompile>().configureEach {
         compilerOptions.jvmTarget.set(AppConfiguration.jvmTarget)
-        compilerOptions.freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
+        compilerOptions.freeCompilerArgs.add("-Xjsr305=strict")
     }
 }

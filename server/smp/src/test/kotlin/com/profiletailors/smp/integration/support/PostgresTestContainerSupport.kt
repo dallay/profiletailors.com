@@ -61,6 +61,7 @@ object PostgresDatabaseCleanup {
         "DELETE FROM platform_role_assignments",
         "DELETE FROM waitlist_entries",
         "DELETE FROM waitlists WHERE id <> 'profile-tailors-launch'",
+        "DELETE FROM recurring_schedules",
         "DELETE FROM delivery_attempts",
         "DELETE FROM publication_jobs",
         "DELETE FROM publication_asset_links",

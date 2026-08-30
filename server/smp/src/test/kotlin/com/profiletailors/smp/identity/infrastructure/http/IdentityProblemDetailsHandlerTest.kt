@@ -91,7 +91,7 @@ class IdentityProblemDetailsHandlerTest {
     fun `registration validation maps to generic problem detail`() {
         val result = handler.handle(RegistrationValidationException("password policy leaked"))
 
-        result.status shouldBe HttpStatus.UNPROCESSABLE_ENTITY.value()
+        result.status shouldBe HttpStatus.UNPROCESSABLE_CONTENT.value()
         result.title shouldBe "Registration validation failed"
         result.detail shouldBe "Registration validation failed."
     }

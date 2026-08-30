@@ -62,7 +62,7 @@ class MediaProblemDetailsHandlerTest {
         val exception = AssetNotReadyException("asset-3", "storage unavailable")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.UNPROCESSABLE_ENTITY.value()
+        result.status shouldBe HttpStatus.UNPROCESSABLE_CONTENT.value()
         result.detail shouldBe "The asset is not ready for this operation."
         result.title shouldBe "Asset not ready"
         result.properties?.get("errorCode") shouldBe "ASSET_NOT_READY"
@@ -104,7 +104,7 @@ class MediaProblemDetailsHandlerTest {
         val exception = FileTooLargeException(600_000_000L, 500_000_000L)
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.PAYLOAD_TOO_LARGE.value()
+        result.status shouldBe HttpStatus.CONTENT_TOO_LARGE.value()
         result.detail shouldBe "File size (600000000 bytes) exceeds the 500 MB limit."
         result.title shouldBe "File too large"
         result.properties?.get("errorCode") shouldBe "FILE_TOO_LARGE"
@@ -179,11 +179,11 @@ class MediaProblemDetailsHandlerTest {
     }
 
     @Test
-    fun `ResponseStatusException PAYLOAD_TOO_LARGE → FILE_TOO_LARGE code`() {
-        val exception = ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "File too large")
+    fun `should map CONTENT_TOO_LARGE to FILE_TOO_LARGE when given a ResponseStatusException`() {
+        val exception = ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE, "File too large")
         val result = handler.handle(exception)
 
-        result.status shouldBe HttpStatus.PAYLOAD_TOO_LARGE.value()
+        result.status shouldBe HttpStatus.CONTENT_TOO_LARGE.value()
         result.detail shouldBe "File too large"
         result.title shouldBe "File too large"
         result.properties?.get("errorCode") shouldBe "FILE_TOO_LARGE"

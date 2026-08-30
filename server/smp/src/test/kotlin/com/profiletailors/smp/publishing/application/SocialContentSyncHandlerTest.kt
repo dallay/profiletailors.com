@@ -464,8 +464,21 @@ class SocialContentSyncHandlerTest {
             cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
             pageSize: Int,
         ): SocialContentPage<SocialPost> = when (val step = steps[index++]) {
-            is Throwable -> throw step
-            else -> step as SocialContentPage<SocialPost>
+            is Throwable -> {
+                throw step
+            }
+            else -> {
+                val page = step as? SocialContentPage<*>
+                    ?: error("Expected a SocialContentPage or Throwable, got ${step::class.simpleName}")
+                SocialContentPage(
+                    items = page.items.map { item ->
+                        item as? SocialPost
+                            ?: error("Expected a SocialPost, got ${item?.let { it::class.simpleName } ?: "null"}")
+                    },
+                    nextCursor = page.nextCursor,
+                    highWaterMark = page.highWaterMark,
+                )
+            }
         }
         override suspend fun fetchComments(
             actor: SocialContentActor,
