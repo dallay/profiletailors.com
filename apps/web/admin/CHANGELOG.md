@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.5](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.4...admin@v0.0.5) (2026-08-30)
+
+
+### Features
+
+* Connect admin authentication to the backend and align product styling ([#899](https://github.com/dallay/profiletailors.com/issues/899)) ([46935f4](https://github.com/dallay/profiletailors.com/commit/46935f424cd60f274340353f78fefa294a16d7fa))
+
+
+### Documentation
+
+* **maintenance:** reconcile Node.js and pnpm version requirements across documentation ([#892](https://github.com/dallay/profiletailors.com/issues/892)) ([b62048b](https://github.com/dallay/profiletailors.com/commit/b62048b6ede9f2a1a99763c1864abe653bbd2e3f))
+
 ## [0.0.4](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.3...admin@v0.0.4) (2026-08-26)
 
 
