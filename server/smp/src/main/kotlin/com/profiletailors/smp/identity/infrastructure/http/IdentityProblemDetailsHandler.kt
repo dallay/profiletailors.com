@@ -94,11 +94,11 @@ class IdentityProblemDetailsHandler {
     }
 
     /**
-         * Creates a problem detail response for registration validation failures.
-         *
-         * @return A problem detail with HTTP 422 status and a registration validation failure message.
-         */
-        @ExceptionHandler(RegistrationValidationException::class)
+     * Creates a problem detail response for registration validation failures.
+     *
+     * @return A problem detail with HTTP 422 status and a registration validation failure message.
+     */
+    @ExceptionHandler(RegistrationValidationException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: RegistrationValidationException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, REGISTRATION_VALIDATION_DETAIL).apply {
