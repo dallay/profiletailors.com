@@ -382,7 +382,7 @@ describe('IdeasView accessibility', () => {
 
   it('renders empty-column guidance when a board column has no ideas', () => {
     ideasStore.ideas = []
-    ideasStore.ideasByColumn = { raw: [], done: [] }
+    ideasStore.ideasByColumn = { raw: [] }
 
     const wrapper = mountIdeasView()
 
@@ -410,6 +410,18 @@ describe('IdeasView accessibility', () => {
     await wrapper.find('[data-testid="ideas-view-gallery"]').trigger('click')
     expect(wrapper.find('[data-testid="idea-gallery-column-raw"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="idea-gallery-column-done"]').exists()).toBe(true)
+
+    await wrapper.find('[data-testid="ideas-tag-filter"]').trigger('click')
+    await wrapper.find('[data-testid="ideas-tag-all"]').trigger('click')
+    expect(wrapper.findAll('[data-dnd-draggable]')).toHaveLength(2)
+  })
+
+  it('shows an empty tag-filter state when ideas have no tags', async () => {
+    const wrapper = mountIdeasView()
+
+    await wrapper.find('[data-testid="ideas-tag-filter"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="ideas-tag-menu"]').text()).toContain('ideas.filters.empty')
   })
 
   it('associates board settings inputs and selects with stable labels', async () => {
