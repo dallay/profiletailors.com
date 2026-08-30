@@ -1,6 +1,6 @@
 # Profile Tailors Documentation
 
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-08-29
 
 ## 📖 Table of Contents
 
@@ -27,9 +27,11 @@
 - [Publishing Failure Modes](./publishing-failure-modes.md) - User-facing publishing error taxonomy
 - [Release Verification](./release-verification.md) - Evidence required before release readiness
 
-### Infrastructure
+### Infrastructure & Operations Runbooks
 - [Modular Docker Compose](./infrastructure/modular-docker-compose.md) - Reusable infrastructure
   services
+- [Production Rollback Runbook](./runbooks/production-rollback.md) - Step-by-step procedure for emergency production rollback (Docker Swarm / Compose / DB)
+- [Password Recovery Runbook](./runbooks/password-recovery.md) - Operator procedures for identity password recovery incidents
 - [Private Beta Launch Readiness Runbook](./infrastructure/private-beta-launch-readiness-runbook.md) -
   Operator procedures for publishing safe-off, stale visibility, and rollback (DALLAY-555/557)
 - [Private Beta Operator Checklist](./infrastructure/private-beta-operator-checklist.md) -
@@ -44,6 +46,7 @@
 
 ### Monitoring & Observability
 
+- [Observability Contracts & SLA Matrix](./observability-contracts.md) - Latency SLAs (p95/p99), availability targets, and function-level observability metrics
 - [Prometheus & Grafana Setup](./monitoring/prometheus-grafana-setup.md) - Metrics collection and
   visualization
 - [Actuator Security](./monitoring/actuator-security.md) - Securing Spring Boot Actuator endpoints
@@ -78,6 +81,7 @@
 
 - [Monitoring Setup](./monitoring/prometheus-grafana-setup.md)
 - [Infrastructure Management](./infrastructure/modular-docker-compose.md)
+- [Production Rollback](./runbooks/production-rollback.md)
 
 ## 📝 Documentation Standards
 

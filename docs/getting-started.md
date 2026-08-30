@@ -1,6 +1,6 @@
 # Getting Started — Local Development Environment
 
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-08-29
 **Status:** Active
 
 ## Overview

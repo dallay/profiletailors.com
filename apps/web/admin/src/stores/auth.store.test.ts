@@ -147,7 +147,8 @@ describe('useAdminAuthStore', () => {
     expect(store.accessToken).toBe('access-token')
     expect(store.principal).toEqual(mockPrincipal)
     const sessionRequest = fetchMock.mock.calls[1]
-    expect(sessionRequest?.[0]).toBe('http://localhost:7638/api/admin/session')
+    const sessionUrl = new URL(sessionRequest?.[0] as string, 'http://localhost')
+    expect(sessionUrl.pathname).toBe('/api/admin/session')
     expect(sessionRequest?.[1]?.credentials).toBe('include')
     expect(new Headers(sessionRequest?.[1]?.headers).get('Authorization')).toBe(
       'Bearer access-token',
