@@ -134,7 +134,10 @@ function mountApp(channels: TestChannel[]) {
   return mount(AppComponent, {
     global: {
       mocks: { $t: mockT },
-      stubs: { RouterView: { template: '<div class="router-view" />' } },
+      stubs: {
+        RouterView: { template: '<div class="router-view" />' },
+        SidebarNavSection: { template: '<div class="sidebar-nav-section" />' },
+      },
     },
   })
 }
