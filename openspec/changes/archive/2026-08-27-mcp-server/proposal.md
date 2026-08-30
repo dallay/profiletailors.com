@@ -47,7 +47,7 @@ Expose read models to agents via workspace-isolated MCP without making SMP an Au
 | Area | Impact | Description |
 |---|---|---|
 | `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/` | New | MCP/security/tools |
-| `server/smp/build.gradle.kts`, `server/smp/src/main/resources/application.yml`, `server/smp/src/test/` | Modified | Setup/verification |
+| `server/smp/build.gradle.kts`, `server/smp/src/main/resources/application.yaml`, `server/smp/src/test/` | Modified | Setup/verification |
 | Keycloak configuration | Modified | DCR/workspace mapper |
 
 ## Risks

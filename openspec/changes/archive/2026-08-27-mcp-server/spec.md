@@ -11,8 +11,8 @@ The system MUST expose stateless Streamable HTTP at `POST /api/mcp`, configured 
 - THEN `401` MUST include a `resource_metadata` URL
 - AND the metadata MUST identify Keycloak as authorization server
 
-### Requirement: Stable Read-Only Tool Catalog
-The server MUST expose `list_publications`, `list_channels`, `get_calendar`, and `list_providers`. `tools/list` MUST return all four regardless of granted scopes. A valid query with no results MUST return an empty array, not an error.
+### Requirement: Stable Read-Only Tool Catalog (production catalog — profile-gated `mcp_ping` excluded)
+The server MUST expose `list_publications`, `list_channels`, `get_calendar`, and `list_providers`. `tools/list` MUST return all four production tools (profile-gated `mcp_ping` excluded) regardless of granted scopes. A valid query with no results MUST return an empty array, not an error.
 
 #### Scenario: Catalog is independent of scopes
 - GIVEN a valid token with either or neither MVP scope

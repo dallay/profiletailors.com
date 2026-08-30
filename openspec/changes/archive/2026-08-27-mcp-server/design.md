@@ -8,7 +8,7 @@ fronted by the existing OAuth 2 Resource Server. `@McpTool` beans are thin adapt
 the existing mediator — domain handlers, repositories, and authorization rules are reused
 untouched.
 
-```
+```text
 MCP client ──HTTPS──▶ POST /api/mcp  (Authorization: Bearer <jwt>)
                        │
                        ▼
@@ -30,7 +30,7 @@ MCP client ──HTTPS──▶ POST /api/mcp  (Authorization: Bearer <jwt>)
 
 **Profile Tailors is the Resource Server only.** Keycloak owns `authorize`, `token`,
 `revoke`, and `register`. SMP does **not** publish `/.well-known/oauth-authorization-server`
-nor run an `/oauth2/register` endpoint.
+nor run a client registration endpoint (Keycloak: `POST /realms/{realm}/clients-registrations/default`).
 
 ---
 
@@ -55,25 +55,26 @@ nor run an `/oauth2/register` endpoint.
 
 ### Package structure
 
-```
+```text
 server/smp/src/main/kotlin/com/profiletailors/smp/mcp/
-├── adapter/                            # @McpTool beans (thin, no logic)
-│   ├── PublicationToolsAdapter.kt      # list_publications, get_calendar
-│   ├── ChannelToolsAdapter.kt          # list_channels
-│   ├── ProviderToolsAdapter.kt         # list_providers
+├── tools/                             # @McpTool beans (thin, no logic)
+│   ├── PublicationTools.kt             # list_publications, get_calendar
+│   ├── ChannelTools.kt                 # list_channels
+│   ├── ProviderTools.kt                # list_providers
 │   └── McpToolMetadata.kt              # static name → required scope map
 ├── application/
-│   ├── McpToolRegistry.kt              # discovers @McpTool beans at startup
 │   └── McpWorkspaceContextResolver.kt  # workspace_id claim → ResourceContext
 ├── infrastructure/
 │   ├── McpConfiguration.kt             # @EnableMcpServer + bean wiring
 │   ├── McpSecurityConfiguration.kt     # SecurityWebFilterChain for /api/mcp (JWT only)
 │   ├── McpToolInvocationAuthorizer.kt  # scope check at tool invocation
 │   ├── McpErrorMapper.kt               # exception → MCP tool result
+│   ├── tools/
+│   │   └── McpPingTool.kt              # profile-gated mcp_ping (internal)
 │   ├── oauth/
 │   │   └── ResourceMetadataController.kt  # RFC 9728 only — no auth-server metadata
 │   └── McpProperties.kt                # @ConfigurationProperties("app.mcp")
-└── ModuleMetadata.kt
+└── ModuleMetadata.kt                   # @ApplicationModule marker (Modulith discovery)
 ```
 
 `OAuthMetadataController` and `ClientRegistrationService` are intentionally **absent** from
@@ -127,14 +128,13 @@ dependencies {
 }
 ```
 
-`Spring Modulith` already enforces package boundaries: `mcp` becomes its own bounded context
-with `ModuleMetadata.kt` exposing only `McpToolsAdapter` via its public API.
+`Spring Modulith` discovers the `mcp` bounded context via `ModuleMetadata.kt` (`@ApplicationModule` marker); the MCP tool beans are `ChannelTools`, `ProviderTools`, `PublicationTools` (`infrastructure/tools/McpPingTool` is profile-gated `mcp_ping`).
 
 ---
 
 ## Configuration
 
-### `application.yml`
+### `application.yaml`
 
 ```yaml
 spring:
@@ -151,18 +151,16 @@ spring:
 app:
   mcp:
     resource-uri:      ${SMP_MCP_RESOURCE_URI:https://api.profiletailors.com/api/mcp}
-    required-audience: ${SMP_MCP_REQUIRED_AUDIENCE:https://api.profiletailors.com/api/mcp}
-    oauth:
-      issuer: ${SMP_MCP_OAUTH_ISSUER:http://localhost/profiletailors-local}
-      scopes:
-        - mcp:channels:read
-        - mcp:publications:read
-        # mcp:publications:write is reserved for Phase 5 (NOT in MVP)
+    required-audience: ${SMP_MCP_AUDIENCE:https://api.profiletailors.com/api/mcp}
+    scopes:
+      - mcp:channels:read
+      - mcp:publications:read
+      # mcp:publications:write is reserved for Phase 5 (NOT in MVP)
     scope-policy: PERMISSIVE                     # MVP: any workspace member
     rate-limit:
       buckets:
-        mcp-channels-read:    { capacity: 60,  refill: 60,  per: PT1M }
-        mcp-publications-read:{ capacity: 30,  refill: 30,  per: PT1M }
+        mcp-channels-read:     { capacity: 60, refill: 60, per: PT1M }
+        mcp-publications-read: { capacity: 30, refill: 30, per: PT1M }
 ```
 
 `SMP_MCP_ENABLED=false` excludes Spring AI's transport bean entirely. There is no
@@ -171,10 +169,10 @@ app:
 ### Security chain (in `McpSecurityConfiguration`)
 
 ```kotlin
+private val mcpPathMatcher = ServerWebExchangeMatchers.pathMatchers(mcpEndpoint, "$mcpEndpoint/**")
+
 http
-  .securityMatcher(ServerWebExchangeMatcher { exchange ->
-      exchange.request.path.pathWithinApplication().value().startsWith("/api/mcp")
-  })
+  .securityMatcher(OrServerWebExchangeMatcher(mcpPathMatcher, rfc9728MetadataMatcher))
   .authorizeExchange { it.anyExchange().authenticated() }
   .oauth2ResourceServer { it.jwt { jwt -> jwt.jwtAuthenticationConverter(converter) } }
   // No JSON-RPC parsing here. Scope enforcement happens at tool invocation.
@@ -258,7 +256,7 @@ knows which workspace the user is acting in; it sends a signed context to Keyclo
 Keycloak protocol mapper reads that context and emits the `workspace_id` JWT claim from
 it.
 
-```
+```text
 SPA ──resolve-workspace──▶ Profile Tailors backend
 SPa ◀──signed workspace_context (JWS; sub, workspace_id, scope-policy, exp)──
 SPA ──GET <keycloak>/authorize?...&workspace_context=<JWS>&resource=<mcp-uri>──▶ Keycloak
@@ -296,15 +294,15 @@ is tracked as a separate change behind its own proposal.
 class McpErrorMapper(private val objectMapper: ObjectMapper) {
     fun toToolResult(error: Throwable, correlationId: String): CallToolResult {
         val appError = when (error) {
-            is InvalidDateRangeException       -> ApplicationError("invalid_date_range",       "VALIDATION", error.message, false, correlationId)
-            is InvalidTimezoneException        -> ApplicationError("invalid_timezone",        "VALIDATION", error.message, false, correlationId)
-            is DateRangeTooLargeException      -> ApplicationError("date_range_too_large",    "VALIDATION", error.message, false, correlationId)
-            is InvalidChannelStatusException   -> ApplicationError("invalid_channel_status",  "VALIDATION", error.message, false, correlationId)
-            is BusinessRuleValidationException -> ApplicationError("rule_violation",          "VALIDATION", error.message, false, correlationId)
-            is AccessDeniedException           -> ApplicationError("forbidden",               "AUTH",     "Insufficient permissions", false, correlationId)
-            is WorkspaceMismatchException      -> ApplicationError("workspace_mismatch",      "AUTH",     "Token workspace does not match request", false, correlationId)
-            is RateLimitExceededException      -> ApplicationError("rate_limit_exceeded",     "RATE_LIMITED", "Rate limit exceeded", true, correlationId)
-            else                               -> ApplicationError("internal",                "INTERNAL", "Unexpected error", true, correlationId)
+            is InvalidDateRangeException       -> ApplicationError("INVALID_DATE_RANGE",       "VALIDATION", error.message, false, correlationId)
+            is InvalidTimezoneException        -> ApplicationError("INVALID_TIMEZONE",        "VALIDATION", error.message, false, correlationId)
+            is DateRangeTooLargeException      -> ApplicationError("DATE_RANGE_TOO_LARGE",    "VALIDATION", error.message, false, correlationId)
+            is InvalidChannelStatusException   -> ApplicationError("INVALID_CHANNEL_STATUS",  "VALIDATION", error.message, false, correlationId)
+            is BusinessRuleValidationException -> ApplicationError("PUBLICATION_VALIDATION_FAILED", "VALIDATION", error.message, false, correlationId)
+            is AccessDeniedException           -> ApplicationError("FORBIDDEN",               "AUTHORIZATION", "Insufficient permissions", false, correlationId)
+            is WorkspaceMismatchException      -> ApplicationError("WORKSPACE_ACCESS_DENIED", "AUTHORIZATION", "Token workspace does not match request", false, correlationId)
+            is RateLimitExceededException      -> ApplicationError("RATE_LIMIT_EXCEEDED",     "THROTTLING", "Rate limit exceeded", true, correlationId)
+            else                               -> ApplicationError("INTERNAL_ERROR",          "INTERNAL", "Unexpected error", true, correlationId)
         }
         return CallToolResult.builder()
             .isError(true)
@@ -326,14 +324,14 @@ write tools (Phase 5) ship `get_publication`, `cancel_publication`, etc.
 | Protocol | unknown method | `-32601` Method not found |
 | Auth | missing/invalid token | `401` + `WWW-Authenticate: Bearer resource_metadata="<...>"` (RFC 6750 + RFC 9728) |
 | Auth | missing scope | `403` + `WWW-Authenticate: Bearer error="insufficient_scope", scope="<required>"` + body `{ "required_scope": "<required>", "granted_scopes": [...] }` |
-| Auth | cross-workspace token | `403` + `ApplicationError(code="workspace_mismatch", category="AUTH")` |
-| Tool | invalid date range | `CallToolResult.isError=true` + `ApplicationError("invalid_date_range","VALIDATION")` |
-| Tool | invalid timezone | `CallToolResult.isError=true` + `ApplicationError("invalid_timezone","VALIDATION")` |
-| Tool | date range too large | `CallToolResult.isError=true` + `ApplicationError("date_range_too_large","VALIDATION")` |
-| Tool | invalid channel status filter | `CallToolResult.isError=true` + `ApplicationError("invalid_channel_status","VALIDATION")` |
-| Tool | business rule violation | `CallToolResult.isError=true` + `ApplicationError("rule_violation","VALIDATION")` |
-| Tool | rate limit exceeded | `CallToolResult.isError=true` + `ApplicationError("rate_limit_exceeded","RATE_LIMITED")` |
-| Tool | unexpected | `CallToolResult.isError=true` + `ApplicationError("internal","INTERNAL")`; full stack logged, never returned |
+| Auth | cross-workspace token | `403` + `ApplicationError(code="WORKSPACE_ACCESS_DENIED", category="AUTHORIZATION")` |
+| Tool | invalid date range | `CallToolResult.isError=true` + `ApplicationError("INVALID_DATE_RANGE","VALIDATION")` |
+| Tool | invalid timezone | `CallToolResult.isError=true` + `ApplicationError("INVALID_TIMEZONE","VALIDATION")` |
+| Tool | date range too large | `CallToolResult.isError=true` + `ApplicationError("DATE_RANGE_TOO_LARGE","VALIDATION")` |
+| Tool | invalid channel status filter | `CallToolResult.isError=true` + `ApplicationError("INVALID_CHANNEL_STATUS","VALIDATION")` |
+| Tool | business rule violation | `CallToolResult.isError=true` + `ApplicationError("PUBLICATION_VALIDATION_FAILED","VALIDATION")` |
+| Tool | rate limit exceeded | `CallToolResult.isError=true` + `ApplicationError("RATE_LIMIT_EXCEEDED","THROTTLING")` |
+| Tool | unexpected | `CallToolResult.isError=true` + `ApplicationError("INTERNAL_ERROR","INTERNAL")`; full stack logged, never returned |
 
 `correlation_id` is taken from `X-Correlation-Id` request header (generated by
 `RequestContextStore` when absent) and propagated into every tool result for log
@@ -345,7 +343,7 @@ correlation.
 
 ### 1. OAuth discovery (RFC 9728 only)
 
-```
+```text
 MCP client ──GET /.well-known/oauth-protected-resource/api/mcp──▶ ResourceMetadataController
 SMP ◀── 200  {
               resource: "https://api.profiletailors.com/api/mcp",
@@ -358,13 +356,14 @@ SMP ◀── 200  {
 ```
 
 The 401 response on `POST /api/mcp` carries:
-```
+
+```text
 WWW-Authenticate: Bearer realm="mcp", resource_metadata="<rfc9728-url>"
 ```
 
 ### 2. Authorized tool invocation (Option A + authorizer pattern)
 
-```
+```mermaid
 sequenceDiagram
     participant SPA as Profile Tailors SPA
     participant PT  as Profile Tailors Backend
@@ -399,7 +398,7 @@ sequenceDiagram
 
 ### 3. Missing scope on `tools/call`
 
-```
+```text
 client ──POST /api/mcp  tools/call list_channels──▶ SMP
    └─ SecurityWebFilterChain ──▶ JWT valid (iss, aud, exp, workspace_id)
    └─ Spring AI resolves @McpTool list_channels
@@ -479,15 +478,15 @@ design and Liquibase migration tracked in a separate change.
 | 2 | Does Keycloak support **RFC 8707 Resource Indicators** with multi-audience tokens? | Platform | Required for clean resource binding | Spike in Phase 0; fallback = single audience `https://api.profiletailors.com/api/mcp`, `workspace_id` carried as a separate claim |
 | 3 | Workspace injection mechanism in detail — JWS shape, login-URL parameter vs auth-request parameter, protocol mapper configuration | Platform | Affects Keycloak SPI exposure | Option A is the MVP. Phase 3+ may replace with a custom Keycloak authenticator that renders a workspace selector UI. |
 | 4 | Consent screen ownership for the workspace confirmation step | Product / Security | Affects Keycloak theme config | Start with Keycloak default theme; switch to a custom page in Phase 3 if the custom-authenticator option is chosen |
-| 5 | MCP spec version pinning — Spring AI 2.0 ships which MCP protocol revision? | R&D | Affects `Mcp-Session-Id` / SSE headers | Pin `mcp-protocol-version` in `McpConfiguration` once GA docs land |
-| 6 | `@McpTool` vs Spring AI 1.0 `@Tool` — annotation migration on upgrade | Platform | Need to confirm Spring AI 2.0 GA API | Spike verifies final API; design assumes `@McpTool(name, description)` and `@McpToolParam(description, required)` |
+| 5 | MCP spec version pinning — Spring AI 2.0 ships which MCP protocol revision? | R&D | Affects `Mcp-Session-Id` / SSE headers | ✅ Resolved per `spikes/SPIKE_OUTCOME.md` §1.3 — pins MCP 2025-06-18; starter wires it internally, no project override needed |
+| 6 | `@McpTool` vs Spring AI 1.0 `@Tool` — annotation migration on upgrade | Platform | Need to confirm Spring AI 2.0 GA API | ✅ Resolved per `spikes/SPIKE_OUTCOME.md` §1.3 — GA API is `@McpTool(name, description, title, generateOutputSchema)` + `@McpToolParam(description, required)` from `org.springframework.ai.mcp.server.annotation`; `suspend fun` with `type: ASYNC` |
 | 7 | SSE keep-alive for long tool calls | Platform | Not needed in Phase 1 (all tools < 5s) | Revisit if Phase 2 introduces `create_publication` |
 
 ---
 
 ## Appendix — Sequence: DCR + First Tool Call (Option A)
 
-```
+```text
 SPA                 Profile Tailors         Keycloak              SMP /api/mcp
  │                       │                    │                        │
  │ 1. resolve workspace  │                    │                        │
