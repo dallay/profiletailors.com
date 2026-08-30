@@ -40,7 +40,7 @@ describe('IdeaLane', () => {
   it('renders fixed width 280-320 and sticky header with count', () => {
     const wrapper = mount(IdeaLane, {
       props: {
-        column: makeColumn({ name: 'In Progress', id: 'in-progress' }),
+        column: makeColumn({ name: 'In Progress', id: 'in-progress', color: '#22c55e' }),
         ideas: [makeIdea('idea-1'), makeIdea('idea-2')],
       },
     })
@@ -51,6 +51,7 @@ describe('IdeaLane', () => {
     const header = wrapper.find('[data-testid="idea-lane-header"]')
     expect(header.exists()).toBe(true)
     expect(header.classes().join(' ')).toContain('sticky')
+    expect(header.find('span').attributes('style')).toBeDefined()
     expect(wrapper.text()).toContain('In Progress')
     expect(wrapper.text()).toContain('2')
   })
