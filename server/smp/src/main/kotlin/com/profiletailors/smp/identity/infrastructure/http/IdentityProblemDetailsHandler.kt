@@ -96,7 +96,7 @@ class IdentityProblemDetailsHandler {
     @ExceptionHandler(RegistrationValidationException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: RegistrationValidationException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, REGISTRATION_VALIDATION_DETAIL).apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, REGISTRATION_VALIDATION_DETAIL).apply {
             title = "Registration validation failed"
         }
 

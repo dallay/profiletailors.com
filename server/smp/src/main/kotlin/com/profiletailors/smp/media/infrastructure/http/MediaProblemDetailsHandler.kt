@@ -62,7 +62,7 @@ class MediaProblemDetailsHandler {
     fun handle(exception: AssetNotReadyException): ProblemDetail {
         logger.debug("Asset not ready: assetId={} reason={}", exception.assetId, exception.reason)
         return ProblemDetail.forStatusAndDetail(
-            HttpStatus.UNPROCESSABLE_ENTITY,
+            HttpStatus.UNPROCESSABLE_CONTENT,
             ASSET_NOT_READY_DETAIL,
         ).apply {
             title = "Asset not ready"
@@ -88,7 +88,7 @@ class MediaProblemDetailsHandler {
     fun handle(exception: FileTooLargeException): ProblemDetail {
         logger.debug("File too large: size={} maxAllowed={}", exception.actualSize, exception.maxAllowed)
         return ProblemDetail.forStatusAndDetail(
-            HttpStatus.PAYLOAD_TOO_LARGE,
+            HttpStatus.CONTENT_TOO_LARGE,
             "File size (${exception.actualSize} bytes) exceeds the 500 MB limit.",
         ).apply {
             title = "File too large"
@@ -148,9 +148,9 @@ class MediaProblemDetailsHandler {
 
     @ExceptionHandler(ResponseStatusException::class)
     fun handle(exception: ResponseStatusException): ProblemDetail {
-        if (exception.statusCode == HttpStatus.PAYLOAD_TOO_LARGE) {
+        if (exception.statusCode == HttpStatus.CONTENT_TOO_LARGE) {
             return ProblemDetail.forStatusAndDetail(
-                HttpStatus.PAYLOAD_TOO_LARGE,
+                HttpStatus.CONTENT_TOO_LARGE,
                 exception.reason ?: "File size exceeds the 500 MB limit.",
             ).apply {
                 title = "File too large"

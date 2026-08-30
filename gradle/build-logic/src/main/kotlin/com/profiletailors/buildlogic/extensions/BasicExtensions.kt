@@ -34,6 +34,6 @@ fun TaskContainer.commonTasks() {
     }
     withType<KotlinCompile>().configureEach {
         compilerOptions.jvmTarget.set(AppConfiguration.jvmTarget)
-        compilerOptions.freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
+        compilerOptions.freeCompilerArgs.add("-Xjsr305=strict")
     }
 }

@@ -156,8 +156,8 @@ class UnsplashMediaProviderHandlersTest {
         coEvery { provider.trackDownload(photo) } returns Unit
         coEvery { repository.create(any()) } answers { firstArg<MediaAsset>() }
         coEvery { storage.upload(any(), any(), any(), any(), any()) } coAnswers {
-            thirdArg<Flow<ByteArray>>().toList()
-            Unit
+            val uploadedContent = thirdArg<Flow<ByteArray>>().toList()
+            check(uploadedContent.isNotEmpty())
         }
         coEvery { storage.delete(any(), any(), any()) } returns Unit
         coEvery { rateLimitRepository.tryIncrementHourlyCreationCount("workspace-1", 200) } returns

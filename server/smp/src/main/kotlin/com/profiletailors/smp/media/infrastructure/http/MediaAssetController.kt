@@ -350,7 +350,7 @@ class MediaAssetController(
                 assetId,
             )
             throw ResponseStatusException(
-                HttpStatus.PAYLOAD_TOO_LARGE,
+                HttpStatus.CONTENT_TOO_LARGE,
                 "File size exceeds the 500 MB limit.",
             )
         }

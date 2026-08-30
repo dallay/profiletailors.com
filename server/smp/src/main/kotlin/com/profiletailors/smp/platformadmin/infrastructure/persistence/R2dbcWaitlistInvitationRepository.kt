@@ -138,7 +138,7 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
         createdBy = requireNotNull(get("created_by", UUID::class.java)),
         deliveryStatus = InvitationDeliveryStatus.valueOf(requireNotNull(get("delivery_status", String::class.java))),
         lastDeliveryAttemptAt = get("last_delivery_attempt_at", OffsetDateTime::class.java)?.toInstant(),
-        deliveryAttemptCount = requireNotNull(get("delivery_attempt_count", Integer::class.java)).toInt(),
+        deliveryAttemptCount = requireNotNull(get("delivery_attempt_count", Int::class.javaObjectType)),
         version = requireNotNull(get("version", Long::class.java)),
     )
 

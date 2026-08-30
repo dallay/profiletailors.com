@@ -374,6 +374,10 @@ licence-check:
 # CI / VALIDATION
 # ═══════════════════════════════════════════════════════════════
 
+# Run one CI command with a labelled, fail-fast result summary.
+_ci-step label cwd command *args:
+    @node scripts/ci-step.mjs "{{label}}" "{{cwd}}" "{{command}}" {{args}}
+
 # Fast CI checks — lint, unit tests, builds (no E2E, no Postgres BDD)
 ci-local:
     @echo "══════════════════════════════════════════════"
@@ -440,48 +444,40 @@ ci-full: infra-up
     @echo "  ✅ Full CI Suite Complete (incl. Postgres)"
     @echo "══════════════════════════════════════════════"
 
-# Full CI pipeline — all checks, all tests (unit + E2E + BDD-fast), all builds
+# Full CI pipeline — sequential fail-fast checks with labelled output
 ci:
     @echo "════════════════════════════════════════════════"
-    @echo "  🚀 Full CI Pipeline"
+    @echo "  🚀 Full CI Pipeline (fail-fast)"
     @echo "════════════════════════════════════════════════"
     @echo ""
-    @echo "▸ [1/8] Gitleaks (secrets scan)..."
-    gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
+    just _ci-step "[1/15] Gitleaks (secrets scan)" "." gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
     @echo ""
-    @echo "▸ [1b/8] Dependency licence scan..."
-    just licence-check
+    just _ci-step "[2/15] Dependency licence scan" "." just licence-check
     @echo ""
-    @echo "▸ [2/8] Marketing: Biome lint..."
-    cd {{frontend-dir}} && pnpm lint
+    just _ci-step "[3/15] Marketing: Biome lint" "{{frontend-dir}}" pnpm lint
     @echo ""
-    @echo "▸ [3/8] App: Biome lint + unit tests..."
-    cd {{app-dir}} && pnpm lint
-    cd {{app-dir}} && pnpm test:run
-    cd {{app-dir}} && pnpm build
+    just _ci-step "[4/15] App: Biome lint" "{{app-dir}}" pnpm lint
+    just _ci-step "[5/15] App: unit tests" "{{app-dir}}" pnpm test:run
+    just _ci-step "[6/15] App: production build" "{{app-dir}}" pnpm build
     @echo ""
-    @echo "▸ [3b/8] Admin: Biome lint + unit tests..."
-    cd {{admin-dir}} && pnpm lint
-    cd {{admin-dir}} && pnpm test:run
-    cd {{admin-dir}} && pnpm build
+    just _ci-step "[7/15] Admin: Biome lint" "{{admin-dir}}" pnpm lint
+    just _ci-step "[8/15] Admin: unit tests" "{{admin-dir}}" pnpm test:run
+    just _ci-step "[9/15] Admin: production build" "{{admin-dir}}" pnpm build
     @echo ""
-    @echo "▸ [4/8] Frontend: unit tests + coverage..."
-    cd {{frontend-dir}} && pnpm test:coverage
+    just _ci-step "[10/15] Frontend: unit tests + coverage" "{{frontend-dir}}" pnpm test:coverage
     @echo ""
-    @echo "▸ [5/8] Backend: Detekt static analysis..."
-    {{gradle-root}} :server:smp:detekt --no-daemon
+    just _ci-step "[11/15] Frontend: production build" "{{frontend-dir}}" pnpm build
     @echo ""
-    @echo "▸ [6/8] Backend: unit tests (fast)..."
-    node scripts/gradle-run.mjs :server:smp:test --no-daemon
+    just _ci-step "[12/15] Backend: Detekt static analysis" "." {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
-    @echo "▸ [7/8] Backend: BDD fast suite..."
-    node scripts/gradle-run.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    just _ci-step "[13/15] Backend: unit tests (fast)" "." node scripts/gradle-run.mjs :server:smp:test --no-daemon
     @echo ""
-    @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
-    cd {{frontend-dir}} && pnpm test:e2e
+    just _ci-step "[14/15] Backend: BDD fast suite" "." node scripts/gradle-run.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    @echo ""
+    just _ci-step "[15/15] Frontend: E2E tests (Playwright, all browsers)" "{{frontend-dir}}" pnpm test:e2e
     @echo ""
     @echo "════════════════════════════════════════════════"
-    @echo "  ✅ Full CI Pipeline Complete — everything passed"
+    @echo "  ✅ Full CI Pipeline Complete — all 15 checks passed"
     @echo "════════════════════════════════════════════════"
 
 # ═══════════════════════════════════════════════════════════════

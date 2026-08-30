@@ -67,10 +67,10 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
             .bind("interval", schedule.recurrenceRule.interval)
             .bind("daysOfWeek", schedule.recurrenceRule.daysOfWeek.sorted().joinToString(","))
             .bind("timezone", schedule.timezone).bind("status", schedule.status.name).bind("updatedAt", now)
-        spec = bindNullable(spec, "dayOfMonth", schedule.recurrenceRule.dayOfMonth, java.lang.Integer::class.java)
+        spec = bindNullable(spec, "dayOfMonth", schedule.recurrenceRule.dayOfMonth, Int::class.javaObjectType)
         spec = bindNullable(spec, "endDate", schedule.recurrenceRule.endDate, LocalDate::class.java)
         spec =
-            bindNullable(spec, "maxOccurrences", schedule.recurrenceRule.maxOccurrences, java.lang.Integer::class.java)
+            bindNullable(spec, "maxOccurrences", schedule.recurrenceRule.maxOccurrences, Int::class.javaObjectType)
         spec = bindNullable(spec, "nextScheduledAt", schedule.nextScheduledAt, Instant::class.java)
         if (insert) {
             spec = spec.bind("createdBy", schedule.createdBy).bind("templatePostId", schedule.templatePostId)
@@ -107,13 +107,13 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
                 templatePostId = requireNotNull(row.get("template_post_id", String::class.java)),
                 recurrenceRule = RecurrenceRule(
                     frequency = RecurrenceFrequency.valueOf(requireNotNull(row.get("frequency", String::class.java))),
-                    interval = requireNotNull(row.get("recurrence_interval", java.lang.Integer::class.java)).toInt(),
+                    interval = requireNotNull(row.get("recurrence_interval", Int::class.javaObjectType)),
                     daysOfWeek = row.get("days_of_week", String::class.java).orEmpty().split(",").filter {
                         it.isNotBlank()
                     }.map { it.toInt() }.toSet(),
-                    dayOfMonth = row.get("day_of_month", java.lang.Integer::class.java)?.toInt(),
+                    dayOfMonth = row.get("day_of_month", Int::class.javaObjectType),
                     endDate = row.get("end_date", LocalDate::class.java),
-                    maxOccurrences = row.get("max_occurrences", java.lang.Integer::class.java)?.toInt(),
+                    maxOccurrences = row.get("max_occurrences", Int::class.javaObjectType),
                 ),
                 timezone = requireNotNull(row.get("timezone", String::class.java)),
                 nextScheduledAt = row.get("next_scheduled_at", OffsetDateTime::class.java)?.toInstant(),

@@ -74,7 +74,7 @@ class R2dbcPasswordResetTokenRepositoryTest : PostgresDatabaseTestBase() {
             Triple(
                 row.get("target_table", String::class.java),
                 row.get("target_column", String::class.java),
-                row.get("principal_length", java.lang.Long::class.java)?.toLong(),
+                row.get("principal_length", Long::class.javaObjectType),
             )
         }.one().awaitSingle()
 

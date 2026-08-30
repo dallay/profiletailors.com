@@ -122,15 +122,14 @@ class R2dbcNotificationRepositoryPostgresTest : PostgresDatabaseTestBase() {
         val sentAt = Instant.parse("2026-07-20T10:01:00Z")
         val updated = repository.update(written.markSent(sentAt))
 
-        val found = repository.findByIdempotencyKey(written.idempotencyKey)
-        assertNotNull(found)
-        assertEquals(NotificationStatus.SENT, found?.status)
+        val found = requireNotNull(repository.findByIdempotencyKey(written.idempotencyKey))
+        assertEquals(NotificationStatus.SENT, found.status)
         // Instant equality may lose microsecond precision across the JSONB roundtrip
         // depending on driver settings — comparing via after() to be safe.
-        assertNotNull(found?.sentAt)
-        assertTrue(found!!.sentAt!!.toEpochMilli() >= sentAt.toEpochMilli() - 1000)
-        assertNull(found?.failedAt)
-        assertNull(found?.errorMessage)
+        val persistedSentAt = requireNotNull(found.sentAt)
+        assertTrue(persistedSentAt.toEpochMilli() >= sentAt.toEpochMilli() - 1000)
+        assertNull(found.failedAt)
+        assertNull(found.errorMessage)
     }
 
     @Test

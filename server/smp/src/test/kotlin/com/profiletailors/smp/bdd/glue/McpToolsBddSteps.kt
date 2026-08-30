@@ -168,8 +168,10 @@ class McpToolsBddSteps {
         val expected = dataTable.asList(String::class.java).toSet()
         val body: Map<String, Any?> = objectMapper.readValue(raw)
 
-        @Suppress("UNCHECKED_CAST")
-        val tools = (body["tools"] as? List<Map<String, Any?>>).orEmpty().map { it["name"] as String }.toSet()
+        val tools = (body["tools"] as? List<*>)
+            .orEmpty()
+            .mapNotNull { (it as? Map<*, *>)?.get("name") as? String }
+            .toSet()
         tools shouldBe expected
     }
 
@@ -197,8 +199,8 @@ class McpToolsBddSteps {
         val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
         val body: Map<String, Any?> = objectMapper.readValue(raw)
         val data = body["data"] as? Map<*, *>
-        val publications = data?.get("publications") as? List<Map<String, Any?>> ?: emptyList()
-        val ids = publications.mapNotNull { it["id"] as? String }
+        val publications = data?.get("publications") as? List<*> ?: emptyList<Any?>()
+        val ids = publications.mapNotNull { (it as? Map<*, *>)?.get("id") as? String }
         assertThat(ids).contains(expected)
     }
 
