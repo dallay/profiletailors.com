@@ -40,6 +40,7 @@ data class UpdateIdeaCommand(
     val tags: List<String>? = null,
     val links: List<IdeaLink>? = null,
     val columnId: String? = null,
+    val convertedToPublicationId: String? = null,
 ) : CommandWithResult<IdeaResult>
 
 data class MoveIdeaCommand(val ideaId: String, val columnId: String, val orderInColumn: Int) :
