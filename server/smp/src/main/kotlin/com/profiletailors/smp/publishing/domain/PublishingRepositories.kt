@@ -13,6 +13,8 @@ interface SocialAccountRepository {
     suspend fun upsert(account: SocialAccount): SocialAccount
 
     suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount?
+
+    suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount?
 }
 
 interface PublicationRepository {
@@ -150,4 +152,12 @@ object NoOpNotificationEventRepository : NotificationEventRepository {
         categories: Set<NotificationCategory>?,
         limit: Int,
     ): List<NotificationEvent> = emptyList()
+}
+
+interface BulkImportJobRepository {
+    suspend fun findByIdempotencyKey(idempotencyKey: String): BulkImportJob?
+    suspend fun findByWorkspaceAndId(workspaceId: String, jobId: String): BulkImportJob?
+    suspend fun save(job: BulkImportJob): BulkImportJob
+    suspend fun saveRows(rows: List<BulkImportRow>)
+    suspend fun findRows(jobId: String): List<BulkImportRow>
 }

@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.common.domain.bus.command.CommandWithResult
@@ -276,3 +278,38 @@ data class StaleJobItem(
     val attemptNumber: Int,
     val suggestedAction: String,
 )
+
+data class ValidateBulkCommand(val workspaceId: String, val csvText: String) : CommandWithResult<ValidateBulkResult>
+data class ValidateBulkResult(val rows: List<BulkRowResult>)
+data class BulkRowResult(
+    val rowIndex: Int,
+    val status: String,
+    val errors: List<BulkErrorResult>,
+    val bodyText: String? = null,
+    val scheduledFor: Instant? = null,
+    val mediaUrls: List<String> = emptyList(),
+    val hasConflict: Boolean = false,
+)
+data class BulkErrorResult(val code: String, val message: String)
+data class ScheduleBulkCommand(val workspaceId: String, val csvText: String, val csvHash: String) : CommandWithResult<ScheduleBulkResult>
+data class ScheduleBulkResult(
+    val jobId: String,
+    val totalRows: Int,
+    val scheduledCount: Int,
+    val failedCount: Int,
+    val rows: List<BulkRowResult>,
+)
+data class GetBulkJobQuery(val workspaceId: String, val jobId: String) : Query<BulkJobResult>
+data class BulkJobResult(
+    val jobId: String,
+    val status: String,
+    val totalRows: Int,
+    val scheduledCount: Int,
+    val failedCount: Int,
+    val rows: List<BulkRowResult>,
+)
+data class BulkTemplatesQuery(val workspaceId: String) : Query<BulkTemplatesResult>
+data class BulkTemplatesResult(val templates: List<BulkTemplateItem>)
+data class BulkTemplateItem(val id: String, val name: String, val description: String, val header: String)
+data class BulkTemplateCsvQuery(val workspaceId: String, val templateId: String) : Query<BulkTemplateCsvResult>
+data class BulkTemplateCsvResult(val csv: String, val header: String)

@@ -10,6 +10,7 @@ import { useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
 import CreatePostModal from '@modules/publishing/presentation/components/CreatePostModal.vue'
 import PostDetailModal from '@modules/publishing/presentation/components/PostDetailModal.vue'
 import RecurringScheduleModal from '@modules/publishing/presentation/components/RecurringScheduleModal.vue'
+import BulkImportModal from '@modules/publishing/presentation/components/BulkImportModal.vue'
 import CalendarHeader from '@modules/publishing/presentation/components/CalendarHeader.vue'
 import CalendarCell from '@modules/publishing/presentation/components/CalendarCell.vue'
 import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
@@ -39,6 +40,7 @@ const currentBaseDate = computed(() => {
 
 
 const isModalOpen = ref(false)
+const isBulkModalOpen = ref(false)
 const selectedCellDate = ref<string | undefined>(undefined)
 const editingPublication = ref<Publication | null>(null)
 const editingRecurringSchedule = ref<RecurringSchedule | null>(null)
@@ -487,6 +489,12 @@ async function handleUpdated() {
   })
 }
 
+function handleBulkScheduled(jobId: string) {
+  isBulkModalOpen.value = false
+  toast.success(`Bulk job ${jobId} scheduled`)
+  handleUpdated()
+}
+
 function onPostCreated(options: { keepOpen?: boolean } = {}) {
   if (!options.keepOpen) isModalOpen.value = false
   toast.success(t('composer.scheduleSuccessToast'))
@@ -568,6 +576,9 @@ watch(
       @change:filter="handleHeaderFilterChange"
       @new-post="openNewPostGeneral"
     />
+    <div class="flex justify-end">
+      <Button data-testid="open-bulk-import" variant="outline" class="gap-2" @click="isBulkModalOpen = true">Bulk Import</Button>
+    </div>
 
     <!-- Reconnect prompt for LinkedIn accounts requiring re-authentication -->
     <div
@@ -914,6 +925,8 @@ watch(
       @retried="onReschedule"
       @edit="handleEditPublication"
     />
+
+    <BulkImportModal :is-open="isBulkModalOpen" @close="isBulkModalOpen = false" @scheduled="handleBulkScheduled" />
 
     <RecurringScheduleModal
       :is-open="Boolean(editingRecurringSchedule)"

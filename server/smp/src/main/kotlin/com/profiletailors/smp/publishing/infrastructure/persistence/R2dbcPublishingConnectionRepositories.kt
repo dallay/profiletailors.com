@@ -109,6 +109,20 @@ class R2dbcSocialAccountRepository(
             .map { row, _ -> row.toSocialAccount() }
             .one()
             .awaitSingleOrNull()
+
+    override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = databaseClient.sql(
+        """
+        SELECT id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, avatar_url, status, created_at
+        FROM social_accounts
+        WHERE workspace_id = :workspaceId AND status = 'ACTIVE'
+        ORDER BY created_at ASC
+        LIMIT 1
+        """.trimIndent(),
+    )
+        .bind("workspaceId", workspaceId)
+        .map { row, _ -> row.toSocialAccount() }
+        .one()
+        .awaitSingleOrNull()
 }
 
 @Suppress("StringLiteralDuplication")

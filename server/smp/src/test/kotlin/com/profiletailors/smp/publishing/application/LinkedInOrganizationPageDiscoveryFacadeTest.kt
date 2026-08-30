@@ -222,6 +222,8 @@ class LinkedInOrganizationPageDiscoveryFacadeTest {
         override suspend fun upsert(account: SocialAccount): SocialAccount = account
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? =
             account.takeIf { it.workspaceId == workspaceId && it.id == accountId }
+        override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? =
+            account.takeIf { it.workspaceId == workspaceId }
     }
 
     private class InMemoryApprovalEvidenceRepository(

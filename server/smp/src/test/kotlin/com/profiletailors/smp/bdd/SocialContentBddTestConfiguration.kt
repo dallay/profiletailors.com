@@ -12,6 +12,7 @@ import com.profiletailors.smp.publishing.domain.RetentionRequirements
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
+import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialComment
 import com.profiletailors.smp.publishing.domain.SocialContentActor
 import com.profiletailors.smp.publishing.domain.SocialContentActorRepository
@@ -146,6 +147,11 @@ class SocialContentBddState {
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? =
             socialAccounts[workspaceId to accountId]
+
+        override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? =
+            socialAccounts.values.firstOrNull {
+                it.workspaceId == workspaceId && it.status == SocialConnectionStatus.ACTIVE
+            }
     }
     val provider = BddProvider()
     val content = BddContentStore()
