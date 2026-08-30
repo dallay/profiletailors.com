@@ -359,10 +359,9 @@ swarm-remove:
     node scripts/run-shell-script.mjs infra/apps/smp/swarm/remove.sh
 
 # ═══════════════════════════════════════════════════════════════
-# DOCUMENTATION & LICENCE COMPLIANCE
+# LICENCE COMPLIANCE
 # ═══════════════════════════════════════════════════════════════
 
-# Validate documentation "Last Updated" dates against git history
 doc-check:
     @echo "▸ Documentation date freshness check..."
     node scripts/check-doc-last-updated.mjs

@@ -2,6 +2,11 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+/**
+ * Recursively finds Markdown files in a directory.
+ * @param {string} dir - The directory to search.
+ * @returns {string[]} The paths of matching Markdown files, or an empty array if the directory does not exist.
+ */
 function getDocFiles(dir) {
   let results = [];
   if (!fs.existsSync(dir)) return results;
@@ -38,10 +43,14 @@ for (const file of docFiles) {
     let gitDate = '';
     try {
       gitDate = execFileSync('git', ['log', '-1', '--format=%cd', '--date=short', '--', file], {
-        stdio: ['pipe', 'pipe', 'ignore'],
-      }).toString().trim();
-    } catch {
-      // Untracked or git error
+        encoding: 'utf-8',
+      }).trim();
+    } catch (error) {
+      console.error(`Git error for ${file}: ${error.message}`);
+      if (error.stderr) {
+        console.error(error.stderr);
+      }
+      hasErrors = true;
     }
     if (gitDate && docDate < gitDate) {
       console.error(
