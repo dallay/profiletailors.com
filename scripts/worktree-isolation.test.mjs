@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -36,6 +36,40 @@ test('exports worktree runtime and dynamic Compose defaults', () => {
   assert.equal(compose.COMPOSE_PROJECT_NAME, context.composeProjectName)
   assert.equal(compose.SMP_POSTGRES_PORT, process.env.SMP_POSTGRES_PORT || '0')
   assert.equal(compose.WIREMOCK_HOST_PORT, process.env.WIREMOCK_HOST_PORT || '0')
+})
+
+test('uses the root env CORS allow-list when the process environment omits it', () => {
+  const root = mkdtempSync(join(tmpdir(), 'profiletailors-cors-'))
+  const runtimeDir = join(root, '.worktree')
+  const context = {
+    root,
+    runtimeDir,
+    runDir: join(runtimeDir, 'run'),
+    logDir: join(runtimeDir, 'logs'),
+    storageDir: join(runtimeDir, 'storage'),
+    worktreeId: 'pt-test-cors',
+    composeProjectName: 'pt-test-cors',
+    corsOrigins: ['https://pt-app.localhost'],
+  }
+
+  writeFileSync(
+    join(root, '.env'),
+    'SMP_CORS_ALLOWED_ORIGINS=https://pt-app.localhost:1355,https://pt-admin.localhost:1355\n',
+  )
+
+  const previous = process.env.SMP_CORS_ALLOWED_ORIGINS
+  delete process.env.SMP_CORS_ALLOWED_ORIGINS
+
+  try {
+    assert.equal(
+      getRuntimeEnvironment(context).SMP_CORS_ALLOWED_ORIGINS,
+      'https://pt-app.localhost:1355,https://pt-admin.localhost:1355',
+    )
+  } finally {
+    if (previous === undefined) delete process.env.SMP_CORS_ALLOWED_ORIGINS
+    else process.env.SMP_CORS_ALLOWED_ORIGINS = previous
+    rmSync(root, { recursive: true, force: true })
+  }
 })
 
 test('exposes the runtime port allocator', () => {

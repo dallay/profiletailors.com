@@ -109,7 +109,11 @@ export function getRuntimeEnvironment(context = getWorktreeContext(), overrides 
     WORKTREE_ROOT: context.root,
     WORKTREE_RUNTIME_DIR: context.runtimeDir,
     COMPOSE_PROJECT_NAME: context.composeProjectName,
-    SMP_CORS_ALLOWED_ORIGINS: process.env.SMP_CORS_ALLOWED_ORIGINS || context.corsOrigins.join(','),
+    SMP_CORS_ALLOWED_ORIGINS: envFileValue(
+      context.root,
+      'SMP_CORS_ALLOWED_ORIGINS',
+      context.corsOrigins.join(','),
+    ),
     SMP_PUBLIC_APP_URL: process.env.SMP_PUBLIC_APP_URL || context.appUrl,
     SMP_STORAGE_LOCAL_BASE_PATH: process.env.SMP_STORAGE_LOCAL_BASE_PATH || context.storageDir,
     LOGGING_FILE_NAME: process.env.LOGGING_FILE_NAME || resolve(context.logDir, 'smp.log'),
