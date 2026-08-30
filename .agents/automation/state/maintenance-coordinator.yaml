@@ -11,4 +11,4 @@ checks:
   - name: automation-control-plane-aggregation
     target: .agents/automation/state
     status: Passed
-    notes: Aggregated status across 20 tasks (9 healthy executed, 11 pending initial run).
+    notes: Aggregated status across 20 tasks (10 healthy executed, 10 pending initial run).

@@ -42,8 +42,8 @@ Audit and aggregate the operational status of all automation tasks across the re
 ## Summary Statistics
 
 - **Total Tasks:** 20
-- **Healthy Executed Tasks:** 9
-- **Unexecuted Tasks (Awaiting Schedule):** 11
+- **Healthy Executed Tasks:** 10
+- **Unexecuted Tasks (Awaiting Schedule):** 10
 - **Tasks with Unresolved Findings:** 0
 - **Tasks with Blockers or State Mismatches:** 0
 
@@ -64,7 +64,7 @@ None. Consolidated and updated maintenance coordinator state and report.
 | Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
 | `automation-tasks-audit` | `.agents/automation/tasks` | Passed | Audited all 20 automation task definitions, state YAML files, and report Markdown files. |
-| `automation-control-plane-aggregation` | `.agents/automation/state` | Passed | Aggregated status across 20 tasks (9 healthy executed, 11 pending initial run). |
+| `automation-control-plane-aggregation` | `.agents/automation/state` | Passed | Aggregated status across 20 tasks (10 healthy executed, 10 pending initial run). |
 
 ## Unresolved Findings
 
@@ -87,4 +87,4 @@ None.
 
 ## Human Review Notes
 
-All 20 task control plane files are present, valid, and aligned. 9 tasks have recorded successful executions without unresolved findings, while 11 tasks are awaiting their initial scheduled run.
+All 20 task control plane files are present, valid, and aligned. 10 tasks have recorded successful executions without unresolved findings, while 10 tasks are awaiting their initial scheduled run.
