@@ -19,6 +19,19 @@ private val BLOCKED_LICENCES = listOf(
     // Add BSL-1.1, SSPL-1.0 here if any dependency adopts them.
 )
 
+/**
+ * Convention plugin for dependency licence reporting and validation.
+ *
+ * **Known Issue:** The underlying `com.github.jk1.dependency-license-report` plugin (v3.1.4)
+ * is not compatible with Gradle's configuration cache. When running `generateLicenseReport`,
+ * disable configuration cache with:
+ * ```
+ * ./gradlew generateLicenseReport --no-configuration-cache
+ * ```
+ *
+ * This plugin validates that no AGPL-3.0-incompatible licences (e.g., GPL-2.0) are present
+ * in the dependency graph and fails the build if violations are detected.
+ */
 @Suppress("unused")
 internal class LicenceReportPlugin : ConventionPlugin {
     override fun Project.configure() {
@@ -43,6 +56,8 @@ internal class LicenceReportPlugin : ConventionPlugin {
 
         // Fail the build if a blocked licence is found in the generated JSON report.
         tasks.named("generateLicenseReport").configure {
+            notCompatibleWithConfigurationCache("Plugin com.github.jk1.dependency-license-report accesses Task.project at execution time")
+
             doLast {
                 val report = jsonReport.get().asFile
                 if (!report.exists()) return@doLast

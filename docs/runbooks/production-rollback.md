@@ -55,13 +55,28 @@ REPLACEMENT_TASK_ID="$(docker service ps profiletailors-smp_backend \
   --filter desired-state=running --format '{{.ID}}' | head -n 1)"
 docker inspect "$REPLACEMENT_TASK_ID" --format '{{.Status.State}}'
 
-# 5. Verify the replacement task has emitted no polling log entries
-docker service logs "$REPLACEMENT_TASK_ID" 2>&1 \
-  | grep -E 'Polling for next due publication job|Released expired publication-job claims'
+# 5. Confirm the replacement task has the safe-off environment variable set
+docker inspect "$REPLACEMENT_TASK_ID" --format '{{range .Spec.ContainerSpec.Env}}{{println .}}{{end}}' \
+  | grep 'SMP_PUBLISHING_WORKER_ENABLED=false'
+
+# 6. Wait for at least one full polling interval (default PT30S = 30 seconds)
+# before checking logs to ensure any in-flight polling cycle has completed
+sleep 35
+
+# 7. Verify the replacement task has emitted no polling log entries
+if docker service logs "$REPLACEMENT_TASK_ID" 2>&1 | grep -qE 'Polling for next due publication job|Released expired publication-job claims'; then
+  echo "ERROR: Worker polling detected after safe-off. Aborting rollback."
+  exit 1
+fi
+
+echo "✓ Worker polling successfully disabled."
 ```
 
-Do not continue until the replacement task's state is `running` and the final
-command returns no matches (exit status `1`).
+Do not continue until:
+- The replacement task's state is `running`
+- Step 5 confirms `SMP_PUBLISHING_WORKER_ENABLED=false`
+- Step 6 wait period has elapsed (longer than the effective polling interval)
+- Step 7 finds no polling log entries (command returns exit status `1` from grep, not docker failure)
 
 > **Note:** Disabling the worker halts poll execution safely. Queued publication jobs remain in `publication_jobs` with status `PENDING` or `CLAIMED` without data loss.
 

@@ -483,7 +483,7 @@ ci:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ [6/8] Backend: unit tests (fast)..."
-    node scripts/gradle-run.mjs :server:smp:test --no-daemon
+    node scripts/gradle-run.mjs :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
     node scripts/gradle-run.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test

@@ -1,7 +1,7 @@
 # Data Retention — Quick Reference (Current State)
 
 > **For:** On-call operators, compliance officers
-> **Updated:** 2026-08-02
+> **Last Updated:** 2026-08-30
 >
 > **Note:** The `/api/governance/retention/*` governance API is **planned, not implemented**.
 > Do not script against it. This card covers only what runs today.
