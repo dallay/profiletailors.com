@@ -21,6 +21,9 @@ private val BLOCKED_LICENCES = listOf(
 
 @Suppress("unused")
 internal class LicenceReportPlugin : ConventionPlugin {
+    /**
+     * Configures dependency license reporting and fails the build when blocked licenses are detected.
+     */
     override fun Project.configure() {
         apply(plugin = "com.github.jk1.dependency-license-report")
 
