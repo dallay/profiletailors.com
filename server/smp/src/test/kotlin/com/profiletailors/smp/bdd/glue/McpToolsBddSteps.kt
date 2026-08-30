@@ -173,9 +173,14 @@ class McpToolsBddSteps {
         val expected = dataTable.asList(String::class.java).toSet()
         val body: Map<String, Any?> = objectMapper.readValue(raw)
 
-        val tools = (body["tools"] as? List<*>)
-            .orEmpty()
-            .mapNotNull { (it as? Map<*, *>)?.get("name") as? String }
+        val toolEntries = body["tools"] as? List<*>
+            ?: error("Expected MCP response field 'tools' to be a list")
+        val tools = toolEntries.mapIndexed { index, entry ->
+            val tool = entry as? Map<*, *>
+                ?: error("Expected MCP response tools[$index] to be an object")
+            tool["name"] as? String
+                ?: error("Expected MCP response tools[$index].name to be a string")
+        }
             .toSet()
         tools shouldBe expected
     }

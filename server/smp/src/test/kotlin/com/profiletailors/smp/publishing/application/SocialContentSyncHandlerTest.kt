@@ -464,7 +464,9 @@ class SocialContentSyncHandlerTest {
             cursor: com.profiletailors.smp.publishing.domain.PageCursor?,
             pageSize: Int,
         ): SocialContentPage<SocialPost> = when (val step = steps[index++]) {
-            is Throwable -> throw step
+            is Throwable -> {
+                throw step
+            }
             else -> {
                 val page = step as? SocialContentPage<*>
                     ?: error("Expected a SocialContentPage or Throwable, got ${step::class.simpleName}")

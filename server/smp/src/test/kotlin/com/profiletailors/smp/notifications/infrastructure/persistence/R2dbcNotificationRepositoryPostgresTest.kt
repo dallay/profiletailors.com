@@ -24,6 +24,7 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import kotlin.math.abs
 import kotlin.test.assertTrue
 
 @Tag("postgres")
@@ -124,10 +125,8 @@ class R2dbcNotificationRepositoryPostgresTest : PostgresDatabaseTestBase() {
 
         val found = requireNotNull(repository.findByIdempotencyKey(written.idempotencyKey))
         assertEquals(NotificationStatus.SENT, found.status)
-        // Instant equality may lose microsecond precision across the JSONB roundtrip
-        // depending on driver settings — comparing via after() to be safe.
         val persistedSentAt = requireNotNull(found.sentAt)
-        assertTrue(persistedSentAt.toEpochMilli() >= sentAt.toEpochMilli() - 1000)
+        assertTrue(abs(persistedSentAt.toEpochMilli() - sentAt.toEpochMilli()) <= 1000)
         assertNull(found.failedAt)
         assertNull(found.errorMessage)
     }

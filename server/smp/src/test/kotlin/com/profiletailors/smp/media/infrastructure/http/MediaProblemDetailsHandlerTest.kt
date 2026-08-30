@@ -179,7 +179,7 @@ class MediaProblemDetailsHandlerTest {
     }
 
     @Test
-    fun `ResponseStatusException CONTENT_TOO_LARGE → FILE_TOO_LARGE code`() {
+    fun `should map CONTENT_TOO_LARGE to FILE_TOO_LARGE when given a ResponseStatusException`() {
         val exception = ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE, "File too large")
         val result = handler.handle(exception)
 
