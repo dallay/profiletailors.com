@@ -71,6 +71,7 @@ export default {
       notesPlaceholder: 'Agrega notas con markdown...',
       tagsPlaceholder: 'Agrega una etiqueta y presiona Enter',
       linkLabelPlaceholder: 'Etiqueta (opcional)',
+      linkUrlLabel: 'URL del enlace',
     },
     validation: {
       titleRequired: 'El título es obligatorio',
