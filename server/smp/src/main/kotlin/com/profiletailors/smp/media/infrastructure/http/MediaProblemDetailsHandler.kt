@@ -161,7 +161,8 @@ class MediaProblemDetailsHandler {
      * Converts a response status exception into a problem detail response.
      *
      * @param exception The response status exception to convert.
-     * @return A problem detail containing the exception's status and reason, with file-size errors represented using the file-too-large format.
+     * @return A problem detail containing the exception's status and reason.
+     *     File-size errors are represented using the file-too-large format.
      */
     @ExceptionHandler(ResponseStatusException::class)
     fun handle(exception: ResponseStatusException): ProblemDetail {
