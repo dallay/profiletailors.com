@@ -5,7 +5,7 @@ import type { Idea, IdeaColumn } from '@modules/ideas/domain'
 import IdeasView from './IdeasView.vue'
 
 vi.mock('vue-i18n', async (importOriginal) => {
-  const actual = await importOriginal() as Record<string, unknown>
+  const actual = (await importOriginal()) as Record<string, unknown>
   return {
     ...(actual as object),
     useI18n: () => ({ t: (key: string) => key }),
@@ -60,7 +60,8 @@ vi.mock('@modules/publishing/presentation/components/CreatePostModal.vue', () =>
   default: {
     name: 'CreatePostModal',
     props: ['isOpen', 'initialContent', 'editingPublication'],
-    template: '<div data-testid="create-post-modal" :data-open="String(isOpen)" :data-prefill="initialContent ?? \'\'"></div>',
+    template:
+      '<div data-testid="create-post-modal" :data-open="String(isOpen)" :data-prefill="initialContent ?? \'\'"></div>',
   },
 }))
 
@@ -203,7 +204,8 @@ const composerStub = {
   name: 'IdeaComposerModal',
   props: ['open', 'idea', 'columns', 'initialColumnId'],
   emits: ['handoff', 'update:open', 'close', 'saved', 'deleted'],
-  template: '<div data-testid="idea-composer-modal" :data-open="String(open)" :data-idea="idea ? idea.id : \'null\'" :data-initial-column="initialColumnId ?? \'null\'"><slot /></div>',
+  template:
+    '<div data-testid="idea-composer-modal" :data-open="String(open)" :data-idea="idea ? idea.id : \'null\'" :data-initial-column="initialColumnId ?? \'null\'"><slot /></div>',
 }
 
 function mountIdeasView() {
@@ -426,7 +428,10 @@ describe('IdeasView accessibility', () => {
     await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
     await nextTick()
     const laneAdds = wrapper.findAll('[data-testid="idea-lane-add"]')
-    const doneAdd = laneAdds.find((b) => b.element.closest('[data-testid="idea-lane"]')?.textContent?.includes('Done')) ?? laneAdds[1]
+    const doneAdd =
+      laneAdds.find((b) =>
+        b.element.closest('[data-testid="idea-lane"]')?.textContent?.includes('Done'),
+      ) ?? laneAdds[1]
     if (doneAdd) {
       await doneAdd.trigger('click')
       await nextTick()
@@ -614,9 +619,15 @@ describe('IdeasView accessibility', () => {
     const wrapper = mountIdeasView()
     await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
     await nextTick()
-    const composer = wrapper.findComponent({ name: 'IdeaComposerModal' } as never) as unknown as { exists: () => boolean; vm: { $emit: (e: string, p: unknown) => void } }
+    const composer = wrapper.findComponent({ name: 'IdeaComposerModal' } as never) as unknown as {
+      exists: () => boolean
+      vm: { $emit: (e: string, p: unknown) => void }
+    }
     expect(composer.exists()).toBe(true)
-    await (composer.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit('handoff', { ideaId: 'idea-1', prefill: 'Title\n\nNotes\n\n#vue' })
+    await (composer.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit('handoff', {
+      ideaId: 'idea-1',
+      prefill: 'Title\n\nNotes\n\n#vue',
+    })
     await nextTick()
     const publishing = wrapper.find('[data-testid="create-post-modal"]')
     expect(publishing.exists()).toBe(true)
@@ -627,18 +638,35 @@ describe('IdeasView accessibility', () => {
   it('associate keeps idea in same column after publishing success', async () => {
     ideasStore.ideas = [makeTestIdea('idea-1', 'raw', 0)]
     ideasStore.ideasByColumn = { raw: [...ideasStore.ideas], done: [] }
-    ideasStore.updateIdea = vi.fn().mockResolvedValue({ ...makeTestIdea('idea-1', 'raw', 0), convertedToPublicationId: 'pub-9' })
+    ideasStore.updateIdea = vi
+      .fn()
+      .mockResolvedValue({ ...makeTestIdea('idea-1', 'raw', 0), convertedToPublicationId: 'pub-9' })
     const wrapper = mountIdeasView()
     await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
     await nextTick()
-    const composer = wrapper.findComponent({ name: 'IdeaComposerModal' } as never) as unknown as { exists: () => boolean; vm: { $emit: (e: string, p: unknown) => void } }
+    const composer = wrapper.findComponent({ name: 'IdeaComposerModal' } as never) as unknown as {
+      exists: () => boolean
+      vm: { $emit: (e: string, p: unknown) => void }
+    }
     expect(composer.exists()).toBe(true)
-    await (composer.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit('handoff', { ideaId: 'idea-1', prefill: 'prefill' })
+    await (composer.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit('handoff', {
+      ideaId: 'idea-1',
+      prefill: 'prefill',
+    })
     await nextTick()
-    const publishing = wrapper.findComponent({ name: 'CreatePostModal' } as never) as unknown as { exists: () => boolean; vm: { $emit: (e: string, p: unknown) => void } }
+    const publishing = wrapper.findComponent({ name: 'CreatePostModal' } as never) as unknown as {
+      exists: () => boolean
+      vm: { $emit: (e: string, p: unknown) => void }
+    }
     expect(publishing.exists()).toBe(true)
-    await (publishing.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit('created', { publicationId: 'pub-9' })
+    await (publishing.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit(
+      'created',
+      { publicationId: 'pub-9' },
+    )
     await flushPromises()
-    expect(ideasStore.updateIdea).toHaveBeenCalledWith('idea-1', expect.objectContaining({ convertedToPublicationId: 'pub-9' }))
+    expect(ideasStore.updateIdea).toHaveBeenCalledWith(
+      'idea-1',
+      expect.objectContaining({ convertedToPublicationId: 'pub-9' }),
+    )
   })
 })

@@ -11,7 +11,8 @@ vi.mock('@modules/ideas/presentation/components/IdeaCard.vue', () => ({
   default: {
     props: ['idea'],
     emits: ['select'],
-    template: '<button :data-dnd-draggable="idea.id" @click="$emit(\'select\', idea.id)"><slot /></button>',
+    template:
+      '<button :data-dnd-draggable="idea.id" @click="$emit(\'select\', idea.id)"><slot /></button>',
   },
 }))
 
@@ -97,7 +98,10 @@ describe('IdeaLane', () => {
     })
     const stubCard = wrapper.findComponent({ name: 'IdeaCard' } as never)
     if (stubCard.exists()) {
-      await (stubCard as unknown as { vm: { $emit: (e: string, v: string) => void } }).vm.$emit('select', 'idea-99')
+      await (stubCard as unknown as { vm: { $emit: (e: string, v: string) => void } }).vm.$emit(
+        'select',
+        'idea-99',
+      )
       expect(wrapper.emitted('selectIdea')?.[0]).toEqual(['idea-99'])
     } else {
       const el = wrapper.find('[data-dnd-draggable="idea-99"]')

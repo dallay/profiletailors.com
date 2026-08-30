@@ -335,11 +335,16 @@ describe('ideas store actions', () => {
   it('associate does not auto-move or delete on success and handles null', async () => {
     const { auth, store } = prepareStore()
     store.ideas.push(makeIdea('idea-1', 'raw', 0), makeIdea('idea-2', 'raw', 1))
-    const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({ ...makeIdea('idea-1', 'raw', 0), convertedToPublicationId: null })
+    const apiFetch = vi
+      .spyOn(auth, 'apiFetch')
+      .mockResolvedValue({ ...makeIdea('idea-1', 'raw', 0), convertedToPublicationId: null })
     await store.associatePublication('idea-1', null)
     expect(store.ideas.map((i) => i.id)).toContain('idea-1')
     expect(store.ideas.find((i) => i.id === 'idea-1')?.columnId).toBe('raw')
-    expect(apiFetch).toHaveBeenCalledWith('/api/ideas/idea-1', expect.objectContaining({ body: JSON.stringify({ convertedToPublicationId: null }) }))
+    expect(apiFetch).toHaveBeenCalledWith(
+      '/api/ideas/idea-1',
+      expect.objectContaining({ body: JSON.stringify({ convertedToPublicationId: null }) }),
+    )
   })
 
   it('associate restores saving flag after error and does not mark converted on failure', async () => {

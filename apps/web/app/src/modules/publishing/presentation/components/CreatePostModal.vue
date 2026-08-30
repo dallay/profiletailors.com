@@ -111,7 +111,7 @@ const postText = ref('')
 const selectedChannelId = ref<string | null>(null)
 
 const markdownEditor = useMarkdownEditor({ postText: postText })
-const composerTextareaEl = markdownEditor.textareaEl
+const _composerTextareaEl = markdownEditor.textareaEl
 
 const picker = useComposerMediaPicker({
   mediaStore,
@@ -263,7 +263,7 @@ async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
 
 function initCreateMode() {
   const hasPrefill = typeof props.initialContent === 'string' && props.initialContent.trim().length > 0
-  postText.value = hasPrefill ? props.initialContent!.trim() : ''
+  postText.value = hasPrefill ? props.initialContent?.trim() : ''
   firstComment.value = ''
   priorityMode.value = false
   scheduleMode.value = props.initialDate ? 'custom' : 'now'

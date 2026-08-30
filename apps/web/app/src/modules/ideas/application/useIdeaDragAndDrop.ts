@@ -196,7 +196,10 @@ export function useIdeaDragAndDrop(options: UseIdeaDragAndDropOptions) {
   }
 
   watch(
-    () => options.boardColumns.value.map((c) => `${c.id}:${c.ideas.map((i) => i.id).join(',')}`).join('|'),
+    () =>
+      options.boardColumns.value
+        .map((c) => `${c.id}:${c.ideas.map((i) => i.id).join(',')}`)
+        .join('|'),
     async () => {
       await nextTick()
       registerDragAndDrop()

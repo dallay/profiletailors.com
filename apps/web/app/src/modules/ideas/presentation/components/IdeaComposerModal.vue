@@ -246,7 +246,6 @@ async function handleCreatePost(): Promise<void> {
             data-testid="composer-column-select-native"
             v-model="composer.columnId.value"
             class="hidden"
-            aria-hidden="true"
           >
             <option v-for="col in columns" :key="`native-${col.id}`" :value="col.id">{{ col.name }}</option>
           </select>
@@ -315,14 +314,16 @@ async function handleCreatePost(): Promise<void> {
         </div>
 
         <div class="space-y-2">
-          <label class="text-sm font-medium">{{ t('ideas.fields.links') }}</label>
+          <label class="text-sm font-medium" for="idea-composer-link-label">{{ t('ideas.fields.links') }}</label>
           <div class="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <Input
+              id="idea-composer-link-label"
               data-testid="composer-link-label"
               v-model="linkLabel"
               :placeholder="t('ideas.composer.fields.linkLabelPlaceholder')"
             />
             <Input
+              id="idea-composer-link-url"
               data-testid="composer-link-url"
               v-model="linkUrl"
               placeholder="https://example.com"

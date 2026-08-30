@@ -101,7 +101,10 @@ describe('useIdeaDragAndDrop', () => {
 
   it('registers drag sources and drop targets for columns and cards', async () => {
     const boardColumns = ref([
-      { ...makeColumn('raw', 0), ideas: [makeIdea('idea-1', 'raw', 0), makeIdea('idea-2', 'raw', 1)] },
+      {
+        ...makeColumn('raw', 0),
+        ideas: [makeIdea('idea-1', 'raw', 0), makeIdea('idea-2', 'raw', 1)],
+      },
       { ...makeColumn('done', 1), ideas: [makeIdea('idea-3', 'done', 0)] },
     ])
     const { setColumnRef, setCardRef } = useIdeaDragAndDrop({
@@ -145,14 +148,38 @@ describe('useIdeaDragAndDrop', () => {
     const boardColumns = ref([{ ...makeColumn('raw', 0), ideas: [first, second] }])
     const { setCardRef, setColumnRef, getDropIndex } = useIdeaDragAndDrop({
       boardColumns: boardColumns as never,
-      ideasStore: { ideas: [first, second], ideasByColumn: { raw: [first, second] }, moveIdea: ideasStore.moveIdea } as never,
+      ideasStore: {
+        ideas: [first, second],
+        ideasByColumn: { raw: [first, second] },
+        moveIdea: ideasStore.moveIdea,
+      } as never,
       dependencies: mockDnd as never,
     })
 
     const cardEl1 = document.createElement('div')
-    vi.spyOn(cardEl1, 'getBoundingClientRect').mockReturnValue({ top: 100, height: 40, left: 0, right: 0, bottom: 140, width: 0, x: 0, y: 0, toJSON: () => {} } as DOMRect)
+    vi.spyOn(cardEl1, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      height: 40,
+      left: 0,
+      right: 0,
+      bottom: 140,
+      width: 0,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    } as DOMRect)
     const cardEl2 = document.createElement('div')
-    vi.spyOn(cardEl2, 'getBoundingClientRect').mockReturnValue({ top: 100, height: 40, left: 0, right: 0, bottom: 140, width: 0, x: 0, y: 0, toJSON: () => {} } as DOMRect)
+    vi.spyOn(cardEl2, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      height: 40,
+      left: 0,
+      right: 0,
+      bottom: 140,
+      width: 0,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    } as DOMRect)
     setCardRef('idea-1', cardEl1)
     setCardRef('idea-2', cardEl2)
     setColumnRef('raw', document.createElement('div'))
@@ -166,16 +193,30 @@ describe('useIdeaDragAndDrop', () => {
     const monitor = latestMonitor()
     monitor.onDragStart({ source: { data: { ideaId: 'idea-2' } } })
     await monitor.onDrop(
-      dropEvent({ ideaId: 'idea-2' }, [{ data: { kind: 'card', columnId: 'raw', ideaId: 'idea-1' } }], 90),
+      dropEvent(
+        { ideaId: 'idea-2' },
+        [{ data: { kind: 'card', columnId: 'raw', ideaId: 'idea-1' } }],
+        90,
+      ),
     )
-    expect(ideasStore.moveIdea).toHaveBeenCalledWith('idea-2', { columnId: 'raw', orderInColumn: 0 })
+    expect(ideasStore.moveIdea).toHaveBeenCalledWith('idea-2', {
+      columnId: 'raw',
+      orderInColumn: 0,
+    })
 
     ideasStore.moveIdea.mockClear()
     monitor.onDragStart({ source: { data: { ideaId: 'idea-1' } } })
     await monitor.onDrop(
-      dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'card', columnId: 'raw', ideaId: 'idea-2' } }], 130),
+      dropEvent(
+        { ideaId: 'idea-1' },
+        [{ data: { kind: 'card', columnId: 'raw', ideaId: 'idea-2' } }],
+        130,
+      ),
     )
-    expect(ideasStore.moveIdea).toHaveBeenCalledWith('idea-1', { columnId: 'raw', orderInColumn: 1 })
+    expect(ideasStore.moveIdea).toHaveBeenCalledWith('idea-1', {
+      columnId: 'raw',
+      orderInColumn: 1,
+    })
   })
 
   it('moves across columns to end when dropping on column', async () => {
@@ -187,14 +228,23 @@ describe('useIdeaDragAndDrop', () => {
     ])
     useIdeaDragAndDrop({
       boardColumns: boardColumns as never,
-      ideasStore: { ideas: [first, second], ideasByColumn: { raw: [first], done: [second] }, moveIdea: ideasStore.moveIdea } as never,
+      ideasStore: {
+        ideas: [first, second],
+        ideasByColumn: { raw: [first], done: [second] },
+        moveIdea: ideasStore.moveIdea,
+      } as never,
       dependencies: mockDnd as never,
     })
     await nextTick()
     await new Promise((r) => setTimeout(r, 0))
     const monitor = latestMonitor()
-    await monitor.onDrop(dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'column', columnId: 'done' } }]))
-    expect(ideasStore.moveIdea).toHaveBeenCalledWith('idea-1', { columnId: 'done', orderInColumn: 1 })
+    await monitor.onDrop(
+      dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'column', columnId: 'done' } }]),
+    )
+    expect(ideasStore.moveIdea).toHaveBeenCalledWith('idea-1', {
+      columnId: 'done',
+      orderInColumn: 1,
+    })
   })
 
   it('ignores invalid and no-op drops', async () => {
@@ -203,17 +253,29 @@ describe('useIdeaDragAndDrop', () => {
     const boardColumns = ref([{ ...makeColumn('raw', 0), ideas: [first, second] }])
     useIdeaDragAndDrop({
       boardColumns: boardColumns as never,
-      ideasStore: { ideas: [first, second], ideasByColumn: { raw: [first, second] }, moveIdea: ideasStore.moveIdea } as never,
+      ideasStore: {
+        ideas: [first, second],
+        ideasByColumn: { raw: [first, second] },
+        moveIdea: ideasStore.moveIdea,
+      } as never,
       dependencies: mockDnd as never,
     })
     await nextTick()
     await new Promise((r) => setTimeout(r, 0))
     const monitor = latestMonitor()
     await monitor.onDrop(dropEvent({}, [{ data: { kind: 'column', columnId: 'raw' } }]))
-    await monitor.onDrop(dropEvent({ ideaId: 'missing' }, [{ data: { kind: 'column', columnId: 'raw' } }]))
+    await monitor.onDrop(
+      dropEvent({ ideaId: 'missing' }, [{ data: { kind: 'column', columnId: 'raw' } }]),
+    )
     await monitor.onDrop(dropEvent({ ideaId: 'idea-1' }, []))
-    await monitor.onDrop(dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'unsupported', columnId: 'raw' } }]))
-    await monitor.onDrop(dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'card', columnId: 'raw', ideaId: 'idea-1' } }]))
+    await monitor.onDrop(
+      dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'unsupported', columnId: 'raw' } }]),
+    )
+    await monitor.onDrop(
+      dropEvent({ ideaId: 'idea-1' }, [
+        { data: { kind: 'card', columnId: 'raw', ideaId: 'idea-1' } },
+      ]),
+    )
     expect(ideasStore.moveIdea).not.toHaveBeenCalled()
   })
 
@@ -222,7 +284,11 @@ describe('useIdeaDragAndDrop', () => {
     const boardColumns = ref([{ ...makeColumn('raw', 0), ideas: [first] }])
     const { unmount } = useIdeaDragAndDrop({
       boardColumns: boardColumns as never,
-      ideasStore: { ideas: [first], ideasByColumn: { raw: [first] }, moveIdea: ideasStore.moveIdea } as never,
+      ideasStore: {
+        ideas: [first],
+        ideasByColumn: { raw: [first] },
+        moveIdea: ideasStore.moveIdea,
+      } as never,
       dependencies: mockDnd as never,
     }) as { unmount: () => void } & Record<string, unknown>
 
@@ -249,7 +315,11 @@ describe('useIdeaDragAndDrop', () => {
     const boardColumns = ref([{ ...makeColumn('raw', 0), ideas: [first] }])
     const { draggedIdeaId } = useIdeaDragAndDrop({
       boardColumns: boardColumns as never,
-      ideasStore: { ideas: [first], ideasByColumn: { raw: [first] }, moveIdea: ideasStore.moveIdea } as never,
+      ideasStore: {
+        ideas: [first],
+        ideasByColumn: { raw: [first] },
+        moveIdea: ideasStore.moveIdea,
+      } as never,
       dependencies: mockDnd as never,
     })
     await nextTick()
@@ -257,7 +327,9 @@ describe('useIdeaDragAndDrop', () => {
     const monitor = latestMonitor()
     monitor.onDragStart({ source: { data: { ideaId: 'idea-1' } } })
     expect(draggedIdeaId.value).toBe('idea-1')
-    await monitor.onDrop(dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'column', columnId: 'raw' } }]))
+    await monitor.onDrop(
+      dropEvent({ ideaId: 'idea-1' }, [{ data: { kind: 'column', columnId: 'raw' } }]),
+    )
     expect(draggedIdeaId.value).toBeNull()
   })
 })

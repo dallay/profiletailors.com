@@ -11,7 +11,8 @@ vi.mock('./IdeaLane.vue', () => ({
   default: {
     props: ['column', 'ideas'],
     emits: ['add', 'selectIdea'],
-    template: '<div :data-dnd-column="column.id" data-testid="lane-stub">{{ column.name }}:{{ ideas.length }}</div>',
+    template:
+      '<div :data-dnd-column="column.id" data-testid="lane-stub">{{ column.name }}:{{ ideas.length }}</div>',
   },
 }))
 
@@ -90,9 +91,15 @@ describe('IdeaBoard', () => {
     })
     const lane = wrapper.findComponent({ name: 'IdeaLane' } as never)
     if (lane.exists()) {
-      await (lane as unknown as { vm: { $emit: (e: string, v: string) => void } }).vm.$emit('add', 'raw')
+      await (lane as unknown as { vm: { $emit: (e: string, v: string) => void } }).vm.$emit(
+        'add',
+        'raw',
+      )
       expect(wrapper.emitted('addIdea')?.[0]).toEqual(['raw'])
-      await (lane as unknown as { vm: { $emit: (e: string, v: string) => void } }).vm.$emit('selectIdea', 'idea-1')
+      await (lane as unknown as { vm: { $emit: (e: string, v: string) => void } }).vm.$emit(
+        'selectIdea',
+        'idea-1',
+      )
       expect(wrapper.emitted('selectIdea')?.[0]).toEqual(['idea-1'])
     }
   })

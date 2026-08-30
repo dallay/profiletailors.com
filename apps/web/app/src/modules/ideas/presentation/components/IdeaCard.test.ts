@@ -4,7 +4,9 @@ import IdeaCard from './IdeaCard.vue'
 import type { Idea } from '@modules/ideas/domain'
 
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key: string, params?: Record<string, unknown>) => `${key}:${JSON.stringify(params ?? {})}` }),
+  useI18n: () => ({
+    t: (key: string, params?: Record<string, unknown>) => `${key}:${JSON.stringify(params ?? {})}`,
+  }),
 }))
 
 function makeIdea(overrides: Partial<Idea> = {}): Idea {
@@ -66,7 +68,14 @@ describe('IdeaCard', () => {
 
   it('shows links count only if present', () => {
     const withLinks = mount(IdeaCard, {
-      props: { idea: makeIdea({ links: [{ url: 'https://a.com', label: null }, { url: 'https://b.com', label: null }] }) },
+      props: {
+        idea: makeIdea({
+          links: [
+            { url: 'https://a.com', label: null },
+            { url: 'https://b.com', label: null },
+          ],
+        }),
+      },
       global: { stubs: { Badge: { template: '<span><slot /></span>' } } },
     })
     expect(withLinks.find('[data-testid="idea-card-links"]').exists()).toBe(true)

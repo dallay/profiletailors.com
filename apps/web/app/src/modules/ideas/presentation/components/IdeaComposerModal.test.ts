@@ -5,7 +5,7 @@ import type { Idea, IdeaColumn } from '@modules/ideas/domain'
 import IdeaComposerModal from './IdeaComposerModal.vue'
 
 vi.mock('vue-i18n', async (importOriginal) => {
-  const actual = await importOriginal() as Record<string, unknown>
+  const actual = (await importOriginal()) as Record<string, unknown>
   return {
     ...(actual as object),
     useI18n: () => ({ t: (key: string, _?: unknown) => key }),
@@ -15,8 +15,19 @@ vi.mock('vue-i18n', async (importOriginal) => {
 vi.mock('@lucide/vue', () => {
   const icon = { template: '<span />' }
   return {
-    Bold: icon, Italic: icon, Strikethrough: icon, Heading: icon, List: icon, ListOrdered: icon, Quote: icon, Link: icon, Code: icon,
-    Trash2: icon, Plus: icon, X: icon, CalendarIcon: icon,
+    Bold: icon,
+    Italic: icon,
+    Strikethrough: icon,
+    Heading: icon,
+    List: icon,
+    ListOrdered: icon,
+    Quote: icon,
+    Link: icon,
+    Code: icon,
+    Trash2: icon,
+    Plus: icon,
+    X: icon,
+    CalendarIcon: icon,
   }
 })
 
@@ -74,13 +85,15 @@ const nativeInput = {
   inheritAttrs: false,
   props: ['modelValue'],
   emits: ['update:modelValue'],
-  template: '<input v-bind="$attrs" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+  template:
+    '<input v-bind="$attrs" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
 }
 const nativeTextarea = {
   inheritAttrs: false,
   props: ['modelValue'],
   emits: ['update:modelValue'],
-  template: '<textarea v-bind="$attrs" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
+  template:
+    '<textarea v-bind="$attrs" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)"></textarea>',
 }
 const nativeSelect = { template: '<div><slot /></div>' }
 
@@ -110,8 +123,23 @@ function mountModal(props: Record<string, unknown> = {}) {
         DialogTitle: passthrough,
         DialogDescription: passthrough,
         DialogFooter: passthrough,
-        MarkdownToolbar: { template: '<div data-testid="markdown-toolbar"><button data-testid="md-bold" @click="$emit(\'bold\')" /><button data-testid="md-italic" @click="$emit(\'italic\')" /></div>' },
-        ComposerSchedulePanel: { template: '<div data-testid="schedule-panel" />', props: ['scheduleMode', 'selectedCalendarDate', 'scheduleTime', 'isDatePickerOpen', 'todayDateValue', 'minTimeForDate', 'selectedDateLabel', 'scheduleHelperText'] },
+        MarkdownToolbar: {
+          template:
+            '<div data-testid="markdown-toolbar"><button data-testid="md-bold" @click="$emit(\'bold\')" /><button data-testid="md-italic" @click="$emit(\'italic\')" /></div>',
+        },
+        ComposerSchedulePanel: {
+          template: '<div data-testid="schedule-panel" />',
+          props: [
+            'scheduleMode',
+            'selectedCalendarDate',
+            'scheduleTime',
+            'isDatePickerOpen',
+            'todayDateValue',
+            'minTimeForDate',
+            'selectedDateLabel',
+            'scheduleHelperText',
+          ],
+        },
       },
     },
   })
@@ -132,7 +160,11 @@ describe('IdeaComposerModal', () => {
   it('renders edit mode when idea is provided', () => {
     const wrapper = mountModal({ idea: makeIdea({ title: 'Edit me' }) })
     expect(wrapper.text()).toContain('ideas.composer.editTitle')
-    expect(wrapper.find('input#idea-composer-title').exists() || wrapper.find('[data-testid="composer-title-input"]').exists() || wrapper.text().includes('Edit me')).toBeTruthy()
+    expect(
+      wrapper.find('input#idea-composer-title').exists() ||
+        wrapper.find('[data-testid="composer-title-input"]').exists() ||
+        wrapper.text().includes('Edit me'),
+    ).toBeTruthy()
   })
 
   it('shows title required validation and disables save', async () => {
@@ -210,7 +242,12 @@ describe('IdeaComposerModal', () => {
 
   it('duplicate save guard disables button while saving', async () => {
     let resolveSave: (v: unknown) => void = () => {}
-    mockCreateIdea.mockImplementation(() => new Promise((res) => { resolveSave = res as never }))
+    mockCreateIdea.mockImplementation(
+      () =>
+        new Promise((res) => {
+          resolveSave = res as never
+        }),
+    )
     const wrapper = mountModal({ idea: null })
     const titleInput = wrapper.find('#idea-composer-title')
     if (titleInput.exists()) {
@@ -324,7 +361,12 @@ describe('IdeaComposerModal', () => {
 
   it('emits handoff with deduped hashtags for existing idea', async () => {
     mockPublishingHasNoChannels.value = false
-    const idea = makeIdea({ id: 'idea-1', title: 'T', notes: 'Notes #kafka', tags: ['kafka', 'testing'] })
+    const idea = makeIdea({
+      id: 'idea-1',
+      title: 'T',
+      notes: 'Notes #kafka',
+      tags: ['kafka', 'testing'],
+    })
     const wrapper = mountModal({ idea })
     await nextTick()
     const createPost = wrapper.find('[data-testid="composer-create-post"]')

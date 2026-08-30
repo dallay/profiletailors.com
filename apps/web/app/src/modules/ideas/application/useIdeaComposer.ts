@@ -2,7 +2,13 @@ import { computed, ref, isRef, watch, type Ref } from 'vue'
 import { useMarkdownEditor } from '@modules/publishing/application/useMarkdownEditor'
 import { normalizeForSubmission } from '@modules/publishing/application/markdown'
 import { useComposerScheduling } from '@modules/publishing/application/useComposerScheduling'
-import type { Idea, IdeaColumn, CreateIdeaInput, UpdateIdeaInput, IdeaLink } from '@modules/ideas/domain'
+import type {
+  Idea,
+  IdeaColumn,
+  CreateIdeaInput,
+  UpdateIdeaInput,
+  IdeaLink,
+} from '@modules/ideas/domain'
 
 export type UseIdeaComposerOptions = {
   idea?: Idea | null | Ref<Idea | null>
@@ -52,8 +58,7 @@ export function buildPublishingPrefill(idea: Pick<Idea, 'title' | 'notes' | 'tag
   const hashtagsInNotes = new Set<string>()
   if (notes) {
     const re = /#([a-z0-9_]+)/gi
-    let m: RegExpExecArray | null
-    while ((m = re.exec(notes)) !== null) {
+    for (const m of notes.matchAll(re)) {
       const body = (m[1] ?? '').toLowerCase().replace(/[^a-z0-9_]/g, '')
       if (body) hashtagsInNotes.add(body)
     }
@@ -185,7 +190,9 @@ export function useIdeaComposer(options: UseIdeaComposerOptions) {
       return false
     }
     const normalizedUrl = urlTrimmed
-    const exists = links.value.some((l) => l.url.trim().toLowerCase() === normalizedUrl.toLowerCase())
+    const exists = links.value.some(
+      (l) => l.url.trim().toLowerCase() === normalizedUrl.toLowerCase(),
+    )
     if (exists) {
       linkError.value = 'Link already added'
       return false
@@ -213,7 +220,13 @@ export function useIdeaComposer(options: UseIdeaComposerOptions) {
     isSaving.value = false
   }
 
-  function buildSubmission(): { title: string; notes: string | null; tags: string[]; links: IdeaLink[]; columnId: string } {
+  function buildSubmission(): {
+    title: string
+    notes: string | null
+    tags: string[]
+    links: IdeaLink[]
+    columnId: string
+  } {
     const deduped = dedupeTags(tags.value)
     const normalizedNotesRaw = notes.value ? normalizeForSubmission(notes.value) : ''
     const normalizedNotes = normalizedNotesRaw.trim() ? normalizedNotesRaw : null
