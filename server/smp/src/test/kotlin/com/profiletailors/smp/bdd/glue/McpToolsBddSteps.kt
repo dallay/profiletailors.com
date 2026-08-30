@@ -162,6 +162,11 @@ class McpToolsBddSteps {
         parseResponseBody()
     }
 
+    /**
+     * Verifies that the MCP catalog contains exactly the expected tool names.
+     *
+     * @param dataTable The table containing the expected tool names.
+     */
     @Then("the MCP catalog should contain exactly:")
     fun thenMcpCatalogShouldContainExactly(dataTable: io.cucumber.datatable.DataTable) {
         val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
@@ -195,6 +200,11 @@ class McpToolsBddSteps {
         assertPublicationStatus("QUEUED")
     }
 
+    /**
+     * Verifies that the latest MCP response contains a publication with the expected ID.
+     *
+     * @param expected The publication ID expected in the response.
+     */
     private fun mcpPublicationIdsShouldInclude(expected: String) {
         val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
         val body: Map<String, Any?> = objectMapper.readValue(raw)

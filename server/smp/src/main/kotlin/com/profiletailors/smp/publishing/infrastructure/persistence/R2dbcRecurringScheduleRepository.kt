@@ -47,6 +47,14 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
         .bind("workspaceId", workspaceId).bind("id", id)
         .fetch().rowsUpdated().awaitSingle() > 0
 
+    /**
+     * Persists a recurring schedule by inserting it or updating the workspace-scoped record.
+     *
+     * @param schedule The schedule to persist.
+     * @param insert Whether to insert a new record instead of updating an existing one.
+     * @return The schedule with populated creation and modification timestamps.
+     * @throws IllegalArgumentException If an update affects no schedule for the given ID and workspace.
+     */
     private suspend fun write(schedule: RecurringSchedule, insert: Boolean): RecurringSchedule {
         val sql = if (insert) {
             """INSERT INTO recurring_schedules
@@ -92,6 +100,13 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
         type: Class<*>,
     ): DatabaseClient.GenericExecuteSpec = value?.let { spec.bind(name, it) } ?: spec.bindNull(name, type)
 
+    /**
+     * Queries recurring schedules matching the specified conditions and maps database rows to schedule objects.
+     *
+     * @param where The SQL conditions appended to the query.
+     * @param params The named parameters bound to the query.
+     * @return The matching recurring schedules.
+     */
     private fun query(where: String, params: Map<String, Any>): Flux<RecurringSchedule> {
         var spec = databaseClient.sql(
             """SELECT id, workspace_id, created_by, template_post_id, frequency, recurrence_interval, days_of_week,

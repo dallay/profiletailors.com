@@ -58,6 +58,11 @@ class MediaProblemDetailsHandler {
         }
     }
 
+    /**
+     * Creates a problem detail response for an asset that is not ready.
+     *
+     * @return A problem detail with HTTP status 422 and the `ASSET_NOT_READY` error code.
+     */
     @ExceptionHandler(AssetNotReadyException::class)
     fun handle(exception: AssetNotReadyException): ProblemDetail {
         logger.debug("Asset not ready: assetId={} reason={}", exception.assetId, exception.reason)
@@ -84,6 +89,12 @@ class MediaProblemDetailsHandler {
         }
     }
 
+    /**
+     * Creates a problem detail response for files that exceed the allowed size.
+     *
+     * @param exception The exception containing the actual and maximum allowed file sizes.
+     * @return A problem detail response with HTTP status 413 and file size information.
+     */
     @ExceptionHandler(FileTooLargeException::class)
     fun handle(exception: FileTooLargeException): ProblemDetail {
         logger.debug("File too large: size={} maxAllowed={}", exception.actualSize, exception.maxAllowed)
@@ -146,6 +157,12 @@ class MediaProblemDetailsHandler {
         }
     }
 
+    /**
+     * Converts a response status exception into a problem detail response.
+     *
+     * @param exception The response status exception to convert.
+     * @return A problem detail containing the exception's status and reason, with file-size errors represented using the file-too-large format.
+     */
     @ExceptionHandler(ResponseStatusException::class)
     fun handle(exception: ResponseStatusException): ProblemDetail {
         if (exception.statusCode == HttpStatus.CONTENT_TOO_LARGE) {

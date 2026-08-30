@@ -120,6 +120,14 @@ class R2dbcIdeaRepository(private val databaseClient: DatabaseClient, private va
         .rowsUpdated()
         .awaitSingle() > 0
 
+    /**
+     * Maps a database row to an idea.
+     *
+     * Missing tag and link JSON values are represented as empty lists.
+     *
+     * @param row The database row containing the idea fields.
+     * @return The mapped idea.
+     */
     private fun mapIdeaRow(row: io.r2dbc.spi.Row): Idea {
         val tagsJson = row.get("tags_json", String::class.java) ?: "[]"
         val linksJson = row.get("links_json", String::class.java) ?: "[]"
