@@ -1,15 +1,16 @@
+@file:Suppress("MaxLineLength", "ktlint:standard:max-line-length")
+
 package com.profiletailors.smp.publishing.domain
 
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneOffset
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 @Suppress("MaxLineLength", "StringShouldBeRawString")
-
 class BulkValidationPipelineTest {
 
     private val fixedClock = Clock.fixed(Instant.parse("2026-08-30T10:00:00Z"), ZoneOffset.UTC)
@@ -114,7 +115,11 @@ class BulkValidationPipelineTest {
     fun `missing header returns INVALID error`() = runTest {
         val csv = "not-a-header\nvalue1,value2"
         val result = pipeline().validate("ws-1", csv)
-        assertTrue(result.rows.isEmpty() || result.rows.any { it.errors.any { e -> e.code == "INVALID_HEADER" } } || result.rows.isEmpty())
+        assertTrue(
+            result.rows.isEmpty() ||
+                result.rows.any { it.errors.any { e -> e.code == "INVALID_HEADER" } } ||
+                result.rows.isEmpty(),
+        )
     }
 
     @Test

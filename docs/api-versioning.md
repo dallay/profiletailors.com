@@ -113,7 +113,7 @@ class WebFluxConfiguration : WebFluxConfigurer {
 
 #### Bulk Scheduling API (`/api/v1/workspaces/{workspaceId}/bulk`)
 
-Flag `bulkScheduling.enabled` guards all bulk routes and frontend `BulkImportModal`; rollback drop `022` then `021`; existing jobs remain.
+Flag `bulkScheduling.enabled` *(deferred — docs-only, code guard not yet implemented; rollback drop `022` then `021`; existing jobs remain)*. See `openspec/changes/dallay-413-bulk-scheduling/design.md` and ADRs 0002, 0015-0017 for bulk module placement.
 
 | Method | Endpoint | Description |
 |---|---|---|

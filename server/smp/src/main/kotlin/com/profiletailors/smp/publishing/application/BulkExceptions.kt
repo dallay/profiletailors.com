@@ -1,4 +1,4 @@
-@file:Suppress("MatchingDeclarationName")
+@file:Suppress("MatchingDeclarationName", "ktlint:standard:filename")
 
 package com.profiletailors.smp.publishing.application
 

@@ -1,5 +1,15 @@
 # Design: DALLAY-413 — Bulk Scheduling for Multiple Posts
 
+## Overview
+
+Bulk CSV scheduling inside `publishing` reusing `PublicationLifecyclePolicy`, `ProviderCapabilityValidator`, `ConflictDetectionPolicy`, and `MediaAssetResolver`. Implements chunked 50-100 `runAtomically` with idempotency `sha256(ws+principal+csvHash)`. ADR traceability: **ADR-0002** (hexagonal `domain <- application <- infrastructure`), **ADR-0015** (`BulkImportJob` as `@AggregateRoot` sole entry), **ADR-0016** (identity-only cross-context via `BulkImportJobRepository` port), **ADR-0017** (value objects immutable, `@ValueObject` on statuses). Frontend `useBulkCsvParser` + `useBulkImport` + `BulkImportModal` share canonical header `bodyText,scheduledFor,timezone,media_urls,hashtags`.
+
+## Changes
+
+### Flag Status
+
+`bulkScheduling.enabled` is **deferred — docs-only** (no code guard in `BulkPublishingController`/`BulkImportModal.vue`); code guard deferred to next change per *Undecided* handling. Rollback drop `022`→`021` remains. Warning visible in `docs/api-versioning.md` and `apply-progress.md`.
+
 ## Technical Approach
 
 Sync chunked batch inside `publishing`. `BulkPublishingController` at `/api/v1/workspaces/{workspaceId}/bulk/*` reuses workspace guard. Extract `PublicationCreationService` so validate (stateless) and schedule (chunked 50–100 `runAtomically`) share lifecycle/capability/conflict/media logic. Two tables `bulk_import_jobs`/`rows`. Frontend CSV→validate→fix→schedule→poll.

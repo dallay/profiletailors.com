@@ -1,4 +1,11 @@
-@file:Suppress("MaxLineLength", "MagicNumber", "StringLiteralDuplication", "TooManyFunctions", "LongMethod")
+@file:Suppress(
+    "MaxLineLength",
+    "ktlint:standard:max-line-length",
+    "MagicNumber",
+    "StringLiteralDuplication",
+    "TooManyFunctions",
+    "LongMethod",
+)
 
 package com.profiletailors.smp.publishing.infrastructure.persistence
 
@@ -13,8 +20,10 @@ import com.profiletailors.smp.publishing.domain.ImportError
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.slf4j.LoggerFactory
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.time.Clock
 import java.time.Instant
 import java.time.OffsetDateTime
 
@@ -22,7 +31,9 @@ import java.time.OffsetDateTime
 class R2dbcBulkImportJobRepository(
     private val databaseClient: DatabaseClient,
     private val objectMapper: ObjectMapper,
+    private val clock: Clock = Clock.systemUTC(),
 ) : BulkImportJobRepository {
+    private val logger = LoggerFactory.getLogger(javaClass)
     override suspend fun findByIdempotencyKey(idempotencyKey: String): BulkImportJob? = databaseClient.sql(
         """
         SELECT id, workspace_id, principal_id, idempotency_key, csv_hash, status, total_rows, scheduled_count, failed_count, created_at, updated_at
@@ -49,31 +60,12 @@ class R2dbcBulkImportJobRepository(
         .awaitSingleOrNull()
 
     override suspend fun save(job: BulkImportJob): BulkImportJob {
-        val existing = databaseClient.sql("SELECT id FROM bulk_import_jobs WHERE id = :id")
-            .bind("id", job.id)
-            .map<String> { r, _ -> requireNotNull(r.get("id", String::class.java)) }
-            .one()
-            .awaitSingleOrNull()
-        if (existing != null) {
-            databaseClient.sql(
-                """
-                UPDATE bulk_import_jobs
-                SET status = :status, total_rows = :totalRows, scheduled_count = :scheduledCount, failed_count = :failedCount, updated_at = :updatedAt
-                WHERE id = :id
-                """.trimIndent(),
-            )
-                .bind("status", job.status.name)
-                .bind("totalRows", job.totalRows)
-                .bind("scheduledCount", job.scheduledCount)
-                .bind("failedCount", job.failedCount)
-                .bind("updatedAt", job.updatedAt)
-                .bind("id", job.id)
-                .fetch().rowsUpdated().awaitSingle()
-        } else {
+        try {
             databaseClient.sql(
                 """
                 INSERT INTO bulk_import_jobs (id, workspace_id, principal_id, idempotency_key, status, total_rows, scheduled_count, failed_count, csv_hash, created_at, updated_at)
                 VALUES (:id, :workspaceId, :principalId, :idempotencyKey, :status, :totalRows, :scheduledCount, :failedCount, :csvHash, :createdAt, :updatedAt)
+                ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, total_rows = EXCLUDED.total_rows, scheduled_count = EXCLUDED.scheduled_count, failed_count = EXCLUDED.failed_count, updated_at = EXCLUDED.updated_at
                 """.trimIndent(),
             )
                 .bind("id", job.id)
@@ -88,36 +80,40 @@ class R2dbcBulkImportJobRepository(
                 .bind("createdAt", job.createdAt)
                 .bind("updatedAt", job.updatedAt)
                 .fetch().rowsUpdated().awaitSingle()
+        } catch (ex: org.springframework.dao.DataAccessException) {
+            if (ex.message?.contains("duplicate", ignoreCase = true) == true) {
+                throw IllegalStateException("Bulk job conflict for id ${job.id}", ex)
+            }
+            throw ex
         }
         return job
     }
 
     override suspend fun saveRows(rows: List<BulkImportRow>) {
         if (rows.isEmpty()) return
-        val chunkSize = 100
-        for (chunk in rows.chunked(chunkSize)) {
+        val now = clock.instant()
+        for (chunk in rows.chunked(100)) {
+            val valuesClause = chunk.joinToString(", ") {
+                "(:id${it.rowIndex}, :jobId${it.rowIndex}, :rowIndex${it.rowIndex}, :status${it.rowIndex}, :publicationId${it.rowIndex}, CAST(:errors${it.rowIndex} AS jsonb), :bodyText${it.rowIndex}, :scheduledFor${it.rowIndex}, :mediaUrls${it.rowIndex}, :hasConflict${it.rowIndex}, :createdAt${it.rowIndex})"
+            }
+            val sql = "INSERT INTO bulk_import_rows (id, job_id, row_index, status, publication_id, errors, body_text, scheduled_for, media_urls, has_conflict, created_at) VALUES $valuesClause"
+            var spec = databaseClient.sql(sql)
             for (row in chunk) {
                 val errorsJson = objectMapper.writeValueAsString(row.errors)
                 val mediaUrlsText = row.mediaUrls.joinToString(",")
-                databaseClient.sql(
-                    """
-                    INSERT INTO bulk_import_rows (id, job_id, row_index, status, publication_id, errors, body_text, scheduled_for, media_urls, has_conflict, created_at)
-                    VALUES (:id, :jobId, :rowIndex, :status, :publicationId, CAST(:errors AS jsonb), :bodyText, :scheduledFor, :mediaUrls, :hasConflict, :createdAt)
-                    """.trimIndent(),
-                )
-                    .bind("id", row.id)
-                    .bind("jobId", row.jobId)
-                    .bind("rowIndex", row.rowIndex)
-                    .bind("status", row.status.name)
-                    .bindNullable("publicationId", row.publicationId)
-                    .bind("errors", errorsJson)
-                    .bindNullable("bodyText", row.bodyText)
-                    .bindNullable("scheduledFor", row.scheduledFor)
-                    .bindNullable("mediaUrls", mediaUrlsText.ifBlank { null })
-                    .bind("hasConflict", row.hasConflict)
-                    .bind("createdAt", Instant.now())
-                    .fetch().rowsUpdated().awaitSingle()
+                spec = spec.bind("id${row.rowIndex}", row.id)
+                    .bind("jobId${row.rowIndex}", row.jobId)
+                    .bind("rowIndex${row.rowIndex}", row.rowIndex)
+                    .bind("status${row.rowIndex}", row.status.name)
+                    .bindNullable("publicationId${row.rowIndex}", row.publicationId)
+                    .bind("errors${row.rowIndex}", errorsJson)
+                    .bindNullable("bodyText${row.rowIndex}", row.bodyText)
+                    .bindNullable("scheduledFor${row.rowIndex}", row.scheduledFor)
+                    .bindNullable("mediaUrls${row.rowIndex}", mediaUrlsText.ifBlank { null })
+                    .bind("hasConflict${row.rowIndex}", row.hasConflict)
+                    .bind("createdAt${row.rowIndex}", now)
             }
+            spec.fetch().rowsUpdated().awaitSingle()
         }
     }
 
@@ -153,7 +149,8 @@ class R2dbcBulkImportJobRepository(
         val errorsJson = get("errors", String::class.java) ?: "[]"
         val errors: List<ImportError> = try {
             objectMapper.readValue(errorsJson, object : TypeReference<List<ImportError>>() {})
-        } catch (_: Exception) {
+        } catch (ex: com.fasterxml.jackson.core.JsonProcessingException) {
+            logger.warn("Failed to deserialize bulk row errors: $errorsJson", ex)
             emptyList()
         }
         val mediaUrlsRaw = get("media_urls", String::class.java) ?: ""

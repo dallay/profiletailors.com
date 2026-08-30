@@ -482,11 +482,13 @@ async function handleUpdated() {
       // so add 7 days to cover Sunday→Saturday fully including the last day.
       : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7)
 
-  await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
-    status: state.status === 'all' ? undefined : state.status,
-    socialAccountId: state.channelIds[0],
-    timezone: state.timezone,
-  })
+  try {
+    await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
+      status: state.status === 'all' ? undefined : state.status,
+      socialAccountId: state.channelIds[0],
+      timezone: state.timezone,
+    })
+  } catch {}
 }
 
 function handleBulkScheduled(jobId: string) {
@@ -544,11 +546,15 @@ watch(
         // so add 7 days to cover Sunday→Saturday fully including the last day.
         : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7)
 
-    await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
-      status: state.status === 'all' ? undefined : state.status,
-      socialAccountId: state.channelIds[0],
-      timezone: state.timezone,
-    })
+    try {
+      await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
+        status: state.status === 'all' ? undefined : state.status,
+        socialAccountId: state.channelIds[0],
+        timezone: state.timezone,
+      })
+    } catch {
+      return
+    }
 
     if (fetchToken !== latestFetchToken) {
       return

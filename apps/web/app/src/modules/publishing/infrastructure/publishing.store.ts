@@ -980,7 +980,9 @@ export const usePublishingStore = defineStore('publishing', () => {
     return `/api/v1/workspaces/${encodeURIComponent(workspaceId)}/bulk`
   }
 
-  async function validateBulk(csvText: string): Promise<import('@modules/publishing/domain/bulk').ValidateBulkResult> {
+  async function validateBulk(
+    csvText: string,
+  ): Promise<import('@modules/publishing/domain/bulk').ValidateBulkResult> {
     return auth.apiFetch<import('@modules/publishing/domain/bulk').ValidateBulkResult>(
       `${bulkBasePath()}/validate`,
       { method: 'POST', body: JSON.stringify({ csvText }), workspaceScoped: true },
@@ -995,22 +997,31 @@ export const usePublishingStore = defineStore('publishing', () => {
       .join('')
   }
 
-  async function scheduleBulk(csvText: string, csvHash?: string): Promise<import('@modules/publishing/domain/bulk').ScheduleBulkResult> {
-    const hash = csvHash ?? (typeof crypto !== 'undefined' && crypto.subtle ? await computeCsvHash(csvText) : csvText)
+  async function scheduleBulk(
+    csvText: string,
+    csvHash?: string,
+  ): Promise<import('@modules/publishing/domain/bulk').ScheduleBulkResult> {
+    const hash =
+      csvHash ??
+      (typeof crypto !== 'undefined' && crypto.subtle ? await computeCsvHash(csvText) : csvText)
     return auth.apiFetch<import('@modules/publishing/domain/bulk').ScheduleBulkResult>(
       `${bulkBasePath()}/schedule`,
       { method: 'POST', body: JSON.stringify({ csvText, csvHash: hash }), workspaceScoped: true },
     )
   }
 
-  async function fetchBulkJob(jobId: string): Promise<import('@modules/publishing/domain/bulk').BulkJobResult> {
+  async function fetchBulkJob(
+    jobId: string,
+  ): Promise<import('@modules/publishing/domain/bulk').BulkJobResult> {
     return auth.apiFetch<import('@modules/publishing/domain/bulk').BulkJobResult>(
       `${bulkBasePath()}/jobs/${encodeURIComponent(jobId)}`,
       { method: 'GET', workspaceScoped: true },
     )
   }
 
-  async function fetchBulkTemplates(): Promise<import('@modules/publishing/domain/bulk').BulkTemplatesResult> {
+  async function fetchBulkTemplates(): Promise<
+    import('@modules/publishing/domain/bulk').BulkTemplatesResult
+  > {
     return auth.apiFetch<import('@modules/publishing/domain/bulk').BulkTemplatesResult>(
       `${bulkBasePath()}/templates`,
       { method: 'GET', workspaceScoped: true },
@@ -1018,10 +1029,13 @@ export const usePublishingStore = defineStore('publishing', () => {
   }
 
   async function fetchBulkTemplateCsv(templateId: string): Promise<string> {
-    const response = await auth.apiFetchRaw(`${bulkBasePath()}/templates/${encodeURIComponent(templateId)}/csv`, {
-      method: 'GET',
-      workspaceScoped: true,
-    })
+    const response = await auth.apiFetchRaw(
+      `${bulkBasePath()}/templates/${encodeURIComponent(templateId)}/csv`,
+      {
+        method: 'GET',
+        workspaceScoped: true,
+      },
+    )
     return response.text()
   }
 

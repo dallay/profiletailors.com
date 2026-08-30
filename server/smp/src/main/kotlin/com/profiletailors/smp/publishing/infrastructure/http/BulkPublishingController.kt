@@ -40,7 +40,12 @@ class BulkPublishingController(
     private val resourceContextProvider: ResourceContextProvider,
 ) {
     @Operation(summary = "Validate bulk CSV")
-    @PostMapping("/validate", consumes = [MediaType.APPLICATION_JSON_VALUE], version = "1")
+    @PostMapping(
+        "/validate",
+        consumes = ["application/vnd.api.v1+json"],
+        produces = ["application/vnd.api.v1+json"],
+        version = "1",
+    )
     suspend fun validate(
         @PathVariable workspaceId: String,
         @Valid @RequestBody request: BulkValidateRequest,
@@ -50,7 +55,12 @@ class BulkPublishingController(
     }
 
     @Operation(summary = "Schedule bulk CSV")
-    @PostMapping("/schedule", consumes = [MediaType.APPLICATION_JSON_VALUE], version = "1")
+    @PostMapping(
+        "/schedule",
+        consumes = ["application/vnd.api.v1+json"],
+        produces = ["application/vnd.api.v1+json"],
+        version = "1",
+    )
     suspend fun schedule(
         @PathVariable workspaceId: String,
         @Valid @RequestBody request: BulkScheduleRequest,
@@ -125,5 +135,15 @@ class BulkPublishingController(
     }
 }
 
-data class BulkValidateRequest(val csvText: String)
-data class BulkScheduleRequest(val csvText: String, val csvHash: String? = null)
+data class BulkValidateRequest(
+    @field:jakarta.validation.constraints.NotBlank
+    @field:jakarta.validation.constraints.Size(max = 1_048_576)
+    val csvText: String,
+)
+data class BulkScheduleRequest(
+    @field:jakarta.validation.constraints.NotBlank
+    @field:jakarta.validation.constraints.Size(max = 1_048_576)
+    val csvText: String,
+    @field:jakarta.validation.constraints.Pattern(regexp = "^[a-f0-9]{64}$", message = "csvHash must be sha256 hex")
+    val csvHash: String? = null,
+)

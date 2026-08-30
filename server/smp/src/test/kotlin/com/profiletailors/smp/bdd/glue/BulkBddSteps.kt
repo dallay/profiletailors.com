@@ -429,7 +429,6 @@ class BulkBddSteps {
 
     @Then("it MUST return 403")
     fun thenReturn403() {
-        // schedule with unverified should be 403; we need to perform schedule if not yet
         if (latestBulkResponse == null || latestBulkResponse?.status?.value() == 200) {
             latestBulkResponse = postBulkSchedule(BddDatabaseSupport.WORKSPACE_ID, lastCsvText)
         }
@@ -439,7 +438,6 @@ class BulkBddSteps {
     @Given("same principal resubmits identical csvHash")
     fun givenSamePrincipalResubmits() {
         lastCsvText = "bodyText,scheduledFor,timezone,media_urls,hashtags\nResubmit,2099-06-15T10:00:00Z,UTC,,"
-        // first schedule
         postBulkSchedule(BddDatabaseSupport.WORKSPACE_ID, lastCsvText)
     }
 

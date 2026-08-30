@@ -1,4 +1,8 @@
-import { BULK_CANONICAL_HEADER, type ParsedCsvResult, type ParsedCsvRow } from '@modules/publishing/domain/bulk'
+import {
+  BULK_CANONICAL_HEADER,
+  type ParsedCsvResult,
+  type ParsedCsvRow,
+} from '@modules/publishing/domain/bulk'
 
 export function parseCsvLine(line: string): string[] {
   const result: string[] = []
@@ -24,7 +28,10 @@ export function parseCsvLine(line: string): string[] {
   return result.map((v) => v.trim())
 }
 
-export function useBulkCsvParser() {
+export function useBulkCsvParser(): {
+  parse: (csvText: string) => ParsedCsvResult
+  parseCsvLine: (line: string) => string[]
+} {
   function parse(csvText: string): ParsedCsvResult {
     const normalized = csvText.replace(/^\uFEFF/, '')
     if (normalized.trim() === '') return { header: [], rows: [], headerValid: false }
@@ -35,7 +42,8 @@ export function useBulkCsvParser() {
     const canonical = BULK_CANONICAL_HEADER.split(',')
     const headerValid =
       header.length === canonical.length &&
-      header.map((h) => h.toLowerCase()).join(',') === canonical.map((h) => h.toLowerCase()).join(',')
+      header.map((h) => h.toLowerCase()).join(',') ===
+        canonical.map((h) => h.toLowerCase()).join(',')
 
     const indexMap = new Map<string, number>()
     header.forEach((h, i) => indexMap.set(h.toLowerCase(), i))
@@ -51,7 +59,10 @@ export function useBulkCsvParser() {
     for (const rawLine of rawLines.slice(1)) {
       if (rawLine.trim() === '') continue
       const cols = parseCsvLine(rawLine)
-      const padded = cols.length < header.length ? [...cols, ...Array(header.length - cols.length).fill('')] : cols
+      const padded =
+        cols.length < header.length
+          ? [...cols, ...Array(header.length - cols.length).fill('')]
+          : cols
       const bodyText = padded[bodyIdx] ?? ''
       const scheduledFor = padded[scheduledIdx] ?? ''
       const timezone = padded[timezoneIdx] ?? ''

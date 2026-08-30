@@ -36,8 +36,6 @@ class BulkValidationPipeline(
         "media.profiletailors.com",
     )
 
-    private val maxMediaUrlBytes = 10 * 1024 * 1024L
-    private val maxUrlLengthFor10MbGuard = 2048
     private val disallowedExtensions = setOf(".exe", ".bin", ".sh", ".bat", ".dll", ".so", ".js", ".php")
 
     suspend fun validate(workspaceId: String, csvText: String): BulkValidationResult {
@@ -53,7 +51,20 @@ class BulkValidationPipeline(
             headerColumns.size == canonical.size &&
                 headerColumns.map { it.lowercase() } == canonical.map { it.lowercase() }
         if (!headerMatches) {
-            return BulkValidationResult(emptyList())
+            return BulkValidationResult(
+                listOf(
+                    BulkRowValidation(
+                        rowIndex = 0,
+                        status = BulkRowStatus.INVALID,
+                        errors = listOf(
+                            ImportError(
+                                code = "INVALID_HEADER",
+                                message = "Invalid header — expected ${BulkTemplate.canonicalHeader()}",
+                            ),
+                        ),
+                    ),
+                ),
+            )
         }
         val headerIndex = canonical.associateWith { col ->
             headerColumns.indexOfFirst { it.equals(col, ignoreCase = true) }
@@ -118,18 +129,18 @@ class BulkValidationPipeline(
                 errors.add(ImportError(code = "DUPLICATE", message = "duplicate row"))
             }
             if (hasMedia && errors.none { it.code == "INVALID_MEDIA" }) {
+                val validationAccount = resolveValidationAccount(workspaceId) ?: syntheticValidationAccount(workspaceId)
                 val assets = mediaUrls.map { url ->
                     PublicationAsset(
                         id = "asset-$dataRowIndex-${url.hashCode()}",
                         workspaceId = workspaceId,
                         sourceType = AssetSourceType.EXTERNAL_URL,
-                        mediaType = inferMediaType(url),
+                        mediaType = MediaUrlPolicy.inferMediaType(url),
                         externalUrl = url,
                         status = PublicationAssetStatus.READY,
                         createdByPrincipalId = "bulk-validation",
                     )
                 }
-                val validationAccount = resolveValidationAccount(workspaceId)
                 val draft = PublicationDraft(
                     id = "draft-bulk-$dataRowIndex",
                     workspaceId = workspaceId,
@@ -153,28 +164,12 @@ class BulkValidationPipeline(
                         ),
                     )
                 } catch (ex: IllegalArgumentException) {
-                    val msg = ex.message ?: ""
-                    if (msg.contains("CAPABILITY_VIOLATION") || msg.contains("capability", ignoreCase = true)) {
-                        errors.add(ImportError(code = "CAPABILITY_VIOLATION", message = "capability violation"))
-                    } else {
-                        errors.add(
-                            ImportError(
-                                code = "CAPABILITY_VIOLATION",
-                                message =
-                                ex.message ?: "capability violation",
-                            ),
-                        )
-                    }
-                } catch (ex: Exception) {
                     errors.add(
                         ImportError(code = "CAPABILITY_VIOLATION", message = ex.message ?: "capability violation"),
                     )
                 }
             }
-            val hasInvalid = errors.any {
-                it.code in
-                    setOf("INVALID_DATE", "MISSING_CONTENT", "INVALID_MEDIA", "CAPABILITY_VIOLATION")
-            }
+            val hasInvalid = errors.any { it.code in INVALID_ROW_CODES }
             val status = if (hasInvalid) BulkRowStatus.INVALID else BulkRowStatus.VALID
             rows.add(
                 BulkRowValidation(
@@ -246,7 +241,6 @@ class BulkValidationPipeline(
             ) {
                 return "media_url blocked (size 10MB): $url"
             }
-            if (url.toByteArray(Charsets.UTF_8).size > maxMediaUrlBytes) return "media_url blocked (10MB): $url"
             if (disallowedExtensions.any { lower.endsWith(it) }) return "media_url blocked (magic-byte/extension): $url"
         } catch (_: Exception) {
             return "media_url blocked (parse): $url"
@@ -254,25 +248,21 @@ class BulkValidationPipeline(
         return null
     }
 
-    private fun isBlockedByAllowlistOrSize(url: String): Boolean = ssrfBlockReason(url) != null
-
-    private suspend fun resolveValidationAccount(workspaceId: String): SocialAccount {
-        val repo = socialAccountRepository
-        if (repo != null) {
-            val found = repo.findFirstActiveByWorkspace(workspaceId)
-            if (found != null) return found
-        }
-        return SocialAccount(
-            id = "account-bulk-$workspaceId",
-            socialConnectionId = "conn-bulk-$workspaceId",
-            workspaceId = workspaceId,
-            provider = SocialProvider.LINKEDIN,
-            providerAccountId = "provider-bulk-$workspaceId",
-            kind = SocialAccountKind.PERSONAL_PROFILE,
-            displayName = "Bulk Validation",
-            status = SocialConnectionStatus.ACTIVE,
-        )
+    private suspend fun resolveValidationAccount(workspaceId: String): SocialAccount? {
+        val repo = socialAccountRepository ?: return null
+        return repo.findFirstActiveByWorkspace(workspaceId)
     }
+
+    private fun syntheticValidationAccount(workspaceId: String): SocialAccount = SocialAccount(
+        id = "account-bulk-$workspaceId",
+        socialConnectionId = "conn-bulk-$workspaceId",
+        workspaceId = workspaceId,
+        provider = SocialProvider.LINKEDIN,
+        providerAccountId = "provider-bulk-$workspaceId",
+        kind = SocialAccountKind.PERSONAL_PROFILE,
+        displayName = "Bulk Validation",
+        status = SocialConnectionStatus.ACTIVE,
+    )
 
     private fun detectConflictIndexes(workspaceId: String, rows: List<BulkRowValidation>): Set<Int> {
         val validRows = rows.filter { it.status == BulkRowStatus.VALID && it.scheduledFor != null }
@@ -295,19 +285,6 @@ class BulkValidationPipeline(
         val conflicts = ConflictDetectionPolicy.findConflicts(drafts, Duration.ofMinutes(15))
         val conflictingIds = conflicts.values.flatten().toSet() + conflicts.keys
         return validRows.filter { "bulk-conflict-${it.rowIndex}" in conflictingIds }.map { it.rowIndex }.toSet()
-    }
-
-    private fun inferMediaType(url: String): String {
-        val lower = url.lowercase()
-        return when {
-            lower.endsWith(".pdf") -> "APPLICATION/PDF"
-            lower.endsWith(".mp4") || lower.endsWith(".mov") -> "VIDEO/MP4"
-            lower.endsWith(".png") -> "IMAGE/PNG"
-            lower.endsWith(".jpg") || lower.endsWith(".jpeg") -> "IMAGE/JPEG"
-            lower.endsWith(".gif") -> "IMAGE/GIF"
-            lower.endsWith(".webp") -> "IMAGE/WEBP"
-            else -> "IMAGE/JPEG"
-        }
     }
 
     private fun parseCsvLine(line: String): List<String> {
@@ -336,5 +313,25 @@ class BulkValidationPipeline(
         }
         result.add(current.toString())
         return result.map { it.trim() }
+    }
+
+    private object MediaUrlPolicy {
+        fun inferMediaType(url: String): String {
+            val lower = url.lowercase()
+            return when {
+                lower.endsWith(".pdf") -> "APPLICATION/PDF"
+                lower.endsWith(".mp4") || lower.endsWith(".mov") -> "VIDEO/MP4"
+                lower.endsWith(".png") -> "IMAGE/PNG"
+                lower.endsWith(".jpg") || lower.endsWith(".jpeg") -> "IMAGE/JPEG"
+                lower.endsWith(".gif") -> "IMAGE/GIF"
+                lower.endsWith(".webp") -> "IMAGE/WEBP"
+                else -> "IMAGE/JPEG"
+            }
+        }
+    }
+
+    private companion object {
+        val INVALID_ROW_CODES =
+            setOf("INVALID_DATE", "MISSING_CONTENT", "INVALID_MEDIA", "CAPABILITY_VIOLATION", "INVALID_HEADER")
     }
 }

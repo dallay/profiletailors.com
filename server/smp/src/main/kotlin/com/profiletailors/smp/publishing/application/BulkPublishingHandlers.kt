@@ -1,4 +1,4 @@
-@file:Suppress("MaxLineLength", "MagicNumber", "ReturnCount", "TooManyFunctions", "LongParameterList", "LongMethod", "CyclomaticComplexMethod", "SwallowedException", "FunctionOnlyReturningConstant", "ExpressionBodySyntax")
+@file:Suppress("MaxLineLength", "MagicNumber", "ReturnCount", "TooManyFunctions", "LongParameterList", "LongMethod", "CyclomaticComplexMethod", "SwallowedException", "FunctionOnlyReturningConstant", "ExpressionBodySyntax", "ktlint:standard:max-line-length")
 
 package com.profiletailors.smp.publishing.application
 
@@ -26,13 +26,11 @@ import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import java.security.MessageDigest
 import java.time.Clock
-import java.time.Instant
 import java.util.UUID
 
 @Service
-class ValidateBulkHandler(
-    private val validationPipeline: BulkValidationPipeline,
-) : CommandWithResultHandler<ValidateBulkCommand, ValidateBulkResult> {
+class ValidateBulkHandler(private val validationPipeline: BulkValidationPipeline) :
+    CommandWithResultHandler<ValidateBulkCommand, ValidateBulkResult> {
     override suspend fun handle(command: ValidateBulkCommand): ValidateBulkResult {
         val result = validationPipeline.validate(command.workspaceId, command.csvText)
         val rows = result.rows.map { r ->
@@ -66,8 +64,18 @@ class ScheduleBulkHandler(
 ) : CommandWithResultHandler<ScheduleBulkCommand, ScheduleBulkResult> {
     override suspend fun handle(command: ScheduleBulkCommand): ScheduleBulkResult {
         val principalCtx = principalContextProvider.require()
-        requireEmailVerification(principalCtx, principalIdentityLookup, emailVerificationPolicy, AuthFeature.PUBLISH_CONTENT)
-        requireEmailVerification(principalCtx, principalIdentityLookup, emailVerificationPolicy, AuthFeature.SCHEDULE_POST)
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.PUBLISH_CONTENT,
+        )
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.SCHEDULE_POST,
+        )
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         if (command.workspaceId != workspaceId) {
             throw BulkWorkspaceMismatchException("Workspace path does not match the authenticated workspace.")
@@ -176,7 +184,13 @@ class ScheduleBulkHandler(
                         } catch (ex: Exception) {
                             val code = when (ex) {
                                 is PublicationValidationException -> "INVALID_MEDIA"
-                                is IllegalArgumentException -> if (ex.message?.contains("CAPABILITY") == true) "CAPABILITY_VIOLATION" else "INVALID_DATE"
+                                is IllegalArgumentException -> if (ex.message?.contains("CAPABILITY") ==
+                                    true
+                                ) {
+                                    "CAPABILITY_VIOLATION"
+                                } else {
+                                    "INVALID_DATE"
+                                }
                                 else -> "UNKNOWN"
                             }
                             val importError = ImportError(code = code, message = ex.message ?: "failed")
@@ -220,7 +234,12 @@ class ScheduleBulkHandler(
             scheduledCount == 0 && failedCount == totalRows && totalRows > 0 -> BulkJobStatus.FAILED
             else -> BulkJobStatus.PARTIAL
         }
-        val updatedJob = job.copy(status = finalStatus, scheduledCount = scheduledCount, failedCount = failedCount, updatedAt = clock.instant())
+        val updatedJob = job.copy(
+            status = finalStatus,
+            scheduledCount = scheduledCount,
+            failedCount = failedCount,
+            updatedAt = clock.instant(),
+        )
         bulkImportJobRepository.save(updatedJob)
         return ScheduleBulkResult(updatedJob.id, totalRows, scheduledCount, failedCount, resultRows)
     }
@@ -238,9 +257,8 @@ class ScheduleBulkHandler(
 }
 
 @Service
-class GetBulkJobHandler(
-    private val bulkImportJobRepository: BulkImportJobRepository,
-) : QueryHandler<GetBulkJobQuery, BulkJobResult> {
+class GetBulkJobHandler(private val bulkImportJobRepository: BulkImportJobRepository) :
+    QueryHandler<GetBulkJobQuery, BulkJobResult> {
     override suspend fun handle(query: GetBulkJobQuery): BulkJobResult {
         val job = bulkImportJobRepository.findByWorkspaceAndId(query.workspaceId, query.jobId)
             ?: throw BulkJobNotFoundException(query.jobId)
@@ -271,7 +289,12 @@ class GetBulkJobHandler(
 class BulkTemplatesHandler : QueryHandler<BulkTemplatesQuery, BulkTemplatesResult> {
     override suspend fun handle(query: BulkTemplatesQuery): BulkTemplatesResult {
         val templates = BulkTemplate.defaultTemplates().map { t ->
-            BulkTemplateItem(id = t.id, name = t.name, description = t.description, header = BulkTemplate.canonicalHeader())
+            BulkTemplateItem(
+                id = t.id,
+                name = t.name,
+                description = t.description,
+                header = BulkTemplate.canonicalHeader(),
+            )
         }
         return BulkTemplatesResult(templates)
     }

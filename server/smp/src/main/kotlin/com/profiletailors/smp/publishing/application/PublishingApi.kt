@@ -309,8 +309,10 @@ data class BulkJobResult(
     val failedCount: Int,
     val rows: List<BulkRowResult>,
 )
-data class BulkTemplatesQuery(val workspaceId: String) : Query<BulkTemplatesResult>
+data class GetBulkTemplatesQuery(val workspaceId: String) : Query<BulkTemplatesResult>
+typealias BulkTemplatesQuery = GetBulkTemplatesQuery
 data class BulkTemplatesResult(val templates: List<BulkTemplateItem>)
 data class BulkTemplateItem(val id: String, val name: String, val description: String, val header: String)
-data class BulkTemplateCsvQuery(val workspaceId: String, val templateId: String) : Query<BulkTemplateCsvResult>
+data class GetBulkTemplateCsvQuery(val workspaceId: String, val templateId: String) : Query<BulkTemplateCsvResult>
+typealias BulkTemplateCsvQuery = GetBulkTemplateCsvQuery
 data class BulkTemplateCsvResult(val csv: String, val header: String)

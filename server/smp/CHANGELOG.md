@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### ⚠ BREAKING CHANGES
+
+* **publishing:** `SocialAccountRepository` now requires `findFirstActiveByWorkspace(workspaceId)` — bulk scheduling uses `SocialAccountRepository.findFirstActiveByWorkspace` to resolve the active connection per workspace; implementations must return the first `ACTIVE` account or `null`. No migration for existing repos, but custom adapters must implement the new method. See `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/domain/PublishingRepositories.kt`.
+
+### Features
+
+* **publishing:** bulk scheduling with CSV validation and chunked schedule (DALLAY-413) — `POST /bulk/validate`, `POST /bulk/schedule`, `GET /bulk/jobs/{jobId}`, `GET /bulk/templates` with `bulk_import_jobs`/`bulk_import_rows` tables.
+
 ## [0.4.8](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.7...smp@v0.4.8) (2026-08-28)
 
 

@@ -5,7 +5,8 @@ import { usePublishingStore } from '@modules/publishing/infrastructure/publishin
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 
 vi.mock('@modules/auth/infrastructure/auth-api', () => ({
-  createApiFetch: () => Object.assign(async () => ({}), { raw: async () => new Response(null, { status: 204 }) }),
+  createApiFetch: () =>
+    Object.assign(async () => ({}), { raw: async () => new Response(null, { status: 204 }) }),
   resolveApiUrl: vi.fn((p: string) => `https://api.test${p}`),
   refreshSession: vi.fn().mockResolvedValue(null),
   getCurrentUserProfile: vi.fn().mockResolvedValue(null),
@@ -23,7 +24,10 @@ describe('useBulkImport', () => {
   it('validate delegates to store and tracks state', async () => {
     const store = usePublishingStore()
     const composable = useBulkImport()
-    const mock = vi.spyOn(store, 'validateBulk').mockResolvedValue({ rows: [{ rowIndex: 0, status: 'VALID', errors: [] }] } as any)
+    const validated: import('@modules/publishing/domain/bulk').ValidateBulkResult = {
+      rows: [{ rowIndex: 0, status: 'VALID', errors: [] }],
+    }
+    const mock = vi.spyOn(store, 'validateBulk').mockResolvedValue(validated)
     const result = await composable.validate('csv')
     expect(mock).toHaveBeenCalledWith('csv')
     expect(result.rows[0]?.status).toBe('VALID')
@@ -34,7 +38,14 @@ describe('useBulkImport', () => {
   it('schedule delegates with hash and tracks', async () => {
     const store = usePublishingStore()
     const composable = useBulkImport()
-    vi.spyOn(store, 'scheduleBulk').mockResolvedValue({ jobId: 'j1', totalRows: 1, scheduledCount: 1, failedCount: 0, rows: [] } as any)
+    const scheduled: import('@modules/publishing/domain/bulk').ScheduleBulkResult = {
+      jobId: 'j1',
+      totalRows: 1,
+      scheduledCount: 1,
+      failedCount: 0,
+      rows: [],
+    }
+    vi.spyOn(store, 'scheduleBulk').mockResolvedValue(scheduled)
     const result = await composable.schedule('csv', 'hash123')
     expect(result.jobId).toBe('j1')
     expect(composable.scheduleResult.value?.jobId).toBe('j1')
@@ -43,7 +54,12 @@ describe('useBulkImport', () => {
   it('hasValidationErrors computed', async () => {
     const store = usePublishingStore()
     const composable = useBulkImport()
-    vi.spyOn(store, 'validateBulk').mockResolvedValue({ rows: [{ rowIndex: 0, status: 'INVALID', errors: [{ code: 'INVALID_DATE', message: 'bad' }] }] } as any)
+    const invalid: import('@modules/publishing/domain/bulk').ValidateBulkResult = {
+      rows: [
+        { rowIndex: 0, status: 'INVALID', errors: [{ code: 'INVALID_DATE', message: 'bad' }] },
+      ],
+    }
+    vi.spyOn(store, 'validateBulk').mockResolvedValue(invalid)
     await composable.validate('csv')
     expect(composable.hasValidationErrors.value).toBe(true)
     expect(composable.invalidRows.value).toHaveLength(1)
@@ -52,7 +68,15 @@ describe('useBulkImport', () => {
   it('fetchJob delegates', async () => {
     const store = usePublishingStore()
     const composable = useBulkImport()
-    vi.spyOn(store, 'fetchBulkJob').mockResolvedValue({ jobId: 'j1', status: 'SCHEDULED', totalRows: 1, scheduledCount: 1, failedCount: 0, rows: [] } as any)
+    const jobResult: import('@modules/publishing/domain/bulk').BulkJobResult = {
+      jobId: 'j1',
+      status: 'SCHEDULED',
+      totalRows: 1,
+      scheduledCount: 1,
+      failedCount: 0,
+      rows: [],
+    }
+    vi.spyOn(store, 'fetchBulkJob').mockResolvedValue(jobResult)
     const job = await composable.fetchJob('j1')
     expect(job.status).toBe('SCHEDULED')
   })

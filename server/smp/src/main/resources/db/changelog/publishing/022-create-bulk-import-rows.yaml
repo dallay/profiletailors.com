@@ -46,26 +46,20 @@ databaseChangeLog:
                   name: scheduled_for
                   type: timestamp with time zone
               - column:
-                   name: media_urls
-                   type: text
+                  name: media_urls
+                  type: text
               - column:
-                   name: has_conflict
-                   type: boolean
-                   defaultValueBoolean: false
-                   constraints:
-                     nullable: false
+                  name: has_conflict
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
               - column:
-                   name: created_at
+                  name: created_at
                   type: timestamp with time zone
                   defaultValueComputed: CURRENT_TIMESTAMP
                   constraints:
                     nullable: false
-        - createIndex:
-            tableName: bulk_import_rows
-            indexName: idx_bulk_import_rows_job
-            columns:
-              - column:
-                  name: job_id
         - createIndex:
             tableName: bulk_import_rows
             indexName: idx_bulk_import_rows_job_row_index

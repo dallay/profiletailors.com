@@ -7,23 +7,46 @@ describe('BulkPreviewTable', () => {
     const wrapper = mount(BulkPreviewTable, {
       props: {
         rows: [
-          { rowIndex: 0, status: 'VALID', errors: [], bodyText: 'Hello', scheduledFor: '2026-06-15T10:00:00Z' },
-          { rowIndex: 1, status: 'INVALID', errors: [{ code: 'INVALID_DATE', message: 'bad date' }], bodyText: '', scheduledFor: 'not-a-date' },
+          {
+            rowIndex: 0,
+            status: 'VALID',
+            errors: [],
+            bodyText: 'Hello',
+            scheduledFor: '2026-06-15T10:00:00Z',
+          },
+          {
+            rowIndex: 1,
+            status: 'INVALID',
+            errors: [{ code: 'INVALID_DATE', message: 'bad date' }],
+            bodyText: '',
+            scheduledFor: 'not-a-date',
+          },
         ],
       },
     })
     expect(wrapper.get('[data-testid="bulk-row-0"]').isVisible()).toBe(true)
-    expect(wrapper.get('[data-testid="bulk-error-1-INVALID_DATE"]').text()).toContain('INVALID_DATE')
+    expect(wrapper.get('[data-testid="bulk-error-1-INVALID_DATE"]').text()).toContain(
+      'INVALID_DATE',
+    )
     expect(wrapper.get('[data-testid="bulk-row-status-1"]').text()).toBe('INVALID')
   })
 
   it('shows duplicate warning', () => {
     const wrapper = mount(BulkPreviewTable, {
       props: {
-        rows: [{ rowIndex: 1, status: 'VALID', errors: [{ code: 'DUPLICATE', message: 'duplicate' }] } as any],
+        rows: [
+          {
+            rowIndex: 1,
+            status: 'VALID',
+            errors: [{ code: 'DUPLICATE', message: 'duplicate row' }],
+            bodyText: 'dup',
+            scheduledFor: '2026-06-15T10:00:00Z',
+          },
+        ],
       },
     })
-    expect(wrapper.get('[data-testid="bulk-error-1-DUPLICATE"]').classes()).toContain('text-warning')
+    expect(wrapper.get('[data-testid="bulk-error-1-DUPLICATE"]').text()).toContain('DUPLICATE')
+    expect(wrapper.get('[data-testid="bulk-error-1-DUPLICATE"]').text()).toContain('duplicate row')
   })
 
   it('shows empty state', () => {

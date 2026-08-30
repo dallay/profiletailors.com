@@ -1,9 +1,32 @@
 import { ref, computed } from 'vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
-import type { BulkJobResult, BulkTemplatesResult, ValidateBulkResult, ScheduleBulkResult } from '@modules/publishing/domain/bulk'
+import type {
+  BulkJobResult,
+  BulkTemplatesResult,
+  ValidateBulkResult,
+  ScheduleBulkResult,
+} from '@modules/publishing/domain/bulk'
 
-export function useBulkImport() {
+export function useBulkImport(): {
+  isValidating: ReturnType<typeof ref<boolean>>
+  isScheduling: ReturnType<typeof ref<boolean>>
+  isPolling: ReturnType<typeof ref<boolean>>
+  validateResult: ReturnType<typeof ref<ValidateBulkResult | null>>
+  scheduleResult: ReturnType<typeof ref<ScheduleBulkResult | null>>
+  jobResult: ReturnType<typeof ref<BulkJobResult | null>>
+  templates: ReturnType<typeof ref<BulkTemplatesResult | null>>
+  error: ReturnType<typeof ref<string | null>>
+  hasValidationErrors: ReturnType<typeof computed<boolean>>
+  invalidRows: ReturnType<typeof computed<ValidateBulkResult['rows']>>
+  validate: (csvText: string) => Promise<ValidateBulkResult>
+  schedule: (csvText: string, csvHash?: string) => Promise<ScheduleBulkResult>
+  fetchJob: (jobId: string) => Promise<BulkJobResult>
+  pollJob: (jobId: string, intervalMs?: number, maxAttempts?: number) => Promise<BulkJobResult>
+  loadTemplates: () => Promise<BulkTemplatesResult>
+  downloadTemplateCsv: (templateId: string) => Promise<string>
+  workspaceIdOrThrow: () => string
+} {
   const publishing = usePublishingStore()
   const workspace = useWorkspaceStore()
 
@@ -16,9 +39,13 @@ export function useBulkImport() {
   const templates = ref<BulkTemplatesResult | null>(null)
   const error = ref<string | null>(null)
 
-  const hasValidationErrors = computed(() => validateResult.value?.rows.some((r) => r.status === 'INVALID') ?? false)
+  const hasValidationErrors = computed(
+    () => validateResult.value?.rows.some((r) => r.status === 'INVALID') ?? false,
+  )
 
-  const invalidRows = computed(() => validateResult.value?.rows.filter((r) => r.status === 'INVALID') ?? [])
+  const invalidRows = computed(
+    () => validateResult.value?.rows.filter((r) => r.status === 'INVALID') ?? [],
+  )
 
   async function validate(csvText: string): Promise<ValidateBulkResult> {
     isValidating.value = true
@@ -61,13 +88,25 @@ export function useBulkImport() {
     }
   }
 
-  async function pollJob(jobId: string, intervalMs = 1500, maxAttempts = 20): Promise<BulkJobResult> {
-    for (let i = 0; i < maxAttempts; i++) {
+  async function pollJob(
+    jobId: string,
+    intervalMs = 1500,
+    maxAttempts = 20,
+  ): Promise<BulkJobResult> {
+    const safeMaxAttempts = maxAttempts > 0 ? maxAttempts : 1
+    const safeIntervalMs = intervalMs > 0 ? intervalMs : 1500
+    for (let i = 0; i < safeMaxAttempts; i++) {
       const result = await fetchJob(jobId)
-      if (result.status === 'SCHEDULED' || result.status === 'PARTIAL' || result.status === 'FAILED') return result
-      await new Promise((r) => setTimeout(r, intervalMs))
+      if (
+        result.status === 'SCHEDULED' ||
+        result.status === 'PARTIAL' ||
+        result.status === 'FAILED'
+      )
+        return result
+      if (i < safeMaxAttempts - 1) await new Promise((r) => setTimeout(r, safeIntervalMs))
     }
-    return jobResult.value as BulkJobResult
+    if (!jobResult.value) throw new Error('Polling did not return a job result')
+    return jobResult.value
   }
 
   async function loadTemplates(): Promise<BulkTemplatesResult> {

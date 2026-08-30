@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useBulkCsvParser } from '@modules/publishing/application/useBulkCsvParser'
 import { useBulkImport } from '@modules/publishing/application/useBulkImport'
 import { BULK_CANONICAL_HEADER } from '@modules/publishing/domain/bulk'
 import BulkPreviewTable from './BulkPreviewTable.vue'
 import BulkTemplatePicker from './BulkTemplatePicker.vue'
 
-const props = withDefaults(defineProps<{ isOpen?: boolean }>(), { isOpen: false })
+type Props = { isOpen?: boolean }
+const props = withDefaults(defineProps<Props>(), { isOpen: false })
 const emit = defineEmits<{ (e: 'close'): void; (e: 'scheduled', jobId: string): void }>()
 
 const csvText = ref('')
@@ -15,6 +16,12 @@ const { parse } = useBulkCsvParser()
 const bulk = useBulkImport()
 
 const parsed = computed(() => parse(csvText.value))
+
+watch(csvText, () => {
+  bulk.validateResult.value = null
+  bulk.scheduleResult.value = null
+  bulk.error.value = null
+})
 
 async function handleFile(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
@@ -28,13 +35,22 @@ function handleTemplateCsv(csv: string) {
 
 async function handleValidate() {
   if (!csvText.value.trim()) return
-  await bulk.validate(csvText.value)
+  try {
+    await bulk.validate(csvText.value)
+  } catch {
+    return
+  }
 }
 
 async function handleSchedule() {
   if (!csvText.value.trim()) return
-  const result = await bulk.schedule(csvText.value)
-  emit('scheduled', result.jobId)
+  if (bulk.hasValidationErrors.value) return
+  try {
+    const result = await bulk.schedule(csvText.value)
+    emit('scheduled', result.jobId)
+  } catch {
+    return
+  }
 }
 
 function handleClose() {
@@ -44,7 +60,7 @@ function handleClose() {
 
 <template>
   <Teleport to="body">
-    <div v-if="props.isOpen" data-testid="bulk-import-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="handleClose">
+    <div v-if="props.isOpen" data-testid="bulk-import-modal" role="dialog" aria-modal="true" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="handleClose" @keydown.esc="handleClose">
       <div class="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border bg-bg-surface p-6">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-bold">Bulk Import</h2>
@@ -55,14 +71,14 @@ function handleClose() {
           <BulkTemplatePicker @download="handleTemplateCsv" />
 
           <div>
-            <label class="text-sm font-medium">CSV file</label>
-            <input ref="fileInput" data-testid="bulk-file-input" type="file" accept=".csv,text/csv" class="mt-1 block w-full text-sm" @change="handleFile">
+            <label for="bulk-file-input" class="text-sm font-medium">CSV file</label>
+            <input id="bulk-file-input" ref="fileInput" data-testid="bulk-file-input" type="file" accept=".csv,text/csv" class="mt-1 block w-full text-sm" @change="handleFile">
             <p class="mt-1 text-xs text-text-secondary">Header: {{ BULK_CANONICAL_HEADER }}</p>
           </div>
 
           <div>
-            <label class="text-sm font-medium">CSV text</label>
-            <textarea v-model="csvText" data-testid="bulk-csv-textarea" rows="6" class="mt-1 w-full rounded border p-2 font-mono text-xs" :placeholder="BULK_CANONICAL_HEADER + '\nHello world,2026-06-15T10:00:00Z,UTC,,'"></textarea>
+            <label for="bulk-csv-textarea" class="text-sm font-medium">CSV text</label>
+            <textarea id="bulk-csv-textarea" v-model="csvText" data-testid="bulk-csv-textarea" rows="6" class="mt-1 w-full rounded border p-2 font-mono text-xs" :placeholder="BULK_CANONICAL_HEADER + '\nHello world,2026-06-15T10:00:00Z,UTC,,'"></textarea>
             <p v-if="parsed.headerValid === false && csvText.trim()" data-testid="bulk-header-error" class="mt-1 text-xs text-error">Invalid header — expected {{ BULK_CANONICAL_HEADER }}</p>
           </div>
 
