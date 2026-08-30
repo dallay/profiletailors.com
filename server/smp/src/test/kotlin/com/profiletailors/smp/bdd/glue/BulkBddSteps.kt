@@ -286,7 +286,7 @@ class BulkBddSteps {
         lastCsvText = jobId
     }
 
-    @When("GET \\/bulk\\/jobs\\/{jobId} in A is called")
+    @When("GET \\/bulk\\/jobs\\/\\{jobId\\} in A is called")
     fun whenGetBulkJobInA() {
         val jobId = if (lastCsvText.startsWith("job-")) lastCsvText else "job-workspace-a"
         latestBulkResponse = webTestClient.get().uri("${bulkBase(BddDatabaseSupport.WORKSPACE_ID)}/jobs/$jobId")

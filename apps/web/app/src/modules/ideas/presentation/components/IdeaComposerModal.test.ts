@@ -28,6 +28,8 @@ vi.mock('@lucide/vue', () => {
     Plus: icon,
     X: icon,
     CalendarIcon: icon,
+    ChevronDown: icon,
+    Tag: icon,
   }
 })
 
@@ -196,6 +198,17 @@ describe('IdeaComposerModal', () => {
     }
   })
 
+  it('starts a fresh draft when reopened after closing', async () => {
+    const wrapper = mountModal({ idea: null })
+    const titleInput = wrapper.find('#idea-composer-title')
+    await titleInput.setValue('Temporary draft')
+    await wrapper.setProps({ open: false })
+    await wrapper.setProps({ open: true })
+    await nextTick()
+
+    expect((titleInput.element as HTMLInputElement).value).toBe('')
+  })
+
   it('handles tags chips trim/dedupe', async () => {
     const wrapper = mountModal({ idea: null })
     const tagInput = wrapper.find('[data-testid="composer-tag-input"]')
@@ -238,6 +251,10 @@ describe('IdeaComposerModal', () => {
     expect(wrapper.props('idea')?.columnId).toBe('raw')
     const select = wrapper.find('[data-testid="composer-column-select"]')
     expect(select.exists() || wrapper.text().includes('Raw') || true).toBeTruthy()
+    const nativeSelect = wrapper.find('[data-testid="composer-column-select-native"]')
+    expect(nativeSelect.exists()).toBe(true)
+    await nativeSelect.setValue('done')
+    expect((nativeSelect.element as HTMLSelectElement).value).toBe('done')
   })
 
   it('duplicate save guard disables button while saving', async () => {
@@ -291,6 +308,29 @@ describe('IdeaComposerModal', () => {
     const wrapper = mountModal({ idea: null })
     expect(wrapper.find('[data-testid="markdown-toolbar"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="schedule-panel"]').exists()).toBe(true)
+  })
+
+  it('toggles composer details', async () => {
+    const wrapper = mountModal({ idea: null })
+    const toggle = wrapper.find('[data-testid="composer-details-toggle"]')
+
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+  })
+
+  it('uses the update success path when editing', async () => {
+    const wrapper = mountModal({ idea: makeIdea({ title: 'Edit me' }) })
+
+    await wrapper.find('[data-testid="composer-save"]').trigger('click')
+    await flushPromises()
+
+    expect(mockUpdateIdea).toHaveBeenCalledWith(
+      'idea-1',
+      expect.objectContaining({ title: 'Edit me', columnId: 'raw' }),
+    )
   })
 
   it('does not show delete in create mode', () => {

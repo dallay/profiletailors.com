@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, type ComputedRef, type Ref } from 'vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import type {
@@ -9,16 +9,16 @@ import type {
 } from '@modules/publishing/domain/bulk'
 
 export function useBulkImport(): {
-  isValidating: ReturnType<typeof ref<boolean>>
-  isScheduling: ReturnType<typeof ref<boolean>>
-  isPolling: ReturnType<typeof ref<boolean>>
-  validateResult: ReturnType<typeof ref<ValidateBulkResult | null>>
-  scheduleResult: ReturnType<typeof ref<ScheduleBulkResult | null>>
-  jobResult: ReturnType<typeof ref<BulkJobResult | null>>
-  templates: ReturnType<typeof ref<BulkTemplatesResult | null>>
-  error: ReturnType<typeof ref<string | null>>
-  hasValidationErrors: ReturnType<typeof computed<boolean>>
-  invalidRows: ReturnType<typeof computed<ValidateBulkResult['rows']>>
+  isValidating: Ref<boolean>
+  isScheduling: Ref<boolean>
+  isPolling: Ref<boolean>
+  validateResult: Ref<ValidateBulkResult | null>
+  scheduleResult: Ref<ScheduleBulkResult | null>
+  jobResult: Ref<BulkJobResult | null>
+  templates: Ref<BulkTemplatesResult | null>
+  error: Ref<string | null>
+  hasValidationErrors: ComputedRef<boolean>
+  invalidRows: ComputedRef<ValidateBulkResult['rows']>
   validate: (csvText: string) => Promise<ValidateBulkResult>
   schedule: (csvText: string, csvHash?: string) => Promise<ScheduleBulkResult>
   fetchJob: (jobId: string) => Promise<BulkJobResult>

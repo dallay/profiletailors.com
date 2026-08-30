@@ -110,7 +110,7 @@ test.describe('Bulk import @bulk @e2e', () => {
     })
 
     await test.step('schedule and verify result', async () => {
-      await page.getByRole('button', { name: 'Schedule' }).click()
+      await page.getByTestId('bulk-schedule-btn').click()
       await expect(page.getByTestId('bulk-schedule-result')).toBeVisible()
       await expect(page.getByTestId('bulk-schedule-result')).toContainText('job-1')
     })
