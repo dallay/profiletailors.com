@@ -4,6 +4,18 @@ export default {
   workspaceRequired: 'Selecciona un espacio de trabajo para gestionar ideas.',
   loading: 'Cargando tablero de ideas...',
   emptyColumn: 'Aún no hay ideas',
+  newGroup: 'Nuevo grupo',
+  filters: {
+    tags: 'Etiquetas',
+    all: 'Todas las etiquetas',
+    empty: 'Aún no hay etiquetas',
+    showing: 'Mostrando {tag}',
+  },
+  view: {
+    label: 'Vista del tablero',
+    board: 'Tablero',
+    gallery: 'Galería',
+  },
   card: {
     links: '{count} enlaces',
     converted: 'Convertida',
@@ -67,7 +79,7 @@ export default {
     createPost: 'Crear publicación',
     noChannelsCta: 'Conecta un canal para habilitar la publicación',
     fields: {
-      titlePlaceholder: 'Escribe tu idea...',
+      titlePlaceholder: 'Dale un título a tu idea',
       notesPlaceholder: 'Agrega notas con markdown...',
       tagsPlaceholder: 'Agrega una etiqueta y presiona Enter',
       linkLabelPlaceholder: 'Etiqueta (opcional)',
