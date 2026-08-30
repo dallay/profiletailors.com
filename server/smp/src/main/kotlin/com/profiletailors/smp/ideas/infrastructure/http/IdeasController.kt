@@ -65,6 +65,7 @@ class IdeasController(private val mediator: Mediator) {
                 tags = request.tags,
                 links = request.links,
                 columnId = request.columnId,
+                convertedToPublicationId = request.convertedToPublicationId,
             ),
         )
 
@@ -112,6 +113,7 @@ data class UpdateIdeaRequest(
     val tags: List<String>? = null,
     val links: List<IdeaLink>? = null,
     val columnId: String? = null,
+    val convertedToPublicationId: String? = null,
 )
 
 data class MoveIdeaRequest(

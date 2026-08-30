@@ -150,6 +150,33 @@ class IdeasBddSteps {
             .returnResult()
     }
 
+    @When("the client associates the idea with publication {string}")
+    fun associateIdea(publicationId: String) = runBlocking {
+        if (publicationId.startsWith("pub-handoff-")) {
+            try {
+                bddDatabaseSupport.seedDraftPublication(
+                    publicationId = publicationId,
+                    socialAccountId = "social-acc-1",
+                    title = "Handoff publication $publicationId",
+                    bodyText = "Handoff body for $publicationId",
+                )
+            } catch (_: Exception) {
+            }
+        }
+        val ideaId = requireNotNull(currentIdeaId)
+        val payload = mapOf("convertedToPublicationId" to publicationId)
+        latestIdeasResponse = webTestClient.patch()
+            .uri("/api/ideas/$ideaId")
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(objectMapper.writeValueAsString(payload))
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
     @Then("the ideas response status should be {int}")
     fun assertStatus(code: Int) {
         assertEquals(code, latestIdeasResponse?.status?.value())
@@ -195,5 +222,12 @@ class IdeasBddSteps {
         val body = latestIdeasResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
         val payload: Map<String, Any?> = objectMapper.readValue(body)
         assertNotNull(payload["publicationId"])
+    }
+
+    @Then("the idea convertedToPublicationId should be {string}")
+    fun assertConvertedId(expected: String) {
+        val body = latestIdeasResponse?.responseBody?.toString(Charsets.UTF_8) ?: "{}"
+        val payload: Map<String, Any?> = objectMapper.readValue(body)
+        assertEquals(expected, payload["convertedToPublicationId"])
     }
 }

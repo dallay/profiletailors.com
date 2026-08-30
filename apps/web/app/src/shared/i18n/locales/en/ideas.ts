@@ -3,7 +3,7 @@ export default {
   subtitle: 'Capture and shape ideas before turning them into scheduled posts.',
   workspaceRequired: 'Select a workspace to start managing ideas.',
   loading: 'Loading ideas board...',
-  emptyColumn: 'No ideas in this column yet.',
+  emptyColumn: 'No ideas yet',
   card: {
     links: '{count} links',
     converted: 'Converted',
@@ -58,5 +58,31 @@ export default {
     convertedWithId: 'Idea converted. Publication: {id}',
     columnsUpdated: 'Columns updated.',
     genericError: 'Something went wrong while processing your request.',
+  },
+  composer: {
+    createTitle: 'New Idea',
+    createDescription: 'Capture a thought quickly and refine it later.',
+    editTitle: 'Edit Idea',
+    editDescription: 'Update details, tags and links before conversion.',
+    createPost: 'Create Post',
+    noChannelsCta: 'Connect a channel to enable publishing',
+    fields: {
+      titlePlaceholder: 'Write your idea...',
+      notesPlaceholder: 'Add notes with markdown...',
+      tagsPlaceholder: 'Add a tag and press Enter',
+      linkLabelPlaceholder: 'Label (optional)',
+    },
+    validation: {
+      titleRequired: 'Title is required',
+    },
+    deleteConfirm: {
+      title: 'Delete idea?',
+      description: 'This action cannot be undone. The idea will be permanently removed.',
+    },
+    dirtyGuard: {
+      title: 'Unsaved changes',
+      description: 'You have unsaved changes. Are you sure you want to close?',
+      confirm: 'Discard changes',
+    },
   },
 }

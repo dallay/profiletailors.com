@@ -79,6 +79,7 @@ internal class UpdateIdeaHandler(
             tags = command.tags ?: existing.tags,
             links = command.links ?: existing.links,
             columnId = command.columnId ?: existing.columnId,
+            convertedToPublicationId = command.convertedToPublicationId ?: existing.convertedToPublicationId,
             updatedAt = clock.instant(),
         )
 

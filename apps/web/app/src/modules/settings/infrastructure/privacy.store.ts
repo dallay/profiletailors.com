@@ -2,10 +2,6 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
-// ---------------------------------------------------------------------------
-// Types — DSAR Request (frontend model)
-// ---------------------------------------------------------------------------
-
 export type DsarRequestType = 'ACCESS' | 'EXPORT' | 'CORRECTION' | 'DELETION'
 export type DsarRequestStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'REJECTED' | 'FAILED'
 
@@ -36,23 +32,45 @@ export interface DsarRequestListResponse {
   requests: DsarRequest[]
 }
 
-function mapStatusDtoToRequest(dto: any): DsarRequest {
-  return {
-    id: dto.id,
-    workspaceId: dto.workspaceId || '',
-    type: dto.type as DsarRequestType,
-    status: dto.status as DsarRequestStatus,
-    notes: dto.notes || null,
-    correctionData: dto.correctionData || null,
-    resultRef: dto.result?.ref || dto.resultRef || null,
-    createdAt: dto.createdAt,
-    updatedAt: dto.updatedAt,
-  }
+type PrivacyRequestDto = Record<string, unknown> & {
+  id?: unknown
+  workspaceId?: unknown
+  type?: unknown
+  status?: unknown
+  notes?: unknown
+  correctionData?: unknown
+  result?: unknown
+  resultRef?: unknown
+  createdAt?: unknown
+  updatedAt?: unknown
 }
 
-// ---------------------------------------------------------------------------
-// Store
-// ---------------------------------------------------------------------------
+type PrivacyListDto = {
+  requests?: PrivacyRequestDto[]
+}
+
+type PrivacySubmitResponseDto = {
+  id: string
+  status: string
+  downloadUrl?: string | null
+}
+
+function mapStatusDtoToRequest(dto: PrivacyRequestDto): DsarRequest {
+  const result = dto.result as Record<string, unknown> | null | undefined
+  const resultRef =
+    (result?.ref as string | undefined) ?? (dto.resultRef as string | undefined) ?? null
+  return {
+    id: dto.id as string,
+    workspaceId: (dto.workspaceId as string) || '',
+    type: dto.type as DsarRequestType,
+    status: dto.status as DsarRequestStatus,
+    notes: (dto.notes as string | null) || null,
+    correctionData: (dto.correctionData as CorrectionData | null) || null,
+    resultRef,
+    createdAt: dto.createdAt as string,
+    updatedAt: dto.updatedAt as string,
+  }
+}
 
 export const usePrivacyStore = defineStore('privacy', () => {
   const auth = useAuthStore()
@@ -62,17 +80,6 @@ export const usePrivacyStore = defineStore('privacy', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // -------------------------------------------------------------------------
-  // Actions
-  // -------------------------------------------------------------------------
-
-  /**
-   * Submit a new DSAR request.
-   * On success, prepends the returned request to the local list.
-   *
-   * @param payload - The request type, optional notes, and optional correction data
-   * @returns The created DsarRequest
-   */
   async function submitRequest(payload: SubmitDsarRequestPayload): Promise<DsarRequest> {
     loading.value = true
     error.value = null
@@ -87,13 +94,12 @@ export const usePrivacyStore = defineStore('privacy', () => {
         body.newUsername = payload.correctionData.newUsername
       }
 
-      const response = await auth.apiFetch<any>('/api/v1/privacy/requests', {
+      const response = await auth.apiFetch<PrivacySubmitResponseDto>('/api/v1/privacy/requests', {
         method: 'POST',
         body: JSON.stringify(body),
         workspaceScoped: true,
       })
 
-      // Map backend response (SubmitPrivacyResponseDto) + payload to DsarRequest
       const result: DsarRequest = {
         id: response.id,
         workspaceId: '',
@@ -117,18 +123,17 @@ export const usePrivacyStore = defineStore('privacy', () => {
     }
   }
 
-  /**
-   * Fetch all DSAR requests for the current workspace.
-   */
   async function fetchRequests(): Promise<DsarRequest[]> {
     loading.value = true
     error.value = null
 
     try {
-      const data = await auth.apiFetch<any>('/api/v1/privacy/requests', {
+      const data = await auth.apiFetch<PrivacyListDto>('/api/v1/privacy/requests', {
         workspaceScoped: true,
       })
-      const mapped = (data.requests || []).map((req: any) => mapStatusDtoToRequest(req))
+      const mapped = (data.requests || []).map((req) =>
+        mapStatusDtoToRequest(req as PrivacyRequestDto),
+      )
       requests.value = mapped
       return mapped
     } catch (err) {
@@ -140,18 +145,12 @@ export const usePrivacyStore = defineStore('privacy', () => {
     }
   }
 
-  /**
-   * Fetch a single DSAR request by its ID.
-   *
-   * @param id - The request ID
-   * @returns The DsarRequest
-   */
   async function fetchRequest(id: string): Promise<DsarRequest> {
     loading.value = true
     error.value = null
 
     try {
-      const result = await auth.apiFetch<any>(`/api/v1/privacy/requests/${id}`, {
+      const result = await auth.apiFetch<PrivacyRequestDto>(`/api/v1/privacy/requests/${id}`, {
         workspaceScoped: true,
       })
       const mapped = mapStatusDtoToRequest(result)
@@ -166,17 +165,11 @@ export const usePrivacyStore = defineStore('privacy', () => {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Public surface
-  // -------------------------------------------------------------------------
-
   return {
-    // State
     requests,
     currentRequest,
     loading,
     error,
-    // Actions
     submitRequest,
     fetchRequests,
     fetchRequest,

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import type { DsarRequest } from './privacy.store'
 
 const mockUser = {
   principalId: 'user-1',

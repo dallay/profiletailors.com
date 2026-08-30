@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
+import { toast } from 'vue-sonner'
 import { useAuthStore } from '@modules/auth'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import type {
@@ -256,6 +257,27 @@ export const useIdeasStore = defineStore('ideas', () => {
     }
   }
 
+  async function associatePublication(ideaId: string, publicationId: string | null): Promise<Idea> {
+    requireWorkspace()
+    saving.value = true
+    error.value = null
+    try {
+      const updated = await auth.apiFetch<Idea>(`/api/ideas/${ideaId}`, {
+        method: 'PATCH',
+        workspaceScoped: true,
+        body: JSON.stringify({ convertedToPublicationId: publicationId }),
+      })
+      ideas.value = normalizeIdeas(
+        ideas.value.map((idea) => (idea.id === ideaId ? { ...idea, ...updated } : idea)),
+      )
+      const next = ideas.value.find((idea) => idea.id === ideaId)
+      if (!next) throw new Error('Idea was updated but could not be found in local state.')
+      return next
+    } finally {
+      saving.value = false
+    }
+  }
+
   async function moveIdea(ideaId: string, input: MoveIdeaInput): Promise<void> {
     requireWorkspace()
 
@@ -330,7 +352,9 @@ export const useIdeasStore = defineStore('ideas', () => {
       })
     } catch (err) {
       ideas.value = snapshot
-      error.value = err instanceof Error ? err.message : 'Unable to move idea.'
+      const message = err instanceof Error ? err.message : 'Unable to move idea.'
+      error.value = message
+      toast.error(message)
     }
   }
 
@@ -455,6 +479,7 @@ export const useIdeasStore = defineStore('ideas', () => {
     moveIdea,
     deleteIdea,
     convertIdea,
+    associatePublication,
     updateColumns,
     createLocalColumn,
     clearState,
