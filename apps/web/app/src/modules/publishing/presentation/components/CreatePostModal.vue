@@ -111,8 +111,6 @@ const postText = ref('')
 const selectedChannelId = ref<string | null>(null)
 
 const markdownEditor = useMarkdownEditor({ postText: postText })
-const composerTextareaEl = markdownEditor.textareaEl
-void composerTextareaEl
 
 const picker = useComposerMediaPicker({
   mediaStore,

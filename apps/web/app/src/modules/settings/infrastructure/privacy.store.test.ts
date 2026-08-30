@@ -101,6 +101,34 @@ describe('privacy store', () => {
     expect(store.requests).toHaveLength(1)
   })
 
+  it('fetchRequests maps the typed API response into requests', async () => {
+    mockApiFetch.mockResolvedValue({
+      requests: [
+        {
+          id: 'req-1',
+          workspaceId: 'ws-1',
+          type: 'ACCESS',
+          status: 'COMPLETED',
+          notes: null,
+          correctionData: null,
+          result: { ref: 'result-1' },
+          createdAt: '2026-08-30T10:00:00Z',
+          updatedAt: '2026-08-30T10:01:00Z',
+        },
+      ],
+    })
+
+    const { usePrivacyStore } = await import('./privacy.store')
+    const store = usePrivacyStore()
+
+    await store.fetchRequests()
+
+    expect(store.requests[0]).toMatchObject({
+      id: 'req-1',
+      resultRef: 'result-1',
+    })
+  })
+
   it('fetchRequests calls apiFetch GET and populates requests list', async () => {
     const mockResponse = {
       requests: [
