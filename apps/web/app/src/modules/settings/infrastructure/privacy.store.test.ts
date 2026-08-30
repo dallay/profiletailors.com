@@ -129,6 +129,36 @@ describe('privacy store', () => {
     })
   })
 
+  it('maps direct result references and defaults omitted API fields', async () => {
+    mockApiFetch.mockResolvedValue({
+      requests: [{ resultRef: 'result-ref-1' }, {}],
+    })
+
+    const { usePrivacyStore } = await import('./privacy.store')
+    const store = usePrivacyStore()
+
+    await store.fetchRequests()
+
+    expect(store.requests[0]).toMatchObject({
+      id: '',
+      workspaceId: '',
+      type: 'ACCESS',
+      status: 'PENDING',
+      resultRef: 'result-ref-1',
+      createdAt: '',
+      updatedAt: '',
+    })
+    expect(store.requests[1]).toMatchObject({
+      id: '',
+      workspaceId: '',
+      type: 'ACCESS',
+      status: 'PENDING',
+      resultRef: null,
+      createdAt: '',
+      updatedAt: '',
+    })
+  })
+
   it('fetchRequests calls apiFetch GET and populates requests list', async () => {
     const mockResponse = {
       requests: [
