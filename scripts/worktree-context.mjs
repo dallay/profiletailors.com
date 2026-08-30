@@ -316,15 +316,22 @@ export function releaseEphemeralPort(context, leaseKey) {
   }
 }
 
+function dockerCompose(args, options) {
+  const composeCmd = ['compose', ...args]
+  const up = spawnSync('docker', composeCmd, options)
+  if (up.status === 0) return up
+  const composeLegacyCmd = ['docker-compose', ...args]
+  return spawnSync('docker-compose', composeLegacyCmd.slice(1), options)
+}
+
 export async function prepareBackendEnvironment(context = getWorktreeContext()) {
   const composeEnvironment = getComposeEnvironment(context)
   if (
     process.env.SPRING_DOCKER_COMPOSE_ENABLED !== 'false' &&
     process.env.WORKTREE_INFRA_READY !== '1'
   ) {
-    const up = spawnSync(
-      'docker',
-      ['compose', '--project-name', context.composeProjectName, 'up', '-d'],
+    const up = dockerCompose(
+      ['--project-name', context.composeProjectName, 'up', '-d'],
       {
         cwd: context.root,
         env: composeEnvironment,
@@ -351,16 +358,8 @@ export async function prepareBackendEnvironment(context = getWorktreeContext()) 
 
   if (environment.WORKTREE_INFRA_READY === '1') {
     const mappedPort = (service, containerPort) => {
-      const result = spawnSync(
-        'docker',
-        [
-          'compose',
-          '--project-name',
-          context.composeProjectName,
-          'port',
-          service,
-          String(containerPort),
-        ],
+      const result = dockerCompose(
+        ['--project-name', context.composeProjectName, 'port', service, String(containerPort)],
         {
           cwd: context.root,
           env: composeEnvironment,
