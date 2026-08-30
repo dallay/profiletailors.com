@@ -1,7 +1,7 @@
 # Shared Module Dependencies
 
 > Quick-reference dependency graph for the `shared/` Gradle modules in the Profile Tailors monorepo.
-> Last updated: 2026-08-30
+> Last updated: 2026-08-29
 
 ## Shared Kernel Modules
 

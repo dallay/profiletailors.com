@@ -1,13 +1,13 @@
 # Production Rollback Runbook
 
-**Last Updated:** 2026-08-30
+**Last Updated:** 2026-08-29
 **Status:** Active
 **Scope:** Production Docker Swarm, Docker Compose, Database, and Worker Rollback
 **Audience:** Release Manager, On-Call Operator, SRE
 
 ---
 
-## Overview
+## 🚨 Overview
 
 This runbook defines the emergency operational procedure for rolling back Profile Tailors production services. Invoke this procedure immediately when a deployment introduces critical regressions, database locking/corruption, publishing worker anomalies, or elevated error rates that cannot be resolved through rapid hotfixing.
 
@@ -15,9 +15,7 @@ Always prioritize user data integrity and platform availability over new feature
 
 ---
 
-## Changes
-
-### 🎯 Rollback Decision Criteria
+## 🎯 Rollback Decision Criteria
 
 Initiate a production rollback if any of the following triggers are met:
 
@@ -29,11 +27,9 @@ Initiate a production rollback if any of the following triggers are met:
 
 ---
 
-## Usage
+## 🛠️ Step-by-Step Rollback Procedures
 
-### 🛠️ Step-by-Step Rollback Procedures
-
-#### 1. Emergency Worker Safe-Off (Immediate Circuit Breaker)
+### 1. Emergency Worker Safe-Off (Immediate Circuit Breaker)
 
 If the incident involves automated publishing worker errors (duplicate posting, runaway queue processing):
 
@@ -41,53 +37,22 @@ If the incident involves automated publishing worker errors (duplicate posting, 
 # 1. Inspect current worker status
 docker service inspect profiletailors-smp_backend --format '{{ .Spec.TaskTemplate.ContainerSpec.Env }}' | tr ' ' '\n' | grep SMP_PUBLISHING_WORKER_ENABLED
 
-# 2. Disable worker in and load the Swarm environment source
+# 2. Disable worker in Swarm environment source
 # Set SMP_PUBLISHING_WORKER_ENABLED="false" in infra/apps/smp/swarm/.env
-set -a
-. infra/apps/smp/swarm/.env
-set +a
 
 # 3. Apply safe-off rolling update
-docker stack deploy --detach=false -c infra/apps/smp/swarm/stack.yaml profiletailors-smp
-
-# 4. Identify the replacement task and verify it is running
-REPLACEMENT_TASK_ID="$(docker service ps profiletailors-smp_backend \
-  --filter desired-state=running --format '{{.ID}}' | head -n 1)"
-docker inspect "$REPLACEMENT_TASK_ID" --format '{{.Status.State}}'
-
-# 5. Confirm the replacement task has the safe-off environment variable set
-docker inspect "$REPLACEMENT_TASK_ID" --format '{{range .Spec.ContainerSpec.Env}}{{println .}}{{end}}' \
-  | grep 'SMP_PUBLISHING_WORKER_ENABLED=false'
-
-# 6. Wait for at least one full polling interval (default PT30S = 30 seconds)
-# before checking logs to ensure any in-flight polling cycle has completed
-sleep 35
-
-# 7. Verify the replacement task has emitted no polling log entries
-if docker service logs "$REPLACEMENT_TASK_ID" 2>&1 | grep -qE 'Polling for next due publication job|Released expired publication-job claims'; then
-  echo "ERROR: Worker polling detected after safe-off. Aborting rollback."
-  exit 1
-fi
-
-echo "✓ Worker polling successfully disabled."
+docker stack deploy -c infra/apps/smp/swarm/stack.yaml profiletailors-smp
 ```
-
-Do not continue until:
-- The replacement task's state is `running`
-- Step 5 confirms `SMP_PUBLISHING_WORKER_ENABLED=false`
-- Step 6 wait period has elapsed (longer than the effective polling interval)
-- Step 7 finds no polling log entries (command returns exit status `1` from grep, not docker failure)
 
 > **Note:** Disabling the worker halts poll execution safely. Queued publication jobs remain in `publication_jobs` with status `PENDING` or `CLAIMED` without data loss.
 
 ---
 
-#### 2. Service Rollback in Docker Swarm
+### 2. Service Rollback in Docker Swarm
 
 Swarm maintains previous task definitions for automatic or manual rollback.
 
-##### Option A: Rollback via `just` helper
-
+#### Option A: Rollback via `just` helper
 ```bash
 # Rollback backend service
 just swarm-rollback backend
@@ -96,8 +61,7 @@ just swarm-rollback backend
 just swarm-rollback dashboard
 ```
 
-##### Option B: Rollback via Docker CLI
-
+#### Option B: Rollback via Docker CLI
 ```bash
 # Rollback backend service to previous revision
 docker service rollback profiletailors-smp_backend
@@ -106,13 +70,12 @@ docker service rollback profiletailors-smp_backend
 docker service rollback profiletailors-smp_dashboard
 ```
 
-##### Option C: Redeploy Last-Known-Good Image Revision
-
+#### Option C: Redeploy Last-Known-Good Image Revision
 If a full stack reset to a known release tag/digest is required:
 
 ```bash
 # 1. Update image tags/digests in infra/apps/smp/swarm/.env
-# Example: SMP_IMAGE="ghcr.io/dallay/profiletailors-smp:v2026.08.22-rc1@sha256:..."
+# Example: SMP_BACKEND_IMAGE="profiletailors/smp:0.1.0-previous"
 
 # 2. Re-render and deploy stack
 just swarm-deploy
@@ -120,7 +83,7 @@ just swarm-deploy
 
 ---
 
-#### 3. Service Rollback in Docker Compose (Single-VPS / Staging)
+### 3. Service Rollback in Docker Compose (Single-VPS / Staging)
 
 For deployments operating on single-host Docker Compose (`infra/apps/smp/production/compose.yaml`):
 
@@ -140,57 +103,39 @@ docker compose --env-file .env -f compose.yaml ps
 
 ---
 
-#### 4. Database Migration Rollback Strategy
+### 4. Database Migration Rollback Strategy
 
 Profile Tailors uses Liquibase for reactive PostgreSQL schema migrations.
 
-##### Backward Compatibility First (Expand/Contract Pattern)
-
+#### Backward Compatibility First (Expand/Contract Pattern)
 - DDL changes MUST be backward-compatible (adding nullable columns or new tables).
 - Rolling back application container images while keeping new database columns is the preferred and safest path.
 
-##### Handling Destructive or Incompatible DDL
-
+#### Handling Destructive or Incompatible DDL
 If a migration changed table structures incompatibly:
 
 1. **Stop Application Traffic:**
-
    ```bash
    # Scale backend replicas to 0 during database recovery
    docker service scale profiletailors-smp_backend=0
    ```
 
-2. **Restore to a Defined Recovery Point:**
-   Before restoring PostgreSQL, record the exact target recovery timestamp. Verify what recovery
-   point the available backup actually provides; the current single-VPS capability restores the
-   most recent verified off-host backup, not an exact PITR timestamp. Explicitly decide whether
-   writes after the selected recovery point will be discarded, replayed, or reconciled. Refer to
-   [`docs/infrastructure/private-beta-backup-restore-status.md`](../infrastructure/private-beta-backup-restore-status.md)
-   for the available backup and restore capability.
+2. **Point-In-Time Restore (PITR) from Backup:**
+   If schema or data corruption occurred, restore PostgreSQL from the latest verified automated backup prior to the deployment timestamp. Refer to [`docs/infrastructure/private-beta-backup-restore-status.md`](../infrastructure/private-beta-backup-restore-status.md) for snapshot location and restore procedures.
 
 3. **Re-apply Safe Revision:**
-
    ```bash
-   # Deploy the documented last-known-good image while the backend remains scaled to 0
-   KNOWN_GOOD_SMP_IMAGE="ghcr.io/dallay/profiletailors-smp:v2026.08.22-rc1@sha256:..."
-   docker service update --with-registry-auth --image "$KNOWN_GOOD_SMP_IMAGE" profiletailors-smp_backend
-
-   # Scale backend replicas back to 1 after restoration and safe-revision deployment
+   # Scale backend replicas back to 1 after restoration
    docker service scale profiletailors-smp_backend=1
    ```
 
-   Verify that Liquibase `DATABASECHANGELOG` matches the expected state for the known-good image
-   and that startup logs show a successful update with no changelog-lock error. Restore application
-   traffic only after those checks pass.
-
 ---
 
-### 🔍 Verification & Post-Rollback Health Checks
+## 🔍 Verification & Post-Rollback Health Checks
 
 Perform the following verification steps before marking the rollback complete:
 
 1. **Verify Readiness & Liveness Endpoints:**
-
    ```bash
    # Actuator Health
    curl -f http://localhost:9091/actuator/health
@@ -198,7 +143,6 @@ Perform the following verification steps before marking the rollback complete:
    ```
 
 2. **Check Container Logs for Errors:**
-
    ```bash
    just swarm-logs backend
    ```
@@ -214,9 +158,7 @@ Perform the following verification steps before marking the rollback complete:
 
 ---
 
-## Troubleshooting
-
-### 📢 Incident Escalation & Communication
+## 📢 Incident Escalation & Communication
 
 1. **Declare Incident Resolution:** Update internal status channels and log incident timeline.
 2. **Notify Affected Users:** If user-facing downtime or publication delays occurred, issue communication per [`docs/infrastructure/private-beta-incident-response.md`](../infrastructure/private-beta-incident-response.md).
@@ -224,7 +166,7 @@ Perform the following verification steps before marking the rollback complete:
 
 ---
 
-## References
+## 📚 References
 
 - [`docs/infrastructure/production-docker-swarm.md`](../infrastructure/production-docker-swarm.md)
 - [`docs/infrastructure/private-beta-launch-readiness-runbook.md`](../infrastructure/private-beta-launch-readiness-runbook.md)

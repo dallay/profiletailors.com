@@ -2,7 +2,7 @@
 
 > **Classification:** Internal — Operations and Compliance
 > **Status:** Current-state operations guide — the retention governance API is planned, not implemented
-> **Last Updated:** 2026-08-30
+> **Last updated:** 2026-08-29
 >
 > **IMPORTANT:** Earlier drafts of this guide described a retention rule/purge/hold HTTP API
 > (`/api/governance/retention/*`) and a `V100__retention_governance.xml` migration. Neither

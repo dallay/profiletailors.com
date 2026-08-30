@@ -359,9 +359,10 @@ swarm-remove:
     node scripts/run-shell-script.mjs infra/apps/smp/swarm/remove.sh
 
 # ═══════════════════════════════════════════════════════════════
-# LICENCE COMPLIANCE
+# DOCUMENTATION & LICENCE COMPLIANCE
 # ═══════════════════════════════════════════════════════════════
 
+# Validate documentation "Last Updated" dates against git history
 doc-check:
     @echo "▸ Documentation date freshness check..."
     node scripts/check-doc-last-updated.mjs
@@ -482,7 +483,7 @@ ci:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ [6/8] Backend: unit tests (fast)..."
-    node scripts/gradle-run.mjs :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
+    node scripts/gradle-run.mjs :server:smp:test --no-daemon
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
     node scripts/gradle-run.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test

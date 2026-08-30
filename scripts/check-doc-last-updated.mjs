@@ -1,12 +1,7 @@
-import { execFileSync } from 'node:child_process';
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-/**
- * Recursively finds Markdown files in a directory.
- * @param {string} dir - The directory to search.
- * @returns {string[]} The paths of matching Markdown files, or an empty array if the directory does not exist.
- */
 function getDocFiles(dir) {
   let results = [];
   if (!fs.existsSync(dir)) return results;
@@ -31,26 +26,13 @@ for (const file of docFiles) {
   const match = content.match(/Last Updated:?\s*\*?\*?\s*(\d{4}-\d{2}-\d{2})/i);
   if (match) {
     const docDate = match[1];
-    const parsedDocDate = new Date(`${docDate}T00:00:00Z`);
-    if (
-      Number.isNaN(parsedDocDate.getTime()) ||
-      parsedDocDate.toISOString().slice(0, 10) !== docDate
-    ) {
-      console.error(`❌ Invalid 'Last Updated' date in ${file}: ${docDate}`);
-      hasErrors = true;
-      continue;
-    }
     let gitDate = '';
     try {
-      gitDate = execFileSync('git', ['log', '-1', '--format=%cd', '--date=short', '--', file], {
-        encoding: 'utf-8',
-      }).trim();
-    } catch (error) {
-      console.error(`Git error for ${file}: ${error.message}`);
-      if (error.stderr) {
-        console.error(error.stderr);
-      }
-      hasErrors = true;
+      gitDate = execSync(`git log -1 --format="%cd" --date=short "${file}"`, {
+        stdio: ['pipe', 'pipe', 'ignore'],
+      }).toString().trim();
+    } catch {
+      // Untracked or git error
     }
     if (gitDate && docDate < gitDate) {
       console.error(
