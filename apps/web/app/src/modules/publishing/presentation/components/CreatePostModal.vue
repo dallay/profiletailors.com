@@ -111,6 +111,7 @@ const postText = ref('')
 const selectedChannelId = ref<string | null>(null)
 
 const markdownEditor = useMarkdownEditor({ postText: postText })
+const _composerTextareaEl = markdownEditor.textareaEl
 
 const picker = useComposerMediaPicker({
   mediaStore,
@@ -1246,7 +1247,7 @@ async function handleCreateSubmit(
             <label for="create-post-text" class="sr-only">Post content</label>
             <textarea
               id="create-post-text"
-              ref="composerTextareaEl"
+              ref="_composerTextareaEl"
               v-model="postText"
               :placeholder="$t('composer.placeholder')"
               class="min-h-55 w-full flex-1 resize-none bg-transparent p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"

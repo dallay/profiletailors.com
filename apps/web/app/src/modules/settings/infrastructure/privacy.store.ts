@@ -32,7 +32,7 @@ export interface DsarRequestListResponse {
   requests: DsarRequest[]
 }
 
-interface PrivacyRequestDto {
+type PrivacyRequestDto = {
   id?: string
   workspaceId?: string
   type?: DsarRequestType
@@ -45,15 +45,15 @@ interface PrivacyRequestDto {
   updatedAt?: string
 }
 
-interface PrivacyResultDto {
+type PrivacyResultDto = {
   ref?: string | null
 }
 
-interface PrivacyListDto {
+type PrivacyListDto = {
   requests?: PrivacyRequestDto[]
 }
 
-interface PrivacySubmitResponseDto {
+type PrivacySubmitResponseDto = {
   id: string
   status: DsarRequestStatus
   downloadUrl?: string | null
