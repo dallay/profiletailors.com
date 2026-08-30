@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.9](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.8...smp@v0.4.9) (2026-08-30)
+
+
+### Features
+
+* **ideas:** redesign idea canvas and unify idea composer with publishing handoff ([#914](https://github.com/dallay/profiletailors.com/issues/914)) ([ad61ee4](https://github.com/dallay/profiletailors.com/commit/ad61ee44845d3f4ac2cdec478e5906fd73882ac2))
+* **mcp:** add five write tools with idempotency and audit trail ([#900](https://github.com/dallay/profiletailors.com/issues/900)) ([c045148](https://github.com/dallay/profiletailors.com/commit/c0451482ecff9fd0e67f39a58252962a2fb83f04))
+
+
+### Bug Fixes
+
+* **mcp:** make tool methods return Mono to fix AsyncStatelessMcpToolProvider skips ([#908](https://github.com/dallay/profiletailors.com/issues/908)) ([feaa419](https://github.com/dallay/profiletailors.com/commit/feaa4199e04a4614b811ce6ddc8ac294fba920d8))
+* **platformadmin:** normalize prefixed user principal ids ([#902](https://github.com/dallay/profiletailors.com/issues/902)) ([91a137b](https://github.com/dallay/profiletailors.com/commit/91a137b9d6b6b1deae9e88a3525af793db842146))
+* **security:** patch Netty, HttpComponents, Jackson CVEs and mitigate Kotlin build-cache ([#904](https://github.com/dallay/profiletailors.com/issues/904)) ([d0c3cf6](https://github.com/dallay/profiletailors.com/commit/d0c3cf6f312457f66677f8e1038975f4c43b03cf))
+
+
+### Documentation
+
+* 📝 Add docstrings to `feat/private-beta-launch-config` ([#888](https://github.com/dallay/profiletailors.com/issues/888)) ([ca3e19b](https://github.com/dallay/profiletailors.com/commit/ca3e19bbcf21be13425bf8bee9209d61f250530d))
+
 ## [0.4.8](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.7...smp@v0.4.8) (2026-08-28)
 
 
