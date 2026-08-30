@@ -242,7 +242,9 @@ async function handleCreatePost(): Promise<void> {
               <SelectItem v-for="col in columns" :key="col.id" :value="col.id">{{ col.name }}</SelectItem>
             </SelectContent>
           </Select>
+          <label for="idea-composer-column-native" class="sr-only">{{ t('ideas.fields.column') }}</label>
           <select
+            id="idea-composer-column-native"
             data-testid="composer-column-select-native"
             v-model="composer.columnId.value"
             class="hidden"
@@ -322,6 +324,7 @@ async function handleCreatePost(): Promise<void> {
               v-model="linkLabel"
               :placeholder="t('ideas.composer.fields.linkLabelPlaceholder')"
             />
+            <label for="idea-composer-link-url" class="sr-only">{{ t('ideas.composer.fields.linkUrlLabel') }}</label>
             <Input
               id="idea-composer-link-url"
               data-testid="composer-link-url"

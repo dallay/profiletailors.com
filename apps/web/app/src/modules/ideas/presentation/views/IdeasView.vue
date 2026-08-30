@@ -121,7 +121,6 @@ function handlePublishingClose(): void {
 async function handlePublishingCreated(payload: unknown): Promise<void> {
   const publicationId = (payload as { publicationId?: string })?.publicationId
     ?? (typeof payload === 'string' ? payload : null)
-    ?? ((payload as { keepOpen?: boolean }) ? null : null)
   const ideaId = handoffIdeaId.value
   if (!ideaId || !publicationId) {
     handlePublishingClose()
