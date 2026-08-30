@@ -75,6 +75,7 @@ const props = withDefaults(
     isOpen?: boolean
     initialDate?: string // ISO string
     editingPublication?: Publication // Pre-fill for editing
+    initialContent?: string | null
     /**
      * Provider to surface as a browsable source inside the media picker.
      * The parent owns the feature flag and only passes `provider="unsplash"`
@@ -85,12 +86,13 @@ const props = withDefaults(
   {
     isOpen: false,
     provider: null,
+    initialContent: null,
   }
 )
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'created', options: { keepOpen: boolean }): void
+  (e: 'created', options: { keepOpen: boolean; publicationId?: string }): void
   (e: 'updated'): void
 }>()
 
@@ -260,7 +262,8 @@ async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
 }
 
 function initCreateMode() {
-  postText.value = ''
+  const hasPrefill = typeof props.initialContent === 'string' && props.initialContent.trim().length > 0
+  postText.value = hasPrefill ? props.initialContent!.trim() : ''
   firstComment.value = ''
   priorityMode.value = false
   scheduleMode.value = props.initialDate ? 'custom' : 'now'
@@ -269,7 +272,7 @@ function initCreateMode() {
   picker.pickerSelectionIds.value = []
   picker.resetPickerSessionTracking()
   mediaStore.clearSelection()
-  selectedChannelId.value = publishingStore.channels[0]?.id ?? null
+  selectedChannelId.value = hasPrefill ? null : (publishingStore.channels[0]?.id ?? null)
 
   const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
   selectedCalendarDate.value = new CalendarDate(
@@ -361,6 +364,8 @@ watch(
 watch(
   () => publishingStore.channels,
   (channels) => {
+    const hasPrefill = typeof props.initialContent === 'string' && props.initialContent.trim().length > 0
+    if (hasPrefill && !isEditMode.value && selectedChannelId.value === null) return
     if (channels.length === 0) {
       selectedChannelId.value = null
       return
@@ -1159,7 +1164,7 @@ async function handleCreateSubmit(
   scheduledDate: Date | undefined,
   backendScheduleMode: NonNullable<Publication['scheduleMode']>,
 ) {
-  await publishingStore.schedulePost({
+  const created = await publishingStore.schedulePost({
     content: normalizedPostText,
     title: 'Post from App',
     channels: selectedProviders.value,
@@ -1173,7 +1178,7 @@ async function handleCreateSubmit(
     assetIds: [...picker.draftAttachmentIds.value],
     socialAccountId: selectedChannel.value?.accountId,
   })
-  emit('created', { keepOpen: createAnother.value })
+  emit('created', { keepOpen: createAnother.value, publicationId: created.id })
   finalizeAfterCreate(createAnother.value)
 }
 </script>

@@ -313,4 +313,41 @@ describe('ideas store actions', () => {
     expect(store.loading).toBe(false)
     expect(store.saving).toBe(false)
   })
+
+  it('associates publication via PATCH and keeps same column', async () => {
+    const { auth, store } = prepareStore()
+    store.ideas.push(makeIdea('idea-1', 'raw', 0))
+    const updated = { ...makeIdea('idea-1', 'raw', 0), convertedToPublicationId: 'pub-9' }
+    const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue(updated)
+    const result = await store.associatePublication('idea-1', 'pub-9')
+    expect(apiFetch).toHaveBeenCalledWith(
+      '/api/ideas/idea-1',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ convertedToPublicationId: 'pub-9' }),
+      }),
+    )
+    expect(result.convertedToPublicationId).toBe('pub-9')
+    expect(store.ideas.find((i) => i.id === 'idea-1')?.columnId).toBe('raw')
+    expect(store.ideas.find((i) => i.id === 'idea-1')?.convertedToPublicationId).toBe('pub-9')
+  })
+
+  it('associate does not auto-move or delete on success and handles null', async () => {
+    const { auth, store } = prepareStore()
+    store.ideas.push(makeIdea('idea-1', 'raw', 0), makeIdea('idea-2', 'raw', 1))
+    const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({ ...makeIdea('idea-1', 'raw', 0), convertedToPublicationId: null })
+    await store.associatePublication('idea-1', null)
+    expect(store.ideas.map((i) => i.id)).toContain('idea-1')
+    expect(store.ideas.find((i) => i.id === 'idea-1')?.columnId).toBe('raw')
+    expect(apiFetch).toHaveBeenCalledWith('/api/ideas/idea-1', expect.objectContaining({ body: JSON.stringify({ convertedToPublicationId: null }) }))
+  })
+
+  it('associate restores saving flag after error and does not mark converted on failure', async () => {
+    const { auth, store } = prepareStore()
+    store.ideas.push(makeIdea('idea-1', 'raw', 0))
+    vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('associate failed'))
+    await expect(store.associatePublication('idea-1', 'pub-9')).rejects.toThrow('associate failed')
+    expect(store.saving).toBe(false)
+    expect(store.ideas.find((i) => i.id === 'idea-1')?.convertedToPublicationId).toBeNull()
+  })
 })

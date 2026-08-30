@@ -3,7 +3,7 @@ export default {
   subtitle: 'Captura y desarrolla ideas antes de convertirlas en publicaciones programadas.',
   workspaceRequired: 'Selecciona un espacio de trabajo para gestionar ideas.',
   loading: 'Cargando tablero de ideas...',
-  emptyColumn: 'Todavia no hay ideas en esta columna.',
+  emptyColumn: 'Aún no hay ideas',
   card: {
     links: '{count} enlaces',
     converted: 'Convertida',
@@ -58,5 +58,31 @@ export default {
     convertedWithId: 'Idea convertida. Publicacion: {id}',
     columnsUpdated: 'Columnas actualizadas.',
     genericError: 'Ocurrio un error al procesar la solicitud.',
+  },
+  composer: {
+    createTitle: 'Nueva Idea',
+    createDescription: 'Captura una idea rápido y mejórala después.',
+    editTitle: 'Editar Idea',
+    editDescription: 'Actualiza detalles, etiquetas y enlaces antes de convertir.',
+    createPost: 'Crear publicación',
+    noChannelsCta: 'Conecta un canal para habilitar la publicación',
+    fields: {
+      titlePlaceholder: 'Escribe tu idea...',
+      notesPlaceholder: 'Agrega notas con markdown...',
+      tagsPlaceholder: 'Agrega una etiqueta y presiona Enter',
+      linkLabelPlaceholder: 'Etiqueta (opcional)',
+    },
+    validation: {
+      titleRequired: 'El título es obligatorio',
+    },
+    deleteConfirm: {
+      title: '¿Eliminar idea?',
+      description: 'Esta acción no se puede deshacer. La idea se eliminará permanentemente.',
+    },
+    dirtyGuard: {
+      title: 'Cambios sin guardar',
+      description: 'Tienes cambios sin guardar. ¿Seguro que quieres cerrar?',
+      confirm: 'Descartar cambios',
+    },
   },
 }

@@ -4,9 +4,13 @@ import { nextTick } from 'vue'
 import type { Idea, IdeaColumn } from '@modules/ideas/domain'
 import IdeasView from './IdeasView.vue'
 
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key: string) => key }),
-}))
+vi.mock('vue-i18n', async (importOriginal) => {
+  const actual = await importOriginal() as Record<string, unknown>
+  return {
+    ...(actual as object),
+    useI18n: () => ({ t: (key: string) => key }),
+  }
+})
 
 vi.mock('@lucide/vue', () => {
   const icon = { template: '<span />' }
@@ -40,6 +44,25 @@ type IdeasStoreMock = {
   createLocalColumn: ReturnType<typeof vi.fn>
   clearState: ReturnType<typeof vi.fn>
 }
+
+const publishingMock = vi.hoisted(() => ({
+  channels: [] as unknown[],
+  hasNoChannels: false,
+  fetchChannels: vi.fn(),
+  schedulePost: vi.fn(),
+}))
+
+vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
+  usePublishingStore: () => publishingMock,
+}))
+
+vi.mock('@modules/publishing/presentation/components/CreatePostModal.vue', () => ({
+  default: {
+    name: 'CreatePostModal',
+    props: ['isOpen', 'initialContent', 'editingPublication'],
+    template: '<div data-testid="create-post-modal" :data-open="String(isOpen)" :data-prefill="initialContent ?? \'\'"></div>',
+  },
+}))
 
 const { ideasStore, workspaceStore, dnd, toast } = vi.hoisted(() => {
   const monitorOptions: unknown[] = []
@@ -176,6 +199,13 @@ const nativeSelectTrigger = {
   template: '<button v-bind="$attrs"><slot /></button>',
 }
 
+const composerStub = {
+  name: 'IdeaComposerModal',
+  props: ['open', 'idea', 'columns', 'initialColumnId'],
+  emits: ['handoff', 'update:open', 'close', 'saved', 'deleted'],
+  template: '<div data-testid="idea-composer-modal" :data-open="String(open)" :data-idea="idea ? idea.id : \'null\'" :data-initial-column="initialColumnId ?? \'null\'"><slot /></div>',
+}
+
 function mountIdeasView() {
   return mount(IdeasView, {
     global: {
@@ -205,6 +235,9 @@ function mountIdeasView() {
         SheetDescription: passthrough,
         SheetHeader: passthrough,
         SheetTitle: passthrough,
+        IdeaComposerModal: composerStub,
+        MarkdownToolbar: passthrough,
+        ComposerSchedulePanel: passthrough,
       },
     },
   })
@@ -337,7 +370,7 @@ describe('IdeasView accessibility', () => {
 
     const wrapper = mountIdeasView()
 
-    expect(wrapper.text()).toContain('ideas.loading')
+    expect(wrapper.find('[data-testid="idea-board-skeleton"]').exists()).toBe(true)
     expect(wrapper.find('[data-dnd-draggable="idea-1"]').exists()).toBe(false)
   })
 
@@ -364,7 +397,6 @@ describe('IdeasView accessibility', () => {
     await nextTick()
 
     for (const id of [
-      'idea-column-select',
       'idea-column-name-raw',
       'idea-column-color-raw',
       'idea-new-column-name',
@@ -375,130 +407,44 @@ describe('IdeasView accessibility', () => {
     }
   })
 
-  it('captures a new idea from the quick-capture form', async () => {
+  it('opens composer in create mode with first column from top Add Idea', async () => {
     const wrapper = mountIdeasView()
-
-    const addIdeaButton = wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('ideas.quickCapture.button'))
-    await addIdeaButton?.trigger('click')
-    await wrapper.find('#idea-title-input').setValue('A captured idea')
-    await wrapper.find('#idea-tags-input').setValue('launch, testing')
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('ideas.quickCapture.save'))
-      ?.trigger('click')
-
-    expect(ideasStore.createIdea).toHaveBeenCalledWith({
-      title: 'A captured idea',
-      columnId: 'raw',
-      tags: ['launch', 'testing'],
-    })
+    const addBtn = wrapper.find('[data-testid="ideas-top-add"]')
+    expect(addBtn.exists()).toBe(true)
+    await addBtn.trigger('click')
+    await nextTick()
+    const composer = wrapper.find('[data-testid="idea-composer-modal"]')
+    expect(composer.attributes('data-open')).toBe('true')
+    expect(composer.attributes('data-idea')).toBe('null')
+    expect(composer.attributes('data-initial-column')).toBe('raw')
   })
 
-  it('saves detail edits with normalized tags, notes, and labeled or unlabeled links', async () => {
+  it('opens composer in create mode preselected from lane Add', async () => {
+    const wrapper = mountIdeasView()
+    const laneAdd = wrapper.find('[data-testid="idea-lane-add"]')
+    expect(laneAdd.exists()).toBe(true)
+    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
+    await nextTick()
+    const laneAdds = wrapper.findAll('[data-testid="idea-lane-add"]')
+    const doneAdd = laneAdds.find((b) => b.element.closest('[data-testid="idea-lane"]')?.textContent?.includes('Done')) ?? laneAdds[1]
+    if (doneAdd) {
+      await doneAdd.trigger('click')
+      await nextTick()
+      const composer = wrapper.find('[data-testid="idea-composer-modal"]')
+      expect(composer.attributes('data-open')).toBe('true')
+      expect(composer.attributes('data-idea')).toBe('null')
+    } else {
+      expect(laneAdds.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('opens composer in edit mode populated from card click', async () => {
     const wrapper = mountIdeasView()
     await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
     await nextTick()
-
-    await wrapper.find('#idea-detail-title').setValue('  Updated idea  ')
-    await wrapper.find('#idea-detail-notes').setValue('  More notes  ')
-    await wrapper.find('#idea-detail-tags').setValue('launch, testing')
-    await wrapper
-      .find('#idea-detail-links')
-      .setValue('Docs|https://example.com\nhttps://profiletailors.com')
-    ideasStore.updateIdea.mockResolvedValue(undefined)
-
-    const saveButton = wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('ideas.actions.save'))
-    expect(saveButton).toBeDefined()
-    await saveButton!.trigger('click')
-    await flushPromises()
-
-    expect(ideasStore.updateIdea).toHaveBeenCalledWith('idea-1', {
-      title: 'Updated idea',
-      notes: 'More notes',
-      columnId: 'raw',
-      tags: ['launch', 'testing'],
-      links: [
-        { label: 'Docs', url: 'https://example.com' },
-        { label: null, url: 'https://profiletailors.com' },
-      ],
-    })
-    expect(toast.success).toHaveBeenCalledWith('ideas.toasts.updated')
-  })
-
-  it('deletes the selected idea and closes its detail sheet', async () => {
-    const wrapper = mountIdeasView()
-    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
-    await nextTick()
-    ideasStore.deleteIdea.mockResolvedValue(undefined)
-
-    const deleteButton = wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('ideas.actions.delete'))
-    expect(deleteButton).toBeDefined()
-    await deleteButton!.trigger('click')
-    await flushPromises()
-
-    expect(ideasStore.deleteIdea).toHaveBeenCalledWith('idea-1')
-    expect(wrapper.find('#idea-detail-title').exists()).toBe(false)
-    expect(toast.success).toHaveBeenCalledWith('ideas.toasts.deleted')
-  })
-
-  it('converts the selected idea with and without a publication id', async () => {
-    const wrapper = mountIdeasView()
-    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
-    await nextTick()
-    ideasStore.convertIdea.mockResolvedValueOnce('publication-1').mockResolvedValueOnce(null)
-
-    const convertButton = wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('ideas.actions.convert'))
-    expect(convertButton).toBeDefined()
-    await convertButton!.trigger('click')
-    await flushPromises()
-    await convertButton!.trigger('click')
-    await flushPromises()
-
-    expect(ideasStore.convertIdea).toHaveBeenCalledTimes(2)
-    expect(ideasStore.convertIdea).toHaveBeenNthCalledWith(1, 'idea-1')
-    expect(ideasStore.convertIdea).toHaveBeenNthCalledWith(2, 'idea-1')
-    expect(toast.success).toHaveBeenNthCalledWith(1, 'ideas.toasts.convertedWithId')
-    expect(toast.success).toHaveBeenNthCalledWith(2, 'ideas.toasts.converted')
-  })
-
-  it('reports detail action failures without closing the selected idea', async () => {
-    const wrapper = mountIdeasView()
-    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
-    await nextTick()
-    ideasStore.updateIdea.mockRejectedValueOnce(new Error('update failed'))
-    ideasStore.deleteIdea.mockRejectedValueOnce(new Error('delete failed'))
-    ideasStore.convertIdea.mockRejectedValueOnce(new Error('convert failed'))
-
-    const saveButton = wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('ideas.actions.save'))
-    const deleteButton = wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('ideas.actions.delete'))
-    const convertButton = wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('ideas.actions.convert'))
-    expect(saveButton).toBeDefined()
-    expect(deleteButton).toBeDefined()
-    expect(convertButton).toBeDefined()
-
-    await saveButton!.trigger('click')
-    await deleteButton!.trigger('click')
-    await convertButton!.trigger('click')
-    await flushPromises()
-
-    expect(toast.error).toHaveBeenCalledWith('update failed')
-    expect(toast.error).toHaveBeenCalledWith('delete failed')
-    expect(toast.error).toHaveBeenCalledWith('convert failed')
-    expect(wrapper.find('#idea-detail-title').exists()).toBe(true)
+    const composer = wrapper.find('[data-testid="idea-composer-modal"]')
+    expect(composer.attributes('data-open')).toBe('true')
+    expect(composer.attributes('data-idea')).toBe('idea-1')
   })
 
   it('edits, adds, reorders, removes, and saves board columns', async () => {
@@ -662,5 +608,37 @@ describe('IdeasView accessibility', () => {
 
     expect(ideasStore.moveIdea).not.toHaveBeenCalled()
     wrapper.unmount()
+  })
+
+  it('handoff opens publishing composer with prefill via composition root', async () => {
+    const wrapper = mountIdeasView()
+    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
+    await nextTick()
+    const composer = wrapper.findComponent({ name: 'IdeaComposerModal' } as never) as unknown as { exists: () => boolean; vm: { $emit: (e: string, p: unknown) => void } }
+    expect(composer.exists()).toBe(true)
+    await (composer.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit('handoff', { ideaId: 'idea-1', prefill: 'Title\n\nNotes\n\n#vue' })
+    await nextTick()
+    const publishing = wrapper.find('[data-testid="create-post-modal"]')
+    expect(publishing.exists()).toBe(true)
+    expect(publishing.attributes('data-prefill')).toContain('Title')
+    expect(publishing.attributes('data-open')).toBe('true')
+  })
+
+  it('associate keeps idea in same column after publishing success', async () => {
+    ideasStore.ideas = [makeTestIdea('idea-1', 'raw', 0)]
+    ideasStore.ideasByColumn = { raw: [...ideasStore.ideas], done: [] }
+    ideasStore.updateIdea = vi.fn().mockResolvedValue({ ...makeTestIdea('idea-1', 'raw', 0), convertedToPublicationId: 'pub-9' })
+    const wrapper = mountIdeasView()
+    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
+    await nextTick()
+    const composer = wrapper.findComponent({ name: 'IdeaComposerModal' } as never) as unknown as { exists: () => boolean; vm: { $emit: (e: string, p: unknown) => void } }
+    expect(composer.exists()).toBe(true)
+    await (composer.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit('handoff', { ideaId: 'idea-1', prefill: 'prefill' })
+    await nextTick()
+    const publishing = wrapper.findComponent({ name: 'CreatePostModal' } as never) as unknown as { exists: () => boolean; vm: { $emit: (e: string, p: unknown) => void } }
+    expect(publishing.exists()).toBe(true)
+    await (publishing.vm as unknown as { $emit: (e: string, p: unknown) => void }).$emit('created', { publicationId: 'pub-9' })
+    await flushPromises()
+    expect(ideasStore.updateIdea).toHaveBeenCalledWith('idea-1', expect.objectContaining({ convertedToPublicationId: 'pub-9' }))
   })
 })

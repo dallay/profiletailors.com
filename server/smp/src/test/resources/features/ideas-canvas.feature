@@ -33,3 +33,19 @@ Feature: Ideas canvas lifecycle
     When the client converts the idea to a publication
     Then the ideas response status should be 200
     And the convert response should contain a publicationId
+
+  Scenario: Handoff associate via PATCH keeps same column
+    Given an existing idea in raw column
+    When the client associates the idea with publication "pub-handoff-1"
+    Then the ideas response status should be 200
+    And the idea convertedToPublicationId should be "pub-handoff-1"
+    And the idea column should be "raw"
+
+  Scenario: Handoff does not auto-move or delete on associate
+    Given an existing idea in raw column
+    When the client associates the idea with publication "pub-handoff-2"
+    Then the ideas response status should be 200
+    And the idea convertedToPublicationId should be "pub-handoff-2"
+    When the client lists ideas
+    Then the ideas response status should be 200
+    And the ideas response should contain at least 1 idea
