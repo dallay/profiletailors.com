@@ -1,7 +1,9 @@
 package com.profiletailors.smp.notifications.infrastructure.email
 
 import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventConsumer
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.bus.event.Subscribe
 import com.profiletailors.notifications.application.ports.EmailDispatchResult
 import com.profiletailors.notifications.application.ports.EmailDispatcher
 import com.profiletailors.notifications.domain.IdempotencyKey
@@ -28,6 +30,19 @@ internal class SendInvitationEmailConsumerTest {
     private val fixedNow = Instant.parse("2026-08-24T10:15:30Z")
     private val clock = Clock.fixed(fixedNow, ZoneOffset.UTC)
     private val inviteeEmail = "invitee@example.com"
+
+    @Test
+    fun `both invitation event types are registered as event consumers`() {
+        val createdConsumer = SendInvitationEmailConsumer::class.java
+        val resentConsumer = SendInvitationResentEmailConsumer::class.java
+
+        assertThat(EventConsumer::class.java.isAssignableFrom(createdConsumer)).isTrue()
+        assertThat(createdConsumer.getAnnotation(Subscribe::class.java).filterBy)
+            .isEqualTo(InvitationCreated::class)
+        assertThat(EventConsumer::class.java.isAssignableFrom(resentConsumer)).isTrue()
+        assertThat(resentConsumer.getAnnotation(Subscribe::class.java).filterBy)
+            .isEqualTo(InvitationResent::class)
+    }
 
     @Test
     fun `success dispatch persists as SENT and publishes delivery event with SENT`() = runTest {
