@@ -44,9 +44,9 @@ class PublicationTools(
         description = "List scheduled publications in the authenticated workspace within " +
             "an inclusive date range. Returns the same payload as the REST " +
             "ListPublicationsQuery handler.",
-        generateOutputSchema = true,
+
     )
-    suspend fun listPublications(
+    fun listPublications(
         @McpToolParam(description = "Start of the inclusive range (ISO-8601 instant, e.g. 2026-01-01T00:00:00Z).")
         from: String,
         @McpToolParam(description = "End of the inclusive range (ISO-8601 instant, e.g. 2026-12-31T23:59:59Z).")
@@ -87,9 +87,9 @@ class PublicationTools(
         name = "get_calendar",
         description = "Return the publication calendar view for a workspace within a date range. " +
             "Includes slots, conflicts, and activity.",
-        generateOutputSchema = true,
+
     )
-    suspend fun getCalendar(
+    fun getCalendar(
         @McpToolParam(description = "Start of the inclusive range (ISO-8601 instant).")
         from: String,
         @McpToolParam(description = "End of the inclusive range (ISO-8601 instant).")
@@ -137,9 +137,9 @@ class PublicationTools(
         description = "Create a new publication draft, enqueue the publishing job, and return the enqueue " +
             "acknowledgement. Enqueue ack per ADR-0019 §Q1 — the worker is the boundary of the " +
             "asynchronous LinkedIn publish. Supports optional `idempotencyKey` for safe agent retries.",
-        generateOutputSchema = true,
+
     )
-    suspend fun createPublication(
+    fun createPublication(
         @McpToolParam(description = "Authenticated workspace id (injected from the JWT).")
         workspaceId: String,
         @McpToolParam(description = "Authenticated principal id (injected from the JWT).")
@@ -210,9 +210,9 @@ class PublicationTools(
         description = "Edit an existing publication in the active workspace. The publication MUST be in a " +
             "pre-delivery state (DRAFT/QUEUED/SCHEDULED). Re-running with the same `idempotencyKey` " +
             "returns the cached result.",
-        generateOutputSchema = true,
+
     )
-    suspend fun editPublication(
+    fun editPublication(
         @McpToolParam(description = "Authenticated workspace id (injected from the JWT).")
         workspaceId: String,
         @McpToolParam(description = "Authenticated principal id (injected from the JWT).")
@@ -279,9 +279,9 @@ class PublicationTools(
         name = "delete_publication",
         description = "Delete an unpublished publication. Repeating with the same `idempotencyKey` returns " +
             "the cached result without re-running the handler.",
-        generateOutputSchema = true,
+
     )
-    suspend fun deletePublication(
+    fun deletePublication(
         @McpToolParam(description = "Authenticated workspace id (injected from the JWT).")
         workspaceId: String,
         @McpToolParam(description = "Authenticated principal id (injected from the JWT).")
@@ -324,9 +324,9 @@ class PublicationTools(
             "calling cancel on an already-cancelled publication returns publication_state_conflict, " +
             "which the agent MUST treat as success per ADR-0019. Repeating with the same `idempotencyKey` " +
             "returns the cached result without re-running the handler.",
-        generateOutputSchema = true,
+
     )
-    suspend fun cancelPublication(
+    fun cancelPublication(
         @McpToolParam(description = "Authenticated workspace id (injected from the JWT).")
         workspaceId: String,
         @McpToolParam(description = "Authenticated principal id (injected from the JWT).")
@@ -369,9 +369,9 @@ class PublicationTools(
             "and `priority` overrides the existing values. The publication MUST be in FAILED status; " +
             "calling retry on a non-FAILED publication returns publication_state_conflict per ADR-0019. " +
             "Repeating with the same `idempotencyKey` returns the cached result without re-running the handler.",
-        generateOutputSchema = true,
+
     )
-    suspend fun retryPublication(
+    fun retryPublication(
         @McpToolParam(description = "Authenticated workspace id (injected from the JWT).")
         workspaceId: String,
         @McpToolParam(description = "Authenticated principal id (injected from the JWT).")
