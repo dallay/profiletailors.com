@@ -2,7 +2,7 @@
 
 > Gate for PR 2 (Resource Security + OAuth Discovery + Workspace Context).
 >
-> **Status**: ✅ COMPLETE. Proceed to PR 2.
+> **Status**: ✅ COMPLETE for local/CI verification — staging live DCR/CIMD capture pending (see §2.2 caveat). Proceed to PR 2.
 >
 > **Author**: sdd-apply (PR 1)
 >
@@ -187,7 +187,7 @@ clients is compliant.
 | CIMD            | **Defer** — revisit only if Keycloak publishes official support or a vendor extension lands |
 
 > **No code changes in SMP are required for any of the three paths.** Keycloak owns
-> `/oauth2/register`, `/.well-known/openid-configuration`, and `client_id` resolution. SMP
+> `/realms/{realm}/clients-registrations/default` (and `.../clients-registrations/openid-connect`), `/.well-known/openid-configuration`, and `client_id` resolution. SMP
 > never embeds an OAuth Authorization Server.
 
 ### 2.6 What PR 2 inherits
@@ -325,7 +325,7 @@ Option A is the **MVP path** because:
 
 ### 4.6 Keycloak protocol mapper config (realm-side)
 
-```
+```text
 Client scope:   mcp
 Mapper type:    OIDC User Property (custom script variant) OR
                 `oidc-hardcoded-claim` with token-context lookups
@@ -334,17 +334,15 @@ Token Claim:    workspace_id
 Claim JSON Type: String
 ```
 
-When using a script mapper:
+When using a script mapper (reads verified claim, does not parse JWS):
 
 ```javascript
-var workspaceContext = user.getSessionAttribute("workspace_context");
-if (workspaceContext) {
-  // Verify JWS against Profile Tailors JWKS
-  var jws = JSON.parse(workspaceContext);
-  // (real implementation calls Profile Tailors JWKS endpoint)
-  token.setOtherClaims("workspace_id", jws.workspace_id);
+var verifiedWorkspaceId = userSession.getNote("verified_workspace_id");
+if (verifiedWorkspaceId) {
+  token.setOtherClaims("workspace_id", verifiedWorkspaceId);
 }
 ```
+The JWS is verified earlier by the authenticator step (see §4.6 flow below); the mapper only copies the verified `workspace_id` from the session note.
 
 A SPI-free **Identity Provider Authenticator** step is added to the `mcp` browser flow
 that:
@@ -354,7 +352,7 @@ that:
 3. Stashes `workspace_id` in `session.note`.
 4. The protocol mapper above copies it into the token.
 
-### 4.7 Client configuration recommendation
+### 4.7 Client configuration recommendation (login-URL param — consistent with §4.5)
 
 ```json
 {
@@ -362,15 +360,13 @@ that:
   "redirect_uris": ["cursor://oauth/callback"],
   "scope": "openid mcp:channels:read mcp:publications:read",
   "default_acr_values": ["urn:mace:incommon:iap:silver"],
-  "extra_query_params": {
-    "workspace_context": "<jws obtained from POST /api/me/workspaces/{ws}/context>"
-  }
+  "login_url_with_workspace_context": "https://kc.example.com/realms/profiletailors/protocol/openid-connect/auth?workspace_context=<jws from GET /api/me/workspaces/{ws}/context>"
 }
 ```
 
 The SPA obtains the JWS via `GET /api/me/workspaces/{ws}/context` (signed by SMP) and
-forwards it as an **authorization request parameter**. Keycloak's authenticator step
-parses it, verifies the JWS, and binds `workspace_id` to the session.
+forwards it as a **login-URL query parameter** `?workspace_context=<jws>` (see §4.5). Keycloak's authenticator step
+reads the query param, verifies the JWS against `https://api.profiletailors.com/.well-known/jwks.json`, and stashes the verified `workspace_id` in `session.note` for the protocol mapper. The extension is packaged as a Keycloak SPI JAR (`mcp-workspace-authenticator.jar`) deployed to `providers/` and enabled in the `mcp` browser flow.
 
 ### 4.8 What PR 2 inherits
 

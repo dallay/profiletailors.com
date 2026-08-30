@@ -49,7 +49,7 @@ migrations or persistence-bound behaviour beyond reusing existing tables.
 
 ## Spike verification
 
-`openspec/changes/mcp-server/spikes/SPIKE_OUTCOME.md` documents the
+`openspec/changes/archive/2026-08-27-mcp-server/spikes/SPIKE_OUTCOME.md` documents the
 compatibility decisions inherited by PR 2 onward:
 
 - Spring AI 2.0 `@McpTool` annotation API verified against the GA starter

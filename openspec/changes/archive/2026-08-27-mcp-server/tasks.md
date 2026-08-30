@@ -40,7 +40,7 @@ Chain strategy: stacked-to-main
 - **PR / Base**: PR 1 / main
 - **Effort**: S
 - **Depends on**: —
-- **Files**: `scratch/spring-ai-spike/`, `openspec/changes/mcp-server/spikes/SPIKE_OUTCOME.md` (section 1)
+- **Files**: `scratch/spring-ai-spike/`, `openspec/changes/archive/2026-08-27-mcp-server/spikes/SPIKE_OUTCOME.md` (section 1)
 - **Description**: Confirm `@McpTool`, `@McpToolParam`, `ToolCallbackProvider`, and STATELESS Streamable HTTP transport for WebFlux. Document import packages and protocol revision pinned by the starter.
 - **TDD**: N/A (spike is exploration, not testable code). Convert learnings into a SPIKE_OUTCOME.md section.
 - **Acceptance**: `@McpTool(name, description)` import path confirmed; STATELESS WebFlux transport confirmed; MCP protocol revision recorded; Spring Boot 4.0.7 + Kotlin 2.3.21 compatibility recorded.
@@ -50,8 +50,8 @@ Chain strategy: stacked-to-main
 - **PR / Base**: PR 1 / main
 - **Effort**: S
 - **Depends on**: T1
-- **Files**: `scratch/keycloak-cimd/`, `openspec/changes/mcp-server/spikes/SPIKE_OUTCOME.md` (section 2)
-- **Description**: Stand up Keycloak 26+ realm. Verify (a) RFC 7591 DCR via `POST /oauth2/register`, (b) CIMD (draft-ietf-oauth-client-id-metadata-document) at `client_id` URL — separate outcomes. Record fallback path (pre-registered clients only).
+- **Files**: `scratch/keycloak-cimd/`, `openspec/changes/archive/2026-08-27-mcp-server/spikes/SPIKE_OUTCOME.md` (section 2)
+- **Description**: Stand up Keycloak 26+ realm. Verify (a) RFC 7591 DCR via `POST /realms/{realm}/clients-registrations/default` (or `/clients-registrations/openid-connect`), (b) CIMD (draft-ietf-oauth-client-id-metadata-document) at `client_id` URL — separate outcomes. Record fallback path (pre-registered clients only).
 - **TDD**: N/A. Record observations only.
 - **Acceptance**: DCR status recorded (supported / not supported); CIMD status recorded (supported / not supported / partial); fallback path documented.
 - **Verification**: `curl` matrix against local Keycloak; request/response recorded in SPIKE_OUTCOME.md section 2.
@@ -60,7 +60,7 @@ Chain strategy: stacked-to-main
 - **PR / Base**: PR 1 / main
 - **Effort**: S
 - **Depends on**: T1
-- **Files**: `scratch/rfc8707/`, `openspec/changes/mcp-server/spikes/SPIKE_OUTCOME.md` (section 3)
+- **Files**: `scratch/rfc8707/`, `openspec/changes/archive/2026-08-27-mcp-server/spikes/SPIKE_OUTCOME.md` (section 3)
 - **Description**: Verify RFC 8707 Resource Indicator handling in Keycloak — multi-audience tokens, `resource` query parameter adoption. Confirm `aud` claim contains the MCP URI.
 - **TDD**: N/A.
 - **Acceptance**: Multi-audience behavior documented; fallback (single audience `https://api.profiletailors.com/api/mcp` + `workspace_id` claim) recorded.
@@ -70,7 +70,7 @@ Chain strategy: stacked-to-main
 - **PR / Base**: PR 1 / main
 - **Effort**: M
 - **Depends on**: T1, T2
-- **Files**: `scratch/workspace-context/`, `openspec/changes/mcp-server/spikes/SPIKE_OUTCOME.md` (section 4)
+- **Files**: `scratch/workspace-context/`, `openspec/changes/archive/2026-08-27-mcp-server/spikes/SPIKE_OUTCOME.md` (section 4)
 - **Description**: Decide JWS shape for `workspace_context`, whether the signed context travels as a login-URL param or auth-request param, and the Keycloak protocol mapper that copies the claim. This is Option A (recommended for MVP).
 - **TDD**: N/A.
 - **Acceptance**: JWS shape documented; transport mechanism (login-url param vs auth-request param) chosen; Keycloak protocol mapper configuration written; client config recommendation captured.
@@ -80,7 +80,7 @@ Chain strategy: stacked-to-main
 - **PR / Base**: PR 1 / main
 - **Effort**: M
 - **Depends on**: T1, T2, T3, T4
-- **Files**: `scratch/mcp-inspector/`, `openspec/changes/mcp-server/spikes/SPIKE_OUTCOME.md` (final)
+- **Files**: `scratch/mcp-inspector/`, `openspec/changes/archive/2026-08-27-mcp-server/spikes/SPIKE_OUTCOME.md` (final)
 - **Description**: Run MCP Inspector against the spike module. Confirm `initialize` + `tools/list` + `tools/call` work in STATELESS mode. Confirm 401 carries RFC 9728 `resource_metadata` URL. Finalize SPIKE_OUTCOME.md with the recommended client config block.
 - **TDD**: N/A.
 - **Acceptance**: Inspector completes `initialize`; `tools/list` returns empty array; unauthenticated request → 401 + `WWW-Authenticate: Bearer resource_metadata="…"`; SPIKE_OUTCOME.md is COMPLETE and is the gate for PR 2.
@@ -116,12 +116,12 @@ Chain strategy: stacked-to-main
 - **Acceptance**: Spring Modulith recognises `mcp` as a standalone context; `archTest` passes; no `@McpTool` beans yet.
 - **Verification**: `just backend-check` exits 0; `:server:smp:test --tests *Modulith*` passes.
 
-### Task 9: Configure `application.yml` MCP + Profile Tailors keys
+### Task 9: Configure `application.yaml` MCP + Profile Tailors keys
 - **PR / Base**: PR 1 / main
 - **Effort**: S
 - **Depends on**: T6
-- **Files**: `server/smp/src/main/resources/application.yml`, `.env.example`
-- **Description**: Add `spring.ai.mcp.server.{enabled: ${SMP_MCP_ENABLED:false}, protocol: STATELESS, type: ASYNC, streamable-http.mcp-endpoint: /api/mcp}` and `app.mcp.{resource-uri, required-audience, oauth.issuer, oauth.scopes[]}` blocks. Document `SMP_MCP_ENABLED` in `.env.example`.
+- **Files**: `server/smp/src/main/resources/application.yaml`, `.env.example`
+- **Description**: Add `spring.ai.mcp.server.{enabled: ${SMP_MCP_ENABLED:false}, protocol: STATELESS, type: ASYNC, streamable-http.mcp-endpoint: /api/mcp}` and `app.mcp.{resource-uri, required-audience, scopes[]}` blocks. Document `SMP_MCP_ENABLED` in `.env.example`.
 - **TDD**: RED — slice test asserts `SMP_MCP_ENABLED=false` ⇒ no `/api/mcp` exposure (test fails, no config). GREEN — add YAML. REFACTOR — group keys under `app.mcp.*` consistently.
 - **Acceptance**: `SMP_MCP_ENABLED=false` ⇒ Spring AI transport bean excluded; endpoint is `/api/mcp`; scopes list includes `mcp:channels:read` and `mcp:publications:read`.
 - **Verification**: `just backend-run` with `SMP_MCP_ENABLED=false`; `curl POST /api/mcp` returns 401 (auth) and never 404.
@@ -283,7 +283,7 @@ Chain strategy: stacked-to-main
 - **Files**: `server/smp/src/main/kotlin/com/profiletailors/smp/mcp/adapter/McpToolMetadata.kt`, `server/smp/src/test/kotlin/com/profiletailors/smp/mcp/adapter/McpToolMetadataTest.kt`
 - **Description**: Static map: `list_channels` → `mcp:channels:read`; `list_publications`, `get_calendar`, `list_providers` → `mcp:publications:read`. **DO NOT** add `mcp:publications:write` — Phase 5 deferred. Each `@McpTool(description = ...)` includes the required scope in natural language.
 - **TDD**: RED — table test asserts exact mapping (fails, no metadata). GREEN — implement table. REFACTOR — generate from annotation processor only if the table grows above 6 entries.
-- **Acceptance**: `tools/list` returns all 4 tools regardless of scopes; `tools/call` enforces scope; 403 carries `required_scope`.
+- **Acceptance**: `tools/list` returns all 4 production tools (profile-gated `mcp_ping` excluded) regardless of scopes; `tools/call` enforces scope; 403 carries `required_scope`.
 - **Verification**: `McpToolMetadataTest` passes; `McpSecurityEndToEndTest` (PR 2) re-run shows 4 tools advertised.
 
 ### Task 24: Audit log for every tool invocation
@@ -306,7 +306,7 @@ Chain strategy: stacked-to-main
 - **Acceptance**: Exceeding bucket → `rate_limit_exceeded`; `Retry-After` header set; buckets are per workspace + per tool.
 - **Verification**: `McpRateLimitFilterTest` passes; integration test asserts header.
 
-**PR 3 Verification**: 4 tools registered; `tools/list` returns all 4 regardless of scopes; `tools/call` enforces scope; 403 carries `required_scope`; rate-limit exhausted → `rate_limit_exceeded`.
+**PR 3 Verification**: 4 production tools registered (profile-gated `mcp_ping` excluded); `tools/list` returns all 4 production tools regardless of scopes; `tools/call` enforces scope; 403 carries `required_scope`; rate-limit exhausted → `rate_limit_exceeded`.
 
 ---
 
@@ -381,10 +381,10 @@ Chain strategy: stacked-to-main
 - **Effort**: XS
 - **Depends on**: T25
 - **Files**: `.env.example`
-- **Description**: Document `SMP_MCP_ENABLED`, `SMP_OAUTH_ISSUER`, `SMP_OAUTH_AUDIENCE_MCP` with defaults and short descriptions.
+- **Description**: Document `SMP_MCP_ENABLED`, `SMP_MCP_RESOURCE_URI`, `SMP_MCP_AUDIENCE` with defaults and short descriptions.
 - **TDD**: N/A.
 - **Acceptance**: All three vars listed with comment block.
-- **Verification**: `grep -E '^SMP_MCP_|^SMP_OAUTH_' .env.example` returns three lines.
+- **Verification**: `grep -E '^SMP_MCP_' .env.example` returns three lines.
 
 ### Task 33: Update `RateLimitConfiguration` with MCP buckets
 - **PR / Base**: PR 4 / PR 3
@@ -407,7 +407,7 @@ These were in earlier drafts and are now scoped OUT:
 | Removed item | Reason |
 |--------------|--------|
 | `OAuthMetadataController` (RFC 8414) | SMP is NOT an Authorization Server; Keycloak owns `/.well-known/oauth-authorization-server` |
-| `ClientRegistrationService` | Keycloak owns `/oauth2/register` (DCR) |
+| `ClientRegistrationService` | Keycloak owns `/realms/{realm}/clients-registrations/default` (DCR) |
 | `McpToolAuthorizationFilter` as a `WebFilter` | Replaced by `McpToolInvocationAuthorizer`; security chain must never parse JSON-RPC bodies |
 | `mcp:publications:write` scope | Deferred to Phase 5 (write tools) |
 | `password_reset_token` / `refresh_session` | Keycloak owns tokens/sessions; SMP persistence is not reused |
