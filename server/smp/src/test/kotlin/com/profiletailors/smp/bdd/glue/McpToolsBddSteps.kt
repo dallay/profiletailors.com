@@ -169,11 +169,11 @@ class McpToolsBddSteps {
      */
     @Then("the MCP catalog should contain exactly:")
     fun thenMcpCatalogShouldContainExactly(dataTable: io.cucumber.datatable.DataTable) {
-        val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
-        val expected = dataTable.asList(String::class.java).toSet()
-        val body: Map<String, Any?> = objectMapper.readValue(raw)
+        val expected = dataTable.asList(String::class.java).drop(1).toSet()
+        val payload = extractToolData()
+            ?: latestResponse?.responseBody?.let { objectMapper.readValue<Map<String, Any?>>(it) }
 
-        val toolEntries = body["tools"] as? List<*>
+        val toolEntries = payload?.get("tools") as? List<*>
             ?: error("Expected MCP response field 'tools' to be a list")
         val tools = toolEntries.mapIndexed { index, entry ->
             val tool = entry as? Map<*, *>
@@ -211,19 +211,32 @@ class McpToolsBddSteps {
      * @param expected The publication ID expected in the response.
      */
     private fun mcpPublicationIdsShouldInclude(expected: String) {
-        val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
-        val body: Map<String, Any?> = objectMapper.readValue(raw)
-        val data = body["data"] as? Map<*, *>
-        val publications = data?.get("publications") as? List<*> ?: emptyList<Any?>()
+        val payload = extractToolData()
+        val publications = payload?.get("publications") as? List<*> ?: emptyList<Any?>()
         val ids = publications.mapNotNull { (it as? Map<*, *>)?.get("id") as? String }
         assertThat(ids).contains(expected)
     }
 
     private fun assertPublicationStatus(expected: String) {
-        val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: ""
-        val body: Map<String, Any?> = objectMapper.readValue(raw)
-        val data = body["data"] as? Map<*, *>
-        assertThat(data?.get("status")).isEqualTo(expected)
+        val payload = extractToolData()
+        assertThat(payload?.get("status")).isEqualTo(expected)
+    }
+
+    @Suppress("ReturnCount")
+    private fun extractToolData(): Map<String, Any?>? {
+        val raw = latestResponse?.responseBody?.let { String(it, StandardCharsets.UTF_8) } ?: return null
+        if (raw.isBlank()) return null
+        val body: Map<String, Any?> = runCatching {
+            objectMapper.readValue<Map<String, Any?>>(raw)
+        }.getOrNull() ?: return null
+
+        @Suppress("UNCHECKED_CAST")
+        val result = body["result"] as? Map<String, Any?> ?: return body
+
+        @Suppress("UNCHECKED_CAST")
+        val content = result["content"] as? List<Map<String, Any?>> ?: return result
+        val text = content.firstOrNull()?.get("text") as? String ?: return result
+        return runCatching { objectMapper.readValue<Map<String, Any?>>(text) }.getOrNull()
     }
 
     @When("the MCP client with wrong workspace calls tool {string}")
