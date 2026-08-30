@@ -43,6 +43,16 @@ open class ResendWaitlistInvitationHandler(
     private val waitlistEntryAdmin: WaitlistEntryAdmin,
 ) {
 
+    /**
+     * Resends an active waitlist invitation on behalf of an authorized operator.
+     *
+     * @param command The request containing the invitation, operator identity, and operator roles.
+     * @return An administrative summary of the newly created invitation.
+     * @throws PlatformAccessDeniedException If the operator lacks permission to resend invitations.
+     * @throws InvitationNotFoundException If the invitation or its waitlist context cannot be found.
+     * @throws InvitationNotResendableException If the invitation is not active.
+     * @throws InvitationRateLimitExceededException If the resend limit has been reached.
+     */
     @Suppress("ThrowsCount", "LongMethod")
     suspend fun handle(command: ResendWaitlistInvitationCommand): AdminInvitationSummary {
         val permissions = command.operatorRoles.effectivePermissions()
@@ -62,7 +72,7 @@ open class ResendWaitlistInvitationHandler(
             windowStart.toEpochMilli(),
         )
         if (recentResends >= resendLimit) {
-            throw InvitationRateLimitExceededException(existing.waitlistEntryId.toString())
+            throw InvitationRateLimitExceededException(existing.waitlistEntryId)
         }
 
         invitationRepository.update(existing.supersede())

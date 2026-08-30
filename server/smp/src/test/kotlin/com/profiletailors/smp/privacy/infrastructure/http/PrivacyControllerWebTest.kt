@@ -72,9 +72,10 @@ class PrivacyControllerWebTest {
             .exchange()
             .expectStatus().isCreated
 
-        val command = mediator.lastSent as? SubmitAccessRequestCommand
-        kotlin.test.assertNotNull(command) { "Expected SubmitAccessRequestCommand" }
-        kotlin.test.assertEquals("test-principal", command!!.requestedByPrincipalId)
+        val command = requireNotNull(mediator.lastSent as? SubmitAccessRequestCommand) {
+            "Expected SubmitAccessRequestCommand"
+        }
+        kotlin.test.assertEquals("test-principal", command.requestedByPrincipalId)
         kotlin.test.assertEquals("test@example.com", command.requestedByEmail)
         kotlin.test.assertEquals("my data", command.notes)
     }
@@ -92,9 +93,10 @@ class PrivacyControllerWebTest {
             .exchange()
             .expectStatus().isCreated
 
-        val command = mediator.lastSent as? SubmitCorrectionRequestCommand
-        kotlin.test.assertNotNull(command) { "Expected SubmitCorrectionRequestCommand" }
-        kotlin.test.assertEquals(com.profiletailors.smp.privacy.application.CorrectionField.EMAIL, command!!.field)
+        val command = requireNotNull(mediator.lastSent as? SubmitCorrectionRequestCommand) {
+            "Expected SubmitCorrectionRequestCommand"
+        }
+        kotlin.test.assertEquals(com.profiletailors.smp.privacy.application.CorrectionField.EMAIL, command.field)
         kotlin.test.assertEquals("new@example.com", command.newValue)
     }
 

@@ -189,6 +189,11 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
         source = requireNotNull(get("source", String::class.java)),
     )
 
+    /**
+     * Maps a database row to an invitation summary.
+     *
+     * @return The invitation summary represented by the row.
+     */
     private fun Readable.toInvitationSummary() = AdminInvitationSummary(
         id = requireNotNull(get("id", UUID::class.java)),
         waitlistEntryId = requireNotNull(get("waitlist_entry_id", String::class.java)),
@@ -200,7 +205,7 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
         revokedBy = get("revoked_by", UUID::class.java),
         createdBy = requireNotNull(get("created_by", UUID::class.java)),
         deliveryStatus = requireNotNull(get("delivery_status", String::class.java)),
-        deliveryAttemptCount = requireNotNull(get("delivery_attempt_count", Integer::class.java)).toInt(),
+        deliveryAttemptCount = requireNotNull(get("delivery_attempt_count", Int::class.javaObjectType)),
         version = requireNotNull(get("version", Long::class.java)),
     )
 

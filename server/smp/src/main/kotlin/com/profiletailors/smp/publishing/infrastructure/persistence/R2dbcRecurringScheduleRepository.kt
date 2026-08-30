@@ -47,6 +47,14 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
         .bind("workspaceId", workspaceId).bind("id", id)
         .fetch().rowsUpdated().awaitSingle() > 0
 
+    /**
+     * Persists a recurring schedule by inserting it or updating the workspace-scoped record.
+     *
+     * @param schedule The schedule to persist.
+     * @param insert Whether to insert a new record instead of updating an existing one.
+     * @return The schedule with populated creation and modification timestamps.
+     * @throws IllegalArgumentException If an update affects no schedule for the given ID and workspace.
+     */
     private suspend fun write(schedule: RecurringSchedule, insert: Boolean): RecurringSchedule {
         val sql = if (insert) {
             """INSERT INTO recurring_schedules
@@ -67,10 +75,10 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
             .bind("interval", schedule.recurrenceRule.interval)
             .bind("daysOfWeek", schedule.recurrenceRule.daysOfWeek.sorted().joinToString(","))
             .bind("timezone", schedule.timezone).bind("status", schedule.status.name).bind("updatedAt", now)
-        spec = bindNullable(spec, "dayOfMonth", schedule.recurrenceRule.dayOfMonth, java.lang.Integer::class.java)
+        spec = bindNullable(spec, "dayOfMonth", schedule.recurrenceRule.dayOfMonth, Int::class.javaObjectType)
         spec = bindNullable(spec, "endDate", schedule.recurrenceRule.endDate, LocalDate::class.java)
         spec =
-            bindNullable(spec, "maxOccurrences", schedule.recurrenceRule.maxOccurrences, java.lang.Integer::class.java)
+            bindNullable(spec, "maxOccurrences", schedule.recurrenceRule.maxOccurrences, Int::class.javaObjectType)
         spec = bindNullable(spec, "nextScheduledAt", schedule.nextScheduledAt, Instant::class.java)
         if (insert) {
             spec = spec.bind("createdBy", schedule.createdBy).bind("templatePostId", schedule.templatePostId)
@@ -92,6 +100,13 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
         type: Class<*>,
     ): DatabaseClient.GenericExecuteSpec = value?.let { spec.bind(name, it) } ?: spec.bindNull(name, type)
 
+    /**
+     * Queries recurring schedules matching the specified conditions and maps database rows to schedule objects.
+     *
+     * @param where The SQL conditions appended to the query.
+     * @param params The named parameters bound to the query.
+     * @return The matching recurring schedules.
+     */
     private fun query(where: String, params: Map<String, Any>): Flux<RecurringSchedule> {
         var spec = databaseClient.sql(
             """SELECT id, workspace_id, created_by, template_post_id, frequency, recurrence_interval, days_of_week,
@@ -107,13 +122,13 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
                 templatePostId = requireNotNull(row.get("template_post_id", String::class.java)),
                 recurrenceRule = RecurrenceRule(
                     frequency = RecurrenceFrequency.valueOf(requireNotNull(row.get("frequency", String::class.java))),
-                    interval = requireNotNull(row.get("recurrence_interval", java.lang.Integer::class.java)).toInt(),
+                    interval = requireNotNull(row.get("recurrence_interval", Int::class.javaObjectType)),
                     daysOfWeek = row.get("days_of_week", String::class.java).orEmpty().split(",").filter {
                         it.isNotBlank()
                     }.map { it.toInt() }.toSet(),
-                    dayOfMonth = row.get("day_of_month", java.lang.Integer::class.java)?.toInt(),
+                    dayOfMonth = row.get("day_of_month", Int::class.javaObjectType),
                     endDate = row.get("end_date", LocalDate::class.java),
-                    maxOccurrences = row.get("max_occurrences", java.lang.Integer::class.java)?.toInt(),
+                    maxOccurrences = row.get("max_occurrences", Int::class.javaObjectType),
                 ),
                 timezone = requireNotNull(row.get("timezone", String::class.java)),
                 nextScheduledAt = row.get("next_scheduled_at", OffsetDateTime::class.java)?.toInstant(),

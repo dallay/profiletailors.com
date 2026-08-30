@@ -125,6 +125,11 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
         .bind("deliveryAttemptCount", i.deliveryAttemptCount)
         .bind("version", i.version)
 
+    /**
+     * Maps a database row to a waitlist invitation.
+     *
+     * @return The invitation represented by the row.
+     */
     private fun Readable.toInvitation() = WaitlistInvitation(
         id = WaitlistInvitationId(requireNotNull(get("id", UUID::class.java))),
         waitlistEntryId = requireNotNull(get("waitlist_entry_id", String::class.java)),
@@ -138,7 +143,7 @@ class R2dbcWaitlistInvitationRepository(private val databaseClient: DatabaseClie
         createdBy = requireNotNull(get("created_by", UUID::class.java)),
         deliveryStatus = InvitationDeliveryStatus.valueOf(requireNotNull(get("delivery_status", String::class.java))),
         lastDeliveryAttemptAt = get("last_delivery_attempt_at", OffsetDateTime::class.java)?.toInstant(),
-        deliveryAttemptCount = requireNotNull(get("delivery_attempt_count", Integer::class.java)).toInt(),
+        deliveryAttemptCount = requireNotNull(get("delivery_attempt_count", Int::class.javaObjectType)),
         version = requireNotNull(get("version", Long::class.java)),
     )
 

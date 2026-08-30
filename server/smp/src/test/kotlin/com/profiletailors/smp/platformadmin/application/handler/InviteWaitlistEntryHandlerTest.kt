@@ -132,7 +132,7 @@ class InviteWaitlistEntryHandlerTest {
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
         coEvery { waitlistEntryAdmin.save(capture(savedEntrySlot)) } answers { savedEntrySlot.captured }
         val eventSlot = slot<DomainEvent>()
-        coEvery { eventPublisher.publish(capture(eventSlot)) } answers { Unit }
+        coEvery { eventPublisher.publish(capture(eventSlot)) } returns Unit
 
         val result = handler.handle(command())
 
@@ -164,7 +164,7 @@ class InviteWaitlistEntryHandlerTest {
         coEvery { invitationRepository.update(capture(supersededSlot)) } answers { supersededSlot.captured }
         val activeSlot = slot<WaitlistInvitation>()
         coEvery { invitationRepository.save(capture(activeSlot)) } answers { activeSlot.captured }
-        coEvery { eventPublisher.publish(any<DomainEvent>()) } answers { Unit }
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
         handler.handle(command())
 
@@ -179,7 +179,7 @@ class InviteWaitlistEntryHandlerTest {
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
         coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
-        coEvery { eventPublisher.publish(any<DomainEvent>()) } answers { Unit }
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
         handler.handle(command())
 

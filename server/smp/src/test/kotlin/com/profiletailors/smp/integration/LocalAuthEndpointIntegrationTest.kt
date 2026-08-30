@@ -32,6 +32,7 @@ import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.test.json.JsonCompareMode
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -226,7 +227,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .expectStatus().isOk
             .expectBody().json(
                 """{"registrationEnabled":true,"passwordRecoveryEnabled":true,"invitationAcceptanceEnabled":true}""",
-                true,
+                JsonCompareMode.STRICT,
             )
     }
 

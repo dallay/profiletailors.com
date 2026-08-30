@@ -2,7 +2,6 @@ package com.profiletailors.smp.identity.infrastructure.email
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -18,8 +17,8 @@ class EmailTemplatesPasswordResetTest {
 
         val expectedUrl = "https://app.example.com/reset-password?token=raw-token"
         assertTrue(message.text.contains(expectedUrl), message.text)
-        assertNotNull(message.html)
-        assertTrue(message.html!!.contains(expectedUrl), message.html)
+        val html = requireNotNull(message.html)
+        assertTrue(html.contains(expectedUrl), html)
     }
 
     @Test
@@ -33,8 +32,9 @@ class EmailTemplatesPasswordResetTest {
         // Plain-text body intentionally renders the raw username (it is not parsed as HTML).
         assertTrue(message.text.contains("<b>user</b>"), message.text)
         // The HTML body MUST escape the username to block HTML injection.
-        assertTrue(message.html!!.contains("&lt;b&gt;user&lt;/b&gt;"), message.html)
-        assertFalse(message.html!!.contains("<b>user</b>"))
+        val html = requireNotNull(message.html)
+        assertTrue(html.contains("&lt;b&gt;user&lt;/b&gt;"), html)
+        assertFalse(html.contains("<b>user</b>"))
     }
 
     @Test
@@ -46,7 +46,7 @@ class EmailTemplatesPasswordResetTest {
         )
 
         assertTrue(message.text.contains("30 minutes"))
-        assertTrue(message.html!!.contains("30 MINUTES"))
+        assertTrue(requireNotNull(message.html).contains("30 MINUTES"))
     }
 
     @Test
@@ -58,7 +58,7 @@ class EmailTemplatesPasswordResetTest {
         )
 
         assertTrue(message.text.contains("safely ignore this email"))
-        assertTrue(message.html!!.contains("safely ignore this email"))
+        assertTrue(requireNotNull(message.html).contains("safely ignore this email"))
     }
 
     @Test
@@ -71,8 +71,9 @@ class EmailTemplatesPasswordResetTest {
 
         assertFalse(message.text.contains("current password", ignoreCase = true))
         assertFalse(message.text.contains("temporary password", ignoreCase = true))
-        assertFalse(message.html!!.contains("current password", ignoreCase = true))
-        assertFalse(message.html!!.contains("temporary password", ignoreCase = true))
+        val html = requireNotNull(message.html)
+        assertFalse(html.contains("current password", ignoreCase = true))
+        assertFalse(html.contains("temporary password", ignoreCase = true))
     }
 
     @Test
@@ -96,8 +97,8 @@ class EmailTemplatesPasswordResetTest {
             )
         }.exceptionOrNull()
 
-        assertNotNull(error)
-        assertTrue(error!!.message!!.contains("token"))
+        val exception = requireNotNull(error)
+        assertTrue(requireNotNull(exception.message).contains("token"))
     }
 
     @Test

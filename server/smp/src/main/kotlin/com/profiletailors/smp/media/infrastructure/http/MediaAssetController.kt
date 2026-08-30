@@ -324,6 +324,14 @@ class MediaAssetController(
         )
     }
 
+    /**
+     * Uploads a multipart file for an existing media asset.
+     *
+     * @param assetId The identifier of the asset to upload.
+     * @param filePart The binary file to upload.
+     * @return The updated media asset details.
+     * @throws ResponseStatusException If the declared file size exceeds 500 MB.
+     */
     @PostMapping(
         value = ["/{assetId}/upload"],
         consumes = [MediaType.MULTIPART_FORM_DATA_VALUE],
@@ -350,7 +358,7 @@ class MediaAssetController(
                 assetId,
             )
             throw ResponseStatusException(
-                HttpStatus.PAYLOAD_TOO_LARGE,
+                HttpStatus.CONTENT_TOO_LARGE,
                 "File size exceeds the 500 MB limit.",
             )
         }

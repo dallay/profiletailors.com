@@ -499,7 +499,7 @@ class RequestPasswordResetHandlerTest {
         LocalPasswordCredentialGateway {
         override suspend fun create(principalId: String, passwordHash: String) = Unit
 
-        override suspend fun updatePasswordHash(principalId: String, newPasswordHash: String) = Unit
+        override suspend fun updatePasswordHash(principalId: String, passwordHash: String) = Unit
 
         override suspend fun findByEmail(email: String): LocalPasswordCredentialRecord? =
             record?.takeIf { it.email == email }

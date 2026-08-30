@@ -14,6 +14,10 @@ import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationStatus
+import com.profiletailors.smp.publishing.domain.RecurrenceFrequency
+import com.profiletailors.smp.publishing.domain.RecurrenceRule
+import com.profiletailors.smp.publishing.domain.RecurringSchedule
+import com.profiletailors.smp.publishing.domain.RecurringScheduleStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import kotlinx.coroutines.reactor.awaitSingle
@@ -46,6 +50,7 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
     private lateinit var publicationAssetRepository: R2dbcPublicationAssetRepository
     private lateinit var publicationJobRepository: R2dbcPublicationJobRepository
     private lateinit var deliveryAttemptRepository: R2dbcDeliveryAttemptRepository
+    private lateinit var recurringScheduleRepository: R2dbcRecurringScheduleRepository
 
     private val fixedClock = java.time.Clock.fixed(
         Instant.parse("2026-06-01T12:00:00Z"),
@@ -59,6 +64,39 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
         publicationAssetRepository = R2dbcPublicationAssetRepository(databaseClient, ObjectMapper())
         publicationJobRepository = R2dbcPublicationJobRepository(databaseClient)
         deliveryAttemptRepository = R2dbcDeliveryAttemptRepository(databaseClient)
+        recurringScheduleRepository = R2dbcRecurringScheduleRepository(databaseClient)
+    }
+
+    @Test
+    fun `recurring schedule persists nullable integer fields through PostgreSQL`() = runTest {
+        val templatePostId = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-recurring-schedule")
+        val schedule = RecurringSchedule(
+            id = "recurring-schedule-1",
+            workspaceId = "workspace-1",
+            createdBy = "principal-1",
+            templatePostId = templatePostId,
+            recurrenceRule = RecurrenceRule(
+                frequency = RecurrenceFrequency.MONTHLY,
+                interval = 2,
+                dayOfMonth = 15,
+                maxOccurrences = 12,
+            ),
+            timezone = "UTC",
+            nextScheduledAt = Instant.parse("2026-07-15T10:00:00Z"),
+            status = RecurringScheduleStatus.ACTIVE,
+            createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+            updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
+        )
+
+        val created = recurringScheduleRepository.create(schedule)
+        val found = requireNotNull(
+            recurringScheduleRepository.findByWorkspaceAndId("workspace-1", schedule.id),
+        )
+
+        assertEquals(schedule, created)
+        assertEquals(schedule.recurrenceRule, found.recurrenceRule)
+        assertEquals(schedule.nextScheduledAt, found.nextScheduledAt)
+        assertEquals(schedule.status, found.status)
     }
 
     // -------------------------------------------------------------------------

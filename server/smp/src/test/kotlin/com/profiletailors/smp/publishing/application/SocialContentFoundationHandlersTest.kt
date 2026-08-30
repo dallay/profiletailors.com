@@ -45,6 +45,7 @@ import com.profiletailors.smp.publishing.infrastructure.fake.FakeSocialContentPr
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
@@ -332,6 +333,7 @@ class SocialContentFoundationHandlersTest {
     }
 
     @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun `should delay rate limited retries with the default exponential backoff`() = runTest {
         var attempts = 0
         val startedAt = currentTime

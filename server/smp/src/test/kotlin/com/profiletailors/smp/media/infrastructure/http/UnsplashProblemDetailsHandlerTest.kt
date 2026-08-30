@@ -37,7 +37,7 @@ class UnsplashProblemDetailsHandlerTest {
     fun `photo too large exception maps to 413 with size properties`() {
         val result = handler.handle(UnsplashPhotoTooLargeException(actualSize = 12_000_000, maxAllowed = 10_000_000))
 
-        result.status shouldBe HttpStatus.PAYLOAD_TOO_LARGE.value()
+        result.status shouldBe HttpStatus.CONTENT_TOO_LARGE.value()
         result.title shouldBe "Unsplash photo too large"
         result.properties?.get("errorCode") shouldBe "UNSPLASH_PHOTO_TOO_LARGE"
         result.properties?.get("actualSize") shouldBe 12_000_000L

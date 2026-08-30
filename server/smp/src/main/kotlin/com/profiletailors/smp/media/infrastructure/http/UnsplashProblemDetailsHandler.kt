@@ -56,7 +56,7 @@ class UnsplashProblemDetailsHandler {
      */
     @ExceptionHandler(UnsplashPhotoTooLargeException::class)
     fun handle(exception: UnsplashPhotoTooLargeException): ProblemDetail = ProblemDetail.forStatusAndDetail(
-        HttpStatus.PAYLOAD_TOO_LARGE,
+        HttpStatus.CONTENT_TOO_LARGE,
         exception.message ?: "Unsplash photo too large.",
     ).apply {
         title = "Unsplash photo too large"
