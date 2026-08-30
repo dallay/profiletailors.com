@@ -16,8 +16,8 @@ vi.mock('./IdeaLane.vue', () => ({
   },
 }))
 
-function makeColumn(id: string, order: number): IdeaColumn {
-  return { id, name: id, order }
+function makeColumn(id: string, order: number, color?: string | null): IdeaColumn {
+  return { id, name: id, order, color }
 }
 
 function makeIdea(id: string, columnId: string): Idea {
@@ -41,7 +41,7 @@ describe('IdeaBoard', () => {
     const wrapper = mount(IdeaBoard, {
       props: {
         columns: [makeColumn('raw', 0), makeColumn('done', 1)],
-        ideasByColumn: { raw: [makeIdea('idea-1', 'raw')], done: [] },
+        ideasByColumn: { raw: [makeIdea('idea-1', 'raw')] },
         loading: false,
       },
     })
@@ -79,6 +79,33 @@ describe('IdeaBoard', () => {
     const lanes = wrapper.findAll('[data-testid="lane-stub"]')
     expect(lanes).toHaveLength(2)
     expect(wrapper.find('[data-dnd-column="raw"]').exists()).toBe(true)
+    expect(lanes[1]?.text()).toContain('done:0')
+  })
+
+  it('renders gallery columns and exposes a new-column action', async () => {
+    const wrapper = mount(IdeaBoard, {
+      props: {
+        columns: [makeColumn('raw', 0, '#22c55e'), makeColumn('done', 1)],
+        ideasByColumn: { raw: [makeIdea('idea-1', 'raw')] },
+        loading: false,
+        viewMode: 'gallery',
+      },
+    })
+
+    expect(wrapper.find('[data-testid="idea-gallery-column-raw"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="idea-gallery-column-done"]').exists()).toBe(true)
+    expect(
+      wrapper.find('[data-testid="idea-gallery-column-raw"] span').attributes('style'),
+    ).toBeDefined()
+    await wrapper
+      .find('[data-testid="idea-gallery-column-done"] [data-testid="idea-gallery-empty"]')
+      .trigger('click')
+    await wrapper.findAll('[data-testid="idea-gallery-add"]').at(1)?.trigger('click')
+    expect(wrapper.emitted('addIdea')).toEqual([['done'], ['done']])
+    await wrapper.find('[data-dnd-draggable="idea-1"]').trigger('click')
+    expect(wrapper.emitted('selectIdea')).toEqual([['idea-1']])
+    await wrapper.find('[data-testid="ideas-gallery-new-column"]').trigger('click')
+    expect(wrapper.emitted('newColumn')).toHaveLength(1)
   })
 
   it('forwards add and selectIdea events', async () => {

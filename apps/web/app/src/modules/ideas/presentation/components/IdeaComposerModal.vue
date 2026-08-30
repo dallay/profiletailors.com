@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { ChevronDown, Link as LinkIcon, Tag } from '@lucide/vue'
 import { useIdeasStore } from '@modules/ideas/infrastructure/ideas.store'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { buildPublishingPrefill, useIdeaComposer } from '@modules/ideas/application/useIdeaComposer'
@@ -71,6 +72,13 @@ const composer = useIdeaComposer({
   initialColumnId: initialColumnIdRef as never,
 })
 
+const tagInput = ref('')
+const linkLabel = ref('')
+const linkUrl = ref('')
+const isDeleteConfirmOpen = ref(false)
+const isDirtyGuardOpen = ref(false)
+const isDetailsOpen = ref(false)
+
 watch(
   () => props.idea,
   () => {
@@ -81,19 +89,20 @@ watch(
 
 watch(
   () => props.open,
-  (open) => {
+  (open, wasOpen) => {
     if (!open) {
       isDeleteConfirmOpen.value = false
       isDirtyGuardOpen.value = false
+      isDetailsOpen.value = false
+    }
+    if (open && !wasOpen) {
+      composer.reset()
+      tagInput.value = ''
+      linkLabel.value = ''
+      linkUrl.value = ''
     }
   },
 )
-
-const tagInput = ref('')
-const linkLabel = ref('')
-const linkUrl = ref('')
-const isDeleteConfirmOpen = ref(false)
-const isDirtyGuardOpen = ref(false)
 
 const isEditMode = computed(() => !!props.idea)
 
@@ -119,7 +128,7 @@ async function handleSave(): Promise<void> {
     if (composer.titleError.value) toast.error(t('ideas.composer.validation.titleRequired'))
     return
   }
-  toast.success(t('ideas.toasts.created'))
+  toast.success(t(isEditMode.value ? 'ideas.toasts.updated' : 'ideas.toasts.created'))
   emit('saved', result)
   emit('update:open', false)
   emit('close')
@@ -200,28 +209,69 @@ async function handleCreatePost(): Promise<void> {
 <template>
   <Dialog :open="open" @update:open="(v: boolean) => (v ? null : handleRequestClose())">
     <DialogContent
-      class="sm:max-w-xl max-h-[90vh] overflow-y-auto"
+      class="w-[min(100%-1rem,640px)] max-h-[calc(100vh-2rem)] gap-0 overflow-hidden rounded-2xl border border-border-visible bg-bg-surface p-0 text-text-body"
       data-testid="idea-composer-modal"
       @keydown="handleEscape"
       @escape-key-down.prevent="handleRequestClose"
     >
-      <DialogHeader>
-        <DialogTitle>
+      <DialogHeader class="border-b border-border-subtle px-6 pb-4 pt-6 text-left">
+        <DialogTitle class="text-lg font-medium text-text-display">
           {{ isEditMode ? t('ideas.composer.editTitle') : t('ideas.composer.createTitle') }}
         </DialogTitle>
-        <DialogDescription>
+        <DialogDescription class="mt-1 text-sm text-text-secondary">
           {{ isEditMode ? t('ideas.composer.editDescription') : t('ideas.composer.createDescription') }}
         </DialogDescription>
       </DialogHeader>
 
-      <div class="space-y-4">
-        <div class="space-y-2">
-          <label class="text-sm font-medium" for="idea-composer-title">{{ t('ideas.fields.title') }}</label>
+      <div class="max-h-[calc(100vh-11rem)] overflow-y-auto px-6 py-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <label class="sr-only" for="idea-composer-column">{{ t('ideas.fields.column') }}</label>
+            <Select v-model="composer.columnId.value">
+              <SelectTrigger
+                id="idea-composer-column"
+                data-testid="composer-column-select"
+                class="h-9 rounded-lg border-border-visible bg-bg-primary px-3 text-xs"
+                :aria-label="t('ideas.fields.column')"
+              >
+                <SelectValue :placeholder="t('ideas.fields.columnPlaceholder')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="col in columns" :key="col.id" :value="col.id">{{ col.name }}</SelectItem>
+              </SelectContent>
+            </Select>
+            <select
+              id="idea-composer-column-native"
+              data-testid="composer-column-select-native"
+              v-model="composer.columnId.value"
+              class="hidden"
+              :aria-label="t('ideas.fields.column')"
+            >
+              <option v-for="col in columns" :key="`native-${col.id}`" :value="col.id">{{ col.name }}</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            class="inline-flex min-h-9 items-center gap-2 rounded-lg border border-border-visible bg-bg-primary px-3 text-xs text-text-secondary transition hover:border-text-secondary hover:text-text-body"
+            data-testid="composer-details-toggle"
+            :aria-expanded="isDetailsOpen"
+            @click="isDetailsOpen = !isDetailsOpen"
+          >
+            <Tag class="size-3.5" />
+            {{ t('ideas.fields.tags') }}
+            <span v-if="composer.tags.value.length" class="font-mono text-[10px]">{{ composer.tags.value.length }}</span>
+            <ChevronDown class="size-3.5 transition" :class="isDetailsOpen ? 'rotate-180' : ''" />
+          </button>
+        </div>
+
+        <div class="mt-5 space-y-2">
+          <label class="sr-only" for="idea-composer-title">{{ t('ideas.fields.title') }}</label>
           <Input
             id="idea-composer-title"
             data-testid="composer-title-input"
             v-model="composer.title.value"
             :placeholder="t('ideas.composer.fields.titlePlaceholder')"
+            class="h-auto border-0 bg-transparent px-0 text-xl font-medium text-text-display shadow-none placeholder:text-text-secondary/70 focus-visible:ring-0"
           />
           <p
             v-if="composer.titleError.value"
@@ -232,59 +282,36 @@ async function handleCreatePost(): Promise<void> {
           </p>
         </div>
 
-        <div class="space-y-2">
-          <label class="text-sm font-medium" for="idea-composer-column">{{ t('ideas.fields.column') }}</label>
-          <Select v-model="composer.columnId.value">
-            <SelectTrigger id="idea-composer-column" data-testid="composer-column-select">
-              <SelectValue :placeholder="t('ideas.fields.columnPlaceholder')" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="col in columns" :key="col.id" :value="col.id">{{ col.name }}</SelectItem>
-            </SelectContent>
-          </Select>
-          <label for="idea-composer-column-native" class="sr-only">{{ t('ideas.fields.column') }}</label>
-          <select
-            id="idea-composer-column-native"
-            data-testid="composer-column-select-native"
-            v-model="composer.columnId.value"
-            class="hidden"
-          >
-            <option v-for="col in columns" :key="`native-${col.id}`" :value="col.id">{{ col.name }}</option>
-          </select>
-          <div data-testid="composer-column-select" class="sr-only">{{ composer.columnId.value }}</div>
-        </div>
-
-        <div class="space-y-2">
-          <div class="rounded-xl border border-border-subtle bg-bg-primary/40">
-            <div class="border-b border-border-subtle px-3 py-2">
-              <MarkdownToolbar
-                :disabled="composer.isSaving.value"
-                data-testid="markdown-toolbar"
-                @bold="composer.markdownEditor.applyBold()"
-                @italic="composer.markdownEditor.applyItalic()"
-                @strikethrough="composer.markdownEditor.applyStrikethrough()"
-                @heading="composer.markdownEditor.applyHeading()"
-                @unordered-list="composer.markdownEditor.applyUnorderedList()"
-                @ordered-list="composer.markdownEditor.applyOrderedList()"
-                @blockquote="composer.markdownEditor.applyBlockquote()"
-                @link="composer.markdownEditor.applyLink()"
-                @code="composer.markdownEditor.applyInlineCode()"
-              />
-            </div>
-            <label for="idea-composer-notes" class="sr-only">{{ t('ideas.fields.notes') }}</label>
-            <Textarea
-              id="idea-composer-notes"
-              data-testid="composer-notes"
-              v-model="composer.notes.value"
-              :placeholder="t('ideas.composer.fields.notesPlaceholder')"
-              class="min-h-32 border-0 focus-visible:ring-0"
-              @keydown="composer.markdownEditor.handleKeyDown"
+        <div class="mt-4 overflow-hidden rounded-xl border border-border-subtle bg-bg-primary/30">
+          <label for="idea-composer-notes" class="sr-only">{{ t('ideas.fields.notes') }}</label>
+          <Textarea
+            id="idea-composer-notes"
+            data-testid="composer-notes"
+            v-model="composer.notes.value"
+            :placeholder="t('ideas.composer.fields.notesPlaceholder')"
+            class="min-h-[260px] resize-none border-0 bg-transparent px-4 py-4 text-sm leading-6 shadow-none focus-visible:ring-0"
+            @keydown="composer.markdownEditor.handleKeyDown"
+          />
+          <div class="border-t border-border-subtle px-3 py-2">
+            <MarkdownToolbar
+              :disabled="composer.isSaving.value"
+              data-testid="markdown-toolbar"
+              @bold="composer.markdownEditor.applyBold()"
+              @italic="composer.markdownEditor.applyItalic()"
+              @strikethrough="composer.markdownEditor.applyStrikethrough()"
+              @heading="composer.markdownEditor.applyHeading()"
+              @unordered-list="composer.markdownEditor.applyUnorderedList()"
+              @ordered-list="composer.markdownEditor.applyOrderedList()"
+              @blockquote="composer.markdownEditor.applyBlockquote()"
+              @link="composer.markdownEditor.applyLink()"
+              @code="composer.markdownEditor.applyInlineCode()"
             />
           </div>
         </div>
 
-        <div class="space-y-2">
-          <label class="text-sm font-medium" for="idea-composer-tag-input">{{ t('ideas.fields.tags') }}</label>
+        <div v-show="isDetailsOpen" class="mt-4 space-y-5 border-t border-border-subtle pt-4">
+          <div class="space-y-2">
+            <label class="label-mono text-text-secondary" for="idea-composer-tag-input">{{ t('ideas.fields.tags') }}</label>
           <div class="flex gap-2">
             <Input
               id="idea-composer-tag-input"
@@ -294,8 +321,8 @@ async function handleCreatePost(): Promise<void> {
               @keydown.enter.prevent="handleAddTag"
             />
             <Button type="button" variant="outline" data-testid="composer-tag-add" @click="handleAddTag">{{ t('common.add') }}</Button>
-          </div>
-          <div class="flex flex-wrap gap-1.5" data-testid="composer-tags">
+            </div>
+            <div class="flex flex-wrap gap-1.5" data-testid="composer-tags">
             <span
               v-for="tag in composer.tags.value"
               :key="tag"
@@ -312,12 +339,15 @@ async function handleCreatePost(): Promise<void> {
                 ×
               </button>
             </span>
+            </div>
           </div>
-        </div>
 
-        <div class="space-y-2">
-          <label class="text-sm font-medium" for="idea-composer-link-label">{{ t('ideas.fields.links') }}</label>
-          <div class="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+          <div class="space-y-2">
+            <label class="label-mono inline-flex items-center gap-2 text-text-secondary" for="idea-composer-link-label">
+              <LinkIcon class="size-3.5" />
+              {{ t('ideas.fields.links') }}
+            </label>
+            <div class="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <Input
               id="idea-composer-link-label"
               data-testid="composer-link-label"
@@ -333,11 +363,11 @@ async function handleCreatePost(): Promise<void> {
               @keydown.enter.prevent="handleAddLink"
             />
             <Button type="button" variant="outline" data-testid="composer-link-add" @click="handleAddLink">{{ t('common.add') }}</Button>
-          </div>
-          <p v-if="composer.linkError.value" class="text-xs text-red-500" data-testid="composer-link-error">
-            {{ composer.linkError.value }}
-          </p>
-          <div class="space-y-1" data-testid="composer-links">
+            </div>
+            <p v-if="composer.linkError.value" class="text-xs text-red-500" data-testid="composer-link-error">
+              {{ composer.linkError.value }}
+            </p>
+            <div class="space-y-1" data-testid="composer-links">
             <div
               v-for="link in composer.links.value"
               :key="link.url"
@@ -354,27 +384,28 @@ async function handleCreatePost(): Promise<void> {
                 ×
               </button>
             </div>
+            </div>
           </div>
-        </div>
 
-        <ComposerSchedulePanel
-          :schedule-mode="composer.scheduling.scheduleMode.value"
-          :selected-calendar-date="composer.scheduling.selectedCalendarDate.value"
-          :schedule-time="composer.scheduling.scheduleTime.value"
-          :is-date-picker-open="composer.scheduling.isDatePickerOpen.value"
-          :today-date-value="(composer.scheduling.todayDateValue.value as unknown as import('@internationalized/date').CalendarDate)"
-          :min-time-for-date="composer.scheduling.minTimeForDate.value"
-          :selected-date-label="composer.scheduling.selectedDateLabel.value"
-          :schedule-helper-text="composer.scheduling.scheduleHelperText.value"
-          data-testid="schedule-panel"
-          @update:schedule-mode="(v) => composer.scheduling.setScheduleMode(v)"
-          @update:selected-calendar-date="(v) => composer.scheduling.setScheduleDate(v)"
-          @update:schedule-time="(v) => composer.scheduling.setScheduleTime(v)"
-          @update:is-date-picker-open="(v) => (composer.scheduling.isDatePickerOpen.value = v)"
-        />
+          <ComposerSchedulePanel
+            :schedule-mode="composer.scheduling.scheduleMode.value"
+            :selected-calendar-date="composer.scheduling.selectedCalendarDate.value"
+            :schedule-time="composer.scheduling.scheduleTime.value"
+            :is-date-picker-open="composer.scheduling.isDatePickerOpen.value"
+            :today-date-value="(composer.scheduling.todayDateValue.value as unknown as import('@internationalized/date').CalendarDate)"
+            :min-time-for-date="composer.scheduling.minTimeForDate.value"
+            :selected-date-label="composer.scheduling.selectedDateLabel.value"
+            :schedule-helper-text="composer.scheduling.scheduleHelperText.value"
+            data-testid="schedule-panel"
+            @update:schedule-mode="(v) => composer.scheduling.setScheduleMode(v)"
+            @update:selected-calendar-date="(v) => composer.scheduling.setScheduleDate(v)"
+            @update:schedule-time="(v) => composer.scheduling.setScheduleTime(v)"
+            @update:is-date-picker-open="(v) => (composer.scheduling.isDatePickerOpen.value = v)"
+          />
+        </div>
       </div>
 
-      <DialogFooter class="flex flex-wrap justify-between gap-2">
+      <DialogFooter class="flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle bg-bg-primary/30 px-6 py-4">
         <div>
           <Button
             v-if="isEditMode"
