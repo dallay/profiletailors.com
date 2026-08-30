@@ -25,7 +25,7 @@ This document defines the official Service Level Agreements (SLAs) and Service L
 | **Governance & Consent** | `/api/governance/*`, `/api/privacy/*` | **99.9%** | `< 100ms` | `< 200ms` | `120 req/min per IP` | `governance_consent_recording_outcomes_total` |
 | **Tenancy & Workspaces** | `/api/workspaces/*`, `/api/tenancy/*` | **99.9%** | `< 150ms` | `< 300ms` | `120 req/min per workspace` | `http_server_requests_seconds_bucket{uri=~"/api/workspaces/.*"}` |
 | **Platform Administration** | `/api/admin/*`, `/api/platformadmin/*` | **99.0%** | `< 300ms` | `< 800ms` | `30 req/min per operator` | `platformadmin_operator_access_total` |
-| **Public Ingress / Marketing** | `/`, `/api/waitlist/*` | **99.9%** | `< 100ms` | `< 250ms` | `200 req/min per IP` | `http_server_requests_seconds_bucket{uri=~"/api/waitlist/.*"}` |
+| **Public Ingress / Marketing** | `/`, `/api/waitlist/*` | **99.9%** | `< 100ms` | `< 250ms` | `200 req/min per IP` | `http_server_requests_seconds_bucket{uri=~"/(\\|api/waitlist/.*)"}` |
 
 ### Publishing Background Worker Delivery SLA
 

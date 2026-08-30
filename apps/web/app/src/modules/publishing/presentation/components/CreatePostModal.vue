@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, watchEffect, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { DateValue } from 'reka-ui'
 import { useFocusTrap } from '@shared/composables/useFocusTrap'
@@ -109,7 +109,6 @@ const postText = ref('')
 const selectedChannelId = ref<string | null>(null)
 
 const markdownEditor = useMarkdownEditor({ postText: postText })
-const composerTextareaEl = markdownEditor.textareaEl
 
 const picker = useComposerMediaPicker({
   mediaStore,
@@ -145,6 +144,10 @@ const aiVersions = ref<AiVersion[]>([])
 const aiSelectedVersionId = ref<string | null>(null)
 
 const modalContainer = ref<HTMLElement | null>(null)
+const composerTextareaEl = ref<HTMLTextAreaElement | null>(null)
+watchEffect(() => {
+  markdownEditor.textareaEl.value = composerTextareaEl.value
+})
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
 
 

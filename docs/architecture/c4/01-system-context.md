@@ -188,4 +188,4 @@ Profile Tailors enables teams to:
 - Team collaboration enhancements
 - Media asset management improvements
 
-Last updated: 2026-08-29
+Last updated: 2026-08-30

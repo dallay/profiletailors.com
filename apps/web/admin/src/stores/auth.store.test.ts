@@ -133,7 +133,7 @@ describe('useAdminAuthStore', () => {
       platformRoles: ['PLATFORM_OPERATOR'],
     }
     const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
-      const path = String(input)
+      const path = input instanceof Request ? input.url : String(input)
       if (path.endsWith('/api/auth/login')) {
         return Promise.resolve(jsonResponse({ accessToken: 'access-token' }))
       }
@@ -147,7 +147,7 @@ describe('useAdminAuthStore', () => {
     expect(store.accessToken).toBe('access-token')
     expect(store.principal).toEqual(mockPrincipal)
     const sessionRequest = fetchMock.mock.calls[1]
-    expect(sessionRequest?.[0]).toBe('http://localhost:7638/api/admin/session')
+    expect(sessionRequest?.[0]).toBe('/api/admin/session')
     expect(sessionRequest?.[1]?.credentials).toBe('include')
     expect(new Headers(sessionRequest?.[1]?.headers).get('Authorization')).toBe(
       'Bearer access-token',

@@ -143,3 +143,33 @@ To plug a new module into the backend workspace:
    ```
 4. Run `./gradlew projects` from the root. The dynamic scanning engine will automatically detect and
    register your module!
+
+---
+
+## ⚠️ Known Issues & Troubleshooting
+
+### Configuration Cache Incompatibility with License Report Plugin
+
+**Issue:** The `com.github.jk1:gradle-license-report` plugin (v3.1.4) is not compatible with Gradle's configuration cache feature due to Task.project access at execution time.
+
+**Symptoms:**
+```
+17 problems were found storing the configuration cache...
+- Plugin 'org.springframework.boot': execution of task ':server:smp:generateLicenseReport' 
+  caused invocation of 'Task.project' in other task at execution time...
+```
+
+**Workaround:** Run the license report generation with configuration cache disabled:
+
+```bash
+./gradlew generateLicenseReport --no-configuration-cache
+```
+
+Or use the `just` helper:
+```bash
+just backend-licence-check --no-configuration-cache
+```
+
+**Status:** This is a known upstream issue with the license report plugin. The build remains functional, but configuration cache benefits are not available for this specific task. All other tasks in the build continue to use configuration cache normally.
+
+**Tracking:** Monitor [jk1/Gradle-License-Report](https://github.com/jk1/Gradle-License-Report) for updates on configuration cache support.
