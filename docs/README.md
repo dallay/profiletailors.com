@@ -1,6 +1,6 @@
 # Profile Tailors Documentation
 
-**Last Updated:** 2026-08-29
+**Last Updated:** 2026-08-30
 
 ## 📖 Table of Contents
 
@@ -28,6 +28,7 @@
 - [Release Verification](./release-verification.md) - Evidence required before release readiness
 
 ### Infrastructure & Operations Runbooks
+
 - [Modular Docker Compose](./infrastructure/modular-docker-compose.md) - Reusable infrastructure
   services
 - [Production Rollback Runbook](./runbooks/production-rollback.md) - Step-by-step procedure for emergency production rollback (Docker Swarm / Compose / DB)
