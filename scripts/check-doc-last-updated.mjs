@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -26,9 +26,18 @@ for (const file of docFiles) {
   const match = content.match(/Last Updated:?\s*\*?\*?\s*(\d{4}-\d{2}-\d{2})/i);
   if (match) {
     const docDate = match[1];
+    const parsedDocDate = new Date(`${docDate}T00:00:00Z`);
+    if (
+      Number.isNaN(parsedDocDate.getTime()) ||
+      parsedDocDate.toISOString().slice(0, 10) !== docDate
+    ) {
+      console.error(`❌ Invalid 'Last Updated' date in ${file}: ${docDate}`);
+      hasErrors = true;
+      continue;
+    }
     let gitDate = '';
     try {
-      gitDate = execSync(`git log -1 --format="%cd" --date=short "${file}"`, {
+      gitDate = execFileSync('git', ['log', '-1', '--format=%cd', '--date=short', '--', file], {
         stdio: ['pipe', 'pipe', 'ignore'],
       }).toString().trim();
     } catch {
