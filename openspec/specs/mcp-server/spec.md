@@ -1,54 +1,77 @@
-# mcp-server Specification (Delta)
+# MCP Server Specification
 
 ## Purpose
-
-Capture the change to the existing `mcp-server` capability that registers the four
-existing read tools and the new `mcp_ping` health check with the Spring AI MCP
-transport. This delta is necessary because DALLAY-434 shipped the MCP module without
-discovering the tools at runtime; this specification records the contract that the
-**post-DALLAY-590** MCP server must satisfy.
+Provide a stateless, OAuth-protected, read-only MCP resource server.
 
 ## Requirements
 
-### Requirement: Read tools are reachable through the MCP protocol
+### Requirement: Stateless Endpoint and Stable Catalog (production catalog — profile-gated `mcp_ping` excluded)
+The system MUST expose `POST /api/mcp` with stateless Streamable HTTP and support `initialize`, `tools/list`, and `tools/call`. Configuration MUST use `spring.ai.mcp.server.streamable-http.mcp-endpoint` and `spring.ai.mcp.server.enabled`. `tools/list` MUST always advertise exactly `list_publications`, `list_channels`, `get_calendar`, and `list_providers` (four production tools; profile-gated `mcp_ping` excluded), without scope filtering.
 
-`tools/list` against `/api/mcp` MUST return the four read tools (`list_publications`,
-`get_calendar`, `list_channels`, `list_providers`) plus `mcp_ping`. Each tool MUST be
-backed by an `@McpTool`-annotated method on an `@Component` Spring bean and MUST be
-visible to a fresh `tools/list` request without an extra initialization round-trip.
+#### Scenario: Tools list is stable across scopes
+- GIVEN a valid token with any combination of MVP scopes
+- WHEN `tools/list` is called
+- THEN all four read-only tools MUST be returned
 
-#### Scenario: A fresh client can read all four tool names
+#### Scenario: Unknown method is rejected
+- GIVEN an authenticated MCP request
+- WHEN it names an unsupported method
+- THEN JSON-RPC error `-32601` MUST be returned
+- AND no domain query MUST execute
 
-- GIVEN a freshly authenticated MCP client has not interacted with the server before
-- WHEN the client performs `tools/list`
-- THEN the response MUST include `mcp_ping`, `list_publications`, `get_calendar`,
-  `list_channels`, and `list_providers`
-- AND `tools/call` for each MUST execute without manual bean wiring.
+### Requirement: Read Tool Contracts
+The tools MUST return safe workspace-scoped data: `list_publications(from,to,status[],channelId)`, `list_channels(status)`, `get_calendar(from,to,status[],channelId,timezone)`, and `list_providers()`. Outputs MUST omit credentials, tokens, SQL, stack traces, and internal secrets. Valid queries with no matches MUST return empty arrays.
 
-#### Scenario: Read tool payload matches the existing mediator response
+#### Scenario: Each tool returns its safe collection
+- GIVEN an authorized workspace and valid input
+- WHEN any one of the four tools is called
+- THEN its structured collection MUST contain only workspace data
+- AND an empty result MUST be `[]`, not an error
 
-- GIVEN the read tools delegate to existing query handlers through `Mediator.send(query)`
-- WHEN a tool is invoked with valid arguments and a valid scope
-- THEN the response payload MUST match what direct invocation of the same query handler
-  returns
-- AND any difference MUST come only from the MCP-specific correlation and audit fields.
+### Requirement: Invocation-Boundary Scope Enforcement
+Spring AI MUST resolve the tool before scope enforcement. An interceptor/decorator or adapter-shared `requireScope` MUST enforce `mcp:channels:read` for `list_channels` and `mcp:publications:read` for the other three tools. The SecurityWebFilterChain MUST NOT parse JSON-RPC bodies and MUST only validate token, issuer, audience, expiry, and `workspace_id` presence.
 
-### Requirement: Authorization, audit, and workspace guards run on every call
+#### Scenario: Missing scope blocks tools call
+- GIVEN a valid workspace-bound token lacks the resolved tool's scope
+- WHEN `tools/call` invokes that tool
+- THEN HTTP `403` MUST be returned
+- AND the error body MUST contain `required_scope`
 
-The MCP server MUST enforce per-tool scope authorization (see `mcp-tool-authorization`),
-MUST enforce workspace membership through a real tenancy query (replacing the
-`Mono.just(true)` stub), and MUST emit an audit fact per call (see `mcp-tool-audit`).
-A read call MUST NOT succeed without the matching read scope, MUST NOT return data
-outside the caller's workspace, and MUST leave a SUCCESS audit fact on the
-`mcp.audit` logger.
+### Requirement: Tool Error Taxonomy
+Tool failures MUST use `ApplicationError(code, category, message, retryable, correlationId)`. `list_publications` and `get_calendar` MUST report `INVALID_DATE_RANGE`, `INVALID_TIMEZONE`, and `DATE_RANGE_TOO_LARGE`; `list_channels` MUST report `INVALID_CHANNEL_STATUS`; every tool MUST report `WORKSPACE_ACCESS_DENIED`, `RATE_LIMIT_EXCEEDED`, and `INTERNAL_ERROR` where applicable.
 
-#### Scenario: Read call without workspace membership is rejected
+#### Scenario: Invalid publication or calendar range
+- GIVEN `list_publications` or `get_calendar` receives an inverted or malformed range
+- WHEN input is validated
+- THEN `INVALID_DATE_RANGE` MUST be returned
 
-- GIVEN a token whose `workspace_id` claim does not match any membership
-- WHEN the membership query runs
-- THEN the MCP server MUST return `ApplicationError` with `category = "authorization"`
-  and `retryable = false`
-- AND the underlying handler MUST NOT be invoked.
+#### Scenario: Invalid publication or calendar timezone
+- GIVEN either date-based tool receives an unsupported timezone
+- WHEN input is validated
+- THEN `INVALID_TIMEZONE` MUST be returned
 
-(Previously: DALLAY-434 shipped `McpWorkspaceMembershipChecker` returning `Mono.just(true)`,
-which bypassed tenancy checks.)
+#### Scenario: Publication or calendar range is too large
+- GIVEN either date-based tool receives a range above the allowed maximum
+- WHEN input is validated
+- THEN `DATE_RANGE_TOO_LARGE` MUST be returned
+
+#### Scenario: Invalid channel status
+- GIVEN `list_channels` receives an unsupported status
+- WHEN input is validated
+- THEN `INVALID_CHANNEL_STATUS` MUST be returned
+
+#### Scenario: Workspace access denial applies to every tool
+- GIVEN any of the four tools is called without current workspace membership
+- WHEN workspace authorization is evaluated
+- THEN `WORKSPACE_ACCESS_DENIED` MUST be returned
+
+#### Scenario: Rate limiting applies to every tool
+- GIVEN any of the four tools exceeds its request limit
+- WHEN the next call is handled
+- THEN `RATE_LIMIT_EXCEEDED` MUST be returned
+
+#### Scenario: Internal failures apply to every tool
+- GIVEN any of the four tools encounters an unexpected failure
+- WHEN the failure is mapped
+- THEN `INTERNAL_ERROR` MUST be returned
+- AND no internal detail MUST be exposed
