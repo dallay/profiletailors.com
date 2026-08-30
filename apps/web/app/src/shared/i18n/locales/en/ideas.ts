@@ -4,6 +4,18 @@ export default {
   workspaceRequired: 'Select a workspace to start managing ideas.',
   loading: 'Loading ideas board...',
   emptyColumn: 'No ideas yet',
+  newGroup: 'New Group',
+  filters: {
+    tags: 'Tags',
+    all: 'All tags',
+    empty: 'No tags yet',
+    showing: 'Showing {tag}',
+  },
+  view: {
+    label: 'Board view',
+    board: 'Board',
+    gallery: 'Gallery',
+  },
   card: {
     links: '{count} links',
     converted: 'Converted',
@@ -67,7 +79,7 @@ export default {
     createPost: 'Create Post',
     noChannelsCta: 'Connect a channel to enable publishing',
     fields: {
-      titlePlaceholder: 'Write your idea...',
+      titlePlaceholder: 'Give your idea a title',
       notesPlaceholder: 'Add notes with markdown...',
       tagsPlaceholder: 'Add a tag and press Enter',
       linkLabelPlaceholder: 'Label (optional)',

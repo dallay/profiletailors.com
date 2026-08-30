@@ -28,6 +28,8 @@ vi.mock('@lucide/vue', () => {
     Plus: icon,
     X: icon,
     CalendarIcon: icon,
+    ChevronDown: icon,
+    Tag: icon,
   }
 })
 
@@ -194,6 +196,17 @@ describe('IdeaComposerModal', () => {
       await nextTick()
       expect(wrapper.find('[data-testid="composer-save"]').attributes('disabled')).toBeUndefined()
     }
+  })
+
+  it('starts a fresh draft when reopened after closing', async () => {
+    const wrapper = mountModal({ idea: null })
+    const titleInput = wrapper.find('#idea-composer-title')
+    await titleInput.setValue('Temporary draft')
+    await wrapper.setProps({ open: false })
+    await wrapper.setProps({ open: true })
+    await nextTick()
+
+    expect((titleInput.element as HTMLInputElement).value).toBe('')
   })
 
   it('handles tags chips trim/dedupe', async () => {

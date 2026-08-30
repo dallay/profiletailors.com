@@ -81,6 +81,21 @@ describe('IdeaBoard', () => {
     expect(wrapper.find('[data-dnd-column="raw"]').exists()).toBe(true)
   })
 
+  it('renders gallery columns and exposes a new-column action', async () => {
+    const wrapper = mount(IdeaBoard, {
+      props: {
+        columns: [makeColumn('raw', 0)],
+        ideasByColumn: { raw: [makeIdea('idea-1', 'raw')] },
+        loading: false,
+        viewMode: 'gallery',
+      },
+    })
+
+    expect(wrapper.find('[data-testid="idea-gallery-column-raw"]').exists()).toBe(true)
+    await wrapper.find('[data-testid="ideas-gallery-new-column"]').trigger('click')
+    expect(wrapper.emitted('newColumn')).toHaveLength(1)
+  })
+
   it('forwards add and selectIdea events', async () => {
     const wrapper = mount(IdeaBoard, {
       props: {

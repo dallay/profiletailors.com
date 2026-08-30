@@ -23,6 +23,10 @@ vi.mock('@lucide/vue', () => {
     ArrowDown: icon,
     Lightbulb: icon,
     Link: icon,
+    ChevronDown: icon,
+    Grid2X2: icon,
+    LayoutGrid: icon,
+    Tag: icon,
   }
 })
 
@@ -245,7 +249,7 @@ function mountIdeasView() {
   })
 }
 
-function makeTestIdea(id: string, columnId: string, orderInColumn: number) {
+function makeTestIdea(id: string, columnId: string, orderInColumn: number): Idea {
   return {
     id,
     workspaceId: 'workspace-1',
@@ -385,6 +389,27 @@ describe('IdeasView accessibility', () => {
     expect(
       wrapper.findAll('p').filter((paragraph) => paragraph.text() === 'ideas.emptyColumn'),
     ).toHaveLength(2)
+  })
+
+  it('filters ideas by tag and switches to gallery view', async () => {
+    const launchIdea = makeTestIdea('launch-idea', 'raw', 0)
+    launchIdea.tags = ['launch']
+    const otherIdea = makeTestIdea('other-idea', 'raw', 1)
+    otherIdea.tags = ['research']
+    ideasStore.ideas = [launchIdea, otherIdea]
+    ideasStore.ideasByColumn = { raw: [launchIdea, otherIdea], done: [] }
+
+    const wrapper = mountIdeasView()
+    await wrapper.find('[data-testid="ideas-tag-filter"]').trigger('click')
+    await wrapper.find('[data-testid="ideas-tag-launch"]').trigger('click')
+
+    expect(wrapper.findAll('[data-dnd-draggable]')).toHaveLength(1)
+    expect(wrapper.find('[data-dnd-draggable="launch-idea"]').exists()).toBe(true)
+    expect(wrapper.find('[data-dnd-draggable="other-idea"]').exists()).toBe(false)
+
+    await wrapper.find('[data-testid="ideas-view-gallery"]').trigger('click')
+    expect(wrapper.find('[data-testid="idea-gallery-column-raw"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="idea-gallery-column-done"]').exists()).toBe(true)
   })
 
   it('associates board settings inputs and selects with stable labels', async () => {
