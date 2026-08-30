@@ -12,8 +12,8 @@ import com.profiletailors.smp.publishing.domain.RetentionRequirements
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
-import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialComment
+import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialContentActor
 import com.profiletailors.smp.publishing.domain.SocialContentActorRepository
 import com.profiletailors.smp.publishing.domain.SocialContentApprovalEvidence

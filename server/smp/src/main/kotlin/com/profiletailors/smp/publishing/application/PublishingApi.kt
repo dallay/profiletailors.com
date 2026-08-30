@@ -291,7 +291,8 @@ data class BulkRowResult(
     val hasConflict: Boolean = false,
 )
 data class BulkErrorResult(val code: String, val message: String)
-data class ScheduleBulkCommand(val workspaceId: String, val csvText: String, val csvHash: String) : CommandWithResult<ScheduleBulkResult>
+data class ScheduleBulkCommand(val workspaceId: String, val csvText: String, val csvHash: String) :
+    CommandWithResult<ScheduleBulkResult>
 data class ScheduleBulkResult(
     val jobId: String,
     val totalRows: Int,

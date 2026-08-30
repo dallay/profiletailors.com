@@ -2,8 +2,8 @@
 
 package com.profiletailors.smp.publishing.infrastructure.http
 
-import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.publishing.application.BulkJobResult
 import com.profiletailors.smp.publishing.application.BulkTemplateCsvQuery
 import com.profiletailors.smp.publishing.application.BulkTemplateCsvResult
@@ -59,22 +59,33 @@ class BulkPublishingController(
         val csvText = request.csvText
         val csvHash = request.csvHash ?: csvText
         return try {
-            val result = mediator.send(ScheduleBulkCommand(workspaceId = workspaceId, csvText = csvText, csvHash = csvHash))
-            val status = if (result.failedCount > 0 && result.scheduledCount > 0) HttpStatus.MULTI_STATUS else HttpStatus.OK
+            val result = mediator.send(
+                ScheduleBulkCommand(workspaceId = workspaceId, csvText = csvText, csvHash = csvHash),
+            )
+            val status = if (result.failedCount > 0 &&
+                result.scheduledCount > 0
+            ) {
+                HttpStatus.MULTI_STATUS
+            } else {
+                HttpStatus.OK
+            }
             ResponseEntity.status(status).body(result)
         } catch (ex: DuplicateBulkImportException) {
             ResponseEntity.status(HttpStatus.CONFLICT).body(
-                ScheduleBulkResult(jobId = ex.jobId, totalRows = 0, scheduledCount = 0, failedCount = 0, rows = emptyList()),
+                ScheduleBulkResult(
+                    jobId = ex.jobId,
+                    totalRows = 0,
+                    scheduledCount = 0,
+                    failedCount = 0,
+                    rows = emptyList(),
+                ),
             )
         }
     }
 
     @Operation(summary = "Get bulk job")
     @GetMapping("/jobs/{jobId}", version = "1")
-    suspend fun getJob(
-        @PathVariable workspaceId: String,
-        @PathVariable jobId: String,
-    ): BulkJobResult {
+    suspend fun getJob(@PathVariable workspaceId: String, @PathVariable jobId: String): BulkJobResult {
         requireWorkspacePath(workspaceId)
         return mediator.send(GetBulkJobQuery(workspaceId = workspaceId, jobId = jobId))
     }
@@ -93,7 +104,9 @@ class BulkPublishingController(
         @PathVariable templateId: String,
     ): ResponseEntity<String> {
         requireWorkspacePath(workspaceId)
-        val result: BulkTemplateCsvResult = mediator.send(BulkTemplateCsvQuery(workspaceId = workspaceId, templateId = templateId))
+        val result: BulkTemplateCsvResult = mediator.send(
+            BulkTemplateCsvQuery(workspaceId = workspaceId, templateId = templateId),
+        )
         return ResponseEntity.ok().contentType(MediaType.parseMediaType("text/csv")).body(result.csv)
     }
 

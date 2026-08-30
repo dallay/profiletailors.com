@@ -24,10 +24,7 @@ enum class BulkRowStatus {
     FAILED,
 }
 
-data class ImportError(
-    val code: String,
-    val message: String,
-)
+data class ImportError(val code: String, val message: String)
 
 data class BulkImportRow(
     val id: String,
@@ -74,7 +71,12 @@ data class BulkImportJob(
             failedCount == 0 && scheduledCount == 0 -> status
             else -> BulkJobStatus.PARTIAL
         }
-        return copy(status = newStatus, scheduledCount = scheduledCount, failedCount = failedCount, updatedAt = Instant.now())
+        return copy(
+            status = newStatus,
+            scheduledCount = scheduledCount,
+            failedCount = failedCount,
+            updatedAt = Instant.now(),
+        )
     }
 
     companion object {
@@ -88,11 +90,7 @@ data class BulkImportJob(
 }
 
 @Suppress("FunctionOnlyReturningConstant")
-data class BulkTemplate(
-    val id: String,
-    val name: String,
-    val description: String,
-) {
+data class BulkTemplate(val id: String, val name: String, val description: String) {
     companion object {
         fun canonicalHeader(): String = "bodyText,scheduledFor,timezone,media_urls,hashtags"
 
@@ -112,6 +110,4 @@ data class BulkRowValidation(
     val hasConflict: Boolean = false,
 )
 
-data class BulkValidationResult(
-    val rows: List<BulkRowValidation>,
-)
+data class BulkValidationResult(val rows: List<BulkRowValidation>)

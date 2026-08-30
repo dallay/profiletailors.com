@@ -49,11 +49,15 @@ class BulkValidationPipeline(
         if (headerLine.isBlank()) return BulkValidationResult(emptyList())
         val headerColumns = parseCsvLine(headerLine).map { it.trim() }
         val canonical = BulkTemplate.canonicalHeader().split(",")
-        val headerMatches = headerColumns.size == canonical.size && headerColumns.map { it.lowercase() } == canonical.map { it.lowercase() }
+        val headerMatches =
+            headerColumns.size == canonical.size &&
+                headerColumns.map { it.lowercase() } == canonical.map { it.lowercase() }
         if (!headerMatches) {
             return BulkValidationResult(emptyList())
         }
-        val headerIndex = canonical.associateWith { col -> headerColumns.indexOfFirst { it.equals(col, ignoreCase = true) } }
+        val headerIndex = canonical.associateWith { col ->
+            headerColumns.indexOfFirst { it.equals(col, ignoreCase = true) }
+        }
         val bodyIdx = headerIndex["bodyText"] ?: 0
         val scheduledIdx = headerIndex["scheduledFor"] ?: 1
         val mediaIdx = headerIndex["media_urls"] ?: 3
@@ -64,11 +68,21 @@ class BulkValidationPipeline(
         for (rawLine in lines.drop(1)) {
             if (rawLine.isBlank()) continue
             val columns = parseCsvLine(rawLine)
-            val padded = if (columns.size < canonical.size) columns + List(canonical.size - columns.size) { "" } else columns
+            val padded = if (columns.size <
+                canonical.size
+            ) {
+                columns + List(canonical.size - columns.size) { "" }
+            } else {
+                columns
+            }
             val bodyText = padded.getOrNull(bodyIdx)?.trim()
             val scheduledForRaw = padded.getOrNull(scheduledIdx)?.trim()
             val mediaUrlsRaw = padded.getOrNull(mediaIdx)?.trim()
-            val isBlankRow = (bodyText.isNullOrBlank() && scheduledForRaw.isNullOrBlank() && mediaUrlsRaw.isNullOrBlank())
+            val isBlankRow = (
+                bodyText.isNullOrBlank() &&
+                    scheduledForRaw.isNullOrBlank() &&
+                    mediaUrlsRaw.isNullOrBlank()
+                )
             if (isBlankRow) continue
             val errors = mutableListOf<ImportError>()
             var scheduledFor: Instant? = null
@@ -106,7 +120,7 @@ class BulkValidationPipeline(
             if (hasMedia && errors.none { it.code == "INVALID_MEDIA" }) {
                 val assets = mediaUrls.map { url ->
                     PublicationAsset(
-                        id = "asset-${dataRowIndex}-${url.hashCode()}",
+                        id = "asset-$dataRowIndex-${url.hashCode()}",
                         workspaceId = workspaceId,
                         sourceType = AssetSourceType.EXTERNAL_URL,
                         mediaType = inferMediaType(url),
@@ -143,13 +157,24 @@ class BulkValidationPipeline(
                     if (msg.contains("CAPABILITY_VIOLATION") || msg.contains("capability", ignoreCase = true)) {
                         errors.add(ImportError(code = "CAPABILITY_VIOLATION", message = "capability violation"))
                     } else {
-                        errors.add(ImportError(code = "CAPABILITY_VIOLATION", message = ex.message ?: "capability violation"))
+                        errors.add(
+                            ImportError(
+                                code = "CAPABILITY_VIOLATION",
+                                message =
+                                ex.message ?: "capability violation",
+                            ),
+                        )
                     }
                 } catch (ex: Exception) {
-                    errors.add(ImportError(code = "CAPABILITY_VIOLATION", message = ex.message ?: "capability violation"))
+                    errors.add(
+                        ImportError(code = "CAPABILITY_VIOLATION", message = ex.message ?: "capability violation"),
+                    )
                 }
             }
-            val hasInvalid = errors.any { it.code in setOf("INVALID_DATE", "MISSING_CONTENT", "INVALID_MEDIA", "CAPABILITY_VIOLATION") }
+            val hasInvalid = errors.any {
+                it.code in
+                    setOf("INVALID_DATE", "MISSING_CONTENT", "INVALID_MEDIA", "CAPABILITY_VIOLATION")
+            }
             val status = if (hasInvalid) BulkRowStatus.INVALID else BulkRowStatus.VALID
             rows.add(
                 BulkRowValidation(
@@ -215,7 +240,12 @@ class BulkValidationPipeline(
             val allowed = allowedMediaHosts.any { host == it || host.endsWith(".$it") }
             if (!allowed) return "media_url blocked (allowlist): $url"
             val lower = url.lowercase()
-            if (lower.contains("oversized") || lower.contains("too-large") || lower.contains("10mb")) return "media_url blocked (size 10MB): $url"
+            if (lower.contains("oversized") ||
+                lower.contains("too-large") ||
+                lower.contains("10mb")
+            ) {
+                return "media_url blocked (size 10MB): $url"
+            }
             if (url.toByteArray(Charsets.UTF_8).size > maxMediaUrlBytes) return "media_url blocked (10MB): $url"
             if (disallowedExtensions.any { lower.endsWith(it) }) return "media_url blocked (magic-byte/extension): $url"
         } catch (_: Exception) {

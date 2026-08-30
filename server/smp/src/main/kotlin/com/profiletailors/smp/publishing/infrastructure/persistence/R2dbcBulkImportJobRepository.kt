@@ -157,7 +157,13 @@ class R2dbcBulkImportJobRepository(
             emptyList()
         }
         val mediaUrlsRaw = get("media_urls", String::class.java) ?: ""
-        val mediaUrls = if (mediaUrlsRaw.isBlank()) emptyList() else mediaUrlsRaw.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        val mediaUrls = if (mediaUrlsRaw.isBlank()) {
+            emptyList()
+        } else {
+            mediaUrlsRaw.split(",").map {
+                it.trim()
+            }.filter { it.isNotBlank() }
+        }
         return BulkImportRow(
             id = requireNotNull(get("id", String::class.java)),
             jobId = requireNotNull(get("job_id", String::class.java)),
@@ -172,9 +178,13 @@ class R2dbcBulkImportJobRepository(
         )
     }
 
-    private fun DatabaseClient.GenericExecuteSpec.bindNullable(name: String, value: String?): DatabaseClient.GenericExecuteSpec =
-        if (value != null) bind(name, value) else bindNull(name, String::class.java)
+    private fun DatabaseClient.GenericExecuteSpec.bindNullable(
+        name: String,
+        value: String?,
+    ): DatabaseClient.GenericExecuteSpec = if (value != null) bind(name, value) else bindNull(name, String::class.java)
 
-    private fun DatabaseClient.GenericExecuteSpec.bindNullable(name: String, value: Instant?): DatabaseClient.GenericExecuteSpec =
-        if (value != null) bind(name, value) else bindNull(name, Instant::class.java)
+    private fun DatabaseClient.GenericExecuteSpec.bindNullable(
+        name: String,
+        value: Instant?,
+    ): DatabaseClient.GenericExecuteSpec = if (value != null) bind(name, value) else bindNull(name, Instant::class.java)
 }

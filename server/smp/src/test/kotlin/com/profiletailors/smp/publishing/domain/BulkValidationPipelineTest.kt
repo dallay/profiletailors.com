@@ -26,7 +26,7 @@ class BulkValidationPipelineTest {
         val csv = """
             bodyText,scheduledFor,timezone,media_urls,hashtags
             Hello world,2026-09-01T10:00:00Z,UTC,,
-            
+
             Second post,2026-09-02T10:00:00Z,UTC,,
 
         """.trimIndent()

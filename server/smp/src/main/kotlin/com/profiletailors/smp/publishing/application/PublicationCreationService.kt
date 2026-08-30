@@ -1,4 +1,12 @@
-@file:Suppress("MaxLineLength", "MagicNumber", "ReturnCount", "TooManyFunctions", "LongParameterList", "SwallowedException", "StringLiteralDuplication")
+@file:Suppress(
+    "MaxLineLength",
+    "MagicNumber",
+    "ReturnCount",
+    "TooManyFunctions",
+    "LongParameterList",
+    "SwallowedException",
+    "StringLiteralDuplication",
+)
 
 package com.profiletailors.smp.publishing.application
 
@@ -13,7 +21,6 @@ import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
-import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
 import com.profiletailors.smp.publishing.domain.PublicationRepository
@@ -21,7 +28,6 @@ import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
-import com.profiletailors.smp.publishing.domain.SocialProvider
 import kotlinx.coroutines.withTimeoutOrNull
 import java.net.URI
 import java.time.Clock
@@ -119,7 +125,13 @@ class PublicationCreationService(
             if (url.lowercase().contains("oversized") || url.lowercase().contains("too-large")) return true
             if (url.toByteArray(Charsets.UTF_8).size > 10 * 1024 * 1024) return true
             val lower = url.lowercase()
-            if (lower.endsWith(".exe") || lower.endsWith(".bin") || lower.endsWith(".sh") || lower.endsWith(".bat")) return true
+            if (lower.endsWith(".exe") ||
+                lower.endsWith(".bin") ||
+                lower.endsWith(".sh") ||
+                lower.endsWith(".bat")
+            ) {
+                return true
+            }
         } catch (_: Exception) {
             return true
         }
@@ -170,7 +182,10 @@ class PublicationCreationService(
         val resolved = if (idsToResolve.isNotEmpty()) {
             val summaries = withTimeoutOrNull(TIMEOUT_MILLIS) {
                 mediaAssetResolver.resolveReadyAssets(workspaceId, idsToResolve)
-            } ?: throw MediaServiceUnavailableException("Media asset resolution timed out after ${TIMEOUT_MILLIS / MILLIS_PER_SECOND} seconds")
+            }
+                ?: throw MediaServiceUnavailableException(
+                    "Media asset resolution timed out after ${TIMEOUT_MILLIS / MILLIS_PER_SECOND} seconds",
+                )
             summaries.map { s ->
                 PublicationAsset(
                     id = s.assetId,

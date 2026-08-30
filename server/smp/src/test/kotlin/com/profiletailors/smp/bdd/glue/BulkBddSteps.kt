@@ -8,7 +8,6 @@ import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
 import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -47,7 +46,11 @@ class BulkBddSteps {
 
     private fun bulkValidateJson(csvText: String) = objectMapper.writeValueAsString(mapOf("csvText" to csvText))
 
-    private fun postBulkValidate(workspaceId: String, csvText: String, headerWorkspace: String = workspaceId): EntityExchangeResult<ByteArray> {
+    private fun postBulkValidate(
+        workspaceId: String,
+        csvText: String,
+        headerWorkspace: String = workspaceId,
+    ): EntityExchangeResult<ByteArray> {
         lastCsvText = csvText
         previousBulkResponse = latestBulkResponse
         return webTestClient.post().uri("${bulkBase(workspaceId)}/validate")
@@ -59,7 +62,11 @@ class BulkBddSteps {
             .exchange().expectBody().returnResult().also { latestBulkResponse = it }
     }
 
-    private fun postBulkSchedule(workspaceId: String, csvText: String, headerWorkspace: String = workspaceId): EntityExchangeResult<ByteArray> {
+    private fun postBulkSchedule(
+        workspaceId: String,
+        csvText: String,
+        headerWorkspace: String = workspaceId,
+    ): EntityExchangeResult<ByteArray> {
         val json = objectMapper.writeValueAsString(mapOf("csvText" to csvText, "csvHash" to csvText))
         previousBulkResponse = latestBulkResponse
         return webTestClient.post().uri("${bulkBase(workspaceId)}/schedule")
@@ -99,11 +106,12 @@ class BulkBddSteps {
 
     @When("GET \\/bulk\\/templates\\/linkedin-calendar\\/csv is called")
     fun whenGetBulkTemplateCsv() {
-        latestBulkResponse = webTestClient.get().uri("${bulkBase(BddDatabaseSupport.WORKSPACE_ID)}/templates/linkedin-calendar/csv")
-            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
-            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
-            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
-            .exchange().expectBody().returnResult()
+        latestBulkResponse =
+            webTestClient.get().uri("${bulkBase(BddDatabaseSupport.WORKSPACE_ID)}/templates/linkedin-calendar/csv")
+                .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+                .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+                .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+                .exchange().expectBody().returnResult()
     }
 
     @Then("validate MUST list {int} rows with {int} INVALID and no DB writes")
@@ -114,7 +122,9 @@ class BulkBddSteps {
         assertEquals(expected, rows.size, "validate rows mismatch body=$body")
         val invalidCount = rows.count { (it as? Map<*, *>)?.get("status") == "INVALID" }
         assertEquals(invalid, invalidCount, "invalid count mismatch body=$body")
-        val jobCount = databaseClient.sql("SELECT COUNT(*) FROM bulk_import_jobs").map { r, _ -> (r.get(0) as Number).toLong() }.one().awaitSingle()
+        val jobCount = databaseClient.sql("SELECT COUNT(*) FROM bulk_import_jobs").map { r, _ ->
+            (r.get(0) as Number).toLong()
+        }.one().awaitSingle()
         assertEquals(0L, jobCount, "validate must not persist bulk_import_jobs")
         val pubCount = bddDatabaseSupport.countScheduledPublications()
         assertEquals(0L, pubCount, "validate must not create publications")
@@ -131,7 +141,9 @@ class BulkBddSteps {
         val curMap: Map<String, Any?> = objectMapper.readValue(cur)
         val prevMap: Map<String, Any?> = objectMapper.readValue(prevBody)
         assertEquals(prevMap["rows"], curMap["rows"], "idempotent validate responses must match")
-        val jobCount = databaseClient.sql("SELECT COUNT(*) FROM bulk_import_jobs").map { r, _ -> (r.get(0) as Number).toLong() }.one().awaitSingle()
+        val jobCount = databaseClient.sql("SELECT COUNT(*) FROM bulk_import_jobs").map { r, _ ->
+            (r.get(0) as Number).toLong()
+        }.one().awaitSingle()
         assertEquals(0L, jobCount)
     }
 
@@ -147,7 +159,14 @@ class BulkBddSteps {
         assertTrue(pubCount >= pubs.toLong(), "expected at least $pubs publications got $pubCount body=$body")
         val jobId = map["jobId"] as? String
         assertNotNull(jobId)
-        val rowCount = databaseClient.sql("SELECT COUNT(*) FROM bulk_import_rows WHERE job_id = :jobId").bind("jobId", jobId!!).map { r, _ -> (r.get(0) as Number).toLong() }.one().awaitSingle()
+        val rowCount = databaseClient.sql(
+            "SELECT COUNT(*) FROM bulk_import_rows WHERE job_id = :jobId",
+        ).bind("jobId", jobId!!).map {
+                r,
+                _,
+            ->
+            (r.get(0) as Number).toLong()
+        }.one().awaitSingle()
         assertEquals((scheduled + failed).toLong(), rowCount)
     }
 
@@ -155,7 +174,11 @@ class BulkBddSteps {
     fun thenTemplateChecks() {
         val body = String(latestBulkResponse?.responseBody ?: ByteArray(0))
         assertTrue(body.contains("bodyText,scheduledFor,timezone,media_urls,hashtags"), "header missing $body")
-        val map: Map<String, Any?> = try { objectMapper.readValue(body) } catch (_: Exception) { emptyMap() }
+        val map: Map<String, Any?> = try {
+            objectMapper.readValue(body)
+        } catch (_: Exception) {
+            emptyMap()
+        }
         val templates = map["templates"] as? List<*>
         if (templates != null) assertTrue(templates.isNotEmpty())
     }
@@ -167,7 +190,14 @@ class BulkBddSteps {
     fun givenUserVerified(user: String, workspace: String, token: String) = runBlocking {
         bddDatabaseSupport.seedJwtAuthenticatedUserWithWorkspace(emailStatus = "VERIFIED")
         bddDatabaseSupport.seedSocialConnection("social-conn-bulk", "LINKEDIN", "ACTIVE")
-        bddDatabaseSupport.seedSocialAccount("social-acc-bulk", "social-conn-bulk", "LINKEDIN", "linkedin-bulk-1", "PERSONAL_PROFILE", "Bulk User")
+        bddDatabaseSupport.seedSocialAccount(
+            "social-acc-bulk",
+            "social-conn-bulk",
+            "LINKEDIN",
+            "linkedin-bulk-1",
+            "PERSONAL_PROFILE",
+            "Bulk User",
+        )
     }
 
     @Given("csv with {int} rows")
@@ -193,30 +223,66 @@ class BulkBddSteps {
         assertNotNull(jobId)
         val jobStatus = map["status"] as? String ?: "SCHEDULED"
         assertTrue(jobStatus in setOf("SCHEDULED", "PARTIAL", "SCHEDULING"), "job status $jobStatus")
-        val rowCount = databaseClient.sql("SELECT COUNT(*) FROM bulk_import_rows WHERE job_id = :jobId").bind("jobId", jobId!!).map { r, _ -> (r.get(0) as Number).toLong() }.one().awaitSingle()
+        val rowCount = databaseClient.sql(
+            "SELECT COUNT(*) FROM bulk_import_rows WHERE job_id = :jobId",
+        ).bind("jobId", jobId!!).map {
+                r,
+                _,
+            ->
+            (r.get(0) as Number).toLong()
+        }.one().awaitSingle()
         assertEquals(1000L, rowCount, "bulk_import_rows count")
         val pubCount = bddDatabaseSupport.countScheduledPublications()
         assertTrue(pubCount >= 900, "publications persisted $pubCount")
-        val totalFromDb = databaseClient.sql("SELECT total_rows FROM bulk_import_jobs WHERE id = :id").bind("id", jobId).map { r, _ -> r.get("total_rows", Integer::class.java)!!.toInt() }.one().awaitSingle()
+        val totalFromDb = databaseClient.sql(
+            "SELECT total_rows FROM bulk_import_jobs WHERE id = :id",
+        ).bind("id", jobId).map {
+                r,
+                _,
+            ->
+            r.get("total_rows", Integer::class.java)!!.toInt()
+        }.one().awaitSingle()
         assertEquals(1000, totalFromDb)
     }
 
     @Given("validate flagged 2 VALID 1 INVALID")
     fun givenValidateFlagged() {
-        lastCsvText = "bodyText,scheduledFor,timezone,media_urls,hashtags\nA,2099-06-15T10:00:00Z,UTC,,\nB,2099-06-15T11:00:00Z,UTC,,\n,not-a-date,UTC,,"
+        lastCsvText =
+            "bodyText,scheduledFor,timezone,media_urls,hashtags\nA,2099-06-15T10:00:00Z,UTC,,\nB,2099-06-15T11:00:00Z,UTC,,\n,not-a-date,UTC,,"
     }
 
     @Given("workspace A job is PARTIAL with total 3 scheduled 2 failed 1")
     fun givenWorkspaceAJob() = runBlocking {
         bddDatabaseSupport.seedSocialConnection("social-conn-bulk", "LINKEDIN", "ACTIVE")
-        bddDatabaseSupport.seedSocialAccount("social-acc-bulk", "social-conn-bulk", "LINKEDIN", "linkedin-bulk-1", "PERSONAL_PROFILE", "Bulk User")
+        bddDatabaseSupport.seedSocialAccount(
+            "social-acc-bulk",
+            "social-conn-bulk",
+            "LINKEDIN",
+            "linkedin-bulk-1",
+            "PERSONAL_PROFILE",
+            "Bulk User",
+        )
         val jobId = "job-workspace-a"
-        databaseClient.sql("INSERT INTO bulk_import_jobs (id, workspace_id, principal_id, idempotency_key, status, total_rows, scheduled_count, failed_count, csv_hash, created_at, updated_at) VALUES (:id, :ws, :pid, :key, :status, :total, :sc, :fc, :hash, NOW(), NOW()) ON CONFLICT (id) DO NOTHING")
+        databaseClient.sql(
+            "INSERT INTO bulk_import_jobs (id, workspace_id, principal_id, idempotency_key, status, total_rows, scheduled_count, failed_count, csv_hash, created_at, updated_at) VALUES (:id, :ws, :pid, :key, :status, :total, :sc, :fc, :hash, NOW(), NOW()) ON CONFLICT (id) DO NOTHING",
+        )
             .bind("id", jobId).bind("ws", BddDatabaseSupport.WORKSPACE_ID).bind("pid", BddDatabaseSupport.PRINCIPAL_ID)
-            .bind("key", "a".repeat(64)).bind("status", "PARTIAL").bind("total", 3).bind("sc", 2).bind("fc", 1).bind("hash", "hash-a").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO bulk_import_rows (id, job_id, row_index, status, errors, body_text, has_conflict, created_at) VALUES (:id, :jid, 0, 'SCHEDULED', '[]', 'A', false, NOW()) ON CONFLICT DO NOTHING").bind("id", "row-a-0").bind("jid", jobId).fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO bulk_import_rows (id, job_id, row_index, status, errors, body_text, has_conflict, created_at) VALUES (:id, :jid, 1, 'SCHEDULED', '[]', 'B', false, NOW()) ON CONFLICT DO NOTHING").bind("id", "row-a-1").bind("jid", jobId).fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO bulk_import_rows (id, job_id, row_index, status, errors, body_text, has_conflict, created_at) VALUES (:id, :jid, 2, 'FAILED', '[{\"code\":\"INVALID_DATE\"}]', '', false, NOW()) ON CONFLICT DO NOTHING").bind("id", "row-a-2").bind("jid", jobId).fetch().rowsUpdated().awaitSingle()
+            .bind(
+                "key",
+                "a".repeat(64),
+            ).bind(
+                "status",
+                "PARTIAL",
+            ).bind("total", 3).bind("sc", 2).bind("fc", 1).bind("hash", "hash-a").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO bulk_import_rows (id, job_id, row_index, status, errors, body_text, has_conflict, created_at) VALUES (:id, :jid, 0, 'SCHEDULED', '[]', 'A', false, NOW()) ON CONFLICT DO NOTHING",
+        ).bind("id", "row-a-0").bind("jid", jobId).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO bulk_import_rows (id, job_id, row_index, status, errors, body_text, has_conflict, created_at) VALUES (:id, :jid, 1, 'SCHEDULED', '[]', 'B', false, NOW()) ON CONFLICT DO NOTHING",
+        ).bind("id", "row-a-1").bind("jid", jobId).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO bulk_import_rows (id, job_id, row_index, status, errors, body_text, has_conflict, created_at) VALUES (:id, :jid, 2, 'FAILED', '[{\"code\":\"INVALID_DATE\"}]', '', false, NOW()) ON CONFLICT DO NOTHING",
+        ).bind("id", "row-a-2").bind("jid", jobId).fetch().rowsUpdated().awaitSingle()
         lastCsvText = jobId
     }
 
@@ -243,8 +309,22 @@ class BulkBddSteps {
     fun givenJobInWorkspaceA(ws: String, jobId: String) = runBlocking {
         bddDatabaseSupport.seedWorkspace(ws)
         bddDatabaseSupport.seedWorkspace(BddDatabaseSupport.WORKSPACE_ID)
-        databaseClient.sql("INSERT INTO bulk_import_jobs (id, workspace_id, principal_id, idempotency_key, status, total_rows, scheduled_count, failed_count, csv_hash, created_at, updated_at) VALUES (:id, :ws, :pid, :key, 'SCHEDULED', 1, 1, 0, :hash, NOW(), NOW()) ON CONFLICT (id) DO NOTHING")
-            .bind("id", jobId).bind("ws", ws).bind("pid", BddDatabaseSupport.PRINCIPAL_ID).bind("key", jobId.padEnd(64, '0').take(64)).bind("hash", "hash-$jobId").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO bulk_import_jobs (id, workspace_id, principal_id, idempotency_key, status, total_rows, scheduled_count, failed_count, csv_hash, created_at, updated_at) VALUES (:id, :ws, :pid, :key, 'SCHEDULED', 1, 1, 0, :hash, NOW(), NOW()) ON CONFLICT (id) DO NOTHING",
+        )
+            .bind(
+                "id",
+                jobId,
+            ).bind(
+                "ws",
+                ws,
+            ).bind(
+                "pid",
+                BddDatabaseSupport.PRINCIPAL_ID,
+            ).bind(
+                "key",
+                jobId.padEnd(64, '0').take(64),
+            ).bind("hash", "hash-$jobId").fetch().rowsUpdated().awaitSingle()
         lastCsvText = jobId
     }
 
@@ -267,7 +347,8 @@ class BulkBddSteps {
 
     @Given("CSV with 2 rows plus 1 blank line")
     fun givenCsvWithBlank() {
-        lastCsvText = "bodyText,scheduledFor,timezone,media_urls,hashtags\nHello,2099-06-15T10:00:00Z,UTC,,\n\nWorld,2099-06-15T11:00:00Z,UTC,,\n"
+        lastCsvText =
+            "bodyText,scheduledFor,timezone,media_urls,hashtags\nHello,2099-06-15T10:00:00Z,UTC,,\n\nWorld,2099-06-15T11:00:00Z,UTC,,\n"
     }
 
     @When("validate is called")
@@ -298,7 +379,8 @@ class BulkBddSteps {
 
     @Given("duplicate rows and row with blocked url {string}")
     fun givenDuplicateAndBlocked(url: String) {
-        lastCsvText = "bodyText,scheduledFor,timezone,media_urls,hashtags\nSame,2099-06-15T10:00:00Z,UTC,,\nSame,2099-06-15T10:00:00Z,UTC,,\nHello,2099-06-15T11:00:00Z,UTC,$url,\n"
+        lastCsvText =
+            "bodyText,scheduledFor,timezone,media_urls,hashtags\nSame,2099-06-15T10:00:00Z,UTC,,\nSame,2099-06-15T10:00:00Z,UTC,,\nHello,2099-06-15T11:00:00Z,UTC,$url,\n"
     }
 
     @When("validate or schedule is called")
@@ -327,7 +409,9 @@ class BulkBddSteps {
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(bulkValidateJson("bodyText,scheduledFor,timezone,media_urls,hashtags\nHi,2099-06-15T10:00:00Z,UTC,,"))
+            .bodyValue(
+                bulkValidateJson("bodyText,scheduledFor,timezone,media_urls,hashtags\nHi,2099-06-15T10:00:00Z,UTC,,"),
+            )
             .exchange().expectBody().returnResult()
     }
 

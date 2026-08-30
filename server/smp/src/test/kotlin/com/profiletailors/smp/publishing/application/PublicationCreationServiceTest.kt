@@ -2,19 +2,14 @@
 
 package com.profiletailors.smp.publishing.application
 
-import com.profiletailors.common.domain.context.PrincipalContext
-import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.MediaAssetResolver
-import com.profiletailors.smp.media.application.ResolvedAssetSummary
-import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.PublicationStatus
-import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
@@ -64,10 +59,17 @@ class PublicationCreationServiceTest {
         val principalId = "u-1"
         val accountId = "acc-1"
         coEvery { socialAccountRepository.findByWorkspaceAndId(workspaceId, accountId) } returns SocialAccount(
-            id = accountId, socialConnectionId = "conn-1", workspaceId = workspaceId, provider = SocialProvider.LINKEDIN,
-            providerAccountId = "p-acc-1", kind = SocialAccountKind.PERSONAL_PROFILE, displayName = "Account", status = SocialConnectionStatus.ACTIVE,
+            id = accountId,
+            socialConnectionId = "conn-1",
+            workspaceId = workspaceId,
+            provider = SocialProvider.LINKEDIN,
+            providerAccountId = "p-acc-1",
+            kind = SocialAccountKind.PERSONAL_PROFILE,
+            displayName = "Account",
+            status = SocialConnectionStatus.ACTIVE,
         )
-        coEvery { publicationRepository.createDraft(any()) } answers { it.invocation.args[0] as com.profiletailors.smp.publishing.domain.PublicationDraft }
+        coEvery { publicationRepository.createDraft(any()) } answers
+            { it.invocation.args[0] as com.profiletailors.smp.publishing.domain.PublicationDraft }
         val result = service.create(
             workspaceId = workspaceId,
             principalId = principalId,
@@ -86,8 +88,14 @@ class PublicationCreationServiceTest {
         val principalId = "u-1"
         val accountId = "acc-1"
         coEvery { socialAccountRepository.findByWorkspaceAndId(workspaceId, accountId) } returns SocialAccount(
-            id = accountId, socialConnectionId = "conn-1", workspaceId = workspaceId, provider = SocialProvider.LINKEDIN,
-            providerAccountId = "p-acc-1", kind = SocialAccountKind.PERSONAL_PROFILE, displayName = "Account", status = SocialConnectionStatus.ACTIVE,
+            id = accountId,
+            socialConnectionId = "conn-1",
+            workspaceId = workspaceId,
+            provider = SocialProvider.LINKEDIN,
+            providerAccountId = "p-acc-1",
+            kind = SocialAccountKind.PERSONAL_PROFILE,
+            displayName = "Account",
+            status = SocialConnectionStatus.ACTIVE,
         )
         assertThrows<PublicationValidationException> {
             service.create(
@@ -107,10 +115,17 @@ class PublicationCreationServiceTest {
         val principalId = "u-1"
         coEvery { socialAccountRepository.findByWorkspaceAndId(workspaceId, "acc-bulk-placeholder") } returns null
         coEvery { socialAccountRepository.findFirstActiveByWorkspace(workspaceId) } returns SocialAccount(
-            id = "acc-active-1", socialConnectionId = "conn-1", workspaceId = workspaceId, provider = SocialProvider.LINKEDIN,
-            providerAccountId = "p-active", kind = SocialAccountKind.PERSONAL_PROFILE, displayName = "Active Account", status = SocialConnectionStatus.ACTIVE,
+            id = "acc-active-1",
+            socialConnectionId = "conn-1",
+            workspaceId = workspaceId,
+            provider = SocialProvider.LINKEDIN,
+            providerAccountId = "p-active",
+            kind = SocialAccountKind.PERSONAL_PROFILE,
+            displayName = "Active Account",
+            status = SocialConnectionStatus.ACTIVE,
         )
-        coEvery { publicationRepository.createDraft(any()) } answers { it.invocation.args[0] as com.profiletailors.smp.publishing.domain.PublicationDraft }
+        coEvery { publicationRepository.createDraft(any()) } answers
+            { it.invocation.args[0] as com.profiletailors.smp.publishing.domain.PublicationDraft }
         val result = service.create(
             workspaceId = workspaceId,
             principalId = principalId,

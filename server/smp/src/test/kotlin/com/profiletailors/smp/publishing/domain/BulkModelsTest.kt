@@ -1,10 +1,10 @@
 package com.profiletailors.smp.publishing.domain
 
-import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import java.time.Instant
 
 class BulkModelsTest {
 
