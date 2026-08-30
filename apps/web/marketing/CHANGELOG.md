@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.9](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.8...landing@v0.2.9) (2026-08-30)
+
+
+### Bug Fixes
+
+* **marketing:** pin SEO invariants and disposition Ahrefs 15 issues (9293424) ([#895](https://github.com/dallay/profiletailors.com/issues/895)) ([680fb91](https://github.com/dallay/profiletailors.com/commit/680fb9130ebdb3b3e79f0efead210cde31fa4191))
+
+
+### Documentation
+
+* **maintenance:** reconcile Node.js and pnpm version requirements across documentation ([#892](https://github.com/dallay/profiletailors.com/issues/892)) ([b62048b](https://github.com/dallay/profiletailors.com/commit/b62048b6ede9f2a1a99763c1864abe653bbd2e3f))
+
 ## [0.2.8](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.7...landing@v0.2.8) (2026-08-28)
 
 
