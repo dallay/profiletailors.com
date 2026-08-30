@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.6](https://github.com/dallay/profiletailors.com/compare/app@v0.3.5...app@v0.3.6) (2026-08-30)
+
+
+### Features
+
+* **ideas:** redesign idea canvas and unify idea composer with publishing handoff ([#914](https://github.com/dallay/profiletailors.com/issues/914)) ([ad61ee4](https://github.com/dallay/profiletailors.com/commit/ad61ee44845d3f4ac2cdec478e5906fd73882ac2))
+
+
+### Bug Fixes
+
+* **ideas:** add missing input labels and remove redundant ternary operation ([#917](https://github.com/dallay/profiletailors.com/issues/917)) ([ccf550c](https://github.com/dallay/profiletailors.com/commit/ccf550c08715bf8b8f7e0e46848691e9f407fc5c))
+
 ## [0.3.5](https://github.com/dallay/profiletailors.com/compare/app@v0.3.4...app@v0.3.5) (2026-08-29)
 
 
