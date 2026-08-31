@@ -58,20 +58,30 @@ function handleClose() {
 
 function onPreviewBodyText(rowIndex: number, value: string) {
   if (!bulk.validateResult.value) return
-  const rows = bulk.validateResult.value.rows.map((r) =>
-    r.rowIndex === rowIndex ? { ...r, bodyText: value } : r,
-  )
-  csvText.value = [BULK_CANONICAL_HEADER, ...rows.map((r) => `${r.bodyText ?? ''},${r.scheduledFor ?? ''},UTC,,`)].join('\n')
-  bulk.validateResult.value = null
+  bulk.validateResult.value = {
+    ...bulk.validateResult.value,
+    rows: bulk.validateResult.value.rows.map((r) =>
+      r.rowIndex === rowIndex ? { ...r, bodyText: value } : r,
+    ),
+  }
+  csvText.value = [
+    BULK_CANONICAL_HEADER,
+    ...bulk.validateResult.value.rows.map((r) => `${r.bodyText ?? ''},${r.scheduledFor ?? ''},UTC,,`),
+  ].join('\n')
 }
 
 function onPreviewScheduledFor(rowIndex: number, value: string) {
   if (!bulk.validateResult.value) return
-  const rows = bulk.validateResult.value.rows.map((r) =>
-    r.rowIndex === rowIndex ? { ...r, scheduledFor: value } : r,
-  )
-  csvText.value = [BULK_CANONICAL_HEADER, ...rows.map((r) => `${r.bodyText ?? ''},${r.scheduledFor ?? ''},UTC,,`)].join('\n')
-  bulk.validateResult.value = null
+  bulk.validateResult.value = {
+    ...bulk.validateResult.value,
+    rows: bulk.validateResult.value.rows.map((r) =>
+      r.rowIndex === rowIndex ? { ...r, scheduledFor: value } : r,
+    ),
+  }
+  csvText.value = [
+    BULK_CANONICAL_HEADER,
+    ...bulk.validateResult.value.rows.map((r) => `${r.bodyText ?? ''},${r.scheduledFor ?? ''},UTC,,`),
+  ].join('\n')
 }
 </script>
 
