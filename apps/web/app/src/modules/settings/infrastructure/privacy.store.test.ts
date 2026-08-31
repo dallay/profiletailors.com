@@ -101,6 +101,64 @@ describe('privacy store', () => {
     expect(store.requests).toHaveLength(1)
   })
 
+  it('fetchRequests maps the typed API response into requests', async () => {
+    mockApiFetch.mockResolvedValue({
+      requests: [
+        {
+          id: 'req-1',
+          workspaceId: 'ws-1',
+          type: 'ACCESS',
+          status: 'COMPLETED',
+          notes: null,
+          correctionData: null,
+          result: { ref: 'result-1' },
+          createdAt: '2026-08-30T10:00:00Z',
+          updatedAt: '2026-08-30T10:01:00Z',
+        },
+      ],
+    })
+
+    const { usePrivacyStore } = await import('./privacy.store')
+    const store = usePrivacyStore()
+
+    await store.fetchRequests()
+
+    expect(store.requests[0]).toMatchObject({
+      id: 'req-1',
+      resultRef: 'result-1',
+    })
+  })
+
+  it('maps direct result references and defaults omitted API fields', async () => {
+    mockApiFetch.mockResolvedValue({
+      requests: [{ resultRef: 'result-ref-1' }, {}],
+    })
+
+    const { usePrivacyStore } = await import('./privacy.store')
+    const store = usePrivacyStore()
+
+    await store.fetchRequests()
+
+    expect(store.requests[0]).toMatchObject({
+      id: '',
+      workspaceId: '',
+      type: 'ACCESS',
+      status: 'PENDING',
+      resultRef: 'result-ref-1',
+      createdAt: '',
+      updatedAt: '',
+    })
+    expect(store.requests[1]).toMatchObject({
+      id: '',
+      workspaceId: '',
+      type: 'ACCESS',
+      status: 'PENDING',
+      resultRef: null,
+      createdAt: '',
+      updatedAt: '',
+    })
+  })
+
   it('fetchRequests calls apiFetch GET and populates requests list', async () => {
     const mockResponse = {
       requests: [

@@ -32,17 +32,21 @@ export interface DsarRequestListResponse {
   requests: DsarRequest[]
 }
 
-type PrivacyRequestDto = Record<string, unknown> & {
-  id?: unknown
-  workspaceId?: unknown
-  type?: unknown
-  status?: unknown
-  notes?: unknown
-  correctionData?: unknown
-  result?: unknown
-  resultRef?: unknown
-  createdAt?: unknown
-  updatedAt?: unknown
+type PrivacyRequestDto = {
+  id?: string
+  workspaceId?: string
+  type?: DsarRequestType
+  status?: DsarRequestStatus
+  notes?: string | null
+  correctionData?: CorrectionData | null
+  result?: PrivacyResultDto | null
+  resultRef?: string | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+type PrivacyResultDto = {
+  ref?: string | null
 }
 
 type PrivacyListDto = {
@@ -51,24 +55,22 @@ type PrivacyListDto = {
 
 type PrivacySubmitResponseDto = {
   id: string
-  status: string
+  status: DsarRequestStatus
   downloadUrl?: string | null
 }
 
 function mapStatusDtoToRequest(dto: PrivacyRequestDto): DsarRequest {
-  const result = dto.result as Record<string, unknown> | null | undefined
-  const resultRef =
-    (result?.ref as string | undefined) ?? (dto.resultRef as string | undefined) ?? null
+  const resultRef = dto.result?.ref ?? dto.resultRef ?? null
   return {
-    id: dto.id as string,
-    workspaceId: (dto.workspaceId as string) || '',
-    type: dto.type as DsarRequestType,
-    status: dto.status as DsarRequestStatus,
-    notes: (dto.notes as string | null) || null,
-    correctionData: (dto.correctionData as CorrectionData | null) || null,
+    id: dto.id ?? '',
+    workspaceId: dto.workspaceId ?? '',
+    type: dto.type ?? 'ACCESS',
+    status: dto.status ?? 'PENDING',
+    notes: dto.notes ?? null,
+    correctionData: dto.correctionData ?? null,
     resultRef,
-    createdAt: dto.createdAt as string,
-    updatedAt: dto.updatedAt as string,
+    createdAt: dto.createdAt ?? '',
+    updatedAt: dto.updatedAt ?? '',
   }
 }
 
@@ -104,7 +106,7 @@ export const usePrivacyStore = defineStore('privacy', () => {
         id: response.id,
         workspaceId: '',
         type: payload.type,
-        status: response.status as DsarRequestStatus,
+        status: response.status,
         notes: payload.notes || null,
         correctionData: payload.correctionData || null,
         resultRef: response.downloadUrl || null,
@@ -131,9 +133,7 @@ export const usePrivacyStore = defineStore('privacy', () => {
       const data = await auth.apiFetch<PrivacyListDto>('/api/v1/privacy/requests', {
         workspaceScoped: true,
       })
-      const mapped = (data.requests || []).map((req) =>
-        mapStatusDtoToRequest(req as PrivacyRequestDto),
-      )
+      const mapped = (data.requests ?? []).map((req) => mapStatusDtoToRequest(req))
       requests.value = mapped
       return mapped
     } catch (err) {
