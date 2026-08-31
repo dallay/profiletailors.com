@@ -30,8 +30,12 @@ registration slice.
   Kover verification completed successfully.
 - `just backend-bdd-fast` — **PASS**.
 - `just backend-bdd-postgres` — **PASS**.
-- `docker compose --env-file infra/apps/smp/production/.env.example -f infra/apps/smp/production/compose.yaml config --quiet` — **PASS**.
-- `DASHBOARD_IMAGE=profiletailors/dashboard:0.1.0 SMP_IMAGE=profiletailors/smp:0.1.0 PUBLIC_ORIGIN=https://app.example.com just swarm-config` — **PASS**.
+-
+`docker compose --env-file infra/apps/smp/production/.env.example -f infra/apps/smp/production/compose.yaml config --quiet` —
+**PASS**.
+-
+`DASHBOARD_IMAGE=profiletailors/dashboard:0.1.0 SMP_IMAGE=profiletailors/smp:0.1.0 PUBLIC_ORIGIN=https://app.example.com just swarm-config` —
+**PASS**.
 - `git diff --check` — **PASS**.
 
 ## Warnings

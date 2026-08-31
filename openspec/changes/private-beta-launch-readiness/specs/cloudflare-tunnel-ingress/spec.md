@@ -5,15 +5,18 @@
 ### Requirement: VPS Route and Operations Evidence Are Independently Recorded (DALLAY-557)
 
 Private-beta acceptance MUST identify the managed production route, active deployment namespace,
-release identity, and operator responsible for the check. Repository rendering, local smoke tests, and
-`cloudflared tunnel ingress validate` MAY establish configuration validity only; they MUST NOT establish
+release identity, and operator responsible for the check. Repository rendering, local smoke tests,
+and
+`cloudflared tunnel ingress validate` MAY establish configuration validity only; they MUST NOT
+establish
 that the managed VPS route, readiness, backup, restore, or rollback worked.
 
 #### Scenario: Managed route and readiness are evidenced
 
 - GIVEN an approved beta deployment exists in the managed environment
 - WHEN an operator checks the public API route and private readiness endpoint
-- THEN the record MUST include hostname, active namespace, release identity, UTC timestamp, and observed
+- THEN the record MUST include hostname, active namespace, release identity, UTC timestamp, and
+  observed
   status
 - AND the public route MUST preserve the existing authorization boundary while management readiness
   remains private
@@ -22,7 +25,8 @@ that the managed VPS route, readiness, backup, restore, or rollback worked.
 
 - GIVEN a database and media backup exists for the active beta instance
 - WHEN an operator performs or verifies a controlled restore rehearsal
-- THEN the record MUST identify backup scope, restore target, timestamp, result, and data-integrity check
+- THEN the record MUST identify backup scope, restore target, timestamp, result, and data-integrity
+  check
 - AND it MUST NOT contain database credentials, tokens, or customer content beyond minimum test data
 
 #### Scenario: Rollback is available and bounded
@@ -47,9 +51,11 @@ health is green.
 
 ### Requirement: Health, Backup, and Rollback Evidence Has Operator Scope
 
-Automated deployment validation MAY establish rendered configuration and repository behavior only. The
+Automated deployment validation MAY establish rendered configuration and repository behavior only.
+The
 DALLAY-557 prerequisite MUST require managed-VPS evidence for active-service convergence, private
-readiness, backup/restore, worker safe-off, and rollback. A local or CI pass MUST NOT satisfy a missing
+readiness, backup/restore, worker safe-off, and rollback. A local or CI pass MUST NOT satisfy a
+missing
 VPS observation.
 
 #### Scenario: Local validation is not accepted as VPS proof

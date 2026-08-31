@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { getLocaleFromUrl, useTranslations } from './utils';
+import {
+  getLocaleFromUrl,
+  useTranslations,
+  counterpartPath,
+  canonicalUrl,
+  routeSeoEntries,
+} from './utils';
 import {
   LEGAL_PUBLICATION_STATUS,
   legalPublicationStatus,
@@ -377,6 +383,110 @@ describe('i18n utils', () => {
       };
       const hits: string[] = check(root);
       expect(hits, `IndexNow found in ${hits.join(',')}`).toEqual([]);
+    });
+
+    it('sitemap contract test file does not embed index-discovery endpoints in source', async (): Promise<void> => {
+      const { readFileSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const root: string = join(import.meta.dirname ?? '.', '..');
+      const sitemapTest: string = join(root, '__tests__', 'sitemap.xml.test.ts');
+      const content: string = readFileSync(sitemapTest, 'utf8');
+      const bannedTokens: string[] = ['api.indexnow.org', 'indexnow.org'];
+      for (const token of bannedTokens) {
+        expect(content.includes(token), `${sitemapTest} contains ${token}`).toBe(false);
+      }
+    });
+  });
+
+  describe('locale navigation parity and accessible-name alignment', () => {
+    it('EN locale switch accessible name contains the visible destination code', () => {
+      const t = useTranslations(new URL('https://example.com/'));
+      expect(t.nav.langSwitch).toBe('ES');
+      expect(t.nav.langSwitchLabel).toContain(t.nav.langSwitch);
+    });
+
+    it('ES locale switch accessible name contains the visible destination code', () => {
+      const t = useTranslations(new URL('https://example.com/es/'));
+      expect(t.nav.langSwitch).toBe('EN');
+      expect(t.nav.langSwitchLabel).toContain(t.nav.langSwitch);
+    });
+
+    it('EN nav langSwitchLabel is in the current page language (English)', () => {
+      const t = useTranslations(new URL('https://example.com/'));
+      expect(t.nav.langSwitchLabel).toBe('Switch to Spanish (ES)');
+    });
+
+    it('ES nav langSwitchLabel is in the current page language (Spanish)', () => {
+      const t = useTranslations(new URL('https://example.com/es/'));
+      expect(t.nav.langSwitchLabel).toBe('Cambiar a inglés (EN)');
+    });
+  });
+
+  describe('route inventory and pairing helpers', () => {
+    it('counterpartPath maps / to /es/ and vice versa', () => {
+      expect(counterpartPath('en', '/')).toBe('/es/');
+      expect(counterpartPath('es', '/')).toBe('/');
+    });
+
+    it('counterpartPath maps legal routes to /es/<route>', () => {
+      const legal: Array<'/privacy/' | '/terms/' | '/cookies/' | '/acceptable-use/' | '/accessibility/'> = [
+        '/privacy/',
+        '/terms/',
+        '/cookies/',
+        '/acceptable-use/',
+        '/accessibility/',
+      ];
+      for (const r of legal) {
+        expect(counterpartPath('en', r)).toBe(`/es${r}`);
+        expect(counterpartPath('es', r)).toBe(r);
+      }
+    });
+
+    it('canonicalUrl returns HTTPS trailing-slash URLs for all 6 routes', () => {
+      const base = new URL('https://profiletailors.com');
+      const routes: Array<'/' | '/privacy/' | '/terms/' | '/cookies/' | '/acceptable-use/' | '/accessibility/'> = [
+        '/',
+        '/privacy/',
+        '/terms/',
+        '/cookies/',
+        '/acceptable-use/',
+        '/accessibility/',
+      ];
+      for (const route of routes) {
+        const en = canonicalUrl('en', route, base);
+        const es = canonicalUrl('es', route, base);
+        expect(en.startsWith('https://'), en).toBe(true);
+        expect(en.endsWith('/'), en).toBe(true);
+        expect(es.startsWith('https://'), es).toBe(true);
+        expect(es.endsWith('/'), es).toBe(true);
+      }
+    });
+
+    it('canonicalUrl for home EN is "/" and ES is "/es/"', () => {
+      const base = new URL('https://profiletailors.com');
+      expect(canonicalUrl('en', '/', base)).toBe('https://profiletailors.com/');
+      expect(canonicalUrl('es', '/', base)).toBe('https://profiletailors.com/es/');
+    });
+
+    it('routeSeoEntries has exactly 6 entries with the expected shape', () => {
+      const entries = routeSeoEntries();
+      expect(entries).toHaveLength(6);
+      for (const e of entries) {
+        expect(e.route).toMatch(/^\/([a-z-]+\/?)?$/);
+        expect(e.indexable).toBe(true);
+        expect(['WebSite', 'WebPage']).toContain(e.jsonLdType);
+        expect(e.title.length).toBeGreaterThanOrEqual(30);
+        expect(e.description.length).toBeGreaterThanOrEqual(120);
+        expect(e.description.length).toBeLessThanOrEqual(160);
+      }
+    });
+
+    it('routeSeoEntries declares WebSite only for home and WebPage for legal routes', () => {
+      const entries = routeSeoEntries();
+      const home = entries.find((e) => e.route === '/');
+      const privacy = entries.find((e) => e.route === '/privacy/');
+      expect(home?.jsonLdType).toBe('WebSite');
+      expect(privacy?.jsonLdType).toBe('WebPage');
     });
   });
 });

@@ -40,11 +40,11 @@ const robotsContent = noindex
   : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1";
 const siteName = "Profile Tailors";
 
-// JSON-LD structured data
+const jsonLdName = jsonLdType === "WebSite" ? siteName : title;
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": jsonLdType,
-  name: "Profile Tailors",
+  name: jsonLdName,
   description: description,
   url: canonical,
   inLanguage: lang,

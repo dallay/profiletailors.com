@@ -15,7 +15,7 @@ const { locale } = Astro.props
 const t = useTranslations(locale)
 
 const langHref = locale === 'en' ? '/es/' : '/'
-const langLabel = locale === 'en' ? 'Cambiar a español' : 'Switch to English'
+const langLabel = t.nav.langSwitchLabel
 ---
 
 <Layout title={t.meta.title} description={t.meta.description} lang={locale}>
