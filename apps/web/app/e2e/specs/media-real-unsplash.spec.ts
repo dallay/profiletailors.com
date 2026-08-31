@@ -119,7 +119,7 @@ test.describe('Unsplash real provider smoke @real-unsplash @media @composer', ()
         const tomorrow = new Date()
         tomorrow.setDate(tomorrow.getDate() + 1)
         await composePage.openDatePicker()
-        await composePage.pickDate(tomorrow.getDate())
+        await composePage.pickDate(tomorrow)
 
         const publicationResponsePromise = page.waitForResponse(
           (response) =>
