@@ -1223,6 +1223,8 @@ class BddDatabaseSupport(
         "DELETE FROM delivery_attempts",
         "DELETE FROM publication_jobs",
         "DELETE FROM publication_assets",
+        "DELETE FROM bulk_import_rows",
+        "DELETE FROM bulk_import_jobs",
         "DELETE FROM publications",
         // Social
         "DELETE FROM social_content_reply_commands",

@@ -314,6 +314,7 @@ class PublishingSchedulingConfigurationTest {
     private class NoOpSocialAccountRepository : SocialAccountRepository {
         override suspend fun upsert(account: SocialAccount): SocialAccount = account
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount = account()
+        override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = account()
     }
 
     private class NoOpMediaAssetResolver : MediaAssetResolver {

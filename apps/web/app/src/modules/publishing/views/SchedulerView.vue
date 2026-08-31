@@ -10,6 +10,7 @@ import { useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
 import CreatePostModal from '@modules/publishing/presentation/components/CreatePostModal.vue'
 import PostDetailModal from '@modules/publishing/presentation/components/PostDetailModal.vue'
 import RecurringScheduleModal from '@modules/publishing/presentation/components/RecurringScheduleModal.vue'
+import BulkImportModal from '@modules/publishing/presentation/components/BulkImportModal.vue'
 import CalendarHeader from '@modules/publishing/presentation/components/CalendarHeader.vue'
 import CalendarCell from '@modules/publishing/presentation/components/CalendarCell.vue'
 import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
@@ -39,6 +40,7 @@ const currentBaseDate = computed(() => {
 
 
 const isModalOpen = ref(false)
+const isBulkModalOpen = ref(false)
 const selectedCellDate = ref<string | undefined>(undefined)
 const editingPublication = ref<Publication | null>(null)
 const editingRecurringSchedule = ref<RecurringSchedule | null>(null)
@@ -480,11 +482,18 @@ async function handleUpdated() {
       // so add 7 days to cover Sunday→Saturday fully including the last day.
       : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7)
 
-  await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
-    status: state.status === 'all' ? undefined : state.status,
-    socialAccountId: state.channelIds[0],
-    timezone: state.timezone,
-  })
+  try {
+    await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
+      status: state.status === 'all' ? undefined : state.status,
+      socialAccountId: state.channelIds[0],
+      timezone: state.timezone,
+    })
+  } catch {}
+}
+
+function handleBulkScheduled(jobId: string) {
+  toast.success(`Bulk job ${jobId} scheduled`)
+  handleUpdated()
 }
 
 function onPostCreated(options: { keepOpen?: boolean } = {}) {
@@ -536,11 +545,15 @@ watch(
         // so add 7 days to cover Sunday→Saturday fully including the last day.
         : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7)
 
-    await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
-      status: state.status === 'all' ? undefined : state.status,
-      socialAccountId: state.channelIds[0],
-      timezone: state.timezone,
-    })
+    try {
+      await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
+        status: state.status === 'all' ? undefined : state.status,
+        socialAccountId: state.channelIds[0],
+        timezone: state.timezone,
+      })
+    } catch {
+      return
+    }
 
     if (fetchToken !== latestFetchToken) {
       return
@@ -568,6 +581,9 @@ watch(
       @change:filter="handleHeaderFilterChange"
       @new-post="openNewPostGeneral"
     />
+    <div class="flex justify-end">
+      <Button data-testid="open-bulk-import" variant="outline" class="gap-2" @click="isBulkModalOpen = true">Bulk Import</Button>
+    </div>
 
     <!-- Reconnect prompt for LinkedIn accounts requiring re-authentication -->
     <div
@@ -914,6 +930,8 @@ watch(
       @retried="onReschedule"
       @edit="handleEditPublication"
     />
+
+    <BulkImportModal :is-open="isBulkModalOpen" @close="isBulkModalOpen = false" @scheduled="handleBulkScheduled" />
 
     <RecurringScheduleModal
       :is-open="Boolean(editingRecurringSchedule)"

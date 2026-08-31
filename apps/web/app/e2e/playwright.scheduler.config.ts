@@ -43,7 +43,7 @@ const appPort = Number(process.env.PLAYWRIGHT_PORT || '5173')
  */
 export default defineConfig({
   testDir: path.resolve(__dirname, 'specs'),
-  testMatch: 'scheduler*.spec.ts',
+  testMatch: ['scheduler*.spec.ts', 'bulk-import.spec.ts'],
 
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
