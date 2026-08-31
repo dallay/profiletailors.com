@@ -259,7 +259,12 @@ class BulkBddSteps {
 
     @Given("workspace A job is PARTIAL with total 3 scheduled 2 failed 1")
     fun givenWorkspaceAJob() = runBlocking {
-        bddDatabaseSupport.ensureSocialConnection("social-conn-bulk", BddDatabaseSupport.WORKSPACE_ID, "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.ensureSocialConnection(
+            "social-conn-bulk",
+            BddDatabaseSupport.WORKSPACE_ID,
+            "LINKEDIN",
+            "ACTIVE",
+        )
         bddDatabaseSupport.ensureSocialAccount(
             "social-acc-bulk",
             "social-conn-bulk",
