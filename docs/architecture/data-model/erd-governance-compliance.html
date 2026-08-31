@@ -24,7 +24,7 @@
     <h1>Controls, applicability rules, evidence &amp; risk acceptance</h1>
     <p class="lede">7 tables modeling the compliance posture. <code style="font-family:var(--font-mono);">compliance_controls</code> is the focal aggregate (focal because every evidence and risk acceptance hangs off it). <code style="font-family:var(--font-mono);">compliance_control_applicability_rules</code> + <code style="font-family:var(--font-mono);">compliance_control_applicability_dimensions</code> define where a control applies (market, environment, etc.). <code style="font-family:var(--font-mono);">compliance_evidences</code> holds the immutable proofs; <code style="font-family:var(--font-mono);">compliance_control_evidences</code> joins them to controls.</p>
 
-    <svg viewBox="0 0 1280 920" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-govcomp-title erd-govcomp-desc">
+    <svg viewBox="0 0 1280 1380" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-govcomp-title erd-govcomp-desc">
       <title id="erd-govcomp-title">Profile Tailors · governance compliance entity-relationship diagram</title>
       <desc id="erd-govcomp-desc">ER diagram showing compliance_controls as the focal aggregate, with applicability_rules → applicability_dimensions for where-controls-apply scoping, compliance_control_evidence_requirements for what-evidence-controls-need, compliance_evidences for the immutable proof, compliance_control_evidences as the join, and compliance_risk_acceptances for when controls are explicitly waived with residual risk and justification.</desc>
       <defs>
@@ -37,7 +37,7 @@
       <!-- LEFT — compliance_controls (FOCAL)            -->
       <!-- ============================================ -->
 
-      <rect x="40" y="80" width="320" height="380" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="40" y="80" width="320" height="480" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
       <rect x="40" y="80" width="320" height="40" rx="6" fill="rgba(215,25,33,0.10)" stroke="none"/>
       <rect x="40" y="112" width="320" height="8" fill="rgba(215,25,33,0.10)"/>
       <line x1="40" y1="120" x2="360" y2="120" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
@@ -46,140 +46,218 @@
 
       <text x="56" y="144" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
       <text x="344" y="144" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="56" y="164" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">control_key</text>
-      <text x="344" y="164" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128)</text>
-      <text x="56" y="184" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">name · description</text>
-      <text x="344" y="184" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="56" y="204" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">owner · category</text>
-      <text x="344" y="204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
-      <text x="56" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status · version</text>
-      <text x="344" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="56" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">next_review_at</text>
-      <text x="344" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="56" y="264" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
-      <text x="344" y="264" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="56" y="298" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique control_key · seeded from compliance seed</text>
-      <text x="56" y="322" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">catalog of every posture requirement</text>
+      <text x="56" y="162" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">control_key</text>
+      <text x="344" y="162" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128)</text>
+      <text x="56" y="180" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">name</text>
+      <text x="344" y="180" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="56" y="198" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">description</text>
+      <text x="344" y="198" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="56" y="216" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">owner</text>
+      <text x="344" y="216" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">category</text>
+      <text x="344" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="56" y="252" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="344" y="252" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="56" y="270" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version</text>
+      <text x="344" y="270" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">int</text>
+      <text x="56" y="288" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">next_review_at</text>
+      <text x="344" y="288" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="306" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="344" y="306" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="324" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">updated_at</text>
+      <text x="344" y="324" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="358" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique control_key · seeded from compliance seed</text>
+      <text x="56" y="382" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">catalog of every posture requirement</text>
 
       <!-- ============================================ -->
       <!-- CENTER — applicability                         -->
       <!-- ============================================ -->
 
       <!-- compliance_control_applicability_rules -->
-      <rect x="440" y="80" width="320" height="220" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="440" y="80" width="320" height="280" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
       <rect x="440" y="80" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
       <line x1="440" y1="112" x2="760" y2="112" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
       <text x="456" y="100" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">APPLICABILITY RULE</text>
       <text x="456" y="126" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">compliance_control_applicability_rules</text>
       <text x="456" y="154" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
       <text x="744" y="154" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="456" y="174" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ control_id</text>
-      <text x="744" y="174" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="456" y="194" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">required · valid_from · valid_until</text>
-      <text x="744" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="456" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version · created_at · updated_at</text>
-      <text x="744" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="456" y="254" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">temporal applicability of a control</text>
-      <text x="456" y="278" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">scoped by dimensions below</text>
+      <text x="456" y="172" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ control_id</text>
+      <text x="744" y="172" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="190" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">required</text>
+      <text x="744" y="190" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">boolean</text>
+      <text x="456" y="208" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">valid_from</text>
+      <text x="744" y="208" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="456" y="226" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">valid_until</text>
+      <text x="744" y="226" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="456" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version</text>
+      <text x="744" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">int</text>
+      <text x="456" y="262" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="744" y="262" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="456" y="280" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">updated_at</text>
+      <text x="744" y="280" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="456" y="314" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">temporal applicability of a control</text>
+      <text x="456" y="338" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">scoped by dimensions below</text>
 
       <!-- compliance_control_applicability_dimensions -->
-      <rect x="440" y="340" width="320" height="180" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
-      <rect x="440" y="340" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
-      <line x1="440" y1="372" x2="760" y2="372" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="456" y="360" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">APPLICABILITY DIMENSION</text>
-      <text x="456" y="386" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">compliance_control_applicability_dimensions</text>
-      <text x="456" y="414" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
-      <text x="744" y="414" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="456" y="434" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ rule_id</text>
-      <text x="744" y="434" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="456" y="454" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">scope_type · scope_value</text>
-      <text x="744" y="454" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
-      <text x="456" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · version</text>
-      <text x="744" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="456" y="498" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">scope_type values: market, env, provider, workspace</text>
+      <rect x="440" y="400" width="320" height="220" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="440" y="400" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="440" y1="432" x2="760" y2="432" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="456" y="420" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">APPLICABILITY DIMENSION</text>
+      <text x="456" y="446" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">compliance_control_applicability_dimensions</text>
+      <text x="456" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="744" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="492" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ rule_id</text>
+      <text x="744" y="492" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="510" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">scope_type</text>
+      <text x="744" y="510" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="456" y="528" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">scope_value</text>
+      <text x="744" y="528" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="456" y="546" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="744" y="546" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="456" y="564" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version</text>
+      <text x="744" y="564" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">int</text>
+      <text x="456" y="598" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">scope_type values: market, env, provider, workspace</text>
 
       <!-- compliance_control_evidence_requirements -->
-      <rect x="440" y="560" width="320" height="200" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
-      <rect x="440" y="560" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
-      <line x1="440" y1="592" x2="760" y2="592" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="456" y="580" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">EVIDENCE REQUIREMENT</text>
-      <text x="456" y="606" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">compliance_control_evidence_requirements</text>
-      <text x="456" y="634" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
-      <text x="744" y="634" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="456" y="654" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ control_id</text>
-      <text x="744" y="654" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="456" y="674" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">evidence_type</text>
-      <text x="744" y="674" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="456" y="694" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">minimum_approved_evidence</text>
-      <text x="744" y="694" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
-      <text x="456" y="714" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">manual_approval_required · required</text>
-      <text x="744" y="714" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">boolean</text>
-      <text x="456" y="734" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">valid_from · valid_until · version</text>
-      <text x="744" y="734" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <rect x="440" y="660" width="320" height="260" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="440" y="660" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="440" y1="692" x2="760" y2="692" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="456" y="680" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">EVIDENCE REQUIREMENT</text>
+      <text x="456" y="706" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">compliance_control_evidence_requirements</text>
+      <text x="456" y="734" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="744" y="734" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="752" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ control_id</text>
+      <text x="744" y="752" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="770" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">evidence_type</text>
+      <text x="744" y="770" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="788" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">minimum_approved_evidence</text>
+      <text x="744" y="788" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
+      <text x="456" y="806" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">manual_approval_required</text>
+      <text x="744" y="806" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">boolean</text>
+      <text x="456" y="824" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">required</text>
+      <text x="744" y="824" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">boolean</text>
+      <text x="456" y="842" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">valid_from</text>
+      <text x="744" y="842" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="456" y="860" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">valid_until</text>
+      <text x="744" y="860" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="456" y="878" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version</text>
+      <text x="744" y="878" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">int</text>
 
       <!-- ============================================ -->
       <!-- RIGHT — evidences + risk                       -->
       <!-- ============================================ -->
 
       <!-- compliance_evidences -->
-      <rect x="840" y="80" width="400" height="280" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="840" y="80" width="400" height="460" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
       <rect x="840" y="80" width="400" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
       <line x1="840" y1="112" x2="1240" y2="112" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
       <text x="856" y="100" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">IMMUTABLE PROOF</text>
       <text x="856" y="126" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">compliance_evidences</text>
       <text x="856" y="154" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
       <text x="1224" y="154" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="856" y="174" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">evidence_type · title</text>
-      <text x="1224" y="174" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
-      <text x="856" y="194" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">description · reference_url</text>
-      <text x="1224" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="856" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">immutable_reference · checksum</text>
-      <text x="1224" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">tamper-evident</text>
-      <text x="856" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">metadata_json</text>
-      <text x="1224" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
-      <text x="856" y="254" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">submitted_by · reviewed_by · review_status</text>
-      <text x="1224" y="254" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="856" y="274" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">collected_at · valid_from · expires_at · verified_at</text>
-      <text x="1224" y="274" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="856" y="294" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version · created_at · updated_at</text>
-      <text x="1224" y="294" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="856" y="338" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (type, status) and expires_at</text>
+      <text x="856" y="172" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">evidence_type</text>
+      <text x="1224" y="172" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="856" y="190" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">title</text>
+      <text x="1224" y="190" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="856" y="208" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">description</text>
+      <text x="1224" y="208" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="856" y="226" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">reference_url</text>
+      <text x="1224" y="226" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(500)</text>
+      <text x="856" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">immutable_reference</text>
+      <text x="1224" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(500)</text>
+      <text x="856" y="262" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">checksum</text>
+      <text x="1224" y="262" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">char(64)</text>
+      <text x="856" y="280" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">metadata_json</text>
+      <text x="1224" y="280" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="856" y="298" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">submitted_by</text>
+      <text x="1224" y="298" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="316" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">reviewed_by</text>
+      <text x="1224" y="316" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="334" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">review_status</text>
+      <text x="1224" y="334" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="856" y="352" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">collected_at</text>
+      <text x="1224" y="352" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="370" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">valid_from</text>
+      <text x="1224" y="370" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="388" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">expires_at</text>
+      <text x="1224" y="388" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="406" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">verified_at</text>
+      <text x="1224" y="406" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="424" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version</text>
+      <text x="1224" y="424" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">int</text>
+      <text x="856" y="442" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="1224" y="442" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="460" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">updated_at</text>
+      <text x="1224" y="460" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="504" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (type, status) and expires_at</text>
 
       <!-- compliance_control_evidences (join) -->
-      <rect x="840" y="400" width="400" height="180" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
-      <rect x="840" y="400" width="400" height="32" rx="6" fill="rgba(26,26,26,0.06)" stroke="none"/>
-      <line x1="840" y1="432" x2="1240" y2="432" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="856" y="420" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">JOIN · CONTROL ↔ EVIDENCE</text>
-      <text x="856" y="446" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">compliance_control_evidences</text>
-      <text x="856" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
-      <text x="1224" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="856" y="494" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ control_id · → evidence_id</text>
-      <text x="1224" y="494" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="856" y="514" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">linked_by · linked_at · version</text>
-      <text x="1224" y="514" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="856" y="558" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (control_id, evidence_id)</text>
+      <rect x="840" y="580" width="400" height="240" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="840" y="580" width="400" height="32" rx="6" fill="rgba(26,26,26,0.06)" stroke="none"/>
+      <line x1="840" y1="612" x2="1240" y2="612" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="856" y="600" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">JOIN · CONTROL ↔ EVIDENCE</text>
+      <text x="856" y="626" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">compliance_control_evidences</text>
+      <text x="856" y="654" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1224" y="654" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="672" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ control_id</text>
+      <text x="1224" y="672" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="690" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ evidence_id</text>
+      <text x="1224" y="690" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="708" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">linked_by</text>
+      <text x="1224" y="708" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="726" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">linked_at</text>
+      <text x="1224" y="726" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="744" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version</text>
+      <text x="1224" y="744" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">int</text>
+      <text x="856" y="798" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (control_id, evidence_id)</text>
 
       <!-- compliance_risk_acceptances -->
-      <rect x="840" y="620" width="400" height="240" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
-      <rect x="840" y="620" width="400" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
-      <line x1="840" y1="652" x2="1240" y2="652" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="856" y="640" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">RISK ACCEPTANCE</text>
-      <text x="856" y="666" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">compliance_risk_acceptances</text>
-      <text x="856" y="694" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
-      <text x="1224" y="694" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="856" y="714" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ control_id</text>
-      <text x="1224" y="714" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="856" y="734" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">release_scope · market_scope · environment_scope</text>
-      <text x="1224" y="734" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="856" y="754" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider_scope · product_scope · workspace_scope</text>
-      <text x="1224" y="754" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="856" y="774" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">risk_summary · residual_risk · justification</text>
-      <text x="1224" y="774" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="856" y="794" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">requested_by · accepted_by · accepted_at · expires_at · revoked_at</text>
-      <text x="1224" y="794" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="856" y="814" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status · version · created_at · updated_at</text>
-      <text x="1224" y="814" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="856" y="846" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (control_id, status) · time-bounded waiver</text>
+      <rect x="840" y="860" width="400" height="380" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="840" y="860" width="400" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="840" y1="892" x2="1240" y2="892" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="856" y="880" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">RISK ACCEPTANCE</text>
+      <text x="856" y="906" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">compliance_risk_acceptances</text>
+      <text x="856" y="934" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1224" y="934" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="952" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ control_id</text>
+      <text x="1224" y="952" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="970" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">release_scope</text>
+      <text x="1224" y="970" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="856" y="988" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">market_scope</text>
+      <text x="1224" y="988" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="856" y="1006" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">environment_scope</text>
+      <text x="1224" y="1006" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="856" y="1024" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider_scope</text>
+      <text x="1224" y="1024" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="856" y="1042" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">product_scope</text>
+      <text x="1224" y="1042" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="856" y="1060" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">workspace_scope</text>
+      <text x="1224" y="1060" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="856" y="1078" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">risk_summary</text>
+      <text x="1224" y="1078" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="856" y="1096" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">residual_risk</text>
+      <text x="1224" y="1096" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="856" y="1114" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">justification</text>
+      <text x="1224" y="1114" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="856" y="1132" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">requested_by</text>
+      <text x="1224" y="1132" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="1150" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">accepted_by</text>
+      <text x="1224" y="1150" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="1168" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">accepted_at</text>
+      <text x="1224" y="1168" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="1186" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">expires_at</text>
+      <text x="1224" y="1186" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="1204" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">revoked_at</text>
+      <text x="1224" y="1204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="1222" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="1224" y="1222" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="856" y="1240" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version</text>
+      <text x="1224" y="1240" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">int</text>
+      <text x="856" y="1258" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="1224" y="1258" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="1276" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">updated_at</text>
+      <text x="1224" y="1276" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="1310" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (control_id, status) · time-bounded waiver</text>
 
       <!-- ============================================ -->
       <!-- RELATIONSHIPS                                 -->
@@ -193,35 +271,35 @@
       <text x="433" y="178" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- applicability_rules → dimensions (1:N) -->
-      <line x1="600" y1="300" x2="600" y2="340" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="586" y="306" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="593" y="316" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="586" y="324" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="593" y="334" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="600" y1="360" x2="600" y2="400" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="586" y="366" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="593" y="376" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="586" y="384" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="593" y="394" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- compliance_controls → evidence_requirements (1:N) -->
-      <line x1="360" y1="240" x2="440" y2="660" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="372" y="448" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="379" y="458" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="426" y="644" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="433" y="654" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="360" y1="300" x2="440" y2="820" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="372" y="558" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="379" y="568" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="426" y="804" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="433" y="814" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- compliance_controls → control_evidences (1:N) -->
-      <line x1="360" y1="300" x2="840" y2="480" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="826" y="464" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="833" y="474" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="360" y1="380" x2="840" y2="680" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="826" y="664" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="833" y="674" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- compliance_evidences → control_evidences (1:N) -->
-      <line x1="840" y1="240" x2="840" y2="460" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="826" y="324" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="833" y="334" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="826" y="444" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="833" y="454" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="840" y1="360" x2="840" y2="660" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="826" y="484" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="833" y="494" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="826" y="644" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="833" y="654" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- compliance_controls → risk_acceptances (1:N) -->
-      <line x1="360" y1="380" x2="840" y2="720" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="826" y="704" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="833" y="714" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="360" y1="440" x2="840" y2="1050" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="826" y="1034" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="833" y="1044" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
     </svg>
 
     <div class="legend">

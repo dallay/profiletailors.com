@@ -24,7 +24,7 @@
     <h1>Provider connections, publications, jobs &amp; delivery</h1>
     <p class="lede">9 tables. The publishing core: <code style="font-family:var(--font-mono);">publications</code> is the focal aggregate (focal because it ties workspaces + principals + social_accounts together), and <code style="font-family:var(--font-mono);">publication_jobs</code> is the worker-claimed scheduling primitive. <code style="font-family:var(--font-mono);">delivery_attempts</code> records every provider push. <code style="font-family:var(--font-mono);">recurring_schedules</code> drives templated cadence. Engagement (comments, posts, webhooks) lives in the next diagram.</p>
 
-    <svg viewBox="0 0 1280 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-pubcore-title erd-pubcore-desc">
+    <svg viewBox="0 0 1280 1000" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-pubcore-title erd-pubcore-desc">
       <title id="erd-pubcore-title">Profile Tailors · publishing core bounded context entity-relationship diagram</title>
       <desc id="erd-pubcore-desc">ER diagram showing social_connections and social_accounts as the provider-bound layer, publications as the focal aggregate, publication_assets and publication_asset_links as the media composition layer, publication_jobs and delivery_attempts as the scheduling and delivery layer, secure_credentials as the encrypted blob store, and recurring_schedules as the templated cadence layer. All tables are workspace-scoped.</desc>
       <defs>
@@ -38,7 +38,7 @@
       <!-- ============================================ -->
 
       <!-- social_connections -->
-      <rect x="40" y="80" width="260" height="180" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="40" y="80" width="260" height="220" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
       <rect x="40" y="80" width="260" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
       <line x1="40" y1="112" x2="300" y2="112" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
       <text x="56" y="100" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">PROVIDER · WORKSPACE</text>
@@ -47,37 +47,53 @@
       <text x="284" y="154" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
       <text x="56" y="174" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
       <text x="284" y="174" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="56" y="194" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider · provider_connection_ref</text>
-      <text x="284" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
-      <text x="56" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status · credential_reference</text>
-      <text x="284" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="56" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">connected_at · last_synced_at</text>
-      <text x="284" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="194" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider</text>
+      <text x="284" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="56" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider_connection_ref</text>
+      <text x="284" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="56" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="284" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="56" y="254" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">credential_reference</text>
+      <text x="284" y="254" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="56" y="274" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">connected_at</text>
+      <text x="284" y="274" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="294" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">last_synced_at</text>
+      <text x="284" y="294" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
 
       <!-- social_accounts -->
-      <rect x="40" y="320" width="260" height="200" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
-      <rect x="40" y="320" width="260" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
-      <line x1="40" y1="352" x2="300" y2="352" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="56" y="340" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">PROVIDER · ACCOUNT</text>
-      <text x="56" y="366" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">social_accounts</text>
-      <text x="56" y="394" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
-      <text x="284" y="394" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="56" y="414" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ social_connection_id</text>
-      <text x="284" y="414" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="56" y="434" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id · provider · provider_account_id</text>
-      <text x="284" y="434" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
-      <text x="56" y="454" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">account_type · display_name · status</text>
-      <text x="284" y="454" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="56" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">profile_urn · created_at</text>
-      <text x="284" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="56" y="498" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (workspace, provider, provider_account_id)</text>
+      <rect x="40" y="360" width="260" height="240" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="40" y="360" width="260" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="40" y1="392" x2="300" y2="392" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="56" y="380" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">PROVIDER · ACCOUNT</text>
+      <text x="56" y="406" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">social_accounts</text>
+      <text x="56" y="434" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="284" y="434" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="454" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ social_connection_id</text>
+      <text x="284" y="454" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
+      <text x="284" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="494" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider</text>
+      <text x="284" y="494" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="56" y="514" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider_account_id</text>
+      <text x="284" y="514" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="56" y="534" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">account_type</text>
+      <text x="284" y="534" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="56" y="554" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">display_name</text>
+      <text x="284" y="554" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="56" y="574" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="284" y="574" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="56" y="594" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">profile_urn</text>
+      <text x="284" y="594" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="56" y="614" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="284" y="614" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="638" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (workspace, provider, provider_account_id)</text>
 
       <!-- ============================================ -->
       <!-- CENTER COLUMN — publications focal + media  -->
       <!-- ============================================ -->
 
       <!-- publications (FOCAL) -->
-      <rect x="400" y="100" width="320" height="380" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="400" y="100" width="320" height="440" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
       <rect x="400" y="100" width="320" height="40" rx="6" fill="rgba(215,25,33,0.10)" stroke="none"/>
       <rect x="400" y="132" width="320" height="8" fill="rgba(215,25,33,0.10)"/>
       <line x1="400" y1="140" x2="720" y2="140" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
@@ -93,68 +109,100 @@
       <text x="416" y="204" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ author_principal_id</text>
       <text x="704" y="204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
 
-      <text x="416" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider · → social_account_id</text>
-      <text x="704" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="416" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ social_account_id</text>
+      <text x="704" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
 
-      <text x="416" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status · schedule_mode · priority</text>
-      <text x="704" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="416" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider</text>
+      <text x="704" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
 
-      <text x="416" y="264" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">title · body_text</text>
-      <text x="704" y="264" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="416" y="264" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="704" y="264" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
 
-      <text x="416" y="284" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">scheduled_for · next_slot_after</text>
-      <text x="704" y="284" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="416" y="284" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">schedule_mode</text>
+      <text x="704" y="284" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
 
-      <text x="416" y="304" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">published_at · failed_at</text>
-      <text x="704" y="304" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="416" y="304" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">priority</text>
+      <text x="704" y="304" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">boolean</text>
 
-      <text x="416" y="324" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">external_publication_id</text>
+      <text x="416" y="324" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">title</text>
       <text x="704" y="324" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
 
-      <text x="416" y="344" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">last_error_code · last_error_message</text>
-      <text x="704" y="344" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="416" y="344" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">body_text</text>
+      <text x="704" y="344" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
 
-      <text x="416" y="364" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
+      <text x="416" y="364" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">scheduled_for</text>
       <text x="704" y="364" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
 
-      <text x="416" y="416" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">scheduling state machine · provider error trail</text>
+      <text x="416" y="384" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">next_slot_after</text>
+      <text x="704" y="384" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+
+      <text x="416" y="404" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">published_at</text>
+      <text x="704" y="404" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+
+      <text x="416" y="424" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">failed_at</text>
+      <text x="704" y="424" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+
+      <text x="416" y="444" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">external_publication_id</text>
+      <text x="704" y="444" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+
+      <text x="416" y="464" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">last_error_code</text>
+      <text x="704" y="464" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128)</text>
+
+      <text x="416" y="484" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">last_error_message</text>
+      <text x="704" y="484" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+
+      <text x="416" y="504" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="704" y="504" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+
+      <text x="416" y="524" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">updated_at</text>
+      <text x="704" y="524" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+
+      <text x="416" y="552" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">scheduling state machine · provider error trail</text>
 
       <!-- publication_assets -->
-      <rect x="400" y="520" width="320" height="200" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
-      <rect x="400" y="520" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
-      <line x1="400" y1="552" x2="720" y2="552" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="416" y="540" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">MEDIA · WORKSPACE</text>
-      <text x="416" y="566" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">publication_assets</text>
-      <text x="416" y="594" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
-      <text x="704" y="594" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="416" y="614" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
-      <text x="704" y="614" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="416" y="634" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">source_type · media_type</text>
-      <text x="704" y="634" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
-      <text x="416" y="654" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">storage_key · external_url</text>
-      <text x="704" y="654" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
-      <text x="416" y="674" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ created_by_principal_id · status</text>
-      <text x="704" y="674" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="416" y="694" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">original_filename · created_at</text>
-      <text x="704" y="694" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <rect x="400" y="580" width="320" height="240" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="400" y="580" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="400" y1="612" x2="720" y2="612" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="416" y="600" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">MEDIA · WORKSPACE</text>
+      <text x="416" y="626" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">publication_assets</text>
+      <text x="416" y="654" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="704" y="654" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="416" y="674" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
+      <text x="704" y="674" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="416" y="694" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">source_type</text>
+      <text x="704" y="694" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="416" y="714" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">media_type</text>
+      <text x="704" y="714" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="416" y="734" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">storage_key</text>
+      <text x="704" y="734" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="416" y="754" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">external_url</text>
+      <text x="704" y="754" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(2048)</text>
+      <text x="416" y="774" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">original_filename</text>
+      <text x="704" y="774" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="416" y="794" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ created_by_principal_id</text>
+      <text x="704" y="794" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="416" y="814" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="704" y="814" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
 
       <!-- publication_asset_links -->
-      <rect x="400" y="760" width="320" height="100" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
-      <rect x="400" y="760" width="320" height="32" rx="6" fill="rgba(26,26,26,0.06)" stroke="none"/>
-      <line x1="400" y1="792" x2="720" y2="792" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="416" y="780" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">JOIN · ORDERED</text>
-      <text x="416" y="806" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">publication_asset_links</text>
-      <text x="416" y="830" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">PK → publication_id · PK → asset_id</text>
-      <text x="704" y="830" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="416" y="848" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">position_index</text>
-      <text x="704" y="848" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
+      <rect x="400" y="840" width="320" height="120" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="400" y="840" width="320" height="32" rx="6" fill="rgba(26,26,26,0.06)" stroke="none"/>
+      <line x1="400" y1="872" x2="720" y2="872" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="416" y="860" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">JOIN · ORDERED</text>
+      <text x="416" y="886" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">publication_asset_links</text>
+      <text x="416" y="910" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">PK → publication_id</text>
+      <text x="704" y="910" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="416" y="928" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">PK → asset_id</text>
+      <text x="704" y="928" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="416" y="946" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">position_index</text>
+      <text x="704" y="946" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
 
       <!-- ============================================ -->
       <!-- RIGHT COLUMN — scheduling + delivery          -->
       <!-- ============================================ -->
 
       <!-- publication_jobs -->
-      <rect x="800" y="100" width="440" height="320" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="800" y="100" width="440" height="420" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
       <rect x="800" y="100" width="440" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
       <line x1="800" y1="132" x2="1240" y2="132" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
       <text x="816" y="120" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">SCHEDULING · WORKER LEASE</text>
@@ -165,100 +213,132 @@
       <text x="1224" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
       <text x="816" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
       <text x="1224" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="816" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status · due_at · priority_rank</text>
-      <text x="1224" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="816" y="254" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">attempt_count · max_attempts</text>
-      <text x="1224" y="254" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
-      <text x="816" y="274" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">claimed_by_worker · claimed_at · lease_expires_at</text>
-      <text x="1224" y="274" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">lease fencing</text>
-      <text x="816" y="294" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">completed_at · failed_at · cancelled_at</text>
-      <text x="1224" y="294" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="816" y="314" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
-      <text x="1224" y="314" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="816" y="350" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique publication_id · indexed (status, due_at, priority)</text>
-      <text x="816" y="376" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">lease-aware worker claim · idempotency key</text>
+      <text x="816" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="1224" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="816" y="254" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">due_at</text>
+      <text x="1224" y="254" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="274" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">priority_rank</text>
+      <text x="1224" y="274" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
+      <text x="816" y="294" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">attempt_count</text>
+      <text x="1224" y="294" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
+      <text x="816" y="314" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">max_attempts</text>
+      <text x="1224" y="314" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
+      <text x="816" y="334" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">claimed_by_worker</text>
+      <text x="1224" y="334" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128)</text>
+      <text x="816" y="354" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">claimed_at</text>
+      <text x="1224" y="354" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="374" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">lease_expires_at</text>
+      <text x="1224" y="374" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="394" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">completed_at</text>
+      <text x="1224" y="394" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="414" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">failed_at</text>
+      <text x="1224" y="414" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="434" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">cancelled_at</text>
+      <text x="1224" y="434" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="454" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="1224" y="454" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="490" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique publication_id · indexed (status, due_at, priority)</text>
+      <text x="816" y="512" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">lease-aware worker claim · idempotency key</text>
 
       <!-- delivery_attempts -->
-      <rect x="800" y="460" width="440" height="220" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
-      <rect x="800" y="460" width="440" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
-      <line x1="800" y1="492" x2="1240" y2="492" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="816" y="480" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">DELIVERY · AUDIT</text>
-      <text x="816" y="506" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">delivery_attempts</text>
-      <text x="816" y="534" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
-      <text x="1224" y="534" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="816" y="554" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ publication_id · → publication_job_id</text>
-      <text x="1224" y="554" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="816" y="574" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">attempt_number · outcome · retryable</text>
-      <text x="1224" y="574" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="816" y="594" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider_message · provider_error_code</text>
-      <text x="1224" y="594" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="816" y="614" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">external_publication_id</text>
-      <text x="1224" y="614" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
-      <text x="816" y="634" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">attempted_at · created_at</text>
-      <text x="1224" y="634" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="816" y="666" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (job_id, attempt_number)</text>
+      <rect x="800" y="560" width="440" height="260" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="800" y="560" width="440" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="800" y1="592" x2="1240" y2="592" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="816" y="580" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">DELIVERY · AUDIT</text>
+      <text x="816" y="606" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">delivery_attempts</text>
+      <text x="816" y="634" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1224" y="634" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="816" y="654" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ publication_id</text>
+      <text x="1224" y="654" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="816" y="674" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ publication_job_id</text>
+      <text x="1224" y="674" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="816" y="694" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">attempt_number</text>
+      <text x="1224" y="694" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
+      <text x="816" y="714" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">outcome</text>
+      <text x="1224" y="714" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="816" y="734" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">retryable</text>
+      <text x="1224" y="734" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">boolean</text>
+      <text x="816" y="754" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider_message</text>
+      <text x="1224" y="754" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="816" y="774" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider_error_code</text>
+      <text x="1224" y="774" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128)</text>
+      <text x="816" y="794" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">external_publication_id</text>
+      <text x="1224" y="794" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="816" y="814" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">attempted_at</text>
+      <text x="1224" y="814" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="834" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="1224" y="834" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+
+      <text x="816" y="858" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (publication_job_id, attempt_number)</text>
 
       <!-- secure_credentials (sidebar) -->
-      <rect x="800" y="720" width="200" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="800" y="720" width="200" height="160" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
       <rect x="800" y="720" width="200" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
       <line x1="800" y1="752" x2="1000" y2="752" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
       <text x="816" y="740" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">VAULT</text>
       <text x="816" y="766" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">secure_credentials</text>
       <text x="816" y="794" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
       <text x="984" y="794" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
-      <text x="816" y="814" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">owner_type · owner_id</text>
-      <text x="984" y="814" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
-      <text x="816" y="834" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">encrypted_payload</text>
-      <text x="984" y="834" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">bytea</text>
-      <text x="816" y="852" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
-      <text x="984" y="852" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="814" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">owner_type</text>
+      <text x="984" y="814" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="816" y="834" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">owner_id</text>
+      <text x="984" y="834" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="816" y="854" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">encrypted_payload</text>
+      <text x="984" y="854" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">bytea</text>
+      <text x="816" y="872" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">no secret stored · pointer to vault</text>
 
       <!-- recurring_schedules -->
-      <rect x="1040" y="720" width="200" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="1040" y="720" width="200" height="240" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
       <rect x="1040" y="720" width="200" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
       <line x1="1040" y1="752" x2="1240" y2="752" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
       <text x="1056" y="740" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">RECURRING</text>
       <text x="1056" y="766" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">recurring_schedules</text>
       <text x="1056" y="794" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
       <text x="1224" y="794" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="1056" y="814" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id · → created_by</text>
-      <text x="1224" y="814" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
-      <text x="1056" y="834" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ template_post_id (publications)</text>
-      <text x="1224" y="834" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="1056" y="852" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">frequency · next_scheduled_at · status</text>
-      <text x="1224" y="852" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="1056" y="814" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
+      <text x="1224" y="814" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="1056" y="834" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ created_by</text>
+      <text x="1224" y="834" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="1056" y="854" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ template_post_id</text>
+      <text x="1224" y="854" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="1056" y="874" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">frequency</text>
+      <text x="1224" y="874" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(16)</text>
+      <text x="1056" y="894" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">next_scheduled_at</text>
+      <text x="1224" y="894" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="1056" y="914" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="1224" y="914" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(16)</text>
+      <text x="1056" y="934" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
+      <text x="1224" y="934" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
 
       <!-- ============================================ -->
       <!-- RELATIONSHIPS                                 -->
       <!-- ============================================ -->
 
       <!-- social_connections → social_accounts (1:N) -->
-      <line x1="170" y1="260" x2="170" y2="320" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="156" y="276" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="163" y="286" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="156" y="304" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="163" y="314" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="170" y1="300" x2="170" y2="360" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="156" y="316" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="163" y="326" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="156" y="344" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="163" y="354" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- social_accounts → publications (1:N) -->
-      <line x1="300" y1="380" x2="400" y2="220" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="316" y="266" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="323" y="276" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="386" y="206" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="393" y="216" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="300" y1="480" x2="400" y2="280" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="316" y="366" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="323" y="376" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="386" y="266" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="393" y="276" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- publication_assets → publication_asset_links (1:N) -->
-      <line x1="720" y1="640" x2="720" y2="800" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="706" y="720" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="713" y="730" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="706" y="784" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="713" y="794" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="720" y1="820" x2="720" y2="840" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="706" y="822" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="713" y="832" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
 
       <!-- publications → publication_asset_links (1:N) -->
-      <line x1="540" y1="480" x2="500" y2="760" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="486" y="586" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="493" y="596" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="486" y="744" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="493" y="754" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <path d="M 520,540 V 880 H 560" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="506" y="676" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="513" y="686" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="540" y="864" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="547" y="874" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- publications → publication_jobs (1:1 unique) -->
       <line x1="720" y1="200" x2="800" y2="200" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
@@ -268,24 +348,24 @@
       <text x="793" y="198" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
 
       <!-- publication_jobs → delivery_attempts (1:N) -->
-      <line x1="1020" y1="420" x2="1020" y2="460" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="1006" y="426" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="1013" y="436" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="1006" y="444" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="1013" y="454" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="1020" y1="520" x2="1020" y2="560" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="1006" y="526" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="1013" y="536" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="1006" y="544" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="1013" y="554" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- publications → delivery_attempts (1:N) -->
-      <line x1="720" y1="240" x2="800" y2="540" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
-      <rect x="786" y="524" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="793" y="534" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <path d="M 600,540 V 600 H 800" fill="none" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="600" y="556" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="607" y="566" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- recurring_schedules → publications (template_post_id) -->
-      <line x1="1040" y1="800" x2="720" y2="280" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
-      <rect x="1006" y="784" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="1013" y="794" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">TPL</text>
+      <path d="M 1040,840 V 540 H 720" fill="none" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="1006" y="696" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="1013" y="706" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">TPL</text>
 
       <!-- social_connections → secure_credentials (logical, no FK — pointer) -->
-      <path d="M 300,180 H 700 V 760 H 800" fill="none" stroke="#525252" stroke-width="0.8" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <path d="M 300,200 H 700 V 720 H 800" fill="none" stroke="#525252" stroke-width="0.8" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
       <rect x="540" y="540" width="120" height="14" rx="2" fill="#F5F5F0"/>
       <text x="600" y="550" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.10em">pointer via ref</text>
     </svg>
