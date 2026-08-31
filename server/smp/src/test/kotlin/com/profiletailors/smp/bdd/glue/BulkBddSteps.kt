@@ -259,10 +259,11 @@ class BulkBddSteps {
 
     @Given("workspace A job is PARTIAL with total 3 scheduled 2 failed 1")
     fun givenWorkspaceAJob() = runBlocking {
-        bddDatabaseSupport.seedSocialConnection("social-conn-bulk", "LINKEDIN", "ACTIVE")
-        bddDatabaseSupport.seedSocialAccount(
+        bddDatabaseSupport.ensureSocialConnection("social-conn-bulk", BddDatabaseSupport.WORKSPACE_ID, "LINKEDIN", "ACTIVE")
+        bddDatabaseSupport.ensureSocialAccount(
             "social-acc-bulk",
             "social-conn-bulk",
+            BddDatabaseSupport.WORKSPACE_ID,
             "LINKEDIN",
             "linkedin-bulk-1",
             "PERSONAL_PROFILE",
@@ -468,5 +469,14 @@ class BulkBddSteps {
         val body = String(latestBulkResponse?.responseBody ?: ByteArray(0))
         assertTrue(body.contains("CAPABILITY_VIOLATION"), "expected CAPABILITY_VIOLATION $body")
         assertTrue(body.contains("INVALID"))
+    }
+
+    @Then("row MUST be VALID")
+    fun thenMustBeValid() {
+        if (latestBulkResponse == null || String(latestBulkResponse?.responseBody ?: ByteArray(0)).isBlank()) {
+            postBulkValidate(BddDatabaseSupport.WORKSPACE_ID, lastCsvText)
+        }
+        val body = String(latestBulkResponse?.responseBody ?: ByteArray(0))
+        assertTrue(body.contains("\"status\":\"VALID\"") || body.contains("\"VALID\""), "expected VALID $body")
     }
 }

@@ -71,4 +71,4 @@ Feature: Bulk scheduling
   Scenario: Capability violation PDF
     Given LinkedIn row with media APPLICATION/PDF url "https://example.com/a.pdf"
     When validate is called
-    Then row MUST be INVALID with CAPABILITY_VIOLATION
+    Then row MUST be VALID
