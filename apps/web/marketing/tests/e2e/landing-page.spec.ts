@@ -94,8 +94,8 @@ test.describe('Bilingual Support', () => {
     await dismissConsentBanner(page);
     await page.goto('/');
 
-    // The language switcher is an <a> link with aria-label "Cambiar a español" or "Switch to English"
-    const langSwitcher = page.getByRole('link', { name: /cambiar a español|switch to english/i });
+    // The language switcher is an <a> link with an aria-label that contains the visible locale code
+    const langSwitcher = page.getByRole('link', { name: /switch to spanish|cambiar a inglés/i });
 
     // Assert switcher is present
     await expect(langSwitcher.first()).toBeVisible({ timeout: 10_000 });
