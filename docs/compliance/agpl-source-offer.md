@@ -2,7 +2,7 @@
 
 > **Classification:** Internal — Legal and Compliance
 > **Status:** Active
-> **Last updated:** 2026-08-30
+> **Last updated:** 2026-08-31
 
 ## Overview
 
