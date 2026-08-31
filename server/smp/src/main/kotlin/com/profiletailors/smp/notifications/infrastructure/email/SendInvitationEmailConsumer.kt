@@ -127,15 +127,13 @@ internal class SendInvitationEmailConsumer(
 
         if (outcome == "FAILED") {
             log.error(
-                "Failed to send invitation email to '{}' for invitation '{}': {}",
-                recipient,
+                "Failed to send invitation email for invitation '{}': {}",
                 invitationId,
                 updated.errorMessage,
             )
         } else {
             log.info(
-                "Invitation email dispatched to '{}' for invitation '{}'",
-                recipient,
+                "Invitation email dispatched for invitation '{}'",
                 invitationId,
             )
         }

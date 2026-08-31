@@ -13,6 +13,7 @@ import com.profiletailors.notifications.domain.NotificationStatus
 import com.profiletailors.notifications.domain.event.InvitationCreated
 import com.profiletailors.notifications.domain.event.InvitationDeliveryAttempted
 import com.profiletailors.notifications.domain.event.InvitationResent
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -36,12 +37,10 @@ internal class SendInvitationEmailConsumerTest {
         val createdConsumer = SendInvitationEmailConsumer::class.java
         val resentConsumer = SendInvitationResentEmailConsumer::class.java
 
-        assertThat(EventConsumer::class.java.isAssignableFrom(createdConsumer)).isTrue()
-        assertThat(createdConsumer.getAnnotation(Subscribe::class.java).filterBy)
-            .isEqualTo(InvitationCreated::class)
-        assertThat(EventConsumer::class.java.isAssignableFrom(resentConsumer)).isTrue()
-        assertThat(resentConsumer.getAnnotation(Subscribe::class.java).filterBy)
-            .isEqualTo(InvitationResent::class)
+        EventConsumer::class.java.isAssignableFrom(createdConsumer) shouldBe true
+        createdConsumer.getAnnotation(Subscribe::class.java).filterBy shouldBe InvitationCreated::class
+        EventConsumer::class.java.isAssignableFrom(resentConsumer) shouldBe true
+        resentConsumer.getAnnotation(Subscribe::class.java).filterBy shouldBe InvitationResent::class
     }
 
     @Test
