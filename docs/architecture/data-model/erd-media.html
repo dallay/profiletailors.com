@@ -24,7 +24,7 @@
     <h1>Content-addressed storage with upload quotas</h1>
     <p class="lede">4 tables. <code style="font-family:var(--font-mono);">media_assets</code> is the focal aggregate (focal because it's what the API returns). <code style="font-family:var(--font-mono);">workspace_file_blobs</code> is the content-addressed dedupe layer keyed by SHA-256. <code style="font-family:var(--font-mono);">workspace_upload_slots</code> and <code style="font-family:var(--font-mono);">media_rate_limits</code> enforce per-workspace concurrency and rate caps.</p>
 
-    <svg viewBox="0 0 1080 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-media-title erd-media-desc">
+    <svg viewBox="0 0 1080 960" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-media-title erd-media-desc">
       <title id="erd-media-title">Profile Tailors · media bounded context entity-relationship diagram</title>
       <desc id="erd-media-desc">ER diagram of the media context. media_assets is the focal aggregate with content-addressed blob FK to workspace_file_blobs by (workspace_id, file_hash). workspace_upload_slots and media_rate_limits are per-workspace control tables keyed by workspace_id alone.</desc>
       <defs>
@@ -37,7 +37,7 @@
       <!-- media_assets (FOCAL)                          -->
       <!-- ============================================ -->
 
-      <rect x="40" y="80" width="500" height="380" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="40" y="80" width="500" height="480" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
       <rect x="40" y="80" width="500" height="40" rx="6" fill="rgba(215,25,33,0.10)" stroke="none"/>
       <rect x="40" y="112" width="500" height="8" fill="rgba(215,25,33,0.10)"/>
       <line x1="40" y1="120" x2="540" y2="120" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
@@ -46,121 +46,147 @@
 
       <text x="56" y="144" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># asset_id</text>
       <text x="524" y="144" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="56" y="164" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
-      <text x="524" y="164" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="56" y="184" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ (workspace_id, file_hash) → workspace_file_blobs</text>
-      <text x="524" y="184" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">composite FK</text>
-      <text x="56" y="204" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">source_type · media_type</text>
-      <text x="524" y="204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
-      <text x="56" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">storage_key (nullable until READY)</text>
-      <text x="524" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
-      <text x="56" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">detected_media_type · file_size_bytes</text>
-      <text x="524" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="56" y="264" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">original_filename · status</text>
-      <text x="524" y="264" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">enum</text>
-      <text x="56" y="284" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">upload_started_at · created_at · updated_at</text>
-      <text x="524" y="284" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="56" y="304" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">licence · failure_reason</text>
-      <text x="524" y="304" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="56" y="346" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">status: PENDING_UPLOAD / UPLOADING / PROCESSING / READY / FAILED / DELETED</text>
-      <text x="56" y="370" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">CHECK constraint: storage_key iff status = READY</text>
-      <text x="56" y="394" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed on workspace+created_at, workspace+status, status+upload_started_at, file_hash</text>
+      <text x="56" y="162" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
+      <text x="524" y="162" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="180" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ (workspace_id, file_hash) → workspace_file_blobs</text>
+      <text x="524" y="180" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">composite FK</text>
+      <text x="56" y="198" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">source_type</text>
+      <text x="524" y="198" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="56" y="216" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">media_type</text>
+      <text x="524" y="216" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="56" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">storage_key (nullable until READY)</text>
+      <text x="524" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="56" y="252" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">detected_media_type</text>
+      <text x="524" y="252" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="56" y="270" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">file_size_bytes</text>
+      <text x="524" y="270" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">bigint</text>
+      <text x="56" y="288" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">original_filename</text>
+      <text x="524" y="288" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="56" y="306" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="524" y="306" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">enum</text>
+      <text x="56" y="324" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">upload_started_at</text>
+      <text x="524" y="324" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="342" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="524" y="342" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="360" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">updated_at</text>
+      <text x="524" y="360" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="378" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">licence</text>
+      <text x="524" y="378" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="396" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">failure_reason</text>
+      <text x="524" y="396" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="56" y="430" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">status: PENDING_UPLOAD / UPLOADING / PROCESSING / READY / FAILED / DELETED</text>
+      <text x="56" y="454" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">CHECK constraint: storage_key iff status = READY</text>
+      <text x="56" y="478" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed on workspace+created_at, workspace+status, status+upload_started_at, file_hash</text>
 
       <!-- ============================================ -->
       <!-- workspace_file_blobs                          -->
       <!-- ============================================ -->
 
-      <rect x="600" y="80" width="440" height="300" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="600" y="80" width="440" height="420" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
       <rect x="600" y="80" width="440" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
       <line x1="600" y1="112" x2="1040" y2="112" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
       <text x="616" y="100" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTENT-ADDRESSED BLOB</text>
       <text x="616" y="126" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">workspace_file_blobs</text>
       <text x="616" y="154" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">PK workspace_id</text>
       <text x="1024" y="154" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="616" y="174" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">PK file_hash</text>
-      <text x="1024" y="174" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">char(64) SHA-256</text>
-      <text x="616" y="194" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">storage_key (when READY)</text>
-      <text x="1024" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
-      <text x="616" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">file_size_bytes · detected_media_type</text>
-      <text x="1024" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="616" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status · failure_reason</text>
-      <text x="1024" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
-      <text x="616" y="254" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">orphaned_at · gc_failure_count · last_gc_attempt_at</text>
-      <text x="1024" y="254" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">GC state</text>
-      <text x="616" y="274" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
-      <text x="1024" y="274" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="616" y="316" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">status: UPLOADING / READY / READY_FOR_GC / GARBAGE_COLLECTED / FAILED</text>
-      <text x="616" y="340" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">CHECK: file_hash matches SHA-256 regex</text>
-      <text x="616" y="364" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed on (workspace_id, status) and orphaned_at GC candidates</text>
+      <text x="616" y="172" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">PK file_hash</text>
+      <text x="1024" y="172" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">char(64) SHA-256</text>
+      <text x="616" y="190" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">storage_key (when READY)</text>
+      <text x="1024" y="190" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="616" y="208" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">file_size_bytes</text>
+      <text x="1024" y="208" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">bigint</text>
+      <text x="616" y="226" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">detected_media_type</text>
+      <text x="1024" y="226" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="616" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="1024" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">enum</text>
+      <text x="616" y="262" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">failure_reason</text>
+      <text x="1024" y="262" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="616" y="280" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">orphaned_at</text>
+      <text x="1024" y="280" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="616" y="298" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">gc_failure_count</text>
+      <text x="1024" y="298" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
+      <text x="616" y="316" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">last_gc_attempt_at</text>
+      <text x="1024" y="316" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="616" y="334" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="1024" y="334" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="616" y="352" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">updated_at</text>
+      <text x="1024" y="352" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="616" y="386" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">status: UPLOADING / READY / READY_FOR_GC / GARBAGE_COLLECTED / FAILED</text>
+      <text x="616" y="410" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">CHECK: file_hash matches SHA-256 regex</text>
+      <text x="616" y="434" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed on (workspace_id, status) and orphaned_at GC candidates</text>
 
       <!-- ============================================ -->
       <!-- workspace_upload_slots + media_rate_limits   -->
       <!-- ============================================ -->
 
-      <rect x="40" y="520" width="320" height="220" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
-      <rect x="40" y="520" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
-      <line x1="40" y1="552" x2="360" y2="552" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="56" y="540" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONCURRENCY CONTROL</text>
-      <text x="56" y="566" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">workspace_upload_slots</text>
-      <text x="56" y="594" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># → workspace_id</text>
-      <text x="344" y="594" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="56" y="614" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">active_uploads</text>
-      <text x="344" y="614" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
-      <text x="56" y="634" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
-      <text x="344" y="634" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="56" y="678" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">PK = workspace_id · tracks concurrent upload count</text>
+      <rect x="40" y="580" width="320" height="260" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="40" y="580" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="40" y1="612" x2="360" y2="612" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="56" y="600" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONCURRENCY CONTROL</text>
+      <text x="56" y="626" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">workspace_upload_slots</text>
+      <text x="56" y="654" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># → workspace_id</text>
+      <text x="344" y="654" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="672" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">active_uploads</text>
+      <text x="344" y="672" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
+      <text x="56" y="690" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="344" y="690" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="708" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">updated_at</text>
+      <text x="344" y="708" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="752" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">PK = workspace_id · tracks concurrent upload count</text>
 
-      <rect x="400" y="520" width="320" height="220" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
-      <rect x="400" y="520" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
-      <line x1="400" y1="552" x2="720" y2="552" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="416" y="540" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">RATE LIMIT</text>
-      <text x="416" y="566" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">media_rate_limits</text>
-      <text x="416" y="594" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># → workspace_id</text>
-      <text x="704" y="594" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="416" y="614" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">hourly_creation_count</text>
-      <text x="704" y="614" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
-      <text x="416" y="634" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">hour_bucket</text>
-      <text x="704" y="634" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="416" y="654" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
-      <text x="704" y="654" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
-      <text x="416" y="700" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">PK = workspace_id · hourly bucket counter</text>
+      <rect x="400" y="580" width="320" height="260" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="400" y="580" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="400" y1="612" x2="720" y2="612" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="416" y="600" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">RATE LIMIT</text>
+      <text x="416" y="626" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">media_rate_limits</text>
+      <text x="416" y="654" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># → workspace_id</text>
+      <text x="704" y="654" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="416" y="672" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">hourly_creation_count</text>
+      <text x="704" y="672" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
+      <text x="416" y="690" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">hour_bucket</text>
+      <text x="704" y="690" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="416" y="708" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="704" y="708" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="416" y="726" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">updated_at</text>
+      <text x="704" y="726" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="416" y="770" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">PK = workspace_id · hourly bucket counter</text>
 
       <!-- External: workspaces -->
-      <rect x="800" y="520" width="240" height="100" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
-      <text x="816" y="540" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">EXTERNAL · TENANCY</text>
-      <text x="816" y="560" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">workspaces</text>
-      <text x="816" y="580" fill="#525252" font-size="9" font-family="'Space Mono', monospace">id (PK)</text>
-      <text x="816" y="604" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">multi-tenant root</text>
+      <rect x="800" y="580" width="240" height="140" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="816" y="600" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">EXTERNAL · TENANCY</text>
+      <text x="816" y="620" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">workspaces</text>
+      <text x="816" y="640" fill="#525252" font-size="9" font-family="'Space Mono', monospace">id (PK)</text>
+      <text x="816" y="660" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">multi-tenant root</text>
 
       <!-- ============================================ -->
       <!-- RELATIONSHIPS                                 -->
       <!-- ============================================ -->
 
       <!-- media_assets → workspace_file_blobs (N:1 composite FK) -->
-      <line x1="540" y1="184" x2="600" y2="184" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="552" y="172" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="559" y="182" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
-      <rect x="586" y="172" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="593" y="182" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <line x1="540" y1="180" x2="600" y2="180" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="552" y="168" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="559" y="178" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <rect x="586" y="168" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="593" y="178" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
 
       <!-- workspaces → workspace_upload_slots (1:1) -->
-      <line x1="900" y1="520" x2="220" y2="520" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="546" y="508" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="553" y="518" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="206" y="508" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="213" y="518" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <line x1="900" y1="580" x2="220" y2="580" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="546" y="568" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="553" y="578" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="206" y="568" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="213" y="578" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
 
       <!-- workspaces → media_rate_limits (1:1) -->
-      <line x1="920" y1="560" x2="720" y2="560" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="706" y="548" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="713" y="558" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <line x1="920" y1="620" x2="720" y2="620" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="706" y="608" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="713" y="618" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
 
       <!-- workspaces → workspace_file_blobs (1:N, left side) -->
-      <line x1="900" y1="600" x2="1040" y2="240" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="1006" y="354" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="1013" y="364" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="1006" y="226" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="1013" y="236" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="900" y1="660" x2="1040" y2="300" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="1006" y="414" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="1013" y="424" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="1006" y="286" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="1013" y="296" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
     </svg>
 
     <div class="legend">
