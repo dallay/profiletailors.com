@@ -1,7 +1,9 @@
 package com.profiletailors.smp.notifications.infrastructure.email
 
 import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventConsumer
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.bus.event.Subscribe
 import com.profiletailors.notifications.application.ports.EmailDispatchResult
 import com.profiletailors.notifications.application.ports.EmailDispatcher
 import com.profiletailors.notifications.domain.InvitationEmail
@@ -35,16 +37,17 @@ import java.time.Instant
  * accept URL, which is the single legitimate delivery surface).
  */
 @Component
+@Subscribe(filterBy = InvitationCreated::class)
 internal class SendInvitationEmailConsumer(
     private val emailDispatcher: EmailDispatcher,
     private val notificationRepository: NotificationRepository,
     private val deliveryEventPublisher: EventPublisher<DomainEvent>,
     private val clock: Clock,
-) {
+) : EventConsumer<InvitationCreated> {
 
     private val log = LoggerFactory.getLogger(SendInvitationEmailConsumer::class.java)
 
-    suspend fun consume(event: InvitationCreated) {
+    override suspend fun consume(event: InvitationCreated) {
         dispatch(
             invitationId = event.invitationId,
             recipient = event.recipient,
@@ -124,15 +127,13 @@ internal class SendInvitationEmailConsumer(
 
         if (outcome == "FAILED") {
             log.error(
-                "Failed to send invitation email to '{}' for invitation '{}': {}",
-                recipient,
+                "Failed to send invitation email for invitation '{}': {}",
                 invitationId,
                 updated.errorMessage,
             )
         } else {
             log.info(
-                "Invitation email dispatched to '{}' for invitation '{}'",
-                recipient,
+                "Invitation email dispatched for invitation '{}'",
                 invitationId,
             )
         }
@@ -153,4 +154,13 @@ internal class SendInvitationEmailConsumer(
         com.profiletailors.leadcapture.common.NormalizedEmail.from(
             com.profiletailors.leadcapture.common.EmailAddress(value),
         )
+}
+
+@Component
+@Subscribe(filterBy = InvitationResent::class)
+internal class SendInvitationResentEmailConsumer(private val delegate: SendInvitationEmailConsumer) :
+    EventConsumer<InvitationResent> {
+    override suspend fun consume(event: InvitationResent) {
+        delegate.consume(event)
+    }
 }

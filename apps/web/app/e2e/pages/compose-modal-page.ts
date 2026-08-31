@@ -455,12 +455,16 @@ export class ComposeModalPage {
     await this.datePickerButton.click()
   }
 
-  async pickDate(day: number): Promise<void> {
-    // Click an enabled day number in the calendar popover.
-    // Month grids can render duplicate labels for outside-view days, so avoid disabled cells and outside-view days.
+  async pickDate(date: Date): Promise<void> {
+    // Select the target month before clicking the day. Month grids can render
+    // duplicate labels for outside-view days, so avoid disabled cells and
+    // outside-view days after navigating to the target month.
+    await this.page.getByLabel('Year').selectOption(String(date.getFullYear()))
+    await this.page.getByLabel('Month').selectOption(String(date.getMonth() + 1))
+
     const dayButton = this.page
       .locator('[data-slot="calendar-cell-trigger"]:not([data-disabled]):not([data-outside-view])')
-      .getByText(String(day), { exact: true })
+      .getByText(String(date.getDate()), { exact: true })
     await dayButton.click()
   }
 
@@ -563,11 +567,11 @@ export class ComposeModalPage {
   /**
    * Full flow: create a post in PICK DATE mode.
    */
-  async createPostPickDate(text: string, day?: number): Promise<void> {
+  async createPostPickDate(text: string, date?: Date): Promise<void> {
     await this.switchToPickDate()
-    if (day) {
+    if (date) {
       await this.openDatePicker()
-      await this.pickDate(day)
+      await this.pickDate(date)
     }
     await this.fillText(text)
     await this.selectLinkedIn()
