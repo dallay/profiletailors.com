@@ -59,7 +59,7 @@
       <text x="684" y="204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
 
       <text x="396" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">icon</text>
-      <text x="684" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="684" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64) · nullable</text>
 
       <text x="396" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
       <text x="684" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
@@ -142,11 +142,20 @@
       <text x="873" y="356" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- 3. workspaces → workspace_ownerships (1:N) -->
-      <line x1="380" y1="420" x2="380" y2="380" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="354" y="386" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="361" y="396" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="380" y="368" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="387" y="378" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <line x1="380" y1="340" x2="380" y2="380" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="354" y="348" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="361" y="358" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="386" y="354" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="393" y="364" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+
+      <!-- 4. principals → workspace_ownerships.created_by (1:N nullable) -->
+      <line x1="200" y1="380" x2="200" y2="140" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="180" y="246" width="56" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="208" y="256" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.10em">FK created_by</text>
+      <rect x="178" y="166" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="185" y="176" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <rect x="206" y="358" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="213" y="368" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
 
       <!-- 4. workspaces → workspace_memberships (1:N) -->
       <line x1="700" y1="280" x2="700" y2="380" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>

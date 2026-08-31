@@ -31,11 +31,11 @@
   <div class="frame">
     <p class="eyebrow">ER · IDENTITY BOUNDED CONTEXT</p>
     <h1>Principals, identities &amp; credential reset flows</h1>
-    <p class="lede">5 tables. <code style="font-family:var(--font-mono);">principals</code> is the focal aggregate — every authenticated actor (human or service) is one. <code style="font-family:var(--font-mono);">user_identities</code> extends it with email/username. Password reset flows hang off <code style="font-family:var(--font-mono);">user_identities</code> via cascade delete.</p>
+    <p class="lede">6 tables. <code style="font-family:var(--font-mono);">principals</code> is the focal aggregate — every authenticated actor (human or service) is one. <code style="font-family:var(--font-mono);">user_identities</code> extends it with email/username. Password reset flows hang off <code style="font-family:var(--font-mono);">user_identities</code> via cascade delete; <code style="font-family:var(--font-mono);">password_reset_notification_failures</code> tracks delivery failures.</p>
 
     <svg viewBox="0 0 1080 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-identity-title erd-identity-desc">
       <title id="erd-identity-title">Profile Tailors · identity bounded context entity-relationship diagram</title>
-      <desc id="erd-identity-desc">ER diagram showing principals as the focal aggregate root with 1:1 user_identities, optional 1:1 local_password_credentials, and token flows for email_verification_tokens and password_reset_tokens. user_identities has FK to principals via principal_id, local_password_credentials has FK to principals via principal_id, password_reset_tokens cascades from user_identities, and email_verification_tokens is keyed by email rather than principal.</desc>
+      <desc id="erd-identity-desc">ER diagram showing principals as the focal aggregate root with 1:1 user_identities, optional 1:1 local_password_credentials, token flows for email_verification_tokens and password_reset_tokens, and the support table password_reset_notification_failures that tracks notification delivery failures. user_identities has FK to principals via principal_id, local_password_credentials has FK to principals via principal_id, password_reset_tokens cascades from user_identities, password_reset_notification_failures cascades from user_identities via principal_id, and email_verification_tokens is keyed by email rather than principal.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#525252"/></marker>
       </defs>
@@ -186,14 +186,24 @@
       <!-- ============================================ -->
       <!-- ENTITY: password_reset_notification_failures (compact callout) -->
       <!-- ============================================ -->
-      <rect x="800" y="480" width="220" height="140" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
-      <rect x="800" y="480" width="220" height="32" rx="6" fill="rgba(26,26,26,0.06)" stroke="none"/>
-      <line x1="800" y1="512" x2="1020" y2="512" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
-      <text x="816" y="500" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">SUPPORT</text>
-      <text x="816" y="530" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif">…reset failures</text>
-      <text x="816" y="552" fill="#525252" font-size="9" font-family="'Space Mono', monospace">→ token_id · failure_category</text>
-      <text x="816" y="572" fill="#525252" font-size="9" font-family="'Space Mono', monospace">attempt_count · last_error</text>
-      <text x="816" y="596" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">tracks notification delivery</text>
+      <rect x="800" y="460" width="220" height="200" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="800" y="460" width="220" height="32" rx="6" fill="rgba(26,26,26,0.06)" stroke="none"/>
+      <line x1="800" y1="492" x2="1020" y2="492" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="816" y="480" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">SUPPORT</text>
+      <text x="816" y="510" fill="#1A1A1A" font-size="11" font-weight="600" font-family="'Space Grotesk', sans-serif">password_reset_notification_failures</text>
+      <text x="816" y="532" fill="#525252" font-size="9" font-family="'Space Mono', monospace"># id</text>
+      <text x="1004" y="532" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="816" y="550" fill="#525252" font-size="9" font-family="'Space Mono', monospace">→ principal_id</text>
+      <text x="1004" y="550" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="816" y="568" fill="#525252" font-size="9" font-family="'Space Mono', monospace">notification_type</text>
+      <text x="1004" y="568" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="816" y="586" fill="#525252" font-size="9" font-family="'Space Mono', monospace">attempts</text>
+      <text x="1004" y="586" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="end">integer</text>
+      <text x="816" y="604" fill="#525252" font-size="9" font-family="'Space Mono', monospace">failed_at</text>
+      <text x="1004" y="604" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="622" fill="#525252" font-size="9" font-family="'Space Mono', monospace">failure_category</text>
+      <text x="1004" y="622" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="816" y="648" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">cascade delete from user_identities</text>
 
       <!-- ============================================ -->
       <!-- RELATIONSHIPS                                 -->
@@ -208,24 +218,24 @@
 
       <!-- 2. local_password_credentials → principals (0..1:1) -->
       <line x1="740" y1="240" x2="680" y2="220" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="710" y="220" width="22" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="721" y="230" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
       <rect x="666" y="216" width="22" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="677" y="226" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">0..1</text>
+      <text x="677" y="226" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="710" y="220" width="22" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="721" y="230" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">0..1</text>
 
       <!-- 3. password_reset_tokens → user_identities (1:N cascade) -->
       <line x1="420" y1="520" x2="340" y2="360" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="376" y="436" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="383" y="446" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="332" y="356" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="339" y="366" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <rect x="404" y="488" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="411" y="498" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <rect x="326" y="368" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="333" y="378" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
 
-      <!-- 4. password_reset_notification_failures → password_reset_tokens (1:N) -->
-      <line x1="800" y1="540" x2="740" y2="540" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
-      <rect x="752" y="528" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="759" y="538" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
-      <rect x="730" y="528" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="737" y="538" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <!-- 4. password_reset_notification_failures → user_identities (1:N cascade) -->
+      <path d="M 820,560 V 400 H 340 V 360" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="806" y="468" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="813" y="478" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+      <rect x="354" y="368" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="361" y="378" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
 
       <!-- 5. email_verification_tokens ↔ user_identities via email (logical) — no FK, dashed note -->
       <path d="M 200,440 V 380" fill="none" stroke="#525252" stroke-width="0.8" stroke-dasharray="4,3"/>

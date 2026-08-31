@@ -37,7 +37,7 @@
       <!-- LEFT — platform_role_assignments (FOCAL)      -->
       <!-- ============================================ -->
 
-      <rect x="40" y="80" width="340" height="240" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="40" y="80" width="340" height="260" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
       <rect x="40" y="80" width="340" height="40" rx="6" fill="rgba(215,25,33,0.10)" stroke="none"/>
       <rect x="40" y="112" width="340" height="8" fill="rgba(215,25,33,0.10)"/>
       <line x1="40" y1="120" x2="380" y2="120" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
@@ -49,14 +49,18 @@
       <text x="364" y="164" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
       <text x="56" y="184" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">role</text>
       <text x="364" y="184" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
-      <text x="56" y="204" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">assigned_at · assigned_by</text>
-      <text x="364" y="204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
-      <text x="56" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">revoked_at · revoked_by</text>
+      <text x="56" y="204" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">assigned_at</text>
+      <text x="364" y="204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">assigned_by</text>
       <text x="364" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
-      <text x="56" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version</text>
-      <text x="364" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">bigint</text>
-      <text x="56" y="280" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (principal_id, revoked_at)</text>
-      <text x="56" y="304" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">platform_role values: PLATFORM_ADMIN, …</text>
+      <text x="56" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">revoked_at</text>
+      <text x="364" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="264" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">revoked_by</text>
+      <text x="364" y="264" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="56" y="284" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version</text>
+      <text x="364" y="284" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">bigint</text>
+      <text x="56" y="310" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (principal_id, revoked_at)</text>
+      <text x="56" y="328" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">platform_role enum (PLATFORM_ADMIN, …)</text>
 
       <!-- ============================================ -->
       <!-- CENTER — invitations + waitlist_invitations   -->

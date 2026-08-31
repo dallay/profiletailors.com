@@ -1,16 +1,16 @@
 # Data Model · ER Diagrams
 
+## Overview
+
 Visual catalog of every PostgreSQL table in `server/smp` and what it stores. 12 self-contained HTML diagrams. Use them to navigate the schema, find tables by bounded context, and understand cross-context foreign keys before touching code.
 
 > **Start here:** [`erd-overview.html`](./erd-overview.html) — the zone map. Read it first; it tells you which diagram to open next.
 
----
-
-## Map of bounded contexts
+### Map of bounded contexts
 
 | Bounded context | Tables | Anchor aggregate | Diagram |
 |---|---|---|---|
-| **identity** | 5 | `principals` | [`erd-identity.html`](./erd-identity.html) |
+| **identity** | 6 | `principals` | [`erd-identity.html`](./erd-identity.html) |
 | **credentials** | 3 | `api_key_credentials` | [`erd-credentials.html`](./erd-credentials.html) |
 | **tenancy** | 3 | `workspaces` | [`erd-tenancy.html`](./erd-tenancy.html) |
 | **authorization** | 7 | `roles` (RBAC core + 3 workspace-scoped extensions) | [`erd-authorization.html`](./erd-authorization.html) |
@@ -22,11 +22,11 @@ Visual catalog of every PostgreSQL table in `server/smp` and what it stores. 12 
 | **platform-admin + privacy** | 5 | `platform_role_assignments` + `data_subject_requests` | [`erd-platform-privacy.html`](./erd-platform-privacy.html) |
 | **MCP + lead-capture + ideas + hashtags** | 6 | `idempotency_records`, `waitlists`, `ideas`, `hashtag_saved_sets` | [`erd-misc.html`](./erd-misc.html) |
 
-**Total: 60 tables across 13 bounded contexts.** Two contexts (publishing, governance) split into multiple diagrams because each has more than 8 tables.
+**Total: 61 tables across 13 bounded contexts.** Two contexts (publishing, governance) split into multiple diagrams because each has more than 8 tables.
 
----
+## Usage
 
-## How to read these diagrams
+### How to read these diagrams
 
 Every diagram follows the same conventions:
 
@@ -39,55 +39,9 @@ Every diagram follows the same conventions:
 
 The style is brand-matched to the Profile Tailors design system (`.agents/DESIGN.md`). See the skill's `style-guide.md` for the full token set.
 
----
+## Maintenance
 
-## Cross-context relationships at a glance
-
-The overview diagram captures the most important FKs. The full list:
-
-| Source → Target | Via |
-|---|---|
-| `principals` → `workspace_memberships` | `principal_id` (bridge between identity and tenancy) |
-| `principals` → `workspace_ownerships` | `owner_principal_id` |
-| `principals` → `api_key_credentials` / `refresh_sessions` / `service_account_credentials` | `principal_id` |
-| `principals` → `publications` | `author_principal_id` |
-| `principals` → `publication_assets` | `created_by_principal_id` |
-| `principals` → `audit_events` | `actor_principal_id` (denormalized) |
-| `workspaces` → `workspace_memberships` / `workspace_ownerships` | `workspace_id` |
-| `workspaces` → `publications` / `publication_assets` / `publication_jobs` | `workspace_id` |
-| `workspaces` → `social_accounts` / `social_connections` | `workspace_id` |
-| `workspaces` → `social_content_*` (all 7 tables) | `workspace_id` |
-| `workspaces` → `media_assets` / `workspace_file_blobs` | `workspace_id` |
-| `workspaces` → `ideas` / `hashtag_saved_sets` | `workspace_id` |
-| `workspaces` → `invitations` | `workspace_id` |
-| `workspaces` → `workspace_direct_grants` / `workspace_target_scopes` / `workspace_entitlements` | `workspace_id` |
-| `workspaces` → `data_subject_requests` | `workspace_id` (optional) |
-| `workspaces` → `consent_records` / `consent_record_events` | `workspace_id` |
-| `workspaces` → `audit_events` | `workspace_id` |
-| `workspaces` → `idempotency_records` | `workspace_id` |
-| `social_accounts` → `publications` | `social_account_id` |
-| `publications` → `publication_jobs` | unique `publication_id` |
-| `publication_jobs` → `delivery_attempts` | `publication_job_id` |
-| `publication_assets` � `publications` | `publication_asset_links` (ordered join) |
-| `recurring_schedules` → `publications` | `template_post_id` |
-| `waitlists` → `waitlist_entries` | `waitlist_id` |
-| `waitlist_entries` → `waitlist_invitations` | `waitlist_entry_id` |
-| `principals` � `invitations` | `issued_by` / `accepted_principal_id` |
-| `principals` ↔ `platform_admin_audit_events` | `operator_principal_id` |
-| `principals` ↔ `platform_role_assignments` | `principal_id` |
-| `roles` ↔ `permissions` | `role_permissions` (many-to-many) |
-| `workspace_memberships` ↔ `roles` | `membership_roles` (many-to-many) |
-| `principals` ↔ `workspace_direct_grants` / `workspace_target_scopes` | `principal_id` |
-| `media_assets` → `workspace_file_blobs` | composite FK `(workspace_id, file_hash)` |
-| `ideas` → `publications` | `converted_to_publication_id` (nullable back-link) |
-| `social_content_posts` → `publications` | `local_publication_id` (nullable back-link) |
-| `social_content_webhook_events` → `social_content_payload_cache` | `payload_cache_key` |
-
-Every cross-context FK is by identity only — no context imports another context's internal entity. This is the architectural rule the diagrams enforce (see ADR-0016: *Aggregates communicate by identity only*).
-
----
-
-## When to update these diagrams
+### When to update these diagrams
 
 Update the affected diagram when any of the following change:
 
@@ -96,4 +50,64 @@ Update the affected diagram when any of the following change:
 - A new cross-context FK appears
 - The focal aggregate of a bounded context shifts
 
-The diagrams are an executable artifact: they are generated from the Liquibase changelogs in `server/smp/src/main/resources/db/changelog/`. If the source-of-truth XML drifts from these diagrams, regenerate from the migrations — do not hand-edit the HTML to match code.
+The HTML diagrams are hand-authored and track the source-of-truth Liquibase YAML changelogs under `server/smp/src/main/resources/db/changelog/`. If the changelog drifts from a diagram, edit the HTML to match the schema — do not edit the changelog to match the diagram.
+
+## Troubleshooting
+
+No common issues are tracked yet. If a diagram is missing a table, FK, or shows an obsolete field, file an issue with the bounded context name and the changelog filename.
+
+## References
+
+### Cross-context relationships at a glance
+
+The overview diagram captures the most important FKs. The full list:
+
+| Source ↔ Target | Via |
+|---|---|
+| `principals` ↔ `workspace_memberships` | `principal_id` (bridge between identity and tenancy) |
+| `principals` ↔ `workspace_ownerships` | `owner_principal_id` |
+| `principals` ↔ `api_key_credentials` / `refresh_sessions` / `service_account_credentials` | `principal_id` |
+| `principals` ↔ `publications` | `author_principal_id` |
+| `principals` ↔ `publication_assets` | `created_by_principal_id` |
+| `principals` ↔ `audit_events` | `actor_principal_id` (denormalized) |
+| `workspaces` ↔ `workspace_memberships` / `workspace_ownerships` | `workspace_id` |
+| `workspaces` ↔ `publications` / `publication_assets` / `publication_jobs` | `workspace_id` |
+| `workspaces` ↔ `social_accounts` / `social_connections` | `workspace_id` |
+| `workspaces` ↔ `social_content_*` (all 7 tables) | `workspace_id` |
+| `workspaces` ↔ `media_assets` / `workspace_file_blobs` | `workspace_id` |
+| `workspaces` ↔ `ideas` / `hashtag_saved_sets` | `workspace_id` |
+| `workspaces` ↔ `invitations` | `workspace_id` |
+| `workspaces` ↔ `workspace_direct_grants` / `workspace_target_scopes` / `workspace_entitlements` | `workspace_id` |
+| `workspaces` ↔ `data_subject_requests` | `workspace_id` (optional) |
+| `workspaces` ↔ `consent_records` / `consent_record_events` | `workspace_id` |
+| `workspaces` ↔ `audit_events` | `workspace_id` |
+| `workspaces` ↔ `idempotency_records` | `workspace_id` |
+| `social_accounts` ↔ `publications` | `social_account_id` |
+| `publications` ↔ `publication_jobs` | unique `publication_id` |
+| `publication_jobs` ↔ `delivery_attempts` | `publication_job_id` |
+| `publication_assets` ↔ `publications` | `publication_asset_links` (ordered join) |
+| `recurring_schedules` ↔ `publications` | `template_post_id` |
+| `waitlists` ↔ `waitlist_entries` | `waitlist_id` |
+| `waitlist_entries` ↔ `waitlist_invitations` | `waitlist_entry_id` |
+| `principals` ↔ `invitations` | `issued_by` / `accepted_principal_id` |
+| `principals` ↔ `platform_admin_audit_events` | `operator_principal_id` |
+| `principals` ↔ `platform_role_assignments` | `principal_id` |
+| `roles` ↔ `permissions` | `role_permissions` (many-to-many) |
+| `workspace_memberships` ↔ `roles` | `membership_roles` (many-to-many) |
+| `principals` ↔ `workspace_direct_grants` / `workspace_target_scopes` | `principal_id` |
+| `media_assets` ↔ `workspace_file_blobs` | composite FK `(workspace_id, file_hash)` |
+| `ideas` ↔ `publications` | `converted_to_publication_id` (nullable back-link) |
+| `social_content_posts` ↔ `publications` | `local_publication_id` (nullable back-link) |
+| `social_content_webhook_events` ↔ `social_content_payload_cache` | `payload_cache_key` |
+
+Every cross-context FK is by identity only — no context imports another context's internal entity. This is the architectural rule the diagrams enforce (see ADR-0016: *Aggregates communicate by identity only*).
+
+### Source of truth
+
+The HTML diagrams are the navigation surface. The actual schema lives in the Liquibase YAML changelogs under `server/smp/src/main/resources/db/changelog/` (master file: `db.changelog-master.yaml`). When the two diverge, the changelog is canonical — update the diagram to match.
+
+### Related documents
+
+- [`../README.md`](../README.md) — architecture documentation index
+- [`../../../.agents/DESIGN.md`](../../../.agents/DESIGN.md) — design system tokens
+- [`../adr/README.md`](../adr/README.md) — architecture decision records, including ADR-0016 (identity-only cross-context FKs)

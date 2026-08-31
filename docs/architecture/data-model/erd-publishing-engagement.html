@@ -189,12 +189,12 @@
       <!-- RELATIONSHIPS                                 -->
       <!-- ============================================ -->
 
-      <!-- social_accounts → actor_capabilities (1:1 unique) -->
-      <path d="M 360,200 H 700 V 80 H 840" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <!-- actor_capabilities → sync_checkpoints (1:N via shared social_account_id, logical) -->
+      <path d="M 360,200 H 700 V 80 H 840" fill="none" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
       <rect x="546" y="60" width="14" height="14" rx="2" fill="#F5F5F0"/>
       <text x="553" y="70" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
       <rect x="826" y="68" width="14" height="14" rx="2" fill="#F5F5F0"/>
-      <text x="833" y="78" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <text x="833" y="78" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
 
       <!-- actor_capabilities → social_content_posts (1:N) -->
       <line x1="200" y1="320" x2="200" y2="380" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
