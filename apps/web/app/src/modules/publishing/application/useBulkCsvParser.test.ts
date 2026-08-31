@@ -19,7 +19,7 @@ describe('useBulkCsvParser', () => {
 
   it('handles BOM prefix', () => {
     const { parse } = useBulkCsvParser()
-    const csv = '\uFEFF' + BULK_CANONICAL_HEADER + '\nHello,2026-06-15T10:00:00Z,UTC,,'
+    const csv = `\uFEFF${BULK_CANONICAL_HEADER}\nHello,2026-06-15T10:00:00Z,UTC,,`
     const result = parse(csv)
     expect(result.headerValid).toBe(true)
     expect(result.rows).toHaveLength(1)

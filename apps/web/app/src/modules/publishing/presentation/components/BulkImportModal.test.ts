@@ -38,8 +38,6 @@ vi.mock('@modules/publishing/application/useBulkCsvParser', () => ({
   useBulkCsvParser: () => ({ parse: mockParse }),
 }))
 
-
-
 vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     Object.assign(async () => ({}), { raw: async () => new Response(null, { status: 204 }) }),

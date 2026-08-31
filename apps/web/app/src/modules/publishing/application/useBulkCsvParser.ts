@@ -9,7 +9,7 @@ export function parseCsvLine(line: string): string[] {
   let current = ''
   let inQuotes = false
   for (let i = 0; i < line.length; i++) {
-    const c = line[i]!
+    const c = line.charAt(i)
     if (c === '"') {
       if (inQuotes && line[i + 1] === '"') {
         current += '"'

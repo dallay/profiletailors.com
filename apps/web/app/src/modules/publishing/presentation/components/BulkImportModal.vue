@@ -11,7 +11,6 @@ const props = withDefaults(defineProps<Props>(), { isOpen: false })
 const emit = defineEmits<{ (e: 'close'): void; (e: 'scheduled', jobId: string): void }>()
 
 const csvText = ref('')
-const fileInput = ref<HTMLInputElement | null>(null)
 const { parse } = useBulkCsvParser()
 const bulk = useBulkImport()
 
@@ -90,13 +89,13 @@ function onPreviewScheduledFor(rowIndex: number, value: string) {
 
           <div>
             <label for="bulk-file-input" class="text-sm font-medium">CSV file</label>
-            <input id="bulk-file-input" ref="fileInput" data-testid="bulk-file-input" type="file" accept=".csv,text/csv" class="mt-1 block w-full text-sm" @change="handleFile">
+            <input id="bulk-file-input" data-testid="bulk-file-input" type="file" accept=".csv,text/csv" class="mt-1 block w-full text-sm" @change="handleFile">
             <p class="mt-1 text-xs text-text-secondary">Header: {{ BULK_CANONICAL_HEADER }}</p>
           </div>
 
           <div>
             <label for="bulk-csv-textarea" class="text-sm font-medium">CSV text</label>
-            <textarea id="bulk-csv-textarea" v-model="csvText" data-testid="bulk-csv-textarea" rows="6" class="mt-1 w-full rounded border p-2 font-mono text-xs" :placeholder="BULK_CANONICAL_HEADER + '\nHello world,2026-06-15T10:00:00Z,UTC,,'"></textarea>
+            <textarea id="bulk-csv-textarea" v-model="csvText" data-testid="bulk-csv-textarea" rows="6" class="mt-1 w-full rounded border p-2 font-mono text-xs" :placeholder="`${BULK_CANONICAL_HEADER}\nHello world,2026-06-15T10:00:00Z,UTC,,`"></textarea>
             <p v-if="parsed.headerValid === false && csvText.trim()" data-testid="bulk-header-error" class="mt-1 text-xs text-error" role="alert" aria-live="assertive">Invalid header — expected {{ BULK_CANONICAL_HEADER }}</p>
           </div>
 
