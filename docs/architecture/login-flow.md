@@ -1,26 +1,23 @@
 # Login Flow Architecture & Sequence Diagrams
 
-## Overview
-
 - **Status**: Active / Implemented
 - **Bounded Contexts**: `com.profiletailors.smp.identity`, `com.profiletailors.smp.credentials`
+- **Related Specifications**: [ADR-0009: JWT & HttpOnly Cookie Authentication](adr/0009-jwt-and-httponly-cookie-authentication.md), [IAM Platform](iam-platform.md)
 
-The authentication architecture for Profile Tailors uses a dual-token strategy adhering to ADR-0009:
+---
+
+## Overview
+
+The authentication architecture for Profile Tailors uses a dual-token strategy adhering to [ADR-0009](adr/0009-jwt-and-httponly-cookie-authentication.md):
 
 1. **Short-Lived Access Token (JWT)**: Carried in memory by the SPA client and sent via `Authorization: Bearer <token>` header for API requests.
 2. **Long-Lived Refresh Token**: Issued via secure `HttpOnly`, `SameSite=Lax` (or Strict), `Secure` cookie, validated exclusively at `/api/auth/refresh`.
 
 This document details the exact sequence and component relationships for **Login**, **Silent Refresh**, and **Logout** flows.
 
-## Changes
+---
 
-This document captures the implemented login, silent-refresh, and logout sequences, including
-refresh-session rotation, configurable cookie handling, architectural boundaries, and security
-properties.
-
-## Usage
-
-### 1. Login Flow (`POST /api/auth/login`)
+## 1. Login Flow (`POST /api/auth/login`)
 
 When a user submits credentials via the Vue SPA dashboard:
 
@@ -80,7 +77,7 @@ sequenceDiagram
 
 ---
 
-### 2. Silent Refresh Flow (`POST /api/auth/refresh`)
+## 2. Silent Refresh Flow (`POST /api/auth/refresh`)
 
 When the access token in memory expires or on initial SPA load with an active session:
 
@@ -104,7 +101,7 @@ sequenceDiagram
     participant IdentityLookup as PrincipalIdentityLookup
     participant JwtIssuer as LocalJwtIssuer
 
-    User->>Controller: POST /api/auth/refresh (Cookie: pt_refresh=...)
+    User->>Controller: POST /api/auth/refresh (Cookie: refresh_session=...)
     alt Cookie Missing
         Controller-->>User: HTTP 401 Unauthorized (RefreshSessionNotActiveException)
     else Cookie Present
@@ -133,7 +130,7 @@ sequenceDiagram
 
 ---
 
-### 3. Logout Flow (`POST /api/auth/logout`)
+## 3. Logout Flow (`POST /api/auth/logout`)
 
 When a user initiates explicit logout:
 
@@ -153,7 +150,7 @@ sequenceDiagram
     participant Handler as LogoutUserSessionHandler
     participant RefreshService as RefreshSessionLifecycleService
 
-    User->>Controller: POST /api/auth/logout (Cookie: pt_refresh=...)
+    User->>Controller: POST /api/auth/logout (Cookie: refresh_session=...)
     Controller->>Mediator: send(LogoutUserSessionCommand)
     Mediator->>Handler: handle(LogoutUserSessionCommand)
 
@@ -169,7 +166,7 @@ sequenceDiagram
 
 ---
 
-### 4. Architectural Boundaries & Security Guarantees
+## 4. Architectural Boundaries & Security Guarantees
 
 ```mermaid
 graph TD
@@ -204,27 +201,11 @@ graph TD
     AuthController --> CookieFactory
 ```
 
-#### Security Properties
-
-- **XSS Protection**: Keeping access tokens only in memory reduces persistent token exposure if XSS
-  occurs, but active scripts can still use an access token or make authenticated requests. Refresh
-  tokens are isolated inside `HttpOnly` cookies and cannot be accessed via JavaScript
-  `document.cookie`.
-- **CSRF Protection**: Refresh cookies carry `SameSite=Lax`/`Strict` policy and are restricted to the effective `/api/auth` path, covering refresh and logout.
+### Security Properties
+- **XSS Protection**: Access tokens reside exclusively in memory. Refresh tokens are isolated inside `HttpOnly` cookies and cannot be accessed via JavaScript `document.cookie`.
+- **CSRF Protection**: Refresh cookies carry `SameSite=Lax`/`Strict` policy and are restricted solely to `/api/auth/refresh`.
 - **Stateless Verification**: API requests evaluate JWT access tokens statelessly without DB roundtrips on protected endpoints.
 - **Session Rotation**: Every refresh invocation revokes the prior refresh token and issues a new one, mitigating token replay attacks.
 
-## Troubleshooting
 
-- **Login failures**: Invalid credentials return `401 Unauthorized`. Requests exceeding the
-  authentication rate limit return `429 Too Many Requests` with a `Retry-After` header.
-- **Silent refresh failures**: A missing, invalid, revoked, rotated, or expired refresh session
-  returns `401 Unauthorized`. Rate-limited requests return `429 Too Many Requests`.
-- **Logout with no active session**: A missing or inactive refresh session is handled idempotently;
-  logout still clears the client cookie and returns `204 No Content`. Rate-limited requests return
-  `429 Too Many Requests`.
-
-## References
-
-- [ADR-0009: JWT & HttpOnly Cookie Authentication](adr/0009-jwt-and-httponly-cookie-authentication.md)
-- [IAM Platform](iam-platform.md)
+Last updated: 2026-08-31
