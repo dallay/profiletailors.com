@@ -178,7 +178,7 @@ internal class SendInvitationEmailConsumerTest {
     }
 
     @Test
-    fun `InvitationResent follows the same flow through its event consumer`() = runTest {
+    fun `should dispatch an invitation email when InvitationResent is consumed`() = runTest {
         val newInvitationId = UUID.randomUUID()
 
         val notificationRepo = mockk<NotificationRepository>(relaxed = true)
