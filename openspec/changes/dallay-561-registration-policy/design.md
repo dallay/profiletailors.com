@@ -9,13 +9,13 @@ advertised state and enforced state cannot drift.
 
 ## Architecture Decisions
 
-| Decision | Choice and rationale |
-|---|---|
-| Policy representation | Use one `RegistrationMode` enum with `OPEN`, `INVITE_ONLY`, and `CLOSED`; separate boolean flags cannot represent mutually exclusive state. |
-| Evaluation boundary | `RegistrationPolicy` returns a typed `RegistrationDecision`; the registration handler evaluates with no validated invitation context, while a future invitation-aware slice can provide one after server-side validation. |
-| Restricted direct registration | `INVITE_ONLY` returns an invitation-required error and `CLOSED` retains the existing registration-disabled error; both paths stop before normalization, persistence, events, or sessions. |
-| Public capability | Keep `registrationEnabled` as an allow-listed boolean and set it only when policy evaluation allows public registration; do not expose operational mode unnecessarily. |
-| Runtime configuration | Replace `SMP_REGISTRATION_ENABLED` with `SMP_REGISTRATION_MODE` and default to `CLOSED` so missing configuration cannot open signup. |
+| Decision                       | Choice and rationale                                                                                                                                                                                                      |
+|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Policy representation          | Use one `RegistrationMode` enum with `OPEN`, `INVITE_ONLY`, and `CLOSED`; separate boolean flags cannot represent mutually exclusive state.                                                                               |
+| Evaluation boundary            | `RegistrationPolicy` returns a typed `RegistrationDecision`; the registration handler evaluates with no validated invitation context, while a future invitation-aware slice can provide one after server-side validation. |
+| Restricted direct registration | `INVITE_ONLY` returns an invitation-required error and `CLOSED` retains the existing registration-disabled error; both paths stop before normalization, persistence, events, or sessions.                                 |
+| Public capability              | Keep `registrationEnabled` as an allow-listed boolean and set it only when policy evaluation allows public registration; do not expose operational mode unnecessarily.                                                    |
+| Runtime configuration          | Replace `SMP_REGISTRATION_ENABLED` with `SMP_REGISTRATION_MODE` and default to `CLOSED` so missing configuration cannot open signup.                                                                                      |
 
 ## Data Flow
 
@@ -31,15 +31,15 @@ POST /api/auth/register -> RegisterUserHandler -> RegistrationPolicy.evaluate(fa
 
 ## Affected Files
 
-| Area | Impact |
-|---|---|
-| `server/smp/.../identity/domain` | Add registration mode and decision semantics. |
-| `server/smp/.../identity/application` | Replace the boolean availability port with a policy port and map restricted decisions. |
-| `server/smp/.../identity/infrastructure` | Bind the mode and provide the configuration-backed policy adapter. |
-| `server/smp/src/test` | Cover mode semantics, handler decisions, configuration, HTTP problem mapping, and BDD behavior. |
-| `server/smp/src/main/resources/application.yaml` | Bind `SMP_REGISTRATION_MODE` with a `CLOSED` default. |
-| `.env.example`, `infra/apps/smp/{production,swarm}` | Document and pass the mode variable. |
-| `openspec/specs/registration/spec.md` | Record the current registration policy contract. |
+| Area                                                | Impact                                                                                          |
+|-----------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `server/smp/.../identity/domain`                    | Add registration mode and decision semantics.                                                   |
+| `server/smp/.../identity/application`               | Replace the boolean availability port with a policy port and map restricted decisions.          |
+| `server/smp/.../identity/infrastructure`            | Bind the mode and provide the configuration-backed policy adapter.                              |
+| `server/smp/src/test`                               | Cover mode semantics, handler decisions, configuration, HTTP problem mapping, and BDD behavior. |
+| `server/smp/src/main/resources/application.yaml`    | Bind `SMP_REGISTRATION_MODE` with a `CLOSED` default.                                           |
+| `.env.example`, `infra/apps/smp/{production,swarm}` | Document and pass the mode variable.                                                            |
+| `openspec/specs/registration/spec.md`               | Record the current registration policy contract.                                                |
 
 ## Testing Strategy
 

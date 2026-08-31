@@ -1,8 +1,0 @@
-change: linkedin-company-pages-community-inbox
-current_phase: archive
-completed: [explore, propose, spec, design, tasks, apply, verify, archive]
-next: null
-implementation_status: partial
-verify_result: PASS_WITH_WARNINGS
-updated: 2026-08-05
-note: SDD cycle archived on 2026-08-05. Verification was PASS WITH WARNINGS (focused wiring 4/4, backend-bdd-fast 189/0, Postgres BDD 189/0, compileTestKotlin, lint, git diff --check all green). Task 2.2 remains PARTIAL and schema-blocked (actor persistence, approval-evidence persistence, provider-portable checkpoint mapping) and MUST NOT be closed by archive — follow-up change required with approved persistence design before Community Management is enabled. Tasks 3.1, 3.2, 5.1, and 5.2 remain open in tasks.md. Residual warnings: production R2DBC calendar cursor continuation not implemented end-to-end; imported-Page publication-write rejection and mixed personal/imported calendar scenarios lack active runtime coverage. Community Management remains disabled by default and fail-closed; personal OAuth/publishing is preserved. Full archive report: archive-report.md.

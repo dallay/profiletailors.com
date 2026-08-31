@@ -1,6 +1,6 @@
 change: dallay-413-bulk-scheduling
 current_phase: explore
-completed: [explore]
+completed: [ explore ]
 next: propose
 updated: 2026-08-30
 linear_issue: https://linear.app/dallay/issue/DALLAY-413/featscheduling-bulk-scheduling-for-multiple-posts
