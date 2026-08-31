@@ -102,6 +102,10 @@ databaseChangeLog:
   - include:
       file: db/changelog/publishing/020-add-publishing-claim-fencing-and-idempotency.yaml
   - include:
+      file: db/changelog/publishing/021-create-bulk-import-jobs.yaml
+  - include:
+      file: db/changelog/publishing/022-create-bulk-import-rows.yaml
+  - include:
       file: db/changelog/ideas/001-create-ideas.yaml
 
   - include:

@@ -2,6 +2,9 @@ package com.profiletailors.smp.publishing.infrastructure.http
 
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
+import com.profiletailors.smp.publishing.application.BulkJobNotFoundException
+import com.profiletailors.smp.publishing.application.BulkWorkspaceMismatchException
+import com.profiletailors.smp.publishing.application.DuplicateBulkImportException
 import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.application.RecurringScheduleNotFoundException
 import com.profiletailors.smp.publishing.application.SocialContentActorNotFoundException
@@ -115,6 +118,32 @@ class PublishingProblemDetailsHandler {
         exception.message ?: "Invalid request argument",
     ).apply {
         title = "Bad Request"
+    }
+
+    @ExceptionHandler(DuplicateBulkImportException::class)
+    fun handle(exception: DuplicateBulkImportException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.CONFLICT,
+        "Duplicate bulk import job: ${exception.jobId}",
+    ).apply {
+        title = "Bulk import duplicate"
+        setProperty("jobId", exception.jobId)
+    }
+
+    @ExceptionHandler(BulkJobNotFoundException::class)
+    fun handle(exception: BulkJobNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.NOT_FOUND,
+        exception.message ?: "Bulk job not found",
+    ).apply {
+        title = "Bulk job not found"
+    }
+
+    @ExceptionHandler(BulkWorkspaceMismatchException::class)
+    fun handle(exception: BulkWorkspaceMismatchException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.FORBIDDEN,
+        exception.message ?: "Workspace access denied",
+    ).apply {
+        title = "Workspace access denied"
+        setProperty("code", "WORKSPACE_MISMATCH")
     }
 
     @ExceptionHandler(IllegalArgumentException::class)

@@ -1,0 +1,14 @@
+change: dallay-414-recurring-posts
+current_phase: explore
+completed: [explore]
+next: archive
+updated: 2026-08-30
+linear_issue: https://linear.app/dallay/issue/DALLAY-414/featscheduling-recurring-posts-automation
+branch: feature/dallay-414-featscheduling-recurring-posts-automation
+base: 56a6340b
+priority: should-have
+points: 3
+status_notes: "Stale In Progress since 2024-07-31 — branch has 0 divergent commits; real delivery was PR #552 (feat/add-recurring-post-scheduling) merged 2024-07-31. Recurring v1 ships 4 endpoints, RecurrenceRule, R2DBC, pause-on-delete, store/modal UI. No new proposal recommended; next is housekeeping archive or close Linear."
+related_pr: https://github.com/dallay/profiletailors.com/pull/552
+sibling: dallay-413-bulk-scheduling
+sibling_pr: https://github.com/dallay/profiletailors.com/pull/922

@@ -1,0 +1,86 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-021-create-bulk-import-jobs
+      author: opencode
+      changes:
+        - createTable:
+            tableName: bulk_import_jobs
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bulk_import_jobs_workspace
+                    references: workspaces(id)
+              - column:
+                  name: principal_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: idempotency_key
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: total_rows
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scheduled_count
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: failed_count
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: csv_hash
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: bulk_import_jobs
+            indexName: idx_bulk_import_jobs_workspace
+            columns:
+              - column:
+                  name: workspace_id
+        - createIndex:
+            tableName: bulk_import_jobs
+            indexName: idx_bulk_import_jobs_idempotency_key
+            columns:
+              - column:
+                  name: idempotency_key
+      rollback:
+        - dropTable:
+            tableName: bulk_import_jobs

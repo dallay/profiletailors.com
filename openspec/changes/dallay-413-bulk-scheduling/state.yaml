@@ -1,8 +1,18 @@
 change: dallay-413-bulk-scheduling
-current_phase: explore
-completed: [ explore ]
-next: propose
-updated: 2026-08-30
+current_phase: verify
+completed: [explore, propose, spec, design, tasks, apply-pr1, apply-pr2, apply-pr3, verify, qa]
+next: qa
+updated: 2026-08-30T16:00:00Z
+pr1_branch: feature/dallay-413-bulk-pr1-domain
+pr1_base: main
+pr1_status: done
+pr2_branch: feature/dallay-413-bulk-pr2-schedule
+pr2_base: feature/dallay-413-bulk-pr1-domain
+pr2_parent: feature/dallay-413-bulk-pr1-domain
+pr2_status: done
+apply_progress: openspec/changes/dallay-413-bulk-scheduling/apply-progress.md
 linear_issue: https://linear.app/dallay/issue/DALLAY-413/featscheduling-bulk-scheduling-for-multiple-posts
 priority: High
 milestone: "0.3"
+qa_report: openspec/changes/dallay-413-bulk-scheduling/qa-report.md
+apply_fix: 2026-08-30-qa-blocked-5P1-fixed
