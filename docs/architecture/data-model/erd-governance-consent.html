@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Tailors · governance consent &amp; audit data model</title>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper:#F5F5F0; --color-ink:#1A1A1A; --color-muted:#525252; --color-accent:#D71921; --color-accent-tint:rgba(215,25,33,0.08); --font-sans:'Space Grotesk',system-ui,sans-serif; --font-display:'Doto','Space Mono',monospace; --font-mono:'Space Mono',ui-monospace,monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh; padding: 3rem 2rem; }
+    .frame { max-width: 1120px; margin: 0 auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-display); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 0.5rem; }
+    .lede { font-family: var(--font-sans); font-size: 0.95rem; font-weight: 400; color: var(--color-muted); max-width: 720px; margin-bottom: 1.5rem; line-height: 1.5; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    .legend { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(26,26,26,0.12); display: flex; gap: 2rem; font-family: 'Space Mono', monospace; font-size: 0.7rem; color: #525252; letter-spacing: 0.10em; flex-wrap: wrap; }
+    .legend-item { display: inline-flex; align-items: center; gap: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">ER · GOVERNANCE AUDIT, CONSENT &amp; TAKEDOWN</p>
+    <h1>Audit events, consent receipts, takedowns</h1>
+    <p class="lede">4 tables. <code style="font-family:var(--font-mono);">audit_events</code> is the focal hot-path table (every authenticated request produces one). <code style="font-family:var(--font-mono);">consent_records</code> holds the active consent state per workspace+subject+purpose; <code style="font-family:var(--font-mono);">consent_record_events</code> is the immutable history. <code style="font-family:var(--font-mono);">takedown_reports</code> is the moderator queue.</p>
+
+    <svg viewBox="0 0 1080 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-govca-title erd-govca-desc">
+      <title id="erd-govca-title">Profile Tailors · governance audit, consent, and takedown entity-relationship diagram</title>
+      <desc id="erd-govca-desc">ER diagram showing audit_events as the focal hot-path with denormalized actor_principal_id and workspace_id references plus JSON payload columns. consent_records holds the active receipt per (workspace, subject, purpose) with a unique-active partial index. consent_record_events is the append-only history. takedown_reports tracks user-submitted content takedown requests with reviewer workflow.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#525252"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#F5F5F0"/>
+
+      <!-- ============================================ -->
+      <!-- TOP — audit_events (FOCAL)                    -->
+      <!-- ============================================ -->
+
+      <rect x="40" y="80" width="1000" height="240" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="40" y="80" width="1000" height="40" rx="6" fill="rgba(215,25,33,0.10)" stroke="none"/>
+      <rect x="40" y="112" width="1000" height="8" fill="rgba(215,25,33,0.10)"/>
+      <line x1="40" y1="120" x2="1040" y2="120" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
+      <text x="56" y="100" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">ENTITY · FOCAL · HOT-PATH AUDIT</text>
+      <text x="56" y="116" fill="#1A1A1A" font-size="14" font-weight="600" font-family="'Space Grotesk', sans-serif">audit_events</text>
+
+      <text x="56" y="144" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1024" y="144" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="164" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">event_type · action</text>
+      <text x="1024" y="164" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="56" y="184" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">request_name · request_path · permission</text>
+      <text x="1024" y="184" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="56" y="204" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">actor_principal_id (denormalized) · workspace_id</text>
+      <text x="1024" y="204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">identity-only reference</text>
+      <text x="56" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">target_type · target_id · outcome · reason_code</text>
+      <text x="1024" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="56" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">role_keys_json · details_json</text>
+      <text x="1024" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="56" y="264" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="1024" y="264" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="298" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (workspace_id, created_at) and (actor, created_at)</text>
+
+      <!-- ============================================ -->
+      <!-- BOTTOM — consent + consent events             -->
+      <!-- ============================================ -->
+
+      <!-- consent_records (active state) -->
+      <rect x="40" y="380" width="480" height="320" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="40" y="380" width="480" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="40" y1="412" x2="520" y2="412" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="56" y="400" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONSENT · ACTIVE STATE</text>
+      <text x="56" y="426" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">consent_records</text>
+      <text x="56" y="454" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="504" y="454" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">workspace_id</text>
+      <text x="504" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="494" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">subject_kind · subject_value</text>
+      <text x="504" y="494" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="56" y="514" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">consent_type · purpose · policy_version</text>
+      <text x="504" y="514" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="56" y="534" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">source · locale</text>
+      <text x="504" y="534" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="56" y="554" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status · given_at · withdrawn_at</text>
+      <text x="504" y="554" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="56" y="574" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">withdrawal_reason</text>
+      <text x="504" y="574" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128)</text>
+      <text x="56" y="594" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · version</text>
+      <text x="504" y="594" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="56" y="632" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique-active partial index on (ws, subject, purpose, policy_version)</text>
+      <text x="56" y="656" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed by (workspace_id, status) and idempotency tuple</text>
+
+      <!-- consent_record_events (history) -->
+      <rect x="560" y="380" width="480" height="320" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="560" y="380" width="480" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="560" y1="412" x2="1040" y2="412" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="576" y="400" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONSENT · APPEND-ONLY HISTORY</text>
+      <text x="576" y="426" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">consent_record_events</text>
+      <text x="576" y="454" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1024" y="454" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="576" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">consent_id · workspace_id</text>
+      <text x="576" y="494" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">subject_kind · subject_value · consent_type</text>
+      <text x="1024" y="494" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="576" y="514" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">purpose · policy_version</text>
+      <text x="1024" y="514" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="576" y="534" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">source · locale · status</text>
+      <text x="1024" y="534" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="576" y="554" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">given_at · withdrawn_at · withdrawal_reason</text>
+      <text x="1024" y="554" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="576" y="574" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">event_at</text>
+      <text x="1024" y="574" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="576" y="618" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">denormalized snapshot per state transition</text>
+      <text x="576" y="642" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (ws, subject, purpose, event_at) for history queries</text>
+
+      <!-- ============================================ -->
+      <!-- RELATIONSHIPS                                 -->
+      <!-- ============================================ -->
+
+      <!-- consent_records ↔ consent_record_events (1:N snapshot per change) — no FK, denormalized -->
+      <line x1="520" y1="500" x2="560" y2="500" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="486" y="486" width="80" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="526" y="496" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.10em">denormalized</text>
+      <rect x="532" y="488" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="539" y="498" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+    </svg>
+
+    <!-- Takendoon sidebar -->
+    <div style="margin-top: 1.5rem; padding: 1rem; border: 1px solid rgba(26,26,26,0.22); border-radius: 6px; font-family: 'Space Mono', monospace; font-size: 0.75rem; color: #525252; line-height: 1.6;">
+      <p style="margin: 0 0 0.5rem 0; letter-spacing: 0.14em; color: #1A1A1A; font-weight: 500;">RELATED · TAKEDOWN REPORTS</p>
+      <p style="margin: 0;"><code style="font-family: inherit; color: #1A1A1A;">takedown_reports</code> · <code style="font-family: inherit;">report_id · workspace_id · asset_id · reported_by_id · reason · status · rejection_reason · reviewed_by_id · reviewed_at · reporter_email · media_reference_url · created_at · updated_at</code> · indexes on (workspace_id, status) and (workspace_id, asset_id). Holds user-submitted content takedown requests awaiting moderator review. Not connected to the audit/consent flow because it is a moderator artifact, not an automated policy event.</p>
+    </div>
+
+    <div class="legend">
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: rgba(215,25,33,0.08); border: 1.2px solid #D71921;"></span>FOCAL</span>
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: #ffffff; border: 1px solid #1A1A1A;"></span>ENTITY</span>
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: rgba(26,26,26,0.04); border: 1px dashed #525252;"></span>DENORMALIZED</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">#</span>PK</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">→</span>FK</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">1 / N</span>CARDINALITY</span>
+    </div>
+  </div>
+</body>
+</html>
