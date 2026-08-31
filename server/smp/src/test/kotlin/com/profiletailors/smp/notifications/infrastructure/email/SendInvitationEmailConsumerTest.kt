@@ -179,7 +179,7 @@ internal class SendInvitationEmailConsumerTest {
     }
 
     @Test
-    fun `InvitationResent follows the same flow`() = runTest {
+    fun `InvitationResent follows the same flow through its event consumer`() = runTest {
         val newInvitationId = UUID.randomUUID()
 
         val notificationRepo = mockk<NotificationRepository>(relaxed = true)
@@ -200,8 +200,9 @@ internal class SendInvitationEmailConsumerTest {
             deliveryEventPublisher = eventPublisher,
             clock = clock,
         )
+        val resentConsumer = SendInvitationResentEmailConsumer(consumer)
 
-        consumer.consume(
+        resentConsumer.consume(
             InvitationResent(
                 invitationId = newInvitationId,
                 waitlistEntryId = UUID.randomUUID().toString(),
