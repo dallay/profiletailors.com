@@ -1,9 +1,0 @@
-change: login-redesign
-current_phase: archive
-completed: [explore, propose, spec, design, tasks, apply, verify, archive]
-next: none
-apply_outcome: PASS
-verify_outcome: PASS_WITH_WARNINGS
-archive_outcome: PASS
-archived_to: openspec/changes/archive/2026-07-30-login-redesign
-updated: 2026-07-30

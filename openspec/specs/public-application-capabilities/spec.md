@@ -2,13 +2,18 @@
 
 ## Purpose
 
-Define the minimum public runtime contract needed by unauthenticated clients to reflect registration, password-recovery, and invitation-acceptance availability.
+Define the minimum public runtime contract needed by unauthenticated clients to reflect
+registration, password-recovery, and invitation-acceptance availability.
 
 ## Requirements
 
 ### Requirement: Allow-Listed Public Capability
 
-`GET /api/capabilities/public` MUST be unauthenticated and MUST return exactly `{ "registrationEnabled": boolean, "passwordRecoveryEnabled": boolean, "invitationAcceptanceEnabled": boolean }`. Each value MUST reflect the authoritative backend capability used to enforce its operation. The response MUST NOT expose SSO providers, generic configuration, environment metadata, secrets, or additional settings.
+`GET /api/capabilities/public` MUST be unauthenticated and MUST return exactly
+`{ "registrationEnabled": boolean, "passwordRecoveryEnabled": boolean, "invitationAcceptanceEnabled": boolean }`.
+Each value MUST reflect the authoritative backend capability used to enforce its operation. The
+response MUST NOT expose SSO providers, generic configuration, environment metadata, secrets, or
+additional settings.
 
 #### Scenario: Capabilities report disabled features
 
@@ -27,7 +32,10 @@ Define the minimum public runtime contract needed by unauthenticated clients to 
 
 ### Requirement: Defensive Client Normalization
 
-The SPA MUST accept capability fields only when their runtime values are booleans. Missing, malformed, or failed responses MUST normalize each restricted capability to false. Concurrent loads MUST share one request, retry MUST be possible, and login MUST remain usable while resolution is pending or failed.
+The SPA MUST accept capability fields only when their runtime values are booleans. Missing,
+malformed, or failed responses MUST normalize each restricted capability to false. Concurrent loads
+MUST share one request, retry MUST be possible, and login MUST remain usable while resolution is
+pending or failed.
 
 #### Scenario: Malformed response fails closed
 

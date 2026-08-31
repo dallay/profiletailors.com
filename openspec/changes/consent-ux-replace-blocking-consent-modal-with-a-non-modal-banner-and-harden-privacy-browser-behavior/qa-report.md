@@ -12,25 +12,25 @@ Covered surfaces: app consent flow (`apps/web/app`). Marketing and backend untou
 
 ## Capabilities exercised
 
-| Capability | Spec | Result |
-|------------|------|--------|
-| Non-modal first-level prompt (aside, no overlay, app interactable) | R1, R2, R8 | PASS |
-| Inline Customize panel + Necessary always-on | R3 | PASS |
-| Persistence contract (source/version/policy/region/timestamp/dnt/necessary) | R4, R6 | PASS |
-| Backend sync failure does not block dismissal (local receipt kept, toast shown) | R6 | PASS |
-| Browser-resilience structural mitigation (no Dialog/portal/overlay in banner path) | R7 | PASS (structural; manual matrix not run — see Warnings) |
-| i18n EN/ES, keyboard semantics, visible focus | R5 | PASS at component layer |
-| Stale receipt re-prompt path | R4 | PASS at component + e2e retain |
-| DNT/GPC default analytics OFF while showing the prompt | R6 | PASS at store layer; no dedicated E2E scenario (warning) |
+| Capability                                                                         | Spec       | Result                                                   |
+|------------------------------------------------------------------------------------|------------|----------------------------------------------------------|
+| Non-modal first-level prompt (aside, no overlay, app interactable)                 | R1, R2, R8 | PASS                                                     |
+| Inline Customize panel + Necessary always-on                                       | R3         | PASS                                                     |
+| Persistence contract (source/version/policy/region/timestamp/dnt/necessary)        | R4, R6     | PASS                                                     |
+| Backend sync failure does not block dismissal (local receipt kept, toast shown)    | R6         | PASS                                                     |
+| Browser-resilience structural mitigation (no Dialog/portal/overlay in banner path) | R7         | PASS (structural; manual matrix not run — see Warnings)  |
+| i18n EN/ES, keyboard semantics, visible focus                                      | R5         | PASS at component layer                                  |
+| Stale receipt re-prompt path                                                       | R4         | PASS at component + e2e retain                           |
+| DNT/GPC default analytics OFF while showing the prompt                             | R6         | PASS at store layer; no dedicated E2E scenario (warning) |
 
 ## Evidence — Commands
 
-| Command | Result |
-|---------|--------|
-| `pnpm --filter app exec vitest run src/components/consent src/modules/settings/infrastructure/consent.store.test.ts src/layouts/AppShell.test.ts` | PASS (5 files, 49 tests) |
-| `pnpm --filter app exec vitest run` (full app unit suite) | PASS (117 files, 1352 tests) |
-| `pnpm --filter app type-check` | PASS |
-| `just frontend-lint` | PASS (62 files) |
+| Command                                                                                                                                           | Result                       |
+|---------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|
+| `pnpm --filter app exec vitest run src/components/consent src/modules/settings/infrastructure/consent.store.test.ts src/layouts/AppShell.test.ts` | PASS (5 files, 49 tests)     |
+| `pnpm --filter app exec vitest run` (full app unit suite)                                                                                         | PASS (117 files, 1352 tests) |
+| `pnpm --filter app type-check`                                                                                                                    | PASS                         |
+| `just frontend-lint`                                                                                                                              | PASS (62 files)              |
 
 ## Coverage details
 
@@ -71,9 +71,9 @@ Covered surfaces: app consent flow (`apps/web/app`). Marketing and backend untou
 
 ## Defects found during QA and fixed in this phase
 
-| Severity | Description | Resolution |
-|----------|-------------|------------|
-| P0 | `AppShell.test.ts` regressed: removing the `useConsentStore` mock (tied to removed `openSettings`) caused 10 tests to fail with `getActivePinia() was called but there was no active Pinia`, because `CookieSettings.vue` (always mounted by AppShell) now reads `useConsentStore` through `useConsent()`. | Re-added `vi.mock('@modules/settings/infrastructure/consent.store', …)` with the minimal new API (`receipt`, `hasValidConsent`, `analyticsEnabled`, `saveConsent`). AppShell tests pass. |
+| Severity | Description                                                                                                                                                                                                                                                                                                | Resolution                                                                                                                                                                               |
+|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| P0       | `AppShell.test.ts` regressed: removing the `useConsentStore` mock (tied to removed `openSettings`) caused 10 tests to fail with `getActivePinia() was called but there was no active Pinia`, because `CookieSettings.vue` (always mounted by AppShell) now reads `useConsentStore` through `useConsent()`. | Re-added `vi.mock('@modules/settings/infrastructure/consent.store', …)` with the minimal new API (`receipt`, `hasValidConsent`, `analyticsEnabled`, `saveConsent`). AppShell tests pass. |
 
 ## Warnings / gaps (non-blocking but visible)
 
