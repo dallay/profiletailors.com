@@ -90,7 +90,8 @@ class BulkPublishingControllerTest {
             BulkScheduleRequest(csvText = "csv", csvHash = "a".repeat(64)),
         )
         assertEquals(HttpStatus.OK, response.statusCode)
-        assertEquals("job-1", response.body!!.jobId)
+        val body = requireNotNull(response.body)
+        assertEquals("job-1", body.jobId)
     }
 
     @Test
@@ -136,8 +137,9 @@ class BulkPublishingControllerTest {
             BulkScheduleRequest(csvText = "csv", csvHash = "a".repeat(64)),
         )
         assertEquals(HttpStatus.CONFLICT, response.statusCode)
-        assertEquals("job-dup", response.body!!.jobId)
-        assertEquals(0, response.body!!.totalRows)
+        val body = requireNotNull(response.body)
+        assertEquals("job-dup", body.jobId)
+        assertEquals(0, body.totalRows)
     }
 
     @Test

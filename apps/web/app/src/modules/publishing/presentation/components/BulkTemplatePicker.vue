@@ -45,7 +45,7 @@ async function handleSelect(t: BulkTemplate) {
     <p v-if="loading" data-testid="bulk-templates-loading">Loading templates…</p>
     <p v-if="loadError" data-testid="bulk-templates-error" class="text-sm text-error">{{ loadError }}</p>
     <p v-if="downloadError" data-testid="bulk-template-download-error" class="text-sm text-error">{{ downloadError }}</p>
-    <ul v-else-if="!loading" data-testid="bulk-templates-list" class="space-y-2">
+    <ul v-if="!loading" data-testid="bulk-templates-list" class="space-y-2">
       <li v-for="t in templates" :key="t.id">
         <button :data-testid="`bulk-template-${t.id}`" class="w-full rounded border px-3 py-2 text-left hover:bg-bg-primary" @click="handleSelect(t)">
           <span class="font-medium">{{ t.name }}</span>

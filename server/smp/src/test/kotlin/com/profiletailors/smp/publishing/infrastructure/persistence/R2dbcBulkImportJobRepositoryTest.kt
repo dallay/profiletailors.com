@@ -53,8 +53,8 @@ class R2dbcBulkImportJobRepositoryTest {
             Mono.just(fn.apply(readable, mockk<RowMetadata>()))
         }
         val result = repository.findByIdempotencyKey(job.idempotencyKey)
-        assertNotNull(result)
-        assertEquals(job.id, result!!.id)
+        val found = requireNotNull(result)
+        assertEquals(job.id, found.id)
     }
 
     @Test

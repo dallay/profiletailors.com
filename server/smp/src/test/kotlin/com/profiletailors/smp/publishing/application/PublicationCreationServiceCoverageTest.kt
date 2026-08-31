@@ -212,8 +212,10 @@ class PublicationCreationServiceCoverageTest {
             "http://172.16.0.5/evil.jpg",
             "http://172.31.255.1/evil.jpg",
             "http://0.0.0.0/evil.jpg",
-            "http://fc00.example.com/image.jpg",
-            "http://fd00.example.com/image.jpg",
+            "http://[::1]/evil.jpg",
+            "http://[fc00::1]/evil.jpg",
+            "http://[fd00::1]/evil.jpg",
+            "http://[fe80::1]/evil.jpg",
             "ftp://cdn.example.com/file.jpg",
             "not-a-url",
         )

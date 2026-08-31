@@ -14,6 +14,7 @@ import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.application.requireEmailVerification
+import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.BulkImportJob
 import com.profiletailors.smp.publishing.domain.BulkImportJobRepository
 import com.profiletailors.smp.publishing.domain.BulkImportRow
@@ -90,6 +91,7 @@ class ScheduleBulkHandler(
         val validation = validationPipeline.validate(workspaceId, command.csvText)
         val totalRows = validation.rows.size
         val now = clock.instant()
+        val socialAccountId = resolveSocialAccountId(workspaceId)
         val job = BulkImportJob(
             id = "bulk-${UUID.randomUUID()}",
             workspaceId = workspaceId,
@@ -106,7 +108,6 @@ class ScheduleBulkHandler(
             bulkImportJobRepository.save(finished)
             return ScheduleBulkResult(finished.id, 0, 0, 0, emptyList())
         }
-        val socialAccountId = resolveSocialAccountId(workspaceId)
         val chunkSize = 50
         val allRows = mutableListOf<BulkImportRow>()
         val resultRows = mutableListOf<BulkRowResult>()
@@ -182,6 +183,7 @@ class ScheduleBulkHandler(
                             )
                             chunkScheduled++
                         } catch (ex: Exception) {
+                            if (ex is MediaServiceUnavailableException) throw ex
                             val code = when (ex) {
                                 is PublicationValidationException -> "INVALID_MEDIA"
                                 is IllegalArgumentException -> if (ex.message?.contains("CAPABILITY") ==

@@ -44,7 +44,7 @@ async function handleValidate() {
 
 async function handleSchedule() {
   if (!csvText.value.trim()) return
-  if (bulk.hasValidationErrors.value) return
+  if (!bulk.validateResult.value) return
   try {
     const result = await bulk.schedule(csvText.value)
     emit('scheduled', result.jobId)
@@ -55,6 +55,24 @@ async function handleSchedule() {
 
 function handleClose() {
   emit('close')
+}
+
+function onPreviewBodyText(rowIndex: number, value: string) {
+  if (!bulk.validateResult.value) return
+  const rows = bulk.validateResult.value.rows.map((r) =>
+    r.rowIndex === rowIndex ? { ...r, bodyText: value } : r,
+  )
+  csvText.value = [BULK_CANONICAL_HEADER, ...rows.map((r) => `${r.bodyText ?? ''},${r.scheduledFor ?? ''},UTC,,`)].join('\n')
+  bulk.validateResult.value = null
+}
+
+function onPreviewScheduledFor(rowIndex: number, value: string) {
+  if (!bulk.validateResult.value) return
+  const rows = bulk.validateResult.value.rows.map((r) =>
+    r.rowIndex === rowIndex ? { ...r, scheduledFor: value } : r,
+  )
+  csvText.value = [BULK_CANONICAL_HEADER, ...rows.map((r) => `${r.bodyText ?? ''},${r.scheduledFor ?? ''},UTC,,`)].join('\n')
+  bulk.validateResult.value = null
 }
 </script>
 
@@ -79,7 +97,7 @@ function handleClose() {
           <div>
             <label for="bulk-csv-textarea" class="text-sm font-medium">CSV text</label>
             <textarea id="bulk-csv-textarea" v-model="csvText" data-testid="bulk-csv-textarea" rows="6" class="mt-1 w-full rounded border p-2 font-mono text-xs" :placeholder="BULK_CANONICAL_HEADER + '\nHello world,2026-06-15T10:00:00Z,UTC,,'"></textarea>
-            <p v-if="parsed.headerValid === false && csvText.trim()" data-testid="bulk-header-error" class="mt-1 text-xs text-error">Invalid header — expected {{ BULK_CANONICAL_HEADER }}</p>
+            <p v-if="parsed.headerValid === false && csvText.trim()" data-testid="bulk-header-error" class="mt-1 text-xs text-error" role="alert" aria-live="assertive">Invalid header — expected {{ BULK_CANONICAL_HEADER }}</p>
           </div>
 
           <div class="flex gap-2">
@@ -91,9 +109,15 @@ function handleClose() {
             </button>
           </div>
 
-          <p v-if="bulk.error.value" data-testid="bulk-error" class="text-sm text-error">{{ bulk.error.value }}</p>
+          <p v-if="bulk.error.value" data-testid="bulk-error" class="text-sm text-error" role="alert" aria-live="assertive">{{ bulk.error.value }}</p>
 
-          <BulkPreviewTable v-if="bulk.validateResult.value" :rows="bulk.validateResult.value.rows" :editable="true" />
+          <BulkPreviewTable
+            v-if="bulk.validateResult.value"
+            :rows="bulk.validateResult.value.rows"
+            :editable="true"
+            @update:bodyText="onPreviewBodyText"
+            @update:scheduledFor="onPreviewScheduledFor"
+          />
 
           <div v-if="bulk.scheduleResult.value" data-testid="bulk-schedule-result" class="rounded border p-3 text-sm">
             <p>Job {{ bulk.scheduleResult.value.jobId }} — scheduled {{ bulk.scheduleResult.value.scheduledCount }}/{{ bulk.scheduleResult.value.totalRows }}</p>

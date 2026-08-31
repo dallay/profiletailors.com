@@ -38,20 +38,7 @@ vi.mock('@modules/publishing/application/useBulkCsvParser', () => ({
   useBulkCsvParser: () => ({ parse: mockParse }),
 }))
 
-vi.mock('./BulkPreviewTable.vue', () => ({
-  default: {
-    template: '<div data-testid="bulk-preview-table"></div>',
-    props: ['rows', 'editable'],
-  },
-}))
 
-vi.mock('./BulkTemplatePicker.vue', () => ({
-  default: {
-    template:
-      '<div data-testid="bulk-template-picker"><button data-testid="template-download" @click="$emit(\'download\', \'csv,from,template\')">download</button></div>',
-    emits: ['download', 'select'],
-  },
-}))
 
 vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
@@ -68,7 +55,19 @@ function mountModal(props: Record<string, unknown> = {}) {
   const wrapper = mount(BulkImportModal, {
     attachTo: document.body,
     props: { isOpen: true, ...props },
-    global: { plugins: [createPinia()] },
+    global: {
+      plugins: [createPinia()],
+      stubs: {
+        BulkPreviewTable: {
+          template: '<div data-testid="bulk-preview-table"></div>',
+          props: ['rows', 'editable'],
+        },
+        BulkTemplatePicker: {
+          template:
+            '<div data-testid="bulk-template-picker"><button data-testid="template-download" @click="$emit(\'download\', \'csv,from,template\')">download</button></div>',
+        },
+      },
+    },
   })
   return wrapper
 }

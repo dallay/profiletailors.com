@@ -9,6 +9,7 @@ import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -18,6 +19,7 @@ import org.springframework.http.MediaType
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.web.reactive.server.EntityExchangeResult
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.security.MessageDigest
 
 @Suppress("TooManyFunctions", "LargeClass", "UnusedParameter", "MaxLineLength", "StringShouldBeRawString")
 class BulkBddSteps {
@@ -67,7 +69,12 @@ class BulkBddSteps {
         csvText: String,
         headerWorkspace: String = workspaceId,
     ): EntityExchangeResult<ByteArray> {
-        val json = objectMapper.writeValueAsString(mapOf("csvText" to csvText, "csvHash" to csvText))
+        val csvHash = MessageDigest.getInstance(
+            "SHA-256",
+        ).digest(csvText.toByteArray(Charsets.UTF_8)).joinToString("") {
+            "%02x".format(it)
+        }
+        val json = objectMapper.writeValueAsString(mapOf("csvText" to csvText, "csvHash" to csvHash))
         previousBulkResponse = latestBulkResponse
         return webTestClient.post().uri("${bulkBase(workspaceId)}/schedule")
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
@@ -115,7 +122,7 @@ class BulkBddSteps {
     }
 
     @Then("validate MUST list {int} rows with {int} INVALID and no DB writes")
-    fun thenValidateMustListRows(expected: Int, invalid: Int) = runBlocking {
+    fun thenValidateMustListRows(expected: Int, invalid: Int) = runTest {
         val body = String(latestBulkResponse?.responseBody ?: ByteArray(0))
         val map: Map<String, Any?> = objectMapper.readValue(body)
         val rows = map["rows"] as? List<*> ?: emptyList<Any>()
@@ -174,13 +181,12 @@ class BulkBddSteps {
     fun thenTemplateChecks() {
         val body = String(latestBulkResponse?.responseBody ?: ByteArray(0))
         assertTrue(body.contains("bodyText,scheduledFor,timezone,media_urls,hashtags"), "header missing $body")
-        val map: Map<String, Any?> = try {
-            objectMapper.readValue(body)
-        } catch (_: Exception) {
-            emptyMap()
+        val contentType = latestBulkResponse?.responseHeaders?.getFirst(HttpHeaders.CONTENT_TYPE) ?: ""
+        if (contentType.contains("json") || body.trim().startsWith("{")) {
+            val map: Map<String, Any?> = objectMapper.readValue(body)
+            val templates = map["templates"] as? List<*>
+            assertTrue(templates != null && templates.isNotEmpty(), "templates missing $body")
         }
-        val templates = map["templates"] as? List<*>
-        if (templates != null) assertTrue(templates.isNotEmpty())
     }
 
     @Given("workspace {string} exists")

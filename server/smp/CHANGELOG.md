@@ -1,6 +1,5 @@
 # Changelog
 
-<<<<<<< HEAD
 ## [Unreleased]
 
 ### ⚠ BREAKING CHANGES
@@ -10,7 +9,7 @@
 ### Features
 
 * **publishing:** bulk scheduling with CSV validation and chunked schedule (DALLAY-413) — `POST /bulk/validate`, `POST /bulk/schedule`, `GET /bulk/jobs/{jobId}`, `GET /bulk/templates` with `bulk_import_jobs`/`bulk_import_rows` tables.
-=======
+
 ## [0.4.9](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.8...smp@v0.4.9) (2026-08-30)
 
 
@@ -30,7 +29,6 @@
 ### Documentation
 
 * 📝 Add docstrings to `feat/private-beta-launch-config` ([#888](https://github.com/dallay/profiletailors.com/issues/888)) ([ca3e19b](https://github.com/dallay/profiletailors.com/commit/ca3e19bbcf21be13425bf8bee9209d61f250530d))
->>>>>>> origin/main
 
 ## [0.4.8](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.7...smp@v0.4.8) (2026-08-28)
 

@@ -157,41 +157,44 @@ describe('useBulkImport coverage', () => {
 
   it('pollJob polls with interval until terminal and respects attempts', async () => {
     vi.useFakeTimers()
-    const composable = useBulkImport()
-    const store = usePublishingStore()
-    const spy = vi
-      .spyOn(store, 'fetchBulkJob')
-      .mockResolvedValueOnce({
-        jobId: 'j1',
-        status: 'SCHEDULING',
-        totalRows: 1,
-        scheduledCount: 0,
-        failedCount: 0,
-        rows: [],
-      })
-      .mockResolvedValueOnce({
-        jobId: 'j1',
-        status: 'SCHEDULING',
-        totalRows: 1,
-        scheduledCount: 0,
-        failedCount: 0,
-        rows: [],
-      })
-      .mockResolvedValueOnce({
-        jobId: 'j1',
-        status: 'SCHEDULED',
-        totalRows: 1,
-        scheduledCount: 1,
-        failedCount: 0,
-        rows: [],
-      })
-    const promise = composable.pollJob('j1', 15, 3)
-    await vi.advanceTimersByTimeAsync(15)
-    await vi.advanceTimersByTimeAsync(15)
-    const result = await promise
-    expect(result.status).toBe('SCHEDULED')
-    expect(spy).toHaveBeenCalledTimes(3)
-    vi.useRealTimers()
+    try {
+      const composable = useBulkImport()
+      const store = usePublishingStore()
+      const spy = vi
+        .spyOn(store, 'fetchBulkJob')
+        .mockResolvedValueOnce({
+          jobId: 'j1',
+          status: 'SCHEDULING',
+          totalRows: 1,
+          scheduledCount: 0,
+          failedCount: 0,
+          rows: [],
+        })
+        .mockResolvedValueOnce({
+          jobId: 'j1',
+          status: 'SCHEDULING',
+          totalRows: 1,
+          scheduledCount: 0,
+          failedCount: 0,
+          rows: [],
+        })
+        .mockResolvedValueOnce({
+          jobId: 'j1',
+          status: 'SCHEDULED',
+          totalRows: 1,
+          scheduledCount: 1,
+          failedCount: 0,
+          rows: [],
+        })
+      const promise = composable.pollJob('j1', 15, 3)
+      await vi.advanceTimersByTimeAsync(15)
+      await vi.advanceTimersByTimeAsync(15)
+      const result = await promise
+      expect(result.status).toBe('SCHEDULED')
+      expect(spy).toHaveBeenCalledTimes(3)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('pollJob with maxAttempts 0 falls back to 1 and throws if no result', async () => {
@@ -212,30 +215,33 @@ describe('useBulkImport coverage', () => {
 
   it('pollJob with negative interval falls back to default', async () => {
     vi.useFakeTimers()
-    const composable = useBulkImport()
-    const store = usePublishingStore()
-    vi.spyOn(store, 'fetchBulkJob')
-      .mockResolvedValueOnce({
-        jobId: 'j1',
-        status: 'SCHEDULING',
-        totalRows: 1,
-        scheduledCount: 0,
-        failedCount: 0,
-        rows: [],
-      })
-      .mockResolvedValueOnce({
-        jobId: 'j1',
-        status: 'SCHEDULED',
-        totalRows: 1,
-        scheduledCount: 1,
-        failedCount: 0,
-        rows: [],
-      })
-    const promise = composable.pollJob('j1', -5, 2)
-    await vi.advanceTimersByTimeAsync(1500)
-    const result = await promise
-    expect(result.status).toBe('SCHEDULED')
-    vi.useRealTimers()
+    try {
+      const composable = useBulkImport()
+      const store = usePublishingStore()
+      vi.spyOn(store, 'fetchBulkJob')
+        .mockResolvedValueOnce({
+          jobId: 'j1',
+          status: 'SCHEDULING',
+          totalRows: 1,
+          scheduledCount: 0,
+          failedCount: 0,
+          rows: [],
+        })
+        .mockResolvedValueOnce({
+          jobId: 'j1',
+          status: 'SCHEDULED',
+          totalRows: 1,
+          scheduledCount: 1,
+          failedCount: 0,
+          rows: [],
+        })
+      const promise = composable.pollJob('j1', -5, 2)
+      await vi.advanceTimersByTimeAsync(1500)
+      const result = await promise
+      expect(result.status).toBe('SCHEDULED')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('pollJob returns last result when polling exhausts without terminal status', async () => {
