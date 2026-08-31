@@ -492,7 +492,6 @@ async function handleUpdated() {
 }
 
 function handleBulkScheduled(jobId: string) {
-  isBulkModalOpen.value = false
   toast.success(`Bulk job ${jobId} scheduled`)
   handleUpdated()
 }
