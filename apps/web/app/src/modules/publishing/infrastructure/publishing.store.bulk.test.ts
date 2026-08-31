@@ -265,7 +265,6 @@ describe('publishing store bulk', () => {
 
   it('deriveTimezone fallback returns UTC when Intl throws', async () => {
     const original = Intl.DateTimeFormat
-    // @ts-expect-error mock
     Intl.DateTimeFormat = (() => ({
       resolvedOptions: () => {
         throw new Error('fail')
