@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Tailors · platform-admin &amp; privacy data model</title>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper:#F5F5F0; --color-ink:#1A1A1A; --color-muted:#525252; --color-accent:#D71921; --color-accent-tint:rgba(215,25,33,0.08); --font-sans:'Space Grotesk',system-ui,sans-serif; --font-display:'Doto','Space Mono',monospace; --font-mono:'Space Mono',ui-monospace,monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh; padding: 3rem 2rem; }
+    .frame { max-width: 1280px; margin: 0 auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-display); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 0.5rem; }
+    .lede { font-family: var(--font-sans); font-size: 0.95rem; font-weight: 400; color: var(--color-muted); max-width: 720px; margin-bottom: 1.5rem; line-height: 1.5; }
+    svg { width: 100%; min-width: 1100px; display: block; }
+    .legend { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(26,26,26,0.12); display: flex; gap: 2rem; font-family: 'Space Mono', monospace; font-size: 0.7rem; color: #525252; letter-spacing: 0.10em; flex-wrap: wrap; }
+    .legend-item { display: inline-flex; align-items: center; gap: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">ER · PLATFORM-ADMIN &amp; PRIVACY</p>
+    <h1>Operator tooling &amp; data subject requests</h1>
+    <p class="lede">5 tables split into two oversight flows. Platform-admin (4 tables) is internal tooling: <code style="font-family:var(--font-mono);">platform_role_assignments</code> grants internal operators elevated privileges; <code style="font-family:var(--font-mono);">invitations</code> and <code style="font-family:var(--font-mono);">waitlist_invitations</code> handle external user onboarding; <code style="font-family:var(--font-mono);">platform_admin_audit_events</code> records every operator action. Privacy (1 table): <code style="font-family:var(--font-mono);">data_subject_requests</code> tracks GDPR/LGPD-style access, rectification, and erasure requests.</p>
+
+    <svg viewBox="0 0 1280 880" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-papriv-title erd-papriv-desc">
+      <title id="erd-papriv-title">Profile Tailors · platform-admin and privacy entity-relationship diagram</title>
+      <desc id="erd-papriv-desc">ER diagram of platform-admin (internal operator tools) and privacy (data subject requests). platform_role_assignments grants internal operator roles; invitations handles workspace invitations; waitlist_invitations handles waitlist invitations; platform_admin_audit_events records every operator action; data_subject_requests tracks access/rectification/erasure requests.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#525252"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#F5F5F0"/>
+
+      <!-- ============================================ -->
+      <!-- LEFT — platform_role_assignments (FOCAL)      -->
+      <!-- ============================================ -->
+
+      <rect x="40" y="80" width="340" height="240" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="40" y="80" width="340" height="40" rx="6" fill="rgba(215,25,33,0.10)" stroke="none"/>
+      <rect x="40" y="112" width="340" height="8" fill="rgba(215,25,33,0.10)"/>
+      <line x1="40" y1="120" x2="380" y2="120" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
+      <text x="56" y="100" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">ENTITY · FOCAL · INTERNAL OPS</text>
+      <text x="56" y="116" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">platform_role_assignments</text>
+      <text x="56" y="144" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="364" y="144" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="56" y="164" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">principal_id</text>
+      <text x="364" y="164" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="56" y="184" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">role</text>
+      <text x="364" y="184" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="204" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">assigned_at · assigned_by</text>
+      <text x="364" y="204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="56" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">revoked_at · revoked_by</text>
+      <text x="364" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="56" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">version</text>
+      <text x="364" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">bigint</text>
+      <text x="56" y="280" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (principal_id, revoked_at)</text>
+      <text x="56" y="304" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">platform_role values: PLATFORM_ADMIN, …</text>
+
+      <!-- ============================================ -->
+      <!-- CENTER — invitations + waitlist_invitations   -->
+      <!-- ============================================ -->
+
+      <!-- invitations -->
+      <rect x="440" y="80" width="360" height="280" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="440" y="80" width="360" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="440" y1="112" x2="800" y2="112" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="456" y="100" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">WORKSPACE INVITATION</text>
+      <text x="456" y="126" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">invitations</text>
+      <text x="456" y="154" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="784" y="154" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="456" y="174" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">source · source_reference_id</text>
+      <text x="784" y="174" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="456" y="194" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
+      <text x="784" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">invited_email_normalized</text>
+      <text x="784" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="456" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">candidate_key · token_hash</text>
+      <text x="784" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">unique</text>
+      <text x="456" y="254" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status · issued_by · accepted_at · accepted_principal_id</text>
+      <text x="784" y="254" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="456" y="274" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · expires_at</text>
+      <text x="784" y="274" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="456" y="316" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique candidate_key · unique token_hash</text>
+      <text x="456" y="340" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (candidate_key, status)</text>
+
+      <!-- waitlist_invitations -->
+      <rect x="440" y="400" width="360" height="300" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="440" y="400" width="360" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="440" y1="432" x2="800" y2="432" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="456" y="420" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">WAITLIST INVITATION</text>
+      <text x="456" y="446" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">waitlist_invitations</text>
+      <text x="456" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="784" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="456" y="494" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ waitlist_entry_id</text>
+      <text x="784" y="494" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128)</text>
+      <text x="456" y="514" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">token_hash</text>
+      <text x="784" y="514" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">unique</text>
+      <text x="456" y="534" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status · issued_at · expires_at · accepted_at</text>
+      <text x="784" y="534" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="456" y="554" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">revoked_at · revoked_by · created_by</text>
+      <text x="784" y="554" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="456" y="574" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">delivery_status · last_delivery_attempt_at</text>
+      <text x="784" y="574" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="456" y="594" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">delivery_attempt_count · version</text>
+      <text x="784" y="594" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="456" y="640" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique token_hash · unique-active partial on waitlist_entry_id</text>
+      <text x="456" y="664" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (waitlist_entry_id, status)</text>
+
+      <!-- ============================================ -->
+      <!-- RIGHT — platform_admin_audit_events + data_subject_requests -->
+      <!-- ============================================ -->
+
+      <!-- platform_admin_audit_events -->
+      <rect x="840" y="80" width="400" height="280" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="840" y="80" width="400" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="840" y1="112" x2="1240" y2="112" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="856" y="100" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">OPERATOR AUDIT TRAIL</text>
+      <text x="856" y="126" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">platform_admin_audit_events</text>
+      <text x="856" y="154" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># event_id</text>
+      <text x="1224" y="154" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="856" y="174" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">occurred_at · operator_principal_id</text>
+      <text x="1224" y="174" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">uuid</text>
+      <text x="856" y="194" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">operator_platform_roles (text[])</text>
+      <text x="1224" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="856" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">action · target_type · target_id</text>
+      <text x="1224" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="856" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">result · reason · correlation_id · request_id</text>
+      <text x="1224" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="856" y="254" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">source_ip_hash · user_agent_summary</text>
+      <text x="1224" y="254" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="856" y="298" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (occurred_at DESC) and (operator_principal_id)</text>
+
+      <!-- data_subject_requests -->
+      <rect x="840" y="400" width="400" height="280" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="840" y="400" width="400" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="840" y1="432" x2="1240" y2="432" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="856" y="420" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">DATA SUBJECT REQUEST</text>
+      <text x="856" y="446" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">data_subject_requests</text>
+      <text x="856" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1224" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="494" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">request_type</text>
+      <text x="1224" y="494" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(16)</text>
+      <text x="856" y="514" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="1224" y="514" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(16)</text>
+      <text x="856" y="534" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">requested_by · requested_by_email</text>
+      <text x="1224" y="534" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="856" y="554" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">workspace_id · notes · correction_data</text>
+      <text x="1224" y="554" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="856" y="574" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">result_ref · rejection_reason</text>
+      <text x="1224" y="574" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="856" y="594" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at · completed_at · expires_at</text>
+      <text x="1224" y="594" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="640" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">request_type: ACCESS / RECTIFICATION / ERASURE / PORTABILITY</text>
+      <text x="856" y="664" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (requested_by) and (status)</text>
+
+      <!-- ============================================ -->
+      <!-- External: principals, workspaces, waitlist_entries -->
+      <!-- ============================================ -->
+
+      <rect x="40" y="720" width="180" height="80" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="56" y="740" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">EXTERNAL · IDENTITY</text>
+      <text x="56" y="760" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">principals</text>
+      <text x="56" y="780" fill="#525252" font-size="9" font-family="'Space Mono', monospace">id (PK, varchar)</text>
+
+      <rect x="260" y="720" width="180" height="80" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="276" y="740" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">EXTERNAL · TENANCY</text>
+      <text x="276" y="760" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">workspaces</text>
+      <text x="276" y="780" fill="#525252" font-size="9" font-family="'Space Mono', monospace">id (PK, varchar)</text>
+
+      <rect x="480" y="720" width="180" height="80" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="496" y="740" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">EXTERNAL · LEAD-CAPTURE</text>
+      <text x="496" y="760" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">waitlist_entries</text>
+      <text x="496" y="780" fill="#525252" font-size="9" font-family="'Space Mono', monospace">id (PK, varchar)</text>
+
+      <!-- ============================================ -->
+      <!-- RELATIONSHIPS                                 -->
+      <!-- ============================================ -->
+
+      <!-- principals → platform_role_assignments (1:N) -->
+      <line x1="130" y1="720" x2="180" y2="320" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="120" y="404" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="127" y="414" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="166" y="306" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="173" y="316" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+
+      <!-- workspaces → invitations (1:N) -->
+      <line x1="350" y1="720" x2="600" y2="360" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="386" y="444" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="393" y="454" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="586" y="346" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="593" y="356" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+
+      <!-- principals → invitations.issued_by / accepted_principal_id (1:N, dashed) -->
+      <line x1="130" y1="740" x2="450" y2="360" stroke="#525252" stroke-width="0.8" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="220" y="500" width="80" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="260" y="510" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.10em">issued_by / accepted</text>
+
+      <!-- waitlist_entries → waitlist_invitations (1:N) -->
+      <line x1="570" y1="720" x2="620" y2="700" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="556" y="714" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="563" y="724" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="606" y="684" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="613" y="694" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+
+      <!-- principals → platform_admin_audit_events (1:N, logical) -->
+      <line x1="200" y1="740" x2="840" y2="360" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="420" y="586" width="120" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="480" y="596" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.10em">operator_principal_id</text>
+
+      <!-- workspaces → data_subject_requests (1:N, optional) -->
+      <line x1="440" y1="740" x2="840" y2="600" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="826" y="584" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="833" y="594" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+    </svg>
+
+    <div class="legend">
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: rgba(215,25,33,0.08); border: 1.2px solid #D71921;"></span>FOCAL</span>
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: #ffffff; border: 1px solid #1A1A1A;"></span>ENTITY</span>
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: rgba(26,26,26,0.04); border: 1px dashed #525252;"></span>EXTERNAL CONTEXT</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">#</span>PK</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">→</span>FK</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">1 / N</span>CARDINALITY</span>
+    </div>
+  </div>
+</body>
+</html>

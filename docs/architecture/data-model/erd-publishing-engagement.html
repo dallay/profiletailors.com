@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Tailors · publishing engagement data model</title>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper:#F5F5F0; --color-ink:#1A1A1A; --color-muted:#525252; --color-accent:#D71921; --color-accent-tint:rgba(215,25,33,0.08); --font-sans:'Space Grotesk',system-ui,sans-serif; --font-display:'Doto','Space Mono',monospace; --font-mono:'Space Mono',ui-monospace,monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh; padding: 3rem 2rem; }
+    .frame { max-width: 1280px; margin: 0 auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-display); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 0.5rem; }
+    .lede { font-family: var(--font-sans); font-size: 0.95rem; font-weight: 400; color: var(--color-muted); max-width: 720px; margin-bottom: 1.5rem; line-height: 1.5; }
+    svg { width: 100%; min-width: 1100px; display: block; }
+    .legend { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(26,26,26,0.12); display: flex; gap: 2rem; font-family: 'Space Mono', monospace; font-size: 0.7rem; color: #525252; letter-spacing: 0.10em; flex-wrap: wrap; }
+    .legend-item { display: inline-flex; align-items: center; gap: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">ER · PUBLISHING ENGAGEMENT (SOCIAL CONTENT)</p>
+    <h1>Posts, comments, webhooks &amp; reply commands</h1>
+    <p class="lede">7 tables supporting social engagement. <code style="font-family:var(--font-mono);">social_content_posts</code> is the focal mirror of provider-published posts; <code style="font-family:var(--font-mono);">social_content_comments</code> tracks inbound and reply comments with parent linkage. The other 5 tables support sync (checkpoints, payload cache), inbound events (webhooks), and outbound replies (commands).</p>
+
+    <svg viewBox="0 0 1280 880" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-pubeng-title erd-pubeng-desc">
+      <title id="erd-pubeng-title">Profile Tailors · publishing engagement (social_content) entity-relationship diagram</title>
+      <desc id="erd-pubeng-desc">ER diagram of the social_content_* layer. social_content_actor_capabilities captures per-actor scope grants; social_content_posts mirrors provider-published posts with local_publication_id back-link; social_content_comments captures inbound comments with parent_external_comment_id for threads; social_content_payload_cache stores encrypted provider payloads; social_content_sync_checkpoints carries high-water marks and leases; social_content_webhook_events deduplicates provider event delivery; social_content_reply_commands carries idempotent outbound replies.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#525252"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#F5F5F0"/>
+
+      <!-- ============================================ -->
+      <!-- LEFT — capabilities + posts                   -->
+      <!-- ============================================ -->
+
+      <!-- social_content_actor_capabilities -->
+      <rect x="40" y="80" width="320" height="240" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="40" y="80" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="40" y1="112" x2="360" y2="112" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="56" y="100" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">ACTOR CAPABILITIES</text>
+      <text x="56" y="126" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">social_content_actor_capabilities</text>
+      <text x="56" y="154" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="344" y="154" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="174" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
+      <text x="344" y="174" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="194" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ social_account_id · provider</text>
+      <text x="344" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="56" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">role_state · granted_scopes</text>
+      <text x="344" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="56" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">can_read_posts / comments / reply_as_actor</text>
+      <text x="344" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">boolean</text>
+      <text x="56" y="254" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">can_receive_webhooks · supports_nested_replies</text>
+      <text x="344" y="254" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">boolean</text>
+      <text x="56" y="274" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">activity_ttl · commenter_profile_ttl · updated_at</text>
+      <text x="344" y="274" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">bigint / timestamptz</text>
+      <text x="56" y="302" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (workspace_id, social_account_id)</text>
+
+      <!-- social_content_posts (FOCAL) -->
+      <rect x="40" y="380" width="320" height="320" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="40" y="380" width="320" height="40" rx="6" fill="rgba(215,25,33,0.10)" stroke="none"/>
+      <rect x="40" y="412" width="320" height="8" fill="rgba(215,25,33,0.10)"/>
+      <line x1="40" y1="420" x2="360" y2="420" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
+      <text x="56" y="400" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">ENTITY · FOCAL · PROVIDER MIRROR</text>
+      <text x="56" y="416" fill="#1A1A1A" font-size="14" font-weight="600" font-family="'Space Grotesk', sans-serif">social_content_posts</text>
+      <text x="56" y="444" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="344" y="444" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="464" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id · → social_account_id</text>
+      <text x="344" y="464" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="484" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">provider · external_post_id</text>
+      <text x="344" y="484" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="56" y="504" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">published_at · last_modified_at</text>
+      <text x="344" y="504" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="524" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">body · origin</text>
+      <text x="344" y="524" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text / enum</text>
+      <text x="56" y="544" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ local_publication_id (nullable)</text>
+      <text x="344" y="544" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">back-link</text>
+      <text x="56" y="564" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">lifecycle · expires_at</text>
+      <text x="344" y="564" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="56" y="584" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
+      <text x="344" y="584" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="618" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (ws, provider, account, external_post_id)</text>
+      <text x="56" y="638" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (ws, account, published_at) DESC</text>
+      <text x="56" y="668" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">mirror of provider-published posts</text>
+
+      <!-- ============================================ -->
+      <!-- CENTER — comments + payload cache             -->
+      <!-- ============================================ -->
+
+      <!-- social_content_comments -->
+      <rect x="440" y="380" width="320" height="280" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="440" y="380" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="440" y1="412" x2="760" y2="412" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="456" y="400" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">COMMENTS · THREADED</text>
+      <text x="456" y="426" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">social_content_comments</text>
+      <text x="456" y="454" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="744" y="454" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id · provider</text>
+      <text x="744" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="494" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ post_id</text>
+      <text x="744" y="494" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="514" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">external_comment_id</text>
+      <text x="744" y="514" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="456" y="534" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">parent_external_comment_id</text>
+      <text x="744" y="534" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">thread link</text>
+      <text x="456" y="554" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">actor_external_id · body</text>
+      <text x="744" y="554" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="456" y="574" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">state · created_at · expires_at</text>
+      <text x="744" y="574" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="456" y="618" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (ws, provider, post, external_comment_id)</text>
+      <text x="456" y="642" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (post_id, parent_external_comment_id)</text>
+
+      <!-- social_content_payload_cache -->
+      <rect x="440" y="700" width="320" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="440" y="700" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="440" y1="732" x2="760" y2="732" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="456" y="720" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">PAYLOAD CACHE</text>
+      <text x="456" y="746" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">social_content_payload_cache</text>
+      <text x="456" y="774" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="744" y="774" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="794" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id · cache_key · cache_kind</text>
+      <text x="744" y="794" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="456" y="814" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">encrypted_payload · expires_at</text>
+      <text x="744" y="814" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text / timestamptz</text>
+      <text x="456" y="834" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (workspace_id, cache_key) · indexed by expires_at</text>
+
+      <!-- ============================================ -->
+      <!-- RIGHT — sync + webhooks + replies             -->
+      <!-- ============================================ -->
+
+      <!-- social_content_sync_checkpoints -->
+      <rect x="840" y="80" width="400" height="220" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="840" y="80" width="400" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="840" y1="112" x2="1240" y2="112" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="856" y="100" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">SYNC CHECKPOINT · WORKER LEASE</text>
+      <text x="856" y="126" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">social_content_sync_checkpoints</text>
+      <text x="856" y="154" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1224" y="154" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="174" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id · → social_account_id</text>
+      <text x="1224" y="174" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="194" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">resource · cursor</text>
+      <text x="1224" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="856" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">high_water_mark · last_successful_at</text>
+      <text x="1224" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">next_run_at · claimed_by · lease_expires_at</text>
+      <text x="1224" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">lease fencing</text>
+      <text x="856" y="280" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (workspace_id, social_account_id, resource)</text>
+
+      <!-- social_content_webhook_events -->
+      <rect x="840" y="340" width="400" height="220" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="840" y="340" width="400" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="840" y1="372" x2="1240" y2="372" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="856" y="360" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">WEBHOOK DEDUPE</text>
+      <text x="856" y="386" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">social_content_webhook_events</text>
+      <text x="856" y="414" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1224" y="414" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="434" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id · provider_event_id</text>
+      <text x="1224" y="434" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="454" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ social_account_id</text>
+      <text x="1224" y="454" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">received_at · payload_cache_key</text>
+      <text x="1224" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="856" y="494" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">processed_at</text>
+      <text x="1224" y="494" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="856" y="538" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (workspace_id, provider_event_id) · idempotent ingest</text>
+
+      <!-- social_content_reply_commands -->
+      <rect x="840" y="600" width="400" height="220" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="840" y="600" width="400" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="840" y1="632" x2="1240" y2="632" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="856" y="620" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">OUTBOUND REPLY · IDEMPOTENT</text>
+      <text x="856" y="646" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">social_content_reply_commands</text>
+      <text x="856" y="674" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1224" y="674" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="694" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id · → social_account_id</text>
+      <text x="1224" y="694" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="856" y="714" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">parent_external_comment_id</text>
+      <text x="1224" y="714" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(255)</text>
+      <text x="856" y="734" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">idempotency_key · body</text>
+      <text x="1224" y="734" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="856" y="754" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status · external_comment_id · created_at</text>
+      <text x="1224" y="754" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="856" y="794" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (workspace_id, idempotency_key) · retry-safe</text>
+
+      <!-- ============================================ -->
+      <!-- RELATIONSHIPS                                 -->
+      <!-- ============================================ -->
+
+      <!-- social_accounts → actor_capabilities (1:1 unique) -->
+      <path d="M 360,200 H 700 V 80 H 840" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="546" y="60" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="553" y="70" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="826" y="68" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="833" y="78" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+
+      <!-- actor_capabilities → social_content_posts (1:N) -->
+      <line x1="200" y1="320" x2="200" y2="380" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="186" y="334" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="193" y="344" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="186" y="364" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="193" y="374" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+
+      <!-- social_content_posts → social_content_comments (1:N) -->
+      <line x1="360" y1="480" x2="440" y2="480" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="372" y="468" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="379" y="478" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="426" y="468" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="433" y="478" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+
+      <!-- social_content_posts ← publications (back-link via local_publication_id) -->
+      <line x1="200" y1="540" x2="200" y2="700" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="186" y="660" width="80" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="226" y="670" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.10em">local_publication_id</text>
+      <rect x="186" y="684" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="193" y="694" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">↺</text>
+
+      <!-- social_content_webhook_events → social_content_payload_cache (FK via payload_cache_key) -->
+      <line x1="840" y1="454" x2="760" y2="754" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="700" y="694" width="80" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="740" y="704" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.10em">cache key FK</text>
+
+      <!-- social_content_reply_commands → social_content_comments (parent_external_comment_id, logical) -->
+      <path d="M 840,700 H 780 V 540 H 760" fill="none" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="744" y="588" width="80" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="784" y="598" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.10em">parent_id → comment</text>
+    </svg>
+
+    <div class="legend">
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: rgba(215,25,33,0.08); border: 1.2px solid #D71921;"></span>FOCAL</span>
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: #ffffff; border: 1px solid #1A1A1A;"></span>ENTITY</span>
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: rgba(26,26,26,0.04); border: 1px dashed #525252;"></span>LOGICAL</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">#</span>PK</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">→</span>FK</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">1 / N</span>CARDINALITY</span>
+    </div>
+  </div>
+</body>
+</html>

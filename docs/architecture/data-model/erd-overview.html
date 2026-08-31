@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Tailors · database overview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #F5F5F0;
+      --color-ink:     #1A1A1A;
+      --color-muted:   #525252;
+      --color-soft:    #7a7a7a;
+      --color-rule:    rgba(26,26,26,0.12);
+      --color-accent:  #D71921;
+      --color-accent-tint: rgba(215,25,33,0.08);
+      --font-sans:     'Space Grotesk', system-ui, sans-serif;
+      --font-display:  'Doto', 'Space Mono', monospace;
+      --font-mono:     'Space Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1120px; margin: 0 auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+    .lede {
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: var(--color-muted);
+      max-width: 720px;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    svg { width: 100%; min-width: 980px; display: block; }
+    .legend {
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(26,26,26,0.12);
+      display: flex;
+      gap: 2rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: #525252;
+      letter-spacing: 0.10em;
+      flex-wrap: wrap;
+    }
+    .legend-item { display: inline-flex; align-items: center; gap: 0.5rem; }
+    .legend-swatch { display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">ER OVERVIEW · DATABASE</p>
+    <h1>Profile Tailors · bounded contexts</h1>
+    <p class="lede">13 bounded contexts, 60 tables. Tenancy and Identity are the central hubs — every other context references them by ID. Read this map first, then dive into the per-context detail diagrams.</p>
+
+    <svg viewBox="0 0 1080 880" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-overview-title erd-overview-desc">
+      <title id="erd-overview-title">Profile Tailors · database bounded contexts overview</title>
+      <desc id="erd-overview-desc">Zone map of 13 bounded contexts grouped into four layers: foundation (Identity, Tenancy, Credentials), cross-cutting (Authorization, MCP), domain (Publishing, Media, Ideas, Hashtags), and oversight (Governance, Privacy, Platform-admin, Lead-capture). Tenancy is the focal hub with the most cross-context foreign keys.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#525252"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#D71921"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#F5F5F0"/>
+
+      <!-- Layer labels (left edge, vertical) -->
+      <text x="20" y="170" fill="#7a7a7a" font-size="9" font-family="'Space Mono', monospace" letter-spacing="0.18em" transform="rotate(-90 20 170)">FOUNDATION</text>
+      <text x="20" y="330" fill="#7a7a7a" font-size="9" font-family="'Space Mono', monospace" letter-spacing="0.18em" transform="rotate(-90 20 330)">CROSS-CUTTING</text>
+      <text x="20" y="490" fill="#7a7a7a" font-size="9" font-family="'Space Mono', monospace" letter-spacing="0.18em" transform="rotate(-90 20 490)">DOMAIN</text>
+      <text x="20" y="650" fill="#7a7a7a" font-size="9" font-family="'Space Mono', monospace" letter-spacing="0.18em" transform="rotate(-90 20 650)">OVERSIGHT</text>
+
+      <!-- ============================================ -->
+      <!-- ROW 1 — FOUNDATION (y=100)                   -->
+      <!-- ============================================ -->
+
+      <!-- Identity -->
+      <rect x="80" y="100" width="240" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="80" y="100" width="240" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="80" y="124" width="240" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="80" y1="132" x2="320" y2="132" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="96" y="120" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="304" y="120" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">5 TABLES</text>
+      <text x="96" y="160" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Identity</text>
+      <text x="96" y="184" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · principals</text>
+      <text x="96" y="216" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">users &amp; credentials</text>
+
+      <!-- Tenancy (FOCAL) -->
+      <rect x="400" y="100" width="240" height="140" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="400" y="100" width="240" height="32" rx="6" fill="rgba(215,25,33,0.12)" stroke="none"/>
+      <rect x="400" y="124" width="240" height="8" fill="rgba(215,25,33,0.12)"/>
+      <line x1="400" y1="132" x2="640" y2="132" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
+      <text x="416" y="120" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT · FOCAL</text>
+      <text x="624" y="120" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">3 TABLES</text>
+      <text x="416" y="160" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Tenancy</text>
+      <text x="416" y="184" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · workspaces</text>
+      <text x="416" y="216" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">multi-tenant root</text>
+
+      <!-- Credentials -->
+      <rect x="720" y="100" width="280" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="720" y="100" width="280" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="720" y="124" width="280" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="720" y1="132" x2="1000" y2="132" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="736" y="120" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="984" y="120" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">3 TABLES</text>
+      <text x="736" y="160" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Credentials</text>
+      <text x="736" y="184" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · api_key_credentials</text>
+      <text x="736" y="216" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">keys &amp; refresh sessions</text>
+
+      <!-- ============================================ -->
+      <!-- ROW 2 — CROSS-CUTTING (y=280)                -->
+      <!-- ============================================ -->
+
+      <!-- Authorization (wider) -->
+      <rect x="80" y="280" width="480" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="80" y="280" width="480" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="80" y="304" width="480" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="80" y1="312" x2="560" y2="312" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="96" y="300" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="544" y="300" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">7 TABLES</text>
+      <text x="96" y="340" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Authorization</text>
+      <text x="96" y="364" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · roles · permissions · workspace_direct_grants</text>
+      <text x="96" y="396" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">RBAC + workspace-scoped grants + entitlements</text>
+
+      <!-- MCP -->
+      <rect x="640" y="280" width="200" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="640" y="280" width="200" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="640" y="304" width="200" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="640" y1="312" x2="840" y2="312" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="656" y="300" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="824" y="300" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">1 TABLE</text>
+      <text x="656" y="340" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">MCP</text>
+      <text x="656" y="364" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · idempotency_records</text>
+      <text x="656" y="396" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">tool-call idempotency</text>
+
+      <!-- ============================================ -->
+      <!-- ROW 3 — DOMAIN (y=460)                       -->
+      <!-- ============================================ -->
+
+      <!-- Publishing (wider, 16 tables) -->
+      <rect x="80" y="460" width="320" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="80" y="460" width="320" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="80" y="484" width="320" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="80" y1="492" x2="400" y2="492" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="96" y="480" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="384" y="480" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">16 TABLES</text>
+      <text x="96" y="520" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Publishing</text>
+      <text x="96" y="544" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · publications · social_accounts</text>
+      <text x="96" y="576" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">scheduling, delivery &amp; social engagement</text>
+
+      <!-- Media -->
+      <rect x="440" y="460" width="200" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="440" y="460" width="200" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="440" y="484" width="200" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="440" y1="492" x2="640" y2="492" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="456" y="480" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="624" y="480" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">4 TABLES</text>
+      <text x="456" y="520" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Media</text>
+      <text x="456" y="544" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · media_assets</text>
+      <text x="456" y="576" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">content-addressed blobs</text>
+
+      <!-- Ideas -->
+      <rect x="680" y="460" width="160" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="680" y="460" width="160" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="680" y="484" width="160" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="680" y1="492" x2="840" y2="492" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="696" y="480" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="824" y="480" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">2 TABLES</text>
+      <text x="696" y="520" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Ideas</text>
+      <text x="696" y="544" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · ideas</text>
+      <text x="696" y="576" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">kanban content bank</text>
+
+      <!-- Hashtags -->
+      <rect x="880" y="460" width="120" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="880" y="460" width="120" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="880" y="484" width="120" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="880" y1="492" x2="1000" y2="492" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="896" y="480" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="984" y="480" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">1 TABLE</text>
+      <text x="896" y="520" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Hashtags</text>
+      <text x="896" y="544" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · hashtag_saved_sets</text>
+      <text x="896" y="576" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">saved library</text>
+
+      <!-- ============================================ -->
+      <!-- ROW 4 — OVERSIGHT (y=640)                    -->
+      <!-- ============================================ -->
+
+      <!-- Governance (wider, 11 tables) -->
+      <rect x="80" y="640" width="360" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="80" y="640" width="360" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="80" y="664" width="360" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="80" y1="672" x2="440" y2="672" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="96" y="660" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="424" y="660" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">11 TABLES</text>
+      <text x="96" y="700" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Governance</text>
+      <text x="96" y="724" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · audit_events · consent_records · compliance_controls</text>
+      <text x="96" y="756" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">audit · compliance · consent · takedowns</text>
+
+      <!-- Privacy -->
+      <rect x="480" y="640" width="160" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="480" y="640" width="160" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="480" y="664" width="160" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="480" y1="672" x2="640" y2="672" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="496" y="660" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="624" y="660" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">1 TABLE</text>
+      <text x="496" y="700" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Privacy</text>
+      <text x="496" y="724" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · data_subject_requests</text>
+      <text x="496" y="756" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">DSR workflow</text>
+
+      <!-- Platform-admin -->
+      <rect x="680" y="640" width="200" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="680" y="640" width="200" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="680" y="664" width="200" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="680" y1="672" x2="880" y2="672" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="696" y="660" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CONTEXT</text>
+      <text x="864" y="660" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">4 TABLES</text>
+      <text x="696" y="700" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Platform-admin</text>
+      <text x="696" y="724" fill="#525252" font-size="9" font-family="'Space Mono', monospace">anchor · invitations · platform_role_assignments</text>
+      <text x="696" y="756" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">internal operator tools</text>
+
+      <!-- Lead-capture -->
+      <rect x="920" y="640" width="80" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="920" y="640" width="80" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <rect x="920" y="664" width="80" height="8" fill="rgba(26,26,26,0.04)"/>
+      <line x1="920" y1="672" x2="1000" y2="672" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="936" y="660" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">CTX</text>
+      <text x="984" y="660" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em" text-anchor="end">2 T</text>
+      <text x="936" y="700" fill="#1A1A1A" font-size="16" font-weight="600" font-family="'Space Grotesk', sans-serif">Leads</text>
+      <text x="936" y="724" fill="#525252" font-size="9" font-family="'Space Mono', monospace">waitlists</text>
+      <text x="936" y="756" fill="#1A1A1A" font-size="11" font-family="'Doto', monospace" font-style="italic">waitlist signups</text>
+
+      <!-- ============================================ -->
+      <!-- CROSS-CONTEXT FK CONNECTORS                  -->
+      <!-- Lines only; FK detail documented in README.md -->
+      <!-- ============================================ -->
+
+      <!-- 1. Identity (principals) — Tenancy (workspace_memberships.principal_id) -->
+      <line x1="320" y1="170" x2="400" y2="170" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- 2. Identity (principals) — Credentials (api_key_credentials.principal_id) -->
+      <line x1="320" y1="200" x2="720" y2="200" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- 3. Tenancy → Authorization (workspace_id fan-out) -->
+      <path d="M 480,240 V 250 H 320 V 280" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- 4. Tenancy → Publishing (publications.workspace_id) -->
+      <path d="M 440,240 V 250 H 240 V 460" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- 5. Tenancy → Media -->
+      <path d="M 600,240 V 460" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- 6. Tenancy → Ideas + Hashtags (combined branch) -->
+      <path d="M 640,240 V 250 H 940 V 460" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- 7. Identity → Publishing (publications.author_principal_id) -->
+      <path d="M 200,240 V 250 H 120 V 460" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- 8. Identity + Tenancy → Platform-admin (fan-in) -->
+      <path d="M 280,240 V 620 H 780 V 640" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <path d="M 540,240 V 600 H 760 V 640" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- 9. Tenancy → Privacy -->
+      <path d="M 520,240 V 620 H 560 V 640" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- 10. Lead-capture → Platform-admin (waitlist_invitations) -->
+      <line x1="960" y1="640" x2="780" y2="640" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- 11. Governance coverage — dashed accent line wraps above row 4 -->
+      <path d="M 260,640 V 620 H 960 V 640" fill="none" stroke="#D71921" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.6"/>
+
+      <!-- Compact FK summary in the bottom-left corner -->
+      <rect x="40" y="800" width="1000" height="56" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="0.8" stroke-dasharray="3,3"/>
+      <text x="56" y="818" fill="#525252" font-size="9" font-family="'Space Mono', monospace" letter-spacing="0.14em">CROSS-CONTEXT FK SUMMARY</text>
+      <text x="56" y="838" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">principals → workspace_memberships · workspace_ownerships · api_key_credentials · refresh_sessions · publications.author · audit_events · invitations.issued_by</text>
+      <text x="56" y="852" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">workspaces → publications · media_assets · workspace_file_blobs · ideas · hashtag_saved_sets · invitations · workspace_target_scopes · audit_events · data_subject_requests</text>
+    </svg>
+
+    <div class="legend">
+      <span class="legend-item"><span class="legend-swatch" style="width:12px; height:10px; background: rgba(215,25,33,0.08); border: 1.2px solid #D71921;"></span>FOCAL CONTEXT (TENANCY)</span>
+      <span class="legend-item"><span class="legend-swatch" style="width:12px; height:10px; background: #ffffff; border: 1px solid #1A1A1A;"></span>CONTEXT</span>
+      <span class="legend-item"><span class="legend-swatch" style="width:18px; height:0; border-top: 1px solid #525252;"></span>FK EDGE (CROSS-CONTEXT)</span>
+      <span class="legend-item"><span class="legend-swatch" style="width:18px; height:0; border-top: 1px dashed #D71921;"></span>GOVERNANCE COVERAGE</span>
+    </div>
+  </div>
+</body>
+</html>

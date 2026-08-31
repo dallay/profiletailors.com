@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Tailors · miscellaneous data model</title>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper:#F5F5F0; --color-ink:#1A1A1A; --color-muted:#525252; --color-accent:#D71921; --color-accent-tint:rgba(215,25,33,0.08); --font-sans:'Space Grotesk',system-ui,sans-serif; --font-display:'Doto','Space Mono',monospace; --font-mono:'Space Mono',ui-monospace,monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh; padding: 3rem 2rem; }
+    .frame { max-width: 1280px; margin: 0 auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-display); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 0.5rem; }
+    .lede { font-family: var(--font-sans); font-size: 0.95rem; font-weight: 400; color: var(--color-muted); max-width: 720px; margin-bottom: 1.5rem; line-height: 1.5; }
+    svg { width: 100%; min-width: 1100px; display: block; }
+    .legend { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(26,26,26,0.12); display: flex; gap: 2rem; font-family: 'Space Mono', monospace; font-size: 0.7rem; color: #525252; letter-spacing: 0.10em; flex-wrap: wrap; }
+    .legend-item { display: inline-flex; align-items: center; gap: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">ER · MCP, LEAD-CAPTURE, IDEAS, HASHTAGS</p>
+    <h1>MCP idempotency, waitlists, ideas board &amp; hashtag library</h1>
+    <p class="lede">6 tables. <code style="font-family:var(--font-mono);">idempotency_records</code> is the MCP tool-call deduplication layer. <code style="font-family:var(--font-mono);">waitlists</code> + <code style="font-family:var(--font-mono);">waitlist_entries</code> are the pre-launch signup queue. <code style="font-family:var(--font-mono);">idea_board_configs</code> + <code style="font-family:var(--font-mono);">ideas</code> are the kanban content bank (with optional <code style="font-family:var(--font-mono);">converted_to_publication_id</code> back-link). <code style="font-family:var(--font-mono);">hashtag_saved_sets</code> is the per-workspace saved-tag library.</p>
+
+    <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="erd-misc-title erd-misc-desc">
+      <title id="erd-misc-title">Profile Tailors · miscellaneous contexts entity-relationship diagram (MCP, lead-capture, ideas, hashtags)</title>
+      <desc id="erd-misc-desc">ER diagram grouping four small contexts. MCP: idempotency_records dedupes tool calls per (workspace, principal, tool, hash). Lead-capture: waitlists + waitlist_entries with consent flags. Ideas: idea_board_configs (per-workspace kanban layout) + ideas (cards with optional conversion to publications). Hashtags: hashtag_saved_sets per workspace.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#525252"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#F5F5F0"/>
+
+      <!-- ============================================ -->
+      <!-- TOP-LEFT — MCP idempotency_records (FOCAL)   -->
+      <!-- ============================================ -->
+
+      <rect x="40" y="80" width="340" height="220" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="40" y="80" width="340" height="40" rx="6" fill="rgba(215,25,33,0.10)" stroke="none"/>
+      <rect x="40" y="112" width="340" height="8" fill="rgba(215,25,33,0.10)"/>
+      <line x1="40" y1="120" x2="380" y2="120" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
+      <text x="56" y="100" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">ENTITY · FOCAL · MCP</text>
+      <text x="56" y="116" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">idempotency_records</text>
+      <text x="56" y="144" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="364" y="144" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">bigserial</text>
+      <text x="56" y="164" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">workspace_id · principal_id</text>
+      <text x="364" y="164" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="184" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">tool_name</text>
+      <text x="364" y="184" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(80)</text>
+      <text x="56" y="204" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">key_hash</text>
+      <text x="364" y="204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">char(64) SHA-256</text>
+      <text x="56" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">response_json</text>
+      <text x="364" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="56" y="244" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at</text>
+      <text x="364" y="244" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="278" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (workspace, principal, tool, key_hash)</text>
+
+      <!-- ============================================ -->
+      <!-- TOP-RIGHT — waitlists (FOCAL for lead-capture) -->
+      <!-- ============================================ -->
+
+      <rect x="440" y="80" width="320" height="220" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="440" y="80" width="320" height="40" rx="6" fill="rgba(215,25,33,0.10)" stroke="none"/>
+      <rect x="440" y="112" width="320" height="8" fill="rgba(215,25,33,0.10)"/>
+      <line x1="440" y1="120" x2="760" y2="120" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
+      <text x="456" y="100" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">ENTITY · FOCAL · LEAD-CAPTURE</text>
+      <text x="456" y="116" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">waitlists</text>
+      <text x="456" y="144" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="744" y="144" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="456" y="164" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">key</text>
+      <text x="744" y="164" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128) · unique</text>
+      <text x="456" y="184" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">name · context</text>
+      <text x="744" y="184" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar</text>
+      <text x="456" y="204" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">status</text>
+      <text x="744" y="204" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(32)</text>
+      <text x="456" y="224" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
+      <text x="744" y="224" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="456" y="266" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">WAITLIST_ENABLED env-gated · seeded from launch.yaml</text>
+
+      <!-- waitlist_entries -->
+      <rect x="800" y="80" width="440" height="280" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="800" y="80" width="440" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="800" y1="112" x2="1240" y2="112" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="816" y="100" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">WAITLIST ENTRY · CONSENT</text>
+      <text x="816" y="126" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">waitlist_entries</text>
+      <text x="816" y="154" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1224" y="154" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128)</text>
+      <text x="816" y="174" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ waitlist_id</text>
+      <text x="1224" y="174" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="816" y="194" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">email_original · normalized_email</text>
+      <text x="1224" y="194" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(320)</text>
+      <text x="816" y="214" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">source · form_id · locale · metadata (jsonb)</text>
+      <text x="1224" y="214" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="816" y="234" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">consent_early_access · consent_marketing</text>
+      <text x="1224" y="234" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">boolean</text>
+      <text x="816" y="254" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">consent_version · status</text>
+      <text x="1224" y="254" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="816" y="274" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">joined_at · invited_at · converted_at · cancelled_at</text>
+      <text x="1224" y="274" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="816" y="316" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">unique (waitlist_id, normalized_email)</text>
+      <text x="816" y="340" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed by joined_at, status, source, form_id</text>
+
+      <!-- ============================================ -->
+      <!-- BOTTOM-LEFT — idea_board_configs + ideas    -->
+      <!-- ============================================ -->
+
+      <!-- idea_board_configs -->
+      <rect x="40" y="400" width="280" height="140" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="40" y="400" width="280" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="40" y1="432" x2="320" y2="432" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="56" y="420" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">BOARD CONFIG</text>
+      <text x="56" y="446" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">idea_board_configs</text>
+      <text x="56" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># → workspace_id</text>
+      <text x="304" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="56" y="494" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">columns_json</text>
+      <text x="304" y="494" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="56" y="514" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">updated_at</text>
+      <text x="304" y="514" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="56" y="528" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">PK = workspace_id</text>
+
+      <!-- ideas (FOCAL — the content bank itself) -->
+      <rect x="360" y="400" width="420" height="240" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="360" y="400" width="420" height="40" rx="6" fill="rgba(215,25,33,0.10)" stroke="none"/>
+      <rect x="360" y="432" width="420" height="8" fill="rgba(215,25,33,0.10)"/>
+      <line x1="360" y1="440" x2="780" y2="440" stroke="rgba(215,25,33,0.40)" stroke-width="1"/>
+      <text x="376" y="420" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">ENTITY · FOCAL · KANBAN CARD</text>
+      <text x="376" y="436" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">ideas</text>
+      <text x="376" y="464" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="764" y="464" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128)</text>
+      <text x="376" y="484" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
+      <text x="764" y="484" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="376" y="504" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">title · notes</text>
+      <text x="764" y="504" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(500) / text</text>
+      <text x="376" y="524" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">tags_json · links_json</text>
+      <text x="764" y="524" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="376" y="544" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">column_id · order_in_column</text>
+      <text x="764" y="544" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">…</text>
+      <text x="376" y="564" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ converted_to_publication_id (nullable)</text>
+      <text x="764" y="564" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">publications</text>
+      <text x="376" y="584" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
+      <text x="764" y="584" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="376" y="622" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed (workspace_id, column_id, order_in_column)</text>
+
+      <!-- hashtag_saved_sets -->
+      <rect x="820" y="400" width="420" height="160" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="820" y="400" width="420" height="32" rx="6" fill="rgba(26,26,26,0.04)" stroke="none"/>
+      <line x1="820" y1="432" x2="1240" y2="432" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="836" y="420" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.14em">HASHTAG LIBRARY</text>
+      <text x="836" y="446" fill="#1A1A1A" font-size="13" font-weight="600" font-family="'Space Grotesk', sans-serif">hashtag_saved_sets</text>
+      <text x="836" y="474" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace"># id</text>
+      <text x="1224" y="474" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(128)</text>
+      <text x="836" y="494" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">→ workspace_id</text>
+      <text x="1224" y="494" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">varchar(64)</text>
+      <text x="836" y="514" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">name · hashtags_json</text>
+      <text x="1224" y="514" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">text</text>
+      <text x="836" y="534" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">created_at · updated_at</text>
+      <text x="1224" y="534" fill="#525252" font-size="10" font-family="'Space Mono', monospace" text-anchor="end">timestamptz</text>
+      <text x="836" y="554" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">indexed by workspace_id</text>
+
+      <!-- ============================================ -->
+      <!-- EXTERNAL ANCHORS                              -->
+      <!-- ============================================ -->
+
+      <rect x="40" y="640" width="1200" height="40" rx="6" fill="rgba(26,26,26,0.04)" stroke="#525252" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="56" y="664" fill="#525252" font-size="9" font-family="'Space Mono', monospace" letter-spacing="0.14em">CROSS-CONTEXT REFERENCES</text>
+      <text x="380" y="664" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">workspaces (id)</text>
+      <text x="560" y="664" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">principals (id)</text>
+      <text x="740" y="664" fill="#1A1A1A" font-size="10" font-family="'Space Mono', monospace">publications (id)</text>
+      <text x="1000" y="664" fill="#525252" font-size="9" font-family="'Doto', monospace" font-style="italic">all FKs above resolve via identity-only references</text>
+
+      <!-- ============================================ -->
+      <!-- RELATIONSHIPS                                 -->
+      <!-- ============================================ -->
+
+      <!-- waitlists → waitlist_entries (1:N) -->
+      <line x1="760" y1="180" x2="800" y2="180" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="772" y="168" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="779" y="178" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="786" y="168" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="793" y="178" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+
+      <!-- idea_board_configs → ideas (1:N, by workspace_id) -->
+      <line x1="180" y1="540" x2="360" y2="540" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <rect x="196" y="528" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="203" y="538" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">1</text>
+      <rect x="346" y="528" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="353" y="538" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">N</text>
+
+      <!-- ideas → publications (0..1:1 conversion, back-link) -->
+      <line x1="780" y1="564" x2="1000" y2="640" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="980" y="600" width="14" height="14" rx="2" fill="#F5F5F0"/>
+      <text x="987" y="610" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle" font-weight="600">0..1</text>
+    </svg>
+
+    <div class="legend">
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: rgba(215,25,33,0.08); border: 1.2px solid #D71921;"></span>FOCAL</span>
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: #ffffff; border: 1px solid #1A1A1A;"></span>ENTITY</span>
+      <span class="legend-item"><span style="display:inline-block; width:12px; height:10px; background: rgba(26,26,26,0.04); border: 1px dashed #525252;"></span>EXTERNAL/CONTEXT</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">#</span>PK</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">→</span>FK</span>
+      <span class="legend-item"><span style="font-family: var(--font-mono); font-weight: 600;">1 / N</span>CARDINALITY</span>
+    </div>
+  </div>
+</body>
+</html>
