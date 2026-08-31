@@ -57,7 +57,7 @@ class BulkBddSteps {
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(BddDatabaseSupport.WORKSPACE_HEADER, headerWorkspace)
-            .contentType(MediaType.APPLICATION_JSON)
+            .contentType(MediaType.parseMediaType(BddDatabaseSupport.API_VERSION_MEDIA_TYPE))
             .bodyValue(bulkValidateJson(csvText))
             .exchange().expectBody().returnResult().also { latestBulkResponse = it }
     }
@@ -73,7 +73,7 @@ class BulkBddSteps {
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(BddDatabaseSupport.WORKSPACE_HEADER, headerWorkspace)
-            .contentType(MediaType.APPLICATION_JSON)
+            .contentType(MediaType.parseMediaType(BddDatabaseSupport.API_VERSION_MEDIA_TYPE))
             .bodyValue(json)
             .exchange().expectBody().returnResult().also { latestBulkResponse = it }
     }
@@ -408,7 +408,7 @@ class BulkBddSteps {
             .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
-            .contentType(MediaType.APPLICATION_JSON)
+            .contentType(MediaType.parseMediaType(BddDatabaseSupport.API_VERSION_MEDIA_TYPE))
             .bodyValue(
                 bulkValidateJson("bodyText,scheduledFor,timezone,media_urls,hashtags\nHi,2099-06-15T10:00:00Z,UTC,,"),
             )
