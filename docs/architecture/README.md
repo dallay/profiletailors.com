@@ -20,6 +20,8 @@ architecture at different levels of abstraction.
 | **Level 3** | [Component](c4/03-component.md)           | Internal structure, bounded contexts  | Developers, architects |
 | **Level 4** | [Code](c4/04-code.md)                     | Implementation patterns, class design | Developers             |
 | **Shared**  | [Dependencies](shared/dependencies.md)    | Shared module dependency graph        | Developers, architects |
+| **IAM & Auth**| [IAM Platform](iam-platform.md)         | IAM Platform & Authorization Model    | Developers, architects |
+| **Auth Flows**| [Login Flow Diagrams](login-flow.md)     | Sequence & C4 diagrams for Login/Refresh/Logout | Developers, architects |
 | **ADRs**    | [Decision Records](adr/README.md)         | Accepted architecture decisions       | Developers, architects |
 
 ### Visual Overview
@@ -75,7 +77,7 @@ architecture at different levels of abstraction.
 - **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md)
   for all `api` and `implementation` relationships
 - **Foundation**: [`shared:common`](../../shared/common/) and [
-  `shared:lead-capture:common`](../../shared/lead-capture/common/) — framework-agnostic domain
+  `shared:lead-capture:common`](../../shared/lead-capture:common/) — framework-agnostic domain
   primitives and lead-capture value objects, zero Spring dependencies
 - **Aggregates**: Clear boundaries and consistency rules
 - **Domain Events**: For cross-context communication
