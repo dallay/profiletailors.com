@@ -3,7 +3,7 @@ export const en = {
   nav: {
     name: 'Profile Tailors',
     langSwitch: 'ES',
-    langSwitchLabel: 'Switch to Spanish',
+    langSwitchLabel: 'Switch to Spanish (ES)',
   },
   hero: {
     label: 'EARLY ACCESS PREVIEW',

@@ -42,7 +42,7 @@ function renderLegalText(text: string): string {
   noindex={!publicationApproved}
   includeStructuredData={publicationApproved}
 >
-  <div id="main-content" class="fade-in" tabindex="-1">
+  <main id="main-content" class="fade-in" tabindex="-1">
     <Nav
       langSwitch={t.nav.langSwitch}
       langHref={langHref}
@@ -82,5 +82,5 @@ function renderLegalText(text: string): string {
     )}
 
     <Footer tagline={t.footer.tagline} copy={t.footer.copy} legalLinks={links} locale={locale} />
-  </div>
+  </main>
 </Layout>

@@ -285,3 +285,145 @@ test.describe('SEO — IndexNow intentionally absent', () => {
     }
   })
 })
+
+test.describe('SEO — accessible name alignment (WCAG 2.5.3 label-content-name-mismatch)', () => {
+  const langLinkByUrl: Record<string, { code: string; hrefContains: string }> = {
+    '/': { code: 'ES', hrefContains: '/es/' },
+    '/es/': { code: 'EN', hrefContains: '/' },
+    '/privacy/': { code: 'ES', hrefContains: '/es/privacy/' },
+    '/es/privacy/': { code: 'EN', hrefContains: '/privacy/' },
+    '/terms/': { code: 'ES', hrefContains: '/es/terms/' },
+    '/es/terms/': { code: 'EN', hrefContains: '/terms/' },
+    '/cookies/': { code: 'ES', hrefContains: '/es/cookies/' },
+    '/es/cookies/': { code: 'EN', hrefContains: '/cookies/' },
+    '/acceptable-use/': { code: 'ES', hrefContains: '/es/acceptable-use/' },
+    '/es/acceptable-use/': { code: 'EN', hrefContains: '/acceptable-use/' },
+    '/accessibility/': { code: 'ES', hrefContains: '/es/accessibility/' },
+    '/es/accessibility/': { code: 'EN', hrefContains: '/accessibility/' },
+  }
+
+  for (const url of URLS) {
+    test(`locale switch on ${url} has accessible name containing visible code`, async ({ page }) => {
+      await page.goto(url)
+      const { code } = langLinkByUrl[url]
+      const link = page.locator('nav[aria-label="Main"] a').filter({ hasText: code }).first()
+      await expect(link, `lang switch link not found on ${url}`).toBeVisible()
+      const text = (await link.innerText()).trim()
+      expect(text, `${url} visible text`).toBe(code)
+      const ariaLabel = (await link.getAttribute('aria-label')) ?? ''
+      expect(ariaLabel, `${url} aria-label missing`).toBeTruthy()
+      expect(ariaLabel, `${url} aria-label "${ariaLabel}" must contain visible "${code}"`).toContain(code)
+    })
+  }
+})
+
+test.describe('SEO — main landmark on legal pages', () => {
+  for (const url of URLS.filter((u) => u !== '/' && u !== '/es/')) {
+    test(`${url} exposes a single main landmark`, async ({ page }) => {
+      await page.goto(url)
+      const mainCount = await page.locator('main, [role="main"]').count()
+      expect(mainCount, `${url} main landmark count`).toBeGreaterThanOrEqual(1)
+      expect(mainCount, `${url} must not have multiple main landmarks`).toBeLessThanOrEqual(1)
+    })
+  }
+})
+
+test.describe('SEO — JSON-LD structured data identity', () => {
+  const expectedJsonLd: Record<string, { type: string; inLanguage: string }> = {
+    '/': { type: 'WebSite', inLanguage: 'en' },
+    '/es/': { type: 'WebSite', inLanguage: 'es' },
+    '/privacy/': { type: 'WebPage', inLanguage: 'en' },
+    '/es/privacy/': { type: 'WebPage', inLanguage: 'es' },
+    '/terms/': { type: 'WebPage', inLanguage: 'en' },
+    '/es/terms/': { type: 'WebPage', inLanguage: 'es' },
+    '/cookies/': { type: 'WebPage', inLanguage: 'en' },
+    '/es/cookies/': { type: 'WebPage', inLanguage: 'es' },
+    '/acceptable-use/': { type: 'WebPage', inLanguage: 'en' },
+    '/es/acceptable-use/': { type: 'WebPage', inLanguage: 'es' },
+    '/accessibility/': { type: 'WebPage', inLanguage: 'en' },
+    '/es/accessibility/': { type: 'WebPage', inLanguage: 'es' },
+  }
+
+  for (const url of URLS) {
+    test(`${url} JSON-LD type and language match expected identity`, async ({ page }) => {
+      await page.goto(url)
+      const jsonLd = await page
+        .locator('script[type="application/ld+json"]')
+        .first()
+        .innerText()
+      const parsed: unknown = JSON.parse(jsonLd)
+      expect(parsed, `${url} JSON-LD parses`).toBeTruthy()
+      const data = parsed as { '@type'?: string; '@context'?: string; url?: string; inLanguage?: string; name?: string; description?: string }
+      expect(data['@context'], `${url} context`).toBe('https://schema.org')
+      expect(data['@type'], `${url} type`).toBe(expectedJsonLd[url].type)
+      expect(data.inLanguage, `${url} language`).toBe(expectedJsonLd[url].inLanguage)
+      expect(typeof data.url, `${url} url`).toBe('string')
+      const expectedCanonical: string = `https://profiletailors.com${url}`
+      expect(data.url, `${url} canonical match`).toBe(expectedCanonical)
+      expect(typeof data.description, `${url} description`).toBe('string')
+      expect((data.description ?? '').length, `${url} description length`).toBeGreaterThanOrEqual(50)
+      expect(typeof data.name, `${url} name`).toBe('string')
+      expect((data.name ?? '').length, `${url} name length`).toBeGreaterThan(0)
+    })
+  }
+})
+
+test.describe('SEO — Markdown mailto links render without cdn-cgi obfuscation', () => {
+  const legalUrls = URLS.filter((u) => u !== '/' && u !== '/es/')
+  for (const url of legalUrls) {
+    test(`${url} renders mailto contact links and no cdn-cgi paths`, async ({ page }) => {
+      await page.goto(url)
+      const mailtoHrefs: string[] = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('a[href^="mailto:"]'))
+          .map((a) => a.getAttribute('href') ?? '')
+          .filter(Boolean)
+      })
+      expect(mailtoHrefs.length, `${url} must contain at least one mailto link`).toBeGreaterThan(0)
+      for (const href of mailtoHrefs) {
+        expect(href.startsWith('mailto:'), `${url} mailto ${href}`).toBe(true)
+        expect(href, `${url} mailto ${href} contains cdn-cgi`).not.toContain('cdn-cgi')
+      }
+      const allHrefs: string[] = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('a[href]'))
+          .map((a) => a.getAttribute('href') ?? '')
+          .filter(Boolean)
+      })
+      for (const href of allHrefs) {
+        expect(href, `${url} href ${href} contains cdn-cgi`).not.toContain('cdn-cgi')
+      }
+    })
+  }
+})
+
+test.describe('SEO — canonical and hreflang parity between EN/ES counterparts', () => {
+  const pairings: Array<[string, string]> = [
+    ['/', '/es/'],
+    ['/privacy/', '/es/privacy/'],
+    ['/terms/', '/es/terms/'],
+    ['/cookies/', '/es/cookies/'],
+    ['/acceptable-use/', '/es/acceptable-use/'],
+    ['/accessibility/', '/es/accessibility/'],
+  ]
+
+  for (const [enPath, esPath] of pairings) {
+    test(`${enPath} hreflang en points to itself and es points to ${esPath}`, async ({ page }) => {
+      await page.goto(enPath)
+      const enHref = await page.getAttribute('link[rel="alternate"][hreflang="en"]', 'href')
+      const esHref = await page.getAttribute('link[rel="alternate"][hreflang="es"]', 'href')
+      const xHref = await page.getAttribute('link[rel="alternate"][hreflang="x-default"]', 'href')
+      expect(enHref, `${enPath} hreflang en`).toBe(`https://profiletailors.com${enPath}`)
+      expect(esHref, `${enPath} hreflang es`).toBe(`https://profiletailors.com${esPath}`)
+      expect(xHref, `${enPath} hreflang x-default`).toBe(`https://profiletailors.com${enPath}`)
+    })
+
+    test(`${esPath} hreflang en points to ${enPath} and es points to itself`, async ({ page }) => {
+      await page.goto(esPath)
+      const enHref = await page.getAttribute('link[rel="alternate"][hreflang="en"]', 'href')
+      const esHref = await page.getAttribute('link[rel="alternate"][hreflang="es"]', 'href')
+      const xHref = await page.getAttribute('link[rel="alternate"][hreflang="x-default"]', 'href')
+      expect(enHref, `${esPath} hreflang en`).toBe(`https://profiletailors.com${enPath}`)
+      expect(esHref, `${esPath} hreflang es`).toBe(`https://profiletailors.com${esPath}`)
+      expect(xHref, `${esPath} hreflang x-default`).toBe(`https://profiletailors.com${enPath}`)
+    })
+  }
+})
