@@ -10,21 +10,18 @@ import com.profiletailors.smp.publishing.domain.BulkJobStatus
 import com.profiletailors.smp.publishing.domain.BulkRowStatus
 import com.profiletailors.smp.publishing.domain.ImportError
 import io.mockk.*
-import io.r2dbc.spi.Readable
 import io.r2dbc.spi.Row
 import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.dao.DataAccessResourceFailureException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.FetchSpec
 import org.springframework.r2dbc.core.RowsFetchSpec
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Clock
 import java.time.Instant
@@ -116,7 +113,8 @@ class R2dbcBulkImportJobRepositoryTest {
         val job = sampleJob()
         val spec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
         every { databaseClient.sql(ofType(String::class)) } returns spec
-        every { spec.fetch() } throws DataAccessResourceFailureException("duplicate key value violates unique constraint")
+        every { spec.fetch() } throws
+            DataAccessResourceFailureException("duplicate key value violates unique constraint")
         assertThrows<IllegalStateException> { runTest { repository.save(job) } }
     }
 
@@ -198,7 +196,16 @@ class R2dbcBulkImportJobRepositoryTest {
         every { rowsSpec.all().collectList() } answers {
             val fn = slot.captured
             val r0 = mockReadableForRow(jobId, 0, "brow-0", "[]", "", false, BulkRowStatus.VALID)
-            val r1 = mockReadableForRow(jobId, 1, "brow-1", "[{\"code\":\"ERR\",\"message\":\"bad\"}]", " https://a.com/img.png , https://b.com/img.jpg ", true, BulkRowStatus.SCHEDULED)
+            val r1 =
+                mockReadableForRow(
+                    jobId,
+                    1,
+                    "brow-1",
+                    "[{\"code\":\"ERR\",\"message\":\"bad\"}]",
+                    " https://a.com/img.png , https://b.com/img.jpg ",
+                    true,
+                    BulkRowStatus.SCHEDULED,
+                )
             Mono.just(listOf(fn.apply(r0, mockk()), fn.apply(r1, mockk())))
         }
         val result = repository.findRows(jobId)
@@ -266,11 +273,7 @@ class R2dbcBulkImportJobRepositoryTest {
         updatedAt = fixedInstant,
     )
 
-    private fun sampleRow(
-        jobId: String,
-        rowIndex: Int,
-        id: String,
-    ) = BulkImportRow(
+    private fun sampleRow(jobId: String, rowIndex: Int, id: String) = BulkImportRow(
         id = id,
         jobId = jobId,
         rowIndex = rowIndex,
@@ -316,12 +319,22 @@ class R2dbcBulkImportJobRepositoryTest {
         every { readable.get("total_rows", Int::class.javaObjectType) } returns job.totalRows
         every { readable.get("scheduled_count", Int::class.javaObjectType) } returns job.scheduledCount
         every { readable.get("failed_count", Int::class.javaObjectType) } returns job.failedCount
-        every { readable.get("created_at", OffsetDateTime::class.java) } returns OffsetDateTime.ofInstant(job.createdAt, ZoneId.of("UTC"))
-        every { readable.get("updated_at", OffsetDateTime::class.java) } returns OffsetDateTime.ofInstant(job.updatedAt, ZoneId.of("UTC"))
+        every { readable.get("created_at", OffsetDateTime::class.java) } returns
+            OffsetDateTime.ofInstant(job.createdAt, ZoneId.of("UTC"))
+        every { readable.get("updated_at", OffsetDateTime::class.java) } returns
+            OffsetDateTime.ofInstant(job.updatedAt, ZoneId.of("UTC"))
         return readable
     }
 
-    private fun mockReadableForRow(jobId: String, rowIndex: Int, id: String, errorsJson: String, mediaUrls: String, hasConflict: Boolean, status: BulkRowStatus): Row {
+    private fun mockReadableForRow(
+        jobId: String,
+        rowIndex: Int,
+        id: String,
+        errorsJson: String,
+        mediaUrls: String,
+        hasConflict: Boolean,
+        status: BulkRowStatus,
+    ): Row {
         val readable = mockk<Row>(relaxed = false)
         every { readable.get("id", String::class.java) } returns id
         every { readable.get("job_id", String::class.java) } returns jobId
@@ -329,7 +342,8 @@ class R2dbcBulkImportJobRepositoryTest {
         every { readable.get("status", String::class.java) } returns status.name
         every { readable.get("errors", String::class.java) } returns errorsJson
         every { readable.get("media_urls", String::class.java) } returns mediaUrls
-        every { readable.get("has_conflict", java.lang.Boolean::class.java) } returns (if (hasConflict) java.lang.Boolean.TRUE else java.lang.Boolean.FALSE) as java.lang.Boolean?
+        every { readable.get("has_conflict", java.lang.Boolean::class.java) } returns
+            (if (hasConflict) java.lang.Boolean.TRUE else java.lang.Boolean.FALSE) as java.lang.Boolean?
         every { readable.get("publication_id", String::class.java) } returns null
         every { readable.get("body_text", String::class.java) } returns "row $rowIndex"
         every { readable.get("scheduled_for", OffsetDateTime::class.java) } returns null
