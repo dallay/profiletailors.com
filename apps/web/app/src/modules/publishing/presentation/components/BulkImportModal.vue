@@ -13,15 +13,10 @@ const emit = defineEmits<{ (e: 'close'): void; (e: 'scheduled', jobId: string): 
 const csvText = ref('')
 const { parse } = useBulkCsvParser()
 const bulk = useBulkImport()
-const isPreviewUpdate = ref(false)
 
 const parsed = computed(() => parse(csvText.value))
 
 watch(csvText, () => {
-  if (isPreviewUpdate.value) {
-    isPreviewUpdate.value = false
-    return
-  }
   bulk.validateResult.value = null
   bulk.scheduleResult.value = null
   bulk.error.value = null
@@ -63,22 +58,16 @@ function handleClose() {
 
 function onPreviewBodyText(rowIndex: number, value: string) {
   if (!bulk.validateResult.value) return
-  const nextRows = bulk.validateResult.value.rows.map((r) =>
-    r.rowIndex === rowIndex ? { ...r, bodyText: value } : r,
-  )
-  isPreviewUpdate.value = true
-  csvText.value = [BULK_CANONICAL_HEADER, ...nextRows.map((r) => `${r.bodyText ?? ''},${r.scheduledFor ?? ''},UTC,,`)].join('\n')
-  bulk.validateResult.value = { ...bulk.validateResult.value, rows: nextRows }
+  const target = bulk.validateResult.value.rows.find((r) => r.rowIndex === rowIndex)
+  if (!target) return
+  target.bodyText = value
 }
 
 function onPreviewScheduledFor(rowIndex: number, value: string) {
   if (!bulk.validateResult.value) return
-  const nextRows = bulk.validateResult.value.rows.map((r) =>
-    r.rowIndex === rowIndex ? { ...r, scheduledFor: value } : r,
-  )
-  isPreviewUpdate.value = true
-  csvText.value = [BULK_CANONICAL_HEADER, ...nextRows.map((r) => `${r.bodyText ?? ''},${r.scheduledFor ?? ''},UTC,,`)].join('\n')
-  bulk.validateResult.value = { ...bulk.validateResult.value, rows: nextRows }
+  const target = bulk.validateResult.value.rows.find((r) => r.rowIndex === rowIndex)
+  if (!target) return
+  target.scheduledFor = value
 }
 </script>
 
