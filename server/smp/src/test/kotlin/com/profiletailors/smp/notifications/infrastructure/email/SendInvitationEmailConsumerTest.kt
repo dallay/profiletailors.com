@@ -1,7 +1,9 @@
 package com.profiletailors.smp.notifications.infrastructure.email
 
 import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventConsumer
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.bus.event.Subscribe
 import com.profiletailors.notifications.application.ports.EmailDispatchResult
 import com.profiletailors.notifications.application.ports.EmailDispatcher
 import com.profiletailors.notifications.domain.IdempotencyKey
@@ -11,6 +13,7 @@ import com.profiletailors.notifications.domain.NotificationStatus
 import com.profiletailors.notifications.domain.event.InvitationCreated
 import com.profiletailors.notifications.domain.event.InvitationDeliveryAttempted
 import com.profiletailors.notifications.domain.event.InvitationResent
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -28,6 +31,17 @@ internal class SendInvitationEmailConsumerTest {
     private val fixedNow = Instant.parse("2026-08-24T10:15:30Z")
     private val clock = Clock.fixed(fixedNow, ZoneOffset.UTC)
     private val inviteeEmail = "invitee@example.com"
+
+    @Test
+    fun `both invitation event types are registered as event consumers`() {
+        val createdConsumer = SendInvitationEmailConsumer::class.java
+        val resentConsumer = SendInvitationResentEmailConsumer::class.java
+
+        EventConsumer::class.java.isAssignableFrom(createdConsumer) shouldBe true
+        createdConsumer.getAnnotation(Subscribe::class.java).filterBy shouldBe InvitationCreated::class
+        EventConsumer::class.java.isAssignableFrom(resentConsumer) shouldBe true
+        resentConsumer.getAnnotation(Subscribe::class.java).filterBy shouldBe InvitationResent::class
+    }
 
     @Test
     fun `success dispatch persists as SENT and publishes delivery event with SENT`() = runTest {
@@ -164,7 +178,7 @@ internal class SendInvitationEmailConsumerTest {
     }
 
     @Test
-    fun `InvitationResent follows the same flow`() = runTest {
+    fun `should dispatch an invitation email when InvitationResent is consumed`() = runTest {
         val newInvitationId = UUID.randomUUID()
 
         val notificationRepo = mockk<NotificationRepository>(relaxed = true)
@@ -185,8 +199,9 @@ internal class SendInvitationEmailConsumerTest {
             deliveryEventPublisher = eventPublisher,
             clock = clock,
         )
+        val resentConsumer = SendInvitationResentEmailConsumer(consumer)
 
-        consumer.consume(
+        resentConsumer.consume(
             InvitationResent(
                 invitationId = newInvitationId,
                 waitlistEntryId = UUID.randomUUID().toString(),

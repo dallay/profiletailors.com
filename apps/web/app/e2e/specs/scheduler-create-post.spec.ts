@@ -382,7 +382,7 @@ test.describe('Scheduler — Create Post', () => {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     await composeModal.openDatePicker()
-    await composeModal.pickDate(tomorrow.getDate())
+    await composeModal.pickDate(tomorrow)
 
     // Create the post
     await composeModal.clickSchedulePost()
