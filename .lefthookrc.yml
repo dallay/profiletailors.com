@@ -5,7 +5,7 @@ pre-commit:
     # Biome: lint + format en archivos TypeScript/TSX del frontend (ejecuta desde el root del proyecto frontend)
     frontend-biome:
       glob: 'apps/web/**/*.{ts,tsx,js,jsx,vue,astro}'
-      run: 'cd apps/web && pnpm biome check --write --unsafe .'
+      run: 'pnpm biome check {staged_files}'
 
     # Astro type check (disabled by default, kept here for easy enable)
     frontend-typecheck:
