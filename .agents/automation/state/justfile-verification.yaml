@@ -1,5 +1,19 @@
 schemaVersion: 1
 task: justfile-verification
-lastExecution: null
+lastExecution:
+  timestamp: "2026-03-30T00:00:00Z"
+  outcome: NO_DRIFT_DETECTED
 findings: []
-checks: []
+checks:
+  - name: just-summary-check
+    target: Justfile
+    status: Passed
+    notes: All 71 Justfile recipes parsed without syntax or parameter errors.
+  - name: postgres-boundaries-check
+    target: scripts/check-just-postgres-boundaries.sh
+    status: Passed
+    notes: Database and modularity test boundaries verified for backend-test-fast, backend-test-postgres, ci-local, and ci-full.
+  - name: ci-workflow-alignment
+    target: .github/workflows/ci.yml
+    status: Passed
+    notes: Justfile recipes align with CI job steps and pnpm/gradle script invocations.
