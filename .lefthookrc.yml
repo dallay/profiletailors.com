@@ -12,7 +12,3 @@ pre-commit:
       glob: 'apps/web/**/*.{ts,tsx}'
       run: 'cd apps/web/marketing && pnpm astro check'
       skip: true
-
-# Nota: Esta configuración ejecuta Biome desde apps/web una sola vez,
-# aprovechando la configuración de proyecto (apps/web/biome.json) que
-# unifica las reglas para todos los subproyectos frontend.
