@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.5...admin@v0.0.6) (2026-08-31)
+
+
+### Documentation
+
+* fix documentation drift and add SLA rollback runbooks ([52c0701](https://github.com/dallay/profiletailors.com/commit/52c0701efb057ad321046685cc816ae77d6e2b94))
+
 ## [0.0.5](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.4...admin@v0.0.5) (2026-08-30)
 
 
