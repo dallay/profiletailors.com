@@ -25,14 +25,6 @@ pre-commit:
     # Uses {staged_files} so partial commits are preserved. Auto-fixes are
     # applied manually with `pnpm biome format --write` before commit to
     # match what CI's `biome ci` expects (one consistent format).
-    frontend-biome-app:
-      glob: 'apps/web/app/src/**/*.{ts,tsx,js,jsx,vue}'
-      root: 'apps/web/app'
-      run: 'pnpm biome check {staged_files}'
-    frontend-biome-marketing:
-      glob: 'apps/web/marketing/src/**/*.{ts,tsx,js,jsx,astro}'
-      root: 'apps/web/marketing'
-      run: 'pnpm biome check {staged_files}'
 
     # Astro type check (marketing only)
     frontend-typecheck:
@@ -46,15 +38,10 @@ pre-commit:
     # files already staged so partial/per-slice commits stay scoped (never a blanket
     # `git add -u` of the whole working tree).
     backend-spotless:
-      run: './gradlew spotlessApply --no-daemon && git add -u {staged_files}'
+      run: './gradlew spotlessCheck --no-daemon'
 
     # Detekt: static analysis (NOT formatting — spotless handles that)
-    backend-detekt:
-      run: './gradlew :server:smp:detekt --no-daemon'
-
-    # Detekt on shared modules
-    shared-detekt:
-      run: './gradlew detekt --no-daemon'
+    # Moved to pre-push to avoid heavy checks on every commit
 
     # Gitleaks: scan staged content before commit
     gitleaks:
@@ -66,9 +53,19 @@ pre-push:
   source: .lefthookrc.yml
 
   commands:
+    # Spotless: automatically apply Kotlin formatting before push (will stage changes)
+    backend-spotless-apply:
+      run: './gradlew spotlessApply --no-daemon && git add -u'
+
     # Spotless: verify Kotlin formatting before push
     backend-spotless:
       run: './gradlew spotlessCheck --no-daemon'
+
+    backend-detekt:
+      run: './gradlew :server:smp:detekt --no-daemon'
+
+    shared-detekt:
+      run: './gradlew detekt --no-daemon'
 
     # Gitleaks: scan the commit range being pushed using refs provided by pre-push stdin
     # DISABLED: Scanning git history on push is slow and gets killed on large histories.
