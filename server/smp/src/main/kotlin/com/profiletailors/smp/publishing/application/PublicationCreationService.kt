@@ -217,7 +217,7 @@ class PublicationCreationService(
     }
 
     private fun isPrivateIp(host: String): Boolean {
-        val h = host.lowercase()
+        val h = host.removeSurrounding("[", "]").lowercase()
         if (h == "127.0.0.1" || h.startsWith("127.")) return true
         if (h == "::1") return true
         if (h.startsWith("10.")) return true
