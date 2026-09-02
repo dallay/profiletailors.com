@@ -6,8 +6,10 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceRepository
+import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceRepositoryFacade
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
@@ -28,6 +30,7 @@ import java.time.Clock
 import java.time.Duration
 
 @Configuration(proxyBeanMethods = false)
+@Suppress("TooManyFunctions")
 class PlatformAdminBootstrapConfiguration {
 
     @Bean
@@ -42,6 +45,10 @@ class PlatformAdminBootstrapConfiguration {
     @Bean
     fun workspaceMembershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
         R2dbcWorkspaceMembershipProvisioner(repository)
+
+    @Bean
+    fun invitationAcceptanceRepository(repository: InvitationRepository): InvitationAcceptanceRepository =
+        InvitationAcceptanceRepositoryFacade(repository)
 
     @Bean
     fun acceptInvitationHandler(
