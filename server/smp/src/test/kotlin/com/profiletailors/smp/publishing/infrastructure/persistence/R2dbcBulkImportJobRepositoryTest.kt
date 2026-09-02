@@ -17,8 +17,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.springframework.dao.DataAccessResourceFailureException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.FetchSpec
 import org.springframework.r2dbc.core.RowsFetchSpec
@@ -125,7 +123,7 @@ class R2dbcBulkImportJobRepositoryTest {
     }
 
     @Test
-    fun `saveRows binds rowIndex as Int`() = runTest(timeout = 5.seconds) {
+    fun `should bind rowIndex as Int when saving rows`() = runTest(timeout = 5.seconds) {
         val rows = listOf(sampleRow("bulk-job-1", 0, "brow-0"))
         val spec = mockSaveRowsSpec()
         every { databaseClient.sql(ofType(String::class)) } returns spec
