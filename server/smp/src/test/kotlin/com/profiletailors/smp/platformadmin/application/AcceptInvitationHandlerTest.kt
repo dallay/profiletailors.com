@@ -22,6 +22,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -63,6 +64,66 @@ class AcceptInvitationHandlerTest {
         )
         assertEquals(InvitationStatus.ACCEPTED, repository.updated?.status)
         assertEquals(1, repository.updated?.version)
+    }
+
+    @Test
+    fun `canonical acceptance facade returns false when the invitation is missing`() = runTest {
+        val repository = RecordingInvitationRepository(null)
+
+        val accepted = InvitationAcceptanceRepositoryFacade(repository)
+            .markAccepted(InvitationId.generate(), now, "principal-1")
+
+        assertFalse(accepted)
+        assertEquals(0, repository.updateAttempts)
+    }
+
+    @Test
+    fun `canonical acceptance facade delegates candidate key lookup`() = runTest {
+        val invitation = invitation()
+        val repository = RecordingInvitationRepository(invitation)
+
+        val found = InvitationAcceptanceRepositoryFacade(repository)
+            .findByCandidateKeyForUpdate("candidate-key")
+
+        assertEquals(invitation, found)
+        assertEquals("candidate-key", repository.lastCandidateKey)
+    }
+
+    @Test
+    fun `canonical acceptance facade rejects an expired invitation without updating storage`() = runTest {
+        val invitation = invitation(expiresAt = now)
+        val repository = RecordingInvitationRepository(invitation)
+
+        val accepted = InvitationAcceptanceRepositoryFacade(repository)
+            .markAccepted(invitation.id, now, "principal-1")
+
+        assertFalse(accepted)
+        assertEquals(0, repository.updateAttempts)
+    }
+
+    @Test
+    fun `canonical acceptance facade rejects a blank principal without updating storage`() = runTest {
+        val invitation = invitation()
+        val repository = RecordingInvitationRepository(invitation)
+
+        val accepted = InvitationAcceptanceRepositoryFacade(repository)
+            .markAccepted(invitation.id, now, " ")
+
+        assertFalse(accepted)
+        assertEquals(0, repository.updateAttempts)
+    }
+
+    @Test
+    fun `canonical acceptance facade propagates a failed conditional update`() = runTest {
+        val invitation = invitation()
+        val repository = RecordingInvitationRepository(invitation, updateResult = false)
+
+        val accepted = InvitationAcceptanceRepositoryFacade(repository)
+            .markAccepted(invitation.id, now, "principal-1")
+
+        assertFalse(accepted)
+        assertEquals(1, repository.updateAttempts)
+        assertEquals(InvitationStatus.ACCEPTED, repository.updated?.status)
     }
 
     @Test
@@ -288,18 +349,40 @@ class AcceptInvitationHandlerTest {
         clock = clock,
     )
 
-    private class RecordingInvitationRepository(private val storedInvitation: Invitation) : InvitationRepository {
+    private fun invitation(expiresAt: Instant = now.plusSeconds(3600)) = Invitation(
+        id = InvitationId.generate(),
+        source = InvitationSource.DIRECT,
+        sourceReferenceId = null,
+        workspaceId = "workspace-a",
+        invitedEmailNormalized = "invitee@example.com",
+        tokenHash = "hashed-token",
+        status = InvitationStatus.ACTIVE,
+        issuedBy = "issuer-1",
+        createdAt = now.minusSeconds(60),
+        expiresAt = expiresAt,
+    )
+
+    private class RecordingInvitationRepository(
+        private val storedInvitation: Invitation?,
+        private val updateResult: Boolean = true,
+    ) : InvitationRepository {
         var updated: Invitation? = null
+        var updateAttempts: Int = 0
+        var lastCandidateKey: String? = null
 
-        override suspend fun findById(id: InvitationId): Invitation? = storedInvitation.takeIf { it.id == id }
+        override suspend fun findById(id: InvitationId): Invitation? = storedInvitation?.takeIf { it.id == id }
 
-        override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? = storedInvitation
+        override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? {
+            lastCandidateKey = candidateKey
+            return storedInvitation
+        }
 
         override suspend fun save(invitation: Invitation, candidateKey: String): Invitation = invitation
 
         override suspend fun updateIfVersionMatches(invitation: Invitation): Boolean {
+            updateAttempts += 1
             updated = invitation
-            return true
+            return updateResult
         }
     }
 }

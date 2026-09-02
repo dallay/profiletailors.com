@@ -128,6 +128,40 @@ class InvitationTest {
                 acceptedPrincipalId = "principal-1",
             )
         }
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(
+                status = InvitationStatus.ACCEPTED,
+                acceptedAt = now,
+                acceptedPrincipalId = " ",
+            )
+        }
+    }
+
+    @Test
+    fun `construction rejects blank token material and issuer`() {
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(tokenHash = " ")
+        }
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(issuedBy = " ")
+        }
+    }
+
+    @Test
+    fun `construction rejects expiration at or before creation`() {
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(expiresAt = now)
+        }
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(expiresAt = now.minusSeconds(1))
+        }
+    }
+
+    @Test
+    fun `construction rejects a negative version`() {
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(version = -1)
+        }
     }
 
     @Test
@@ -155,9 +189,16 @@ class InvitationTest {
 
     @Test
     fun `acceptance increments the invitation version`() {
-        val accepted = activeInvitation().accept(now.plusSeconds(30), "principal-1")
+        val accepted = activeInvitation().copy(version = 7).accept(now.plusSeconds(30), "principal-1")
 
-        assertEquals(1, accepted.version)
+        assertEquals(8, accepted.version)
+    }
+
+    @Test
+    fun `acceptance rejects a blank principal`() {
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().accept(now.plusSeconds(30), " ")
+        }
     }
 
     @Test
@@ -200,9 +241,24 @@ class InvitationTest {
     fun `expired invitation is not active and cannot be accepted`() {
         val invitation = activeInvitation()
 
+        assertFalse(invitation.isExpired(invitation.expiresAt.minusNanos(1)))
+        assertTrue(invitation.isExpired(invitation.expiresAt))
         assertFalse(invitation.isActive(invitation.expiresAt))
         assertThrows<InvitationNotAcceptableException> {
             invitation.accept(invitation.expiresAt, "principal-1")
+        }
+    }
+
+    @Test
+    fun `expired and revoked invitations cannot be accepted`() {
+        val expired = activeInvitation().expire(activeInvitation().expiresAt)
+        val revoked = activeInvitation().revoke()
+
+        assertThrows<InvitationNotAcceptableException> {
+            expired.accept(expired.expiresAt.plusSeconds(1), "principal-1")
+        }
+        assertThrows<InvitationNotAcceptableException> {
+            revoked.accept(now.plusSeconds(30), "principal-1")
         }
     }
 
