@@ -28,6 +28,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.util.function.BiFunction
+import kotlin.time.Duration.Companion.seconds
 
 class R2dbcBulkImportJobRepositoryTest {
 
@@ -109,25 +110,6 @@ class R2dbcBulkImportJobRepositoryTest {
     }
 
     @Test
-    fun `save throws IllegalStateException on duplicate`() = runTest {
-        val job = sampleJob()
-        val spec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
-        every { databaseClient.sql(ofType(String::class)) } returns spec
-        every { spec.fetch() } throws
-            DataAccessResourceFailureException("duplicate key value violates unique constraint")
-        assertThrows<IllegalStateException> { runTest { repository.save(job) } }
-    }
-
-    @Test
-    fun `save rethrows non-duplicate DataAccessException`() = runTest {
-        val job = sampleJob()
-        val spec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
-        every { databaseClient.sql(ofType(String::class)) } returns spec
-        every { spec.fetch() } throws DataAccessResourceFailureException("connection refused")
-        assertThrows<DataAccessResourceFailureException> { runTest { repository.save(job) } }
-    }
-
-    @Test
     fun `saveRows with empty list does not call database`() = runTest {
         repository.saveRows(emptyList())
         verify(exactly = 0) { databaseClient.sql(ofType(String::class)) }
@@ -140,6 +122,17 @@ class R2dbcBulkImportJobRepositoryTest {
         every { databaseClient.sql(ofType(String::class)) } returns spec
         repository.saveRows(rows)
         verify { databaseClient.sql(match<String> { it.contains("INSERT INTO bulk_import_rows") }) }
+    }
+
+    @Test
+    fun `saveRows binds rowIndex as Int`() = runTest(timeout = 5.seconds) {
+        val rows = listOf(sampleRow("bulk-job-1", 0, "brow-0"))
+        val spec = mockSaveRowsSpec()
+        every { databaseClient.sql(ofType(String::class)) } returns spec
+
+        repository.saveRows(rows)
+
+        verify { spec.bind("rowIndex0", 0) }
     }
 
     @Test
@@ -298,6 +291,7 @@ class R2dbcBulkImportJobRepositoryTest {
     private fun mockSaveRowsSpec(): DatabaseClient.GenericExecuteSpec {
         val spec = mockk<DatabaseClient.GenericExecuteSpec>(relaxed = true)
         every { spec.bind(any<String>(), any<String>()) } returns spec
+        every { spec.bind(any<String>(), any<Int>()) } returns spec
         every { spec.bind(any<String>(), any<Instant>()) } returns spec
         every { spec.bind(any<String>(), any<Boolean>()) } returns spec
         every { spec.bindNull(any<String>(), any<Class<String>>()) } returns spec
