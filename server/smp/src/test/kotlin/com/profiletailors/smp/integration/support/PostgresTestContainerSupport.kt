@@ -23,7 +23,14 @@ object PostgresTestContainerSupport {
     const val USERNAME = "profiletailors"
     const val DEFAULT_PASSWORD = "profiletailors-test"
 
-    fun newContainer(databaseName: String = DATABASE, password: String = DEFAULT_PASSWORD): PostgreSQLContainer<*> =
+    /**
+             * Creates a configured PostgreSQL test container.
+             *
+             * @param databaseName The name of the database to create.
+             * @param password The password for the configured database user.
+             * @return A PostgreSQL container configured with the specified database credentials.
+             */
+            fun newContainer(databaseName: String = DATABASE, password: String = DEFAULT_PASSWORD): PostgreSQLContainer<*> =
         PostgreSQLContainer(IMAGE)
             .withDatabaseName(databaseName)
             .withUsername(USERNAME)
@@ -34,7 +41,13 @@ object PostgresTestContainerSupport {
                     .withStartupTimeout(Duration.ofSeconds(120)),
             )
 
-    fun r2dbcUrl(container: PostgreSQLContainer<*>): String =
+    /**
+         * Builds an R2DBC connection URL for the PostgreSQL container.
+         *
+         * @param container The PostgreSQL container providing the host, mapped port, and database name.
+         * @return The R2DBC connection URL.
+         */
+        fun r2dbcUrl(container: PostgreSQLContainer<*>): String =
         "r2dbc:postgresql://${container.host}:${container.getMappedPort(
             PostgreSQLContainer.POSTGRESQL_PORT,
         )}/${container.databaseName}"
