@@ -18,13 +18,25 @@ import java.util.UUID
 @Repository
 class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : InvitationRepository {
 
-    override suspend fun findById(id: InvitationId): Invitation? = databaseClient.sql(SELECT_BY_ID)
+    /**
+         * Finds an invitation by its identifier.
+         *
+         * @param id The invitation identifier to search for.
+         * @return The matching invitation, or `null` if no invitation exists with the identifier.
+         */
+        override suspend fun findById(id: InvitationId): Invitation? = databaseClient.sql(SELECT_BY_ID)
         .bind("id", id.value)
         .map { row, _ -> row.toInvitation() }
         .one()
         .awaitSingleOrNull()
 
-    override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? = databaseClient.sql(
+    /**
+         * Finds an invitation by candidate key while locking the matching database row for update.
+         *
+         * @param candidateKey The key identifying the candidate.
+         * @return The matching invitation, or `null` if no invitation exists for the candidate key.
+         */
+        override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? = databaseClient.sql(
         SELECT_BY_CANDIDATE_KEY_FOR_UPDATE,
     )
         .bind("candidateKey", candidateKey)
@@ -32,6 +44,14 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
         .one()
         .awaitSingleOrNull()
 
+    /**
+     * Persists an invitation and reloads the stored invitation.
+     *
+     * @param invitation The invitation to persist.
+     * @param candidateKey The candidate key associated with the invitation.
+     * @return The persisted invitation.
+     * @throws IllegalStateException If the persisted invitation cannot be reloaded.
+     */
     override suspend fun save(invitation: Invitation, candidateKey: String): Invitation {
         databaseClient.sql(INSERT)
             .bind("id", invitation.id.value)
@@ -55,6 +75,12 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
         }
     }
 
+    /**
+     * Updates an invitation when its current version matches the expected prior version.
+     *
+     * @param invitation The invitation containing the updated values and version.
+     * @return `true` if exactly one invitation was updated, `false` if the version is zero or no matching invitation exists.
+     */
     override suspend fun updateIfVersionMatches(invitation: Invitation): Boolean {
         if (invitation.version == 0L) return false
         val expectedVersion = invitation.version - 1
@@ -71,6 +97,11 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
         return rowsUpdated == 1L
     }
 
+    /**
+     * Maps database columns to an invitation.
+     *
+     * @return The invitation represented by the row.
+     */
     private fun Readable.toInvitation(): Invitation = Invitation(
         id = InvitationId(requireNotNull(get("id", UUID::class.java))),
         source = InvitationSource.valueOf(requireNotNull(get("source", String::class.java))),
@@ -122,11 +153,25 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
     }
 }
 
+/**
+ * Binds a string value or a typed SQL `NULL` when the value is absent.
+ *
+ * @param name The name of the parameter to bind.
+ * @param value The string value to bind, or `null`.
+ * @return This execute specification with the parameter bound.
+ */
 private fun DatabaseClient.GenericExecuteSpec.bindNullableString(
     name: String,
     value: String?,
 ): DatabaseClient.GenericExecuteSpec = if (value != null) bind(name, value) else bindNull(name, String::class.java)
 
+/**
+ * Binds an optional instant as a UTC timestamp or a typed SQL `NULL`.
+ *
+ * @param name The name of the parameter to bind.
+ * @param value The instant to bind, or `null`.
+ * @return This execute specification with the parameter bound.
+ */
 private fun DatabaseClient.GenericExecuteSpec.bindNullableInstant(
     name: String,
     value: Instant?,

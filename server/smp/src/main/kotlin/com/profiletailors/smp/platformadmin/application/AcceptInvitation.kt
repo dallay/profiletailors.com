@@ -25,15 +25,42 @@ data class AcceptInvitationCommand(
 data class InvitationAcceptanceResult(val workspaceId: String, val membershipStatus: String)
 
 interface InvitationAcceptanceRepository {
-    suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation?
-    suspend fun markAccepted(invitationId: InvitationId, acceptedAt: Instant, principalId: String): Boolean
+    /**
+ * Finds and locks the invitation associated with a candidate token key.
+ *
+ * @param candidateKey The candidate key derived from the invitation token.
+ * @return The matching invitation, or `null` if no invitation exists.
+ */
+suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation?
+    /**
+ * Attempts to accept an invitation for a principal and persist the result.
+ *
+ * @param acceptedAt The time at which the invitation is accepted.
+ * @param principalId The authenticated principal accepting the invitation.
+ * @return `true` if the invitation was accepted and persisted, `false` otherwise.
+ */
+suspend fun markAccepted(invitationId: InvitationId, acceptedAt: Instant, principalId: String): Boolean
 }
 class InvitationAcceptanceRepositoryFacade(private val invitationRepository: InvitationRepository) :
     InvitationAcceptanceRepository {
-    override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? =
+    /**
+         * Finds and locks an invitation associated with the candidate key.
+         *
+         * @param candidateKey The candidate key derived from the invitation token.
+         * @return The matching invitation, or `null` if none exists.
+         */
+        override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? =
         invitationRepository.findByCandidateKeyForUpdate(candidateKey)
 
-    override suspend fun markAccepted(invitationId: InvitationId, acceptedAt: Instant, principalId: String): Boolean =
+    /**
+         * Marks an invitation as accepted for a principal at the specified time.
+         *
+         * @param invitationId The invitation to accept.
+         * @param acceptedAt The time acceptance occurs.
+         * @param principalId The principal accepting the invitation.
+         * @return `true` if the invitation was accepted and persisted, `false` otherwise.
+         */
+        override suspend fun markAccepted(invitationId: InvitationId, acceptedAt: Instant, principalId: String): Boolean =
         invitationRepository.findById(invitationId)?.let { invitation ->
             invitation.acceptOrNull(acceptedAt, principalId)?.let {
                 invitationRepository.updateIfVersionMatches(it)
@@ -41,6 +68,13 @@ class InvitationAcceptanceRepositoryFacade(private val invitationRepository: Inv
         } ?: false
 }
 
+/**
+ * Attempts to accept the invitation for the specified principal.
+ *
+ * @param acceptedAt The time at which the invitation is accepted.
+ * @param principalId The identifier of the accepting principal.
+ * @return The accepted invitation, or `null` if acceptance fails.
+ */
 private fun Invitation.acceptOrNull(acceptedAt: Instant, principalId: String): Invitation? = runCatching {
     accept(acceptedAt, principalId)
 }.getOrNull()

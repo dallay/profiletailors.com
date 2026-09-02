@@ -67,6 +67,15 @@ data class Invitation(
 
     fun isActive(now: Instant): Boolean = status == InvitationStatus.ACTIVE && !isExpired(now)
 
+    /**
+     * Accepts the invitation for a principal at the specified time.
+     *
+     * @param at The time at which the invitation is accepted.
+     * @param principalId The identifier of the principal accepting the invitation.
+     * @return The accepted invitation with acceptance metadata and an incremented version.
+     * @throws InvitationNotAcceptableException If the invitation is not active at the specified time.
+     * @throws IllegalArgumentException If the principal ID is blank.
+     */
     fun accept(at: Instant, principalId: String): Invitation {
         if (!isActive(at)) {
             throw InvitationNotAcceptableException(id.value.toString())
@@ -80,6 +89,13 @@ data class Invitation(
         )
     }
 
+    /**
+     * Expires the invitation when it is active and its expiration time has been reached.
+     *
+     * @param at The time at which expiration is evaluated.
+     * @return A copy of the invitation with expired status and an incremented version.
+     * @throws InvitationNotExpirableException If the invitation is not active or has not reached its expiration time.
+     */
     fun expire(at: Instant): Invitation {
         if (status != InvitationStatus.ACTIVE || at.isBefore(expiresAt)) {
             throw InvitationNotExpirableException(id.value.toString())
@@ -87,6 +103,12 @@ data class Invitation(
         return copy(status = InvitationStatus.EXPIRED, version = version + 1)
     }
 
+    /**
+     * Revokes this invitation.
+     *
+     * @return A copy of the invitation with revoked status and an incremented version.
+     * @throws InvitationNotRevocableException If the invitation is not active.
+     */
     fun revoke(): Invitation {
         if (status != InvitationStatus.ACTIVE) {
             throw InvitationNotRevocableException(id.value.toString())

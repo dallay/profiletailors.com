@@ -33,7 +33,13 @@ import java.time.Duration
 @Suppress("TooManyFunctions")
 class PlatformAdminBootstrapConfiguration {
 
-    @Bean
+    /**
+         * Creates the operator access resolver.
+         *
+         * @param roleAssignmentRepository Repository used to resolve platform role assignments.
+         * @return The configured operator access resolver.
+         */
+        @Bean
     fun operatorAccessResolver(
         roleAssignmentRepository: PlatformRoleAssignmentRepository,
     ): com.profiletailors.smp.platformadmin.application.OperatorAccessResolver =
@@ -42,14 +48,37 @@ class PlatformAdminBootstrapConfiguration {
     @Bean
     fun tokenHasher(): TokenHasher = BCryptTokenHasher()
 
-    @Bean
+    /**
+         * Creates a workspace membership provisioner backed by the workspace membership repository.
+         *
+         * @param repository The repository used to manage workspace memberships.
+         * @return The workspace membership provisioner.
+         */
+        @Bean
     fun workspaceMembershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
         R2dbcWorkspaceMembershipProvisioner(repository)
 
-    @Bean
+    /**
+         * Creates the repository used to process invitation acceptance.
+         *
+         * @param repository The repository providing invitation data.
+         * @return An invitation acceptance repository backed by the provided repository.
+         */
+        @Bean
     fun invitationAcceptanceRepository(repository: InvitationRepository): InvitationAcceptanceRepository =
         InvitationAcceptanceRepositoryFacade(repository)
 
+    /**
+     * Creates the handler for accepting workspace invitations.
+     *
+     * @param invitationRepository Repository used to retrieve and update invitations.
+     * @param tokenHasher Hasher used to verify invitation tokens.
+     * @param principalIdentityLookup Service used to resolve the accepting principal.
+     * @param membershipProvisioner Service used to provision workspace membership.
+     * @param transactionRunner Executes the acceptance operation atomically.
+     * @param clock Provides the current time for invitation processing.
+     * @return A configured invitation acceptance handler.
+     */
     @Bean
     fun acceptInvitationHandler(
         invitationRepository: InvitationAcceptanceRepository,
