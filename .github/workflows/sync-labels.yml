@@ -18,4 +18,4 @@ permissions:
 
 jobs:
   sync:
-    uses: dallay/common-actions/.github/workflows/labels-sync.yml@87129475c06d9f3354d398426926ba4345a4644d # v2.2.3
+    uses: dallay/common-actions/.github/workflows/labels-sync.yml@69060250307677655136ca88c70a2f77cb4153b2 # v2.2.4
