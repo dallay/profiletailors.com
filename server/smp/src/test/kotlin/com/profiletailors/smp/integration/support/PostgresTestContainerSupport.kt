@@ -31,6 +31,7 @@ object PostgresTestContainerSupport {
             .waitingFor(
                 WaitAllStrategy()
                     .withStrategy(Wait.forListeningPort())
+                    .withStrategy(Wait.forLogMessage(".*database system is ready to accept connections.*\\s", 2))
                     .withStartupTimeout(Duration.ofSeconds(120)),
             )
 
