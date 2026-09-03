@@ -2,8 +2,6 @@
 
 ## Overview
 
-### Technical Approach
-
 DALLAY-564 lands first and owns new `Invitation` lifecycle writes. DALLAY-565 connects that aggregate
 to Notifications through a token-free request after the explicit R2DBC transaction commits. Notifications
 owns delivery records; Platformadmin composes operator reads from Invitation and a narrow Notifications
@@ -29,16 +27,11 @@ through the existing `EventPublisher<DomainEvent>` after commit. Notifications m
 command, claims the key through `NotificationRepository`, dispatches via `EmailDispatcher`, and records
 `SENT` or `FAILED`. Remove the old reverse outcome event and bridge.
 
-The durable request contains only `InvitationId`, `commandId`, and `INITIAL`/`RESEND`. It contains no
-Invitation object, recipient, workspace name, locale, token hash, raw token, token-bearing URL, or
-other mutable invitation data. The owning Platformadmin context resolves recipient and workspace
-details from identifiers at the approved ephemeral handoff; none of those values are part of the
-shared event or its persisted representation.
-
-Persisted `Notification.payload` contains only non-secret correlation and operational metadata.
-`InvitationEmail` must not place a token-bearing link in that payload or any other durable or event
-representation. Rendering and dispatch may receive such a link only through DALLAY-566's approved
-ephemeral handoff and must discard it immediately afterward.
+The request contains only `invitationId`, `commandId`, and `INITIAL`/`RESEND`. It contains no
+recipient, workspace name, locale, Invitation object, token hash, raw token, or token-bearing URL.
+Notifications resolves recipient, workspace, and locale from the owning context using `invitationId`.
+Persisted `Notification.payload` contains safe metadata only; `InvitationEmail` must not persist a
+token-bearing link.
 
 Chosen DALLAY-566 boundary: raw token material may exist only in an approved ephemeral handoff immediately
 before rendering and `EmailDispatcher.dispatch`, then is discarded. DALLAY-566 owns generation, rotation,
@@ -86,8 +79,6 @@ without another provider call. A new resend key adds one delivery and does not m
 | `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcAdminInvitationQuery.kt`, `AdminInvitationSummary.kt`, `AdminInvitationController.kt` | Modify | Compose canonical lifecycle data with Notifications and preserve compatible legacy reads. |
 | `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/events/UpdateInvitationDeliveryOnNotificationAttempted.kt` and `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/event/{InvitationCreated,InvitationResent,InvitationDeliveryAttempted}.kt` | Delete/replace | Remove reverse ownership and raw-token event contracts. |
 
-## Usage
-
 ### Testing Strategy
 
 Unit tests cover Notification transitions, same-key reuse, distinct resend keys, active Invitation after
@@ -97,8 +88,6 @@ masked logs, and token absence. Cucumber `@smoke`/`@fast` scenarios cover initia
 failure independence, duplicate commands, and resend multiplicity. Existing architecture and Modulith
 tests remain the boundary checks.
 
-## Troubleshooting
-
 ### Migration / Rollout
 
 DALLAY-564 owns the `invitations` Liquibase schema. Extend existing Notifications startup DDL only for
@@ -106,14 +95,20 @@ correlation columns/indexes; do not claim a migration system or outbox. Retain `
 delivery columns, and historical `R2dbcAdminWaitlistQuery` reads. New flows write neither legacy fields
 nor rows. No backfill, redaction, or destructive removal is authorized. DALLAY-519 remains separate.
 
-### Open Questions
+## Usage
 
-- [ ] DALLAY-566 must approve the concrete ephemeral token handoff before implementation crosses it.
-- [ ] Confirm whether the admin response exposes all latest timestamps or only the summary contract.
+The admin invitation list/detail endpoints consume `InvitationDeliverySummaryReader` by Invitation ID
+and compose it with DALLAY-564 Invitation lifecycle data. Notifications consumers use
+`InvitationNotificationRequested` to create or update a delivery record keyed by `commandId`.
+
+## Troubleshooting
+
+- DALLAY-566 must approve the concrete ephemeral token handoff before implementation crosses it.
+- Confirm whether the admin response exposes all latest timestamps or only the summary contract.
+- A lost after-commit callback is an explicit best-effort gap; durable outbox is deferred to future work.
 
 ## References
 
-- [DALLAY-565 proposal](proposal.md)
-- [Invitation notification delivery specification](specs/invitation-notification-delivery/spec.md)
-- [Email notifications delta](specs/email-notifications/spec.md)
-- [ADR-0016: Aggregates Communicate by Identity Only](../../../docs/architecture/adr/0016-aggregates-communicate-by-identity-only.md)
+- `openspec/changes/dallay-565/specs/invitation-notification-delivery/spec.md`
+- `openspec/changes/dallay-565/specs/email-notifications/spec.md`
+- ADR-0002 (hexagonal architecture) and ADR-0016 (identity-only aggregate communication)

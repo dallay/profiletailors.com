@@ -73,7 +73,7 @@ expose count, latest status, and timestamps, and exclude payloads and sensitive 
 
 - GIVEN a lost handoff left no Notification
 - WHEN the composed read is requested
-- THEN Invitation data MUST remain readable with an empty or unavailable summary
+- THEN Invitation data MUST remain readable with `InvitationDeliverySummary.EMPTY`
 
 ### Requirement: Initial Delivery, Resend, and Idempotency
 
@@ -101,10 +101,8 @@ add exactly one delivery for the same Invitation and MUST NOT mint a replacement
 ### Requirement: Token-Safe Durable Boundary
 
 Raw tokens and directly recoverable token-bearing values MUST NOT enter durable events, logs, audit
-records, metrics, or persistence. `InvitationNotificationRequested` MUST contain only
-`invitationId`, `commandId`, and the `INITIAL`/`RESEND` delivery kind. Recipient, workspace, locale,
-token-related values, and other mutable invitation data MUST be resolved by their owning contexts
-from identifiers and MUST NOT enter the durable request or persisted payload.
+records, metrics, or persistence. Delivery data MUST contain only non-secret correlation and
+operational values.
 
 #### Scenario: Durable data is token-free
 
@@ -152,19 +150,20 @@ response.
 
 ## Usage
 
-Use these requirements as the acceptance contract for the four DALLAY-565 work units. Unit 1 may
-verify contract shape only; scheduling, persistence, admin composition, and acceptance evidence
-belong to their corresponding later units.
+Platformadmin schedules `InvitationNotificationRequested` after a committed Invitation transaction.
+Notifications consumes the event, owns delivery records, and exposes `InvitationDeliverySummaryReader`
+for composed admin reads.
 
 ## Troubleshooting
 
-If DALLAY-566 has not supplied the approved ephemeral handoff, stop before delivery implementation
-and keep task 1.3 incomplete. Missing runtime or PostgreSQL evidence must remain blocked or not run,
-not be inferred from contract tests.
+- If the same command key creates duplicate deliveries, verify the unique constraint on
+  `platform.invitation:{invitationId}:{commandId}`.
+- If delivery state leaks into Invitation validity, check that no reverse event or direct write updates
+  the Invitation aggregate.
+- DALLAY-566 owns the ephemeral token handoff; do not implement token generation, URL assembly, or
+  recipient binding in this change.
 
 ## References
 
-- [DALLAY-565 proposal](../../proposal.md)
-- [DALLAY-565 design](../../design.md)
-- [Email notifications delta](../email-notifications/spec.md)
-- [Change state](../../state.yaml)
+- `openspec/changes/dallay-565/design.md`
+- `openspec/changes/dallay-565/specs/email-notifications/spec.md`

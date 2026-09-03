@@ -2,18 +2,17 @@
 
 ## Overview
 
-This delta narrows invitation email triggers to an identity-only, post-commit handoff while keeping
-Notifications responsible for delivery state and token-safe persistence.
+This delta updates the email-notifications capability so invitation triggers come only from the
+approved post-commit handoff, never persist raw token material, and keep Notifications as the owner
+of invitation delivery state.
 
 ## Changes
-
-**MODIFIED Requirements**
 
 ### Requirement: Domain Event Consumer for Email Notifications
 
 The system MUST consume domain events to trigger email notifications. The system MUST implement the
-`EventConsumer` interface, handle consumption failures gracefully, and support retry logic for
-transient failures. It MUST consume `UserRegistered` and dispatch its verification email as before.
+`EventConsumer` interface and handle consumption failures gracefully. It MUST consume `UserRegistered`
+and dispatch its verification email as before.
 Invitation triggers MUST come only from the approved post-commit handoff, use the command idempotency
 key for deduplication, and never persist, log, audit, or measure raw token material. Notifications
 MUST own invitation delivery state.
@@ -35,7 +34,6 @@ not define invitation-specific post-commit timing, delivery ownership, or token-
 - WHEN the consumer processes the event
 - THEN it MUST log the failure
 - AND it MUST NOT throw the provider failure to the caller
-- AND it MUST retry transient failures
 - AND the system MUST allow manual resend through its existing flow
 
 #### Scenario: Event consumer validates event data
@@ -69,16 +67,17 @@ not define invitation-specific post-commit timing, delivery ownership, or token-
 
 ## Usage
 
-Use these scenarios to verify event-consumer behavior, transient retries, post-commit timing,
-idempotency, delivery ownership, and token-safe persistence.
+Consumers implement `EventConsumer` and handle `UserRegistered` for verification emails as before.
+Invitation-specific consumption uses `InvitationNotificationRequested` from the approved post-commit
+handoff; retries for transient failures are deferred to a future implementation.
 
 ## Troubleshooting
 
-DALLAY-566 remains the hard gate for the ephemeral token handoff. A missing handoff contract blocks
-invitation delivery implementation but does not weaken the mandatory transient-retry requirement.
+- If invitation emails are not sent, verify the post-commit handoff published
+  `InvitationNotificationRequested` and that the consumer owns the command-key idempotency.
+- Durable retry, outbox, and manual resend UI are out of scope for this delta.
 
 ## References
 
-- [DALLAY-565 design](../../design.md)
-- [Invitation notification delivery delta](../invitation-notification-delivery/spec.md)
-- [Email notifications source specification](../../../../specs/email-notifications/spec.md)
+- `openspec/changes/dallay-565/specs/invitation-notification-delivery/spec.md`
+- `openspec/changes/dallay-565/design.md`

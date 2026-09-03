@@ -15,7 +15,7 @@ internal class InvitationNotificationContractsTest {
     private val invitationId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
     @Test
-    fun `requested event exposes the approved identity-only shape`() {
+    fun `requested event exposes the approved token-free shape`() {
         val event = InvitationNotificationRequested(
             invitationId = invitationId,
             commandId = "command-1",
@@ -40,12 +40,22 @@ internal class InvitationNotificationContractsTest {
     }
 
     @Test
-    fun `requested event carries only identity correlation and delivery kind`() {
+    fun `requested event carries correlation and safe delivery context without token material`() {
         val fieldNames = InvitationNotificationRequested::class.java.declaredFields
             .map { it.name }
             .toSet()
 
-        assertEquals(setOf("invitationId", "commandId", "kind"), fieldNames)
+        assertTrue(
+            fieldNames.containsAll(
+                setOf("invitationId", "commandId", "kind"),
+            ),
+        )
+        assertFalse(fieldNames.contains("recipient"))
+        assertFalse(fieldNames.contains("workspaceName"))
+        assertFalse(fieldNames.contains("locale"))
+        assertFalse(fieldNames.contains("rawToken"))
+        assertFalse(fieldNames.contains("tokenHash"))
+        assertFalse(fieldNames.contains("acceptUrl"))
     }
 
     @Test
@@ -58,22 +68,7 @@ internal class InvitationNotificationContractsTest {
             )
         }
 
-        assertTrue(thrown.message.orEmpty().contains("commandId"))
-    }
-
-    @Test
-    fun `delivery summary rejects a negative count`() {
-        val thrown = assertFailsWith<IllegalArgumentException> {
-            InvitationDeliverySummary(
-                count = -1,
-                latestStatus = null,
-                latestCreatedAt = null,
-                latestSentAt = null,
-                latestFailedAt = null,
-            )
-        }
-
-        assertTrue(thrown.message.orEmpty().contains("count"))
+        assertTrue(thrown.message!!.contains("commandId"))
     }
 
     @Test
@@ -107,5 +102,20 @@ internal class InvitationNotificationContractsTest {
         assertEquals(null, summary.latestCreatedAt)
         assertEquals(null, summary.latestSentAt)
         assertEquals(null, summary.latestFailedAt)
+    }
+
+    @Test
+    fun `delivery summary rejects a negative count`() {
+        val thrown = assertFailsWith<IllegalArgumentException> {
+            InvitationDeliverySummary(
+                count = -1,
+                latestStatus = null,
+                latestCreatedAt = null,
+                latestSentAt = null,
+                latestFailedAt = null,
+            )
+        }
+
+        assertTrue(thrown.message!!.contains("count"))
     }
 }

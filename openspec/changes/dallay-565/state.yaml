@@ -8,8 +8,7 @@ completed:
   - design
   - tasks
   - apply-unit-1-contracts-model
-  - qa-unit-1
-next: apply-unit-2-delivery-handoff
+next: qa-unit-1
 apply_unit: 1
 apply_status: partial
 apply_branch: feat/dallay-565-contracts
