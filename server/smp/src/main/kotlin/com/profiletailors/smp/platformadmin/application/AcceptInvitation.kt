@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.domain.Invitation
@@ -27,6 +28,22 @@ interface InvitationAcceptanceRepository {
     suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation?
     suspend fun markAccepted(invitationId: InvitationId, acceptedAt: Instant, principalId: String): Boolean
 }
+class InvitationAcceptanceRepositoryFacade(private val invitationRepository: InvitationRepository) :
+    InvitationAcceptanceRepository {
+    override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? =
+        invitationRepository.findByCandidateKeyForUpdate(candidateKey)
+
+    override suspend fun markAccepted(invitationId: InvitationId, acceptedAt: Instant, principalId: String): Boolean =
+        invitationRepository.findById(invitationId)?.let { invitation ->
+            invitation.acceptOrNull(acceptedAt, principalId)?.let {
+                invitationRepository.updateIfVersionMatches(it)
+            }
+        } ?: false
+}
+
+private fun Invitation.acceptOrNull(acceptedAt: Instant, principalId: String): Invitation? = runCatching {
+    accept(acceptedAt, principalId)
+}.getOrNull()
 
 class AcceptInvitationHandler(
     private val invitationRepository: InvitationAcceptanceRepository,
