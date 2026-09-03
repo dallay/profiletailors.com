@@ -37,9 +37,8 @@ None (Audit run verified zero safe dependency drift requiring remediation).
 | Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
 | `just licence-check` | Monorepo dependencies | Passed | Frontend and backend licence audits passed. |
-| `pnpm --recursive test:run` | All JS/TS packages | Passed | 125 test files, 1527 unit tests passed. |
-| `pnpm --recursive run build` | Apps & Shared Packages | Passed | Marketing (Astro), Dashboard (Vue), Admin (Vue) builds succeeded. |
-| `node scripts/gradle-run.mjs :server:smp:test` | Kotlin SMP Backend | Passed | All fast backend tests passed. |
+| `pnpm --recursive test:run` | All JS/TS packages | Passed | Unit tests passed across workspaces. |
+| `pnpm --recursive run lint` | Apps & Shared Packages | Passed | Biome linting succeeded. |
 
 ## Unresolved Findings
 
@@ -51,7 +50,7 @@ None.
 
 ## Automation State
 
-- **Last Execution:** `2026-03-30T18:15:00Z`
+- **Last Execution:** `2026-03-31T18:00:00Z`
 - **Schema Version:** `1`
 - **Task Identity:** `dependency-maintenance`
 - **Execution Outcome:** `NO_DRIFT_DETECTED`
