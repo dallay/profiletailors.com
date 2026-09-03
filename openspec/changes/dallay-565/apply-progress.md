@@ -46,9 +46,9 @@ and race coverage.
 - `./gradlew :shared:notifications:test --tests 'com.profiletailors.notifications.domain.InvitationNotificationContractsTest' --no-daemon`
   — RED: failed as expected with five `ClassNotFoundException` failures before production contracts.
 - Same command — GREEN: passed, 5 tests completed.
-- Same command — GREEN after event-shape assertion — passed, 6 tests completed.
+- Same command — GREEN after event-shape assertion — passed, 7 tests completed.
 - `./gradlew :shared:notifications:spotlessKotlinCheck :shared:notifications:test --no-daemon`
-  — passed; 6 focused tests completed after formatting.
+  — passed; 7 focused tests completed after formatting.
 - `./gradlew :shared:notifications:test --no-daemon` — passed; unfiltered shared notifications test
   task completed successfully.
 - `./gradlew :server:smp:compileKotlin --no-daemon` — passed; downstream compilation remains valid.

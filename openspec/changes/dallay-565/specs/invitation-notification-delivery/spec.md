@@ -150,8 +150,8 @@ response.
 
 ## Usage
 
-Platformadmin schedules `InvitationNotificationRequested` after a committed Invitation transaction.
-Notifications consumes the event, owns delivery records, and exposes `InvitationDeliverySummaryReader`
+Platformadmin will schedule `InvitationNotificationRequested` after a committed Invitation transaction.
+Notifications will consume the event, own delivery records, and expose `InvitationDeliverySummaryReader`
 for composed admin reads.
 
 ## Troubleshooting

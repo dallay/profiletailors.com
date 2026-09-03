@@ -30,6 +30,8 @@ command, claims the key through `NotificationRepository`, dispatches via `EmailD
 The request contains only `invitationId`, `commandId`, and `INITIAL`/`RESEND`. It contains no
 recipient, workspace name, locale, Invitation object, token hash, raw token, or token-bearing URL.
 Notifications resolves recipient, workspace, and locale from the owning context using `invitationId`.
+Before the consumer is implemented, a delivery-context port (keyed by `invitationId`) or the concrete
+DALLAY-566 handoff must be explicitly defined to supply this data.
 Persisted `Notification.payload` contains safe metadata only; `InvitationEmail` must not persist a
 token-bearing link.
 
@@ -99,7 +101,8 @@ nor rows. No backfill, redaction, or destructive removal is authorized. DALLAY-5
 
 The admin invitation list/detail endpoints consume `InvitationDeliverySummaryReader` by Invitation ID
 and compose it with DALLAY-564 Invitation lifecycle data. Notifications consumers use
-`InvitationNotificationRequested` to create or update a delivery record keyed by `commandId`.
+`InvitationNotificationRequested` to create or update a delivery record keyed by
+`platform.invitation:{invitationId}:{commandId}`.
 
 ## Troubleshooting
 

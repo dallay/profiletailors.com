@@ -8,6 +8,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 internal class InvitationNotificationContractsTest {
@@ -45,14 +46,10 @@ internal class InvitationNotificationContractsTest {
             .map { it.name }
             .toSet()
 
-        assertTrue(
-            fieldNames.containsAll(
-                setOf("invitationId", "commandId", "kind"),
-            ),
+        assertEquals(
+            setOf("invitationId", "commandId", "kind"),
+            fieldNames,
         )
-        assertFalse(fieldNames.contains("recipient"))
-        assertFalse(fieldNames.contains("workspaceName"))
-        assertFalse(fieldNames.contains("locale"))
         assertFalse(fieldNames.contains("rawToken"))
         assertFalse(fieldNames.contains("tokenHash"))
         assertFalse(fieldNames.contains("acceptUrl"))
@@ -68,7 +65,8 @@ internal class InvitationNotificationContractsTest {
             )
         }
 
-        assertTrue(thrown.message!!.contains("commandId"))
+        val msg = assertNotNull(thrown.message)
+        assertTrue(msg.contains("commandId"))
     }
 
     @Test
@@ -116,6 +114,7 @@ internal class InvitationNotificationContractsTest {
             )
         }
 
-        assertTrue(thrown.message!!.contains("count"))
+        val msg = assertNotNull(thrown.message)
+        assertTrue(msg.contains("count"))
     }
 }

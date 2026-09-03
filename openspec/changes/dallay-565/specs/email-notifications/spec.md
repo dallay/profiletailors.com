@@ -67,9 +67,9 @@ not define invitation-specific post-commit timing, delivery ownership, or token-
 
 ## Usage
 
-Consumers implement `EventConsumer` and handle `UserRegistered` for verification emails as before.
-Invitation-specific consumption uses `InvitationNotificationRequested` from the approved post-commit
-handoff; retries for transient failures are deferred to a future implementation.
+Consumers will implement `EventConsumer` and handle `UserRegistered` for verification emails as before.
+Invitation-specific consumption will use `InvitationNotificationRequested` from the approved post-commit
+handoff; retries for transient failures remain deferred to a future implementation.
 
 ## Troubleshooting
 
