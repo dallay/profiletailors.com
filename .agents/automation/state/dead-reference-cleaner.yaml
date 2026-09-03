@@ -60,3 +60,7 @@ checks:
     target: repository-markdown-files
     status: Passed
     notes: "Audited all markdown relative link targets across repository"
+  - name: just ci-local
+    target: repository
+    status: Passed
+    notes: "Executed full local CI suite"
