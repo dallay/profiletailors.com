@@ -46,7 +46,7 @@ const isEmpty = computed(() => props.events.length === 0)
       </div>
       <router-link
         v-if="!isEmpty"
-        to="#"
+        :to="{ name: 'analytics' }"
         class="text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-display)] font-[var(--font-space-mono)] uppercase tracking-wider transition-colors"
       >
         {{ t('dashboard.viewAll') }}

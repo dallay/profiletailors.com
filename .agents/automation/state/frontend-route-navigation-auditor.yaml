@@ -1,5 +1,28 @@
 schemaVersion: 1
 task: frontend-route-navigation-auditor
-lastExecution: null
-findings: []
-checks: []
+lastExecution: "2026-09-01T23:59:23Z"
+outcome: CHANGES_APPLIED
+findings:
+  - id: FINDING-NAV-001
+    description: "TeamActivity component used dummy route link 'to=\"#\"' causing router drift."
+    severity: LOW
+    status: resolved
+    firstDetected: "2026-09-01T23:59:23Z"
+    lastVerified: "2026-09-01T23:59:23Z"
+    occurrences: 1
+    remediation:
+      status: implemented
+      summary: "Replaced dummy link 'to=\"#\"' with canonical route ':to=\"{ name: 'analytics' }\"'."
+checks:
+  - name: App Unit Tests
+    target: apps/web/app
+    status: Passed
+    notes: "138 test files, 1679 tests passed."
+  - name: Admin Unit Tests
+    target: apps/web/admin
+    status: Passed
+    notes: "2 test files, 14 tests passed."
+  - name: Marketing Unit Tests
+    target: apps/web/marketing
+    status: Passed
+    notes: "14 test files, 137 tests passed."
