@@ -72,7 +72,7 @@ The overview diagram captures the most important FKs. The full list:
 | `recurring_schedules` → `publications` | `template_post_id` |
 | `waitlists` → `waitlist_entries` | `waitlist_id` |
 | `waitlist_entries` → `waitlist_invitations` | `waitlist_entry_id` |
-| `principals` � `invitations` | `issued_by` / `accepted_principal_id` |
+| `principals` ↔ `invitations` | `issued_by` / `accepted_principal_id` |
 | `principals` ↔ `platform_admin_audit_events` | `operator_principal_id` |
 | `principals` ↔ `platform_role_assignments` | `principal_id` |
 | `roles` ↔ `permissions` | `role_permissions` (many-to-many) |
