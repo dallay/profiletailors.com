@@ -85,7 +85,6 @@ class PublishingSchedulingConfiguration(
         clock = clock,
         workerId = "worker-${UUID.randomUUID()}",
         claimLease = properties.claimLease,
-        staleGrace = properties.staleGrace,
         lifecycleLogger = publishingLifecycleLogger,
     )
 

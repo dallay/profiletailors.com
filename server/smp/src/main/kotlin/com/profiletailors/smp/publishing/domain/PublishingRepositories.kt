@@ -13,8 +13,6 @@ interface SocialAccountRepository {
     suspend fun upsert(account: SocialAccount): SocialAccount
 
     suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount?
-
-    suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount?
 }
 
 interface PublicationRepository {
@@ -79,32 +77,26 @@ interface PublicationJobRepository {
         claimLease: Duration = Duration.parse("PT2M"),
     ): PublicationJobClaim?
 
-    suspend fun rescheduleRetry(jobId: String, claimVersion: Long, nextAttemptAt: Instant, attemptNumber: Int): Boolean
+    suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int)
 
-    suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant): Boolean
+    suspend fun complete(jobId: String, completedAt: Instant)
 
-    suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant): Boolean
-
-    suspend fun block(jobId: String, claimVersion: Long, blockedAt: Instant): Boolean
+    suspend fun fail(jobId: String, failedAt: Instant)
 
     suspend fun cancel(jobId: String, cancelledAt: Instant)
 
     /**
-     * Returns claimed jobs whose lease expired before [now] - [staleGrace].
+     * Returns claimed jobs whose lease expired before [now] - [leaseStaleThreshold].
      * Used by operator diagnostics to surface stale work without exposing provider
      * payloads, tokens, or exception messages.
      */
-    suspend fun findStaleClaims(now: Instant, staleGrace: Duration, limit: Int = DEFAULT_STALE_JOB_LIMIT): StaleJobPage
+    suspend fun findStaleClaims(now: Instant, leaseStaleThreshold: Duration): List<StaleJob>
 
     /**
-     * Resets every CLAIMED job whose lease expired before [now] - [staleGrace]
+     * Resets every CLAIMED job whose lease expired before [now] - [leaseStaleThreshold]
      * back to PENDING and clears the claim columns. Returns the number of rows updated.
      */
-    suspend fun releaseExpiredClaims(now: Instant, staleGrace: Duration): Int
-
-    companion object {
-        const val DEFAULT_STALE_JOB_LIMIT: Int = 100
-    }
+    suspend fun releaseExpiredClaims(now: Instant, leaseStaleThreshold: Duration): Int
 }
 
 /**
@@ -121,14 +113,8 @@ data class StaleJob(
     val attemptNumber: Int,
 )
 
-data class StaleJobPage(val jobs: List<StaleJob>, val total: Int)
-
-interface DeliveryAttemptRepository {
+fun interface DeliveryAttemptRepository {
     suspend fun record(attempt: DeliveryAttempt): DeliveryAttempt
-
-    suspend fun findByOperationKey(operationKey: String): DeliveryAttempt?
-
-    suspend fun update(attempt: DeliveryAttempt): Boolean
 }
 
 interface NotificationEventRepository {
@@ -152,12 +138,4 @@ object NoOpNotificationEventRepository : NotificationEventRepository {
         categories: Set<NotificationCategory>?,
         limit: Int,
     ): List<NotificationEvent> = emptyList()
-}
-
-interface BulkImportJobRepository {
-    suspend fun findByIdempotencyKey(idempotencyKey: String): BulkImportJob?
-    suspend fun findByWorkspaceAndId(workspaceId: String, jobId: String): BulkImportJob?
-    suspend fun save(job: BulkImportJob): BulkImportJob
-    suspend fun saveRows(rows: List<BulkImportRow>)
-    suspend fun findRows(jobId: String): List<BulkImportRow>
 }

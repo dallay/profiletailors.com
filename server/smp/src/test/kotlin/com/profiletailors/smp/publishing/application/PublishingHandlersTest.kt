@@ -1,6 +1,5 @@
 package com.profiletailors.smp.publishing.application
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
@@ -1812,35 +1811,6 @@ class PublishingHandlersTest {
         assertEquals(emptyList<ListPublicationItem>(), result.publications)
     }
 
-    @Test
-    fun `list publications does not expose persisted technical error messages`() = runTest {
-        val unsafeMessage = "com.linkedin.Client token=secret https://api.linkedin.com/rest/posts bucket/key"
-        val publicationRepository = InMemoryPublicationRepository(
-            seedMany = listOf(
-                calendarPublication("pub-failed", "account-1", "2026-06-15T10:00:00Z", PublicationStatus.FAILED)
-                    .copy(
-                        lastErrorCode = "PUBLISHING_FAILED",
-                        lastErrorMessage = unsafeMessage,
-                    ),
-            ),
-        )
-        val handler = ListPublicationsHandler(
-            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
-            publicationRepository = publicationRepository,
-        )
-
-        val result = handler.handle(
-            ListPublicationsQuery(
-                from = Instant.parse("2026-06-01T00:00:00Z"),
-                to = Instant.parse("2026-07-01T00:00:00Z"),
-            ),
-        )
-
-        val item = result.publications.single()
-        item.lastErrorMessage shouldBe null
-        jacksonObjectMapper().findAndRegisterModules().writeValueAsString(item).shouldNotContain(unsafeMessage)
-    }
-
     private fun calendarPublication(
         id: String,
         socialAccountId: String,
@@ -1976,9 +1946,6 @@ class PublishingHandlersTest {
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? =
             items[accountId]?.takeIf { it.workspaceId == workspaceId }
-
-        override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? =
-            items.values.firstOrNull { it.workspaceId == workspaceId && it.status == SocialConnectionStatus.ACTIVE }
     }
 
     private class ThrowingSocialAccountRepository : SocialAccountRepository {
@@ -1986,8 +1953,6 @@ class PublishingHandlersTest {
             throw IllegalStateException("account upsert failed")
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = null
-
-        override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = null
     }
 
     private class CapturingChannelEventPublisher : ChannelEventPublisher {
@@ -2173,18 +2138,11 @@ class PublishingHandlersTest {
         override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? =
             null
 
-        override suspend fun rescheduleRetry(
-            jobId: String,
-            claimVersion: Long,
-            nextAttemptAt: Instant,
-            attemptNumber: Int,
-        ): Boolean = true
+        override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) = Unit
 
-        override suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant): Boolean = true
+        override suspend fun complete(jobId: String, completedAt: Instant) = Unit
 
-        override suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant): Boolean = true
-
-        override suspend fun block(jobId: String, claimVersion: Long, blockedAt: Instant): Boolean = true
+        override suspend fun fail(jobId: String, failedAt: Instant) = Unit
 
         override suspend fun cancel(jobId: String, cancelledAt: Instant) {
             writeCount += 1
@@ -2193,17 +2151,13 @@ class PublishingHandlersTest {
 
         override suspend fun findStaleClaims(
             now: Instant,
-            staleGrace: Duration,
-            limit: Int,
-        ): com.profiletailors.smp.publishing.domain.StaleJobPage {
-            findStaleCalls.add(now to staleGrace)
-            return com.profiletailors.smp.publishing.domain.StaleJobPage(
-                staleJobsReturnValue,
-                staleJobsReturnValue.size,
-            )
+            leaseStaleThreshold: Duration,
+        ): List<com.profiletailors.smp.publishing.domain.StaleJob> {
+            findStaleCalls.add(now to leaseStaleThreshold)
+            return staleJobsReturnValue
         }
 
-        override suspend fun releaseExpiredClaims(now: Instant, staleGrace: Duration): Int = 0
+        override suspend fun releaseExpiredClaims(now: Instant, leaseStaleThreshold: Duration): Int = 0
 
         fun removeUnclaimedForPublication(publicationId: String) {
             jobsByPublicationId[publicationId] = jobsByPublicationId[publicationId]

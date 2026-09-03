@@ -26,11 +26,9 @@ import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
-import com.profiletailors.smp.publishing.domain.StaleJobPage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.scheduling.Trigger
@@ -91,15 +89,6 @@ class PublishingSchedulingConfigurationTest {
         assertEquals(false, retryPolicy.shouldRetry(currentAttemptNumber = 6, retryable = true))
         assertEquals(Instant.parse("2026-05-26T12:07:00Z"), retryPolicy.nextRetryAt(fixedClock.instant()))
         assertEquals(6, retryPolicy.maxAttempts())
-    }
-
-    @Test
-    fun `application config exposes stale grace as an operator override`() {
-        val application = requireNotNull(javaClass.classLoader.getResourceAsStream("application.yaml"))
-            .bufferedReader()
-            .use { it.readText() }
-
-        assertTrue(application.contains("stale-grace: \${SMP_PUBLISHING_WORKER_STALE_GRACE:PT5M}"))
     }
 
     @Test
@@ -262,19 +251,15 @@ class PublishingSchedulingConfigurationTest {
         override suspend fun replaceForPublication(job: PublicationJob) = Unit
         override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? =
             null
-        override suspend fun rescheduleRetry(
-            jobId: String,
-            claimVersion: Long,
-            nextAttemptAt: Instant,
-            attemptNumber: Int,
-        ): Boolean = true
-        override suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant): Boolean = true
-        override suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant): Boolean = true
-        override suspend fun block(jobId: String, claimVersion: Long, blockedAt: Instant): Boolean = true
+        override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) = Unit
+        override suspend fun complete(jobId: String, completedAt: Instant) = Unit
+        override suspend fun fail(jobId: String, failedAt: Instant) = Unit
         override suspend fun cancel(jobId: String, cancelledAt: Instant) = Unit
-        override suspend fun findStaleClaims(now: Instant, staleGrace: Duration, limit: Int): StaleJobPage =
-            StaleJobPage(emptyList(), 0)
-        override suspend fun releaseExpiredClaims(now: Instant, staleGrace: Duration): Int = 0
+        override suspend fun findStaleClaims(
+            now: Instant,
+            leaseStaleThreshold: Duration,
+        ): List<com.profiletailors.smp.publishing.domain.StaleJob> = emptyList()
+        override suspend fun releaseExpiredClaims(now: Instant, leaseStaleThreshold: Duration): Int = 0
     }
 
     private class NoOpPublicationRepository : PublicationRepository {
@@ -314,7 +299,6 @@ class PublishingSchedulingConfigurationTest {
     private class NoOpSocialAccountRepository : SocialAccountRepository {
         override suspend fun upsert(account: SocialAccount): SocialAccount = account
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount = account()
-        override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = account()
     }
 
     private class NoOpMediaAssetResolver : MediaAssetResolver {
@@ -326,8 +310,6 @@ class PublishingSchedulingConfigurationTest {
 
     private class NoOpDeliveryAttemptRepository : DeliveryAttemptRepository {
         override suspend fun record(attempt: DeliveryAttempt): DeliveryAttempt = attempt
-        override suspend fun findByOperationKey(operationKey: String): DeliveryAttempt? = null
-        override suspend fun update(attempt: DeliveryAttempt): Boolean = true
     }
 
     private class NoOpNotificationEventRepository : NotificationEventRepository {

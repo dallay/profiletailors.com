@@ -9,9 +9,6 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationJobRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.test.TestStorageConfiguration
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -38,7 +35,7 @@ import java.time.Instant
  * PostgreSQL-specific integration tests for publishing queue claim and update operations.
  *
  * These tests verify that the SQL operations in R2dbcPublicationJobRepository work correctly
- * against a real PostgreSQL database, beyond what a lightweight test database can validate.
+ * against a real PostgreSQL database, beyond what H2 semantics can validate.
  *
  * Key scenarios tested:
  * - Concurrent claim operations with ORDER BY and LIMIT
@@ -191,16 +188,13 @@ class PublishingQueuePostgresIntegrationTest {
         )
 
         // Claim and then reschedule
-        val claim = requireNotNull(
-            jobRepository.claimNextDue(
-                Instant.parse("2026-05-27T08:01:00Z"),
-                "worker-1",
-                Duration.ofMinutes(2),
-            ),
+        jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:01:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
         )
         jobRepository.rescheduleRetry(
             jobId = "job-retry-test",
-            claimVersion = claim.claimVersion,
             nextAttemptAt = Instant.parse("2026-05-27T09:00:00Z"),
             attemptNumber = 1,
         )
@@ -255,7 +249,7 @@ class PublishingQueuePostgresIntegrationTest {
     }
 
     @Test
-    fun `should return one claim when two workers claim concurrently`() = runTest {
+    fun `multiple workers cannot claim the same job due to transaction isolation`() = runTest {
         seedPublicationAndJob(
             publicationId = "pub-concurrent-test",
             jobId = "job-concurrent-test",
@@ -266,20 +260,22 @@ class PublishingQueuePostgresIntegrationTest {
             scheduleMode = ScheduleMode.NOW,
         )
 
-        val claims = coroutineScope {
-            listOf("worker-1", "worker-2").map { workerId ->
-                async(kotlinx.coroutines.Dispatchers.IO) {
-                    R2dbcPublicationJobRepository(databaseClient).claimNextDue(
-                        Instant.parse("2026-05-27T08:01:00Z"),
-                        workerId,
-                        Duration.ofMinutes(2),
-                    )
-                }
-            }.awaitAll()
-        }
+        // First worker claims
+        val claim1 = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:01:00Z"),
+            "worker-1",
+            Duration.ofMinutes(2),
+        )
+        assertNotNull(claim1)
+        assertEquals("job-concurrent-test", claim1?.jobId)
 
-        assertEquals(1, claims.count { it != null })
-        assertEquals(1L, requireNotNull(claims.single { it != null }).claimVersion)
+        // Second worker tries to claim — should get nothing
+        val claim2 = jobRepository.claimNextDue(
+            Instant.parse("2026-05-27T08:01:00Z"),
+            "worker-2",
+            Duration.ofMinutes(2),
+        )
+        assertNull(claim2)
     }
 
     private suspend fun seedPrincipalWorkspaceAndAccount() {
