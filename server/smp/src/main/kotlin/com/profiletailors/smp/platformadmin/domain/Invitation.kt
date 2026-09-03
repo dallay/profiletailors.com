@@ -1,8 +1,10 @@
 package com.profiletailors.smp.platformadmin.domain
 
+import com.profiletailors.common.domain.AggregateRoot
+import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 
-/** Semantic lifecycle of a first-class invitation. Delivery state is deliberately separate. */
+@ValueObject
 enum class InvitationStatus {
     ACTIVE,
     ACCEPTED,
@@ -10,11 +12,13 @@ enum class InvitationStatus {
     REVOKED,
 }
 
+@ValueObject
 enum class InvitationSource {
     DIRECT,
     WAITLIST,
 }
 
+@AggregateRoot
 data class Invitation(
     val id: InvitationId,
     val source: InvitationSource,
@@ -28,6 +32,7 @@ data class Invitation(
     val expiresAt: Instant,
     val acceptedAt: Instant? = null,
     val acceptedPrincipalId: String? = null,
+    val version: Long = 0,
 ) {
     init {
         require(workspaceId.isNotBlank()) { "Invitation workspaceId must not be blank" }
@@ -38,6 +43,7 @@ data class Invitation(
         require(tokenHash.isNotBlank()) { "Invitation token hash must not be blank" }
         require(issuedBy.isNotBlank()) { "Invitation issuer must not be blank" }
         require(expiresAt.isAfter(createdAt)) { "Invitation expiration must be after creation" }
+        require(version >= 0) { "Invitation version must not be negative" }
         when (source) {
             InvitationSource.DIRECT -> require(sourceReferenceId == null) {
                 "Direct invitations must not have a waitlist source reference"
@@ -49,6 +55,11 @@ data class Invitation(
         if (status == InvitationStatus.ACCEPTED) {
             require(acceptedAt != null) { "Accepted invitations require acceptedAt" }
             require(!acceptedPrincipalId.isNullOrBlank()) { "Accepted invitations require acceptedPrincipalId" }
+        } else {
+            require(acceptedAt == null) { "Non-accepted invitations must not have acceptedAt" }
+            require(acceptedPrincipalId == null) {
+                "Non-accepted invitations must not have acceptedPrincipalId"
+            }
         }
     }
 
@@ -65,6 +76,21 @@ data class Invitation(
             status = InvitationStatus.ACCEPTED,
             acceptedAt = at,
             acceptedPrincipalId = principalId,
+            version = version + 1,
         )
+    }
+
+    fun expire(at: Instant): Invitation {
+        if (status != InvitationStatus.ACTIVE || at.isBefore(expiresAt)) {
+            throw InvitationNotExpirableException(id.value.toString())
+        }
+        return copy(status = InvitationStatus.EXPIRED, version = version + 1)
+    }
+
+    fun revoke(): Invitation {
+        if (status != InvitationStatus.ACTIVE) {
+            throw InvitationNotRevocableException(id.value.toString())
+        }
+        return copy(status = InvitationStatus.REVOKED, version = version + 1)
     }
 }

@@ -1,0 +1,79 @@
+change: dallay-564-first-class-invitation
+current_phase: archived
+completed:
+  - init
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply-unit-1
+  - verify-unit-1
+  - apply-unit-2
+  - verify-unit-2
+  - apply-unit-3
+  - verify-unit-3
+  - qa
+  - archive
+next: none
+updated: 2026-09-02T13:46:04Z
+linear_issue: DALLAY-564
+branch: feature/dallay-564-first-class-invitation
+base: feature/dallay-564-first-class-invitation
+upstream_for: DALLAY-565
+archive_status: completed
+archive_timestamp: 2026-09-02T13:46:04Z
+archive_path: openspec/changes/archive/2026-09-02-dallay-564-first-class-invitation
+archive_note: DALLAY-564 archived after confirming verify-report.md PASS evidence, qa-report.md PASS verdict, no unresolved CRITICAL/P0/P1 findings, no acceptance-relevant BLOCKED/NOT TESTED scenarios, and promotion of the invitations spec to openspec/specs/invitations/spec.md.
+apply_progress: openspec/changes/archive/2026-09-02-dallay-564-first-class-invitation/apply-progress.md
+verify_scope: final-dallay-564-acceptance
+verify_report: openspec/changes/archive/2026-09-02-dallay-564-first-class-invitation/verify-report.md
+qa_report: openspec/changes/archive/2026-09-02-dallay-564-first-class-invitation/qa-report.md
+archive_summary: openspec/changes/archive/2026-09-02-dallay-564-first-class-invitation/archive-summary.md
+archive_report: openspec/changes/archive/2026-09-02-dallay-564-first-class-invitation/archive-report.md
+note: First-class Invitation is now the canonical standalone registration authorization capability. Delivered DDD markers, source and lifecycle invariants, canonical repository transitions, PostgreSQL schema protections, exactly-once acceptance evidence, security boundary guards, legacy compatibility, and documentation updates. Out-of-scope DALLAY-565/566/567/568/570 work remains intentionally excluded.
+unit_2_chain_position:
+  trunk: main
+  parent_branch: feature/dallay-564-first-class-invitation
+  base: feature/dallay-564-first-class-invitation
+  branch: feature/dallay-564-first-class-invitation
+  position: 2
+  chain_strategy: github-stacked-prs
+  delivery_strategy: ask-on-risk
+unit_2_size_exception: false
+unit_2_blocked: false
+unit_2_verification:
+  result: PASS
+  evidence: 81/81 in-scope tests green; CAS regression removed; PostgreSQL two-client race covered.
+  date: 2026-09-02
+unit_2_blocked_reason: null
+unit_3_chain_position:
+  trunk: main
+  parent_branch: feature/dallay-564-first-class-invitation
+  base: feature/dallay-564-first-class-invitation
+  branch: feature/dallay-564-first-class-invitation
+  position: 3
+  chain_strategy: github-stacked-prs
+  delivery_strategy: ask-on-risk
+unit_3_size_exception: false
+unit_3_blocked: false
+unit_3_blocked_reason: null
+archive_gate:
+  verify_report_exists: true
+  verify_result: PASS
+  qa_report_exists: true
+  qa_verdict: PASS
+  unresolved_critical_p0_p1: false
+  acceptance_relevant_blocked_or_not_tested: false
+  tests: 81/81 in-scope tests green
+  architecture_tests: green
+  detekt: green
+  spotless: green
+spec_sync:
+  - domain: invitations
+    action: created
+    source: openspec/changes/archive/2026-09-02-dallay-564-first-class-invitation/specs/invitations/spec.md
+    target: openspec/specs/invitations/spec.md
+    requirements_added: 12
+    requirements_modified: 0
+    requirements_removed: 0

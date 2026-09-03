@@ -28,6 +28,8 @@ class InvitationNotResendableException(id: String) : RuntimeException("Invitatio
 
 class InvitationNotRevocableException(id: String) : RuntimeException("Invitation cannot be revoked: $id")
 
+class InvitationNotExpirableException(id: String) : RuntimeException("Invitation cannot be expired: $id")
+
 class InvitationNotAcceptableException(id: String) : RuntimeException("Invitation cannot be accepted: $id")
 
 class InvitationRateLimitExceededException(waitlistEntryId: String) :

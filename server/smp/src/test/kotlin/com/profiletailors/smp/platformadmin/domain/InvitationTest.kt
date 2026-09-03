@@ -131,6 +131,16 @@ class InvitationTest {
     }
 
     @Test
+    fun `non accepted invitation rejects acceptance metadata`() {
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(acceptedAt = now)
+        }
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(acceptedPrincipalId = "principal-1")
+        }
+    }
+
+    @Test
     fun `acceptance records principal and changes only semantic invitation state`() {
         val invitation = activeInvitation()
 
@@ -141,6 +151,49 @@ class InvitationTest {
         assertEquals("principal-1", accepted.acceptedPrincipalId)
         assertEquals(invitation.tokenHash, accepted.tokenHash)
         assertEquals(invitation.expiresAt, accepted.expiresAt)
+    }
+
+    @Test
+    fun `acceptance increments the invitation version`() {
+        val accepted = activeInvitation().accept(now.plusSeconds(30), "principal-1")
+
+        assertEquals(1, accepted.version)
+    }
+
+    @Test
+    fun `expiration materializes at the exclusive boundary and increments the version`() {
+        val invitation = activeInvitation()
+
+        val expired = invitation.expire(invitation.expiresAt)
+
+        assertEquals(InvitationStatus.EXPIRED, expired.status)
+        assertEquals(1, expired.version)
+    }
+
+    @Test
+    fun `expiration before the boundary is rejected`() {
+        assertThrows<InvitationNotExpirableException> {
+            activeInvitation().expire(now.plusSeconds(3599))
+        }
+    }
+
+    @Test
+    fun `revocation transitions active invitations and increments the version`() {
+        val revoked = activeInvitation().revoke()
+
+        assertEquals(InvitationStatus.REVOKED, revoked.status)
+        assertEquals(1, revoked.version)
+    }
+
+    @Test
+    fun `terminal invitations reject expiration and revocation`() {
+        val accepted = activeInvitation().accept(now.plusSeconds(30), "principal-1")
+        val expired = activeInvitation().expire(activeInvitation().expiresAt)
+        val revoked = activeInvitation().revoke()
+
+        assertThrows<InvitationNotExpirableException> { accepted.expire(accepted.expiresAt) }
+        assertThrows<InvitationNotRevocableException> { expired.revoke() }
+        assertThrows<InvitationNotRevocableException> { revoked.revoke() }
     }
 
     @Test
@@ -183,5 +236,6 @@ class InvitationTest {
         issuedBy = issuer,
         createdAt = now,
         expiresAt = now.plusSeconds(3600),
+        version = 0,
     )
 }

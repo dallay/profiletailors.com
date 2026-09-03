@@ -44,6 +44,7 @@ as a historical record and a guide for current and future development.
 | 0017 | [Value Objects Are Immutable and Validate at Construction](./0017-value-objects-are-immutable.md) | Accepted | 2026-08-09 |
 | 0018 | [Regional Data Residency and Controlled Transfer Architecture](./0018-regional-data-residency-and-controlled-transfer-architecture.md) | Accepted | 2026-08-26 |
 | 0019 | [MCP Write Tools for Publication Lifecycle](./0019-mcp-write-tools.md) | Accepted | 2026-08-28 |
+| 0020 | [Model Invitation as a First-Class Domain Capability](./0020-first-class-invitation-aggregate.md) | Accepted | 2026-09-02 |
 
 ## Relationship with other docs
 

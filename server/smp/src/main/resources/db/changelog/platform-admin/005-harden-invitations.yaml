@@ -1,0 +1,74 @@
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-005-harden-invitations
+      author: platform-admin
+      changes:
+        - addColumn:
+            tableName: invitations
+            columns:
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: >
+              ALTER TABLE invitations
+              ADD CONSTRAINT chk_invitations_source_reference
+              CHECK (
+                (source = 'DIRECT' AND source_reference_id IS NULL)
+                OR (source = 'WAITLIST' AND source_reference_id IS NOT NULL AND btrim(source_reference_id) <> '')
+              );
+        - sql:
+            sql: >
+              ALTER TABLE invitations
+              ADD CONSTRAINT chk_invitations_email_normalized
+              CHECK (invited_email_normalized = lower(btrim(invited_email_normalized)) AND btrim(invited_email_normalized) <> '');
+        - sql:
+            sql: >
+              ALTER TABLE invitations
+              ADD CONSTRAINT chk_invitations_expiry_after_creation
+              CHECK (expires_at > created_at);
+        - sql:
+            sql: >
+              ALTER TABLE invitations
+              ADD CONSTRAINT chk_invitations_acceptance_metadata
+              CHECK (
+                (status = 'ACCEPTED' AND accepted_at IS NOT NULL AND accepted_principal_id IS NOT NULL AND btrim(accepted_principal_id) <> '')
+                OR (status <> 'ACCEPTED' AND accepted_at IS NULL AND accepted_principal_id IS NULL)
+              );
+        - sql:
+            sql: >
+              ALTER TABLE invitations
+              ADD CONSTRAINT chk_invitations_token_material
+              CHECK (btrim(candidate_key) <> '' AND btrim(token_hash) <> '');
+        - sql:
+            sql: >
+              ALTER TABLE invitations
+              ADD CONSTRAINT chk_invitations_version_nonnegative
+              CHECK (version >= 0);
+        - sql:
+            sql: >
+              ALTER TABLE invitations
+              ADD CONSTRAINT chk_invitations_status
+              CHECK (status IN ('ACTIVE', 'ACCEPTED', 'EXPIRED', 'REVOKED'));
+        - sql:
+            sql: >
+              ALTER TABLE invitations
+              ADD CONSTRAINT chk_invitations_source
+              CHECK (source IN ('DIRECT', 'WAITLIST'));
+        - sql:
+            sql: >
+              CREATE UNIQUE INDEX uq_invitations_workspace_active_email
+              ON invitations (workspace_id, invited_email_normalized)
+              WHERE status = 'ACTIVE';
+        - sql:
+            sql: >
+              CREATE INDEX idx_invitations_candidate_key_lookup
+              ON invitations (candidate_key);
+        - sql:
+            sql: >
+              CREATE INDEX idx_invitations_expiration
+              ON invitations (expires_at)
+              WHERE status = 'ACTIVE';
