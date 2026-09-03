@@ -12,7 +12,7 @@
   `[LEGAL-REVIEW REQUIRED]` must be reviewed by a qualified lawyer before commercial distribution
   or external investment.
 - Related:
-    - OpenSpec: `legal-compliance-foundation`
+    - OpenSpec: legal-compliance-foundation
     - Issues/PRs: DALLAY-498
     - Contributor map: [`docs/compliance/contributor-copyright-map.md`](../../compliance/contributor-copyright-map.md)
     - Source-offer runbook: [`docs/compliance/agpl-source-offer.md`](../../compliance/agpl-source-offer.md)
@@ -197,7 +197,7 @@ The dual-licensing deferral MUST be revisited if:
 - [`LICENSE`](../../../LICENSE): Repository licence file
 - [`CONTRIBUTING.md`](../../../CONTRIBUTING.md): Contribution guidelines
 - [`CLA.md`](../../../CLA.md): Contributor License Agreement
-- [OpenSpec: legal-compliance-foundation](../../../openspec/changes/archive/2026-07-17-dallay-488-legal-policies/proposal.md)
+- OpenSpec: legal-compliance-foundation
 
 ### Follow-up actions
 

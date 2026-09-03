@@ -22,8 +22,7 @@ understand what the product must do, why a change was made, or what evidence ver
 - **2026-08-29**: `mcp-write-tools` archived to `archive/2026-08-29-mcp-write-tools/`. Added MCP
   write tools (create/edit/delete/cancel/retry publications) with idempotency, audit, rate limiting,
   and per-tool scope authorization. 3 units merged to main.
-- **2026-08-03**: Updated password-recovery artifact references from `changes/password-recovery/...`
-  to `changes/archive/2026-07-29-password-recovery/...` (dead-reference-cleaner automation).
+- **2026-08-03**: Updated password-recovery artifact references to `specs/password-recovery-ui/spec.md`.
 
 ## Structure
 
@@ -56,12 +55,9 @@ When implementing a feature:
 5. Archive a change only after implementation, verification, and source-spec synchronization are
    complete.
 
-For the archived password-recovery work (completed and archived 2026-07-29), refer to:
+For password recovery specifications, refer to:
 
-- [Password-recovery state](changes/archive/2026-07-29-password-recovery/state.yaml)
-- [Password-recovery specification](changes/archive/2026-07-29-password-recovery/spec.md)
-- [Password-recovery task progress](changes/archive/2026-07-29-password-recovery/apply-progress.md)
-- [Password-recovery verification report](changes/archive/2026-07-29-password-recovery/verify-report.md)
+- [Password-recovery specification](specs/password-recovery-ui/spec.md)
 
 ## Troubleshooting
 
