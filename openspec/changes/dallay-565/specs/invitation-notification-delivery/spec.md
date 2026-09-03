@@ -1,10 +1,10 @@
 # Invitation Notification Delivery Specification
 
-## Purpose
+## Overview
 
 Integrate DALLAY-564's standalone Invitation with Notifications while isolating validity from delivery.
 
-## Requirements
+## Changes
 
 ### Requirement: Canonical Invitation and Prerequisite
 
@@ -101,8 +101,10 @@ add exactly one delivery for the same Invitation and MUST NOT mint a replacement
 ### Requirement: Token-Safe Durable Boundary
 
 Raw tokens and directly recoverable token-bearing values MUST NOT enter durable events, logs, audit
-records, metrics, or persistence. Delivery data MUST contain only non-secret correlation and
-operational values.
+records, metrics, or persistence. `InvitationNotificationRequested` MUST contain only
+`invitationId`, `commandId`, and the `INITIAL`/`RESEND` delivery kind. Recipient, workspace, locale,
+token-related values, and other mutable invitation data MUST be resolved by their owning contexts
+from identifiers and MUST NOT enter the durable request or persisted payload.
 
 #### Scenario: Durable data is token-free
 
@@ -147,3 +149,22 @@ response.
 - GIVEN a legacy waitlist invitation row exists
 - WHEN its existing read is requested
 - THEN its compatible response MUST remain available without new delivery writes
+
+## Usage
+
+Use these requirements as the acceptance contract for the four DALLAY-565 work units. Unit 1 may
+verify contract shape only; scheduling, persistence, admin composition, and acceptance evidence
+belong to their corresponding later units.
+
+## Troubleshooting
+
+If DALLAY-566 has not supplied the approved ephemeral handoff, stop before delivery implementation
+and keep task 1.3 incomplete. Missing runtime or PostgreSQL evidence must remain blocked or not run,
+not be inferred from contract tests.
+
+## References
+
+- [DALLAY-565 proposal](../../proposal.md)
+- [DALLAY-565 design](../../design.md)
+- [Email notifications delta](../email-notifications/spec.md)
+- [Change state](../../state.yaml)

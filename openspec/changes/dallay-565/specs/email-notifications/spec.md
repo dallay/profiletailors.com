@@ -1,6 +1,13 @@
 # Delta for Email Notifications
 
-## MODIFIED Requirements
+## Overview
+
+This delta narrows invitation email triggers to an identity-only, post-commit handoff while keeping
+Notifications responsible for delivery state and token-safe persistence.
+
+## Changes
+
+**MODIFIED Requirements**
 
 ### Requirement: Domain Event Consumer for Email Notifications
 
@@ -28,7 +35,7 @@ not define invitation-specific post-commit timing, delivery ownership, or token-
 - WHEN the consumer processes the event
 - THEN it MUST log the failure
 - AND it MUST NOT throw the provider failure to the caller
-- AND it SHOULD retry transiently in a future implementation
+- AND it MUST retry transient failures
 - AND the system MUST allow manual resend through its existing flow
 
 #### Scenario: Event consumer validates event data
@@ -59,3 +66,19 @@ not define invitation-specific post-commit timing, delivery ownership, or token-
 - WHEN the consumer persists delivery state or emits observability output
 - THEN it MUST retain only non-secret correlation and operational data
 - AND it MUST NOT emit a reverse delivery-state event to Invitation
+
+## Usage
+
+Use these scenarios to verify event-consumer behavior, transient retries, post-commit timing,
+idempotency, delivery ownership, and token-safe persistence.
+
+## Troubleshooting
+
+DALLAY-566 remains the hard gate for the ephemeral token handoff. A missing handoff contract blocks
+invitation delivery implementation but does not weaken the mandatory transient-retry requirement.
+
+## References
+
+- [DALLAY-565 design](../../design.md)
+- [Invitation notification delivery delta](../invitation-notification-delivery/spec.md)
+- [Email notifications source specification](../../../../specs/email-notifications/spec.md)

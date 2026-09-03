@@ -1,13 +1,17 @@
 # Design: Invitation Notification Delivery for Admin Operations
 
-## Technical Approach
+## Overview
+
+### Technical Approach
 
 DALLAY-564 lands first and owns new `Invitation` lifecycle writes. DALLAY-565 connects that aggregate
 to Notifications through a token-free request after the explicit R2DBC transaction commits. Notifications
 owns delivery records; Platformadmin composes operator reads from Invitation and a narrow Notifications
 summary. No aggregate instance crosses the boundary; correlation is by `InvitationId`.
 
-## Architecture Decisions
+## Changes
+
+### Architecture Decisions
 
 | Decision | Choice | Alternatives rejected | Rationale |
 |---|---|---|---|
@@ -17,7 +21,7 @@ summary. No aggregate instance crosses the boundary; correlation is by `Invitati
 | Idempotency | `platform.invitation:{invitationId}:{commandId}` with a database uniqueness constraint | Invitation-only key | Repeating one command reuses one delivery; a new resend command adds one delivery for the same Invitation. |
 | Admin read | Explicit Notifications summary port keyed by ID | Cross-context table join; generic notification admin API | Preserves hexagonal boundaries and keeps DALLAY-574 out of scope. |
 
-## Event, Command, and Token Boundary
+### Event, Command, and Token Boundary
 
 Platformadmin receives a validated `commandId` from the admin `Idempotency-Key` contract and exposes
 `InvitationNotificationScheduler`. Its adapter publishes token-free `InvitationNotificationRequested`
@@ -25,15 +29,22 @@ through the existing `EventPublisher<DomainEvent>` after commit. Notifications m
 command, claims the key through `NotificationRepository`, dispatches via `EmailDispatcher`, and records
 `SENT` or `FAILED`. Remove the old reverse outcome event and bridge.
 
-The request contains `InvitationId`, `commandId`, `INITIAL`/`RESEND`, recipient, workspace name, and
-locale. It contains no Invitation object, token hash, raw token, or token-bearing URL. Persisted
-`Notification.payload` contains safe metadata only; `InvitationEmail` must not persist a token-bearing link.
+The durable request contains only `InvitationId`, `commandId`, and `INITIAL`/`RESEND`. It contains no
+Invitation object, recipient, workspace name, locale, token hash, raw token, token-bearing URL, or
+other mutable invitation data. The owning Platformadmin context resolves recipient and workspace
+details from identifiers at the approved ephemeral handoff; none of those values are part of the
+shared event or its persisted representation.
+
+Persisted `Notification.payload` contains only non-secret correlation and operational metadata.
+`InvitationEmail` must not place a token-bearing link in that payload or any other durable or event
+representation. Rendering and dispatch may receive such a link only through DALLAY-566's approved
+ephemeral handoff and must discard it immediately afterward.
 
 Chosen DALLAY-566 boundary: raw token material may exist only in an approved ephemeral handoff immediately
 before rendering and `EmailDispatcher.dispatch`, then is discarded. DALLAY-566 owns generation, rotation,
 TTL, validation, recipient binding, URL assembly, envelope, and encoding. This design invents none of them.
 
-## Data Flow
+### Data Flow
 
 ```text
 DALLAY-564 command -> AtomicTransactionRunner -> commit
@@ -44,16 +55,13 @@ DALLAY-564 command -> AtomicTransactionRunner -> commit
 Admin read -> Invitation reader + Notifications summary port -> compatible response
 ```
 
-## Interfaces / Contracts
+### Interfaces / Contracts
 
 ```kotlin
 data class InvitationNotificationRequested(
     val invitationId: UUID,
     val commandId: String,
     val kind: InvitationDeliveryKind,
-    val recipient: String,
-    val workspaceName: String,
-    val locale: String?,
 )
 
 interface InvitationDeliverySummaryReader {
@@ -65,7 +73,7 @@ interface InvitationDeliverySummaryReader {
 timestamps; it never exposes payload or provider content. Duplicate commands return the existing record
 without another provider call. A new resend key adds one delivery and does not mint an Invitation.
 
-## File Changes
+### File Changes
 
 | File | Action | Description |
 |---|---|---|
@@ -78,7 +86,9 @@ without another provider call. A new resend key adds one delivery and does not m
 | `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcAdminInvitationQuery.kt`, `AdminInvitationSummary.kt`, `AdminInvitationController.kt` | Modify | Compose canonical lifecycle data with Notifications and preserve compatible legacy reads. |
 | `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/events/UpdateInvitationDeliveryOnNotificationAttempted.kt` and `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/event/{InvitationCreated,InvitationResent,InvitationDeliveryAttempted}.kt` | Delete/replace | Remove reverse ownership and raw-token event contracts. |
 
-## Testing Strategy
+## Usage
+
+### Testing Strategy
 
 Unit tests cover Notification transitions, same-key reuse, distinct resend keys, active Invitation after
 failure, and token-free serialization. PostgreSQL tests cover commit versus rollback, unique-key races,
@@ -87,14 +97,23 @@ masked logs, and token absence. Cucumber `@smoke`/`@fast` scenarios cover initia
 failure independence, duplicate commands, and resend multiplicity. Existing architecture and Modulith
 tests remain the boundary checks.
 
-## Migration / Rollout
+## Troubleshooting
+
+### Migration / Rollout
 
 DALLAY-564 owns the `invitations` Liquibase schema. Extend existing Notifications startup DDL only for
 correlation columns/indexes; do not claim a migration system or outbox. Retain `waitlist_invitations`, its
 delivery columns, and historical `R2dbcAdminWaitlistQuery` reads. New flows write neither legacy fields
 nor rows. No backfill, redaction, or destructive removal is authorized. DALLAY-519 remains separate.
 
-## Open Questions
+### Open Questions
 
 - [ ] DALLAY-566 must approve the concrete ephemeral token handoff before implementation crosses it.
 - [ ] Confirm whether the admin response exposes all latest timestamps or only the summary contract.
+
+## References
+
+- [DALLAY-565 proposal](proposal.md)
+- [Invitation notification delivery specification](specs/invitation-notification-delivery/spec.md)
+- [Email notifications delta](specs/email-notifications/spec.md)
+- [ADR-0016: Aggregates Communicate by Identity Only](../../../docs/architecture/adr/0016-aggregates-communicate-by-identity-only.md)

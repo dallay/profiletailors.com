@@ -15,22 +15,16 @@ internal class InvitationNotificationContractsTest {
     private val invitationId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
     @Test
-    fun `requested event exposes the approved token-free shape`() {
+    fun `requested event exposes the approved identity-only shape`() {
         val event = InvitationNotificationRequested(
             invitationId = invitationId,
             commandId = "command-1",
             kind = InvitationDeliveryKind.INITIAL,
-            recipient = "invitee@example.com",
-            workspaceName = "Profile Tailors",
-            locale = "en",
         )
 
         assertEquals(invitationId, event.invitationId)
         assertEquals("command-1", event.commandId)
         assertEquals(InvitationDeliveryKind.INITIAL, event.kind)
-        assertEquals("invitee@example.com", event.recipient)
-        assertEquals("Profile Tailors", event.workspaceName)
-        assertEquals("en", event.locale)
     }
 
     @Test
@@ -46,19 +40,12 @@ internal class InvitationNotificationContractsTest {
     }
 
     @Test
-    fun `requested event carries correlation and safe delivery context without token material`() {
+    fun `requested event carries only identity correlation and delivery kind`() {
         val fieldNames = InvitationNotificationRequested::class.java.declaredFields
             .map { it.name }
             .toSet()
 
-        assertTrue(
-            fieldNames.containsAll(
-                setOf("invitationId", "commandId", "kind", "recipient", "workspaceName", "locale"),
-            ),
-        )
-        assertFalse(fieldNames.contains("rawToken"))
-        assertFalse(fieldNames.contains("tokenHash"))
-        assertFalse(fieldNames.contains("acceptUrl"))
+        assertEquals(setOf("invitationId", "commandId", "kind"), fieldNames)
     }
 
     @Test
@@ -68,13 +55,25 @@ internal class InvitationNotificationContractsTest {
                 invitationId = invitationId,
                 commandId = " ",
                 kind = InvitationDeliveryKind.INITIAL,
-                recipient = "invitee@example.com",
-                workspaceName = "Profile Tailors",
-                locale = "en",
             )
         }
 
-        assertTrue(thrown.message!!.contains("commandId"))
+        assertTrue(thrown.message.orEmpty().contains("commandId"))
+    }
+
+    @Test
+    fun `delivery summary rejects a negative count`() {
+        val thrown = assertFailsWith<IllegalArgumentException> {
+            InvitationDeliverySummary(
+                count = -1,
+                latestStatus = null,
+                latestCreatedAt = null,
+                latestSentAt = null,
+                latestFailedAt = null,
+            )
+        }
+
+        assertTrue(thrown.message.orEmpty().contains("count"))
     }
 
     @Test

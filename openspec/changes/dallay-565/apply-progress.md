@@ -1,6 +1,8 @@
 # Apply Progress: `dallay-565` unit 1
 
-## Scope
+## Overview
+
+### Scope
 
 - **Change:** DALLAY-565 Invitation Notification Delivery
 - **Unit:** 1, contracts/model
@@ -9,7 +11,9 @@
 - **Position:** 1 of 4
 - **Strategy:** `github-stacked-prs`
 
-## Completed Tasks
+## Changes
+
+### Completed Tasks
 
 - [x] 1.1 Verified the DALLAY-564 standalone `Invitation`, `InvitationId`, acceptance port/command,
   lifecycle invariants, and `invitations` schema are present in this checkout. The existing
@@ -17,7 +21,7 @@
 - [x] 1.2 Added token-free `InvitationNotificationRequested` and `InvitationDeliveryKind` contracts,
   `InvitationDeliverySummary` and `InvitationDeliverySummaryReader`, plus focused contract tests.
 
-## TDD Evidence
+### TDD Evidence
 
 The focused test was written before the new contracts. The first RED run failed because the requested
 contract classes were absent (`ClassNotFoundException`). After the minimum shared contracts were added,
@@ -27,7 +31,17 @@ The existing `Notification` model was intentionally left unchanged because unit 
 durable notification persistence correlation fields; unit 2/4 must add those fields with repository
 and race coverage.
 
-## Commands Run
+### Files Changed
+
+- `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/event/InvitationNotificationRequested.kt`
+- `shared/notifications/src/main/kotlin/com/profiletailors/notifications/application/ports/InvitationDeliverySummaryReader.kt`
+- `shared/notifications/src/test/kotlin/com/profiletailors/notifications/domain/InvitationNotificationContractsTest.kt`
+- `openspec/changes/dallay-565/tasks.md`
+- `openspec/changes/dallay-565/state.yaml`
+
+## Usage
+
+### Commands Run
 
 - `./gradlew :shared:notifications:test --tests 'com.profiletailors.notifications.domain.InvitationNotificationContractsTest' --no-daemon`
   — RED: failed as expected with five `ClassNotFoundException` failures before production contracts.
@@ -46,19 +60,20 @@ The required broader unfiltered task invocation (`just backend-test-fast`) was n
 unit is a shared contract slice and the full SMP fast suite is outside its focused boundary. Apply
 does not claim the broader repository suite is green.
 
-## Files Changed
+## Troubleshooting
 
-- `shared/notifications/src/main/kotlin/com/profiletailors/notifications/domain/event/InvitationNotificationRequested.kt`
-- `shared/notifications/src/main/kotlin/com/profiletailors/notifications/application/ports/InvitationDeliverySummaryReader.kt`
-- `shared/notifications/src/test/kotlin/com/profiletailors/notifications/domain/InvitationNotificationContractsTest.kt`
-- `openspec/changes/dallay-565/tasks.md`
-- `openspec/changes/dallay-565/state.yaml`
-
-## Boundaries and Risks
+### Boundaries and Risks
 
 - No delivery consumer, scheduler, admin composition, schema migration, token transport, raw-token
   handling, or DALLAY-566 behavior was implemented.
-- The requested event intentionally contains recipient and workspace display context because the
-  approved design lists them as required handoff properties; it contains no raw token, token hash,
-  accept URL, or token-bearing value.
+- The requested event contains only Invitation identity, command identity, and delivery kind.
+  Recipient, workspace, locale, and token-bearing values must be resolved through their owning
+  contexts at the approved ephemeral handoff and are not part of this durable contract.
 - DALLAY-566 remains a hard gate for any ephemeral token handoff. Unit 1 does not cross it.
+
+## References
+
+- [Tasks](tasks.md)
+- [Design](design.md)
+- [Verification report](verify-report.md)
+- [Change state](state.yaml)

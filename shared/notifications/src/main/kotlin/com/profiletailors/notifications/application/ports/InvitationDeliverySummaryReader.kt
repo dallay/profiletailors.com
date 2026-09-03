@@ -28,10 +28,10 @@ data class InvitationDeliverySummary(
 
 fun interface InvitationDeliverySummaryReader {
     /**
- * Summarizes notification delivery activity for an invitation.
- *
- * @param invitationId The identifier of the invitation.
- * @return The invitation's delivery summary.
- */
-suspend fun summarize(invitationId: UUID): InvitationDeliverySummary
+     * Summarizes notification delivery activity for an invitation.
+     *
+     * @param invitationId The identifier of the invitation.
+     * @return The invitation's delivery summary.
+     */
+    suspend fun summarize(invitationId: UUID): InvitationDeliverySummary
 }

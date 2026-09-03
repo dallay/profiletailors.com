@@ -1,8 +1,15 @@
-## Exploration: Expose invitation notification delivery for admin operations while separating Invitation and Notification bounded contexts
+# Exploration: Expose invitation notification delivery for admin operations while separating Invitation and Notification bounded contexts
 
-### Current State
+## Overview
 
-The repository does not contain the prior session's claimed DALLAY-565 artifacts or partial implementation. The active directory `openspec/changes/dallay-565/` contains only the untracked `state.yaml`; it has no `exploration.md`, proposal, delta specs, design, or tasks. `git ls-tree -r HEAD -- openspec/changes/dallay-565` and the all-branch history for that path are empty, and there is no current or historical `InvitationIssued` source file. The memory references to `openspec/changes/dallay-565-invitation-notification-integration/` and `InvitationIssued` therefore describe work that is not present in this worktree or reachable git history. The only uncommitted repository item is the existing untracked DALLAY-565 state directory; it is preserved.
+### Historical Discovery State
+
+At the start of exploration on 2026-09-01, the repository did not contain the prior session's
+claimed DALLAY-565 artifacts or partial implementation. The active directory contained only an
+untracked `state.yaml`; it had no exploration, proposal, delta specs, design, or tasks. That
+historical absence was resolved later in the same change: the proposal, design, delta specs, tasks,
+application evidence, QA report, and verification report now exist, and `state.yaml` records
+`current_phase: qa-unit-1`.
 
 The invitation email integration that is present was introduced by `09168d86` and later adjusted by invitation-email commits such as `19287316`, `a9055f20`, `5c830d1d`, `d09a5220`, and `ed469186`. The current flow is:
 
@@ -14,7 +21,9 @@ The invitation email integration that is present was introduced by `09168d86` an
 
 The first-class `platformadmin.domain.Invitation` model already represents invitation validity without delivery fields, but the waitlist invite/resend flow still uses the older `WaitlistInvitation` model. This leaves two invitation representations in the same bounded context. The architecture documentation already names Platformadmin and Notifications as separate bounded contexts (`docs/architecture/c4/03-component.md`, `docs/architecture/c4/04-code.md`), and `server/smp/notifications/ModuleMetadata.kt` documents Notifications as a hybrid context whose reusable domain/application code lives in `shared/notifications`.
 
-The product contract makes the admin surface operator-only and explicitly excludes email sending from the admin SPA (`apps/web/admin/PRODUCT.md`). The backend change should therefore expose reliable operational delivery data through backend contracts, not move provider delivery into the admin frontend. `openspec/specs/email-notifications/spec.md` covers generic event-driven email, idempotency, failures, and visibility, but no invitation-specific delta spec exists. `openspec/specs/private-beta-launch-readiness/spec.md` requires invite delivery, operator-visible status, failure handling, and a manual fallback as part of the broader beta gate.
+The product contract makes the admin surface operator-only and explicitly excludes email sending from the admin SPA (`apps/web/admin/PRODUCT.md`). The backend change should therefore expose reliable operational delivery data through backend contracts, not move provider delivery into the admin frontend. At discovery time, `openspec/specs/email-notifications/spec.md` covered generic event-driven email, idempotency, failures, and visibility, but no invitation-specific delta existed; this change now supplies that delta. `openspec/specs/private-beta-launch-readiness/spec.md` requires invite delivery, operator-visible status, failure handling, and a manual fallback as part of the broader beta gate.
+
+## Changes
 
 ### Affected Areas
 
@@ -54,16 +63,29 @@ The product contract makes the admin surface operator-only and explicitly exclud
 
 ### Recommendation
 
-Use Approach 1 as the candidate direction, but do not create a proposal until the contract is clarified. The current implementation has enough evidence to identify the architectural defect, but not enough product detail to define a safe migration: the admin API already exposes delivery fields while the issue says delivery belongs to Notifications, and the code has both a first-class `Invitation` aggregate and a legacy `WaitlistInvitation` flow.
+Approach 1 is the selected direction. The resulting proposal and design use the standalone
+`Invitation` as the canonical lifecycle model, keep delivery state in Notifications, correlate by
+identity, and preserve legacy reads without new legacy writes.
 
-The next phase needs explicit answers to these questions:
+The proposal and design record these decisions:
 
-- Is DALLAY-565 limited to the existing waitlist invitation flow, or must it first switch the flow to the first-class `Invitation` model from DALLAY-564?
-- What exactly must admin operations receive: the existing invitation summary fields, a joined delivery summary, a separate notification identifier, or only a query seam for DALLAY-574? Which status values and timestamps are contractual?
-- May the raw token or token-bearing accept URL be retained in a persisted notification payload? Current `InvitationEmailTest` protects against a separate raw-token field, but `R2dbcNotificationRepository` still persists the accept URL in JSONB.
-- Does resend create a new invitation identity, as the current handler does, or reuse one logical invitation identity? This determines correlation and idempotency semantics.
-- Is “after successful persistence” a hard post-commit guarantee, and is an in-memory Spring transaction listener acceptable, or is durable outbox behavior required? The current event publisher fans out to both Spring and the legacy event emitter, while `docs/architecture/transaction-policy.md` requires explicit reactive transaction handling.
-- Which component owns failure visibility, manual fallback, and any retry authority between DALLAY-565 and the blocked DALLAY-574 work?
+- New delivery flows use DALLAY-564's standalone `Invitation` and stable identity.
+- Admin reads compose lifecycle data with a narrow Notifications summary.
+- Durable events and payloads contain identity and operational data only; DALLAY-566 owns the
+  unresolved ephemeral token handoff.
+- Resends retain the Invitation identity and use a new command key.
+- The initial scheduling seam is best-effort `AFTER_COMMIT`; an outbox remains out of scope.
+- Notifications owns failure visibility, while generic retry operations remain with DALLAY-574.
+
+## Usage
+
+### Proposal Readiness
+
+Yes — Approach 1 was selected and is represented by `proposal.md`, `design.md`, both delta specs,
+and `tasks.md`. Unit 1 contract work has been technically verified with warnings, acceptance remains
+`NOT TESTED`, and progression to unit 2 remains blocked on DALLAY-566.
+
+## Troubleshooting
 
 ### Risks
 
@@ -73,8 +95,12 @@ The next phase needs explicit answers to these questions:
 - Notification idempotency is currently keyed by invitation ID, while resend creates a new invitation ID. Changing either side can cause duplicate sends or suppress a legitimate resend.
 - The current test suite has strong unit and PostgreSQL coverage for the existing coupling but no invitation/notification Cucumber feature was found, and no test proves that rollback suppresses scheduling while commit enables it.
 - DALLAY-565 is blocked in Linear by DALLAY-564 and blocks DALLAY-570 and DALLAY-574; choosing the wrong invitation model or API seam can create rework across those changes.
-- The active worktree has an unrelated `settings` branch tip and the untracked DALLAY-565 state directory; no production code or unrelated worktree changes were modified during this exploration.
+- The active worktree had an unrelated `settings` branch tip and the untracked DALLAY-565 state
+  directory during initial exploration; no unrelated worktree changes were modified.
 
-### Ready for Proposal
+## References
 
-No — clarification is required before `sdd-propose`. The architectural candidate is clear, but canonical invitation ownership, admin delivery contract, token persistence, resend identity/idempotency, and post-commit durability are unresolved. Once those decisions are recorded, the orchestrator can safely run the proposal phase; until then, do not infer the missing proposal/design/implementation from prior session memory.
+- [Proposal](proposal.md)
+- [Design](design.md)
+- [Invitation notification delivery specification](specs/invitation-notification-delivery/spec.md)
+- [Change state](state.yaml)
