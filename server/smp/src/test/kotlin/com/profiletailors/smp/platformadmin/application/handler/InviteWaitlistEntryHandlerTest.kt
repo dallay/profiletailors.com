@@ -12,9 +12,7 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
-import com.profiletailors.notifications.domain.event.InvitationCreated
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
-import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
@@ -23,6 +21,7 @@ import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvita
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
+import com.profiletailors.smp.platformadmin.domain.InvitationIssued
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
@@ -63,10 +62,6 @@ class InviteWaitlistEntryHandlerTest {
         override fun matches(rawToken: String, storedHash: String): Boolean = false
     }
 
-    private val acceptUrlTemplate = AcceptUrlTemplate { rawToken ->
-        "https://app.profiletailors.com/invitations/accept?token=$rawToken"
-    }
-
     private val handler = InviteWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
@@ -75,7 +70,6 @@ class InviteWaitlistEntryHandlerTest {
         clock = clock,
         invitationTtl = ttl,
         tokenHasher = tokenHasher,
-        acceptUrlTemplate = acceptUrlTemplate,
     )
 
     private val ownerRoles = setOf(PlatformRole.PLATFORM_OWNER)
@@ -123,7 +117,7 @@ class InviteWaitlistEntryHandlerTest {
     }
 
     @Test
-    fun `creates invitation, transitions entry from PENDING to INVITED, and publishes InvitationCreated`() = runTest {
+    fun `creates invitation, transitions entry from PENDING to INVITED, and publishes InvitationIssued`() = runTest {
         val pendingEntry = entry(WaitlistEntryStatus.PENDING)
         coEvery { waitlistEntryAdmin.findById(entryId) } returns pendingEntry
         coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
@@ -144,11 +138,10 @@ class InviteWaitlistEntryHandlerTest {
 
         assertThat(savedEntrySlot.captured.status).isEqualTo(WaitlistEntryStatus.INVITED)
         coVerify { auditPublisher.publish(any<AdminAuditEvent>()) }
-        assertThat(eventSlot.captured).isInstanceOf(InvitationCreated::class.java)
-        val published = eventSlot.captured as InvitationCreated
-        assertThat(published.recipient).isEqualTo("candidate@example.com")
+        assertThat(eventSlot.captured).isInstanceOf(InvitationIssued::class.java)
+        val published = eventSlot.captured as InvitationIssued
+        assertThat(published.recipientEmail).isEqualTo("candidate@example.com")
         assertThat(published.workspaceName).isEqualTo("Profile Tailors Beta")
-        assertThat(published.acceptUrl).startsWith("https://app.profiletailors.com/invitations/accept?token=")
         assertThat(published.locale).isEqualTo("en")
         assertThat(published.rawToken).isNotBlank()
     }

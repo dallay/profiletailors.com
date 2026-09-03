@@ -3,9 +3,7 @@ package com.profiletailors.smp.platformadmin.application.handler
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
-import com.profiletailors.notifications.domain.event.InvitationCreated
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
-import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
@@ -17,6 +15,7 @@ import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import com.profiletailors.smp.platformadmin.domain.AdminAuditResult
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
+import com.profiletailors.smp.platformadmin.domain.InvitationIssued
 import com.profiletailors.smp.platformadmin.domain.InvitationTokenGenerator
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
@@ -39,7 +38,6 @@ open class InviteWaitlistEntryHandler(
     private val clock: Clock,
     private val invitationTtl: Duration,
     private val tokenHasher: TokenHasher,
-    private val acceptUrlTemplate: AcceptUrlTemplate,
 ) {
 
     @Suppress("ThrowsCount", "LongMethod")
@@ -110,13 +108,10 @@ open class InviteWaitlistEntryHandler(
         )
 
         eventPublisher.publish(
-            InvitationCreated(
+            InvitationIssued(
                 invitationId = invitation.id.value,
-                waitlistEntryId = command.waitlistEntryId,
-                operatorPrincipalId = command.operatorPrincipalId,
-                recipient = context.recipientEmail,
+                recipientEmail = context.recipientEmail,
                 workspaceName = context.workspaceName,
-                acceptUrl = acceptUrlTemplate.build(rawToken),
                 locale = context.locale,
                 rawToken = rawToken,
             ),

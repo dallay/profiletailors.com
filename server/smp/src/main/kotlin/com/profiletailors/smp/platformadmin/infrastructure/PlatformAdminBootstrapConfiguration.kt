@@ -80,7 +80,6 @@ class PlatformAdminBootstrapConfiguration {
         eventPublisher: EventPublisher<DomainEvent>,
         clock: Clock,
         tokenHasher: TokenHasher,
-        acceptUrlTemplate: AcceptUrlTemplate,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
     ): InviteWaitlistEntryHandler = InviteWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
@@ -90,7 +89,6 @@ class PlatformAdminBootstrapConfiguration {
         clock = clock,
         invitationTtl = Duration.ofDays(ttlDays),
         tokenHasher = tokenHasher,
-        acceptUrlTemplate = acceptUrlTemplate,
     )
 
     @Bean
