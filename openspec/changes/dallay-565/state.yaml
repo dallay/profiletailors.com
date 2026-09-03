@@ -1,0 +1,42 @@
+change: dallay-565
+current_phase: qa-unit-1
+completed:
+  - init
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply-unit-1-contracts-model
+next: qa-unit-1
+apply_unit: 1
+apply_status: partial
+apply_branch: feat/dallay-565-contracts
+apply_base: main
+apply_parent_branch: main
+apply_position: 1
+apply_workload_decision: github-stacked-prs
+qa_report: openspec/changes/dallay-565/qa-report.md
+qa_unit: 1
+qa_status: blocked
+qa_verdict: NOT TESTED
+dependency_hold: DALLAY-566-token-handoff
+updated: "2026-09-01T00:00:00Z"
+strict_tdd: true
+persistence_mode: openspec
+bounded_contexts:
+  - invitation
+  - notification
+stack:
+  frontend:
+    - astro (marketing)
+    - vue + pinia (app/admin SPA)
+  backend:
+    - kotlin
+    - spring-boot-4
+    - webflux
+    - r2dbc
+  testing:
+    - vitest (frontend)
+    - cucumber + testcontainers (backend)
+    - playwright (e2e)
