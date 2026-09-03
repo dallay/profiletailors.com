@@ -76,7 +76,7 @@ architecture at different levels of abstraction.
 - **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md)
   for all `api` and `implementation` relationships
 - **Foundation**: [`shared:common`](../../shared/common/) and [
-  `shared:lead-capture:common`](../../shared/lead-capture:common/) — framework-agnostic domain
+  `shared:lead-capture:common`](../../shared/lead-capture/common/) — framework-agnostic domain
   primitives and lead-capture value objects, zero Spring dependencies
 - **Aggregates**: Clear boundaries and consistency rules
 - **Domain Events**: For cross-context communication

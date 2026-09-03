@@ -1,5 +1,62 @@
 schemaVersion: 1
 task: dead-reference-cleaner
-lastExecution: null
-findings: []
-checks: []
+lastExecution: "2026-09-03T01:45:00Z"
+outcome: CHANGES_APPLIED
+findings:
+  - id: FINDING-001
+    type: dead_reference
+    file: docs/runbooks/password-recovery.md
+    target: "../../openspec/changes/archive/2026-07-29-password-recovery/spec.md"
+    risk: LOW
+    status: resolved
+    firstDetected: "2026-09-03T01:45:00Z"
+    lastVerified: "2026-09-03T01:45:00Z"
+    occurrences: 1
+    remediation:
+      status: implemented
+      pullRequest: null
+      description: "Updated reference link to active OpenSpec contract openspec/specs/password-recovery-ui/spec.md"
+  - id: FINDING-002
+    type: dead_reference
+    file: openspec/README.md
+    target: "changes/archive/2026-07-29-password-recovery/state.yaml"
+    risk: LOW
+    status: resolved
+    firstDetected: "2026-09-03T01:45:00Z"
+    lastVerified: "2026-09-03T01:45:00Z"
+    occurrences: 1
+    remediation:
+      status: implemented
+      pullRequest: null
+      description: "Updated password-recovery references in OpenSpec README to openspec/specs/password-recovery-ui/spec.md"
+  - id: FINDING-003
+    type: dead_reference
+    file: docs/architecture/README.md
+    target: "../../shared/lead-capture:common/"
+    risk: LOW
+    status: resolved
+    firstDetected: "2026-09-03T01:45:00Z"
+    lastVerified: "2026-09-03T01:45:00Z"
+    occurrences: 1
+    remediation:
+      status: implemented
+      pullRequest: null
+      description: "Corrected directory path syntax from shared/lead-capture:common to shared/lead-capture/common"
+  - id: FINDING-004
+    type: dead_reference
+    file: docs/architecture/adr/0012-agpl-commercial-strategy.md
+    target: "../../../openspec/changes/archive/2026-07-17-dallay-488-legal-policies/proposal.md"
+    risk: LOW
+    status: resolved
+    firstDetected: "2026-09-03T01:45:00Z"
+    lastVerified: "2026-09-03T01:45:00Z"
+    occurrences: 1
+    remediation:
+      status: implemented
+      pullRequest: null
+      description: "Removed dead markdown link to deleted proposal file"
+checks:
+  - name: markdown-link-audit
+    target: repository-markdown-files
+    status: Passed
+    notes: "Audited all markdown relative link targets across repository"
