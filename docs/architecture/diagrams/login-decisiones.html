@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Current login decisions · Flowchart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #F5F5F0;
+      --color-ink:     #1A1A1A;
+      --color-muted:   #525252;
+      --color-accent:  #D71921;
+      --font-sans:     'Space Grotesk', system-ui, sans-serif;
+      --font-serif:    'Doto', monospace;
+      --font-mono:     'Space Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1200px; width: 100%; overflow-x: auto; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .sub {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+      max-width: 76ch;
+    }
+
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Flowchart · Current login</p>
+    <h1>Current login decisions</h1>
+    <p class="sub">Source: LoginUserHandler (gateway + hasher + emailStatus) and auth.store (zod + _applyTokens + _loadProfile). Frontend zod blocks bad forms before any request; PENDING emailStatus still signs in; only the happy path gets coral.</p>
+
+    <svg viewBox="0 0 1000 768" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="login-decisiones-title login-decisiones-desc">
+      <title id="login-decisiones-title">Current login decisions</title>
+      <desc id="login-decisiones-desc">Flowchart of the current login decisions: form validation, credential check, session issuance with JWT and cookie, and the 422 and 401 exits.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#525252"/>
+        </marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#D71921"/>
+        </marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/>
+        </marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#F5F5F0"/>
+
+      <!-- Arrows, drawn first -->
+      <line x1="400" y1="88" x2="400" y2="120" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="400" y1="168" x2="400" y2="192" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="500" y1="240" x2="680" y2="240" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="400" y1="288" x2="400" y2="328" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="500" y1="376" x2="680" y2="376" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="400" y1="424" x2="400" y2="464" stroke="#D71921" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <line x1="400" y1="512" x2="400" y2="544" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="400" y1="592" x2="400" y2="624" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- Arrow labels, masked with a visible gap -->
+      <rect x="578" y="220" width="24" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="590" y="229" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.12em">NO</text>
+
+      <rect x="412" y="302" width="32" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="428" y="311" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.12em">YES</text>
+
+      <rect x="578" y="356" width="24" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="590" y="365" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.12em">NO</text>
+
+      <rect x="412" y="438" width="32" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="428" y="447" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.12em">YES</text>
+
+      <!-- Start oval -->
+      <rect x="320" y="40" width="160" height="48" rx="24" fill="rgba(26,26,26,0.03)" stroke="rgba(26,26,26,0.30)" stroke-width="1"/>
+      <text x="400" y="68" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Submit login</text>
+
+      <!-- Step: validate -->
+      <rect x="320" y="120" width="160" height="48" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <text x="400" y="146" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Validate form</text>
+      <text x="400" y="160" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">zod · vue</text>
+
+      <!-- Decision 1 -->
+      <polygon points="400,192 500,240 400,288 300,240" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <text x="400" y="238" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Form</text>
+      <text x="400" y="252" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">valid?</text>
+
+      <!-- End: invalid form -->
+      <rect x="680" y="216" width="160" height="48" rx="24" fill="rgba(26,26,26,0.03)" stroke="rgba(26,26,26,0.30)" stroke-width="1"/>
+      <text x="760" y="240" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Invalid form</text>
+      <text x="760" y="254" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">fix + retry</text>
+
+      <!-- Decision 2 -->
+      <polygon points="400,328 500,376 400,424 300,376" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <text x="400" y="374" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Credential</text>
+      <text x="400" y="388" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">valid?</text>
+
+      <!-- End: bad credentials -->
+      <rect x="680" y="352" width="160" height="48" rx="24" fill="rgba(26,26,26,0.03)" stroke="rgba(26,26,26,0.30)" stroke-width="1"/>
+      <text x="760" y="376" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Bad credentials</text>
+      <text x="760" y="390" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">401 · handler</text>
+
+      <!-- Focal step: issue session -->
+      <rect x="320" y="464" width="160" height="48" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1"/>
+      <text x="400" y="490" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Issue JWT+cookie</text>
+      <text x="400" y="504" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">jwt · refresh</text>
+
+      <!-- Step: apply session -->
+      <rect x="320" y="544" width="160" height="48" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <text x="400" y="570" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Apply session</text>
+      <text x="400" y="584" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">memory · /me</text>
+
+      <!-- End: active -->
+      <rect x="320" y="624" width="160" height="56" rx="28" fill="rgba(26,26,26,0.03)" stroke="rgba(26,26,26,0.30)" stroke-width="1"/>
+      <text x="400" y="652" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Session active</text>
+      <text x="400" y="666" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">200 · cookie</text>
+
+      <!-- Legend -->
+      <line x1="40" y1="712" x2="960" y2="712" stroke="rgba(26,26,26,0.10)" stroke-width="0.8"/>
+      <text x="40" y="728" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.18em">LEGEND · SHAPE CARRIES TYPE</text>
+
+      <rect x="40" y="744" width="24" height="12" rx="6" fill="rgba(26,26,26,0.03)" stroke="rgba(26,26,26,0.30)" stroke-width="1"/>
+      <text x="72" y="754" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Start / end (oval)</text>
+
+      <rect x="216" y="744" width="24" height="12" rx="2" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <text x="248" y="754" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Step (rectangle)</text>
+
+      <polygon points="372,748 384,740 396,748 384,756" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <text x="408" y="754" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Decision (diamond)</text>
+
+      <line x1="560" y1="750" x2="588" y2="750" stroke="#D71921" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <text x="596" y="754" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Happy path</text>
+
+      <line x1="708" y1="750" x2="736" y2="750" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <text x="744" y="754" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Branch</text>
+    </svg>
+  </div>
+</body>
+</html>

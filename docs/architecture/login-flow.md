@@ -15,6 +15,8 @@ The authentication architecture for Profile Tailors uses a dual-token strategy a
 
 This document details the exact sequence and component relationships for **Login**, **Silent Refresh**, and **Logout** flows.
 
+Visual companions: [login sequence](./diagrams/login-sequence.html), [login decisions](./diagrams/login-decisiones.html), [refresh, rotation and hydrate](./diagrams/login-refresh.html).
+
 ---
 
 ## 1. Login Flow (`POST /api/auth/login`)

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refresh, rotation and hydrate · Sequence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #F5F5F0;
+      --color-ink:     #1A1A1A;
+      --color-muted:   #525252;
+      --color-accent:  #D71921;
+      --font-sans:     'Space Grotesk', system-ui, sans-serif;
+      --font-serif:    'Doto', monospace;
+      --font-mono:     'Space Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1200px; width: 100%; overflow-x: auto; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .sub {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+      max-width: 76ch;
+    }
+
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Sequence · Session refresh</p>
+    <h1>Refresh, rotation and hydrate</h1>
+    <p class="sub">Source: login-flow.md §2 + RefreshUserSessionHandler / RefreshSessionLifecycleService.rotate / auth.store hydrateSession. One wire call serves boot hydrate and silent 401 retry. The else-region merges every inactive cause — missing, invalid, revoked, rotated, expired — all 401; login-flow.md keeps the exhaustive trace.</p>
+
+    <svg viewBox="0 0 1040 788" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="login-refresh-title login-refresh-desc">
+      <title id="login-refresh-title">Refresh, rotation and hydrate</title>
+      <desc id="login-refresh-desc">Sequence of session refresh and rotation: the SPA posts the HttpOnly cookie, the handler rotates the session and issues a fresh JWT plus cookie, or the edge answers 401 for any inactive session.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#525252"/>
+        </marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#D71921"/>
+        </marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/>
+        </marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#F5F5F0"/>
+
+      <!-- ALT combined fragment: spans SPA · Edge · Handler · Sessions · Identity -->
+      <rect x="108" y="264" width="824" height="368" rx="4"
+            fill="rgba(26,26,26,0.02)" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <rect x="108" y="264" width="40" height="16" rx="2"
+            fill="#F5F5F0" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="128" y="276" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.12em">ALT</text>
+      <text x="120" y="292" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.04em">[cookie present]</text>
+      <line x1="116" y1="544" x2="924" y2="544"
+            stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="120" y="568" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.04em">[else · inactive]</text>
+
+      <!-- Lifelines: SPA 120 · Edge 320 · Handler 540 · Sessions 740 · Identity 920 -->
+      <line x1="120" y1="128" x2="120" y2="716" stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="320" y1="128" x2="320" y2="716" stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="540" y1="128" x2="540" y2="716" stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="740" y1="128" x2="740" y2="716" stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="920" y1="128" x2="920" y2="716" stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+
+      <!-- Activation bars -->
+      <rect x="316" y="172" width="8" height="156" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="536" y="316" width="8" height="168" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="736" y="348" width="8" height="40" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="916" y="412" width="8" height="40" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="316" y="476" width="8" height="40" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="316" y="592" width="8" height="16" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="316" y="660" width="8" height="40" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+
+      <!-- M1: SPA -> Edge  POST /REFRESH -->
+      <line x1="120" y1="176" x2="320" y2="176" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="176" y="156" width="88" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="220" y="165" fill="#2e5aa8" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">POST /REFRESH</text>
+
+      <!-- Region 1: rotation -->
+      <line x1="320" y1="320" x2="540" y2="320" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="396" y="300" width="68" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="430" y="309" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ROTATE CMD</text>
+
+      <line x1="540" y1="352" x2="740" y2="352" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="614" y="332" width="52" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="640" y="341" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ROTATE</text>
+
+      <line x1="740" y1="384" x2="540" y2="384" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="610" y="364" width="60" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="640" y="373" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ROTATED</text>
+
+      <line x1="540" y1="416" x2="920" y2="416" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="698" y="396" width="64" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="730" y="405" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ISSUE JWT</text>
+
+      <line x1="920" y1="448" x2="540" y2="448" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="710" y="428" width="40" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="730" y="437" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">JWT</text>
+
+      <line x1="540" y1="480" x2="320" y2="480" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="404" y="460" width="52" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="430" y="469" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">RESULT</text>
+
+      <line x1="320" y1="512" x2="120" y2="512" stroke="#D71921" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <rect x="182" y="492" width="76" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="220" y="501" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">200 · COOKIE</text>
+
+      <!-- Region 2: inactive -->
+      <line x1="320" y1="600" x2="120" y2="600" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="200" y="580" width="40" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="220" y="589" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">401</text>
+
+      <!-- Profile follow-up -->
+      <line x1="120" y1="664" x2="320" y2="664" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="182" y="644" width="76" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="220" y="653" fill="#2e5aa8" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GET /ME+JWT</text>
+
+      <line x1="320" y1="696" x2="120" y2="696" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="176" y="676" width="88" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="220" y="685" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">200 · PROFILE</text>
+
+      <!-- Actor boxes, drawn after arrows -->
+      <rect x="48" y="72" width="144" height="56" rx="6" fill="#F5F5F0"/>
+      <rect x="48" y="72" width="144" height="56" rx="6" fill="rgba(82,82,82,0.10)" stroke="#7a7a7a" stroke-width="1"/>
+      <rect x="56" y="80" width="28" height="12" rx="2" fill="transparent" stroke="rgba(122,122,122,0.40)" stroke-width="0.8"/>
+      <text x="70" y="89" fill="#7a7a7a" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">APP</text>
+      <text x="120" y="108" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Vue SPA</text>
+      <text x="120" y="122" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">vue · memory</text>
+
+      <rect x="248" y="72" width="144" height="56" rx="6" fill="#F5F5F0"/>
+      <rect x="248" y="72" width="144" height="56" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="256" y="80" width="28" height="12" rx="2" fill="transparent" stroke="rgba(26,26,26,0.30)" stroke-width="0.8"/>
+      <text x="270" y="89" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">EDGE</text>
+      <text x="320" y="108" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Auth Edge</text>
+      <text x="320" y="122" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">filter+control</text>
+
+      <rect x="468" y="72" width="144" height="56" rx="6" fill="#F5F5F0"/>
+      <rect x="468" y="72" width="144" height="56" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1"/>
+      <rect x="476" y="80" width="40" height="12" rx="2" fill="transparent" stroke="rgba(215,25,33,0.50)" stroke-width="0.8"/>
+      <text x="496" y="89" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">HANDLER</text>
+      <text x="540" y="108" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Refresh Handler</text>
+      <text x="540" y="122" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">mediator+rotate</text>
+
+      <rect x="668" y="72" width="144" height="56" rx="6" fill="#F5F5F0"/>
+      <rect x="668" y="72" width="144" height="56" rx="6" fill="rgba(26,26,26,0.05)" stroke="#525252" stroke-width="1"/>
+      <rect x="676" y="80" width="32" height="12" rx="2" fill="transparent" stroke="rgba(82,82,82,0.40)" stroke-width="0.8"/>
+      <text x="692" y="89" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">STORE</text>
+      <text x="740" y="108" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Sessions</text>
+      <text x="740" y="122" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">lifecycle+r2dbc</text>
+
+      <rect x="848" y="72" width="144" height="56" rx="6" fill="#F5F5F0"/>
+      <rect x="848" y="72" width="144" height="56" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="856" y="80" width="32" height="12" rx="2" fill="transparent" stroke="rgba(26,26,26,0.30)" stroke-width="0.8"/>
+      <text x="872" y="89" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">AUTH</text>
+      <text x="920" y="108" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Identity</text>
+      <text x="920" y="122" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle">lookup+issuer</text>
+
+      <!-- Legend -->
+      <line x1="56" y1="740" x2="984" y2="740" stroke="rgba(26,26,26,0.10)" stroke-width="0.8"/>
+      <text x="56" y="756" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+      <rect x="56" y="764" width="14" height="10" rx="2" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1"/>
+      <text x="76" y="772" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Focal / headline</text>
+
+      <rect x="216" y="760" width="28" height="18" rx="2" fill="rgba(26,26,26,0.02)" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="230" y="772" fill="#525252" font-size="8" font-family="'Space Mono', monospace">ALT</text>
+      <text x="252" y="772" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Fragment</text>
+
+      <line x1="340" y1="768" x2="368" y2="768" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <text x="376" y="772" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">HTTP call</text>
+
+      <line x1="480" y1="768" x2="508" y2="768" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <text x="516" y="772" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Return</text>
+
+      <line x1="616" y1="768" x2="644" y2="768" stroke="#D71921" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <text x="652" y="772" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Headline</text>
+    </svg>
+  </div>
+</body>
+</html>
