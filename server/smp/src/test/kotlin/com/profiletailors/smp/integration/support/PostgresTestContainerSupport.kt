@@ -12,7 +12,10 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.transaction.reactive.TransactionalOperator
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.containers.wait.strategy.Wait
+import org.testcontainers.containers.wait.strategy.WaitAllStrategy
 import java.sql.DriverManager
+import java.time.Duration
 
 object PostgresTestContainerSupport {
     const val IMAGE = "postgres:18-alpine"
@@ -25,6 +28,12 @@ object PostgresTestContainerSupport {
             .withDatabaseName(databaseName)
             .withUsername(USERNAME)
             .withPassword(password)
+            .waitingFor(
+                WaitAllStrategy()
+                    .withStrategy(Wait.forListeningPort())
+                    .withStrategy(Wait.forLogMessage(".*database system is ready to accept connections.*\\s", 2))
+                    .withStartupTimeout(Duration.ofSeconds(120)),
+            )
 
     fun r2dbcUrl(container: PostgreSQLContainer<*>): String =
         "r2dbc:postgresql://${container.host}:${container.getMappedPort(

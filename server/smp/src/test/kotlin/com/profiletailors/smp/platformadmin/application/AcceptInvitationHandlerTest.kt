@@ -6,6 +6,7 @@ import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.domain.Invitation
@@ -21,11 +22,13 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.UUID
 
 class AcceptInvitationHandlerTest {
     private val now = Instant.parse("2026-08-09T10:00:00Z")
@@ -36,6 +39,30 @@ class AcceptInvitationHandlerTest {
     private val membershipProvisioner = mockk<WorkspaceMembershipProvisioner>()
     private val transactionRunner = object : AtomicTransactionRunner {
         override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
+    }
+
+    @Test
+    fun `canonical acceptance facade applies the domain transition`() = runTest {
+        val invitation = Invitation(
+            id = InvitationId(UUID.randomUUID()),
+            source = InvitationSource.DIRECT,
+            sourceReferenceId = null,
+            workspaceId = "workspace-a",
+            invitedEmailNormalized = "invitee@example.com",
+            tokenHash = "hashed-token",
+            status = InvitationStatus.ACTIVE,
+            issuedBy = "issuer-1",
+            createdAt = now.minusSeconds(60),
+            expiresAt = now.plusSeconds(3600),
+        )
+        val repository = RecordingInvitationRepository(invitation)
+
+        assertTrue(
+            InvitationAcceptanceRepositoryFacade(repository)
+                .markAccepted(invitation.id, now, "principal-1"),
+        )
+        assertEquals(InvitationStatus.ACCEPTED, repository.updated?.status)
+        assertEquals(1, repository.updated?.version)
     }
 
     @Test
@@ -260,4 +287,19 @@ class AcceptInvitationHandlerTest {
         transactionRunner = transactionRunner,
         clock = clock,
     )
+
+    private class RecordingInvitationRepository(private val storedInvitation: Invitation) : InvitationRepository {
+        var updated: Invitation? = null
+
+        override suspend fun findById(id: InvitationId): Invitation? = storedInvitation.takeIf { it.id == id }
+
+        override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? = storedInvitation
+
+        override suspend fun save(invitation: Invitation, candidateKey: String): Invitation = invitation
+
+        override suspend fun updateIfVersionMatches(invitation: Invitation): Boolean {
+            updated = invitation
+            return true
+        }
+    }
 }

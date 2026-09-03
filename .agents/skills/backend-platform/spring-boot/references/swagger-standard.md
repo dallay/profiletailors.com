@@ -120,7 +120,7 @@ private val mediator: Mediator,
     produces = ["application/vnd.api.v1+json"],
     consumes = ["application/json"],  // If endpoint accepts body
 )
-suspend fun [operationName](
+suspend fun `[operationName]`(
 @Valid @RequestBody request: [Request],
 // other params
 ): ResponseEntity<[Response]> {
