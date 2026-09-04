@@ -1,13 +1,13 @@
 schemaVersion: 1
 task: openspec-reconciliation
-lastExecution: "2026-08-28T18:26:00Z"
+lastExecution: "2026-09-04T18:11:15Z"
 outcome: NO_DRIFT_DETECTED
 findings: []
 checks:
   - name: active-changes-audit
     target: openspec/changes
     status: Passed
-    notes: All 4 active changes audited; states are accurate and aligned with SDD lifecycle.
+    notes: All active changes audited (consent-ux, dallay-413, dallay-414, dallay-561, dallay-565, private-beta-launch-readiness); states are accurate and aligned with SDD lifecycle.
   - name: global-specs-validation
     target: openspec/specs
     status: Passed
