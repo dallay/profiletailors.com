@@ -21,9 +21,14 @@ import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryA
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
+import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
+import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationIssued
+import com.profiletailors.smp.platformadmin.domain.InvitationSource
+import com.profiletailors.smp.platformadmin.domain.InvitationStatus
+import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
@@ -155,21 +160,17 @@ class InviteWaitlistEntryHandlerTest {
     @Test
     fun `supersedes existing active invitation when entry is already INVITED`() = runTest {
         val invitedEntry = entry(WaitlistEntryStatus.INVITED)
-        val existing = activeInvitation()
+        val existing = existingInvitation()
         coEvery { waitlistEntryAdmin.findById(entryId) } returns invitedEntry
         coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
-        coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns existing
-        val supersededSlot = slot<WaitlistInvitation>()
-        coEvery { invitationRepository.update(capture(supersededSlot)) } answers { supersededSlot.captured }
-        val activeSlot = slot<WaitlistInvitation>()
-        coEvery { invitationRepository.save(capture(activeSlot)) } answers { activeSlot.captured }
-        coEvery { newInvitationRepository.save(any(), any()) } answers { firstArg() }
-        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
+        coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns activeInvitation()
+        coEvery { newInvitationRepository.findBySourceReferenceId(entryId) } returns existing
+        val revokedSlot = slot<Invitation>()
+        coEvery { newInvitationRepository.updateIfVersionMatches(capture(revokedSlot)) } answers { true }
 
         handler.handle(command())
 
-        assertThat(supersededSlot.captured.status).isEqualTo(WaitlistInvitationStatus.SUPERSEDED)
-        assertThat(activeSlot.captured.status).isEqualTo(WaitlistInvitationStatus.ACTIVE)
+        assertThat(revokedSlot.captured.status).isEqualTo(InvitationStatus.REVOKED)
     }
 
     @Test
@@ -221,6 +222,21 @@ class InviteWaitlistEntryHandlerTest {
             null
         },
         convertedAt = if (status == WaitlistEntryStatus.CONVERTED) clock.instant().minusSeconds(900) else null,
+    )
+
+    private fun existingInvitation(status: InvitationStatus = InvitationStatus.ACTIVE) = Invitation(
+        id = InvitationId(UUID.randomUUID()),
+        source = InvitationSource.WAITLIST,
+        sourceReferenceId = entryId,
+        target = InvitationTarget.NEW_WORKSPACE,
+        workspaceId = null,
+        invitedEmailNormalized = "candidate@example.com",
+        tokenHash = "existing-hash",
+        status = status,
+        issuedBy = operatorId.toString(),
+        createdAt = clock.instant().minusSeconds(3600),
+        expiresAt = clock.instant().plusSeconds(604_800),
+        version = 0,
     )
 
     private fun activeInvitation() = WaitlistInvitation(

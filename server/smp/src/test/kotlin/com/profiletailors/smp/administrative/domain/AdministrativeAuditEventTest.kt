@@ -38,13 +38,13 @@ class AdministrativeAuditEventTest {
             targetId = "role-1",
             targetType = "PLATFORM_ROLE",
             correlationId = "corr-123",
-            metadata = mapOf("roleKey" to "admin"),
+            metadata = mapOf("roleName" to "admin"),
             occurredAt = now,
         )
         assertThat(event.id).isEqualTo(id)
         assertThat(event.actorId).isEqualTo(actorId)
         assertThat(event.correlationId).isEqualTo("corr-123")
-        assertThat(event.metadata).containsEntry("roleKey", "admin")
+        assertThat(event.metadata).containsEntry("roleName", "admin")
     }
 
     @Test

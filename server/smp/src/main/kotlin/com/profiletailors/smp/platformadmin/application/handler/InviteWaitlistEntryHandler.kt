@@ -89,6 +89,20 @@ open class InviteWaitlistEntryHandler(
                     version = existingInvitation.version,
                 )
                 newInvitationRepository.updateIfVersionMatches(superseded)
+                return AdminInvitationSummary(
+                    id = existingInvitation.id.value,
+                    waitlistEntryId = entry.id.value,
+                    status = InvitationStatus.REVOKED.name,
+                    issuedAt = existingInvitation.createdAt,
+                    expiresAt = existingInvitation.expiresAt,
+                    acceptedAt = null,
+                    revokedAt = clock.instant(),
+                    revokedBy = null,
+                    createdBy = UUID.fromString(existingInvitation.issuedBy),
+                    deliveryStatus = InvitationDeliveryStatus.PENDING.name,
+                    deliveryAttemptCount = 0,
+                    version = existingInvitation.version + 1,
+                )
             }
             WaitlistEntryStatus.PENDING -> {
                 val existing = invitationRepository.findActiveByWaitlistEntryId(command.waitlistEntryId)

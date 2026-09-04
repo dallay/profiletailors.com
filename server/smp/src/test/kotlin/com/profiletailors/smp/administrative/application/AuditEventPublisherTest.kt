@@ -46,7 +46,7 @@ class AuditEventPublisherTest {
             targetId = "role-1",
             targetType = "PLATFORM_ROLE",
             correlationId = "corr-1",
-            metadata = mapOf("roleKey" to "admin"),
+            metadata = mapOf("roleName" to "admin"),
             occurredAt = Instant.now(),
         )
         coEvery { repository.save(event) } returns event
