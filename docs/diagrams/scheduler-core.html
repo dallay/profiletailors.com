@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scheduler, from quick create to calendar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --paper: #F5F5F0; --paper-2: #E0E0DA; --ink: #1A1A1A; --muted: #525252;
+      --soft: #7a7a7a; --rule: rgba(26,26,26,0.12); --accent: #D71921;
+      --accent-tint: rgba(215,25,33,0.08); --link: #2e5aa8;
+      --sans: 'Space Grotesk', system-ui, sans-serif; --serif: 'Doto', monospace;
+      --mono: 'Space Mono', ui-monospace, monospace;
+    }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; background: var(--paper); color: var(--ink); font-family: var(--sans); }
+    .frame { width: 100%; max-width: 1200px; }
+    .eyebrow { margin-bottom: 0.5rem; color: var(--muted); font: 500 0.66rem var(--mono); letter-spacing: 0.18em; text-transform: uppercase; }
+    h1 { margin-bottom: 0.5rem; color: var(--ink); font: 400 clamp(1.5rem, 2.4vw + 0.75rem, 2rem)/1.15 var(--serif); letter-spacing: -0.02em; }
+    .subtitle { margin-bottom: 1.5rem; color: var(--muted); font: 400 0.72rem var(--mono); letter-spacing: 0.06em; }
+    .diagram { overflow-x: auto; }
+    svg { display: block; width: 100%; min-width: 728px; }
+    .step-number, .step-label, .lane-label, .role-text, .chip-text, .legend-label { font-family: var(--mono); text-anchor: middle; }
+    .step-number { fill: var(--ink); font-size: 7px; font-weight: 600; }
+    .step-label { fill: var(--muted); font-size: 6px; font-weight: 500; letter-spacing: 0.12em; }
+    .lane-label { fill: var(--muted); font-size: 8px; font-weight: 500; letter-spacing: 0.08em; }
+    .role-text { fill: var(--ink); font-size: 6px; font-weight: 600; }
+    .node-title { fill: var(--ink); font: 600 9px var(--sans); text-anchor: middle; }
+    .node-sub { fill: var(--muted); font: 400 6.5px var(--mono); text-anchor: middle; }
+    .node-tool { fill: var(--soft); font: 400 6.5px var(--mono); text-anchor: middle; }
+    .chip-text { fill: #fff; font-size: 5px; font-weight: 700; }
+    .focal-text { fill: var(--accent); }
+    .legend-label { fill: var(--muted); font-size: 7px; font-weight: 500; letter-spacing: 0.12em; text-anchor: end; }
+    .legend-text { fill: var(--muted); font: 400 7px var(--sans); }
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <p class="eyebrow">Process · Diagram Design</p>
+    <h1>Scheduler, from quick create to calendar</h1>
+    <p class="subtitle">PROCESS · BALANCED · MIXED — 5 NODES, 4 ARROWS</p>
+
+    <div class="diagram">
+    <svg viewBox="0 0 728 436" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sched-title sched-desc">
+      <title id="sched-title">Scheduler, from quick create to calendar</title>
+      <desc id="sched-desc">Process showing a publication moving from quick create through the composer and conflict validation into persisted server truth and the rendered calendar.</desc>
+      <defs>
+        <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="11" cy="11" r="0.8" fill="rgba(26,26,26,0.10)"/></pattern>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#525252"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#D71921"/></marker>
+        <marker id="arrow-sm" markerWidth="6" markerHeight="5" refX="5" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="#525252"/></marker>
+      </defs>
+      <rect width="728" height="436" fill="#F5F5F0"/>
+      <rect width="728" height="436" fill="url(#dots)" opacity="0.55"/>
+      <rect x="140" y="36" width="588" height="80" fill="rgba(26,26,26,0.018)"/>
+      <rect x="140" y="196" width="588" height="80" fill="rgba(26,26,26,0.018)"/>
+
+      <!-- Lane structure -->
+      <line x1="0" y1="36" x2="728" y2="36" stroke="rgba(26,26,26,0.12)" stroke-width="0.8"/>
+      <line x1="0" y1="116" x2="728" y2="116" stroke="rgba(26,26,26,0.12)" stroke-width="0.8"/>
+      <line x1="0" y1="196" x2="728" y2="196" stroke="rgba(26,26,26,0.12)" stroke-width="0.8"/>
+      <line x1="0" y1="276" x2="728" y2="276" stroke="rgba(26,26,26,0.12)" stroke-width="0.8"/>
+      <line x1="0" y1="356" x2="728" y2="356" stroke="rgba(26,26,26,0.12)" stroke-width="0.8"/>
+      <line x1="140" y1="36" x2="140" y2="356" stroke="rgba(26,26,26,0.20)" stroke-width="1"/>
+
+      <g aria-label="Process steps">
+        <rect x="190" y="8" width="16" height="16" rx="8" fill="rgba(26,26,26,0.12)"/><text x="198" y="19" class="step-number">1</text><text x="198" y="32" class="step-label">CREATE</text>
+        <rect x="302" y="8" width="16" height="16" rx="8" fill="rgba(26,26,26,0.12)"/><text x="310" y="19" class="step-number">2</text><text x="310" y="32" class="step-label">SCHEDULE</text>
+        <rect x="414" y="8" width="16" height="16" rx="8" fill="rgba(215,25,33,0.20)"/><text x="422" y="19" class="step-number focal-text">3</text><text x="422" y="32" class="step-label focal-text">VALIDATE</text>
+        <rect x="526" y="8" width="16" height="16" rx="8" fill="rgba(26,26,26,0.12)"/><text x="534" y="19" class="step-number">4</text><text x="534" y="32" class="step-label">PERSIST</text>
+        <rect x="638" y="8" width="16" height="16" rx="8" fill="rgba(26,26,26,0.12)"/><text x="646" y="19" class="step-number">5</text><text x="646" y="32" class="step-label">RENDER</text>
+      </g>
+
+      <g aria-label="Actor lanes">
+        <text x="70" y="80" class="lane-label">USER</text>
+        <text x="70" y="160" class="lane-label">CALENDAR</text>
+        <text x="70" y="240" class="lane-label">COMPOSER</text>
+        <text x="70" y="312" class="lane-label">PUB</text><text x="70" y="324" class="lane-label">API</text>
+      </g>
+
+      <!-- Connectors first (z-order). Single-bend right-angle, r=8. -->
+      <path d="M 248,76 H 302 Q 310,76 310,84 V 204" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+      <path d="M 360,236 H 414 Q 422,236 422,244 V 284" fill="none" stroke="#D71921" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <line x1="472" y1="316" x2="484" y2="316" stroke="#D71921" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <path d="M 584,316 H 638 Q 646,316 646,308 V 188" fill="none" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+
+      <!-- User: Click Slot -->
+      <rect x="148" y="44" width="100" height="64" rx="6" fill="#F5F5F0" stroke="rgba(26,26,26,0.25)"/>
+      <rect x="152" y="48" width="14" height="10" rx="2" fill="rgba(26,26,26,0.12)"/><text x="159" y="56" class="role-text">USR</text>
+      <text x="198" y="70" class="node-title">Click Slot</text><text x="198" y="84" class="node-sub">cell → prefill</text><text x="198" y="96" class="node-tool">Calendar cell</text>
+      <rect x="228" y="98" width="16" height="8" rx="2" fill="#9c6b50"/><text x="236" y="104" class="chip-text">FL</text>
+
+      <!-- Composer: Compose and Set -->
+      <rect x="260" y="204" width="100" height="64" rx="6" fill="#F5F5F0" stroke="rgba(26,26,26,0.25)"/>
+      <rect x="264" y="208" width="14" height="10" rx="2" fill="rgba(26,26,26,0.12)"/><text x="271" y="216" class="role-text">CMP</text>
+      <text x="310" y="230" class="node-title">Compose &amp; Set</text><text x="310" y="244" class="node-sub">draft → schedule</text><text x="310" y="256" class="node-tool">Full composer</text>
+      <rect x="264" y="258" width="16" height="8" rx="2" fill="#9c6b50"/><text x="272" y="264" class="chip-text">FL</text>
+      <rect x="340" y="258" width="16" height="8" rx="2" fill="#7c8f6f"/><text x="348" y="264" class="chip-text">LS</text>
+
+      <!-- API: Check Conflicts (focal) -->
+      <rect x="372" y="284" width="100" height="64" rx="6" fill="rgba(215,25,33,0.07)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="376" y="288" width="14" height="10" rx="2" fill="rgba(215,25,33,0.20)"/><text x="383" y="296" class="role-text focal-text">API</text>
+      <text x="422" y="310" class="node-title">Check Conflicts</text><text x="422" y="324" class="node-sub">slot → verdict</text><text x="422" y="336" class="node-tool">Conflict policy</text>
+      <rect x="376" y="338" width="16" height="8" rx="2" fill="#7c8f6f"/><text x="384" y="344" class="chip-text">LS</text>
+      <rect x="452" y="338" width="16" height="8" rx="2" fill="#5e7a9b"/><text x="460" y="344" class="chip-text">DB</text>
+
+      <!-- API: Persist Truth -->
+      <rect x="484" y="284" width="100" height="64" rx="6" fill="#F5F5F0" stroke="rgba(26,26,26,0.25)"/>
+      <rect x="488" y="288" width="14" height="10" rx="2" fill="rgba(26,26,26,0.12)"/><text x="495" y="296" class="role-text">API</text>
+      <text x="534" y="310" class="node-title">Persist Truth</text><text x="534" y="324" class="node-sub">verdict → record</text><text x="534" y="336" class="node-tool">Publishing API</text>
+      <rect x="488" y="338" width="16" height="8" rx="2" fill="#5e7a9b"/><text x="496" y="344" class="chip-text">DB</text>
+      <rect x="564" y="338" width="16" height="8" rx="2" fill="#5e7a9b"/><text x="572" y="344" class="chip-text">DB</text>
+
+      <!-- Calendar: Render and Adjust -->
+      <rect x="596" y="124" width="100" height="64" rx="6" fill="#F5F5F0" stroke="rgba(26,26,26,0.25)"/>
+      <rect x="600" y="128" width="14" height="10" rx="2" fill="rgba(26,26,26,0.12)"/><text x="607" y="136" class="role-text">CAL</text>
+      <text x="646" y="150" class="node-title">Render &amp; Adjust</text><text x="646" y="164" class="node-sub">density · conflicts</text><text x="646" y="176" class="node-tool">Calendar · URL</text>
+      <rect x="600" y="178" width="16" height="8" rx="2" fill="#5e7a9b"/><text x="608" y="184" class="chip-text">DB</text>
+
+      <!-- Legend: steps -->
+      <text x="164" y="373" class="legend-label">STEPS</text>
+      <rect x="180" y="364" width="24" height="12" rx="6" fill="rgba(26,26,26,0.12)"/><text x="192" y="372" class="step-number">1</text><text x="212" y="373" class="legend-text">Create</text>
+      <rect x="272" y="364" width="24" height="12" rx="6" fill="rgba(26,26,26,0.12)"/><text x="284" y="372" class="step-number">2</text><text x="304" y="373" class="legend-text">Schedule</text>
+      <rect x="372" y="364" width="24" height="12" rx="6" fill="rgba(215,25,33,0.20)"/><text x="384" y="372" class="step-number focal-text">3</text><text x="404" y="373" class="legend-text">Validate</text>
+      <rect x="480" y="364" width="24" height="12" rx="6" fill="rgba(26,26,26,0.12)"/><text x="492" y="372" class="step-number">4</text><text x="512" y="373" class="legend-text">Persist</text>
+      <rect x="580" y="364" width="24" height="12" rx="6" fill="rgba(26,26,26,0.12)"/><text x="592" y="372" class="step-number">5</text><text x="612" y="373" class="legend-text">Render</text>
+
+      <!-- Legend: data types -->
+      <text x="164" y="394" class="legend-label">DATA TYPE</text>
+      <rect x="180" y="386" width="16" height="8" rx="3" fill="#9c6b50"/><text x="188" y="392" class="chip-text">FL</text><text x="202" y="394" class="legend-text">File</text>
+      <rect x="252" y="386" width="16" height="8" rx="3" fill="#7c8f6f"/><text x="260" y="392" class="chip-text">LS</text><text x="274" y="394" class="legend-text">List</text>
+      <rect x="324" y="386" width="16" height="8" rx="3" fill="#5e7a9b"/><text x="332" y="392" class="chip-text">DB</text><text x="354" y="394" class="legend-text">Dataset</text>
+      <text x="428" y="394" class="legend-text">left chip = input · right chip = output</text>
+
+      <!-- Legend: flow -->
+      <text x="164" y="416" class="legend-label">FLOW</text>
+      <line x1="180" y1="413" x2="204" y2="413" stroke="#525252" marker-end="url(#arrow)"/><text x="212" y="416" class="legend-text">Standard handoff</text>
+      <line x1="330" y1="413" x2="354" y2="413" stroke="#D71921" stroke-width="1.2" marker-end="url(#arrow-accent)"/><text x="362" y="416" class="legend-text">Focal handoff</text>
+    </svg>
+    </div>
+  </main>
+</body>
+</html>
