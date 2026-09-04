@@ -163,7 +163,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
 
         jobRepository.releaseExpiredClaims(
             now = fixedClock.instant().plus(Duration.ofMinutes(10)),
-            staleGrace = Duration.ofMinutes(5),
+            leaseStaleThreshold = Duration.ofMinutes(5),
         )
         val reclaimedClaim = requireNotNull(
             jobRepository.claimNextDue(

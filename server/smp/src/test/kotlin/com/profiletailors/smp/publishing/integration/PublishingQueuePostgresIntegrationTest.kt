@@ -195,6 +195,7 @@ class PublishingQueuePostgresIntegrationTest {
         )
         jobRepository.rescheduleRetry(
             jobId = "job-retry-test",
+            claimVersion = 0L,
             nextAttemptAt = Instant.parse("2026-05-27T09:00:00Z"),
             attemptNumber = 1,
         )

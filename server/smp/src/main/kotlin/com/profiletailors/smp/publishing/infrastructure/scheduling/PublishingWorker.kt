@@ -255,7 +255,7 @@ class PublishingJobExecutor(
         PublicationLifecyclePolicy.markBlocked(publication, now, reason)
         transactionRunner.runAtomically {
             publicationRepository.markBlocked(publication.id, now, reason)
-            publicationJobRepository.complete(claim.jobId, now)
+            publicationJobRepository.complete(claim.jobId, claim.claimVersion ?: 0L, now)
 
             recordNotificationEvent(
                 NotificationEventPayload(
@@ -291,7 +291,7 @@ class PublishingJobExecutor(
     ) {
         transactionRunner.runAtomically {
             publicationRepository.markFailed(publication.id, now, reason, null)
-            publicationJobRepository.fail(claim.jobId, now)
+            publicationJobRepository.fail(claim.jobId, claim.claimVersion ?: 0L, now)
 
             recordNotificationEvent(
                 NotificationEventPayload(
@@ -334,7 +334,7 @@ class PublishingJobExecutor(
                 now,
                 PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
             )
-            publicationJobRepository.complete(claim.jobId, now)
+            publicationJobRepository.complete(claim.jobId, claim.claimVersion ?: 0L, now)
 
             recordNotificationEvent(
                 NotificationEventPayload(
@@ -426,7 +426,7 @@ class PublishingJobExecutor(
                 ),
             )
             publicationRepository.markPublished(publication.id, result.externalPublicationId, now)
-            publicationJobRepository.complete(claim.jobId, now)
+            publicationJobRepository.complete(claim.jobId, claim.claimVersion ?: 0L, now)
         }
         lifecycleLogger.succeeded(
             publicationId = publication.id,
@@ -487,6 +487,7 @@ class PublishingJobExecutor(
             if (shouldRetry) {
                 publicationJobRepository.rescheduleRetry(
                     claim.jobId,
+                    claim.claimVersion ?: 0L,
                     retryPolicy.nextRetryAt(now),
                     claim.attemptNumber,
                 )
@@ -497,7 +498,7 @@ class PublishingJobExecutor(
                     categoryCode,
                     null,
                 )
-                publicationJobRepository.fail(claim.jobId, now)
+                publicationJobRepository.fail(claim.jobId, claim.claimVersion ?: 0L, now)
                 recordNotificationEvent(
                     NotificationEventPayload(
                         workspaceId = publication.workspaceId,

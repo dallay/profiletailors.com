@@ -18,12 +18,19 @@ enum class InvitationSource {
     WAITLIST,
 }
 
+@ValueObject
+enum class InvitationTarget {
+    EXISTING_WORKSPACE,
+    NEW_WORKSPACE,
+}
+
 @AggregateRoot
 data class Invitation(
     val id: InvitationId,
     val source: InvitationSource,
     val sourceReferenceId: String?,
-    val workspaceId: String,
+    val target: InvitationTarget,
+    val workspaceId: String?,
     val invitedEmailNormalized: String,
     val tokenHash: String,
     val status: InvitationStatus,
@@ -35,7 +42,6 @@ data class Invitation(
     val version: Long = 0,
 ) {
     init {
-        require(workspaceId.isNotBlank()) { "Invitation workspaceId must not be blank" }
         require(invitedEmailNormalized == invitedEmailNormalized.trim().lowercase()) {
             "Invitation email must be normalized"
         }
@@ -50,6 +56,22 @@ data class Invitation(
             }
             InvitationSource.WAITLIST -> require(!sourceReferenceId.isNullOrBlank()) {
                 "Waitlist invitations require a waitlist source reference"
+            }
+        }
+        when (target) {
+            InvitationTarget.EXISTING_WORKSPACE -> require(!workspaceId.isNullOrBlank()) {
+                "EXISTING_WORKSPACE invitation requires workspaceId"
+            }
+            InvitationTarget.NEW_WORKSPACE -> when (status) {
+                InvitationStatus.ACTIVE,
+                InvitationStatus.EXPIRED,
+                InvitationStatus.REVOKED,
+                -> require(workspaceId == null) {
+                    "NEW_WORKSPACE invitation must have null workspaceId until accepted"
+                }
+                InvitationStatus.ACCEPTED -> require(!workspaceId.isNullOrBlank()) {
+                    "ACCEPTED NEW_WORKSPACE invitation requires workspaceId"
+                }
             }
         }
         if (status == InvitationStatus.ACCEPTED) {
@@ -67,15 +89,23 @@ data class Invitation(
 
     fun isActive(now: Instant): Boolean = status == InvitationStatus.ACTIVE && !isExpired(now)
 
-    fun accept(at: Instant, principalId: String): Invitation {
+    fun accept(at: Instant, principalId: String, resolvedWorkspaceId: String? = null): Invitation {
         if (!isActive(at)) {
             throw InvitationNotAcceptableException(id.value.toString())
         }
         require(principalId.isNotBlank()) { "Accepted principal id must not be blank" }
+        val resolvedWsId = when (target) {
+            InvitationTarget.EXISTING_WORKSPACE -> workspaceId
+            InvitationTarget.NEW_WORKSPACE -> resolvedWorkspaceId
+        }
+        require(!resolvedWsId.isNullOrBlank()) {
+            "NEW_WORKSPACE acceptance requires resolvedWorkspaceId"
+        }
         return copy(
             status = InvitationStatus.ACCEPTED,
             acceptedAt = at,
             acceptedPrincipalId = principalId,
+            workspaceId = resolvedWsId,
             version = version + 1,
         )
     }

@@ -98,6 +98,7 @@ class R2dbcWorkspaceProvisioningService(private val databaseClient: DatabaseClie
         return WorkspaceProvisioningService.ProvisionedWorkspace(
             workspaceId = workspaceId,
             name = workspaceName,
+            membershipStatus = WorkspaceMembershipStatus.ACTIVE,
         )
     }
 }

@@ -1042,15 +1042,23 @@ class PublishingWorkerTest {
             this.claimLease = claimLease
             return claim
         }
-        override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) {
+        override suspend fun rescheduleRetry(
+            jobId: String,
+            claimVersion: Long,
+            nextAttemptAt: Instant,
+            attemptNumber: Int,
+        ): Boolean {
             retriedJobId = jobId
             retryAt = nextAttemptAt
+            return true
         }
-        override suspend fun complete(jobId: String, completedAt: Instant) {
+        override suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant): Boolean {
             completedJobId = jobId
+            return true
         }
-        override suspend fun fail(jobId: String, failedAt: Instant) {
+        override suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant): Boolean {
             failedJobId = jobId
+            return true
         }
         override suspend fun cancel(jobId: String, cancelledAt: Instant) = Unit
 
@@ -1128,6 +1136,7 @@ class PublishingWorkerTest {
     private class InMemoryAccountRepository(private val account: SocialAccount) : SocialAccountRepository {
         override suspend fun upsert(account: SocialAccount): SocialAccount = account
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = account
+        override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = account
     }
 
     private class InMemoryMediaAssetResolver(private val assets: List<ResolvedAssetSummary>) : MediaAssetResolver {
@@ -1143,6 +1152,8 @@ class PublishingWorkerTest {
             lastAttempt = attempt
             return attempt
         }
+        override suspend fun findByOperationKey(operationKey: String): DeliveryAttempt? = null
+        override suspend fun update(attempt: DeliveryAttempt): Boolean = true
     }
 
     private class InMemoryNotificationEventRepository : NotificationEventRepository {

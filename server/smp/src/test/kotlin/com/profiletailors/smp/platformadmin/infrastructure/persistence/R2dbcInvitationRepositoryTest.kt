@@ -1,20 +1,29 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.identity.application.InvitationRegistrationGateway
+import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
-import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceRepository
-import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceRepositoryFacade
+import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
+import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.infrastructure.InvitationRegistrationGatewayAdapter
 import com.profiletailors.smp.tenancy.application.R2dbcWorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
+import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import com.profiletailors.smp.tenancy.infrastructure.R2dbcWorkspaceMembershipRepository
 import com.profiletailors.smp.test.TestStorageConfiguration
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
@@ -281,6 +290,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         id = InvitationId(id),
         source = InvitationSource.DIRECT,
         sourceReferenceId = null,
+        target = InvitationTarget.EXISTING_WORKSPACE,
         workspaceId = "workspace-1",
         invitedEmailNormalized = "invitee@example.com",
         tokenHash = "candidate-key-new",
@@ -305,11 +315,11 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         databaseClient.sql(
             """
             INSERT INTO invitations (
-                id, source, source_reference_id, workspace_id, invited_email_normalized,
+                id, source, source_reference_id, target, workspace_id, invited_email_normalized,
                 candidate_key, token_hash, status, issued_by, created_at, expires_at,
                 accepted_at, accepted_principal_id, version
             ) VALUES (
-                :id, 'DIRECT', NULL, 'workspace-1', 'invitee@example.com',
+                :id, 'DIRECT', NULL, 'EXISTING_WORKSPACE', 'workspace-1', 'invitee@example.com',
                 :candidateKey, :candidateKey, :status, 'principal-1', NOW(), NOW() + INTERVAL '7 days',
                 NULL, NULL, :version
             )
@@ -371,32 +381,76 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                 return firstMembershipProvisioner.reconcile(workspaceId, principalId)
             }
         }
-        val secondAcceptanceRepository = object : InvitationAcceptanceRepository {
-            private val delegate = InvitationAcceptanceRepositoryFacade(secondRepository)
-
-            override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? {
-                secondLookupStarted.complete(Unit)
-                return delegate.findByCandidateKeyForUpdate(candidateKey)
-            }
-
-            override suspend fun markAccepted(
-                invitationId: InvitationId,
-                acceptedAt: Instant,
+        val noOpWorkspaceProvisioningService = object : WorkspaceProvisioningService {
+            override suspend fun provisionDefaultWorkspace(
                 principalId: String,
-            ): Boolean = delegate.markAccepted(invitationId, acceptedAt, principalId)
+                displayName: String,
+            ): WorkspaceProvisioningService.ProvisionedWorkspace = WorkspaceProvisioningService.ProvisionedWorkspace(
+                workspaceId = "workspace-1",
+                name = displayName,
+                membershipStatus = com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.ACTIVE,
+            )
         }
+        val firstPrincipalLookup = object : PrincipalIdentityLookup by NoOpPrincipalIdentityLookup() {
+            override suspend fun findByPrincipalId(principalId: String) =
+                com.profiletailors.smp.identity.domain.PrincipalIdentityFacts(
+                    principalId = "principal-1",
+                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+                    subject = "local:invitee@example.com",
+                    provider = null,
+                    displayIdentity = "invitee",
+                    email = "invitee@example.com",
+                    username = "invitee",
+                    emailStatus = com.profiletailors.smp.identity.domain.EmailStatus.VERIFIED,
+                )
+        }
+        val secondLookupStartedTrigger = object : PrincipalIdentityLookup by NoOpPrincipalIdentityLookup() {
+            override suspend fun findByPrincipalId(principalId: String) =
+                com.profiletailors.smp.identity.domain.PrincipalIdentityFacts(
+                    principalId = "principal-1",
+                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+                    subject = "local:invitee@example.com",
+                    provider = null,
+                    displayIdentity = "invitee",
+                    email = "invitee@example.com",
+                    username = "invitee",
+                    emailStatus = com.profiletailors.smp.identity.domain.EmailStatus.VERIFIED,
+                ).also { secondLookupStarted.complete(Unit) }
+        }
+        val firstCoordinator = InvitationActivationCoordinator(
+            invitationRepository = firstRepository as InvitationRepository,
+            tokenHasher = tokenHasher,
+            principalIdentityLookup = firstPrincipalLookup,
+            workspaceProvisioningService = noOpWorkspaceProvisioningService,
+            membershipProvisioner = firstBlockingProvisioner,
+            transactionRunner = object : AtomicTransactionRunner {
+                override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+                    val operator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory))
+                    return operator.transactional(mono { block() }).awaitSingle()
+                }
+            },
+            clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
+        )
+        val secondCoordinator = InvitationActivationCoordinator(
+            invitationRepository = secondRepository as InvitationRepository,
+            tokenHasher = tokenHasher,
+            principalIdentityLookup = secondLookupStartedTrigger,
+            workspaceProvisioningService = noOpWorkspaceProvisioningService,
+            membershipProvisioner = secondMembershipProvisioner,
+            transactionRunner = object : AtomicTransactionRunner {
+                override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+                    val operator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory))
+                    return operator.transactional(mono { block() }).awaitSingle()
+                }
+            },
+            clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
+        )
         return ConcurrentAcceptanceFixture(
             firstGateway = InvitationRegistrationGatewayAdapter(
-                invitationRepository = InvitationAcceptanceRepositoryFacade(firstRepository),
-                tokenHasher = tokenHasher,
-                membershipProvisioner = firstBlockingProvisioner,
-                clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
+                coordinator = firstCoordinator,
             ),
             secondGateway = InvitationRegistrationGatewayAdapter(
-                invitationRepository = secondAcceptanceRepository,
-                tokenHasher = tokenHasher,
-                membershipProvisioner = secondMembershipProvisioner,
-                clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
+                coordinator = secondCoordinator,
             ),
             firstOperator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory)),
             secondOperator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory)),

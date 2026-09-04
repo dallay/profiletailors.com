@@ -251,9 +251,14 @@ class PublishingSchedulingConfigurationTest {
         override suspend fun replaceForPublication(job: PublicationJob) = Unit
         override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? =
             null
-        override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) = Unit
-        override suspend fun complete(jobId: String, completedAt: Instant) = Unit
-        override suspend fun fail(jobId: String, failedAt: Instant) = Unit
+        override suspend fun rescheduleRetry(
+            jobId: String,
+            claimVersion: Long,
+            nextAttemptAt: Instant,
+            attemptNumber: Int,
+        ) = true
+        override suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant) = true
+        override suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant) = true
         override suspend fun cancel(jobId: String, cancelledAt: Instant) = Unit
         override suspend fun findStaleClaims(
             now: Instant,
@@ -298,7 +303,8 @@ class PublishingSchedulingConfigurationTest {
 
     private class NoOpSocialAccountRepository : SocialAccountRepository {
         override suspend fun upsert(account: SocialAccount): SocialAccount = account
-        override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount = account()
+        override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = account()
+        override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = account()
     }
 
     private class NoOpMediaAssetResolver : MediaAssetResolver {
@@ -310,6 +316,8 @@ class PublishingSchedulingConfigurationTest {
 
     private class NoOpDeliveryAttemptRepository : DeliveryAttemptRepository {
         override suspend fun record(attempt: DeliveryAttempt): DeliveryAttempt = attempt
+        override suspend fun findByOperationKey(operationKey: String): DeliveryAttempt? = null
+        override suspend fun update(attempt: DeliveryAttempt): Boolean = true
     }
 
     private class NoOpNotificationEventRepository : NotificationEventRepository {

@@ -5,8 +5,7 @@ import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
-import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceRepository
-import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceRepositoryFacade
+import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
@@ -23,6 +22,7 @@ import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistIn
 import com.profiletailors.smp.tenancy.application.R2dbcWorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipRepository
+import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -47,25 +47,27 @@ class PlatformAdminBootstrapConfiguration {
         R2dbcWorkspaceMembershipProvisioner(repository)
 
     @Bean
-    fun invitationAcceptanceRepository(repository: InvitationRepository): InvitationAcceptanceRepository =
-        InvitationAcceptanceRepositoryFacade(repository)
-
-    @Bean
-    fun acceptInvitationHandler(
-        invitationRepository: InvitationAcceptanceRepository,
+    fun invitationActivator(
+        invitationRepository: InvitationRepository,
         tokenHasher: TokenHasher,
         principalIdentityLookup: PrincipalIdentityLookup,
+        workspaceProvisioningService: WorkspaceProvisioningService,
         membershipProvisioner: WorkspaceMembershipProvisioner,
         transactionRunner: AtomicTransactionRunner,
         clock: Clock,
-    ): AcceptInvitationHandler = AcceptInvitationHandler(
+    ): InvitationActivationCoordinator = InvitationActivationCoordinator(
         invitationRepository = invitationRepository,
         tokenHasher = tokenHasher,
         principalIdentityLookup = principalIdentityLookup,
+        workspaceProvisioningService = workspaceProvisioningService,
         membershipProvisioner = membershipProvisioner,
         transactionRunner = transactionRunner,
         clock = clock,
     )
+
+    @Bean
+    fun acceptInvitationHandler(coordinator: InvitationActivationCoordinator): AcceptInvitationHandler =
+        AcceptInvitationHandler(coordinator)
 
     @Bean
     fun acceptUrlTemplate(
@@ -76,6 +78,7 @@ class PlatformAdminBootstrapConfiguration {
     fun inviteWaitlistEntryHandler(
         waitlistEntryAdmin: WaitlistEntryAdmin,
         invitationRepository: WaitlistInvitationRepository,
+        newInvitationRepository: InvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
         eventPublisher: EventPublisher<DomainEvent>,
         clock: Clock,
@@ -84,6 +87,7 @@ class PlatformAdminBootstrapConfiguration {
     ): InviteWaitlistEntryHandler = InviteWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
+        newInvitationRepository = newInvitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
         clock = clock,

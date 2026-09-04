@@ -1,0 +1,3 @@
+package com.profiletailors.smp.administrative
+
+object AdministrativeBoundedContext

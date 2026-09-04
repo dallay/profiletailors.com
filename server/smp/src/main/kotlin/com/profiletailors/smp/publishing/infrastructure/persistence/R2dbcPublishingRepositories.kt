@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
+import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
+import com.profiletailors.smp.publishing.domain.DeliveryAttemptPhase
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.ProviderAssetRef
@@ -73,7 +75,7 @@ private const val PUBLICATION_INSERT_VALUES = """
 private const val PUBLICATION_ID_COLUMN = "publication_id"
 
 @Repository
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "StringLiteralDuplication")
 class R2dbcPublicationRepository(
     private val databaseClient: DatabaseClient,
     private val transactionalOperator: TransactionalOperator,
@@ -817,60 +819,65 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
         )
     }
 
-    override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) {
-        databaseClient.sql(
-            """
+    @Suppress("StringLiteralDuplication")
+    override suspend fun rescheduleRetry(
+        jobId: String,
+        claimVersion: Long,
+        nextAttemptAt: Instant,
+        attemptNumber: Int,
+    ): Boolean = databaseClient.sql(
+        """
             UPDATE publication_jobs
             SET status = :status,
                 due_at = :nextAttemptAt,
                 attempt_count = :attemptCount,
                  claimed_by_worker = NULL,
                  claimed_at = NULL,
-                 lease_expires_at = NULL
+                 lease_expires_at = NULL,
+                 claim_version = claim_version + 1
 
-            WHERE id = :id
-            """.trimIndent(),
-        )
-            .bind("status", JobStatus.RETRY_WAITING.name)
-            .bind("nextAttemptAt", nextAttemptAt)
-            .bind("attemptCount", attemptNumber)
-            .bind("id", jobId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
+            WHERE id = :id AND claim_version = :claimVersion
+        """.trimIndent(),
+    )
+        .bind("status", JobStatus.RETRY_WAITING.name)
+        .bind("nextAttemptAt", nextAttemptAt)
+        .bind("attemptCount", attemptNumber)
+        .bind("id", jobId)
+        .bind("claimVersion", claimVersion)
+        .fetch()
+        .rowsUpdated()
+        .awaitSingle() > 0
 
-    override suspend fun complete(jobId: String, completedAt: Instant) {
+    override suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant): Boolean =
         databaseClient.sql(
             """
             UPDATE publication_jobs
-            SET status = :status, completed_at = :completedAt
-            WHERE id = :id
+            SET status = :status, completed_at = :completedAt, claim_version = claim_version + 1
+            WHERE id = :id AND claim_version = :claimVersion
             """.trimIndent(),
         )
             .bind("status", JobStatus.COMPLETED.name)
             .bind("completedAt", completedAt)
             .bind("id", jobId)
+            .bind("claimVersion", claimVersion)
             .fetch()
             .rowsUpdated()
-            .awaitSingle()
-    }
+            .awaitSingle() > 0
 
-    override suspend fun fail(jobId: String, failedAt: Instant) {
-        databaseClient.sql(
-            """
+    override suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant): Boolean = databaseClient.sql(
+        """
             UPDATE publication_jobs
-            SET status = :status, failed_at = :failedAt
-            WHERE id = :id
-            """.trimIndent(),
-        )
-            .bind("status", JobStatus.FAILED.name)
-            .bind("failedAt", failedAt)
-            .bind("id", jobId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
+            SET status = :status, failed_at = :failedAt, claim_version = claim_version + 1
+            WHERE id = :id AND claim_version = :claimVersion
+        """.trimIndent(),
+    )
+        .bind("status", JobStatus.FAILED.name)
+        .bind("failedAt", failedAt)
+        .bind("id", jobId)
+        .bind("claimVersion", claimVersion)
+        .fetch()
+        .rowsUpdated()
+        .awaitSingle() > 0
 
     override suspend fun cancel(jobId: String, cancelledAt: Instant) {
         databaseClient.sql(
@@ -986,10 +993,12 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
             """
             INSERT INTO delivery_attempts (
                 id, publication_id, publication_job_id, attempt_number, outcome, retryable,
-                provider_message, provider_error_code, external_publication_id, attempted_at, created_at
+                provider_message, provider_error_code, external_publication_id, attempted_at, created_at,
+                operation_key, claim_version, phase
             ) VALUES (
                 :id, :publicationId, :publicationJobId, :attemptNumber, :outcome, :retryable,
-                :providerMessage, :providerErrorCode, :externalPublicationId, :attemptedAt, :createdAt
+                :providerMessage, :providerErrorCode, :externalPublicationId, :attemptedAt, :createdAt,
+                :operationKey, :claimVersion, :phase
             )
             """.trimIndent(),
         )
@@ -1004,11 +1013,74 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
             .bindNullable("externalPublicationId", attempt.externalPublicationId, String::class.java)
             .bind("attemptedAt", attempt.attemptedAt)
             .bindNullable("createdAt", attempt.createdAt ?: attempt.attemptedAt, Instant::class.java)
+            .bindNullable("operationKey", attempt.operationKey, String::class.java)
+            .bindNullable("claimVersion", attempt.claimVersion, Long::class.java)
+            .bindNullable("phase", attempt.phase?.name, String::class.java)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
         return attempt
     }
+
+    override suspend fun findByOperationKey(operationKey: String): DeliveryAttempt? = databaseClient.sql(
+        """
+            SELECT id, publication_id, publication_job_id, attempt_number, outcome, retryable,
+                   provider_message, provider_error_code, external_publication_id, attempted_at, created_at,
+                   operation_key, claim_version, phase
+            FROM delivery_attempts
+            WHERE operation_key = :operationKey
+            ORDER BY created_at DESC
+            LIMIT 1
+        """.trimIndent(),
+    )
+        .bind("operationKey", operationKey)
+        .map { row, _ -> row.toDeliveryAttempt() }
+        .one()
+        .awaitSingleOrNull()
+
+    override suspend fun update(attempt: DeliveryAttempt): Boolean = databaseClient.sql(
+        """
+            UPDATE delivery_attempts
+            SET outcome = :outcome,
+                retryable = :retryable,
+                provider_message = :providerMessage,
+                provider_error_code = :providerErrorCode,
+                external_publication_id = :externalPublicationId,
+                attempted_at = :attemptedAt,
+                phase = :phase,
+                claim_version = claim_version + 1
+            WHERE id = :id AND claim_version = :claimVersion
+        """.trimIndent(),
+    )
+        .bind("outcome", attempt.outcome.name)
+        .bind("retryable", attempt.retryable)
+        .bindNullable("providerMessage", attempt.providerMessage, String::class.java)
+        .bindNullable("providerErrorCode", attempt.providerErrorCode, String::class.java)
+        .bindNullable("externalPublicationId", attempt.externalPublicationId, String::class.java)
+        .bind("attemptedAt", attempt.attemptedAt)
+        .bindNullable("phase", attempt.phase?.name, String::class.java)
+        .bind("id", attempt.id)
+        .bindNullable("claimVersion", attempt.claimVersion, Long::class.java)
+        .fetch()
+        .rowsUpdated()
+        .awaitSingle() > 0
+
+    private fun Readable.toDeliveryAttempt(): DeliveryAttempt = DeliveryAttempt(
+        id = requireNotNull(get("id", String::class.java)),
+        publicationId = requireNotNull(get("publication_id", String::class.java)),
+        publicationJobId = requireNotNull(get("publication_job_id", String::class.java)),
+        attemptNumber = requireNotNull(get("attempt_number", Int::class.java)),
+        outcome = DeliveryAttemptOutcome.valueOf(requireNotNull(get("outcome", String::class.java))),
+        retryable = requireNotNull(get("retryable", Boolean::class.java)),
+        providerMessage = get("provider_message", String::class.java),
+        providerErrorCode = get("provider_error_code", String::class.java),
+        externalPublicationId = get("external_publication_id", String::class.java),
+        attemptedAt = requireNotNull(get("attempted_at", Instant::class.java)),
+        createdAt = get("created_at", Instant::class.java),
+        operationKey = requireNotNull(get("operation_key", String::class.java)),
+        claimVersion = requireNotNull(get("claim_version", Long::class.java)),
+        phase = DeliveryAttemptPhase.valueOf(requireNotNull(get("phase", String::class.java))),
+    )
 }
 
 internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(

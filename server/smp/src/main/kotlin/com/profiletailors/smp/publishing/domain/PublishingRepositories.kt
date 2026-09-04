@@ -13,6 +13,8 @@ interface SocialAccountRepository {
     suspend fun upsert(account: SocialAccount): SocialAccount
 
     suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount?
+
+    suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount?
 }
 
 interface PublicationRepository {
@@ -77,11 +79,11 @@ interface PublicationJobRepository {
         claimLease: Duration = Duration.parse("PT2M"),
     ): PublicationJobClaim?
 
-    suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int)
+    suspend fun rescheduleRetry(jobId: String, claimVersion: Long, nextAttemptAt: Instant, attemptNumber: Int): Boolean
 
-    suspend fun complete(jobId: String, completedAt: Instant)
+    suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant): Boolean
 
-    suspend fun fail(jobId: String, failedAt: Instant)
+    suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant): Boolean
 
     suspend fun cancel(jobId: String, cancelledAt: Instant)
 
@@ -113,8 +115,12 @@ data class StaleJob(
     val attemptNumber: Int,
 )
 
-fun interface DeliveryAttemptRepository {
+interface DeliveryAttemptRepository {
     suspend fun record(attempt: DeliveryAttempt): DeliveryAttempt
+
+    suspend fun findByOperationKey(operationKey: String): DeliveryAttempt?
+
+    suspend fun update(attempt: DeliveryAttempt): Boolean
 }
 
 interface NotificationEventRepository {
@@ -138,4 +144,12 @@ object NoOpNotificationEventRepository : NotificationEventRepository {
         categories: Set<NotificationCategory>?,
         limit: Int,
     ): List<NotificationEvent> = emptyList()
+}
+
+interface BulkImportJobRepository {
+    suspend fun findByIdempotencyKey(idempotencyKey: String): BulkImportJob?
+    suspend fun findByWorkspaceAndId(workspaceId: String, jobId: String): BulkImportJob?
+    suspend fun save(job: BulkImportJob): BulkImportJob
+    suspend fun saveRows(rows: List<BulkImportRow>)
+    suspend fun findRows(jobId: String): List<BulkImportRow>
 }

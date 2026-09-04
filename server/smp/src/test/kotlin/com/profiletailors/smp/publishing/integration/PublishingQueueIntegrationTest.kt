@@ -124,6 +124,7 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
 
         jobRepository.rescheduleRetry(
             jobId = "job-next-slot",
+            claimVersion = 0L,
             nextAttemptAt = Instant.parse("2026-05-27T09:30:00Z"),
             attemptNumber = 2,
         )
@@ -161,7 +162,7 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             "worker-1",
             Duration.ofMinutes(2),
         )
-        jobRepository.complete("job-completed", Instant.parse("2026-05-27T08:02:00Z"))
+        jobRepository.complete("job-completed", 0L, Instant.parse("2026-05-27T08:02:00Z"))
         val secondClaim = jobRepository.claimNextDue(
             Instant.parse("2026-05-27T08:03:00Z"),
             "worker-2",

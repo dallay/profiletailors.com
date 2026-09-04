@@ -1946,6 +1946,9 @@ class PublishingHandlersTest {
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? =
             items[accountId]?.takeIf { it.workspaceId == workspaceId }
+
+        override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? =
+            items.values.firstOrNull { it.workspaceId == workspaceId && it.status == SocialConnectionStatus.ACTIVE }
     }
 
     private class ThrowingSocialAccountRepository : SocialAccountRepository {
@@ -1953,6 +1956,8 @@ class PublishingHandlersTest {
             throw IllegalStateException("account upsert failed")
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = null
+
+        override suspend fun findFirstActiveByWorkspace(workspaceId: String): SocialAccount? = null
     }
 
     private class CapturingChannelEventPublisher : ChannelEventPublisher {
@@ -2138,11 +2143,16 @@ class PublishingHandlersTest {
         override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? =
             null
 
-        override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) = Unit
+        override suspend fun rescheduleRetry(
+            jobId: String,
+            claimVersion: Long,
+            nextAttemptAt: Instant,
+            attemptNumber: Int,
+        ) = true
 
-        override suspend fun complete(jobId: String, completedAt: Instant) = Unit
+        override suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant) = true
 
-        override suspend fun fail(jobId: String, failedAt: Instant) = Unit
+        override suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant) = true
 
         override suspend fun cancel(jobId: String, cancelledAt: Instant) {
             writeCount += 1

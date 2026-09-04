@@ -14,6 +14,8 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
@@ -54,17 +56,20 @@ class InviteWaitlistEntryHandlerTest {
 
     private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
     private val invitationRepository = mockk<WaitlistInvitationRepository>()
+    private val newInvitationRepository = mockk<InvitationRepository>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
     private val eventPublisher = mockk<EventPublisher<DomainEvent>>()
 
-    private val tokenHasher = object : TokenHasher {
+    private val tokenHasher = object : TokenHasher, InvitationTokenCandidateKey {
         override fun hash(rawToken: String): String = "hashed-$rawToken"
         override fun matches(rawToken: String, storedHash: String): Boolean = false
+        override fun candidateKey(rawToken: String): String = "candidate-$rawToken"
     }
 
     private val handler = InviteWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
+        newInvitationRepository = newInvitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
         clock = clock,
@@ -124,6 +129,7 @@ class InviteWaitlistEntryHandlerTest {
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
         val savedEntrySlot = slot<WaitlistEntry>()
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
+        coEvery { newInvitationRepository.save(any(), any()) } answers { firstArg() }
         coEvery { waitlistEntryAdmin.save(capture(savedEntrySlot)) } answers { savedEntrySlot.captured }
         val eventSlot = slot<DomainEvent>()
         coEvery { eventPublisher.publish(capture(eventSlot)) } returns Unit
@@ -157,6 +163,7 @@ class InviteWaitlistEntryHandlerTest {
         coEvery { invitationRepository.update(capture(supersededSlot)) } answers { supersededSlot.captured }
         val activeSlot = slot<WaitlistInvitation>()
         coEvery { invitationRepository.save(capture(activeSlot)) } answers { activeSlot.captured }
+        coEvery { newInvitationRepository.save(any(), any()) } answers { firstArg() }
         coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
         handler.handle(command())
@@ -171,6 +178,7 @@ class InviteWaitlistEntryHandlerTest {
         coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
+        coEvery { newInvitationRepository.save(any(), any()) } answers { firstArg() }
         coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
         coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 

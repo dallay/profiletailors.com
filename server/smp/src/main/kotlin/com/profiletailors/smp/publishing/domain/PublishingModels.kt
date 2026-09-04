@@ -76,6 +76,14 @@ enum class PublicationAssetStatus {
 enum class DeliveryAttemptOutcome {
     SUCCEEDED,
     FAILED,
+    IN_PROGRESS,
+}
+
+enum class DeliveryAttemptPhase {
+    VALIDATE,
+    PROVIDER_CREATE,
+    PROVIDER_UPDATE,
+    RECORD_RESULT,
 }
 
 @AggregateRoot
@@ -197,6 +205,8 @@ data class PublicationJobClaim(
     val attemptNumber: Int,
     val claimedAt: Instant,
     val leaseExpiresAt: Instant? = null,
+    val operationKey: String? = null,
+    val claimVersion: Long? = null,
 )
 
 @AggregateRoot
@@ -212,6 +222,9 @@ data class DeliveryAttempt(
     val externalPublicationId: String? = null,
     val attemptedAt: Instant,
     val createdAt: Instant? = null,
+    val operationKey: String? = null,
+    val claimVersion: Long? = null,
+    val phase: DeliveryAttemptPhase? = null,
 )
 
 /**

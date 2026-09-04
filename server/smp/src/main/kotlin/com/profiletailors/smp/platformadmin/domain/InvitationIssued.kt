@@ -16,7 +16,7 @@ import java.util.UUID
  * @property recipientEmail normalized email address of the invitee
  * @property workspaceName human-readable workspace name used in email copy
  * @property locale optional BCP-47 locale code (e.g. "en", "es") for template selection
- * @property rawToken ephemeral bearer token used only by the in-process delivery adapter
+ * @property rawToken ephemeral bearer token used by the notification consumer to build acceptance URLs
  */
 data class InvitationIssued(
     val invitationId: UUID,

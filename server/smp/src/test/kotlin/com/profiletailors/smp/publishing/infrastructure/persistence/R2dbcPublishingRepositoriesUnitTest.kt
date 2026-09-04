@@ -749,6 +749,7 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
 
             publicationJobRepository.rescheduleRetry(
                 jobId = "job-retry-test",
+                claimVersion = 0L,
                 nextAttemptAt = Instant.parse("2026-06-01T14:00:00Z"),
                 attemptNumber = 2,
             )
@@ -770,7 +771,7 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
             val job = makeJob("job-complete-test", pubId, JobStatus.PENDING)
             publicationJobRepository.enqueue(job)
 
-            publicationJobRepository.complete("job-complete-test", Instant.parse("2026-06-01T12:30:00Z"))
+            publicationJobRepository.complete("job-complete-test", 0L, Instant.parse("2026-06-01T12:30:00Z"))
 
             val claim = publicationJobRepository.claimNextDue(
                 Instant.parse("2026-06-01T13:00:00Z"),
@@ -786,7 +787,7 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
             val job = makeJob("job-fail-test", pubId, JobStatus.PENDING)
             publicationJobRepository.enqueue(job)
 
-            publicationJobRepository.fail("job-fail-test", Instant.parse("2026-06-01T12:30:00Z"))
+            publicationJobRepository.fail("job-fail-test", 0L, Instant.parse("2026-06-01T12:30:00Z"))
 
             val claim = publicationJobRepository.claimNextDue(
                 Instant.parse("2026-06-01T13:00:00Z"),
