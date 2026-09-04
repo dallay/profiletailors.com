@@ -7,6 +7,7 @@ import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
+import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.infrastructure.persistence.R2dbcInvitationRepository
 import com.profiletailors.smp.test.TestStorageConfiguration
 import kotlinx.coroutines.reactor.awaitSingle
@@ -274,6 +275,7 @@ class InvitationLiquibaseSchemaIntegrationTest : PostgresIntegrationTestBase() {
         id = InvitationId(id),
         source = InvitationSource.DIRECT,
         sourceReferenceId = null,
+        target = InvitationTarget.EXISTING_WORKSPACE,
         workspaceId = "workspace-1",
         invitedEmailNormalized = "invitee@example.com",
         tokenHash = "candidate-key-rollback",

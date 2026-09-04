@@ -1,0 +1,25 @@
+change: dallay-570-convert-waitlist-entries-into-invitations
+current_phase: qa
+completed:
+  - init
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+next: archive
+updated: "2026-09-03T23:07:00Z"
+note: >
+  P1 fixed: PlatformAdminInvitationTransactionPostgresIntegrationTest now PASS (4/4).
+  Root causes resolved:
+  1. Cleanup statements missing DELETE FROM invitations (dual-write left orphaned rows)
+  2. INVITED branch incorrectly created NEW Invitation instead of revoking existing
+  3. Test operator principal not seeded (FK violation after unique index fix)
+  Fixes applied:
+  - Added invitations cleanup to cleanupStatements()
+  - INVITED branch now calls updateIfVersionMatches(superseded) instead of dual-write
+  - Added findBySourceReferenceId() to InvitationRepository
+  - Seeded operator principal in seedScenario()
+  - just backend-check: PASS

@@ -5,6 +5,7 @@ import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
+import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -24,6 +25,13 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
         .one()
         .awaitSingleOrNull()
 
+    override suspend fun findBySourceReferenceId(sourceReferenceId: String): Invitation? =
+        databaseClient.sql(SELECT_BY_SOURCE_REFERENCE_ID)
+            .bind("sourceReferenceId", sourceReferenceId)
+            .map { row, _ -> row.toInvitation() }
+            .one()
+            .awaitSingleOrNull()
+
     override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? = databaseClient.sql(
         SELECT_BY_CANDIDATE_KEY_FOR_UPDATE,
     )
@@ -37,7 +45,8 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
             .bind("id", invitation.id.value)
             .bind("source", invitation.source.name)
             .bindNullableString("sourceReferenceId", invitation.sourceReferenceId)
-            .bind("workspaceId", invitation.workspaceId)
+            .bind("target", invitation.target.name)
+            .bindNullableString("workspaceId", invitation.workspaceId)
             .bind("invitedEmailNormalized", invitation.invitedEmailNormalized)
             .bind("candidateKey", candidateKey)
             .bind("tokenHash", invitation.tokenHash)
@@ -62,6 +71,7 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
             .bind("status", invitation.status.name)
             .bindNullableInstant("acceptedAt", invitation.acceptedAt)
             .bindNullableString("acceptedPrincipalId", invitation.acceptedPrincipalId)
+            .bindNullableString("workspaceId", invitation.workspaceId)
             .bind("version", invitation.version)
             .bind("id", invitation.id.value)
             .bind("expectedVersion", expectedVersion)
@@ -75,7 +85,8 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
         id = InvitationId(requireNotNull(get("id", UUID::class.java))),
         source = InvitationSource.valueOf(requireNotNull(get("source", String::class.java))),
         sourceReferenceId = get("source_reference_id", String::class.java),
-        workspaceId = requireNotNull(get("workspace_id", String::class.java)),
+        target = InvitationTarget.valueOf(requireNotNull(get("target", String::class.java))),
+        workspaceId = get("workspace_id", String::class.java),
         invitedEmailNormalized = requireNotNull(get("invited_email_normalized", String::class.java)),
         tokenHash = requireNotNull(get("token_hash", String::class.java)),
         status = InvitationStatus.valueOf(requireNotNull(get("status", String::class.java))),
@@ -89,11 +100,18 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
 
     companion object {
         private const val COLUMNS = """
-            id, source, source_reference_id, workspace_id, invited_email_normalized,
+            id, source, source_reference_id, target, workspace_id, invited_email_normalized,
             candidate_key, token_hash, status, issued_by, created_at, expires_at,
             accepted_at, accepted_principal_id, version
         """
         private const val SELECT_BY_ID = "SELECT $COLUMNS FROM invitations WHERE id = :id"
+        private const val SELECT_BY_SOURCE_REFERENCE_ID = """
+            SELECT $COLUMNS
+            FROM invitations
+            WHERE source_reference_id = :sourceReferenceId
+            AND status = 'ACTIVE'
+            AND source = 'WAITLIST'
+        """
         private const val SELECT_BY_CANDIDATE_KEY_FOR_UPDATE = """
             SELECT $COLUMNS
             FROM invitations
@@ -102,11 +120,11 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
         """
         private const val INSERT = """
             INSERT INTO invitations (
-                id, source, source_reference_id, workspace_id, invited_email_normalized,
+                id, source, source_reference_id, target, workspace_id, invited_email_normalized,
                 candidate_key, token_hash, status, issued_by, created_at, expires_at,
                 accepted_at, accepted_principal_id, version
             ) VALUES (
-                :id, :source, :sourceReferenceId, :workspaceId, :invitedEmailNormalized,
+                :id, :source, :sourceReferenceId, :target, :workspaceId, :invitedEmailNormalized,
                 :candidateKey, :tokenHash, :status, :issuedBy, :createdAt, :expiresAt,
                 :acceptedAt, :acceptedPrincipalId, :version
             )
@@ -116,6 +134,7 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
             SET status = :status,
                 accepted_at = :acceptedAt,
                 accepted_principal_id = :acceptedPrincipalId,
+                workspace_id = :workspaceId,
                 version = :version
             WHERE id = :id AND version = :expectedVersion
         """

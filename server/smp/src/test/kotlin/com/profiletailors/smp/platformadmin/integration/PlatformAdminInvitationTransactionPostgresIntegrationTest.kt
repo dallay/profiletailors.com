@@ -79,6 +79,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
     }
 
     override suspend fun seedScenario() {
+        seedPrincipal(operatorId.toString())
         databaseClient.sql(
             """
             INSERT INTO waitlists (id, key, name, context, status)
@@ -115,6 +116,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
     override fun cleanupStatements(): List<String> = listOf(
         "DELETE FROM platform_admin_audit_events",
         "DELETE FROM waitlist_invitations",
+        "DELETE FROM invitations WHERE source_reference_id IN ('entry-test-1', 'entry-test-2')",
         "DELETE FROM platform_role_assignments",
         "DELETE FROM waitlist_entries WHERE id IN ('entry-test-1', 'entry-test-2')",
         "DELETE FROM waitlists WHERE id = 'wl-1'",

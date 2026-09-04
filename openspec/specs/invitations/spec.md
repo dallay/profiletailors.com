@@ -152,3 +152,121 @@ This specification authorizes no production implementation.
 - GIVEN the change is reviewed
 - WHEN artifacts and test history are inspected
 - THEN boundaries and the red/green sequence MUST be verifiable
+
+### Requirement: InvitationTarget models two distinct onboarding paths
+
+Every `Invitation` has a `target: InvitationTarget` field:
+
+```kotlin
+enum class InvitationTarget {
+    EXISTING_WORKSPACE   // invitee joins an existing workspace
+    NEW_WORKSPACE        // invitee provisions a new workspace on acceptance
+}
+```
+
+**Lifecycle-aware invariants enforced in aggregate init:**
+
+| target | status | workspaceId |
+|--------|--------|------------|
+| `EXISTING_WORKSPACE` | any | `!= null` (always required) |
+| `NEW_WORKSPACE` | `ACTIVE`, `EXPIRED`, `REVOKED` | `== null` |
+| `NEW_WORKSPACE` | `ACCEPTED` | `!= null` (set by `accept()`) |
+
+The aggregate init raises `IllegalStateException` when invariants are violated.
+
+**Accept transition is single-method with workspace parameter:**
+
+```kotlin
+fun accept(at: Instant, principalId: String, resolvedWorkspaceId: String? = null): Invitation
+```
+
+For `NEW_WORKSPACE`, `resolvedWorkspaceId` is mandatory. For `EXISTING_WORKSPACE`,
+it is unused and `workspaceId` is already set.
+
+#### Scenario: Admin creates invitation from eligible waitlist entry
+
+- GIVEN a waitlist entry with status PENDING and no active invitation
+- WHEN admin with WAITLIST_INVITE permission executes InviteWaitlistEntryCommand
+- THEN the handler creates Invitation(source=WAITLIST, sourceReferenceId=waitlistEntryId, target=NEW_WORKSPACE, workspaceId=null)
+- AND persists it via InvitationRepository
+- AND calls WaitlistEntry.invite(now) [PENDING → INVITED]
+- AND publishes InvitationIssued (audit event — no raw token)
+
+#### Scenario: User accepts a waitlist invitation (NEW_WORKSPACE)
+
+- GIVEN an active Invitation with source=WAITLIST, target=NEW_WORKSPACE, workspaceId=null
+- WHEN user with matching identity and email presents valid token
+- THEN InvitationActivationCoordinator.activate() provisions workspace, converts waitlist entry, and accepts invitation
+- AND returns InvitationActivationResult(invitation, membershipStatus)
+
+#### Scenario: User accepts invitation to existing workspace (EXISTING_WORKSPACE)
+
+- GIVEN an active Invitation with target=EXISTING_WORKSPACE, workspaceId=ws-789
+- WHEN user with matching email presents valid token
+- THEN InvitationActivationCoordinator.activate() reconciles membership and accepts invitation
+- AND returns InvitationActivationResult(invitation, membershipStatus)
+
+### Requirement: InvitationActivationCoordinator orchestrates all acceptance paths
+
+Both acceptance entry points delegate to `InvitationActivationCoordinator`:
+
+| Entry point | Triggered by |
+|---|---|
+| `AcceptInvitationHandler` | Authenticated user clicks email link |
+| `InvitationRegistrationGatewayAdapter` | New user completes registration form |
+
+Coordinator returns `InvitationActivationResult`:
+```kotlin
+data class InvitationActivationResult(
+    val invitation: Invitation,
+    val membershipStatus: WorkspaceMembershipStatus,
+)
+```
+
+`ProvisionedWorkspace` MUST expose `membershipStatus`:
+```kotlin
+data class ProvisionedWorkspace(
+    val workspaceId: String,
+    val name: String,
+    val membershipStatus: WorkspaceMembershipStatus,
+)
+```
+
+Coordinator has no transaction of its own. Transaction is owned by the caller (`AtomicTransactionRunner`).
+
+### Requirement: Waitlist entry reflects conversion on acceptance
+
+`WaitlistEntry.convert()` MUST be called by `InvitationActivationCoordinator` when a `source=WAITLIST` invitation is accepted.
+
+#### Scenario: INVITED entry transitions to CONVERTED when workspace is provisioned
+
+- GIVEN a waitlist entry with status INVITED and an active Invitation with target=NEW_WORKSPACE
+- WHEN InvitationActivationCoordinator activates the invitation for NEW_WORKSPACE
+- THEN WorkspaceProvisioningService.provisionDefaultWorkspace() is called
+- AND WaitlistEntry.convert(now) [INVITED → CONVERTED]
+- AND Invitation.accept(now, principalId, provisionedWorkspaceId) [ACTIVE → ACCEPTED]
+
+### Requirement: WAITLIST source enforces sourceReferenceId
+
+`Invitation` with `source = InvitationSource.WAITLIST` MUST have non-blank `sourceReferenceId`.
+Init block enforces: `require(source != WAITLIST || !sourceReferenceId.isNullOrBlank())`.
+
+### Requirement: No raw token in InvitationIssued event
+
+`InvitationIssued` published by `InviteWaitlistEntryHandler` MUST NOT carry the raw token.
+Token handoff for notification delivery follows DALLAY-565/566 contract:
+`InvitationNotificationRequested(invitationId, commandId, kind)` — no raw token.
+
+### Requirement: No SUPERSEDED status
+
+Canonical `Invitation` status is NOT modified. `SUPERSEDED` is not a valid status.
+PostgreSQL CHECK constraint enforces: `status IN ('ACTIVE', 'ACCEPTED', 'EXPIRED', 'REVOKED')`.
+
+Resend follows DALLAY-565 contract: same `InvitationId`, new delivery command/notification record.
+DALLAY-570 does NOT create a new `Invitation` on re-invite.
+
+### Requirement: WaitlistInvitation is legacy-only
+
+`WaitlistInvitation` and `WaitlistInvitationRepository` are **legacy compatibility models only**.
+New waitlist invitation flows MUST NOT create or update `WaitlistInvitation` rows.
+Existing records created before this change remain readable via the legacy repository.

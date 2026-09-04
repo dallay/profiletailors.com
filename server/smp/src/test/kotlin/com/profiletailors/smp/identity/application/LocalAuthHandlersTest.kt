@@ -3,6 +3,7 @@ package com.profiletailors.smp.identity.application
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.common.testfixture.CredentialGenerator
 import com.profiletailors.smp.credentials.application.ActiveRefreshSession
 import com.profiletailors.smp.credentials.application.CreatedRefreshSession
@@ -1131,6 +1132,7 @@ class LocalAuthHandlersTest {
             return WorkspaceProvisioningService.ProvisionedWorkspace(
                 workspaceId = "ws-fake-${principalId.hashCode().toUInt()}",
                 name = "$displayName's Workspace",
+                membershipStatus = WorkspaceMembershipStatus.ACTIVE,
             )
         }
     }

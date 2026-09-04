@@ -68,7 +68,7 @@ data class InvitationEmail(
      * One invitation email per invitation. Re-dispatching the same invitation (e.g. after
      * a crash mid-send) MUST NOT produce a second email to the same address.
      */
-    fun idempotencyKey(): IdempotencyKey = IdempotencyKey("platform.invitation:$invitationId")
+    fun idempotencyKey(): IdempotencyKey = IdempotencyKey("invitation:$invitationId:initial")
 
     /**
      * Render the plain-text and HTML bodies for this invitation email.
