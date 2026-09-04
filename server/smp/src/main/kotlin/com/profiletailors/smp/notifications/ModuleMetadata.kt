@@ -30,6 +30,9 @@ import org.springframework.modulith.ApplicationModule
     allowedDependencies = [
         "identity :: application",
         "identity :: infrastructure",
+        "platformadmin",
+        "platformadmin :: contracts",
+        "platformadmin :: domain",
     ],
 )
 internal class ModuleMetadata

@@ -1,42 +1,54 @@
 package com.profiletailors.smp.platformadmin.infrastructure
 
-import com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot
-import com.profiletailors.smp.platformadmin.application.InvitationAcceptanceRepository
-import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
-import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
+import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
-import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
+import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.coVerifyOrder
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import java.time.Clock
 import java.time.Instant
-import java.time.ZoneOffset
 
 class InvitationRegistrationGatewayAdapterTest {
     private val now = Instant.parse("2026-08-09T10:00:00Z")
-    private val clock = Clock.fixed(now, ZoneOffset.UTC)
-    private val invitationRepository = mockk<InvitationAcceptanceRepository>()
-    private val tokenHasher = mockk<TokenHasher>(moreInterfaces = arrayOf(InvitationTokenCandidateKey::class))
-    private val membershipProvisioner = mockk<WorkspaceMembershipProvisioner>()
-    private val invitation = Invitation(
+
+    private fun existingWorkspaceInvitation(
+        status: InvitationStatus = InvitationStatus.ACTIVE,
+        workspaceId: String? = "workspace-a",
+    ) = Invitation(
         id = InvitationId.generate(),
         source = InvitationSource.WAITLIST,
         sourceReferenceId = "waitlist-1",
-        workspaceId = "workspace-a",
+        target = InvitationTarget.EXISTING_WORKSPACE,
+        workspaceId = workspaceId,
         invitedEmailNormalized = "invitee@example.com",
         tokenHash = "hashed-token",
-        status = InvitationStatus.ACTIVE,
+        status = status,
+        issuedBy = "issuer-1",
+        createdAt = now.minusSeconds(60),
+        expiresAt = now.plusSeconds(3600),
+    )
+
+    private fun newWorkspaceInvitation(
+        status: InvitationStatus = InvitationStatus.ACTIVE,
+        workspaceId: String? = null,
+    ) = Invitation(
+        id = InvitationId.generate(),
+        source = InvitationSource.WAITLIST,
+        sourceReferenceId = "waitlist-1",
+        target = InvitationTarget.NEW_WORKSPACE,
+        workspaceId = workspaceId,
+        invitedEmailNormalized = "invitee@example.com",
+        tokenHash = "hashed-token",
+        status = status,
         issuedBy = "issuer-1",
         createdAt = now.minusSeconds(60),
         expiresAt = now.plusSeconds(3600),
@@ -44,159 +56,80 @@ class InvitationRegistrationGatewayAdapterTest {
 
     @Test
     fun `should return the workspace when invitation matches`() = runTest {
-        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
-        every { tokenHasher.matches("raw-token", "hashed-token") } returns true
-        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
+        val coordinator = mockk<InvitationActivationCoordinator>()
+        val invitation = existingWorkspaceInvitation()
         coEvery {
-            membershipProvisioner.reconcile("workspace-a", "principal-1")
-        } returns mockk<WorkspaceMembershipSnapshot>()
-        coEvery { invitationRepository.markAccepted(invitation.id, now, "principal-1") } returns true
+            coordinator.activateForRegistration(
+                rawToken = "raw-token",
+                email = " Invitee@Example.com ",
+                principalId = "principal-1",
+            )
+        } returns InvitationActivationCoordinator.InvitationActivationResult(
+            invitation = invitation,
+            membershipStatus = WorkspaceMembershipStatus.ACTIVE,
+        )
 
-        val workspaceId = adapter().acceptForRegistration(
+        val workspaceId = adapter(coordinator).acceptForRegistration(
             rawToken = "raw-token",
             email = " Invitee@Example.com ",
             principalId = "principal-1",
         )
 
         workspaceId shouldBe "workspace-a"
-        coVerifyOrder {
-            membershipProvisioner.reconcile("workspace-a", "principal-1")
-            invitationRepository.markAccepted(invitation.id, now, "principal-1")
+        coVerify {
+            coordinator.activateForRegistration(
+                rawToken = "raw-token",
+                email = " Invitee@Example.com ",
+                principalId = "principal-1",
+            )
         }
     }
 
     @Test
-    fun `should reject invitation when registration email does not match`() = runTest {
-        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
-        every { tokenHasher.matches("raw-token", "hashed-token") } returns true
-        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
+    fun `should reject invitation when coordinator throws`() = runTest {
+        val coordinator = mockk<InvitationActivationCoordinator>()
+        coEvery {
+            coordinator.activateForRegistration(
+                rawToken = "raw-token",
+                email = "other@example.com",
+                principalId = "principal-1",
+            )
+        } throws InvitationNotAcceptableException("unavailable")
 
         shouldThrow<InvitationNotAcceptableException> {
-            adapter().acceptForRegistration(
+            adapter(coordinator).acceptForRegistration(
                 rawToken = "raw-token",
                 email = "other@example.com",
                 principalId = "principal-1",
             )
         }
-
-        coVerify(exactly = 0) { membershipProvisioner.reconcile(any(), any()) }
-        coVerify(exactly = 0) { invitationRepository.markAccepted(any(), any(), any()) }
     }
 
     @Test
-    fun `should reject invitation when token has no candidate key`() = runTest {
-        shouldThrow<InvitationNotAcceptableException> {
-            adapter(tokenHasher = mockk()).acceptForRegistration(
-                rawToken = "raw-token",
-                email = "invitee@example.com",
-                principalId = "principal-1",
-            )
-        }
-
-        coVerify(exactly = 0) { invitationRepository.findByCandidateKeyForUpdate(any()) }
-    }
-
-    @Test
-    fun `should reject invitation when token hash does not match`() = runTest {
-        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
-        every { tokenHasher.matches("raw-token", "hashed-token") } returns false
-        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
-
-        shouldThrow<InvitationNotAcceptableException> {
-            adapter().acceptForRegistration(
-                rawToken = "raw-token",
-                email = "invitee@example.com",
-                principalId = "principal-1",
-            )
-        }
-
-        coVerify(exactly = 0) { membershipProvisioner.reconcile(any(), any()) }
-        coVerify(exactly = 0) { invitationRepository.markAccepted(any(), any(), any()) }
-    }
-
-    @Test
-    fun `should reject invitation when invitation is not active`() = runTest {
-        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
-        every { tokenHasher.matches("raw-token", "hashed-token") } returns true
-        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns
-            invitation.copy(status = InvitationStatus.REVOKED)
-
-        shouldThrow<InvitationNotAcceptableException> {
-            adapter().acceptForRegistration(
-                rawToken = "raw-token",
-                email = "invitee@example.com",
-                principalId = "principal-1",
-            )
-        }
-
-        coVerify(exactly = 0) { membershipProvisioner.reconcile(any(), any()) }
-        coVerify(exactly = 0) { invitationRepository.markAccepted(any(), any(), any()) }
-    }
-
-    @Test
-    fun `should reject invitation when invitation is expired`() = runTest {
-        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
-        every { tokenHasher.matches("raw-token", "hashed-token") } returns true
-        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns
-            invitation.copy(expiresAt = now)
-
-        shouldThrow<InvitationNotAcceptableException> {
-            adapter().acceptForRegistration(
-                rawToken = "raw-token",
-                email = "invitee@example.com",
-                principalId = "principal-1",
-            )
-        }
-
-        coVerify(exactly = 0) { membershipProvisioner.reconcile(any(), any()) }
-        coVerify(exactly = 0) { invitationRepository.markAccepted(any(), any(), any()) }
-    }
-
-    @Test
-    fun `should reject invitation when repository has no matching invitation`() = runTest {
-        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
-        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns null
-
-        shouldThrow<InvitationNotAcceptableException> {
-            adapter().acceptForRegistration(
-                rawToken = "raw-token",
-                email = "invitee@example.com",
-                principalId = "principal-1",
-            )
-        }
-
-        coVerify(exactly = 0) { membershipProvisioner.reconcile(any(), any()) }
-        coVerify(exactly = 0) { invitationRepository.markAccepted(any(), any(), any()) }
-    }
-
-    @Test
-    fun `should reject invitation when acceptance update changes no row`() = runTest {
-        every { (tokenHasher as InvitationTokenCandidateKey).candidateKey("raw-token") } returns "candidate-key"
-        every { tokenHasher.matches("raw-token", "hashed-token") } returns true
-        coEvery { invitationRepository.findByCandidateKeyForUpdate("candidate-key") } returns invitation
+    fun `should return invitation id when workspaceId is null`() = runTest {
+        val coordinator = mockk<InvitationActivationCoordinator>()
+        val invitation = newWorkspaceInvitation(status = InvitationStatus.ACTIVE, workspaceId = null)
         coEvery {
-            membershipProvisioner.reconcile("workspace-a", "principal-1")
-        } returns mockk<WorkspaceMembershipSnapshot>()
-        coEvery { invitationRepository.markAccepted(invitation.id, now, "principal-1") } returns false
-
-        shouldThrow<InvitationNotAcceptableException> {
-            adapter().acceptForRegistration(
+            coordinator.activateForRegistration(
                 rawToken = "raw-token",
                 email = "invitee@example.com",
                 principalId = "principal-1",
             )
-        }
+        } returns InvitationActivationCoordinator.InvitationActivationResult(
+            invitation = invitation,
+            membershipStatus = WorkspaceMembershipStatus.ACTIVE,
+        )
 
-        coVerifyOrder {
-            membershipProvisioner.reconcile("workspace-a", "principal-1")
-            invitationRepository.markAccepted(invitation.id, now, "principal-1")
-        }
+        val result = adapter(coordinator).acceptForRegistration(
+            rawToken = "raw-token",
+            email = "invitee@example.com",
+            principalId = "principal-1",
+        )
+
+        result shouldBe invitation.id.value.toString()
     }
 
-    private fun adapter(tokenHasher: TokenHasher = this.tokenHasher) = InvitationRegistrationGatewayAdapter(
-        invitationRepository = invitationRepository,
-        tokenHasher = tokenHasher,
-        membershipProvisioner = membershipProvisioner,
-        clock = clock,
+    private fun adapter(coordinator: InvitationActivationCoordinator) = InvitationRegistrationGatewayAdapter(
+        coordinator = coordinator,
     )
 }
