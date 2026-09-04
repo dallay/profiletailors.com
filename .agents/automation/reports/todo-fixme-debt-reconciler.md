@@ -31,8 +31,8 @@ None.
 
 | Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| frontend-biome-linter | `pnpm lint` | Passed | Biome check completed across 5 workspace projects without errors |
-| backend-publishing-tests | `server/smp` | Passed | Fast unit tests for publishing module completed successfully |
+| debt-marker-audit | `server/`, `apps/`, `shared/`, `infra/`, `scripts/`, `docs/`, `openspec/` | Passed | Re-scanned TODO, FIXME, HACK, XXX, and TEMP markers; only the retained publishing-spec TODO requires a product decision |
+| execution-metadata-consistency | Task report, task state, coordinator report | Passed | Timestamp, outcome, checks, and coordinator aggregation agree for this execution |
 
 ## Unresolved Findings
 
@@ -44,7 +44,7 @@ None.
 
 ## Automation State
 
-- **Last Execution:** `2026-03-31T13:10:00Z`
+- **Last Execution:** `2026-09-04T09:12:43Z`
 - **Outcome:** `NO_DRIFT_DETECTED`
 - **Schema Version:** `1`
 - **Task Identity:** `todo-fixme-debt-reconciler`
