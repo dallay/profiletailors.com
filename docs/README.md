@@ -1,6 +1,6 @@
 # Profile Tailors Documentation
 
-**Last Updated:** 2026-09-03
+**Last Updated:** 2026-09-04
 
 ## 📖 Table of Contents
 
@@ -28,6 +28,7 @@
 - [Release Verification](./release-verification.md) - Evidence required before release readiness
 
 ### Infrastructure
+
 - [Modular Docker Compose](./infrastructure/modular-docker-compose.md) - Reusable infrastructure
   services
 - [Private Beta Launch Readiness Runbook](./infrastructure/private-beta-launch-readiness-runbook.md) -
@@ -39,6 +40,7 @@
 - [Prometheus & Grafana Setup](./monitoring/prometheus-grafana-setup.md) - Metrics collection and
   visualization
 - [Actuator Security](./monitoring/actuator-security.md) - Securing Spring Boot Actuator endpoints
+- [Observability Contracts](./observability-contracts.md) - Shared telemetry and logging contracts
 
 ### Development & Testing
 
@@ -70,6 +72,7 @@
 
 - [Monitoring Setup](./monitoring/prometheus-grafana-setup.md)
 - [Infrastructure Management](./infrastructure/modular-docker-compose.md)
+- [Production Rollback Runbook](./runbooks/production-rollback.md)
 
 ## 📝 Documentation Standards
 

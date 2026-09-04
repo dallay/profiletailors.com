@@ -5,9 +5,9 @@ import org.springframework.modulith.NamedInterface
 /**
  * Marker class exposing the domain layer to the notifications module.
  *
- * Named `DomainLayerExports` so the HexagonalArchTest rules
+ * Excluded from HexagonalArchTest rules
  * [domainLayerShouldNotDependOnSpring] / [domainLayerShouldNotDependOnInfrastructureFrameworks]
- * exclude this class (rule filter: haveSimpleNameNotEndingWith("Exports")).
+ * via explicit class-name predicate: haveSimpleName != "DomainLayerExports".
  *
  * Spring Modulith requires a [@NamedInterface("domain")] on a class residing in the
  * `platformadmin.domain` package for the `platformadmin :: domain` allowed-dependency
