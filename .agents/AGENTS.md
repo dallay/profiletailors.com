@@ -38,6 +38,175 @@ docblocks, TODO/FIXME notes, lint/type suppression directives, or commented-out 
 intent through names, structure, and tests; put rationale in commit messages or PR descriptions.
 Interpreter shebangs are executable directives, not comments.
 
+## Static Analysis and Linter Compliance
+
+Static analysis findings are design feedback, not obstacles to bypass. Agents MUST fix the code that
+causes a finding unless the repository already contains an explicitly approved exception for that
+exact case.
+
+### Non-negotiable rules
+
+1. **Do not suppress a linter or compiler finding to make a change pass.**
+   Never introduce `@Suppress`, `@file:Suppress`, `biome-ignore`, `eslint-disable`, `@ts-ignore`,
+   `@ts-expect-error`, `@ts-nocheck`, `//nolint`, compiler-warning suppression, formatter exclusion,
+   or equivalent bypass directives.
+
+2. **Do not weaken static-analysis configuration.**
+   Never disable, downgrade, exclude, or broaden an override for a Detekt, Biome, TypeScript,
+   Kotlin, Spotless, ktlint, security, architecture, or correctness rule merely because new or
+   changed code violates it.
+
+3. **Do not grow baselines.**
+   Existing Detekt or other static-analysis baselines are legacy debt and operate as ratchets:
+   findings may be removed but new findings MUST NOT be added. Never regenerate a baseline to make
+   a failing check green unless the task explicitly exists to reconcile that baseline and the
+   resulting baseline does not hide newly introduced production debt.
+
+4. **Do not move a violation instead of fixing it.**
+   Moving code into an ignored directory, generated-code path, test fixture, broad UI override,
+   helper file, wrapper, abstraction, or another module does not constitute a fix when the same
+   design problem remains.
+
+5. **Do not trade one violation for another.**
+   A Detekt complexity violation must not be "fixed" by introducing unsafe casts, duplicated logic,
+   excessive indirection, generic catch blocks, hidden mutable state, architecture violations, or
+   weakened type safety. Resolve the underlying responsibility or control-flow problem.
+
+6. **Treat warnings in changed code as defects.**
+   New or modified code must not introduce Kotlin compiler warnings, TypeScript errors, Biome
+   warnings, Detekt findings, Spotless/format violations, deprecation warnings, unchecked casts,
+   unreachable code, or equivalent static-analysis debt.
+
+7. **Deprecated APIs require migration, not silence.**
+   Do not add new consumers of deprecated APIs. When touching code that uses a deprecated API,
+   migrate it when the migration is within task scope. If migration is materially outside scope,
+   leave the existing call unchanged and report it as pre-existing debt; never suppress the
+   deprecation warning.
+
+8. **Existing violations do not authorize new violations.**
+   A nearby suppression, baseline entry, `any`, oversized method, accessibility exception, or other
+   legacy pattern is not precedent. New and modified code must follow the current rules even when
+   surrounding code predates them.
+
+### Kotlin and Detekt
+
+Kotlin code MUST remain clean under the repository's effective compiler, Detekt, formatting, and
+architecture configuration.
+
+- Prefer reducing responsibilities when Detekt reports `LongMethod`, `LargeClass`,
+  `CyclomaticComplexMethod`, `TooManyFunctions`, `ComplexInterface`, `LongParameterList`, or
+  excessive returns. Do not mechanically split code into meaningless private functions solely to
+  satisfy a threshold.
+- `SwallowedException`, `RethrowCaughtException`, `TooGenericExceptionCaught`, cancellation,
+  coroutine, nullability, and potential-bug findings require semantic review. Preserve exception
+  causes and coroutine cancellation semantics.
+- Replace unexplained `MagicNumber` findings with domain-, protocol-, configuration-, or
+  algorithm-specific named values when the number has meaning. Do not create constants for
+  universally obvious structural values solely to satisfy a rule.
+- Resolve `StringLiteralDuplication` only when the repeated value represents shared knowledge or a
+  contract. Do not centralize unrelated strings merely because their text matches.
+- Do not use `!!`, unsafe casts, unchecked casts, platform types, reflection, or generic exception
+  handling as shortcuts around the type system unless an existing framework boundary genuinely
+  requires them and the repository already has an approved pattern for that boundary.
+- New Kotlin deprecations use the language-level `@Deprecated` mechanism when a compatibility
+  period is genuinely required. A prose `@deprecated` tag or documentation text is not a substitute
+  for compiler-visible deprecation.
+- Do not edit `detekt-baseline.xml` as part of ordinary feature or bug-fix work.
+- Do not change `config/detekt/detekt.yml`, convention-plugin Detekt settings, thresholds, rule
+  activation, or exclusions to accommodate a local implementation failure.
+
+When a Detekt finding exposes excessive orchestration, prefer extracting cohesive domain,
+application, or infrastructure responsibilities according to the hexagonal dependency rule rather
+than creating generic utility classes.
+
+### TypeScript, Vue, Astro, and Biome
+
+Frontend and TypeScript code MUST remain clean under TypeScript/Vue type-checking and the effective
+Biome configuration.
+
+- Do not introduce explicit `any`, `as any`, broad type assertions, non-null assertions, or
+  `unknown` values that are immediately cast without narrowing.
+- Prefer runtime guards, discriminated unions, typed DOM targets, schema validation, exhaustive
+  handling, and framework-provided types over assertions.
+- `unknown` is acceptable only when the value genuinely crosses an untyped boundary and is narrowed
+  before business or UI logic consumes it.
+- Do not disable accessibility rules to preserve a convenient DOM structure. Interactive behavior
+  must have appropriate semantics, focus behavior, keyboard support, and accessible naming.
+- Drag-and-drop, hover-only interactions, custom clickable containers, charts, dialogs, overlays,
+  and popovers require an equivalent keyboard-accessible interaction where applicable.
+- Do not disable `noExplicitAny`, correctness, suspicious, security, or accessibility rules for a
+  directory merely because third-party/generated-style components live there.
+- Treat locally maintained code under `components/ui` as first-party code unless it is explicitly
+  generated and governed as generated source.
+- Generated components may retain upstream structure only when the repository's generated-code
+  policy explicitly identifies them as generated. Do not manually add suppressions to generated
+  files.
+- Do not use TypeScript assertions to conceal a mismatch between API contracts and frontend models;
+  reconcile the contract or mapping instead.
+- Do not ignore unused imports, unreachable branches, duplicate Vue keys, invalid bindings, unsafe
+  DOM access, or other correctness findings.
+
+### Formatting and style tools
+
+Formatting tools are deterministic owners of formatting.
+
+- Fix formatting through the repository's configured formatter rather than hand-tuning code against
+  the formatter.
+- Run formatting only on files implicated by the task unless the repository command itself is
+  intentionally scoped more broadly.
+- Never perform a repository-wide formatting rewrite as incidental cleanup.
+- Do not alter Spotless, ktlint, Biome formatter, line-width, import-ordering, or generated-file
+  configuration merely to avoid touching offending code.
+
+### Security and architecture analyzers
+
+Semgrep, CodeQL, OWASP Dependency Check, Trivy, Gitleaks, ArchUnit, Konsist, Spring Modulith,
+CodeRabbit deterministic rules, and equivalent repository checks are blocking design constraints.
+
+- Never silence a security finding with an ignore rule, fingerprint, allowlist, baseline, test
+  exclusion, fake sanitization, or configuration downgrade unless the task explicitly addresses a
+  confirmed false positive and records the approved exception in the canonical security mechanism.
+- Never weaken architecture tests or static dependency rules to accommodate a new dependency.
+  Correct the dependency direction or obtain the architecture decision required by this
+  constitution.
+- A passing unit test does not override a static security, architecture, type-safety, or lint
+  failure.
+
+### Required agent workflow
+
+For every code change:
+
+1. Inspect the applicable linter/compiler configuration before making a non-trivial structural
+   change when its constraints are relevant.
+2. Follow existing compliant patterns from nearby production code; do not copy nearby suppressions
+   or baseline debt.
+3. Run the narrowest relevant static-analysis check early enough to influence the implementation,
+   not only after all code is written.
+4. Fix every finding introduced by the change before broad verification.
+5. Run the complete applicable quality gate from the Definition of Done.
+6. Inspect the final diff for newly added suppression directives, ignored paths, baseline changes,
+   configuration downgrades, unsafe casts, explicit `any`, and unexplained exclusions.
+7. Report pre-existing findings separately from findings introduced by the change.
+
+If a quality rule appears incorrect, contradictory, or impossible to satisfy without damaging the
+design, stop modifying implementation strategy and report the conflict. Do not silently change or
+bypass the rule. A rule change is a separate repository-governance decision.
+
+### Static-analysis Definition of Done
+
+A change is not complete unless all applicable statements are true:
+
+- no new Kotlin compiler warnings;
+- no new Detekt findings or baseline entries;
+- no new `@Suppress` or `@file:Suppress`;
+- no new TypeScript type errors;
+- no new explicit `any`, `as any`, `@ts-ignore`, `@ts-nocheck`, or lint bypass;
+- no new Biome warning/error introduced by changed production code;
+- no new formatter or Spotless violations;
+- no static-analysis, security, architecture, or accessibility rule was disabled or weakened;
+- no ignored path or override was broadened to hide the change;
+- all applicable repository quality gates pass without bypasses.
+
 ## Project Identity
 
 **Profile Tailors** is a social media management platform for scheduling, publishing, analyzing,
@@ -85,48 +254,48 @@ not exist, use the exact workspace command already used by CI and say so in the 
 
 ### Setup
 
-| Command | Action |
-|---|---|
-| `just setup` | Create local env if needed, install dependencies, install hooks, sync agent targets, and set up optional tools |
-| `just install` | Install all pnpm workspace dependencies from the frozen lockfile |
-| `just hooks-install` | Install Lefthook hooks unless globally disabled |
-| `just -l` | List the current command hub; treat this output as authoritative over this table |
+| Command              | Action                                                                                                         |
+| -------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `just setup`         | Create local env if needed, install dependencies, install hooks, sync agent targets, and set up optional tools |
+| `just install`       | Install all pnpm workspace dependencies from the frozen lockfile                                               |
+| `just hooks-install` | Install Lefthook hooks unless globally disabled                                                                |
+| `just -l`            | List the current command hub; treat this output as authoritative over this table                               |
 
 ### Frontend and shared web
 
-| Command | Action |
-|---|---|
-| `just dev-frontend` | Start marketing and dashboard dev servers through Portless |
-| `just frontend-build` | Build the marketing site |
-| `just app-build` | Type-check and build the dashboard SPA |
-| `just admin-build` | Type-check and build the admin SPA |
-| `just frontend-lint` | Biome check for marketing only |
-| `just frontend-format` | Format marketing only; do not use it as an unreviewed bulk rewrite |
-| `just frontend-check` | Astro type/content check for marketing |
-| `just frontend-test` | Marketing Vitest suite |
-| `just admin-check` / `just admin-test` | Admin type-check / Vitest suite |
-| `just frontend-test-e2e` | Marketing E2E plus the configured mocked app media lane |
-| `just app-test-e2e-media-mocked` / `just app-test-e2e-media-real` | App Media Library E2E lanes |
+| Command                                                           | Action                                                             |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `just dev-frontend`                                               | Start marketing and dashboard dev servers through Portless         |
+| `just frontend-build`                                             | Build the marketing site                                           |
+| `just app-build`                                                  | Type-check and build the dashboard SPA                             |
+| `just admin-build`                                                | Type-check and build the admin SPA                                 |
+| `just frontend-lint`                                              | Biome check for marketing only                                     |
+| `just frontend-format`                                            | Format marketing only; do not use it as an unreviewed bulk rewrite |
+| `just frontend-check`                                             | Astro type/content check for marketing                             |
+| `just frontend-test`                                              | Marketing Vitest suite                                             |
+| `just admin-check` / `just admin-test`                            | Admin type-check / Vitest suite                                    |
+| `just frontend-test-e2e`                                          | Marketing E2E plus the configured mocked app media lane            |
+| `just app-test-e2e-media-mocked` / `just app-test-e2e-media-real` | App Media Library E2E lanes                                        |
 
 For dashboard checks without a dedicated recipe, use the package scripts used by CI, for example
 `pnpm --filter app lint`, `pnpm --filter app test:run`, and `pnpm --filter app type-check`.
 
 ### Backend and infrastructure
 
-| Command | Action |
-|---|---|
-| `just backend-build` | Build the SMP backend artifact |
-| `just backend-test` | Run backend tests; optionally pass excluded tags, e.g. `just backend-test 'postgres'` |
-| `just backend-test-fast` | Run the backend test task through the repository password helper |
-| `just backend-check` | Backend check including tests and Detekt, excluding the two BDD suites by design |
-| `just backend-lint` | Run SMP Detekt |
-| `just backend-lint-shared` | Attempt Detekt across shared modules |
-| `just backend-bdd-fast` | Run the fast Cucumber suite |
-| `just backend-test-postgres` | Run PostgreSQL integration tests |
-| `just backend-bdd-postgres` | Run PostgreSQL BDD tests; use with `just infra-up` when required |
-| `just infra-up` / `just infra-down` | Start / stop local infrastructure |
-| `just production-smoke` | Verify production routing, migrations, data, secrets, and hardening |
-| `just swarm-config` / `just production-config` | Validate rendered deployment configuration |
+| Command                                        | Action                                                                                |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `just backend-build`                           | Build the SMP backend artifact                                                        |
+| `just backend-test`                            | Run backend tests; optionally pass excluded tags, e.g. `just backend-test 'postgres'` |
+| `just backend-test-fast`                       | Run the backend test task through the repository password helper                      |
+| `just backend-check`                           | Backend check including tests and Detekt, excluding the two BDD suites by design      |
+| `just backend-lint`                            | Run SMP Detekt                                                                        |
+| `just backend-lint-shared`                     | Attempt Detekt across shared modules                                                  |
+| `just backend-bdd-fast`                        | Run the fast Cucumber suite                                                           |
+| `just backend-test-postgres`                   | Run PostgreSQL integration tests                                                      |
+| `just backend-bdd-postgres`                    | Run PostgreSQL BDD tests; use with `just infra-up` when required                      |
+| `just infra-up` / `just infra-down`            | Start / stop local infrastructure                                                     |
+| `just production-smoke`                        | Verify production routing, migrations, data, secrets, and hardening                   |
+| `just swarm-config` / `just production-config` | Validate rendered deployment configuration                                            |
 
 Backend tests that use Testcontainers require Docker; their PostgreSQL credential is defined by the
 test fixture and does not come from `.env` or the shell. Never commit `.env` or any secret value.
@@ -155,14 +324,14 @@ repository's contracts, examples, or operational instructions are stale.
 
 Use the artifact that owns the claim:
 
-| Claim | Canonical owner |
-|---|---|
-| Product behavior and user-facing scope | Relevant `PRODUCT.md` and current `openspec/specs/` |
-| Active change status and verification | `openspec/changes/<name>/state.yaml` and `verify-report.md` |
-| Durable architecture decision or exception | `docs/architecture/adr/` and its index |
-| Current system shape and dependencies | `docs/architecture/c4/` and architecture README |
-| API behavior and media-type contract | Controllers/OpenAPI annotations, tests, clients, and `docs/api-versioning*.md` |
-| Commands and CI behavior | `Justfile`, package manifests, Gradle tasks, and `.github/workflows/` |
+| Claim                                                 | Canonical owner                                                                   |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Product behavior and user-facing scope                | Relevant `PRODUCT.md` and current `openspec/specs/`                               |
+| Active change status and verification                 | `openspec/changes/<name>/state.yaml` and `verify-report.md`                       |
+| Durable architecture decision or exception            | `docs/architecture/adr/` and its index                                            |
+| Current system shape and dependencies                 | `docs/architecture/c4/` and architecture README                                   |
+| API behavior and media-type contract                  | Controllers/OpenAPI annotations, tests, clients, and `docs/api-versioning*.md`    |
+| Commands and CI behavior                              | `Justfile`, package manifests, Gradle tasks, and `.github/workflows/`             |
 | Operational, legal, security, and deployment behavior | The corresponding `docs/` runbook/register/configuration and source/configuration |
 
 Code, configuration, migrations, routes, and executable tests are evidence of implemented behavior;
@@ -208,11 +377,11 @@ server/smp/src/main/kotlin/com/profiletailors/smp/<context>/
 └── infrastructure/  # Spring, WebFlux, R2DBC, HTTP, security, and external adapters
 ```
 
-| Layer | May depend on | Must not depend on |
-|---|---|---|
-| Domain | Pure Kotlin and approved framework-free shared contracts | Application, infrastructure, Spring, R2DBC, Reactor, persistence annotations, or transport concerns |
-| Application | Domain and inward-facing ports | Infrastructure, Spring stereotypes/configuration, HTTP, R2DBC, Reactor, or security transports |
-| Infrastructure | Domain, application, and external frameworks | — |
+| Layer          | May depend on                                             | Must not depend on                                                                                  |
+| -------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Domain         | Pure Kotlin and approved framework-free shared contracts | Application, infrastructure, Spring, R2DBC, Reactor, persistence annotations, or transport concerns |
+| Application    | Domain and inward-facing ports                            | Infrastructure, Spring stereotypes/configuration, HTTP, R2DBC, Reactor, or security transports      |
+| Infrastructure | Domain, application, and external frameworks              | —                                                                                                   |
 
 Rules:
 
@@ -345,14 +514,14 @@ scenario.
 
 ### Tests by boundary
 
-| Change | Minimum evidence |
-|---|---|
-| Domain/value object/policy | Pure unit tests, including valid and invalid invariants |
-| Application/use case/port | Plain unit tests with fakes/mocks; verify orchestration and failure behavior |
-| HTTP/persistence/provider adapter | Focused integration tests with `WebTestClient`, real serialization, and Testcontainers/real adapter behavior where it matters |
-| New endpoint or user-visible backend behavior | Above tests plus Cucumber BDD scenarios |
-| Frontend feature or shared web contract | Vitest, type-check/lint/build for each affected surface, and E2E for critical user flows |
-| Architecture or dependency change | Existing ArchUnit, Spring Modulith, Konsist, Gradle, and package checks; do not replace a failing owner with a weaker check |
+| Change                                        | Minimum evidence                                                                                                              |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Domain/value object/policy                    | Pure unit tests, including valid and invalid invariants                                                                       |
+| Application/use case/port                     | Plain unit tests with fakes/mocks; verify orchestration and failure behavior                                                  |
+| HTTP/persistence/provider adapter             | Focused integration tests with `WebTestClient`, real serialization, and Testcontainers/real adapter behavior where it matters |
+| New endpoint or user-visible backend behavior | Above tests plus Cucumber BDD scenarios                                                                                       |
+| Frontend feature or shared web contract       | Vitest, type-check/lint/build for each affected surface, and E2E for critical user flows                                      |
+| Architecture or dependency change             | Existing ArchUnit, Spring Modulith, Konsist, Gradle, and package checks; do not replace a failing owner with a weaker check   |
 
 ## Quality Gates and Definition of Done
 
@@ -382,10 +551,13 @@ Before reporting completion, the agent must be able to answer yes to all applica
 
 - scope, worktree status, source-of-truth documents, and existing architecture/skills were inspected;
 - implementation and tests follow the correct layer, bounded-context, and frontend-surface rules;
-- KDoc/TSDoc, API/OpenAPI, product, ADR, C4, OpenSpec, operational, compliance, and examples were
-  updated or explicitly ruled out with a reason;
+- API/OpenAPI, product, ADR, C4, OpenSpec, operational, compliance, and examples were updated or
+  explicitly ruled out with a reason;
 - focused tests and quality gates were run, with exact Passed/Failed/Not run results recorded;
 - no tests, assertions, security checks, or architecture rules were weakened or bypassed;
+- no compiler/linter/static-analysis warning introduced by the change is suppressed, baselined,
+  excluded, downgraded, or hidden through configuration; existing static-analysis debt does not
+  increase;
 - the final diff is minimal, formatted, link-safe, free of secrets, and does not include unrelated
   worktree changes;
 - local, CI, remote, and deployed evidence are clearly separated, with blockers and next steps
@@ -433,6 +605,9 @@ comments.
 - **Architecture checker:** there is no verified `just architecture-check` aggregator. Do not add
   one or make it CI-required without a separate proposal, clean baseline, labelled output, and
   non-duplicative enforcement plan.
+- **Static-analysis debt:** existing Detekt baselines, Biome overrides, suppressions, and legacy
+  exceptions are not examples to copy. They are debt to reduce. Never add a new baseline entry,
+  suppression, ignored path, or rule downgrade during ordinary implementation work.
 - **Conventional commits:** `feat(scope):`, `fix(scope):`, `docs(scope):`, `chore(scope):` when
   commit creation is explicitly authorized.
 
