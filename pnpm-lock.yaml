@@ -12,8 +12,8 @@ importers:
         specifier: 2.5.11
         version: 2.5.11
       portless:
-        specifier: 0.15.5
-        version: 0.15.5
+        specifier: 0.15.6
+        version: 0.15.6
 
   apps/web/admin:
     dependencies:
@@ -4585,8 +4585,8 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  portless@0.15.5:
-    resolution: {integrity: sha512-zmJu4Q8/fY54oVUT/5NnmF4Ih8wTdCvCf6JCN783dRYl9mXkJBzXSckX2lztGCLIbM70varDjCudAbGKT73XPg==}
+  portless@0.15.6:
+    resolution: {integrity: sha512-uOAwWLF32rmyEGFASzSO0VOaqb/AQxFCCzyZbPGd82UNNOfIEvc09zy92nroNibE5HNfzV4oVB0ObKbPXgkM9A==}
     engines: {node: '>=24'}
     os: [darwin, linux, win32]
     hasBin: true
@@ -10404,7 +10404,7 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.2
 
-  portless@0.15.5: {}
+  portless@0.15.6: {}
 
   postcss-less@6.0.0(postcss@8.5.25):
     dependencies:
