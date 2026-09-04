@@ -1,5 +1,14 @@
 schemaVersion: 1
 task: todo-fixme-debt-reconciler
-lastExecution: null
+lastExecution: "2026-09-04T09:12:43Z"
+outcome: NO_DRIFT_DETECTED
 findings: []
-checks: []
+checks:
+  - name: debt-marker-audit
+    target: "server/, apps/, shared/, infra/, scripts/, docs/, openspec/"
+    status: Passed
+    notes: Re-scanned TODO, FIXME, HACK, XXX, and TEMP markers; only the retained publishing-spec TODO requires a product decision.
+  - name: execution-metadata-consistency
+    target: "task report, task state, coordinator report"
+    status: Passed
+    notes: Timestamp, outcome, checks, and coordinator aggregation agree for this execution.
