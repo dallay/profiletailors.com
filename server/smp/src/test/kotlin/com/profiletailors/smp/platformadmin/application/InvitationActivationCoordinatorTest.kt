@@ -169,8 +169,6 @@ class InvitationActivationCoordinatorTest {
     fun `fails when candidateKey candidate lookup returns null`() = runTest {
         val coord = coordinator
         coEvery { tokenHasher.candidateKey("invalid") } returns ""
-
-        // findByCandidateKeyForUpdate returns null
         coEvery { invitationRepository.findByCandidateKeyForUpdate("") } returns null
 
         assertThrows<InvitationNotAcceptableException> {

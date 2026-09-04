@@ -108,7 +108,7 @@ class R2dbcAdministrativeAuditEventRepository(
                 correlation_id, metadata, occurred_at
             ) VALUES (
                 :id, :actorId, :actorType, :action, :targetId, :targetType,
-                :correlationId, :metadata, :occurredAt
+                :correlationId, CAST(:metadata AS JSONB), :occurredAt
             )
         """
     }
