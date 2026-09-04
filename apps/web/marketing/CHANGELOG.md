@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.10](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.9...landing@v0.2.10) (2026-09-04)
+
+
+### Features
+
+* **marketing:** expose design.md spec at /design.md route ([#938](https://github.com/dallay/profiletailors.com/issues/938)) ([31b3689](https://github.com/dallay/profiletailors.com/commit/31b3689c067794a286267d8311d0f9309145f3cc))
+* **marketing:** strengthen seo, accessibility and bilingual route parity ([#931](https://github.com/dallay/profiletailors.com/issues/931)) ([df1b4ba](https://github.com/dallay/profiletailors.com/commit/df1b4baee0e285ffc0b375905978ea5d4ab71c2d))
+
 ## [0.2.9](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.8...landing@v0.2.9) (2026-08-30)
 
 
