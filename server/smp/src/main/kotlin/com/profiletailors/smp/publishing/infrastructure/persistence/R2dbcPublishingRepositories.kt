@@ -763,61 +763,84 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
     override suspend fun claimNextDue(now: Instant, workerId: String, claimLease: Duration): PublicationJobClaim? {
         require(!claimLease.isNegative && !claimLease.isZero) { "Claim lease must be positive." }
         val leaseExpiresAt = now.plus(claimLease)
-        val row = databaseClient.sql(
-            """
-            SELECT id, publication_id, workspace_id, attempt_count
-            FROM publication_jobs
-            WHERE status IN ('PENDING', 'RETRY_WAITING')
-              AND due_at <= :now
-            ORDER BY priority_rank DESC, due_at ASC
-            LIMIT 1
-            """.trimIndent(),
-        )
-            .bind("now", now)
-            .map { resultRow, _ ->
-                Pair(
-                    Triple(
-                        requireNotNull(resultRow.get("id", String::class.java)),
-                        requireNotNull(resultRow.get(PUBLICATION_ID_COLUMN, String::class.java)),
-                        requireNotNull(resultRow.get("workspace_id", String::class.java)),
-                    ),
-                    requireNotNull(resultRow.get("attempt_count", Int::class.javaObjectType)),
-                )
-            }
-            .one()
-            .awaitSingleOrNull() ?: return null
+        val row = claimAndMapRow(now, workerId, leaseExpiresAt) ?: return null
+        val recoveredOperationKey = findRecoverableOperationKey(row.jobId)
+        return row.copy(operationKey = recoveredOperationKey ?: row.operationKey)
+    }
 
-        databaseClient.sql(
-            """
-            UPDATE publication_jobs
+    private suspend fun claimAndMapRow(now: Instant, workerId: String, leaseExpiresAt: Instant) = databaseClient.sql(
+        """
+            WITH next_job AS (
+                SELECT job.id,
+                       job.publication_id,
+                       job.workspace_id,
+                       job.attempt_count,
+                       job.claim_version,
+                       EXISTS (
+                           SELECT 1
+                           FROM delivery_attempts attempt
+                           WHERE attempt.publication_job_id = job.id
+                             AND attempt.outcome IN ('IN_PROGRESS', 'SUCCEEDED')
+                       ) AS has_recoverable_attempt
+                FROM publication_jobs job
+                WHERE job.status IN ('PENDING', 'RETRY_WAITING')
+                  AND job.due_at <= :now
+                ORDER BY job.priority_rank DESC, job.due_at ASC
+                LIMIT 1
+                FOR UPDATE SKIP LOCKED
+            )
+            UPDATE publication_jobs AS job
             SET status = :status,
                 claimed_by_worker = :workerId,
-                 claimed_at = :claimedAt,
-                 lease_expires_at = :leaseExpiresAt,
-                 attempt_count = :attemptCount
+                claimed_at = :claimedAt,
+                lease_expires_at = :leaseExpiresAt,
+                attempt_count = CASE
+                    WHEN next_job.has_recoverable_attempt THEN job.attempt_count
+                    ELSE job.attempt_count + 1
+                END,
+                claim_version = job.claim_version + 1
+            FROM next_job
+            WHERE job.id = next_job.id
+            RETURNING job.id,
+                      job.publication_id,
+                      job.workspace_id,
+                      job.attempt_count,
+                      job.claim_version
+        """.trimIndent(),
+    )
+        .bind("now", now)
+        .bind("status", JobStatus.CLAIMED.name)
+        .bind("workerId", workerId)
+        .bind("claimedAt", now)
+        .bind("leaseExpiresAt", leaseExpiresAt)
+        .map { resultRow, _ ->
+            PublicationJobClaim(
+                jobId = requireNotNull(resultRow.get("id", String::class.java)),
+                publicationId = requireNotNull(resultRow.get(PUBLICATION_ID_COLUMN, String::class.java)),
+                workspaceId = requireNotNull(resultRow.get("workspace_id", String::class.java)),
+                attemptNumber = requireNotNull(resultRow.get("attempt_count", Int::class.javaObjectType)),
+                claimedAt = now,
+                leaseExpiresAt = leaseExpiresAt,
+                claimVersion = requireNotNull(resultRow.get("claim_version", Long::class.javaObjectType)),
+            )
+        }
+        .one()
+        .awaitSingleOrNull()
 
-            WHERE id = :id
-            """.trimIndent(),
-        )
-            .bind("status", JobStatus.CLAIMED.name)
-            .bind("workerId", workerId)
-            .bind("claimedAt", now)
-            .bind("leaseExpiresAt", leaseExpiresAt)
-            .bind("attemptCount", row.second + 1)
-            .bind("id", row.first.first)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-
-        return PublicationJobClaim(
-            jobId = row.first.first,
-            publicationId = row.first.second,
-            workspaceId = row.first.third,
-            attemptNumber = row.second + 1,
-            claimedAt = now,
-            leaseExpiresAt = leaseExpiresAt,
-        )
-    }
+    private suspend fun findRecoverableOperationKey(publicationJobId: String): String? = databaseClient.sql(
+        """
+        SELECT operation_key
+        FROM delivery_attempts
+        WHERE publication_job_id = :publicationJobId
+          AND outcome IN ('IN_PROGRESS', 'SUCCEEDED')
+        ORDER BY attempt_number DESC
+        LIMIT 1
+        """.trimIndent(),
+    )
+        .bind("publicationJobId", publicationJobId)
+        .map { resultRow, _ -> requireNotNull(resultRow.get("operation_key", String::class.java)) }
+        .one()
+        .awaitSingleOrNull()
 
     @Suppress("StringLiteralDuplication")
     override suspend fun rescheduleRetry(

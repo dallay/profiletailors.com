@@ -6,6 +6,7 @@ import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
+import com.profiletailors.smp.publishing.domain.DeliveryAttemptPhase
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.JobStatus
@@ -15,6 +16,8 @@ import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
+import com.profiletailors.smp.publishing.domain.ProviderPublishResult
+import com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException
 import com.profiletailors.smp.publishing.domain.ProviderUploadException
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
@@ -402,40 +405,139 @@ class PublishingJobExecutor(
                 assets = assets,
             ),
         )
-        val result = socialPublisher.publish(
+        val operationKey = claim.operationKey
+        val startedAttempt = startDeliveryAttempt(claim, publication, operationKey, now)
+        val providerOutcome = invokeProvider(
             ProviderPublishCommand(
                 publicationId = publication.id,
                 workspaceId = publication.workspaceId,
                 socialAccount = socialAccount,
                 publication = publication,
                 assets = assets,
+                operationKey = operationKey,
             ),
         )
-        transactionRunner.runAtomically {
-            deliveryAttemptRepository.record(
-                DeliveryAttempt(
-                    id = "attempt-${UUID.randomUUID()}",
-                    publicationId = publication.id,
-                    publicationJobId = claim.jobId,
-                    attemptNumber = claim.attemptNumber,
-                    outcome = DeliveryAttemptOutcome.SUCCEEDED,
-                    retryable = false,
-                    providerMessage = result.providerMessage,
-                    externalPublicationId = result.externalPublicationId,
-                    attemptedAt = now,
-                ),
-            )
-            publicationRepository.markPublished(publication.id, result.externalPublicationId, now)
-            publicationJobRepository.complete(claim.jobId, claim.claimVersion ?: 0L, now)
+        val providerException = providerOutcome.exceptionOrNull()
+        if (providerException != null) {
+            if (providerException is ReconnectRequiredException ||
+                providerException is PublishingFailureException ||
+                providerException is RetryablePublishingException ||
+                providerException is ProviderUploadException
+            ) {
+                throw providerException
+            }
+            if (providerException is ProviderTransportUncertaintyException) {
+                throw PublishingFailureException(
+                    PublishingFailure.publishingFailed("Provider outcome uncertain"),
+                )
+            }
+            throw providerException
         }
+        val result = requireNotNull(providerOutcome.getOrNull())
+        finalizeSuccessfulPublication(claim, publication, startedAttempt, result, now)
+    }
+
+    private suspend fun startDeliveryAttempt(
+        claim: PublicationJobClaim,
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+        operationKey: String,
+        now: Instant,
+    ): DeliveryAttempt {
+        val existing = deliveryAttemptRepository.findByOperationKey(operationKey)
+        if (existing != null) {
+            return existing
+        }
+        return DeliveryAttempt(
+            id = "attempt-${UUID.randomUUID()}",
+            publicationId = publication.id,
+            publicationJobId = claim.jobId,
+            attemptNumber = claim.attemptNumber,
+            outcome = DeliveryAttemptOutcome.IN_PROGRESS,
+            retryable = false,
+            attemptedAt = now,
+            operationKey = operationKey,
+            claimVersion = claim.claimVersion,
+            phase = DeliveryAttemptPhase.PROVIDER_CREATE,
+        ).also { deliveryAttemptRepository.record(it) }
+    }
+
+    private suspend fun invokeProvider(command: ProviderPublishCommand): Result<ProviderPublishResult> = try {
+        Result.success(socialPublisher.publish(command))
+    } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
+        Result.failure(exception)
+    }
+
+    private suspend fun finalizeSuccessfulPublication(
+        claim: PublicationJobClaim,
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+        @Suppress("UnusedParameter") attempt: DeliveryAttempt,
+        result: ProviderPublishResult,
+        now: Instant,
+    ) {
+        val applied = transactionRunner.runAtomically {
+            if (!publicationJobRepository.complete(claim.jobId, claim.claimVersion, now)) {
+                false
+            } else {
+                publicationRepository.markPublished(publication.id, result.externalPublicationId, now)
+                check(
+                    persistAttemptOutcome(
+                        claim = claim,
+                        publication = publication,
+                        outcome = DeliveryAttemptOutcome.SUCCEEDED,
+                        retryable = false,
+                        providerMessage = result.providerMessage,
+                        providerErrorCode = null,
+                        externalPublicationId = result.externalPublicationId,
+                        attemptedAt = now,
+                    ),
+                ) { "Delivery attempt outcome could not be fenced for ${claim.jobId}." }
+                true
+            }
+        }
+        if (!applied) return
         lifecycleLogger.succeeded(
             publicationId = publication.id,
             jobId = claim.jobId,
-            workspaceId = publication.workspaceId,
+            workspaceId = claim.workspaceId,
             attemptNumber = claim.attemptNumber,
             provider = publication.provider,
             durationMs = attemptDurationMs(now),
         )
+    }
+
+    private suspend fun persistAttemptOutcome(
+        claim: PublicationJobClaim,
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+        outcome: DeliveryAttemptOutcome,
+        retryable: Boolean,
+        providerMessage: String?,
+        providerErrorCode: String?,
+        externalPublicationId: String? = null,
+        attemptedAt: Instant,
+    ): Boolean {
+        val existing = deliveryAttemptRepository.findByOperationKey(claim.operationKey)
+        val attempt = DeliveryAttempt(
+            id = existing?.id ?: "attempt-${UUID.randomUUID()}",
+            publicationId = publication.id,
+            publicationJobId = claim.jobId,
+            attemptNumber = claim.attemptNumber,
+            outcome = outcome,
+            retryable = retryable,
+            providerMessage = providerMessage,
+            providerErrorCode = providerErrorCode,
+            externalPublicationId = externalPublicationId,
+            attemptedAt = attemptedAt,
+            createdAt = existing?.createdAt,
+            operationKey = claim.operationKey,
+            claimVersion = claim.claimVersion,
+            phase = DeliveryAttemptPhase.FINALIZATION,
+        )
+        return if (existing == null) {
+            deliveryAttemptRepository.record(attempt)
+            true
+        } else {
+            deliveryAttemptRepository.update(attempt)
+        }
     }
 
     private fun attemptDurationMs(attemptStartedAt: Instant): Long =
@@ -470,48 +572,54 @@ class PublishingJobExecutor(
     ) {
         val categoryCode = failure.category.code
         val shouldRetry = retryPolicy.shouldRetry(claim.attemptNumber, failure.retryable)
-        transactionRunner.runAtomically {
-            deliveryAttemptRepository.record(
-                DeliveryAttempt(
-                    id = "attempt-${UUID.randomUUID()}",
-                    publicationId = publication.id,
-                    publicationJobId = claim.jobId,
-                    attemptNumber = claim.attemptNumber,
-                    outcome = DeliveryAttemptOutcome.FAILED,
-                    retryable = failure.retryable,
-                    providerMessage = sanitizeDiagnostic(failure.diagnostic),
-                    providerErrorCode = categoryCode,
-                    attemptedAt = now,
-                ),
-            )
-            if (shouldRetry) {
+        val applied = transactionRunner.runAtomically {
+            val transitioned = if (shouldRetry) {
                 publicationJobRepository.rescheduleRetry(
                     claim.jobId,
-                    claim.claimVersion ?: 0L,
+                    claim.claimVersion,
                     retryPolicy.nextRetryAt(now),
                     claim.attemptNumber,
                 )
             } else {
-                publicationRepository.markFailed(
-                    publication.id,
-                    now,
-                    categoryCode,
-                    null,
-                )
-                publicationJobRepository.fail(claim.jobId, claim.claimVersion ?: 0L, now)
-                recordNotificationEvent(
-                    NotificationEventPayload(
-                        workspaceId = publication.workspaceId,
-                        socialAccountId = publication.socialAccountId,
-                        publicationId = publication.id,
-                        category = NotificationCategory.PUBLICATION_FAILED,
-                        message = categoryCode,
-                        occurredAt = now,
-                        provider = publication.provider,
+                publicationJobRepository.fail(claim.jobId, claim.claimVersion, now)
+            }
+            if (!transitioned) {
+                false
+            } else {
+                check(
+                    persistAttemptOutcome(
+                        claim = claim,
+                        publication = publication,
+                        outcome = DeliveryAttemptOutcome.FAILED,
+                        retryable = failure.retryable,
+                        providerMessage = sanitizeDiagnostic(failure.diagnostic),
+                        providerErrorCode = categoryCode,
+                        attemptedAt = now,
                     ),
-                )
+                ) { "Delivery attempt outcome could not be fenced for ${claim.jobId}." }
+                if (!shouldRetry) {
+                    publicationRepository.markFailed(
+                        publication.id,
+                        now,
+                        categoryCode,
+                        null,
+                    )
+                    recordNotificationEvent(
+                        NotificationEventPayload(
+                            workspaceId = publication.workspaceId,
+                            socialAccountId = publication.socialAccountId,
+                            publicationId = publication.id,
+                            category = NotificationCategory.PUBLICATION_FAILED,
+                            message = categoryCode,
+                            occurredAt = now,
+                            provider = publication.provider,
+                        ),
+                    )
+                }
+                true
             }
         }
+        if (!applied) return
         if (shouldRetry) {
             lifecycleLogger.retryScheduled(
                 publicationId = publication.id,

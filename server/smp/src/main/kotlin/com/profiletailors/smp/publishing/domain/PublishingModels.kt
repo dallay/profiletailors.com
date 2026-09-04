@@ -206,8 +206,8 @@ data class PublicationJobClaim(
     val attemptNumber: Int,
     val claimedAt: Instant,
     val leaseExpiresAt: Instant? = null,
-    val operationKey: String? = null,
-    val claimVersion: Long? = null,
+    val operationKey: String = "$jobId:$attemptNumber",
+    val claimVersion: Long = 1,
 )
 
 @AggregateRoot
