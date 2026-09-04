@@ -1,5 +1,14 @@
 schemaVersion: 1
 task: todo-fixme-debt-reconciler
-lastExecution: null
+lastExecution: "2026-03-31T13:10:00Z"
+outcome: NO_DRIFT_DETECTED
 findings: []
-checks: []
+checks:
+  - name: frontend-biome-linter
+    target: "pnpm lint"
+    status: Passed
+    notes: Biome lint check passed across all frontend packages.
+  - name: backend-publishing-tests
+    target: "server/smp"
+    status: Passed
+    notes: Fast backend publishing unit tests passed cleanly.
