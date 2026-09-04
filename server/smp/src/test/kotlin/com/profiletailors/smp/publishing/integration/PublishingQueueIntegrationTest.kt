@@ -122,9 +122,16 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             nextSlotAfter = Instant.parse("2026-05-27T08:00:00Z"),
         )
 
+        val initialClaim = requireNotNull(
+            jobRepository.claimNextDue(
+                now = Instant.parse("2026-05-27T08:01:00Z"),
+                workerId = "worker-1",
+                claimLease = Duration.ofMinutes(2),
+            ),
+        )
         jobRepository.rescheduleRetry(
             jobId = "job-next-slot",
-            claimVersion = 0L,
+            claimVersion = initialClaim.claimVersion,
             nextAttemptAt = Instant.parse("2026-05-27T09:30:00Z"),
             attemptNumber = 2,
         )
@@ -157,19 +164,25 @@ class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
             scheduleMode = ScheduleMode.NOW,
         )
 
-        val firstClaim = jobRepository.claimNextDue(
-            Instant.parse("2026-05-27T08:01:00Z"),
-            "worker-1",
-            Duration.ofMinutes(2),
+        val firstClaim = requireNotNull(
+            jobRepository.claimNextDue(
+                Instant.parse("2026-05-27T08:01:00Z"),
+                "worker-1",
+                Duration.ofMinutes(2),
+            ),
         )
-        jobRepository.complete("job-completed", 0L, Instant.parse("2026-05-27T08:02:00Z"))
+        jobRepository.complete(
+            "job-completed",
+            firstClaim.claimVersion,
+            Instant.parse("2026-05-27T08:02:00Z"),
+        )
         val secondClaim = jobRepository.claimNextDue(
             Instant.parse("2026-05-27T08:03:00Z"),
             "worker-2",
             Duration.ofMinutes(2),
         )
 
-        assertEquals("job-completed", firstClaim?.jobId)
+        assertEquals("job-completed", firstClaim.jobId)
         assertEquals(null, secondClaim)
     }
 

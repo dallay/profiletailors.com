@@ -36,6 +36,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
+@Suppress("LargeClass")
 class PublishingJobExecutor(
     private val publicationJobRepository: PublicationJobRepository,
     private val publicationRepository: PublicationRepository,
@@ -111,7 +112,7 @@ class PublishingJobExecutor(
             handlePublishFailure(
                 claim,
                 publication,
-                PublishingFailure.publishingFailed(exception.message),
+                PublishingFailure.publishingFailed(exception::class.simpleName),
                 now,
             )
         } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
@@ -256,23 +257,27 @@ class PublishingJobExecutor(
         provider: com.profiletailors.smp.publishing.domain.SocialProvider? = null,
     ) {
         PublicationLifecyclePolicy.markBlocked(publication, now, reason)
-        transactionRunner.runAtomically {
-            publicationRepository.markBlocked(publication.id, now, reason)
-            publicationJobRepository.complete(claim.jobId, claim.claimVersion ?: 0L, now)
-
-            recordNotificationEvent(
-                NotificationEventPayload(
-                    workspaceId = workspaceId,
-                    socialAccountId = publication.socialAccountId,
-                    publicationId = publication.id,
-                    category = NotificationCategory.PUBLICATION_BLOCKED,
-                    message = "Publication blocked: $reason",
-                    suggestedAction = "Reconnect the LinkedIn account to retry blocked publications.",
-                    occurredAt = now,
-                    provider = provider,
-                ),
-            )
+        val applied = transactionRunner.runAtomically {
+            if (!publicationJobRepository.block(claim.jobId, claim.claimVersion, now)) {
+                false
+            } else {
+                publicationRepository.markBlocked(publication.id, now, reason)
+                recordNotificationEvent(
+                    NotificationEventPayload(
+                        workspaceId = workspaceId,
+                        socialAccountId = publication.socialAccountId,
+                        publicationId = publication.id,
+                        category = NotificationCategory.PUBLICATION_BLOCKED,
+                        message = "Publication blocked: $reason",
+                        suggestedAction = "Reconnect the LinkedIn account to retry blocked publications.",
+                        occurredAt = now,
+                        provider = provider,
+                    ),
+                )
+                true
+            }
         }
+        if (!applied) return
         lifecycleLogger.blocked(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -292,22 +297,26 @@ class PublishingJobExecutor(
         reason: String,
         provider: com.profiletailors.smp.publishing.domain.SocialProvider? = null,
     ) {
-        transactionRunner.runAtomically {
-            publicationRepository.markFailed(publication.id, now, reason, null)
-            publicationJobRepository.fail(claim.jobId, claim.claimVersion ?: 0L, now)
-
-            recordNotificationEvent(
-                NotificationEventPayload(
-                    workspaceId = workspaceId,
-                    socialAccountId = publication.socialAccountId,
-                    publicationId = publication.id,
-                    category = NotificationCategory.PUBLICATION_FAILED,
-                    message = "Publication failed terminally: $reason",
-                    occurredAt = now,
-                    provider = provider,
-                ),
-            )
+        val applied = transactionRunner.runAtomically {
+            if (!publicationJobRepository.fail(claim.jobId, claim.claimVersion, now)) {
+                false
+            } else {
+                publicationRepository.markFailed(publication.id, now, reason, null)
+                recordNotificationEvent(
+                    NotificationEventPayload(
+                        workspaceId = workspaceId,
+                        socialAccountId = publication.socialAccountId,
+                        publicationId = publication.id,
+                        category = NotificationCategory.PUBLICATION_FAILED,
+                        message = "Publication failed terminally: $reason",
+                        occurredAt = now,
+                        provider = provider,
+                    ),
+                )
+                true
+            }
         }
+        if (!applied) return
         lifecycleLogger.terminalFailure(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -331,27 +340,42 @@ class PublishingJobExecutor(
             socialAccount.id,
             PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
         )
-        transactionRunner.runAtomically {
-            publicationRepository.markBlocked(
-                publication.id,
-                now,
-                PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
-            )
-            publicationJobRepository.complete(claim.jobId, claim.claimVersion ?: 0L, now)
-
-            recordNotificationEvent(
-                NotificationEventPayload(
-                    workspaceId = publication.workspaceId,
-                    socialAccountId = socialAccount.id,
-                    publicationId = publication.id,
-                    category = NotificationCategory.RECONNECT_REQUIRED,
-                    message = PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
-                    suggestedAction = "Re-authenticate the LinkedIn account.",
-                    occurredAt = now,
-                    provider = socialAccount.provider,
-                ),
-            )
+        val applied = transactionRunner.runAtomically {
+            if (!publicationJobRepository.block(claim.jobId, claim.claimVersion, now)) {
+                false
+            } else {
+                check(
+                    persistAttemptOutcome(
+                        claim = claim,
+                        publication = publication,
+                        outcome = DeliveryAttemptOutcome.FAILED,
+                        retryable = false,
+                        providerMessage = null,
+                        providerErrorCode = PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
+                        attemptedAt = now,
+                    ),
+                ) { "Delivery attempt outcome could not be fenced for ${claim.jobId}." }
+                publicationRepository.markBlocked(
+                    publication.id,
+                    now,
+                    PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
+                )
+                recordNotificationEvent(
+                    NotificationEventPayload(
+                        workspaceId = publication.workspaceId,
+                        socialAccountId = socialAccount.id,
+                        publicationId = publication.id,
+                        category = NotificationCategory.RECONNECT_REQUIRED,
+                        message = PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
+                        suggestedAction = "Re-authenticate the LinkedIn account.",
+                        occurredAt = now,
+                        provider = socialAccount.provider,
+                    ),
+                )
+                true
+            }
         }
+        if (!applied) return
         lifecycleLogger.blocked(
             publicationId = publication.id,
             jobId = claim.jobId,
@@ -406,6 +430,17 @@ class PublishingJobExecutor(
             ),
         )
         val operationKey = claim.operationKey
+        val existingAttempt = deliveryAttemptRepository.findByOperationKey(operationKey)
+        if (existingAttempt != null) {
+            if (existingAttempt.outcome == DeliveryAttemptOutcome.SUCCEEDED &&
+                existingAttempt.externalPublicationId != null
+            ) {
+                finalizeRecoveredSuccess(claim, publication, existingAttempt, now)
+            } else {
+                handleAmbiguousOutcome(claim, publication, existingAttempt, now)
+            }
+            return
+        }
         val startedAttempt = startDeliveryAttempt(claim, publication, operationKey, now)
         val providerOutcome = invokeProvider(
             ProviderPublishCommand(
@@ -427,9 +462,8 @@ class PublishingJobExecutor(
                 throw providerException
             }
             if (providerException is ProviderTransportUncertaintyException) {
-                throw PublishingFailureException(
-                    PublishingFailure.publishingFailed("Provider outcome uncertain"),
-                )
+                handleAmbiguousOutcome(claim, publication, startedAttempt, now)
+                return
             }
             throw providerException
         }
@@ -442,24 +476,18 @@ class PublishingJobExecutor(
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
         operationKey: String,
         now: Instant,
-    ): DeliveryAttempt {
-        val existing = deliveryAttemptRepository.findByOperationKey(operationKey)
-        if (existing != null) {
-            return existing
-        }
-        return DeliveryAttempt(
-            id = "attempt-${UUID.randomUUID()}",
-            publicationId = publication.id,
-            publicationJobId = claim.jobId,
-            attemptNumber = claim.attemptNumber,
-            outcome = DeliveryAttemptOutcome.IN_PROGRESS,
-            retryable = false,
-            attemptedAt = now,
-            operationKey = operationKey,
-            claimVersion = claim.claimVersion,
-            phase = DeliveryAttemptPhase.PROVIDER_CREATE,
-        ).also { deliveryAttemptRepository.record(it) }
-    }
+    ): DeliveryAttempt = DeliveryAttempt(
+        id = "attempt-${UUID.randomUUID()}",
+        publicationId = publication.id,
+        publicationJobId = claim.jobId,
+        attemptNumber = claim.attemptNumber,
+        outcome = DeliveryAttemptOutcome.IN_PROGRESS,
+        retryable = false,
+        attemptedAt = now,
+        operationKey = operationKey,
+        claimVersion = claim.claimVersion,
+        phase = DeliveryAttemptPhase.PROVIDER_CREATE,
+    ).also { deliveryAttemptRepository.record(it) }
 
     private suspend fun invokeProvider(command: ProviderPublishCommand): Result<ProviderPublishResult> = try {
         Result.success(socialPublisher.publish(command))
@@ -470,7 +498,7 @@ class PublishingJobExecutor(
     private suspend fun finalizeSuccessfulPublication(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
-        @Suppress("UnusedParameter") attempt: DeliveryAttempt,
+        startedAttempt: DeliveryAttempt,
         result: ProviderPublishResult,
         now: Instant,
     ) {
@@ -478,19 +506,17 @@ class PublishingJobExecutor(
             if (!publicationJobRepository.complete(claim.jobId, claim.claimVersion, now)) {
                 false
             } else {
-                publicationRepository.markPublished(publication.id, result.externalPublicationId, now)
                 check(
-                    persistAttemptOutcome(
-                        claim = claim,
-                        publication = publication,
-                        outcome = DeliveryAttemptOutcome.SUCCEEDED,
-                        retryable = false,
-                        providerMessage = result.providerMessage,
-                        providerErrorCode = null,
-                        externalPublicationId = result.externalPublicationId,
-                        attemptedAt = now,
+                    deliveryAttemptRepository.update(
+                        startedAttempt.copy(
+                            outcome = DeliveryAttemptOutcome.SUCCEEDED,
+                            providerMessage = sanitizeDiagnostic(result.providerMessage),
+                            externalPublicationId = result.externalPublicationId,
+                            phase = DeliveryAttemptPhase.FINALIZATION,
+                        ),
                     ),
                 ) { "Delivery attempt outcome could not be fenced for ${claim.jobId}." }
+                publicationRepository.markPublished(publication.id, result.externalPublicationId, now)
                 true
             }
         }
@@ -498,7 +524,7 @@ class PublishingJobExecutor(
         lifecycleLogger.succeeded(
             publicationId = publication.id,
             jobId = claim.jobId,
-            workspaceId = claim.workspaceId,
+            workspaceId = publication.workspaceId,
             attemptNumber = claim.attemptNumber,
             provider = publication.provider,
             durationMs = attemptDurationMs(now),
@@ -540,6 +566,86 @@ class PublishingJobExecutor(
         }
     }
 
+    private suspend fun finalizeRecoveredSuccess(
+        claim: PublicationJobClaim,
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+        attempt: DeliveryAttempt,
+        now: Instant,
+    ) {
+        val externalPublicationId = requireNotNull(attempt.externalPublicationId)
+        val applied = transactionRunner.runAtomically {
+            if (!publicationJobRepository.complete(claim.jobId, claim.claimVersion, now)) {
+                false
+            } else {
+                publicationRepository.markPublished(publication.id, externalPublicationId, now)
+                true
+            }
+        }
+        if (!applied) return
+        lifecycleLogger.succeeded(
+            publicationId = publication.id,
+            jobId = claim.jobId,
+            workspaceId = publication.workspaceId,
+            attemptNumber = claim.attemptNumber,
+            provider = publication.provider,
+            durationMs = attemptDurationMs(now),
+        )
+    }
+
+    private suspend fun handleAmbiguousOutcome(
+        claim: PublicationJobClaim,
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+        existingAttempt: DeliveryAttempt,
+        now: Instant,
+    ) {
+        val ambiguousAttempt = existingAttempt.copy(
+            outcome = DeliveryAttemptOutcome.AMBIGUOUS,
+            retryable = false,
+            providerMessage = null,
+            providerErrorCode = PublishingFailureCategory.AMBIGUOUS_OUTCOME.code,
+            attemptedAt = now,
+            claimVersion = claim.claimVersion,
+            phase = DeliveryAttemptPhase.AMBIGUOUS,
+        )
+        val applied = transactionRunner.runAtomically {
+            if (!publicationJobRepository.block(claim.jobId, claim.claimVersion, now)) {
+                false
+            } else {
+                check(deliveryAttemptRepository.update(ambiguousAttempt)) {
+                    "Delivery attempt ambiguity could not be fenced for ${claim.jobId}."
+                }
+                publicationRepository.markBlocked(
+                    publication.id,
+                    now,
+                    PublishingFailureCategory.AMBIGUOUS_OUTCOME.code,
+                )
+                recordNotificationEvent(
+                    NotificationEventPayload(
+                        workspaceId = publication.workspaceId,
+                        socialAccountId = publication.socialAccountId,
+                        publicationId = publication.id,
+                        category = NotificationCategory.AMBIGUOUS_OUTCOME,
+                        message = PublishingFailureCategory.AMBIGUOUS_OUTCOME.code,
+                        suggestedAction = "Reconcile the provider outcome before retrying this publication.",
+                        occurredAt = now,
+                        provider = publication.provider,
+                    ),
+                )
+                true
+            }
+        }
+        if (!applied) return
+        lifecycleLogger.blocked(
+            publicationId = publication.id,
+            jobId = claim.jobId,
+            workspaceId = publication.workspaceId,
+            attemptNumber = claim.attemptNumber,
+            provider = publication.provider,
+            failureCategory = PublishingFailureCategory.AMBIGUOUS_OUTCOME,
+            durationMs = attemptDurationMs(now),
+        )
+    }
+
     private fun attemptDurationMs(attemptStartedAt: Instant): Long =
         Duration.between(attemptStartedAt, clock.instant()).toMillis().coerceAtLeast(0)
 
@@ -556,9 +662,6 @@ class PublishingJobExecutor(
                     """\bbucket/[A-Za-z0-9._/\-]+""",
                 RegexOption.IGNORE_CASE,
             ).containsMatchIn(trimmed) -> null
-            Regex(
-                """^(?:LinkedIn\s+[A-Za-z][\w\s]*):\s*\d{3}\b""",
-            ).containsMatchIn(trimmed) -> trimmed.take(MAX_DIAGNOSTIC_LENGTH)
             else -> null
         }
     }
@@ -642,10 +745,6 @@ class PublishingJobExecutor(
             )
         }
     }
-
-    private companion object {
-        private const val MAX_DIAGNOSTIC_LENGTH = 512
-    }
 }
 
 enum class PublishingFailureCategory(val code: String, val retryable: Boolean, val blocked: Boolean = false) {
@@ -657,6 +756,7 @@ enum class PublishingFailureCategory(val code: String, val retryable: Boolean, v
     ACCOUNT_RECONNECT_REQUIRED("ACCOUNT_RECONNECT_REQUIRED", false, blocked = true),
     ACCOUNT_UNAVAILABLE("ACCOUNT_UNAVAILABLE", false),
     PUBLISHING_FAILED("PUBLISHING_FAILED", false),
+    AMBIGUOUS_OUTCOME("AMBIGUOUS_OUTCOME", false, blocked = true),
 }
 
 data class PublishingFailure(val category: PublishingFailureCategory, val diagnostic: String? = null) {
@@ -717,18 +817,19 @@ class PublishingWorker(
     private val clock: Clock,
     private val workerId: String,
     private val claimLease: Duration = Duration.parse("PT2M"),
+    private val staleGrace: Duration = Duration.parse("PT5M"),
     private val lifecycleLogger: PublishingLifecycleLogger = PublishingLifecycleLogger(),
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     suspend fun pollOnce(): PublicationJobClaim? {
         val now = clock.instant()
-        val releasedCount = publicationJobRepository.releaseExpiredClaims(now, claimLease)
+        val releasedCount = publicationJobRepository.releaseExpiredClaims(now, staleGrace)
         if (releasedCount > 0) {
             log.info(
-                "Released expired publication-job claims released={} leaseThresholdSeconds={}",
+                "Released expired publication-job claims released={} staleGraceSeconds={}",
                 releasedCount,
-                claimLease.seconds,
+                staleGrace.seconds,
             )
         }
         log.debug("Polling for next due publication job")
@@ -758,7 +859,11 @@ class PublishingWorker(
             try {
                 requeueBlockedPublication(publication)
             } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-                log.error("Failed to requeue BLOCKED publication {}: {}", publication.id, e.message, e)
+                log.error(
+                    "Failed to requeue BLOCKED publication {}: type={}",
+                    publication.id,
+                    e::class.simpleName,
+                )
             }
         }
         log.debug("BLOCKED-recovery scan completed; requeued {} publication(s)", publications.size)

@@ -371,6 +371,12 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         )
         val firstLocked = CompletableDeferred<Unit>()
         val secondLookupStarted = CompletableDeferred<Unit>()
+        val secondAcceptanceRepository = object : InvitationRepository by secondRepository {
+            override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? {
+                secondLookupStarted.complete(Unit)
+                return secondRepository.findByCandidateKeyForUpdate(candidateKey)
+            }
+        }
         val firstBlockingProvisioner = object : WorkspaceMembershipProvisioner {
             override suspend fun reconcile(
                 workspaceId: String,
@@ -404,19 +410,6 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                     emailStatus = com.profiletailors.smp.identity.domain.EmailStatus.VERIFIED,
                 )
         }
-        val secondLookupStartedTrigger = object : PrincipalIdentityLookup by NoOpPrincipalIdentityLookup() {
-            override suspend fun findByPrincipalId(principalId: String) =
-                com.profiletailors.smp.identity.domain.PrincipalIdentityFacts(
-                    principalId = "principal-1",
-                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                    subject = "local:invitee@example.com",
-                    provider = null,
-                    displayIdentity = "invitee",
-                    email = "invitee@example.com",
-                    username = "invitee",
-                    emailStatus = com.profiletailors.smp.identity.domain.EmailStatus.VERIFIED,
-                ).also { secondLookupStarted.complete(Unit) }
-        }
         val firstCoordinator = InvitationActivationCoordinator(
             invitationRepository = firstRepository as InvitationRepository,
             tokenHasher = tokenHasher,
@@ -432,9 +425,9 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
         )
         val secondCoordinator = InvitationActivationCoordinator(
-            invitationRepository = secondRepository as InvitationRepository,
+            invitationRepository = secondAcceptanceRepository,
             tokenHasher = tokenHasher,
-            principalIdentityLookup = secondLookupStartedTrigger,
+            principalIdentityLookup = firstPrincipalLookup,
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
             membershipProvisioner = secondMembershipProvisioner,
             transactionRunner = object : AtomicTransactionRunner {

@@ -11,14 +11,17 @@ import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
+import com.profiletailors.smp.publishing.domain.DeliveryAttemptPhase
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
+import com.profiletailors.smp.publishing.domain.NotificationCategory
 import com.profiletailors.smp.publishing.domain.NotificationEvent
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
+import com.profiletailors.smp.publishing.domain.ProviderTransportUncertaintyException
 import com.profiletailors.smp.publishing.domain.ProviderUploadException
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
@@ -35,6 +38,7 @@ import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
+import com.profiletailors.smp.publishing.domain.StaleJobPage
 import io.kotest.assertions.withClue
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -96,6 +100,7 @@ class PublishingWorkerTest {
             PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED to Pair(false, true),
             PublishingFailureCategory.ACCOUNT_UNAVAILABLE to Pair(false, false),
             PublishingFailureCategory.PUBLISHING_FAILED to Pair(false, false),
+            PublishingFailureCategory.AMBIGUOUS_OUTCOME to Pair(false, true),
         )
 
         PublishingFailureCategory.entries.map { it.code }.toSet() shouldBe expected.keys.map { it.code }.toSet()
@@ -106,6 +111,19 @@ class PublishingWorkerTest {
                 PublishingFailure(category).retryable shouldBe category.retryable
             }
         }
+    }
+
+    @Test
+    fun `delivery attempt defaults ambiguous outcomes to the ambiguity phase`() {
+        DeliveryAttempt(
+            id = "attempt-ambiguous-default",
+            publicationId = "pub-1",
+            publicationJobId = "job-1",
+            attemptNumber = 1,
+            outcome = DeliveryAttemptOutcome.AMBIGUOUS,
+            retryable = false,
+            attemptedAt = fixedClock.instant(),
+        ).phase shouldBe DeliveryAttemptPhase.AMBIGUOUS
     }
 
     @Test
@@ -255,6 +273,444 @@ class PublishingWorkerTest {
         publicationRepository.publishedPublicationId shouldBe "pub-1"
         jobRepository.completedJobId shouldBe "job-1"
         attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.SUCCEEDED
+    }
+
+    @Test
+    fun `executor persists operation phase before provider call and passes the operation key`() = runTest {
+        val claim = PublicationJobClaim(
+            jobId = "job-operation-key",
+            publicationId = "pub-1",
+            workspaceId = "workspace-1",
+            attemptNumber = 2,
+            claimedAt = fixedClock.instant(),
+            claimVersion = 7,
+        )
+        val attemptRepository = InMemoryAttemptRepository()
+        val publisher = CapturingPublisher {
+            attemptRepository.lastAttempt?.outcome ==
+                DeliveryAttemptOutcome.IN_PROGRESS
+        }
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(null),
+            publicationRepository = InMemoryPublicationRepository(successPublication()),
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = publisher,
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        executor.executeClaim(claim)
+
+        publisher.sawStarted shouldBe true
+        publisher.lastCommand?.operationKey shouldBe claim.operationKey
+        attemptRepository.lastAttempt?.operationKey shouldBe claim.operationKey
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.SUCCEEDED
+    }
+
+    @Test
+    fun `executor finalizes a persisted successful attempt without calling the provider`() = runTest {
+        val claim = PublicationJobClaim("job-recovered", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val jobRepository = InMemoryJobRepository(claim)
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val attemptRepository = InMemoryAttemptRepository()
+        attemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-recovered",
+                publicationId = claim.publicationId,
+                publicationJobId = claim.jobId,
+                attemptNumber = claim.attemptNumber,
+                outcome = DeliveryAttemptOutcome.SUCCEEDED,
+                retryable = false,
+                externalPublicationId = "linkedin-post-recovered",
+                attemptedAt = fixedClock.instant(),
+                operationKey = claim.operationKey,
+                claimVersion = claim.claimVersion,
+                phase = DeliveryAttemptPhase.FINALIZATION,
+            ),
+        )
+        val publisher = NeverPublishesPublisher()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = publisher,
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        executor.executeClaim(claim)
+
+        publisher.called shouldBe false
+        publicationRepository.publishedPublicationId shouldBe claim.publicationId
+        jobRepository.completedJobId shouldBe claim.jobId
+    }
+
+    @Test
+    fun `executor leaves a recovered success pending when its claim fence is stale`() = runTest {
+        val claim = PublicationJobClaim("job-recovered-stale", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val jobRepository = InMemoryJobRepository(claim).apply { terminalTransitionReturnValue = false }
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val attemptRepository = InMemoryAttemptRepository()
+        attemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-recovered-stale",
+                publicationId = claim.publicationId,
+                publicationJobId = claim.jobId,
+                attemptNumber = claim.attemptNumber,
+                outcome = DeliveryAttemptOutcome.SUCCEEDED,
+                retryable = false,
+                externalPublicationId = "linkedin-post-recovered",
+                attemptedAt = fixedClock.instant(),
+                operationKey = claim.operationKey,
+                claimVersion = claim.claimVersion,
+                phase = DeliveryAttemptPhase.FINALIZATION,
+            ),
+        )
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = NeverPublishesPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        executor.executeClaim(claim)
+
+        publicationRepository.publishedPublicationId shouldBe null
+    }
+
+    @Test
+    fun `preflight does not mutate publication when a terminal failure loses its claim`() = runTest {
+        val claim = PublicationJobClaim("job-preflight-stale", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository = InMemoryJobRepository(claim).apply { terminalTransitionReturnValue = false }
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(
+                successAccount().copy(status = SocialConnectionStatus.DISABLED),
+            ),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = NeverPublishesPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        executor.executeClaim(claim)
+
+        publicationRepository.failedPublicationId shouldBe null
+        publicationRepository.blockedPublicationId shouldBe null
+    }
+
+    @Test
+    fun `preflight does not mutate publication when a block transition loses its claim`() = runTest {
+        listOf(SocialConnectionStatus.REQUIRES_RECONNECT, SocialConnectionStatus.REVOKED).forEach { status ->
+            val claim = PublicationJobClaim("job-block-stale-$status", "pub-1", "workspace-1", 1, fixedClock.instant())
+            val publicationRepository = InMemoryPublicationRepository(successPublication())
+            val jobRepository = InMemoryJobRepository(claim).apply { blockTransitionReturnValue = false }
+            val executor = PublishingJobExecutor(
+                publicationJobRepository = jobRepository,
+                publicationRepository = publicationRepository,
+                socialAccountRepository = InMemoryAccountRepository(successAccount().copy(status = status)),
+                mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+                deliveryAttemptRepository = InMemoryAttemptRepository(),
+                notificationEventRepository = null,
+                providerCapabilityValidator = AcceptingCapabilityValidator(),
+                socialPublisher = NeverPublishesPublisher(),
+                retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+                transactionRunner = NoOpTransactionRunner(),
+                clock = fixedClock,
+            )
+
+            executor.executeClaim(claim)
+
+            publicationRepository.blockedPublicationId shouldBe null
+            publicationRepository.failedPublicationId shouldBe null
+        }
+    }
+
+    @Test
+    fun `executor rejects successful finalization when attempt update loses its fence`() = runTest {
+        val claim = PublicationJobClaim("job-update-stale", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val attemptRepository = InMemoryAttemptRepository().apply { updateReturnValue = false }
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(claim),
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = SuccessfulPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        val exception = runCatching { executor.executeClaim(claim) }.exceptionOrNull()
+
+        exception.shouldNotBeNull()
+        exception.message shouldContain "Delivery attempt outcome could not be fenced"
+        publicationRepository.publishedPublicationId shouldBe null
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.IN_PROGRESS
+    }
+
+    @Test
+    fun `executor leaves reconnect attempt in progress when its claim fence is stale`() = runTest {
+        val claim = PublicationJobClaim("job-reconnect-stale", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository = InMemoryJobRepository(claim).apply { blockTransitionReturnValue = false }
+        val attemptRepository = InMemoryAttemptRepository()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = ReconnectPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        executor.executeClaim(claim)
+
+        publicationRepository.blockedPublicationId shouldBe null
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.IN_PROGRESS
+    }
+
+    @Test
+    fun `executor rejects reconnect attempt update when its fence is stale`() = runTest {
+        val claim = PublicationJobClaim("job-reconnect-update-stale", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val attemptRepository = InMemoryAttemptRepository().apply { updateReturnValue = false }
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(claim),
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = ReconnectPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        val exception = runCatching { executor.executeClaim(claim) }.exceptionOrNull()
+
+        exception.shouldNotBeNull()
+        exception.message shouldContain "Delivery attempt outcome could not be fenced"
+        publicationRepository.blockedPublicationId shouldBe null
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.IN_PROGRESS
+    }
+
+    @Test
+    fun `executor leaves ambiguous attempt unchanged when its block transition loses claim`() = runTest {
+        val claim = PublicationJobClaim("job-ambiguous-stale", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository = InMemoryJobRepository(claim).apply { blockTransitionReturnValue = false }
+        val attemptRepository = InMemoryAttemptRepository()
+        attemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-ambiguous-stale",
+                publicationId = claim.publicationId,
+                publicationJobId = claim.jobId,
+                attemptNumber = claim.attemptNumber,
+                outcome = DeliveryAttemptOutcome.IN_PROGRESS,
+                retryable = false,
+                attemptedAt = fixedClock.instant(),
+                operationKey = claim.operationKey,
+                claimVersion = claim.claimVersion,
+            ),
+        )
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = NeverPublishesPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        executor.executeClaim(claim)
+
+        publicationRepository.blockedPublicationId shouldBe null
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.IN_PROGRESS
+    }
+
+    @Test
+    fun `executor rejects ambiguous attempt update when its fence is stale`() = runTest {
+        val claim = PublicationJobClaim("job-ambiguous-update-stale", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val attemptRepository = InMemoryAttemptRepository().apply { updateReturnValue = false }
+        attemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-ambiguous-update-stale",
+                publicationId = claim.publicationId,
+                publicationJobId = claim.jobId,
+                attemptNumber = claim.attemptNumber,
+                outcome = DeliveryAttemptOutcome.IN_PROGRESS,
+                retryable = false,
+                attemptedAt = fixedClock.instant(),
+                operationKey = claim.operationKey,
+                claimVersion = claim.claimVersion,
+            ),
+        )
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(claim),
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = NeverPublishesPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        val exception = runCatching { executor.executeClaim(claim) }.exceptionOrNull()
+
+        exception.shouldNotBeNull()
+        exception.message shouldContain "Delivery attempt outcome could not be fenced"
+        publicationRepository.blockedPublicationId shouldBe null
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.IN_PROGRESS
+    }
+
+    @Test
+    fun `executor leaves provider attempt in progress when retry transition loses claim`() = runTest {
+        val claim = PublicationJobClaim("job-retry-stale", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val attemptRepository = InMemoryAttemptRepository()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = InMemoryJobRepository(claim).apply {
+                terminalTransitionReturnValue = false
+            },
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = RetryableFailingPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        executor.executeClaim(claim)
+
+        publicationRepository.failedPublicationId shouldBe null
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.IN_PROGRESS
+    }
+
+    @Test
+    fun `executor blocks an ambiguous operation without calling the provider`() = runTest {
+        val claim = PublicationJobClaim("job-ambiguous", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val jobRepository = InMemoryJobRepository(claim)
+        val attemptRepository = InMemoryAttemptRepository()
+        attemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-ambiguous",
+                publicationId = claim.publicationId,
+                publicationJobId = claim.jobId,
+                attemptNumber = claim.attemptNumber,
+                outcome = DeliveryAttemptOutcome.IN_PROGRESS,
+                retryable = false,
+                attemptedAt = fixedClock.instant(),
+                operationKey = claim.operationKey,
+                claimVersion = claim.claimVersion,
+            ),
+        )
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val notificationRepository = InMemoryNotificationEventRepository()
+        val publisher = NeverPublishesPublisher()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = notificationRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = publisher,
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        publisher.called shouldBe false
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.AMBIGUOUS
+        jobRepository.blockedJobId shouldBe claim.jobId
+        publicationRepository.blockedReason shouldBe PublishingFailureCategory.AMBIGUOUS_OUTCOME.code
+        notificationRepository.lastEvent?.category shouldBe NotificationCategory.AMBIGUOUS_OUTCOME
+    }
+
+    @Test
+    fun `executor does not mutate publication when claim fencing rejects provider result`() = runTest {
+        val claim = PublicationJobClaim("job-stale", "pub-1", "workspace-1", 1, fixedClock.instant())
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository = InMemoryJobRepository(null).apply { terminalTransitionReturnValue = false }
+        val attemptRepository = InMemoryAttemptRepository()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = SuccessfulPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+
+        executor.executeClaim(claim)
+
+        publicationRepository.publishedPublicationId shouldBe null
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.IN_PROGRESS
     }
 
     @Test
@@ -433,7 +889,7 @@ class PublishingWorkerTest {
     }
 
     @Test
-    fun `worker maps unexpected exceptions to canonical publishing failed code without raw message`() = runTest {
+    fun `worker fails unknown provider outcomes without treating them as ambiguous`() = runTest {
         val publicationRepository = InMemoryPublicationRepository(successPublication())
         val jobRepository =
             InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
@@ -463,9 +919,45 @@ class PublishingWorkerTest {
         worker.pollOnce()
 
         attemptRepository.lastAttempt?.providerErrorCode shouldBe "PUBLISHING_FAILED"
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.FAILED
         publicationRepository.failedReasonCode shouldBe "PUBLISHING_FAILED"
-        publicationRepository.failedReasonMessage shouldBe null
         jobRepository.failedJobId shouldBe "job-1"
+    }
+
+    @Test
+    fun `worker blocks typed transport uncertainty without retrying blindly`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(successPublication())
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val attemptRepository = InMemoryAttemptRepository()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
+            deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = TransportUncertaintyPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        attemptRepository.lastAttempt?.providerErrorCode shouldBe "AMBIGUOUS_OUTCOME"
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.AMBIGUOUS
+        publicationRepository.blockedReason shouldBe "AMBIGUOUS_OUTCOME"
+        jobRepository.blockedJobId shouldBe "job-1"
     }
 
     @Test
@@ -567,7 +1059,7 @@ class PublishingWorkerTest {
 
         publicationRepository.blockedReason shouldBe "ACCOUNT_RECONNECT_REQUIRED"
         publicationRepository.blockedPublicationId shouldBe "pub-1"
-        jobRepository.completedJobId shouldBe "job-1"
+        jobRepository.blockedJobId shouldBe "job-1"
     }
 
     @Test
@@ -701,7 +1193,7 @@ class PublishingWorkerTest {
     }
 
     @Test
-    fun `worker preserves linkedin upload error message when ProviderUploadException is thrown`() = runTest {
+    fun `worker stores only the safe ProviderUploadException type when upload fails`() = runTest {
         val linkedInError =
             """LinkedIn binary upload failed: 403 {"status":403,"message":"Access denied due to insufficient permissions"}"""
         val publicationRepository = InMemoryPublicationRepository(successPublication())
@@ -734,7 +1226,7 @@ class PublishingWorkerTest {
 
         attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.FAILED
         attemptRepository.lastAttempt?.providerErrorCode shouldBe "PUBLISHING_FAILED"
-        attemptRepository.lastAttempt?.providerMessage shouldBe linkedInError
+        attemptRepository.lastAttempt?.providerMessage shouldBe "ProviderUploadException"
         publicationRepository.failedReasonCode shouldBe "PUBLISHING_FAILED"
         jobRepository.failedJobId shouldBe "job-1"
     }
@@ -922,9 +1414,9 @@ class PublishingWorkerTest {
 
         // releaseExpiredClaims was invoked exactly once BEFORE claimNextDue
         jobRepository.releaseCalls.size shouldBe 1
-        val (releasedAt, releasedThreshold) = jobRepository.releaseCalls.single()
+        val (releasedAt, releasedGrace) = jobRepository.releaseCalls.single()
         releasedAt shouldBe fixedClock.instant()
-        releasedThreshold shouldBe Duration.ofMinutes(2)
+        releasedGrace shouldBe Duration.ofMinutes(5)
         // claimNextDue still executed AFTER the release call
         jobRepository.claimLease shouldBe Duration.ofMinutes(2)
 
@@ -1026,13 +1518,16 @@ class PublishingWorkerTest {
         var retriedJobId: String? = null
         var retryAt: Instant? = null
         var failedJobId: String? = null
+        var blockedJobId: String? = null
+        var terminalTransitionReturnValue: Boolean = true
+        var blockTransitionReturnValue: Boolean = true
         var replacedJob: com.profiletailors.smp.publishing.domain.PublicationJob? = null
         var claimLease: Duration? = null
         var releaseCalls: MutableList<Pair<Instant, Duration>> = mutableListOf()
         var releaseReturnCount: Int = 0
         var releaseShouldThrow: Boolean = false
         var findStaleCalls: MutableList<Pair<Instant, Duration>> = mutableListOf()
-        var findStaleReturnValue: List<com.profiletailors.smp.publishing.domain.StaleJob> = emptyList()
+        var findStaleReturnValue = StaleJobPage(emptyList(), 0)
 
         override suspend fun enqueue(job: com.profiletailors.smp.publishing.domain.PublicationJob) = Unit
         override suspend fun replaceForPublication(job: com.profiletailors.smp.publishing.domain.PublicationJob) {
@@ -1050,28 +1545,29 @@ class PublishingWorkerTest {
         ): Boolean {
             retriedJobId = jobId
             retryAt = nextAttemptAt
-            return true
+            return terminalTransitionReturnValue
         }
         override suspend fun complete(jobId: String, claimVersion: Long, completedAt: Instant): Boolean {
             completedJobId = jobId
-            return true
+            return terminalTransitionReturnValue
         }
         override suspend fun fail(jobId: String, claimVersion: Long, failedAt: Instant): Boolean {
             failedJobId = jobId
-            return true
+            return terminalTransitionReturnValue
+        }
+        override suspend fun block(jobId: String, claimVersion: Long, blockedAt: Instant): Boolean {
+            blockedJobId = jobId
+            return blockTransitionReturnValue
         }
         override suspend fun cancel(jobId: String, cancelledAt: Instant) = Unit
 
-        override suspend fun findStaleClaims(
-            now: Instant,
-            leaseStaleThreshold: Duration,
-        ): List<com.profiletailors.smp.publishing.domain.StaleJob> {
-            findStaleCalls.add(now to leaseStaleThreshold)
+        override suspend fun findStaleClaims(now: Instant, staleGrace: Duration, limit: Int): StaleJobPage {
+            findStaleCalls.add(now to staleGrace)
             return findStaleReturnValue
         }
 
-        override suspend fun releaseExpiredClaims(now: Instant, leaseStaleThreshold: Duration): Int {
-            releaseCalls.add(now to leaseStaleThreshold)
+        override suspend fun releaseExpiredClaims(now: Instant, staleGrace: Duration): Int {
+            releaseCalls.add(now to staleGrace)
             check(!releaseShouldThrow) { "releaseExpiredClaims failed" }
             return releaseReturnCount
         }
@@ -1148,12 +1644,23 @@ class PublishingWorkerTest {
 
     private class InMemoryAttemptRepository : DeliveryAttemptRepository {
         var lastAttempt: DeliveryAttempt? = null
+        var updateReturnValue: Boolean = true
+        private val attempts = mutableMapOf<String, DeliveryAttempt>()
         override suspend fun record(attempt: DeliveryAttempt): DeliveryAttempt {
             lastAttempt = attempt
+            attempts[attempt.operationKey] = attempt
             return attempt
         }
-        override suspend fun findByOperationKey(operationKey: String): DeliveryAttempt? = null
-        override suspend fun update(attempt: DeliveryAttempt): Boolean = true
+
+        override suspend fun findByOperationKey(operationKey: String): DeliveryAttempt? = attempts[operationKey]
+
+        override suspend fun update(attempt: DeliveryAttempt): Boolean {
+            if (attempt.operationKey !in attempts) return false
+            if (!updateReturnValue) return false
+            attempts[attempt.operationKey] = attempt
+            lastAttempt = attempt
+            return true
+        }
     }
 
     private class InMemoryNotificationEventRepository : NotificationEventRepository {
@@ -1185,6 +1692,17 @@ class PublishingWorkerTest {
             ProviderPublishResult(externalPublicationId = "external-1")
     }
 
+    private class CapturingPublisher(private val started: () -> Boolean) : SocialPublisher {
+        var lastCommand: ProviderPublishCommand? = null
+        var sawStarted: Boolean = false
+
+        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
+            lastCommand = command
+            sawStarted = started()
+            return ProviderPublishResult(externalPublicationId = "external-1")
+        }
+    }
+
     private class RetryableFailingPublisher : SocialPublisher {
         override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
             throw RetryablePublishingException("transient provider error")
@@ -1198,6 +1716,11 @@ class PublishingWorkerTest {
     private class RawFailingPublisher : SocialPublisher {
         override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
             throw IllegalStateException("com.example.ProviderClient token=secret bucket/key")
+    }
+
+    private class TransportUncertaintyPublisher : SocialPublisher {
+        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
+            throw ProviderTransportUncertaintyException()
     }
 
     private class UnsafeDiagnosticPublisher(private val diagnostic: String) : SocialPublisher {
@@ -1307,7 +1830,7 @@ class PublishingWorkerTest {
 
         publisher.called shouldBe false
         publicationRepository.blockedPublicationId shouldBe "pub-1"
-        jobRepository.completedJobId shouldBe "job-1"
+        jobRepository.blockedJobId shouldBe "job-1"
     }
 
     @Test

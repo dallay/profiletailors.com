@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.common.domain.bus.command.CommandWithResult
