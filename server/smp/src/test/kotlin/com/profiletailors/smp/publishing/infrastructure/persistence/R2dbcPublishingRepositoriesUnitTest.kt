@@ -624,6 +624,8 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
                         outcome = DeliveryAttemptOutcome.FAILED,
                         retryable = false,
                         attemptedAt = Instant.parse("2026-06-01T12:00:00Z").plusSeconds(attemptNumber.toLong()),
+                        operationKey = "${job1.id}:$attemptNumber",
+                        claimVersion = 0L,
                     ),
                 )
             }
@@ -1034,6 +1036,8 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
                 retryable = false,
                 externalPublicationId = "linkedin-post-456",
                 attemptedAt = Instant.parse("2026-06-01T12:00:00Z"),
+                operationKey = "$jobId:1",
+                claimVersion = 0L,
             )
 
             val result = deliveryAttemptRepository.record(attempt)
@@ -1063,6 +1067,8 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
                 providerMessage = "Connection timeout",
                 providerErrorCode = "CONN_TIMEOUT",
                 attemptedAt = Instant.parse("2026-06-01T12:00:00Z"),
+                operationKey = "$jobId:1",
+                claimVersion = 0L,
             )
 
             val result = deliveryAttemptRepository.record(attempt)
@@ -1095,6 +1101,8 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
                 externalPublicationId = "ext-id-3",
                 attemptedAt = Instant.parse("2026-06-01T12:00:00Z"),
                 createdAt = Instant.parse("2026-06-01T12:00:01Z"),
+                operationKey = "$jobId:3",
+                claimVersion = 0L,
             )
 
             val result = deliveryAttemptRepository.record(attempt)

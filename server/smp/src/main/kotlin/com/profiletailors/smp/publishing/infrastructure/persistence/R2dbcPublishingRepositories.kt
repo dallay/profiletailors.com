@@ -1013,9 +1013,9 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
             .bindNullable("externalPublicationId", attempt.externalPublicationId, String::class.java)
             .bind("attemptedAt", attempt.attemptedAt)
             .bindNullable("createdAt", attempt.createdAt ?: attempt.attemptedAt, Instant::class.java)
-            .bindNullable("operationKey", attempt.operationKey, String::class.java)
-            .bindNullable("claimVersion", attempt.claimVersion, Long::class.java)
-            .bindNullable("phase", attempt.phase?.name, String::class.java)
+            .bind("operationKey", attempt.operationKey ?: "${attempt.publicationJobId}:${attempt.attemptNumber}")
+            .bind("claimVersion", attempt.claimVersion ?: 0L)
+            .bind("phase", attempt.phase?.name ?: DeliveryAttemptPhase.FINALIZATION.name)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -1077,9 +1077,11 @@ class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient)
         externalPublicationId = get("external_publication_id", String::class.java),
         attemptedAt = requireNotNull(get("attempted_at", Instant::class.java)),
         createdAt = get("created_at", Instant::class.java),
-        operationKey = requireNotNull(get("operation_key", String::class.java)),
-        claimVersion = requireNotNull(get("claim_version", Long::class.java)),
-        phase = DeliveryAttemptPhase.valueOf(requireNotNull(get("phase", String::class.java))),
+        operationKey = get("operation_key", String::class.java),
+        claimVersion = get("claim_version", Long::class.java) ?: 0L,
+        phase =
+        get("phase", String::class.java)?.let { DeliveryAttemptPhase.valueOf(it) }
+            ?: DeliveryAttemptPhase.FINALIZATION,
     )
 }
 

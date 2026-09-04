@@ -84,6 +84,7 @@ enum class DeliveryAttemptPhase {
     PROVIDER_CREATE,
     PROVIDER_UPDATE,
     RECORD_RESULT,
+    FINALIZATION,
 }
 
 @AggregateRoot
