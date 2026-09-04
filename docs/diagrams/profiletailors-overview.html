@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Tailors — System overview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #F5F5F0;
+      --color-ink:     #1A1A1A;
+      --color-muted:   #525252;
+      --color-accent:  #D71921;
+      --font-sans:     'Space Grotesk', system-ui, sans-serif;
+      --font-serif:    'Doto', monospace;
+      --font-mono:     'Space Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1320px; width: 100%; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .diagram { overflow-x: auto; }
+    svg { width: 100%; min-width: 1000px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · Diagram Design</p>
+    <h1>Profile Tailors — System overview</h1>
+    <p class="subtitle">ARCHITECTURE · DOC-WIDE · BALANCED · MIXED — 9 NODES, 11 ARROWS</p>
+
+    <div class="diagram">
+    <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="overview-title overview-desc">
+      <title id="overview-title">Profile Tailors — System overview</title>
+      <desc id="overview-desc">Architecture overview showing content moving from marketing and the app workspace through the publishing queue and delivery worker to LinkedIn, with identity, media, observe, and governance support.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#525252"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#D71921"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#F5F5F0"/>
+
+      <!-- Arrows first (behind boxes). All orthogonal, r=8. -->
+
+      <!-- Main flow, y=280 -->
+      <line x1="300" y1="280" x2="340" y2="280" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="520" y1="280" x2="560" y2="280" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="720" y1="280" x2="760" y2="280" stroke="#D71921" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <line x1="940" y1="280" x2="980" y2="280" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+
+      <!-- Supporting flow -->
+      <line x1="400" y1="320" x2="400" y2="380" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 460,320 V 342 Q 460,350 468,350 H 604 Q 612,350 612,358 V 380"
+            fill="none" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="668" y1="380" x2="668" y2="320" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="850" y1="320" x2="850" y2="380" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="940" y1="420" x2="980" y2="420" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="520" y1="420" x2="560" y2="420" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <line x1="1060" y1="320" x2="1060" y2="380" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+      <!-- Arrow labels (opaque mask + 6-8px gap, never touching the stroke) -->
+      <rect x="524" y="260" width="32" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="540" y="268" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.06em">QUEUE</text>
+
+      <rect x="724" y="260" width="32" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="740" y="268" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.06em">CLAIM</text>
+
+      <rect x="944" y="260" width="32" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="960" y="268" fill="#2e5aa8" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.06em">POST</text>
+
+      <rect x="408" y="340" width="32" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="424" y="348" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.06em">AUTH</text>
+
+      <rect x="516" y="332" width="40" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="536" y="340" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.06em">ATTACH</text>
+
+      <rect x="676" y="340" width="40" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="696" y="348" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.06em">READY</text>
+
+      <rect x="858" y="336" width="40" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="878" y="344" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.06em">RESULT</text>
+
+      <rect x="524" y="400" width="32" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="540" y="408" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.06em">GATE</text>
+
+      <rect x="1012" y="340" width="40" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="1032" y="348" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.06em">AUDIT</text>
+
+      <!-- Node: Marketing -->
+      <rect x="140" y="240" width="160" height="80" rx="6" fill="#F5F5F0"/>
+      <rect x="140" y="240" width="160" height="80" rx="6" fill="rgba(82,82,82,0.10)" stroke="#7a7a7a" stroke-width="1"/>
+      <rect x="148" y="248" width="28" height="12" rx="2" fill="transparent" stroke="rgba(122,122,122,0.40)" stroke-width="0.8"/>
+      <text x="162" y="256" fill="#7a7a7a" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">WEB</text>
+      <text x="220" y="284" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Marketing</text>
+      <text x="220" y="300" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">waitlist · EN/ES</text>
+
+      <!-- Node: App Workspace -->
+      <rect x="340" y="240" width="180" height="80" rx="6" fill="#F5F5F0"/>
+      <rect x="340" y="240" width="180" height="80" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="348" y="248" width="28" height="12" rx="2" fill="transparent" stroke="rgba(26,26,26,0.40)" stroke-width="0.8"/>
+      <text x="362" y="256" fill="#1A1A1A" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">APP</text>
+      <text x="430" y="284" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">App Workspace</text>
+      <text x="430" y="300" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">scheduler · composer</text>
+
+      <!-- Node: Publishing Queue -->
+      <rect x="560" y="240" width="160" height="80" rx="6" fill="#F5F5F0"/>
+      <rect x="560" y="240" width="160" height="80" rx="6" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <rect x="568" y="248" width="28" height="12" rx="2" fill="transparent" stroke="rgba(26,26,26,0.40)" stroke-width="0.8"/>
+      <text x="582" y="256" fill="#1A1A1A" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">API</text>
+      <text x="640" y="284" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Publishing Queue</text>
+      <text x="640" y="300" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">durable jobs</text>
+
+      <!-- Node: Delivery Worker (focal) -->
+      <rect x="760" y="240" width="180" height="80" rx="6" fill="#F5F5F0"/>
+      <rect x="760" y="240" width="180" height="80" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1.2"/>
+      <rect x="768" y="248" width="28" height="12" rx="2" fill="transparent" stroke="rgba(215,25,33,0.50)" stroke-width="0.8"/>
+      <text x="782" y="256" fill="#D71921" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">WRK</text>
+      <text x="850" y="284" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Delivery Worker</text>
+      <text x="850" y="300" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">claim · retry</text>
+
+      <!-- Node: LinkedIn -->
+      <rect x="980" y="240" width="160" height="80" rx="6" fill="#F5F5F0"/>
+      <rect x="980" y="240" width="160" height="80" rx="6" fill="rgba(26,26,26,0.03)" stroke="rgba(26,26,26,0.30)" stroke-width="1"/>
+      <rect x="988" y="248" width="28" height="12" rx="2" fill="transparent" stroke="rgba(26,26,26,0.22)" stroke-width="0.8"/>
+      <text x="1002" y="256" fill="#7a7a7a" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">EXT</text>
+      <text x="1060" y="284" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">LinkedIn</text>
+      <text x="1060" y="300" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">provider API</text>
+
+      <!-- Node: Identity & OAuth -->
+      <rect x="340" y="380" width="180" height="80" rx="6" fill="#F5F5F0"/>
+      <rect x="340" y="380" width="180" height="80" rx="6" fill="rgba(215,25,33,0.05)" stroke="rgba(215,25,33,0.50)" stroke-width="1" stroke-dasharray="4,4"/>
+      <rect x="348" y="388" width="28" height="12" rx="2" fill="transparent" stroke="rgba(215,25,33,0.40)" stroke-width="0.8"/>
+      <text x="362" y="396" fill="#D71921" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">SEC</text>
+      <text x="430" y="424" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Identity &amp; OAuth</text>
+      <text x="430" y="440" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">verify · connect</text>
+
+      <!-- Node: Media Library -->
+      <rect x="560" y="380" width="160" height="80" rx="6" fill="#F5F5F0"/>
+      <rect x="560" y="380" width="160" height="80" rx="6" fill="rgba(26,26,26,0.05)" stroke="#525252" stroke-width="1"/>
+      <rect x="568" y="388" width="36" height="12" rx="2" fill="transparent" stroke="rgba(82,82,82,0.50)" stroke-width="0.8"/>
+      <text x="586" y="396" fill="#525252" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">STORE</text>
+      <text x="640" y="424" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Media Library</text>
+      <text x="640" y="440" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">upload · assets</text>
+
+      <!-- Node: Observe -->
+      <rect x="760" y="380" width="180" height="80" rx="6" fill="#F5F5F0"/>
+      <rect x="760" y="380" width="180" height="80" rx="6" fill="rgba(26,26,26,0.05)" stroke="#525252" stroke-width="1"/>
+      <rect x="768" y="388" width="32" height="12" rx="2" fill="transparent" stroke="rgba(82,82,82,0.50)" stroke-width="0.8"/>
+      <text x="784" y="396" fill="#525252" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">VIEW</text>
+      <text x="850" y="424" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Observe</text>
+      <text x="850" y="440" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">calendar · inbox</text>
+
+      <!-- Node: Govern & Admin -->
+      <rect x="980" y="380" width="160" height="80" rx="6" fill="#F5F5F0"/>
+      <rect x="980" y="380" width="160" height="80" rx="6" fill="rgba(215,25,33,0.05)" stroke="rgba(215,25,33,0.50)" stroke-width="1" stroke-dasharray="4,4"/>
+      <rect x="988" y="388" width="28" height="12" rx="2" fill="transparent" stroke="rgba(215,25,33,0.40)" stroke-width="0.8"/>
+      <text x="1002" y="396" fill="#D71921" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ADM</text>
+      <text x="1060" y="424" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">Govern &amp; Admin</text>
+      <text x="1060" y="440" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">consent · audit</text>
+
+      <!-- Legend strip -->
+      <line x1="40" y1="520" x2="1240" y2="520" stroke="rgba(26,26,26,0.10)" stroke-width="0.8"/>
+      <text x="40" y="536" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+      <rect x="40" y="548" width="14" height="10" rx="2" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1"/>
+      <text x="60" y="556" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Focal · worker</text>
+
+      <rect x="210" y="548" width="14" height="10" rx="2" fill="#ffffff" stroke="#1A1A1A" stroke-width="1"/>
+      <text x="230" y="556" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Backend / API</text>
+
+      <rect x="380" y="548" width="14" height="10" rx="2" fill="rgba(26,26,26,0.05)" stroke="#525252" stroke-width="1"/>
+      <text x="400" y="556" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Store</text>
+
+      <rect x="500" y="548" width="14" height="10" rx="2" fill="rgba(26,26,26,0.03)" stroke="rgba(26,26,26,0.30)" stroke-width="1"/>
+      <text x="520" y="556" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">External</text>
+
+      <rect x="640" y="548" width="14" height="10" rx="2" fill="rgba(82,82,82,0.10)" stroke="#7a7a7a" stroke-width="1"/>
+      <text x="660" y="556" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Input</text>
+
+      <rect x="760" y="548" width="14" height="10" rx="2" fill="rgba(215,25,33,0.05)" stroke="rgba(215,25,33,0.50)" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="780" y="556" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Security</text>
+
+      <line x1="40" y1="584" x2="68" y2="584" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <text x="76" y="588" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Internal</text>
+
+      <line x1="230" y1="584" x2="258" y2="584" stroke="#D71921" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <text x="266" y="588" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Primary flow</text>
+
+      <line x1="420" y1="584" x2="448" y2="584" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <text x="456" y="588" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">HTTP / external</text>
+
+      <line x1="640" y1="584" x2="668" y2="584" stroke="#525252" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <text x="676" y="588" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Return / async</text>
+    </svg>
+    </div>
+  </div>
+</body>
+</html>

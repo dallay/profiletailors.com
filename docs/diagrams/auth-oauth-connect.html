@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkedIn connect, from click to ACTIVE</title>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #F5F5F0;
+      --color-ink:     #1A1A1A;
+      --color-muted:   #525252;
+      --color-accent:  #D71921;
+      --font-sans:     'Space Grotesk', system-ui, sans-serif;
+      --font-serif:    'Doto', monospace;
+      --font-mono:     'Space Mono', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+
+    .frame { max-width: 1100px; width: 100%; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: var(--color-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .diagram { overflow-x: auto; }
+    svg { width: 100%; min-width: 840px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Sequence · Diagram Design</p>
+    <h1>LinkedIn connect, from click to ACTIVE</h1>
+    <p class="subtitle">SEQUENCE · FIT · BALANCED · MIXED — 4 LIFELINES, 12 MESSAGES, 1 ALT</p>
+
+    <div class="diagram">
+    <svg viewBox="0 0 960 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="oauth-title oauth-desc">
+      <title id="oauth-title">LinkedIn connect, from click to ACTIVE</title>
+      <desc id="oauth-desc">Sequence showing the workspace LinkedIn OAuth handshake, where a signed state check splits valid completion with atomic persistence from a 400 rejection.</desc>
+      <defs>
+        <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="0.9" fill="rgba(26,26,26,0.10)"/>
+        </pattern>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#525252"/>
+        </marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#D71921"/>
+        </marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/>
+        </marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#F5F5F0"/>
+      <rect width="100%" height="100%" fill="url(#dots)" opacity="0.55"/>
+
+      <!-- Lifelines: User 120 · App 360 · API 600 · LinkedIn 840 -->
+      <line x1="120" y1="128" x2="120" y2="684" stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="360" y1="128" x2="360" y2="684" stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="600" y1="128" x2="600" y2="684" stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="840" y1="128" x2="840" y2="684" stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="3,3"/>
+
+      <!-- Activation bars (all closed) -->
+      <rect x="596" y="212" width="8" height="44" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="356" y="328" width="8" height="80" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="836" y="436" width="8" height="44" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="596" y="400" width="8" height="164" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="356" y="556" width="8" height="40" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+      <rect x="596" y="652" width="8" height="12" fill="rgba(26,26,26,0.06)" stroke="#525252" stroke-width="0.8"/>
+
+      <!-- M1: User -> App  connect -->
+      <line x1="124" y1="176" x2="356" y2="176" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="196" y="160" width="88" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="240" y="170" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">CONNECT LINKEDIN</text>
+
+      <!-- M2: App -> API  initiate -->
+      <line x1="364" y1="216" x2="596" y2="216" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="438" y="200" width="84" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="480" y="210" fill="#2e5aa8" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">POST · INITIATE</text>
+
+      <!-- M3: API -> App  auth URL + state (return) -->
+      <line x1="592" y1="252" x2="368" y2="252" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="438" y="236" width="84" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="480" y="246" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">AUTH URL + STATE</text>
+
+      <!-- ALT frame: App 360 · API 600 · LinkedIn 840 -->
+      <rect x="288" y="280" width="592" height="404" rx="4"
+            fill="rgba(26,26,26,0.02)" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <rect x="288" y="280" width="40" height="16" rx="2"
+            fill="#F5F5F0" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="308" y="292" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.12em">ALT</text>
+
+      <!-- Region 1 guard -->
+      <text x="300" y="308" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.04em">[state valid]</text>
+
+      <!-- M4: App -> LinkedIn  redirect authorize -->
+      <line x1="364" y1="332" x2="836" y2="332" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="544" y="316" width="112" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="600" y="326" fill="#2e5aa8" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">REDIRECT · AUTHORIZE</text>
+
+      <!-- M5: LinkedIn -> App  callback -->
+      <line x1="836" y1="368" x2="368" y2="368" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="544" y="352" width="116" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="602" y="362" fill="#2e5aa8" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">CALLBACK · CODE+STATE</text>
+
+      <!-- M6: App -> API  complete -->
+      <line x1="364" y1="404" x2="596" y2="404" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="438" y="388" width="84" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="480" y="398" fill="#2e5aa8" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">POST · COMPLETE</text>
+
+      <!-- M7: API -> LinkedIn  exchange -->
+      <line x1="604" y1="440" x2="836" y2="440" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="684" y="424" width="72" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="720" y="434" fill="#2e5aa8" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">EXCHANGE CODE</text>
+
+      <!-- M8: LinkedIn -> API  tokens (return) -->
+      <line x1="832" y1="476" x2="608" y2="476" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="702" y="460" width="36" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="720" y="470" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">TOKENS</text>
+
+      <!-- M9: API self  atomic upsert -->
+      <path d="M 604,508 H 628 V 528 H 604" fill="none" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="636" y="506" width="84" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="678" y="515" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">UPSERT · ATOMIC</text>
+
+      <!-- M10: API -> App  connected (headline success) -->
+      <line x1="596" y1="560" x2="368" y2="560" stroke="#D71921" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <rect x="440" y="544" width="84" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="482" y="554" fill="#D71921" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">200 · CONNECTED</text>
+
+      <!-- alt region divider -->
+      <line x1="296" y1="616" x2="872" y2="616"
+            stroke="rgba(26,26,26,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Region 2 guard -->
+      <text x="300" y="636" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.04em">[else · state invalid]</text>
+
+      <!-- M11: App -> User  linked (return, region 1) -->
+      <line x1="364" y1="588" x2="128" y2="588" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="206" y="572" width="80" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="246" y="582" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ACCOUNT LINKED</text>
+
+      <!-- M12: API -> App  400 (return, region 2) -->
+      <line x1="596" y1="660" x2="368" y2="660" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="450" y="644" width="64" height="12" rx="2" fill="#F5F5F0"/>
+      <text x="482" y="654" fill="#525252" font-size="8" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">400 · STATE</text>
+
+      <!-- Actor boxes drawn after arrows -->
+      <!-- User (input) -->
+      <rect x="48" y="72" width="144" height="56" rx="6" fill="#F5F5F0"/>
+      <rect x="48" y="72" width="144" height="56" rx="6" fill="rgba(82,82,82,0.10)" stroke="#7a7a7a" stroke-width="1"/>
+      <rect x="56" y="80" width="28" height="12" rx="2" fill="transparent" stroke="rgba(122,122,122,0.40)" stroke-width="0.8"/>
+      <text x="70" y="89" fill="#7a7a7a" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">USR</text>
+      <text x="120" y="104" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">User</text>
+      <text x="120" y="119" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">browser</text>
+
+      <!-- App (input) -->
+      <rect x="288" y="72" width="144" height="56" rx="6" fill="#F5F5F0"/>
+      <rect x="288" y="72" width="144" height="56" rx="6" fill="rgba(82,82,82,0.10)" stroke="#7a7a7a" stroke-width="1"/>
+      <rect x="296" y="80" width="28" height="12" rx="2" fill="transparent" stroke="rgba(122,122,122,0.40)" stroke-width="0.8"/>
+      <text x="310" y="89" fill="#7a7a7a" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">APP</text>
+      <text x="360" y="104" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">App</text>
+      <text x="360" y="119" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">Vue SPA</text>
+
+      <!-- API (focal) -->
+      <rect x="528" y="72" width="144" height="56" rx="6" fill="#F5F5F0"/>
+      <rect x="528" y="72" width="144" height="56" rx="6" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1"/>
+      <rect x="536" y="80" width="28" height="12" rx="2" fill="transparent" stroke="rgba(215,25,33,0.50)" stroke-width="0.8"/>
+      <text x="550" y="89" fill="#D71921" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">API</text>
+      <text x="600" y="104" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">API</text>
+      <text x="600" y="119" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">OAuth · persist</text>
+
+      <!-- LinkedIn (external) -->
+      <rect x="768" y="72" width="144" height="56" rx="6" fill="#F5F5F0"/>
+      <rect x="768" y="72" width="144" height="56" rx="6" fill="rgba(26,26,26,0.03)" stroke="rgba(26,26,26,0.30)" stroke-width="1"/>
+      <rect x="776" y="80" width="28" height="12" rx="2" fill="transparent" stroke="rgba(26,26,26,0.22)" stroke-width="0.8"/>
+      <text x="790" y="89" fill="#7a7a7a" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle" letter-spacing="0.08em">EXT</text>
+      <text x="840" y="104" fill="#1A1A1A" font-size="12" font-weight="600" font-family="'Space Grotesk', sans-serif" text-anchor="middle">LinkedIn</text>
+      <text x="840" y="119" fill="#525252" font-size="9" font-family="'Space Mono', monospace" text-anchor="middle">OAuth provider</text>
+
+      <!-- Legend -->
+      <line x1="56" y1="708" x2="904" y2="708" stroke="rgba(26,26,26,0.10)" stroke-width="0.8"/>
+      <text x="56" y="724" fill="#525252" font-size="8" font-family="'Space Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+
+      <rect x="56" y="736" width="14" height="10" rx="2" fill="rgba(215,25,33,0.08)" stroke="#D71921" stroke-width="1"/>
+      <text x="76" y="744" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Headline</text>
+
+      <rect x="180" y="732" width="28" height="18" rx="2" fill="rgba(26,26,26,0.02)" stroke="rgba(26,26,26,0.22)" stroke-width="1"/>
+      <text x="194" y="744" fill="#525252" font-size="7" font-family="'Space Mono', monospace" text-anchor="middle">ALT</text>
+      <text x="236" y="744" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Fragment</text>
+
+      <line x1="330" y1="740" x2="358" y2="740" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <text x="366" y="744" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">HTTP call</text>
+
+      <line x1="470" y1="740" x2="498" y2="740" stroke="#525252" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <text x="506" y="744" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Return</text>
+
+      <line x1="600" y1="740" x2="628" y2="740" stroke="#525252" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <text x="636" y="744" fill="#525252" font-size="8" font-family="'Space Grotesk', sans-serif">Call</text>
+    </svg>
+    </div>
+  </div>
+</body>
+</html>
