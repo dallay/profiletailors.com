@@ -1,5 +1,36 @@
 schemaVersion: 1
 task: spring-configuration-binding-auditor
-lastExecution: null
-findings: []
-checks: []
+lastExecution: "2026-03-31T00:00:00Z"
+outcome: CHANGES_APPLIED
+findings:
+  - id: BINDING-001
+    title: "Missing public-app-url in application.yaml"
+    description: "EmailProperties and IdentityEventConfiguration bind app.email.public-app-url, but it was missing from application.yaml."
+    severity: LOW
+    status: resolved
+    firstDetected: "2026-03-31T00:00:00Z"
+    lastVerified: "2026-03-31T00:00:00Z"
+    occurrences: 1
+    remediation:
+      status: implemented
+      summary: "Added public-app-url placeholder under app.email in application.yaml and documented SMP_EMAIL_PUBLIC_APP_URL in .env.example."
+  - id: BINDING-002
+    title: "Undocumented SMP_PUBLISHING_WORKER_STALE_GRACE in .env.example"
+    description: "application.yaml referenced ${SMP_PUBLISHING_WORKER_STALE_GRACE:PT5M} under publishing.worker.stale-grace but was missing from .env.example."
+    severity: LOW
+    status: resolved
+    firstDetected: "2026-03-31T00:00:00Z"
+    lastVerified: "2026-03-31T00:00:00Z"
+    occurrences: 1
+    remediation:
+      status: implemented
+      summary: "Documented SMP_PUBLISHING_WORKER_STALE_GRACE in .env.example under Publishing worker section."
+checks:
+  - name: "IdentityEventConfigurationTest"
+    target: "server/smp/src/test/kotlin/com/profiletailors/smp/identity/infrastructure/IdentityEventConfigurationTest.kt"
+    status: Passed
+    notes: "Spring Boot configuration test verifying email properties binding."
+  - name: "spotlessKotlinCheck"
+    target: "server/smp"
+    status: Passed
+    notes: "Kotlin code formatting check."
