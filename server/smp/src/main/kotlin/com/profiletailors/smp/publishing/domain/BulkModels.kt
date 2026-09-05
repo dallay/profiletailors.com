@@ -89,10 +89,11 @@ data class BulkImportJob(
     }
 }
 
-@Suppress("FunctionOnlyReturningConstant")
 data class BulkTemplate(val id: String, val name: String, val description: String) {
     companion object {
-        fun canonicalHeader(): String = "bodyText,scheduledFor,timezone,media_urls,hashtags"
+        const val CANONICAL_HEADER: String = "bodyText,scheduledFor,timezone,media_urls,hashtags"
+
+        fun canonicalHeader(): String = CANONICAL_HEADER
 
         fun defaultTemplates(): List<BulkTemplate> = listOf(
             BulkTemplate(id = "linkedin-calendar", name = "LinkedIn Calendar", description = "Default bulk template"),

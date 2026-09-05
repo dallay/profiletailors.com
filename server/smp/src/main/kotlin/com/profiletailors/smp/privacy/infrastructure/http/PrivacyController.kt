@@ -134,24 +134,27 @@ class PrivacyController(
     /**
      * Builds the appropriate command based on the request type.
      */
-    @Suppress("UNCHECKED_CAST", "BracesOnWhenStatements")
     private fun buildCommand(
         request: SubmitPrivacyRequestDto,
         principalId: String,
         email: String,
     ): CommandWithResult<DataSubjectRequestResponse> = when (request.type.uppercase()) {
-        "ACCESS" -> SubmitAccessRequestCommand(
-            requestedByPrincipalId = principalId,
-            requestedByEmail = email,
-            workspaceId = null,
-            notes = request.notes,
-        )
-        "EXPORT" -> SubmitExportRequestCommand(
-            requestedByPrincipalId = principalId,
-            requestedByEmail = email,
-            workspaceId = null,
-            notes = request.notes,
-        )
+        "ACCESS" -> {
+            SubmitAccessRequestCommand(
+                requestedByPrincipalId = principalId,
+                requestedByEmail = email,
+                workspaceId = null,
+                notes = request.notes,
+            )
+        }
+        "EXPORT" -> {
+            SubmitExportRequestCommand(
+                requestedByPrincipalId = principalId,
+                requestedByEmail = email,
+                workspaceId = null,
+                notes = request.notes,
+            )
+        }
         "CORRECTION" -> {
             val field = when {
                 !request.newEmail.isNullOrBlank() -> CorrectionField.EMAIL
@@ -170,16 +173,20 @@ class PrivacyController(
                 notes = request.notes,
             )
         }
-        "DELETION" -> SubmitDeletionRequestCommand(
-            requestedByPrincipalId = principalId,
-            requestedByEmail = email,
-            workspaceId = null,
-            notes = request.notes,
-        )
-        else -> throw ResponseStatusException(
-            HttpStatus.BAD_REQUEST,
-            "Invalid request type: ${request.type}. Must be ACCESS, EXPORT, CORRECTION, or DELETION",
-        )
+        "DELETION" -> {
+            SubmitDeletionRequestCommand(
+                requestedByPrincipalId = principalId,
+                requestedByEmail = email,
+                workspaceId = null,
+                notes = request.notes,
+            )
+        }
+        else -> {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Invalid request type: ${request.type}. Must be ACCESS, EXPORT, CORRECTION, or DELETION",
+            )
+        }
     }
 
     // ——————— Response mapping ———————
