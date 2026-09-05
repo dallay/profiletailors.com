@@ -4,7 +4,7 @@ Toast notifications are transient status messages. Unlike menus, they should not
 interacts with other parts of the page. The popover="manual" state is ideal because it lacks "
 light-dismiss" behavior and allows multiple notifications to coexist.
 
-### Implementation Guidelines
+## Implementation Guidelines
 
 * **MANDATORY:** Use popover="manual" so the notification stays visible until explicitly closed or
   timed out by a script.
@@ -17,26 +17,26 @@ light-dismiss" behavior and allows multiple notifications to coexist.
 * **DO** utilize transition-behavior: allow-discrete to animate the entry and exit from the Top
   Layer.
 
-### Fallback Strategies
+## Fallback Strategies
 
-#### popover
+### popover
 
 * **Guidance:** Use the [Popover Polyfill](https://github.com/oddbird/popover-polyfill). For legacy
   browsers, fall back to a fixed-position div with a high z-index.
 
-#### sibling-index()
+### sibling-index()
 
 * **Guidance:** If sibling-index() is not supported, use the `+` operator to add margin manually.
   I.e. `popover + popover { margin-top: 1rem }`
 
-#### anchor-positioning
+### anchor-positioning
 
 * **Guidance:** Use
   the [CSS Anchor Positioning Polyfill](https://github.com/oddbird/css-anchor-positioning). For a
   non-polyfill fallback, default the tooltip to a fixed position at the bottom of the viewport using
   `@supports not (anchor-name: --foo)`.
 
-#### transition-behavior
+### transition-behavior
 
 * **Guidance:** If transition-behavior is not supported, use JavaScript to add animation via classes
   as the toast element transitions in and out.

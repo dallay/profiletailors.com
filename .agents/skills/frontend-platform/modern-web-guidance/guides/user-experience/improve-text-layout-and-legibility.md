@@ -65,26 +65,26 @@ p, blockquote, li, .pretty-text {
 
 #### text-wrap: balance
 
-* **Line Limit:** Browsers impose a limit on the number of lines they will attempt to balance to
+- **Line Limit:** Browsers impose a limit on the number of lines they will attempt to balance to
   maintain performance (typically **6 lines** in Chromium and **10 lines** in Firefox). If the text
   exceeds this limit, the browser reverts to standard `wrap` behavior. Avoid using
   `text-wrap: balance` on text blocks that are likely to exceed these limits.
-* **Targeted Application:** DO NOT apply `text-wrap: balance` globally (e.g.,
+- **Targeted Application:** DO NOT apply `text-wrap: balance` globally (e.g.,
   `* { text-wrap: balance; }`). The iterative "binary search" algorithm used by browsers is
   computationally expensive. Limit its use to specific, short text elements.
-* **Interaction with Width:** `text-wrap: balance` does not change the container's width (
+- **Interaction with Width:** `text-wrap: balance` does not change the container's width (
   `inline-size`). It only affects how text wraps *within* that width. This can leave empty space at
   the end of the container, which may affect layouts relying on full-width text blocks.
 
 #### text-wrap: pretty
 
-* **Performance vs. Quality**: MANDATORY: `text-wrap: pretty` is more computationally expensive than
+- **Performance vs. Quality**: MANDATORY: `text-wrap: pretty` is more computationally expensive than
   the default `wrap` (greedy) algorithm because it evaluates multiple lines (typically the last
   four) to optimize the break points. Avoid applying it globally to every element if your page has
   an extreme amount of text content.
-* **Best for multi-line text**: The benefits of `pretty` are most apparent in paragraphs of three or
+- **Best for multi-line text**: The benefits of `pretty` are most apparent in paragraphs of three or
   more lines. It has little to no effect on short, single-line text.
-* **Browser-specific behavior**: Be aware that implementation details vary. Chromium-based browsers
+- **Browser-specific behavior**: Be aware that implementation details vary. Chromium-based browsers
   typically focus on the last four lines, while other engines may evaluate the entire paragraph.
 
 ### Fallback strategies

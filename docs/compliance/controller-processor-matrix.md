@@ -129,4 +129,4 @@ Before changing a row to **Selected**, record:
 - [`data-inventory.md`](data-inventory.md)
 - [`ropa.md`](ropa.md)
 - [`legal-publication-gate.md`](legal-publication-gate.md)
-- [European Commission — controller and processor obligations](https://commission.europa.eu/law/law-topic/data-protection/rules-business-and-organisations/obligations/controller-processor/what-data-controller-or-data-processor_en)
+- [European Commission — controller and processor obligations](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/obligations_en)

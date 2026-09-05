@@ -260,6 +260,7 @@ happens the operator should:
    ORDER BY lease_expires_at ASC
    LIMIT 50;
    ```
+
 2. Compare against the most recent `claim-lease` config to confirm the threshold is
    being honored.
 3. If the schema migration for `publication_jobs` (`020-add-publishing-claim-fencing-and-idempotency.yaml`)

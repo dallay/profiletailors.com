@@ -29,6 +29,7 @@ extraction, component decomposition, type contracts, and code quality checks.
 `.agents/skills/frontend-platform/vue/references/vue-component-maintainability.md`
 
 Key rules enforced by this standard:
+
 - **Single responsibility:** template describes WHAT, composable describes HOW, store describes
   global state
 - **Composable extraction** when `<script setup>` exceeds ~80 lines or contains computed/watch logic

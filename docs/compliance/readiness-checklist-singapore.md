@@ -55,8 +55,8 @@ The PDPA defines a "Data Intermediary" (DI) as an organization that processes pe
 Under the Transfer Limitation Obligation, personal data must not be transferred outside Singapore unless the destination country provides a standard of protection comparable to the PDPA.
 
 - [ ] **Comparable Protection Verification:** Ensure that any transfer of personal data outside Singapore is governed by:
-    - Binding corporate rules or Standard Contractual Clauses (SCCs) equivalent to PDPA standards.
-    - Contracts requiring the recipient to provide comparable protection.
+  - Binding corporate rules or Standard Contractual Clauses (SCCs) equivalent to PDPA standards.
+  - Contracts requiring the recipient to provide comparable protection.
 - [ ] **Transfer Destination Mapping:** Document the geographical locations of all cloud storage, CDN edges, databases, and backup infrastructure handling Singapore user data.
 
 ### 5. Mandatory Breach Notification
@@ -64,8 +64,8 @@ Under the Transfer Limitation Obligation, personal data must not be transferred 
 Singapore enforces a strict, legally mandated breach notification regime (within 3 calendar days of determination).
 
 - [ ] **Notifiable Breach Assessment:** Implement a internal assessment template to evaluate whether a data breach is "notifiable." A breach is notifiable if:
-    - It is likely to result in significant harm to affected individuals (such as financial fraud, identity theft, or physical harm).
-    - It is of a significant scale (involving the personal data of 500 or more individuals).
+  - It is likely to result in significant harm to affected individuals (such as financial fraud, identity theft, or physical harm).
+  - It is of a significant scale (involving the personal data of 500 or more individuals).
 - [ ] **PDPC 3-Day Notification Clock:** Design and test an incident response protocol ensuring that if a breach is determined to be notifiable, the Personal Data Protection Commission (PDPC) is notified within **3 calendar days** (72 hours).
 - [ ] **Affected Individuals Notification:** Set up communication templates and delivery channels to notify affected individuals as soon as practicable, parallel to or immediately after notifying the PDPC.
 - [ ] **DI Breach Reporting SLA:** Ensure contracts with Data Intermediaries require them to notify Profile Tailors *immediately* (within 24 hours) upon suspecting or discovering any security breach.
@@ -92,16 +92,16 @@ Data subjects in Singapore have a statutory right to access and correct their pe
 
 ## Troubleshooting
 
--   **What happens if our DPO is based outside Singapore?**
-    *   This is legally permissible under the PDPA, but you must ensure the DPO's contact details (e.g., email address) are publicized, and they are fully responsive to queries or requests during Singapore business hours.
--   **Is GDPR compliance sufficient to meet PDPA requirements?**
-    *   While there is significant overlap, there are distinct differences. The PDPA requires explicit DPO designation (even for small organizations), a strict 3-calendar-day notification clock to the PDPC once a breach is determined to be notifiable, and unique definitions regarding Data Intermediaries and transfer safeguards.
+- **What happens if our DPO is based outside Singapore?**
+  - This is legally permissible under the PDPA, but you must ensure the DPO's contact details (e.g., email address) are publicized, and they are fully responsive to queries or requests during Singapore business hours.
+- **Is GDPR compliance sufficient to meet PDPA requirements?**
+  - While there is significant overlap, there are distinct differences. The PDPA requires explicit DPO designation (even for small organizations), a strict 3-calendar-day notification clock to the PDPC once a breach is determined to be notifiable, and unique definitions regarding Data Intermediaries and transfer safeguards.
 
 ---
 
 ## References
 
--   [`global-legal-readiness.md`](global-legal-readiness.md): Global Market Register
--   [`market-entry-asia.md`](market-entry-asia.md): Asia Expansion Strategy
--   [Singapore PDPC Legislation and Guidelines](https://www.pdpc.gov.sg/overview-of-pdpa/the-legislation/personal-data-protection-act)
--   [PDPC Portal for Reporting Data Breaches](https://www.pdpc.gov.sg/report-data-breach)
+- [`global-legal-readiness.md`](global-legal-readiness.md): Global Market Register
+- [`market-entry-asia.md`](market-entry-asia.md): Asia Expansion Strategy
+- [Singapore PDPC Legislation and Guidelines](https://www.pdpc.gov.sg/overview-of-pdpa/the-legislation/personal-data-protection-act)
+- [PDPC Portal for Reporting Data Breaches](https://www.pdpc.gov.sg/report-data-breach)

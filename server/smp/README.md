@@ -39,7 +39,7 @@ just setup
 just infra-up
 ```
 
-2. Run the Spring Boot application:
+1. Run the Spring Boot application:
 
 ```bash
 just backend-run

@@ -272,9 +272,9 @@ Managed & Local Storage
 
 ## Contact
 
-- **Issues**: https://github.com/dallay/profiletailors.com/issues
-- **Email**: dev@profiletailors.com
+- **Issues**: <https://github.com/dallay/profiletailors.com/issues>
+- **Email**: <dev@profiletailors.com>
 
 ---
 
-Last updated: 2026-08-31
+Last updated: 2026-09-05

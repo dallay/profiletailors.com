@@ -176,9 +176,9 @@ async function processLargeList(items) {
 
 **The 50ms Rule for INP**:
 
-- **< 50ms**: Execute synchronously.
-- **50ms - 250ms**: Slice tasks and yield with `scheduler.yield()`.
-- **> 250ms**: Offload to a Web Worker.
+* **< 50ms**: Execute synchronously.
+* **50ms - 250ms**: Slice tasks and yield with `scheduler.yield()`.
+* **> 250ms**: Offload to a Web Worker.
 
 ## Third-Party Script Management
 

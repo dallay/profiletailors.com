@@ -110,9 +110,9 @@ smooth and accessible experience:
 - **DO** include feature detection: Not all browsers support scroll-driven animations. Use
   `@supports (animation-timeline: scroll())` to check for support and provide a fallback for
   browsers that don't support it.
-    - **DO NOT** use the `scroll-timeline-polyfill` package for the fallback strategy as it is not
+  - **DO NOT** use the `scroll-timeline-polyfill` package for the fallback strategy as it is not
       feature complete and has a lot of known issues.
-    - If the animation is only considered to be decorative, opt for Progressive Enhancement and **DO
+  - If the animation is only considered to be decorative, opt for Progressive Enhancement and **DO
       NOT** provide a fallback.
 - **DO** remove purely decorative elements from assistive technology reading flows: Apply
   `aria-hidden="true"` to purely visual scroll indicators to ensure screen readers do not encounter
@@ -129,7 +129,7 @@ When using the `scroll()` function to create a scroll-driven animation:
 
 - **OPTIONAL** be explicit about the scroller: When not targeting the nearest ancestor scroller, be
   explicit about which scroller you want to use with `scroll(root)` or `scroll(self)`.
-    - When `root`, `nearest`, or `self` are not sufficient, use a named scroll-timeline.
+  - When `root`, `nearest`, or `self` are not sufficient, use a named scroll-timeline.
 - **OPTIONAL** be explicit about the axis to track: When not targeting the default `block` axis (
   such as in a horizontal scroller), be explicit about which axis to track with `scroll(block)` or
   `scroll(inline)`.

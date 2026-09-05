@@ -5,9 +5,9 @@ Unlike auto popovers, manual popovers do not close when the user clicks elsewher
 Combining `popover="manual"` with CSS Anchor Positioning allows you to create non-modal, tethered
 tour steps.
 
-### Recommended Implementation
+## Recommended Implementation
 
-#### HTML
+### HTML
 
 ```html
 
@@ -22,7 +22,7 @@ tour steps.
 </div>
 ```
 
-#### CSS
+### CSS
 
 ```css
 #feature-target {
@@ -42,7 +42,7 @@ tour steps.
 }
 ```
 
-#### JavaScript
+### JavaScript
 
 ```javascript
 const tourStep = document.getElementById('tour-step');
@@ -82,14 +82,14 @@ If the browser does not support Popover, use the `@oddbird/popover-polyfill`:
 Alternatively, for legacy support without a polyfill, use `position: fixed` and manually calculate
 coordinates via JavaScript `getBoundingClientRect()`.
 
-#### anchor-positioning
+### anchor-positioning
 
 Anchor positioning is not natively supported by any major browser yet.
 
 To support browsers without anchor positioning, you can choose between using a polyfill or a pure
 CSS fallback.
 
-##### Option 1: Polyfill Fallback
+#### Option 1: Polyfill Fallback
 
 The `@oddbird/css-anchor-positioning` polyfill can be used to emulate anchor positioning. It does
 not support implicit anchors, so you MUST add explicit anchor names to the trigger. Additionally,
@@ -113,7 +113,7 @@ desired insets instead of `position-area`.
 }
 ```
 
-##### Option 2: Non-Polyfill CSS Fallback
+#### Option 2: Non-Polyfill CSS Fallback
 
 If you prefer not to use a polyfill, you can default the tooltip to a fixed position at the bottom
 of the viewport using `@supports not`.

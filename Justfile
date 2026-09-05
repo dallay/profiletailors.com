@@ -367,6 +367,17 @@ doc-check:
     @echo "▸ Documentation date freshness check..."
     node scripts/check-doc-last-updated.mjs
 
+# Check Markdown links with lychee (uses lychee.toml; globs quoted so lychee
+# expands them recursively instead of the shell truncating ** to one level)
+docs-links:
+    @echo "▸ Markdown link check (lychee)..."
+    lychee --no-progress --cache --max-cache-age 1d --exclude-path node_modules --exclude 'http://localhost' --exclude 'https://localhost' --exclude-path openspec './**/*.md' './**/*.mdx'
+
+# Lint Markdown with markdownlint-cli2 (config: .markdownlint-cli2.jsonc)
+docs-lint:
+    @echo "▸ Markdown lint (markdownlint-cli2)..."
+    pnpm exec markdownlint-cli2
+
 # Scan all dependency licences for AGPL-3.0 compatibility (frontend + backend)
 licence-check:
     @echo "▸ Frontend: dependency licence scan..."
@@ -394,6 +405,9 @@ ci-local:
     @echo ""
     @echo "▸ Documentation date freshness check..."
     just doc-check
+    @echo ""
+    @echo "▸ Markdown lint..."
+    just docs-lint
     @echo ""
     @echo "▸ Dependency licence scan..."
     just licence-check

@@ -40,6 +40,7 @@ Internal tooling with the same visual language as the dashboard app. No differen
 - Access denied view for users who authenticate but lack required permissions
 
 **Constraints:**
+
 - No user self-service, no onboarding flows, no email sending
 - No public-facing surface — this app is not discoverable
 - No multi-admin support at early-access stage

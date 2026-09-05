@@ -7,11 +7,11 @@
 - Supersedes: None
 - Superseded by: None
 - Related:
-    - Skills: `.agents/skills/backend-platform/ddd-architecture/SKILL.md`
-    - Companion ADRs:
-        - ADR-0015: Aggregate Root Is the Sole Entry Point to an Aggregate
-        - ADR-0016: Aggregates Communicate by Identity Only (planned)
-    - Marker annotation: `com.profiletailors.common.domain.ValueObject`
+  - Skills: `.agents/skills/backend-platform/ddd-architecture/SKILL.md`
+  - Companion ADRs:
+    - ADR-0015: Aggregate Root Is the Sole Entry Point to an Aggregate
+    - ADR-0016: Aggregates Communicate by Identity Only (planned)
+  - Marker annotation: `com.profiletailors.common.domain.ValueObject`
 
 ## Context
 

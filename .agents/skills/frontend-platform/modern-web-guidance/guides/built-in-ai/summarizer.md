@@ -133,9 +133,11 @@ for await (const chunk of stream) {
   device.
 - **Cross-Origin**: Access can be granted to iframes using the Permission
   Policy.
+
   ```html
   <iframe src="https://example.com/" allow="summarizer"></iframe>
   ```
+
 - **Web Workers**: Currently not supported.
 
 ## Fallback Strategy

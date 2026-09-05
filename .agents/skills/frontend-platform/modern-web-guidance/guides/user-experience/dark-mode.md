@@ -242,12 +242,12 @@ For more information about component-specific overrides and their gotchas, see
   color scheme and adjust the embedded page's `prefers-color-scheme` media query to reflect the
   embedding context's `color-scheme`. Safari does not, and resolves `prefers-color-scheme` to the
   system setting even inside iframes.
-    - **If you control both parent and iframe:** pass the parent's color scheme to the iframe
+  - **If you control both parent and iframe:** pass the parent's color scheme to the iframe
       explicitly — via a URL parameter (`?theme=dark`) at iframe construction time, or via
       `postMessage()` (which also lets you react to runtime changes). In the iframe, set a class on
       `<html>` (and/or `color-scheme` on `:root`) from that signal instead of relying on
       `prefers-color-scheme`.
-    - **If you only control the embedded page:** there is no reliable way to detect the embedding
+  - **If you only control the embedded page:** there is no reliable way to detect the embedding
       context's `color-scheme` from inside the iframe in Safari. Expose an explicit theme parameter
       on your embed API (e.g. a query string or `postMessage` protocol) and document it for
       embedders.

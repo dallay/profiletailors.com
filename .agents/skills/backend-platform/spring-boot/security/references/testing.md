@@ -7,14 +7,9 @@ Boot applications, covering unit tests, integration tests, security tests, and p
 
 1. [Unit Testing JWT Components](#unit-testing-jwt-components)
 2. [Integration Testing Security Configuration](#integration-testing-security-configuration)
-3. [Security Testing with Testcontainers](#security-testing-with-testcontainers)
-4. [MockMvc Security Testing](#mockmvc-security-testing)
-5. [Test Data Management](#test-data-management)
-6. [Test Utilities and Helpers](#test-utilities-and-helpers)
-7. [Security Test Scenarios](#security-test-scenarios)
-8. [Performance Testing JWT Operations](#performance-testing-jwt-operations)
-9. [Load Testing JWT Endpoints](#load-testing-jwt-endpoints)
-10. [Security Test Checklist](#security-test-checklist)
+3. [MockMvc Security Testing](#mockmvc-security-testing)
+4. [Security Test Scenarios](#security-test-scenarios)
+5. [Performance Testing JWT Operations](#performance-testing-jwt-operations)
 
 ## Unit Testing JWT Components
 

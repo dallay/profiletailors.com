@@ -19,8 +19,8 @@ if ('requestPaint' in HTMLCanvasElement.prototype) {
 }
 ```
 
-2. Add the `layoutsubtree` attribute to the `<canvas>` HTML element.
-3. Place your HTML content inside the `<canvas>` element with the `layoutsubtree` attribute.
+1. Add the `layoutsubtree` attribute to the `<canvas>` HTML element.
+2. Place your HTML content inside the `<canvas>` element with the `layoutsubtree` attribute.
 
 ```html
 
@@ -29,7 +29,7 @@ if ('requestPaint' in HTMLCanvasElement.prototype) {
 </canvas>
 ```
 
-4. Scale your canvas grid to match the device scale factor to prevent blurriness:
+1. Scale your canvas grid to match the device scale factor to prevent blurriness:
 
 ```js
 const observer = new ResizeObserver(([entry]) => {
@@ -51,7 +51,7 @@ const options = supportsDevicePixelContentBox
 observer.observe(canvas, options);
 ```
 
-5. Render the HTML content to the canvas inside a `canvas.onpaint` event handler using the
+1. Render the HTML content to the canvas inside a `canvas.onpaint` event handler using the
    `texElementImage2D` method:
 
 ```js
@@ -89,7 +89,7 @@ canvas.onpaint = (event) => {
 };
   ```
 
-6. Update the CSS transform.
+1. Update the CSS transform.
 
 The browser needs to map from the 3D coordinate space into the CSS coordinate space using a viewport
 transform. To facilitate this, do the following:
@@ -101,7 +101,7 @@ transform. To facilitate this, do the following:
 - Map to the canvas viewport. This step is the "re-scaling" phase: it stretches that unit-space math
   back out to match the actual pixel dimensions of your `<canvas>` element on the screen. It also
   flips the Y-axis, because in WebGL, up is positive, but in CSS, down is positive.
-- Calculate the final transform. Multiply the matrices in order: Viewport * MVP * Normalization.
+- Calculate the final transform. Multiply the matrices in order: Viewport *MVP* Normalization.
   Combining them into one final transform produces a "map" that tells the browser exactly where that
   HTML element layer should sit to align with the 3D drawing.
 - Apply the transform to the HTML element. This moves the HTML element layer to sit directly on top
@@ -278,4 +278,4 @@ npm install three-html-render
 <script src="https://cdn.jsdelivr.net/npm/three-html-render/dist/polyfill.js"></script>
 ```
 
-2. Run the `installHtmlInCanvasPolyfill()` method to translate HTML-in-Canvas.
+1. Run the `installHtmlInCanvasPolyfill()` method to translate HTML-in-Canvas.

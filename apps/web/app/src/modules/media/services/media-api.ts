@@ -104,15 +104,6 @@ export type MediaApiError = {
   retryAfterSeconds?: number
 }
 
-function isMediaApiError(body: unknown): body is MediaApiError {
-  return (
-    typeof body === 'object' &&
-    body !== null &&
-    'errorCode' in body &&
-    typeof (body as Record<string, unknown>).errorCode === 'string'
-  )
-}
-
 // ---------------------------------------------------------------------------
 // API functions
 // ---------------------------------------------------------------------------
@@ -441,82 +432,6 @@ async function makeUploadError(uploadResp: Response): Promise<ReturnType<typeof 
     err.message ?? `Server returned ${uploadResp.status}.`,
     uploadResp.status,
   )
-}
-
-// ---------------------------------------------------------------------------
-// Legacy API (kept for backward compatibility)
-// ---------------------------------------------------------------------------
-
-export type ReserveAssetPayload = {
-  mediaType: string
-  originalFilename?: string
-}
-
-/** @deprecated Use putAsset() instead for the CAS upload flow. */
-export async function reserveAsset(payload: ReserveAssetPayload): Promise<MediaAssetSummary> {
-  const fetch_ = createMediaFetch()
-  const auth = useAuthStore()
-
-  if (!auth.isAuthenticated) {
-    throw mediaApiError('Not authenticated', 'You must be signed in to upload media.', 401)
-  }
-
-  return fetch_<MediaAssetSummary>('/api/media/assets', {
-    method: 'POST',
-    body: JSON.stringify({
-      sourceType: 'UPLOADED',
-      mediaType: payload.mediaType,
-      originalFilename: payload.originalFilename,
-    }),
-    workspaceScoped: true,
-  })
-}
-
-/**
- * Uploads a binary file to a previously reserved asset.
- * @deprecated Use putAsset() instead.
- */
-export async function uploadAsset(
-  assetId: string,
-  file: File,
-  _onProgress?: (pct: number) => void,
-): Promise<MediaAssetSummary> {
-  const auth = useAuthStore()
-
-  if (!auth.isAuthenticated) {
-    throw mediaApiError('Not authenticated', 'You must be signed in to upload media.', 401)
-  }
-
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const response = await auth.apiFetchRaw(`/api/media/assets/${assetId}/upload`, {
-    method: 'POST',
-    body: formData,
-    headers: {},
-    workspaceScoped: true,
-  })
-
-  if (!response.ok) {
-    let body: unknown = null
-    try {
-      body = await response.json()
-    } catch {
-      // non-JSON error body
-    }
-
-    const title = isMediaApiError(body) ? body.errorCode : `Upload failed (${response.status})`
-    const detail = isMediaApiError(body) ? body.message : `Server returned ${response.status}.`
-
-    throw mediaApiError(
-      title,
-      detail,
-      response.status,
-      isMediaApiError(body) ? body.errorCode : undefined,
-    )
-  }
-
-  return response.json() as Promise<MediaAssetSummary>
 }
 
 // ---------------------------------------------------------------------------

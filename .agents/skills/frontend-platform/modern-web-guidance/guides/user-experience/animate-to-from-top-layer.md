@@ -110,7 +110,7 @@ dialog[open]::backdrop,
 
 ## Fallback strategies
 
-#### Top-layer animation features
+### Top-layer animation features
 
 Baseline status for @starting-style: Newly available. It's been Baseline since 2024-08-06.
 Supported by: Chrome 117 (Sep 2023), Edge 117 (Sep 2023), Firefox 129 (Aug 2024), and Safari 17.5 (

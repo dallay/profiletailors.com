@@ -43,9 +43,9 @@ fallbacks.
 
 ### Block Containers: Nested Rounded Curves
 
-* Apply `overflow-clip-margin: content-box` to a parent container with rounded corners and custom
+- Apply `overflow-clip-margin: content-box` to a parent container with rounded corners and custom
   padding.
-* Apply similar rounded corners on inner child media and footer components along the concentric
+- Apply similar rounded corners on inner child media and footer components along the concentric
   inner content box boundary, solving awkward nesting curves without custom `calc()` logic.
 
 ```html
@@ -84,7 +84,7 @@ fallbacks.
 
 ### Block Containers: Child Element Shadow Bleed
 
-* Apply `overflow: clip` and define an extended `overflow-clip-margin` length offset to create a
+- Apply `overflow: clip` and define an extended `overflow-clip-margin` length offset to create a
   visible safety zone permitting the child's shadow to render unclipped outside the parent container
   without altering layout geometry. Without this, the child's shadow is clipped at the parent's
   boundary.

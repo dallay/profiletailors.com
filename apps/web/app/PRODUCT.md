@@ -35,6 +35,7 @@ Not a generic social media dashboard. Profile Tailors is a workspace for deliber
 ## Capabilities and Constraints
 
 **Authenticated surfaces:**
+
 - Dashboard home: welcome, quick-create post, pipeline overview
 - Scheduler: calendar (week/day/month) + list view; create, edit, delete, reorder posts
 - Analytics: publication performance metrics (planned — surface exists, data connection TBD)
@@ -45,6 +46,7 @@ Not a generic social media dashboard. Profile Tailors is a workspace for deliber
 - Auth flows: login, register, forgot-password, reset-password, verify-email, LinkedIn callback
 
 **Constraints:**
+
 - LinkedIn is the only connected platform at early-access stage
 - Publishing is gated until integrations are validated
 - No multi-workspace UI yet for non-owner members

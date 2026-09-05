@@ -4,7 +4,7 @@
 
 This document defines how accessibility regressions are detected and prevented across
 the Profile Tailors marketing site and dashboard SPA. It complements the
-[accessibility statement](/accessibility/) published at profiletailors.com.
+[accessibility statement](https://profiletailors.com/accessibility/) published at profiletailors.com.
 
 ---
 
@@ -199,7 +199,7 @@ When a new UI feature is introduced:
 ## 8. References
 
 - [WCAG 2.2](https://www.w3.org/TR/WCAG22/)
-- [EN 301 549 v3.2.1](https://www.etsi.org/deliver/etsi_en/301500_302000/301549/03.02.01_60/en_301549v030201p.pdf)
+- [EN 301 549 v3.2.1](https://www.etsi.org/deliver/etsi_en/301500_301599/301549/03.02.01_60/en_301549v030201p.pdf)
 - [EAA Directive 2019/882](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32019L0882)
 - [@axe-core/playwright](https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright)
 - [Accepted Findings tracker](#5-accepted-findings) (this document)

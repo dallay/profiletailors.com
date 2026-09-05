@@ -82,7 +82,8 @@ Use these references as drafting input with legal review, especially for plain-l
 
 ## References
 
-- Awesome Legal: <https://github.com/openlawlibrary/awesome-legal>
+- Awesome Legal categories: upstream repository no longer available; mapping preserved in
+  `marketing-legal-baseline.md`
 - Marketing app README: `apps/web/marketing/README.md`
 - Compliance index: `docs/compliance/README.md`
 - Consent implementation: `docs/consent-management.md`

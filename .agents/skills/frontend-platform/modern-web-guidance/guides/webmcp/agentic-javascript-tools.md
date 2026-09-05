@@ -108,15 +108,15 @@ export function createInventoryTool(inventoryManager) {
 
 ## API Notes
 
-* **annotations**: (Optional) A dictionary for tool metadata.
-    * **readOnlyHint**: (Optional) Set to `true` if the tool does not modify any state and only
+- **annotations**: (Optional) A dictionary for tool metadata.
+  - **readOnlyHint**: (Optional) Set to `true` if the tool does not modify any state and only
       reads data. This helps agents decide when it is safe to call the tool.
-* **Return Format**: The `execute` function can return any value (object, array, string, number,
+- **Return Format**: The `execute` function can return any value (object, array, string, number,
   boolean). Select a structure that best serves your specific use case while ensuring the content is
   optimized for the LLM to process. The output may encompass raw data, specific error logs, or
   direct instructions to influence the agent's next action.
-* **Secure Context**: WebMCP requires HTTPS.
-* **Deprecated/Removed**: `unregisterTool()`, `provideContext()`, and `clearContext()` are no longer
+- **Secure Context**: WebMCP requires HTTPS.
+- **Deprecated/Removed**: `unregisterTool()`, `provideContext()`, and `clearContext()` are no longer
   supported.
 
 ## Fallback strategies

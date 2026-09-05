@@ -40,6 +40,7 @@ Infrastructure, not a product. Positioning is defined by the surfaces that consu
 - Version upgrade path: increment `EXPECTED_CONSENT_VERSION` in `validation/consent.ts` — old receipts fail validation, banner re-shows
 
 **Constraints:**
+
 - No server-side consent storage at early-access stage
 - Region is hardcoded to `EU` — future markets require schema extension
 - Only two consent categories: `necessary` (always true) and `analytics` (opt-in)

@@ -136,9 +136,9 @@ Always install 'webauthn-polyfills' and import it in the context.
 Consider as long as  `PublicKeyCredential` is supported, `PublicKeyCredential.getClientCapabilities`
 is also supported.
 
-```js 
+```js
 import 'webauthn-polyfills';
-``` 
+```
 
 ### Signal API Synchronization Fallback
 
@@ -165,6 +165,6 @@ Consider as long as  `PublicKeyCredential` is supported,
 `PublicKeyCredential.parseCreationOptionsFromJSON` and `PublicKeyCredential.prototype.toJSON` are
 also supported.
 
-```js 
+```js
 import 'webauthn-polyfills';
-``` 
+```

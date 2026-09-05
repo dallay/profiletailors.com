@@ -48,6 +48,7 @@ We evaluated three candidate models for global multi-region deployment:
 Profile Tailors adopts **Model B: Regional Silo Architecture** anchored by an **EU Primary Baseline Region (`eu-central-1` Frankfurt)**.
 
 Under this model:
+
 1. Each region runs an independent, complete instance of the Profile Tailors infrastructure stack (API gateway, modular monolith application servers, PostgreSQL database, object storage, background workers, and telemetry collectors).
 2. Workspaces (tenants) are immutably bound to a single region upon creation (`region_id`).
 3. There is **zero direct cross-region database replication** or shared data stores. Cross-region state sharing is strictly prohibited for tenant data.
@@ -75,20 +76,24 @@ To guarantee zero accidental tenant data drift across regions:
 ### 3. Component Data Residency Architecture
 
 #### PostgreSQL Database
+
 - **Regional Deployment**: Independent PostgreSQL instances per region accessed via R2DBC.
 - **Schema Management**: Liquibase migrations run independently per regional cluster during deployment pipelines.
 - **Data Isolation**: Database connection strings are region-bound. No database federation, cross-region links, or read-replicas across geographical boundaries are permitted.
 
 #### Object Storage (S3 / CAS Media Library)
+
 - **Region-Locked Buckets**: Object storage buckets (e.g., `profiletailors-media-eu-central-1`) are provisioned exclusively within the local region.
 - **Replication Restrictions**: Cross-Region Replication (CRR) for tenant media and uploaded assets **MUST BE DISABLED**.
 - **Content-Addressable Storage (CAS)**: Content deduplication (ADR-media-library-storage) operates strictly *per region*. Hash lookups are scoped to the regional bucket catalog; identical files uploaded in different regions are stored independently in each region's bucket to maintain strict sovereignty.
 
 #### Backups & Disaster Recovery (DR)
+
 - **Snapshot Storage**: Automated PostgreSQL volume snapshots and S3 backup buckets MUST be stored within the primary region or a designated secondary Availability Zone / region *within the same legal jurisdiction* (e.g., `eu-west-1` Ireland for `eu-central-1` Frankfurt under EU GDPR).
 - **Prohibited Failover**: Failover of data-sovereign tenants to out-of-jurisdiction regions (e.g., failing over an EU tenant DB to a US region) is **STRICTLY PROHIBITED**. In the event of an unrecoverable single-region outage, RTO/RPO objectives must be satisfied using intra-jurisdictional backups.
 
 #### Observability, Telemetry & Audit Logs
+
 - **Local Telemetry Collectors**: Application logs, OpenTelemetry traces, and Prometheus metrics are ingested by regional collector nodes (e.g., OpenTelemetry Collector, Grafana Loki, Tempo).
 - **PII Scrubbing & Anonymization Boundary**: Raw logs and trace spans containing PII (e.g., IP addresses, user emails, workspace names) **MUST NOT** cross regional borders.
 - **Centralized Operational Dashboards**: Global operations teams may only access aggregated, de-identified metrics (e.g., HTTP request rates, JVM error counts, CPU utilization). Any centralized telemetry aggregator MUST strip all tenant identifiers and PII before egress.
@@ -96,10 +101,12 @@ To guarantee zero accidental tenant data drift across regions:
 ### 4. Cross-Region Support, Admin Access & Encryption Separation
 
 #### Key Management Service (KMS) Separation
+
 - **Regional Customer Managed Keys (CMK)**: Each region utilizes dedicated, non-exportable KMS keys (e.g., AWS KMS regional keys) for envelope encryption of data at rest (PostgreSQL storage, S3 bucket encryption, secret storage).
 - **Key Isolation**: IAM policies enforce that application instances in Region A have no permission to call `kms:Decrypt` using KMS keys from Region B.
 
 #### Admin & Support Access Protocol
+
 - **Zero-Trust Just-In-Time (JIT) Access**: Global support engineers and system administrators do not hold standing access to regional tenant databases or object stores.
 - **Break-Glass Proxy**: Administrative access to a regional instance requires explicit Break-Glass authorization, Multi-Factor Authentication (MFA), and a logged ticket identifier.
 - **Consent & Audit Ledger**: Where mandated by DPA/contract, customer consent is verified before support sessions. All administrative database queries or file accesses trigger immutable outbox audit events (`AdminAccessLogged`) persisted in the local regional audit table.
@@ -121,6 +128,7 @@ Profile Tailors integrates with external third-party services to deliver core ca
 | **LLM / AI Providers** | Content Generation & Assistance | Prompt text, post draft snippets | TBD — no approved production subprocessor selected | Feature disabled/not activated in production until a provider is approved and a valid transfer mechanism (DPA/SCC) is executed |
 
 #### Transfer Safeguards & Egress Governance
+
 1. **User Direction**: Social media post publishing occurs exclusively under explicit user direction when scheduling or publishing content to third-party networks.
 2. **Payload Minimization**: Egress adapters MUST strip non-essential internal metadata (such as internal database IDs, user global IP addresses, and workspace internal flags) before sending payloads to external APIs.
 3. **Egress Proxying**: All outbound third-party API traffic MUST pass through regional egress proxies configured with domain allowlists, audit logging, and TLS 1.3 inspection.
@@ -129,7 +137,9 @@ Profile Tailors integrates with external third-party services to deliver core ca
 ### 6. Migration and Disaster Recovery (DR) Implications
 
 #### Tenant Regional Migration Strategy
+
 When an enterprise tenant requests a region migration (e.g., migrating workspace from `us-east-1` to `eu-central-1`):
+
 1. **Cold Migration Pipeline**: Hot/live cross-region database replication is **PROHIBITED**. Migration must be executed as a scheduled maintenance window ("Cold Migration").
 2. **Execution Steps**:
    - Workspace placed in read-only maintenance mode.
@@ -140,6 +150,7 @@ When an enterprise tenant requests a region migration (e.g., migrating workspace
    - Update workspace global routing map `region_id` to target region and reissue fresh tokens with the new region binding (old tokens carrying the prior region are invalidated).
 
 #### Disaster Recovery (DR) Protocols
+
 - **RPO / RTO Targets**: RPO ≤ 1 hour, RTO ≤ 4 hours for regional restore.
 - **Intra-Jurisdictional DR**: Automated backups and failover targets MUST remain within the same legal jurisdiction.
 - **Regional Isolation during Disaster**: An outage in Region A must not degrade service or leak traffic into Region B.
@@ -149,15 +160,18 @@ When an enterprise tenant requests a region migration (e.g., migrating workspace
 Due to severe regulatory requirements, local hosting mandates, and state access laws, **China and Vietnam cannot be served by generic global or regional SaaS infrastructure**.
 
 #### China (PIPL, Data Security Law, Cybersecurity Law)
+
 - **Legal Mandates**: PIPL and DSL mandate strict local data storage within mainland China for critical data/personal information above statutory thresholds (e.g., processing data of over 1 million individuals or exporting sensitive/important data). Outbound data export requires Cyberspace Administration of China (CAC) security assessments, CAC Standard Contracts, or formal certification.
 - **Infrastructure Mandates**: When applicable thresholds are met or when actively targeting the Chinese market, local hosting inside mainland China (e.g., AWS China in Beijing/Ningxia), a licensed local entity / Joint Venture, and an Internet Content Provider (ICP) license / app filing are required.
 - **Architectural Conclusion**: **UNSUPPORTED** without a dedicated architecture. Profile Tailors standard SaaS instances MUST NOT accept registrations or route traffic for mainland China data residency compliance without a dedicated, isolated China air-gapped deployment architecture.
 
 #### Vietnam (Decree 13/2023/ND-CP & Cybersecurity Decree 53)
+
 - **Legal Mandates**: Decree 13 Article 43 requires a detailed Outbound Transfer Impact Assessment Dossier submitted to MPS A05 within 60 days of processing for transfers of Vietnamese citizens' data abroad. Decree 53's local storage and local representative obligations apply to foreign enterprises providing telecommunications, internet, or digital services in Vietnam when they receive a security warning or order from the Ministry of Public Security (not unconditionally to all foreign SaaS providers).
 - **Architectural Conclusion**: **UNSUPPORTED** pending dedicated architecture/legal package. Profile Tailors standard global infrastructure MUST NOT process localized Vietnamese tenant data without an approved, dedicated local cloud footprint and legal entity structure.
 
 #### Operational Mandate
+>
 > **China and Vietnam are explicitly marked as UNSUPPORTED in standard Profile Tailors regional deployments.** Enabling support for China or Vietnam requires a dedicated, individually approved architectural and legal design package.
 
 ### 8. Quantified Cost & Operational Trade-offs

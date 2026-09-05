@@ -7,9 +7,9 @@
 - Supersedes: <ADR or None>
 - Superseded by: <ADR or None>
 - Related:
-    - OpenSpec: <references>
-    - C4: <references>
-    - Issues/PRs: <references>
+  - OpenSpec: <references>
+  - C4: <references>
+  - Issues/PRs: <references>
 
 ## Context
 

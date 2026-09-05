@@ -12,8 +12,8 @@ Comprehensive examples for implementing MCP servers with Spring AI.
 6. [Multi-Modal Tools](#multi-modal-tools)
 7. [Secure Enterprise Tools](#secure-enterprise-tools)
 8. [Real-Time Streaming](#real-time-streaming)
-9. [Dynamic Tool Registration](#dynamic-tool-registration)
-10. [Complete Application](#complete-application)
+9. [Dynamic Tool Registration](advanced-patterns.md#dynamic-tool-registration)
+10. [Complete Application](#complete-application-example)
 
 ## Basic MCP Server Setup
 

@@ -176,9 +176,9 @@ architecture at different levels of abstraction.
 
 ## 🔗 External Links
 
-- **Repository**: https://github.com/dallay/profiletailors.com
-- **Issues**: https://github.com/dallay/profiletailors.com/issues
+- **Repository**: <https://github.com/dallay/profiletailors.com>
+- **Issues**: <https://github.com/dallay/profiletailors.com/issues>
 
 ---
 
-Last updated: 2026-09-03
+Last updated: 2026-09-05

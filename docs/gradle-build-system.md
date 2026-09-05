@@ -87,23 +87,23 @@ Used for shared backend utilities, databases, and adapters (e.g., `:shared:sprin
 `:shared:storage`).
 
 * **Configures:**
-    * Inherits and applies `com.profiletailors.kotlin.library` (toolchains, detekt, testing).
-    * Applies `kotlin-spring` (all-open compiler plugin for Spring beans).
-    * Applies `spring-dependency-management`.
-    * Imports the **Spring Boot BOM** (`spring-boot-dependencies`) to guarantee version consistency.
+  * Inherits and applies `com.profiletailors.kotlin.library` (toolchains, detekt, testing).
+  * Applies `kotlin-spring` (all-open compiler plugin for Spring beans).
+  * Applies `spring-dependency-management`.
+  * Imports the **Spring Boot BOM** (`spring-boot-dependencies`) to guarantee version consistency.
 
 ### 3. Spring Boot Executable App (`com.profiletailors.spring.boot.application`)
 
 Used exclusively for executable microservices or application servers (e.g., `:server:smp`).
 
 * **Configures:**
-    * Inherits and applies the JVM & Spring compilation engines.
-    * Applies the `org.springframework.boot` application builder (`bootJar`, `bootRun`).
-    * Configures **Jacoco Code Coverage** with strict exclusions (DTOs, Configurations, main
+  * Inherits and applies the JVM & Spring compilation engines.
+  * Applies the `org.springframework.boot` application builder (`bootJar`, `bootRun`).
+  * Configures **Jacoco Code Coverage** with strict exclusions (DTOs, Configurations, main
       classes) and enforces an **80% minimum coverage** requirement.
-    * Registers specific BDD test tasks:
-        * `bddFastTest`: Fast BDD suite for local and CI validation.
-        * `bddPostgresTest`: Full integration suite running over PostgreSQL using Testcontainers.
+  * Registers specific BDD test tasks:
+    * `bddFastTest`: Fast BDD suite for local and CI validation.
+    * `bddPostgresTest`: Full integration suite running over PostgreSQL using Testcontainers.
 
 ---
 
@@ -130,6 +130,7 @@ To plug a new module into the backend workspace:
 1. Create the folder under `/shared` or `/server` (e.g., `/shared/my-new-lib`).
 2. Add a `build.gradle.kts` file.
 3. Apply one of the three convention plugins:
+
    ```kotlin
    plugins {
        id("com.profiletailors.spring.boot.library") // Or the application or kotlin plugin
@@ -141,5 +142,6 @@ To plug a new module into the backend workspace:
        implementation(project(":shared:common"))
    }
    ```
+
 4. Run `./gradlew projects` from the root. The dynamic scanning engine will automatically detect and
    register your module!

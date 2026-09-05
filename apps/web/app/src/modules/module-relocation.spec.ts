@@ -126,8 +126,6 @@ describe('module relocation guard', () => {
     expect(typeof mediaApi.putAsset).toBe('function')
     expect(typeof mediaApi.getAsset).toBe('function')
     expect(typeof mediaApi.deleteAsset).toBe('function')
-    expect(typeof mediaApi.reserveAsset).toBe('function')
-    expect(typeof mediaApi.uploadAsset).toBe('function')
     expect(typeof mediaApi.listAssets).toBe('function')
   })
 

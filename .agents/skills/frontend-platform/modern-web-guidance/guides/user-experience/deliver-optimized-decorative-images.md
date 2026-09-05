@@ -7,7 +7,7 @@ smallest compatible image that provides the appropriate pixel density for the us
 **CAUTION**: If the image is likely to be the Largest Contentful Paint (LCP) element (e.g., a large
 hero banner), be aware that images referenced in CSS via image-set() are not discoverable by the
 browser's preload scanner. This can significantly delay image loading and harm LCP. For LCP
-candidates, consider using a standard HTML <img> or <picture> tag instead or alternatively,
+candidates, consider using a standard HTML `<img>` or `<picture>` tag instead or alternatively,
 preloading the image as well using `<link rel=preload>` option with a `media` attribute.
 
 ### Implementation

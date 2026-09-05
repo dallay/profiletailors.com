@@ -205,7 +205,7 @@ if ('LanguageModel' in self) {
 If the Prompt API is unsupported or availability checks return 'unavailable', you must gracefully
 fall back:
 
-* Remote API Fallback: Redirect the detection request to a server endpoint or a cloud API (such as
+- Remote API Fallback: Redirect the detection request to a server endpoint or a cloud API (such as
   the Vertex AI Gemini API).
-* Local API Fallback: Redirect the detection request to a local endpoint, for example, using
-  Transformers.js. 
+- Local API Fallback: Redirect the detection request to a local endpoint, for example, using
+  Transformers.js.

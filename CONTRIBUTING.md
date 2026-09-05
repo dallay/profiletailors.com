@@ -122,5 +122,5 @@ ownership of your contributions.
 
 ## Questions?
 
-Open a [GitHub Discussion](https://github.com/dallay/profiletailors.com/discussions)
-or email us at **dev@profiletailors.com**.
+Open a [GitHub Issue](https://github.com/dallay/profiletailors.com/issues)
+or email us at **<dev@profiletailors.com>**.

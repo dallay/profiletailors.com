@@ -59,11 +59,11 @@ workspace:
 
 - **Stereotype Annotations:**
   Added the `@com.profiletailors.common.domain.Service` custom stereotype annotation to:
-    - `AddWorkspaceOwnerHandler`
-    - `TransferWorkspaceOwnershipHandler`
-    - `RemoveWorkspaceOwnerHandler`
-    - `UpdateWorkspaceMembershipStatusHandler`
-    - `TenancyMutationAuditor`
+  - `AddWorkspaceOwnerHandler`
+  - `TransferWorkspaceOwnershipHandler`
+  - `RemoveWorkspaceOwnerHandler`
+  - `UpdateWorkspaceMembershipStatusHandler`
+  - `TenancyMutationAuditor`
       This registers these classes inside Spring's ApplicationContext for automatic component
       scanning, allowing them to be fully wired and automatically routed by the Mediator.
 

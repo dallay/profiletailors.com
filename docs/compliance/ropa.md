@@ -263,4 +263,4 @@ Change this document from **Draft** to **Active** only when:
 - [`controller-processor-matrix.md`](controller-processor-matrix.md)
 - [`legal-publication-gate.md`](legal-publication-gate.md)
 - [EUR-Lex — GDPR Article 30](https://eur-lex.europa.eu/eli/reg/2016/679/art_30/oj)
-- [European Commission — controller and processor obligations](https://commission.europa.eu/law/law-topic/data-protection/rules-business-and-organisations/obligations/controller-processor/what-data-controller-or-data-processor_en)
+- [European Commission — controller and processor obligations](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/obligations_en)

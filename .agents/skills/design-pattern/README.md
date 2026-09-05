@@ -7,12 +7,15 @@ review, with Kotlin/JVM guidance and explicit pattern-rejection criteria.
 ## Included skills
 
 ### Creational
+
 Factory Method, Abstract Factory, Builder, Prototype, Singleton.
 
 ### Structural
+
 Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy.
 
 ### Behavioral
+
 Chain of Responsibility, Command, Iterator, Mediator, Memento, Observer, State,
 Strategy, Template Method, Visitor.
 
@@ -53,6 +56,6 @@ included.
 
 Public references:
 
-- https://refactoring.guru/design-patterns
-- https://refactoring.guru/design-patterns/catalog
-- https://refactoring.guru/design-patterns/classification
+- <https://refactoring.guru/design-patterns>
+- <https://refactoring.guru/design-patterns/catalog>
+- <https://refactoring.guru/design-patterns/classification>

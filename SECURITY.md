@@ -8,7 +8,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 
 ### How to Report
 
-Email: **security@profiletailors.com**
+Email: **<security@profiletailors.com>**
 
 Include the following in your report:
 
@@ -75,4 +75,4 @@ Thank you to the following security researchers who have helped improve our secu
 
 **Last updated:** May 2026
 
-For general security inquiries: **security@profiletailors.com**
+For general security inquiries: **<security@profiletailors.com>**

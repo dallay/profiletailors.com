@@ -85,7 +85,7 @@ This includes:
 
 This means you should:
 
-- **NOT** register custom properties meant to hold *design tokens* (e.g. `--surface-color`) as
+- **NOT** register custom properties meant to hold _design tokens_ (e.g. `--surface-color`) as
   `<color>`. Tokens need to keep their `light-dark()` expression live so descendants can re-resolve
   them under a different `color-scheme`.
 - When setting `color-scheme` on an element, re-specify any inherited `<color>` properties that may
@@ -93,7 +93,7 @@ This means you should:
   design token.
 - **NOT** use `inherit` on `<color>` properties on elements with a `color-scheme` override (fine to
   use on their descendants).
-- **DO** use registered `<color>` properties for the *opposite* use case: when you deliberately want
+- **DO** use registered `<color>` properties for the _opposite_ use case: when you deliberately want
   to snapshot the ancestor's resolved color and prevent it from re-resolving under the descendant's
   `color-scheme`. For example, capturing the page background to use elsewhere.
 - If you need to animate a color, use a separate `@property`-registered `<color>` property on the
@@ -136,12 +136,12 @@ pre, code {
   color scheme and adjust the embedded page's `prefers-color-scheme` media query to reflect the
   embedding context's `color-scheme`. Safari does not, and resolves `prefers-color-scheme` to the
   system setting even inside iframes.
-    - **If you control both parent and iframe:** pass the parent's color scheme to the iframe
+  - **If you control both parent and iframe:** pass the parent's color scheme to the iframe
       explicitly — via a URL parameter (`?theme=dark`) at iframe construction time, or via
       `postMessage()` (which also lets you react to runtime changes). In the iframe, set a class on
       `<html>` (and/or `color-scheme` on `:root`) from that signal instead of relying on
       `prefers-color-scheme`.
-    - **If you only control the embedded page:** there is no reliable way to detect the embedding
+  - **If you only control the embedded page:** there is no reliable way to detect the embedding
       context's `color-scheme` from inside the iframe in Safari. Expose an explicit theme parameter
       on your embed API (e.g. a query string or `postMessage` protocol) and document it for
       embedders.

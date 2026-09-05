@@ -33,6 +33,7 @@ Every country listed below must be assessed, enabled, and managed **individually
 ## 3. Country-by-Country Analysis
 
 ### 3.1 Argentina
+
 - **Applicability Trigger:** Processing personal data in databases located in Argentina, or extraterritorial processing where Argentine databases are integrated or targeted.
 - **Decision State:** **Blocked (Staged)** — Targeting is disabled. Standard Spanish policy is drafted but blocked from production.
 - **DPO / Local Representative:** No statutory DPO mandate for foreign operators under Law 25,326, but the controller must establish a clear contact channel (`privacy@profiletailors.com`).
@@ -44,6 +45,7 @@ Every country listed below must be assessed, enabled, and managed **individually
 ---
 
 ### 3.2 Colombia
+
 - **Applicability Trigger:** Processing personal data collected or targeted within Colombian territory, or where Colombian law applies by contract or international law.
 - **Decision State:** **Blocked (Staged)** — Targeting disabled.
 - **DPO / Local Representative:** Article 2.2.2.25.4.4 of Decree 1074 of 2015 requires designating a personal data officer or department (Oficial de Protección de Datos) to process data-subject requests.
@@ -55,6 +57,7 @@ Every country listed below must be assessed, enabled, and managed **individually
 ---
 
 ### 3.3 Chile
+
 - **Applicability Trigger:** Processing private/personal data within Chile, or extraterritorial targeting of Chilean residents.
 - **December 1, 2026 Transition (Law No. 21.719):**
   - **CRITICAL TRANSITION:** Chile’s privacy regime is undergoing a total overhaul under **Law No. 21.719**, which comprehensively amends Law No. 19,628 and takes full effect on **1 December 2026**.
@@ -71,6 +74,7 @@ Every country listed below must be assessed, enabled, and managed **individually
 ---
 
 ### 3.4 Uruguay
+
 - **Applicability Trigger:** Processing personal data in Uruguay, or extraterritorial processing with a Uruguayan link.
 - **Decision State:** **Blocked (Staged)** — Targeting disabled.
 - **DPO / Local Representative:** Under Decree No. 64/020, private entities that process sensitive data or perform large-scale processing must designate a DPO. Profile Tailors’ processing is low-risk, making it **exempt** from the mandatory DPO appointment, but a contact channel must remain active.
@@ -82,6 +86,7 @@ Every country listed below must be assessed, enabled, and managed **individually
 ---
 
 ### 3.5 Peru
+
 - **Applicability Trigger:** Processing personal data in Peru, or targeting Peruvian residents.
 - **Decision State:** **Blocked (Staged)** — Targeting disabled.
 - **DPO / Local Representative:** No statutory DPO requirement for foreign individual operators, but a personal data contact must be identified.
@@ -93,6 +98,7 @@ Every country listed below must be assessed, enabled, and managed **individually
 ---
 
 ### 3.6 Ecuador
+
 - **Applicability Trigger:** Processing personal data of data subjects residing in Ecuador by a controller established in Ecuador, or by an overseas controller targeting Ecuadorian residents.
 - **Decision State:** **Blocked (Staged)** — Targeting disabled.
 - **DPO / Local Representative:** Article 48 of the LOPDP mandates the appointment of a DPO for public entities, large-scale processing, or processing of sensitive data. Profile Tailors is **exempt**.

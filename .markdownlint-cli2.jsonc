@@ -1,0 +1,33 @@
+{
+  "globs": ["**/*.md"],
+  "ignores": [
+    "node_modules/**",
+    "**/node_modules/**",
+    "**/build/**",
+    "openspec/**",
+    "**/CHANGELOG.md"
+  ],
+  "config": {
+    "default": true,
+    // MD013 line-length: repo does not wrap prose at 80 cols (long URLs,
+    // tables); rendered output is unaffected. Disabled deliberately.
+    "MD013": false,
+    // MD060 table-column-style: pipe spacing does not affect rendering;
+    // normalizing every table would create huge churn for zero reader value.
+    "MD060": false,
+    // MD024 duplicate headings: docs reuse headings like "Overview" and
+    // "References" across sections by design.
+    "MD024": false,
+    // MD041 first-line-h1: templates and fragment docs do not start with h1.
+    "MD041": false,
+    // MD040 fenced-code-language: 500+ existing fences without a language;
+    // enforce on new code going forward in a follow-up pass.
+    "MD040": false,
+    // MD036 emphasis-as-heading: **Note:**-style lead-ins are intentional.
+    "MD036": false,
+    // MD033 inline-html: docs use <br>, <details> and HTML comments by design.
+    "MD033": false,
+    // MD026 trailing-punctuation: headings ending in ":" or "?" are house style.
+    "MD026": false
+  }
+}

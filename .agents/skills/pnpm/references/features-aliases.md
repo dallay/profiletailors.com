@@ -154,6 +154,7 @@ Aliases work with any valid pnpm specifier:
 ## Best Practices
 
 1. **Clear naming**: Use descriptive alias names that indicate purpose
+
    ```json
    "lodash-legacy": "npm:lodash@3"
    "lodash-modern": "npm:lodash@4"

@@ -12,10 +12,10 @@
   `[LEGAL-REVIEW REQUIRED]` must be reviewed by a qualified lawyer before commercial distribution
   or external investment.
 - Related:
-    - OpenSpec: legal-compliance-foundation
-    - Issues/PRs: DALLAY-498
-    - Contributor map: [`docs/compliance/contributor-copyright-map.md`](../../compliance/contributor-copyright-map.md)
-    - Source-offer runbook: [`docs/compliance/agpl-source-offer.md`](../../compliance/agpl-source-offer.md)
+  - OpenSpec: legal-compliance-foundation
+  - Issues/PRs: DALLAY-498
+  - Contributor map: [`docs/compliance/contributor-copyright-map.md`](../../compliance/contributor-copyright-map.md)
+  - Source-offer runbook: [`docs/compliance/agpl-source-offer.md`](../../compliance/agpl-source-offer.md)
 
 ## Acceptance Criteria Status
 

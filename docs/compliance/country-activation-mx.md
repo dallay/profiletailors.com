@@ -51,6 +51,7 @@
 ## 4. Data and Privacy Approval
 
 ### 4.1 Territorial Scope and Consent Rules
+
 - **Applicability:** Applies under LFPDPPP Article 2 and RLFPDPPP Article 3 because Profile Tailors targets the Mexican market, collects personal data from Mexican residents, and offers local-language services.
 - **Controller/Processor roles:** Profile Tailors acts as Controller for account, workspace, and payment operations. Acts as Processor for user-generated content published to LinkedIn.
 - **Consent Framework (Articles 8, 9, and 15):**

@@ -6,7 +6,7 @@ Covers operator-owned PLATFORM fixes for Ahrefs 2026-08-27 (9293424) and AI-craw
 
 ## Changes
 
-- Titles `>=30` + suffix ` — Profile Tailors` unique per 12 URLs (`en.ts`/`es.ts` → `Layout.astro`)
+- Titles `>=30` + suffix `— Profile Tailors` unique per 12 URLs (`en.ts`/`es.ts` → `Layout.astro`)
 - Meta `120–160` unique per URL
 - Single `h1` per URL; legal pages `h1===title`
 - `robots.txt` explicit `Allow: /` for `*` + `OAI-SearchBot`, `GPTBot`, `PerplexityBot`, `ClaudeBot`, `Google-Extended`, `GoogleOther`, `Bingbot` + `Sitemap: https://profiletailors.com/sitemap.xml`

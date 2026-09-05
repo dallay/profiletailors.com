@@ -38,10 +38,10 @@ Although the APPI does not strictly mandate a formal "Data Protection Officer" i
 All communications must be clear, transparent, and tailored to Japanese standards.
 
 - [ ] **Japanese-Language Privacy Notice:** Draft and review a complete Japanese translation of the Privacy Policy. The notice must specify:
-    - The purpose of using personal information (specified as concretely as possible).
-    - Measures taken for security control.
-    - Information about the operator (company name, address, and representative name).
-    - Procedures for responding to requests for disclosure, correction, or discontinuation of use.
+  - The purpose of using personal information (specified as concretely as possible).
+  - Measures taken for security control.
+  - Information about the operator (company name, address, and representative name).
+  - Procedures for responding to requests for disclosure, correction, or discontinuation of use.
 - [ ] **Strict Specified Purposes:** Verify that the "Purpose of Use" is not vague. APPI prohibits altering the purpose of use beyond what is reasonably considered relevant to the original purpose.
 - [ ] **Localized Support System:** Confirm that customer support workflows can ingest, translate, and respond to Japanese privacy rights requests or complaints within statutory timelines.
 
@@ -58,9 +58,9 @@ The APPI places strict boundaries on consent, particularly for transferring or s
 Under APPI Article 28, transferring personal data to an entity located outside Japan requires strict safeguards.
 
 - [ ] **Information Provision Obligations:** When transferring personal data to a foreign third party (outside Japan), the operator must provide data subjects with detailed information beforehand:
-    - The name of the target country.
-    - The system for personal information protection in that country.
-    - The measures to be taken by the recipient to protect personal information.
+  - The name of the target country.
+  - The system for personal information protection in that country.
+  - The measures to be taken by the recipient to protect personal information.
 - [ ] **Equivalence Mechanisms:** If transferring to foreign processors, verify they are located in a country recognized by the PPC as having an equivalent level of protection, or ensure they are bound by contracts (equivalent to APPI standards) implementing "Equivalent Action" measures.
 - [ ] **"Entrustment" vs. "Provision":** Formally classify all foreign infrastructure vendors (such as cloud hosting, databases, or CDNs) as "entrusted parties" (processors) under strict supervision rather than third-party recipients, and sign compliant "entrustment" contracts.
 
@@ -77,8 +77,8 @@ Supervision over employees and entrusted parties is a core APPI pillar.
 The APPI enforces a mandatory dual-notification reporting system for severe personal data breaches.
 
 - [ ] **PPC Reporting Clock:** Implement an incident response workflow that ensures the PPC is notified:
-    - *Promptly / Preliminary Report:* Usually within 3 to 5 days of discovery.
-    - *Definitive Report:* Within 30 days of discovery (or 60 days in cases of malicious intent/cyberattacks).
+  - *Promptly / Preliminary Report:* Usually within 3 to 5 days of discovery.
+  - *Definitive Report:* Within 30 days of discovery (or 60 days in cases of malicious intent/cyberattacks).
 - [ ] **Affected Individuals Notification:** Set up automated or manual workflows to notify affected individuals immediately when a breach occurs that threatens their rights or interests (such as leaks of sensitive data, financial data, or large-scale leaks of 1,000+ individuals).
 - [ ] **Rehearsals and Playbooks:** Conduct a simulation drill of a personal data breach specifically testing the PPC notification templates and timeline compliance.
 
@@ -96,16 +96,16 @@ The APPI enforces a mandatory dual-notification reporting system for severe pers
 
 ## Troubleshooting
 
--   **What happens if we cannot designate a local representative in Japan?**
-    *   Consult legal counsel. For foreign business operators with no physical office in Japan, the PPC may still exercise jurisdiction and issue administrative orders or fines. Having a local contact agent is highly recommended to manage compliance risk.
--   **Is EU GDPR compliance sufficient for Japan?**
-    *   No. While GDPR covers many security and user rights principles, it does not fulfill the APPI's specific prior-information disclosure rules for foreign transfers (Article 28), the unique distinction of "Anonymously/Pseudonymously Processed Information," or the specific PPC reporting timelines.
+- **What happens if we cannot designate a local representative in Japan?**
+  - Consult legal counsel. For foreign business operators with no physical office in Japan, the PPC may still exercise jurisdiction and issue administrative orders or fines. Having a local contact agent is highly recommended to manage compliance risk.
+- **Is EU GDPR compliance sufficient for Japan?**
+  - No. While GDPR covers many security and user rights principles, it does not fulfill the APPI's specific prior-information disclosure rules for foreign transfers (Article 28), the unique distinction of "Anonymously/Pseudonymously Processed Information," or the specific PPC reporting timelines.
 
 ---
 
 ## References
 
--   [`global-legal-readiness.md`](global-legal-readiness.md): Global Market Register
--   [`market-entry-asia.md`](market-entry-asia.md): Asia Expansion Strategy
--   [Japan PPC Official APPI English Translation](https://www.ppc.go.jp/en/legal/)
--   [PPC Leak/Breach Action Reporting Portal](https://www.ppc.go.jp/personalinfo/legal/leakAction/)
+- [`global-legal-readiness.md`](global-legal-readiness.md): Global Market Register
+- [`market-entry-asia.md`](market-entry-asia.md): Asia Expansion Strategy
+- [Japan PPC Official APPI English Translation](https://www.ppc.go.jp/en/legal/)
+- [PPC Leak/Breach Action Reporting Portal](https://www.ppc.go.jp/personalinfo/legal/leakAction/)
