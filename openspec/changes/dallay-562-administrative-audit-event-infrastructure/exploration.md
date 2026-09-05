@@ -1,9 +1,6 @@
-# Exploration: DALLAY-562 — Administrative audit event infrastructure
-
-## Overview
+## Exploration: DALLAY-562 — Administrative audit event infrastructure
 
 ### Current State
-
 The repository already has three overlapping audit persistence models:
 
 - `platformadmin` is the live Back Office path. `AdminAuditEvent`, `AdministrativeAuditPublisher`, and `R2dbcAdminAuditRepository` persist completed invitation, waitlist, and platform-role actions to `platform_admin_audit_events`; six handlers already depend on this seam, and PostgreSQL tests cover persistence/querying plus a successful invitation audit.
@@ -14,10 +11,23 @@ The existing DALLAY-562 `proposal.md`, root-level `spec.md`, `design.md`, and `t
 
 Security is incomplete in both live and duplicate paths. The new `administrative` model rejects sensitive key names, but its publisher relies on callers to redact and its repository uses a prohibited unchecked-cast suppression. The live `platformadmin` model accepts arbitrary metadata, the repository does not persist that metadata, and no redaction test guards its write boundary. Key-name denylisting alone also cannot detect a secret stored under a benign key such as `value` or `payload`.
 
-## Changes
+### Affected Areas
+- `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/AdminAuditEvent.kt` — live event shape, action/result vocabulary, actor and safe-metadata contract.
+- `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/contracts/AdministrativeAuditPublisher.kt` — reusable seam already consumed by Back Office handlers.
+- `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcAdminAuditRepository.kt` — live write/read adapter; metadata is currently dropped.
+- `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/` — six mutation handlers emit audit events after successful persistence; invitation/waitlist/role tests form the main blast radius.
+- `server/smp/src/main/kotlin/com/profiletailors/smp/administrative/` — duplicate, currently unused model/port/adapter/configuration introduced by the stale implementation direction.
+- `server/smp/src/main/kotlin/com/profiletailors/smp/audit/` — existing generic hook and `audit_events` store; overlapping vocabulary and an unimplemented documented redaction guarantee.
+- `server/smp/src/main/resources/db/changelog/platform-admin/003-create-platform-admin-audit-events.yaml` — canonical live Back Office audit table.
+- `server/smp/src/main/resources/db/changelog/platform-admin/006-create-administrative-audit-events.yaml` — second audit table that creates split history and migration/rollback concerns.
+- `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/integration/R2dbcAdminAuditRepositoryPostgresIntegrationTest.kt` — existing persistence/query evidence.
+- `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/integration/PlatformAdminInvitationTransactionPostgresIntegrationTest.kt` — proves successful invitation audit persistence, but not rollback/atomicity when audit persistence fails.
+- `openspec/specs/admin-authorization/spec.md` and `openspec/specs/invitations/spec.md` — require restricted audit access and token-free invitation evidence.
+- `docs/infrastructure/private-beta-correlation-matrix.md` — canonical secret/token exclusions and correlation pivots; currently describes `audit_events`, not the live `platform_admin_audit_events` store.
+
+Dependency/blast-radius note: `AdministrativeAuditPublisher` has 14 callers/references and `AdminAuditAction` has 23. Replacing that contract affects platform-role, waitlist, invitation, controller/bootstrap, unit, and PostgreSQL integration paths. The duplicate `AuditEventPublisher` has no production consumer, so removing or adapting it is lower risk than migrating live handlers to a second context.
 
 ### Approaches
-
 1. **Consolidate on the existing `platformadmin` audit seam** — evolve `AdminAuditEvent`/`AdministrativeAuditPublisher` and `platform_admin_audit_events`, remove or supersede the unused duplicate direction, and enforce safe metadata at the publisher/persistence boundary.
    - Pros: Reuses the active capability seam and tested query store; smallest blast radius; avoids split audit history; aligns ownership with Back Office authorization and UI.
    - Cons: Requires a migration strategy for metadata and possibly actor type; must reconcile migration 006 if already applied anywhere; action-specific safe metadata needs a deliberate contract.
@@ -34,25 +44,13 @@ Security is incomplete in both live and duplicate paths. The new `administrative
    - Effort: High
 
 ### Recommendation
-
 Use approach 1. The repository already has a production-consumed, permission-gated Back Office audit seam and PostgreSQL persistence tests. The proposal should treat DALLAY-562 as consolidation and hardening, not creation of a parallel bounded context.
-
-## Usage
-
-### Proposal Requirements
 
 The revised contract should centralize enforcement at or before the persistence boundary so a caller cannot bypass redaction. Prefer action-specific allowlisted/typed metadata over arbitrary caller-supplied maps; reject unsupported keys and bound key/value lengths. Persist only completed actions unless the proposal explicitly expands scope to rejected/failed attempts. Correlation should come from the existing request context rather than random generation. For same-database mutations, define and test whether business mutation plus audit insertion are atomic; do not silently choose best-effort behavior.
 
 The proposal must also decide how to handle migration 006 in environments where Liquibase may already have recorded it. Do not edit an applied changeset in place. A follow-up migration or explicit pre-release rollback is required based on deployment evidence.
 
-### Ready for Proposal
-
-Yes — with mandatory revision of the existing proposal. The evidence is sufficient to propose consolidation on the live `platformadmin` seam, but the proposal must resolve canonical-store ownership, atomicity/failure semantics, metadata allowlisting, correlation sourcing, and migration-006 disposition before spec/design work resumes. Existing downstream artifacts are not implementation-ready as written.
-
-## Troubleshooting
-
 ### Risks
-
 - Two active audit tables and three event abstractions can split evidence and make the admin audit UI incomplete.
 - Caller-side denylisting is bypassable and key-only filtering cannot guarantee that values contain no raw token or secret.
 - The live repository silently drops `AdminAuditEvent.metadata`, so current role metadata is not auditable.
@@ -61,7 +59,7 @@ Yes — with mandatory revision of the existing proposal. The evidence is suffic
 - The operational correlation matrix names `audit_events` as the admin pivot while current Back Office handlers write `platform_admin_audit_events`.
 - Existing `administrative` persistence code contains an unchecked-cast suppression forbidden by repository policy.
 
-### Unresolved Product and Architecture Questions
+Unresolved product/architecture questions for proposal:
 
 - Which store is canonical for the future `platform.audit.read` UI: `platform_admin_audit_events` or `audit_events`?
 - Are only successful completed actions in scope, or must rejected/failed attempts also be retained?
@@ -72,21 +70,5 @@ Yes — with mandatory revision of the existing proposal. The evidence is suffic
 - Has migration 006 run in any shared or production-like environment?
 - What retention, immutability/tamper resistance, and access controls apply to stored administrative audit data?
 
-## References
-
-### Affected Areas
-
-- `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/AdminAuditEvent.kt` — live event shape, action/result vocabulary, actor and safe-metadata contract.
-- `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/contracts/AdministrativeAuditPublisher.kt` — reusable seam already consumed by Back Office handlers.
-- `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcAdminAuditRepository.kt` — live write/read adapter; metadata is currently dropped.
-- `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/` — six mutation handlers emit audit events after successful persistence; invitation/waitlist/role tests form the main blast radius.
-- `server/smp/src/main/kotlin/com/profiletailors/smp/administrative/` — duplicate, currently unused model/port/adapter/configuration introduced by the stale implementation direction.
-- `server/smp/src/main/kotlin/com/profiletailors/smp/audit/` — existing generic hook and `audit_events` store; overlapping vocabulary and an unimplemented documented redaction guarantee.
-- `server/smp/src/main/resources/db/changelog/platform-admin/003-create-platform-admin-audit-events.yaml` — canonical live Back Office audit table.
-- `server/smp/src/main/resources/db/changelog/platform-admin/006-create-administrative-audit-events.yaml` — second audit table that creates split history and migration/rollback concerns.
-- `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/integration/R2dbcAdminAuditRepositoryPostgresIntegrationTest.kt` — existing persistence/query evidence.
-- `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/integration/PlatformAdminInvitationTransactionPostgresIntegrationTest.kt` — proves successful invitation audit persistence, but not rollback/atomicity when audit persistence fails.
-- `openspec/specs/admin-authorization/spec.md` and `openspec/specs/invitations/spec.md` — require restricted audit access and token-free invitation evidence.
-- `docs/infrastructure/private-beta-correlation-matrix.md` — canonical secret/token exclusions and correlation pivots; currently describes `audit_events`, not the live `platform_admin_audit_events` store.
-
-Dependency/blast-radius note: `AdministrativeAuditPublisher` has 14 callers/references and `AdminAuditAction` has 23. Replacing that contract affects platform-role, waitlist, invitation, controller/bootstrap, unit, and PostgreSQL integration paths. The duplicate `AuditEventPublisher` has no production consumer, so removing or adapting it is lower risk than migrating live handlers to a second context.
+### Ready for Proposal
+Yes — with mandatory revision of the existing proposal. The evidence is sufficient to propose consolidation on the live `platformadmin` seam, but the proposal must resolve canonical-store ownership, atomicity/failure semantics, metadata allowlisting, correlation sourcing, and migration-006 disposition before spec/design work resumes. Existing downstream artifacts are not implementation-ready as written.
