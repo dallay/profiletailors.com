@@ -51,7 +51,7 @@ This maps to the proposal's "establish clean boundary" by removing `deliveryStat
 
 ### Decision: Token delivery mechanism
 
-**Choice**: `InvitationIssued` event carries only invitation ID. `SendInvitationEmailConsumer` uses `AcceptUrlTemplate` to reconstruct URL with token embedded. Token retrieval uses invitation ID to fetch tokenHash, then... **BLOCKER: This doesn't work.** The consumer has no access to the raw token; only the hash is persisted. 
+**Choice**: `InvitationIssued` event carries only invitation ID. `SendInvitationEmailConsumer` uses `AcceptUrlTemplate` to reconstruct URL with token embedded. Token retrieval uses invitation ID to fetch tokenHash, then... **BLOCKER: This doesn't work.** The consumer has no access to the raw token; only the hash is persisted.
 
 **Revised choice**: `InvitationIssued` event includes `invitationToken: String` field containing the raw token. This field is NOT serialized in `toPayload()` override (security); it exists only in memory during event dispatch. Consumer receives token, builds accept URL, dispatches email, and drops token.
 

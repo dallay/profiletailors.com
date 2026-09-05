@@ -1,6 +1,6 @@
 # Production Rollback Runbook
 
-**Last Updated:** 2026-08-31
+**Last Updated:** 2026-09-03
 **Status:** Active
 **Scope:** Production Docker Swarm, Docker Compose, Database, and Worker Rollback
 **Audience:** Release Manager, On-Call Operator, SRE

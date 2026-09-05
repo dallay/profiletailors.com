@@ -210,4 +210,8 @@ graph TD
 - **Session Rotation**: Every refresh invocation revokes the prior refresh token and issues a new one, mitigating token replay attacks.
 
 
+<<<<<<< HEAD
+Last updated: 2026-09-03
+=======
 Last updated: 2026-09-04
+>>>>>>> origin/main

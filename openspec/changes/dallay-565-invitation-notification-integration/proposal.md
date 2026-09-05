@@ -63,24 +63,24 @@ This change must establish the correct seam: Invitation issues a domain event wh
   - Resend semantics (new delivery capability vs. retry existing one)
   - Admin UI for resend/retry
   - Resend generates new invitation or reuses existing invitation decision
-  
+
 - **Delivery status observability for admins** (DALLAY-574)
   - Whether admins should see notification delivery status at all
   - If yes, how to query across context boundary without coupling
-  
+
 - **Retry mechanisms** (future work)
   - Automatic retry for transient failures
   - Exponential backoff
   - Dead letter queue
-  
+
 - **Token rotation or revocation on delivery failure** (future)
   - Current: token remains valid even if email fails
   - Future: may want to regenerate token on resend
-  
+
 - **Notification delivery audit trail** (future)
   - Full history of delivery attempts
   - Failure reasons and diagnostics
-  
+
 - **Multi-channel delivery** (future)
   - SMS, in-app notification, etc.
   - Current scope is email only
@@ -269,22 +269,22 @@ This change modifies database schema (removes `deliveryStatus` column) and event
 
 ### Acceptance Criteria
 
-**Given** a platform admin invites a waitlist entry  
-**When** the invitation is created  
-**Then** the invitation entity has no `deliveryStatus` field  
-**And** an `InvitationIssued` event is published without the raw token  
-**And** the event is published after the transaction commits  
-**And** a notification is created with `PENDING` status  
-**And** the email is dispatched  
-**And** the notification status is updated to `SENT` or `FAILED`  
-**And** the invitation status remains `ACTIVE` regardless of delivery outcome  
+**Given** a platform admin invites a waitlist entry
+**When** the invitation is created
+**Then** the invitation entity has no `deliveryStatus` field
+**And** an `InvitationIssued` event is published without the raw token
+**And** the event is published after the transaction commits
+**And** a notification is created with `PENDING` status
+**And** the email is dispatched
+**And** the notification status is updated to `SENT` or `FAILED`
+**And** the invitation status remains `ACTIVE` regardless of delivery outcome
 
-**Given** a notification delivery fails  
-**When** the failure is recorded  
-**Then** the invitation is not updated  
-**And** the invitation remains usable (token still valid)  
+**Given** a notification delivery fails
+**When** the failure is recorded
+**Then** the invitation is not updated
+**And** the invitation remains usable (token still valid)
 
-**Given** an admin retrieves an invitation  
-**When** the API response is returned  
-**Then** no `deliveryStatus` field is present  
-**And** only invitation lifecycle status is visible (ACTIVE/ACCEPTED/EXPIRED/REVOKED)  
+**Given** an admin retrieves an invitation
+**When** the API response is returned
+**Then** no `deliveryStatus` field is present
+**And** only invitation lifecycle status is visible (ACTIVE/ACCEPTED/EXPIRED/REVOKED)
