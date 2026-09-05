@@ -1,9 +1,5 @@
 package com.profiletailors.smp.mcp.application
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.profiletailors.common.domain.Service
 import com.profiletailors.smp.mcp.domain.IdempotencyRecord
 import java.time.Instant
@@ -11,7 +7,7 @@ import java.time.Instant
 @Service
 class IdempotencyGuard(
     private val repository: IdempotencyRecordRepository,
-    private val objectMapper: ObjectMapper = IdempotencyGuard.defaultObjectMapper(),
+    private val serializer: McpJsonSerializer,
 ) {
 
     suspend fun <T> guard(
@@ -29,7 +25,7 @@ class IdempotencyGuard(
         val keyHash = IdempotencyKeyHasher.hash(idempotencyKey)
         val cached = repository.find(workspaceId, principalId, toolName, keyHash)
         if (cached != null) {
-            return objectMapper.readValue(cached, type)
+            return serializer.fromJson(cached, type)
         }
 
         val result = execute()
@@ -39,16 +35,10 @@ class IdempotencyGuard(
                 principalId = principalId,
                 toolName = toolName,
                 keyHash = keyHash,
-                responseJson = objectMapper.writeValueAsString(result),
+                responseJson = serializer.toJson(result),
                 createdAt = Instant.now(),
             ),
         )
         return result
-    }
-
-    companion object {
-        fun defaultObjectMapper(): ObjectMapper = jacksonObjectMapper()
-            .registerModule(JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
     }
 }

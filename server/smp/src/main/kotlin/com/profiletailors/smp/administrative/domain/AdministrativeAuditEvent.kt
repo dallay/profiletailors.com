@@ -1,5 +1,6 @@
 package com.profiletailors.smp.administrative.domain
 
+import com.profiletailors.common.domain.AggregateRoot
 import java.time.Instant
 import java.util.UUID
 
@@ -19,6 +20,7 @@ fun redact(metadata: Map<String, String>?): Map<String, String> = metadata?.filt
     SENSITIVE_SUBSTRINGS.none { substring -> key.lowercase().contains(substring) }
 } ?: emptyMap()
 
+@AggregateRoot
 data class AdministrativeAuditEvent(
     val id: UUID,
     val actorId: UUID,

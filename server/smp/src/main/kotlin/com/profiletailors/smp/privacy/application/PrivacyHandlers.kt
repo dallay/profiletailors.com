@@ -30,6 +30,7 @@ internal class SubmitAccessRequestHandler(
     private val dataAggregationService: DataAggregationService,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
+    private val serializer: PrivacyDataSerializer = PrivacyDataSerializer { data -> data.toString() },
 ) : CommandWithResultHandler<SubmitAccessRequestCommand, DataSubjectRequestResponse> {
 
     override suspend fun handle(command: SubmitAccessRequestCommand): DataSubjectRequestResponse {
@@ -57,7 +58,7 @@ internal class SubmitAccessRequestHandler(
             email = command.requestedByEmail,
         )
 
-        val resultJson = mapToJson(aggregatedData)
+        val resultJson = serializer.toJson(aggregatedData)
         val completedRequest = request.transitionTo(
             target = DataSubjectRequestStatus.COMPLETED,
             completedAt = now,
@@ -91,6 +92,7 @@ internal class SubmitExportRequestHandler(
     private val storage: Storage,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
+    private val serializer: PrivacyDataSerializer = PrivacyDataSerializer { data -> data.toString() },
 ) : CommandWithResultHandler<SubmitExportRequestCommand, DataSubjectRequestResponse> {
 
     override suspend fun handle(command: SubmitExportRequestCommand): DataSubjectRequestResponse {
@@ -118,7 +120,7 @@ internal class SubmitExportRequestHandler(
             email = command.requestedByEmail,
         )
 
-        val jsonContent = mapToJson(aggregatedData)
+        val jsonContent = serializer.toJson(aggregatedData)
         val exportKey = "dsar-exports/${request.id.value}.json"
         val downloadUrl = storage.uploadJson(exportKey, jsonContent)
 
@@ -154,6 +156,7 @@ internal class SubmitCorrectionRequestHandler(
     private val anonymizationService: AnonymizationService,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
+    private val serializer: PrivacyDataSerializer = PrivacyDataSerializer { data -> data.toString() },
 ) : CommandWithResultHandler<SubmitCorrectionRequestCommand, DataSubjectRequestResponse> {
 
     override suspend fun handle(command: SubmitCorrectionRequestCommand): DataSubjectRequestResponse {
@@ -174,7 +177,7 @@ internal class SubmitCorrectionRequestHandler(
         }
 
         val now = clock.instant()
-        val correctionData = mapToJson(
+        val correctionData = serializer.toJson(
             mapOf(
                 "field" to command.field.name.lowercase(),
                 "newValue" to command.newValue,
