@@ -1,6 +1,6 @@
 # Observability Contracts & SLA Matrix
 
-**Last Updated:** 2026-08-31
+**Last Updated:** 2026-09-05
 **Status:** Active
 **Scope:** System-wide Service Level Agreements (SLAs), Service Level Objectives (SLOs), Service Level Indicators (SLIs), and Observability Standards
 **Audience:** Platform Engineers, Backend Engineers, Operations, SRE
