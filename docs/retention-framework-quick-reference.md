@@ -30,7 +30,7 @@
 
 ## NOT Available (Planned)
 
- - `POST /api/governance/retention/rules` — planned rule registration (not implemented; no `retention_periods` table)
+- `POST /api/governance/retention/rules` — planned rule registration (not implemented; no `retention_periods` table)
 - `/api/governance/retention/purges` — purge job scheduling/status/resume
 - `/api/governance/retention/holds` — legal/operational holds
 - `/api/governance/retention/status` — framework health endpoint

@@ -204,10 +204,10 @@ graph TD
 ```
 
 ### Security Properties
+
 - **XSS Protection**: Access tokens reside exclusively in memory. Refresh tokens are isolated inside `HttpOnly` cookies and cannot be accessed via JavaScript `document.cookie`.
 - **CSRF Protection**: Refresh cookies carry `SameSite=Lax`/`Strict` policy and are restricted solely to `/api/auth/refresh`.
 - **Stateless Verification**: API requests evaluate JWT access tokens statelessly without DB roundtrips on protected endpoints.
 - **Session Rotation**: Every refresh invocation revokes the prior refresh token and issues a new one, mitigating token replay attacks.
-
 
 Last updated: 2026-09-04

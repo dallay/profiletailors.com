@@ -127,6 +127,10 @@ jobs:
           path: .lycheecache
           key: ${{ steps.restore-lychee-cache.outputs.cache-primary-key }}
 
+      - name: Markdown lint (markdownlint-cli2)
+        shell: bash
+        run: pnpm exec markdownlint-cli2
+
   # ──────────────────────────────────────────────────────────────
   # 2. Frontend unit tests (marketing + app)
   # ──────────────────────────────────────────────────────────────

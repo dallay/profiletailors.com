@@ -123,4 +123,4 @@ ownership of your contributions.
 ## Questions?
 
 Open a [GitHub Issue](https://github.com/dallay/profiletailors.com/issues)
-or email us at **dev@profiletailors.com**.
+or email us at **<dev@profiletailors.com>**.

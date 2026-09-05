@@ -89,4 +89,4 @@ need to sign once.
 ## 8. Questions
 
 If you have questions about this CLA, open a discussion on GitHub or
-contact us at **legal@profiletailors.com**.
+contact us at **<legal@profiletailors.com>**.

@@ -21,9 +21,9 @@ automation workflows.
 - No dependency or configuration changes were required to establish the documented local lint
   contract.
 - Existing workflows checked for non-disruption during this change:
-    - `.github/workflows/cla.yml`
-    - `.github/workflows/detekt.yml`
-    - `.github/workflows/release-please.yml`
+  - `.github/workflows/cla.yml`
+  - `.github/workflows/detekt.yml`
+  - `.github/workflows/release-please.yml`
 - Workflow contract verification was executed with a local Ruby YAML validation script.
 - Verified contract points: deep workflow triggers, non-cancelling scheduled concurrency, required
   deep jobs, SARIF-capable permission wiring, Sonar skip contract, PR path-classifier buckets, and
@@ -62,10 +62,10 @@ security problem that should block merge right now?**
 
 - `pull_request` on `main`
 - Event types:
-    - `opened`
-    - `synchronize`
-    - `reopened`
-    - `ready_for_review`
+  - `opened`
+  - `synchronize`
+  - `reopened`
+  - `ready_for_review`
 
 #### Concurrency contract
 

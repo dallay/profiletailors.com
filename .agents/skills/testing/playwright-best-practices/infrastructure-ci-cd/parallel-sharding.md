@@ -314,6 +314,7 @@ jobs:
 ### Tests pass solo but fail together
 
 - **Shared state**. Make test data unique:
+
   ```ts
   test("create item", async ({ request }, ti) => {
     await request.post("/api/items", {
@@ -325,6 +326,7 @@ jobs:
 ### "No tests found" in some shards
 
 - **Too many shards**. Never exceed file count:
+
   ```bash
   npx playwright test --shard=1/10   # ok if 10 files
   npx playwright test --shard=1/20   # too many, some shards empty
@@ -333,6 +335,7 @@ jobs:
 ### Merged report missing results
 
 - **Blob reports collide**. Use unique names:
+
   ```yaml
   # Each shard
   - uses: actions/upload-artifact@v4
@@ -350,6 +353,7 @@ jobs:
 ### Worker-scoped fixture not working
 
 - **Missing `{ scope: 'worker' }`**. Fix:
+
   ```ts
   export const test = base.extend({
     resource: [
@@ -366,6 +370,7 @@ jobs:
 ### More workers = Slower
 
 - **Too many workers thrash**. Limit in CI:
+
   ```ts
   export default defineConfig({
     workers: process.env.CI ? 2 : undefined,

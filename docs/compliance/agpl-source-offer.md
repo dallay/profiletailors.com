@@ -134,7 +134,7 @@ be included in or linked from the licence report.
 
 ## References
 
-- AGPL-3.0 text: https://www.gnu.org/licenses/agpl-3.0.html (Section 13)
+- AGPL-3.0 text: <https://www.gnu.org/licenses/agpl-3.0.html> (Section 13)
 - [ADR-0012: AGPL-3.0 Commercial Strategy](../architecture/adr/0012-agpl-commercial-strategy.md)
 - [Contributor and Copyright Map](contributor-copyright-map.md)
 - [Legal Document Register](legal-document-register.md)

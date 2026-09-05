@@ -26,6 +26,7 @@ This document defines the official Service Level Agreements (SLAs) and Service L
 | **Public Ingress / Marketing** | `/`, `/api/waitlist/*` | **99.9%** | `< 100ms` | `< 250ms` | `200 req/min per IP` | `http_server_requests_seconds_bucket{uri=~"/api/waitlist/.*"}` |
 
 ### Publishing Background Worker Delivery SLA
+
 - **Execution Timeliness:** Scheduled posts MUST be claimed and initiated for provider delivery within `60 seconds` of their `scheduled_at` timestamp.
 - **Lease Fencing Recovery:** Expired worker claims MUST be released and made available for retry within `5 minutes` (`SMP_PUBLISHING_WORKER_STALE_GRACE`).
 
@@ -34,6 +35,7 @@ This document defines the official Service Level Agreements (SLAs) and Service L
 ## 🔍 Observability Standards & Telemetry Contracts
 
 ### 1. Prometheus Metrics Naming & Conventions
+
 All Spring Boot backend metrics are exported via Prometheus Actuator at `:9091/actuator/prometheus` (or internal monitoring scrapers).
 
 - **HTTP Requests:** `http_server_requests_seconds_bucket{exception, method, outcome, status, uri}`
@@ -45,13 +47,16 @@ All Spring Boot backend metrics are exported via Prometheus Actuator at `:9091/a
   - `media_cas_deduplication_bytes_saved_total`
 
 ### 2. Distributed Tracing & Correlation Identifiers
+
 All requests across API endpoints and background workers MUST propagate correlation identifiers via W3C Trace Context headers (`traceparent`, `tracestate`) or domain headers (`X-Correlation-ID`).
 
 - **Pivot Identifiers:** `workspaceId`, `jobId`, `principalId`, `waitlistEntryId`, `invitationId`.
 - **Worker Execution:** Background workers inherit or generate a unique `jobId` and `workerId` (`worker-<UUID>`) that is attached to all log MDC contexts and outbound HTTP requests.
 
 ### 3. Log Redaction & Privacy Safeguards
+
 In accordance with platform security and GDPR policies:
+
 - **STRICTLY FORBIDDEN IN LOGS/METRICS:** Plaintext passwords, authentication tokens (JWT, OAuth refresh/access tokens), encryption keys, user emails, raw IP addresses, or password reset URLs.
 - **Allowed Log Attributes:** Fixed category codes, operation names, bounded status strings, duration in milliseconds, and prefixed entity IDs (`ws-UUID`, `user-UUID`, `pub-UUID`).
 

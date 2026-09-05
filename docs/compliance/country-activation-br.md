@@ -52,6 +52,7 @@
 ## 4. Data and Privacy Approval
 
 ### 4.1 Territorial Scope and Legal Bases
+
 - **Applicability:** Applies under LGPD Article 3 because:
   1. Profile Tailors offers services directly to individuals located in Brazil (via Portuguese language pages and social scheduling targeting).
   2. Personal data is collected from data subjects located in Brazil.

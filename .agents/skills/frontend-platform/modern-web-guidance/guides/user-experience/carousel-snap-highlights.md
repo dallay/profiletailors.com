@@ -54,7 +54,7 @@ Because container queries style **descendants**, you must apply the highlight st
 *inside* the snap target. Because the scroll container is set to overflow on the x axis, use the
 `scroll-state(snapped: x)` query.
 
-**MANDATORY**: Wrap the styles in ` @media (prefers-reduced-motion: no-preference)` to only show the
+**MANDATORY**: Wrap the styles in `@media (prefers-reduced-motion: no-preference)` to only show the
 effect to users who have not requested reduced motion. Depending on your use case, you may retain
 portions of the effect, but in this case, the cards flash from white to blue in a way that may cause
 problems for some users, so we disable it completely.
@@ -123,7 +123,7 @@ Unsupported in: Firefox and Safari.
 For browsers that do not support scroll-state queries, you should provide a functional base
 experience where all items are legible, even without the "active" highlight.
 
-#### Feature detection
+### Feature detection
 
 You can use `@supports` to provide enhancements only to supported browsers:
 

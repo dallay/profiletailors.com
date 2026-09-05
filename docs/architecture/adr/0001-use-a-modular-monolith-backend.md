@@ -7,7 +7,7 @@
 - Supersedes: None
 - Superseded by: None
 - Related:
-    - C4: [Container Diagram](../c4/02-container.md), [Component Diagram](../c4/03-component.md)
+  - C4: [Container Diagram](../c4/02-container.md), [Component Diagram](../c4/03-component.md)
 
 ## Context
 

@@ -52,6 +52,11 @@ pre-commit:
     docs-links:
       run: '{ command -v lychee >/dev/null || { echo "lychee not installed, skipping docs link check"; exit 0; }; files=$(git diff --cached --name-only --diff-filter=ACM -- "*.md" "*.mdx" ":!openspec/**"); if [ -z "$files" ]; then exit 0; fi; printf "%s\n" "$files" | xargs lychee --offline --no-progress; }'
 
+    # Docs: markdownlint on staged Markdown only (--no-globs scopes the run to
+    # the given files while keeping the configured rules; ":" marks literals).
+    docs-lint:
+      run: '{ command -v pnpm >/dev/null || { echo "pnpm not installed, skipping docs lint"; exit 0; }; files=$(git diff --cached --name-only --diff-filter=ACM -- "*.md" "*.mdx" ":!openspec/**" ":!**/CHANGELOG.md"); if [ -z "$files" ]; then exit 0; fi; printf "%s\n" "$files" | sed "s/^/:/" | xargs pnpm exec markdownlint-cli2 --no-globs; }'
+
 
 # ---------- PRE-PUSH ----------
 pre-push:

@@ -430,18 +430,22 @@ npx playwright test --project=chromium --update-snapshots
 **Workflow for reviewing changes:**
 
 1. Run tests and view failures in HTML report:
+
    ```bash
    npx playwright test
    npx playwright show-report
    ```
+
    The report shows expected, actual, and diff images side-by-side.
 
 2. If changes are intentional, update:
+
    ```bash
    npx playwright test --update-snapshots
    ```
 
 3. Review updated snapshots before committing:
+
    ```bash
    git diff --name-only
    ```

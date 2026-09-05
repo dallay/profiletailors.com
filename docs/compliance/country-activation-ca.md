@@ -53,6 +53,7 @@
 ## 4. Data and Privacy Approval
 
 ### 4.1 Territorial Scope and Legal Bases
+
 - **Applicability:** Applies to processing of personal information in the course of commercial activities in Canada (PIPEDA), and to individuals residing in Quebec (Law 25), Alberta (PIPA), and British Columbia (PIPA).
 - **Controller/Processor roles:** Profile Tailors acts as Controller for account, workspace, and payment operations. Acts as Processor for user-generated content published to LinkedIn.
 - **Lawful basis:** Canadian laws are heavily consent-centric.

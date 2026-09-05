@@ -48,6 +48,7 @@ or similar configuration.
 **Solution**: Check these common issues:
 
 1. **Package scanning configuration**:
+
    ```properties
    # Ensure this is set correctly
    springdoc.packages-to-scan=com.example.controller
@@ -57,6 +58,7 @@ or similar configuration.
    ```
 
 2. **Path matching configuration**:
+
    ```properties
    # Ensure paths match your endpoints
    springdoc.paths-to-match=/api/**,public/**

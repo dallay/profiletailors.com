@@ -327,5 +327,3 @@ abstract class AggregateRoot {
 Keep dependency direction one-way:
 
 `domain <- application <- infrastructure`
-
-
