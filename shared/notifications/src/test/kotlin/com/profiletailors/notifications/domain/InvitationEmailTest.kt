@@ -16,7 +16,7 @@ internal class InvitationEmailTest {
     fun `idempotencyKey is stable per invitation and distinct across invitations`() {
         val a = invitation(invitationId = invitationId("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
         val b = invitation(invitationId = invitationId("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"))
-        assertEquals("invitation:${a.invitationId}:initial", a.idempotencyKey().value)
+        assertEquals("platform.invitation:${a.invitationId}", a.idempotencyKey().value)
         assertNotEquals(a.idempotencyKey().value, b.idempotencyKey().value)
     }
 

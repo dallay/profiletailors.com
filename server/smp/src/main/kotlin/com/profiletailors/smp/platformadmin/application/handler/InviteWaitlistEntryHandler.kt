@@ -3,10 +3,10 @@ package com.profiletailors.smp.platformadmin.application.handler
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
+import com.profiletailors.notifications.domain.event.InvitationCreated
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
+import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
-import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
-import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
@@ -15,14 +15,8 @@ import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSum
 import com.profiletailors.smp.platformadmin.domain.AdminAuditAction
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
 import com.profiletailors.smp.platformadmin.domain.AdminAuditResult
-import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
-import com.profiletailors.smp.platformadmin.domain.InvitationId
-import com.profiletailors.smp.platformadmin.domain.InvitationIssued
-import com.profiletailors.smp.platformadmin.domain.InvitationSource
-import com.profiletailors.smp.platformadmin.domain.InvitationStatus
-import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.domain.InvitationTokenGenerator
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
@@ -40,12 +34,12 @@ import java.util.UUID
 open class InviteWaitlistEntryHandler(
     private val waitlistEntryAdmin: WaitlistEntryAdmin,
     private val invitationRepository: WaitlistInvitationRepository,
-    private val newInvitationRepository: InvitationRepository,
     private val auditPublisher: AdministrativeAuditPublisher,
     private val eventPublisher: EventPublisher<DomainEvent>,
     private val clock: Clock,
     private val invitationTtl: Duration,
     private val tokenHasher: TokenHasher,
+    private val acceptUrlTemplate: AcceptUrlTemplate,
 ) {
 
     @Suppress("ThrowsCount", "LongMethod")
@@ -67,42 +61,12 @@ open class InviteWaitlistEntryHandler(
             WaitlistEntryStatus.CANCELLED ->
                 throw WaitlistEntryNotInvitableException(command.waitlistEntryId, "Entry is cancelled")
             WaitlistEntryStatus.INVITED -> {
-                val existingInvitation = newInvitationRepository.findBySourceReferenceId(entry.id.value)
+                val existing = invitationRepository.findActiveByWaitlistEntryId(command.waitlistEntryId)
                     ?: throw WaitlistEntryNotInvitableException(
                         command.waitlistEntryId,
                         "No active invitation to supersede",
                     )
-                val superseded = Invitation(
-                    id = existingInvitation.id,
-                    source = existingInvitation.source,
-                    sourceReferenceId = existingInvitation.sourceReferenceId,
-                    target = existingInvitation.target,
-                    workspaceId = existingInvitation.workspaceId,
-                    invitedEmailNormalized = existingInvitation.invitedEmailNormalized,
-                    tokenHash = existingInvitation.tokenHash,
-                    status = InvitationStatus.REVOKED,
-                    issuedBy = existingInvitation.issuedBy,
-                    createdAt = existingInvitation.createdAt,
-                    expiresAt = existingInvitation.expiresAt,
-                    acceptedAt = existingInvitation.acceptedAt,
-                    acceptedPrincipalId = existingInvitation.acceptedPrincipalId,
-                    version = existingInvitation.version,
-                )
-                newInvitationRepository.updateIfVersionMatches(superseded)
-                return AdminInvitationSummary(
-                    id = existingInvitation.id.value,
-                    waitlistEntryId = entry.id.value,
-                    status = InvitationStatus.REVOKED.name,
-                    issuedAt = existingInvitation.createdAt,
-                    expiresAt = existingInvitation.expiresAt,
-                    acceptedAt = null,
-                    revokedAt = clock.instant(),
-                    revokedBy = null,
-                    createdBy = UUID.fromString(existingInvitation.issuedBy),
-                    deliveryStatus = InvitationDeliveryStatus.PENDING.name,
-                    deliveryAttemptCount = 0,
-                    version = existingInvitation.version + 1,
-                )
+                invitationRepository.update(existing.supersede())
             }
             WaitlistEntryStatus.PENDING -> {
                 val existing = invitationRepository.findActiveByWaitlistEntryId(command.waitlistEntryId)
@@ -113,9 +77,6 @@ open class InviteWaitlistEntryHandler(
         val now = clock.instant()
         val rawToken = InvitationTokenGenerator.generate()
         val tokenHash: String = tokenHasher.hash(rawToken)
-        val candidateKey: String = (tokenHasher as? InvitationTokenCandidateKey)
-            ?.candidateKey(rawToken)
-            ?: throw IllegalStateException("TokenHasher must implement InvitationTokenCandidateKey")
 
         val invitation = invitationRepository.save(
             WaitlistInvitation(
@@ -129,21 +90,6 @@ open class InviteWaitlistEntryHandler(
                 deliveryStatus = InvitationDeliveryStatus.PENDING,
             ),
         )
-
-        val newInvitation = Invitation(
-            id = InvitationId.generate(),
-            source = InvitationSource.WAITLIST,
-            sourceReferenceId = entry.id.value,
-            target = InvitationTarget.NEW_WORKSPACE,
-            workspaceId = null,
-            invitedEmailNormalized = context.recipientEmail.lowercase(),
-            tokenHash = tokenHash,
-            status = InvitationStatus.ACTIVE,
-            issuedBy = command.operatorPrincipalId.toString(),
-            createdAt = now,
-            expiresAt = now + invitationTtl,
-        )
-        newInvitationRepository.save(newInvitation, candidateKey)
 
         if (entry.status == WaitlistEntryStatus.PENDING) {
             entry.invite(now)
@@ -164,10 +110,13 @@ open class InviteWaitlistEntryHandler(
         )
 
         eventPublisher.publish(
-            InvitationIssued(
-                invitationId = newInvitation.id.value,
-                recipientEmail = context.recipientEmail,
+            InvitationCreated(
+                invitationId = invitation.id.value,
+                waitlistEntryId = command.waitlistEntryId,
+                operatorPrincipalId = command.operatorPrincipalId,
+                recipient = context.recipientEmail,
                 workspaceName = context.workspaceName,
+                acceptUrl = acceptUrlTemplate.build(rawToken),
                 locale = context.locale,
                 rawToken = rawToken,
             ),

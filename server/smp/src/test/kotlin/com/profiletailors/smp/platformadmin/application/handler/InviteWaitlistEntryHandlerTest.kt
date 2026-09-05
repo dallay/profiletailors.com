@@ -12,23 +12,17 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
+import com.profiletailors.notifications.domain.event.InvitationCreated
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
+import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
-import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
-import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.domain.AdminAuditEvent
-import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationDeliveryStatus
-import com.profiletailors.smp.platformadmin.domain.InvitationId
-import com.profiletailors.smp.platformadmin.domain.InvitationIssued
-import com.profiletailors.smp.platformadmin.domain.InvitationSource
-import com.profiletailors.smp.platformadmin.domain.InvitationStatus
-import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
@@ -61,25 +55,27 @@ class InviteWaitlistEntryHandlerTest {
 
     private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
     private val invitationRepository = mockk<WaitlistInvitationRepository>()
-    private val newInvitationRepository = mockk<InvitationRepository>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
     private val eventPublisher = mockk<EventPublisher<DomainEvent>>()
 
-    private val tokenHasher = object : TokenHasher, InvitationTokenCandidateKey {
+    private val tokenHasher = object : TokenHasher {
         override fun hash(rawToken: String): String = "hashed-$rawToken"
         override fun matches(rawToken: String, storedHash: String): Boolean = false
-        override fun candidateKey(rawToken: String): String = "candidate-$rawToken"
+    }
+
+    private val acceptUrlTemplate = AcceptUrlTemplate { rawToken ->
+        "https://app.profiletailors.com/invitations/accept?token=$rawToken"
     }
 
     private val handler = InviteWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
-        newInvitationRepository = newInvitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
         clock = clock,
         invitationTtl = ttl,
         tokenHasher = tokenHasher,
+        acceptUrlTemplate = acceptUrlTemplate,
     )
 
     private val ownerRoles = setOf(PlatformRole.PLATFORM_OWNER)
@@ -127,14 +123,13 @@ class InviteWaitlistEntryHandlerTest {
     }
 
     @Test
-    fun `creates invitation, transitions entry from PENDING to INVITED, and publishes InvitationIssued`() = runTest {
+    fun `creates invitation, transitions entry from PENDING to INVITED, and publishes InvitationCreated`() = runTest {
         val pendingEntry = entry(WaitlistEntryStatus.PENDING)
         coEvery { waitlistEntryAdmin.findById(entryId) } returns pendingEntry
         coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
         val savedEntrySlot = slot<WaitlistEntry>()
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
-        coEvery { newInvitationRepository.save(any(), any()) } answers { firstArg() }
         coEvery { waitlistEntryAdmin.save(capture(savedEntrySlot)) } answers { savedEntrySlot.captured }
         val eventSlot = slot<DomainEvent>()
         coEvery { eventPublisher.publish(capture(eventSlot)) } returns Unit
@@ -149,10 +144,11 @@ class InviteWaitlistEntryHandlerTest {
 
         assertThat(savedEntrySlot.captured.status).isEqualTo(WaitlistEntryStatus.INVITED)
         coVerify { auditPublisher.publish(any<AdminAuditEvent>()) }
-        assertThat(eventSlot.captured).isInstanceOf(InvitationIssued::class.java)
-        val published = eventSlot.captured as InvitationIssued
-        assertThat(published.recipientEmail).isEqualTo("candidate@example.com")
+        assertThat(eventSlot.captured).isInstanceOf(InvitationCreated::class.java)
+        val published = eventSlot.captured as InvitationCreated
+        assertThat(published.recipient).isEqualTo("candidate@example.com")
         assertThat(published.workspaceName).isEqualTo("Profile Tailors Beta")
+        assertThat(published.acceptUrl).startsWith("https://app.profiletailors.com/invitations/accept?token=")
         assertThat(published.locale).isEqualTo("en")
         assertThat(published.rawToken).isNotBlank()
     }
@@ -160,17 +156,20 @@ class InviteWaitlistEntryHandlerTest {
     @Test
     fun `supersedes existing active invitation when entry is already INVITED`() = runTest {
         val invitedEntry = entry(WaitlistEntryStatus.INVITED)
-        val existing = existingInvitation()
+        val existing = activeInvitation()
         coEvery { waitlistEntryAdmin.findById(entryId) } returns invitedEntry
         coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
-        coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns activeInvitation()
-        coEvery { newInvitationRepository.findBySourceReferenceId(entryId) } returns existing
-        val revokedSlot = slot<Invitation>()
-        coEvery { newInvitationRepository.updateIfVersionMatches(capture(revokedSlot)) } answers { true }
+        coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns existing
+        val supersededSlot = slot<WaitlistInvitation>()
+        coEvery { invitationRepository.update(capture(supersededSlot)) } answers { supersededSlot.captured }
+        val activeSlot = slot<WaitlistInvitation>()
+        coEvery { invitationRepository.save(capture(activeSlot)) } answers { activeSlot.captured }
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
         handler.handle(command())
 
-        assertThat(revokedSlot.captured.status).isEqualTo(InvitationStatus.REVOKED)
+        assertThat(supersededSlot.captured.status).isEqualTo(WaitlistInvitationStatus.SUPERSEDED)
+        assertThat(activeSlot.captured.status).isEqualTo(WaitlistInvitationStatus.ACTIVE)
     }
 
     @Test
@@ -179,7 +178,6 @@ class InviteWaitlistEntryHandlerTest {
         coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
         coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
         coEvery { invitationRepository.save(any()) } answers { firstArg() }
-        coEvery { newInvitationRepository.save(any(), any()) } answers { firstArg() }
         coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
         coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
 
@@ -222,21 +220,6 @@ class InviteWaitlistEntryHandlerTest {
             null
         },
         convertedAt = if (status == WaitlistEntryStatus.CONVERTED) clock.instant().minusSeconds(900) else null,
-    )
-
-    private fun existingInvitation(status: InvitationStatus = InvitationStatus.ACTIVE) = Invitation(
-        id = InvitationId(UUID.randomUUID()),
-        source = InvitationSource.WAITLIST,
-        sourceReferenceId = entryId,
-        target = InvitationTarget.NEW_WORKSPACE,
-        workspaceId = null,
-        invitedEmailNormalized = "candidate@example.com",
-        tokenHash = "existing-hash",
-        status = status,
-        issuedBy = operatorId.toString(),
-        createdAt = clock.instant().minusSeconds(3600),
-        expiresAt = clock.instant().plusSeconds(604_800),
-        version = 0,
     )
 
     private fun activeInvitation() = WaitlistInvitation(

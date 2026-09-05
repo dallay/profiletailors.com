@@ -1,24 +1,26 @@
 package com.profiletailors.smp.notifications.infrastructure.email
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventConsumer
+import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.bus.event.Subscribe
 import com.profiletailors.notifications.application.ports.EmailDispatchResult
 import com.profiletailors.notifications.application.ports.EmailDispatcher
 import com.profiletailors.notifications.domain.IdempotencyKey
 import com.profiletailors.notifications.domain.Notification
 import com.profiletailors.notifications.domain.NotificationRepository
 import com.profiletailors.notifications.domain.NotificationStatus
+import com.profiletailors.notifications.domain.event.InvitationCreated
+import com.profiletailors.notifications.domain.event.InvitationDeliveryAttempted
 import com.profiletailors.notifications.domain.event.InvitationResent
-import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
-import com.profiletailors.smp.platformadmin.domain.InvitationIssued
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.springframework.transaction.event.TransactionPhase
-import org.springframework.transaction.event.TransactionalEventListener
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -29,202 +31,195 @@ internal class SendInvitationEmailConsumerTest {
     private val fixedNow = Instant.parse("2026-08-24T10:15:30Z")
     private val clock = Clock.fixed(fixedNow, ZoneOffset.UTC)
     private val inviteeEmail = "invitee@example.com"
-    private val workspaceName = "Test Workspace"
-    private val acceptUrl = "https://app.profiletailors.com/register?invitation=SECRET-TOKEN"
-    private val invitationId = UUID.randomUUID()
-    private val previousInvitationId = UUID.randomUUID()
-    private val operatorPrincipalId = UUID.randomUUID()
-    private val rawToken = "SECRET-TOKEN"
-
-    private val acceptUrlTemplate = mockk<AcceptUrlTemplate> {
-        every { build(rawToken) } returns acceptUrl
-    }
-
-    private val emailDispatcher = mockk<EmailDispatcher>()
-    private val notificationRepository = mockk<NotificationRepository>()
-    private val consumer = SendInvitationEmailConsumer(
-        emailDispatcher = emailDispatcher,
-        notificationRepository = notificationRepository,
-        acceptUrlTemplate = acceptUrlTemplate,
-        clock = clock,
-    )
 
     @Test
-    fun `invitation listeners run after transaction commit`() {
-        val issuedMethod = SendInvitationEmailConsumer::class.java.methods.single {
-            it.name == "onInvitationIssued"
-        }
-        val resentMethod = SendInvitationEmailConsumer::class.java.methods.single {
-            it.name == "onInvitationResent"
-        }
+    fun `both invitation event types are registered as event consumers`() {
+        val createdConsumer = SendInvitationEmailConsumer::class.java
+        val resentConsumer = SendInvitationResentEmailConsumer::class.java
 
-        issuedMethod.getAnnotation(TransactionalEventListener::class.java).phase shouldBe TransactionPhase.AFTER_COMMIT
-        resentMethod.getAnnotation(TransactionalEventListener::class.java).phase shouldBe TransactionPhase.AFTER_COMMIT
+        EventConsumer::class.java.isAssignableFrom(createdConsumer) shouldBe true
+        createdConsumer.getAnnotation(Subscribe::class.java).filterBy shouldBe InvitationCreated::class
+        EventConsumer::class.java.isAssignableFrom(resentConsumer) shouldBe true
+        resentConsumer.getAnnotation(Subscribe::class.java).filterBy shouldBe InvitationResent::class
     }
 
     @Test
-    fun `dispatches invitation email and marks notification sent on success`() = runTest {
-        val saved = slot<Notification>()
-        val updated = slot<Notification>()
-        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
-        coEvery { notificationRepository.save(capture(saved)) } answers { saved.captured }
-        coEvery { notificationRepository.update(capture(updated)) } answers { updated.captured }
-        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } returns EmailDispatchResult.Success
+    fun `success dispatch persists as SENT and publishes delivery event with SENT`() = runTest {
+        val invitationId = UUID.randomUUID()
 
-        consumer.onInvitationIssued(
-            InvitationIssued(
-                invitationId = invitationId,
-                recipientEmail = inviteeEmail,
-                workspaceName = workspaceName,
-                locale = "en",
-                rawToken = rawToken,
-            ),
+        val notificationRepo = mockk<NotificationRepository>(relaxed = true)
+        val emailDispatcher = mockk<EmailDispatcher>()
+        val eventPublisher = mockk<EventPublisher<DomainEvent>>()
+
+        coEvery { notificationRepo.findByIdempotencyKey(any()) } returns null
+        val persistedSlot = slot<Notification>()
+        coEvery { notificationRepo.save(capture(persistedSlot)) } answers { persistedSlot.captured }
+        val updatedSlot = slot<Notification>()
+        coEvery { notificationRepo.update(capture(updatedSlot)) } answers { updatedSlot.captured }
+        coEvery { emailDispatcher.dispatch(eq(inviteeEmail), any()) } returns EmailDispatchResult.Success
+        val publishedSlot = slot<DomainEvent>()
+        coEvery { eventPublisher.publish(capture(publishedSlot)) } returns Unit
+
+        val consumer = SendInvitationEmailConsumer(
+            emailDispatcher = emailDispatcher,
+            notificationRepository = notificationRepo,
+            deliveryEventPublisher = eventPublisher,
+            clock = clock,
         )
 
-        saved.captured.status shouldBe NotificationStatus.PENDING
-        updated.captured.status shouldBe NotificationStatus.SENT
-        saved.captured.payload.variables.containsKey("rawToken") shouldBe false
-        saved.captured.payload.variables.containsValue(rawToken) shouldBe false
-        coVerify(exactly = 1) { emailDispatcher.dispatch(inviteeEmail, any()) }
-    }
-
-    @Test
-    fun `marks notification failed when dispatcher fails`() = runTest {
-        val saved = slot<Notification>()
-        val updated = slot<Notification>()
-        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
-        coEvery { notificationRepository.save(capture(saved)) } answers { saved.captured }
-        coEvery { notificationRepository.update(capture(updated)) } answers { updated.captured }
-        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } returns EmailDispatchResult.Failure("SMTP error")
-
-        consumer.onInvitationIssued(
-            InvitationIssued(
+        consumer.consume(
+            InvitationCreated(
                 invitationId = invitationId,
-                recipientEmail = inviteeEmail,
-                workspaceName = workspaceName,
-                locale = "en",
-                rawToken = rawToken,
-            ),
-        )
-
-        saved.captured.status shouldBe NotificationStatus.PENDING
-        updated.captured.status shouldBe NotificationStatus.FAILED
-        updated.captured.errorMessage shouldBe "SMTP error"
-    }
-
-    @Test
-    fun `uses the initial invitation idempotency key`() = runTest {
-        val existing = mockk<Notification>()
-        val initialKey = IdempotencyKey("invitation:$invitationId:initial")
-        coEvery { notificationRepository.findByIdempotencyKey(initialKey) } returns existing
-
-        consumer.onInvitationIssued(
-            InvitationIssued(
-                invitationId = invitationId,
-                recipientEmail = inviteeEmail,
-                workspaceName = workspaceName,
-                locale = "en",
-                rawToken = rawToken,
-            ),
-        )
-
-        coVerify(exactly = 1) {
-            notificationRepository.findByIdempotencyKey(initialKey)
-        }
-        coVerify(exactly = 0) { emailDispatcher.dispatch(any(), any()) }
-    }
-
-    @Test
-    fun `uses the accept URL template to build the delivery URL`() = runTest {
-        val saved = slot<Notification>()
-        val updated = slot<Notification>()
-        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
-        coEvery { notificationRepository.save(capture(saved)) } answers { saved.captured }
-        coEvery { notificationRepository.update(capture(updated)) } answers { updated.captured }
-        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } returns EmailDispatchResult.Success
-
-        consumer.onInvitationIssued(
-            InvitationIssued(
-                invitationId = invitationId,
-                recipientEmail = inviteeEmail,
-                workspaceName = workspaceName,
-                locale = "en",
-                rawToken = rawToken,
-            ),
-        )
-
-        io.mockk.verify(exactly = 1) { acceptUrlTemplate.build(rawToken) }
-        saved.captured.payload.variables["acceptUrl"] shouldBe acceptUrl
-    }
-
-    @Test
-    fun `skips dispatch when idempotency key already exists`() = runTest {
-        val existing = mockk<Notification>()
-        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns existing
-
-        consumer.onInvitationIssued(
-            InvitationIssued(
-                invitationId = invitationId,
-                recipientEmail = inviteeEmail,
-                workspaceName = workspaceName,
-                locale = "en",
-                rawToken = rawToken,
-            ),
-        )
-
-        coVerify(exactly = 0) { emailDispatcher.dispatch(any(), any()) }
-        coVerify(exactly = 0) { notificationRepository.save(any()) }
-    }
-
-    @Test
-    fun `marks a failed notification without changing invitation state`() = runTest {
-        val saved = slot<Notification>()
-        val updated = slot<Notification>()
-        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
-        coEvery { notificationRepository.save(capture(saved)) } answers { saved.captured }
-        coEvery { notificationRepository.update(capture(updated)) } answers { updated.captured }
-        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } returns EmailDispatchResult.Failure("SMTP error")
-
-        consumer.onInvitationIssued(
-            InvitationIssued(
-                invitationId = invitationId,
-                recipientEmail = inviteeEmail,
-                workspaceName = workspaceName,
-                locale = "en",
-                rawToken = rawToken,
-            ),
-        )
-
-        saved.captured.idempotencyKey.value shouldBe "invitation:$invitationId:initial"
-        updated.captured.status shouldBe NotificationStatus.FAILED
-        updated.captured.errorMessage shouldBe "SMTP error"
-    }
-
-    @Test
-    fun `handles invitation resent event`() = runTest {
-        val saved = slot<Notification>()
-        val updated = slot<Notification>()
-        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
-        coEvery { notificationRepository.save(capture(saved)) } answers { saved.captured }
-        coEvery { notificationRepository.update(capture(updated)) } answers { updated.captured }
-        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } returns EmailDispatchResult.Success
-
-        consumer.onInvitationResent(
-            InvitationResent(
-                invitationId = invitationId,
-                waitlistEntryId = "waitlist-123",
-                operatorPrincipalId = operatorPrincipalId,
+                waitlistEntryId = UUID.randomUUID().toString(),
+                operatorPrincipalId = UUID.randomUUID(),
                 recipient = inviteeEmail,
-                workspaceName = workspaceName,
-                acceptUrl = acceptUrl,
-                rawToken = rawToken,
-                locale = "en",
-                previousInvitationId = previousInvitationId,
+                workspaceName = "Profile Tailors Beta",
+                acceptUrl = "https://app.example.com/invitations/accept?token=raw-token-abc",
+                locale = "es",
+                rawToken = "raw-token-abc",
             ),
         )
 
-        saved.captured.status shouldBe NotificationStatus.PENDING
-        updated.captured.status shouldBe NotificationStatus.SENT
-        coVerify(exactly = 1) { emailDispatcher.dispatch(inviteeEmail, any()) }
+        assertThat(updatedSlot.captured.status).isEqualTo(NotificationStatus.SENT)
+        assertThat(persistedSlot.captured.idempotencyKey).isEqualTo(
+            IdempotencyKey("platform.invitation:$invitationId"),
+        )
+        assertThat(publishedSlot.captured).isInstanceOf(InvitationDeliveryAttempted::class.java)
+        val published = publishedSlot.captured as InvitationDeliveryAttempted
+        assertThat(published.invitationId).isEqualTo(invitationId)
+        assertThat(published.status).isEqualTo("SENT")
+    }
+
+    @Test
+    fun `delivery failure persists FAILED and publishes InvitationDeliveryAttempted with FAILED`() = runTest {
+        val invitationId = UUID.randomUUID()
+
+        val notificationRepo = mockk<NotificationRepository>(relaxed = true)
+        val emailDispatcher = mockk<EmailDispatcher>()
+        val eventPublisher = mockk<EventPublisher<DomainEvent>>()
+
+        coEvery { notificationRepo.findByIdempotencyKey(any()) } returns null
+        val persistedSlot = slot<Notification>()
+        coEvery { notificationRepo.save(capture(persistedSlot)) } answers { persistedSlot.captured }
+        val updatedSlot = slot<Notification>()
+        coEvery { notificationRepo.update(capture(updatedSlot)) } answers { updatedSlot.captured }
+        coEvery { emailDispatcher.dispatch(eq(inviteeEmail), any()) } returns
+            EmailDispatchResult.Failure(error = "Resend API key rejected")
+        val publishedSlot = slot<DomainEvent>()
+        coEvery { eventPublisher.publish(capture(publishedSlot)) } returns Unit
+
+        val consumer = SendInvitationEmailConsumer(
+            emailDispatcher = emailDispatcher,
+            notificationRepository = notificationRepo,
+            deliveryEventPublisher = eventPublisher,
+            clock = clock,
+        )
+
+        consumer.consume(
+            InvitationCreated(
+                invitationId = invitationId,
+                waitlistEntryId = UUID.randomUUID().toString(),
+                operatorPrincipalId = UUID.randomUUID(),
+                recipient = inviteeEmail,
+                workspaceName = "Profile Tailors Beta",
+                acceptUrl = "https://app.example.com/invitations/accept?token=raw-token-abc",
+                locale = "en",
+                rawToken = "raw-token-abc",
+            ),
+        )
+
+        assertThat(updatedSlot.captured.status).isEqualTo(NotificationStatus.FAILED)
+        assertThat(updatedSlot.captured.errorMessage).contains("Resend API key rejected")
+        assertThat(publishedSlot.captured).isInstanceOf(InvitationDeliveryAttempted::class.java)
+        val published = publishedSlot.captured as InvitationDeliveryAttempted
+        assertThat(published.status).isEqualTo("FAILED")
+    }
+
+    @Test
+    fun `duplicate dispatch is a no-op for email but still publishes a SENT outcome for idempotent state`() = runTest {
+        val invitationId = UUID.randomUUID()
+        val existingNotification = mockk<Notification>(relaxed = true)
+        val notificationRepo = mockk<NotificationRepository>()
+        val emailDispatcher = mockk<EmailDispatcher>()
+        val eventPublisher = mockk<EventPublisher<DomainEvent>>()
+
+        coEvery {
+            notificationRepo.findByIdempotencyKey(IdempotencyKey("platform.invitation:$invitationId"))
+        } returns existingNotification
+        val publishedSlot = slot<DomainEvent>()
+        coEvery { eventPublisher.publish(capture(publishedSlot)) } returns Unit
+
+        val consumer = SendInvitationEmailConsumer(
+            emailDispatcher = emailDispatcher,
+            notificationRepository = notificationRepo,
+            deliveryEventPublisher = eventPublisher,
+            clock = clock,
+        )
+
+        consumer.consume(
+            InvitationCreated(
+                invitationId = invitationId,
+                waitlistEntryId = UUID.randomUUID().toString(),
+                operatorPrincipalId = UUID.randomUUID(),
+                recipient = inviteeEmail,
+                workspaceName = "Profile Tailors Beta",
+                acceptUrl = "https://app.example.com/invitations/accept?token=raw-token-abc",
+                locale = null,
+                rawToken = "raw-token-abc",
+            ),
+        )
+
+        coVerify(exactly = 0) { emailDispatcher.dispatch(any(), any()) }
+        coVerify(exactly = 0) { notificationRepo.save(any()) }
+        assertThat(publishedSlot.captured).isInstanceOf(InvitationDeliveryAttempted::class.java)
+        val published = publishedSlot.captured as InvitationDeliveryAttempted
+        assertThat(published.invitationId).isEqualTo(invitationId)
+        assertThat(published.status).isEqualTo("SENT")
+    }
+
+    @Test
+    fun `should dispatch an invitation email when InvitationResent is consumed`() = runTest {
+        val newInvitationId = UUID.randomUUID()
+
+        val notificationRepo = mockk<NotificationRepository>(relaxed = true)
+        val emailDispatcher = mockk<EmailDispatcher>()
+        val eventPublisher = mockk<EventPublisher<DomainEvent>>()
+
+        coEvery { notificationRepo.findByIdempotencyKey(any()) } returns null
+        val persistedSlot = slot<Notification>()
+        coEvery { notificationRepo.save(capture(persistedSlot)) } answers { persistedSlot.captured }
+        coEvery { notificationRepo.update(any()) } answers { firstArg() }
+        coEvery { emailDispatcher.dispatch(eq(inviteeEmail), any()) } returns EmailDispatchResult.Success
+        val publishedSlot = slot<DomainEvent>()
+        coEvery { eventPublisher.publish(capture(publishedSlot)) } returns Unit
+
+        val consumer = SendInvitationEmailConsumer(
+            emailDispatcher = emailDispatcher,
+            notificationRepository = notificationRepo,
+            deliveryEventPublisher = eventPublisher,
+            clock = clock,
+        )
+        val resentConsumer = SendInvitationResentEmailConsumer(consumer)
+
+        resentConsumer.consume(
+            InvitationResent(
+                invitationId = newInvitationId,
+                waitlistEntryId = UUID.randomUUID().toString(),
+                operatorPrincipalId = UUID.randomUUID(),
+                recipient = inviteeEmail,
+                workspaceName = "Profile Tailors Beta",
+                acceptUrl = "https://app.example.com/invitations/accept?token=raw-token-xyz",
+                locale = "es",
+                rawToken = "raw-token-xyz",
+                previousInvitationId = UUID.randomUUID(),
+            ),
+        )
+
+        assertThat(persistedSlot.captured.idempotencyKey).isEqualTo(
+            IdempotencyKey("platform.invitation:$newInvitationId"),
+        )
+        assertThat(publishedSlot.captured).isInstanceOf(InvitationDeliveryAttempted::class.java)
+        val published = publishedSlot.captured as InvitationDeliveryAttempted
+        assertThat(published.invitationId).isEqualTo(newInvitationId)
     }
 }

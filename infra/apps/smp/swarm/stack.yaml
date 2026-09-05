@@ -75,33 +75,17 @@ services:
       SMP_REFRESH_COOKIE_SECURE: "true"
       SMP_STORAGE_PROVIDER_TYPE: local
       SMP_STORAGE_LOCAL_BASE_PATH: /var/lib/profiletailors/media
-      # Publishing worker operator policy (DALLAY-555/557 — private beta launch readiness).
-      # Safe-off is enforced at the application layer: PublishingWorkerProperties.enabled
-      # defaults to false in application.yaml:129. The Swarm value below is the operator's
-      # intentional beta rollout setting. Setting this env var to "false" and redeploying is
-      # the documented safe-off procedure; "false" means NO new provider delivery while
-      # persisted jobs stay recoverable for later review or controlled re-enable. Flipping
-      # back to "true" re-enables polling. claim-lease defines the stale threshold consumed by
-      # releaseExpiredClaims. The operator MUST confirm safe-off via
-      # docs/infrastructure/private-beta-launch-readiness-runbook.md before each beta cohort.
       SMP_PUBLISHING_WORKER_ENABLED: "true"
-      # claim-lease (DALLAY-557): duration a claimed publication job may sit before
-      # releaseExpiredClaims resets it to PENDING. Tune above the slowest expected LinkedIn
-      # delivery; keep below the operator review window.
       SMP_PUBLISHING_WORKER_CLAIM_LEASE: ${SMP_PUBLISHING_WORKER_CLAIM_LEASE:-PT2M}
-      # max-retries (DALLAY-555): capped delivery attempts before a job moves to BLOCKED.
-      # Larger values increase retry budget but extend the stale-leak surface.
+      SMP_PUBLISHING_WORKER_STALE_GRACE: ${SMP_PUBLISHING_WORKER_STALE_GRACE:-PT5M}
       SMP_PUBLISHING_MAX_RETRIES: ${SMP_PUBLISHING_MAX_RETRIES:-3}
-      # retry-backoff (DALLAY-555): delay between retryable delivery attempts. Co-operates
-      # with max-retries; the BLOCKED recovery interval below handles blocked jobs.
       SMP_PUBLISHING_RETRY_BACKOFF: ${SMP_PUBLISHING_RETRY_BACKOFF:-PT5M}
-      # blocked-recovery-interval (DALLAY-555): cadence at which the worker promotes
-      # BLOCKED jobs back to PENDING once the configured recovery window has elapsed.
       SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL: ${SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL:-PT5M}
       SMP_LINKEDIN_CLIENT_ID: ${SMP_LINKEDIN_CLIENT_ID:-}
       SMP_LINKEDIN_REDIRECT_URI: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in swarm/.env}/integrations/linkedin/callback
       SMP_EMAIL_SENDER: ${SMP_EMAIL_SENDER:-noreply@profiletailors.com}
       SMP_MEDIAPROVIDER_UNSPLASH_ENABLED: ${SMP_MEDIAPROVIDER_UNSPLASH_ENABLED:-false}
+      SMP_REGISTRATION_MODE: ${SMP_REGISTRATION_MODE:-CLOSED}
     secrets:
       - source: db_password
         target: SMP_DB_PASSWORD

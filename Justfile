@@ -482,7 +482,7 @@ ci:
     @echo ""
     just _ci-step "[12/15] Backend: Detekt static analysis" "." {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
-    just _ci-step "[13/15] Backend: unit tests (fast)" "." node scripts/gradle-run.mjs :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
+    just _ci-step "[13/15] Backend: unit tests (fast)" "." node scripts/gradle-run.mjs :server:smp:test --no-daemon
     @echo ""
     just _ci-step "[14/15] Backend: BDD fast suite" "." node scripts/gradle-run.mjs :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
