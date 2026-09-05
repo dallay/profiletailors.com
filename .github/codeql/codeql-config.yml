@@ -1,6 +1,3 @@
-# Keep CodeQL focused on the backend and shared modules.
-# We intentionally rely on the workflow's default query suite for now instead of
-# narrowing queries further, so reviewers get the maintained GitHub baseline.
 name: profiletailors-backend-scope
 
 paths:
@@ -8,7 +5,8 @@ paths:
   - shared
 
 paths-ignore:
-  - apps/web/marketing
+  - apps/web
+  - shared/web
   - docs
   - openspec
   - tmp
