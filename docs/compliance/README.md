@@ -11,14 +11,13 @@ that are **not applicable** to the current operational model of this project.
 For the current operator-hosted instance (open-source AGPL-3.0 software), the legally effective
 policies are published at:
 
-- [Privacy Policy](/privacy)
-- [Terms of Service](/terms)
-- [Acceptable Use Policy](/acceptable-use)
-- [Cookie Policy](/cookies)
+- [Privacy Policy](https://profiletailors.com/privacy)
+- [Terms of Service](https://profiletailors.com/terms)
+- [Acceptable Use Policy](https://profiletailors.com/acceptable-use)
+- [Cookie Policy](https://profiletailors.com/cookies)
 
-These are maintained in `apps/web/marketing/src/i18n/{en,es}.ts` under the `legal.*` keys. The
-leading slash in each link is intentional: these are deployed marketing routes, not files inside
-the repository, so filesystem-only Markdown link checkers may report them as unresolved.
+These are maintained in `apps/web/marketing/src/i18n/{en,es}.ts` under the `legal.*` keys. Links use
+absolute URLs on purpose so automated link checkers verify them against the published site.
 
 Reference mapping from Awesome Legal categories to current and future Profile Tailors legal
 artifacts is documented in

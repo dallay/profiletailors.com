@@ -23,7 +23,7 @@ that is reliably sent even if the user leaves the page before the timeout expire
    scheduled beacon has successfully sent (i.e. the `fetchLater()` result's `activated` value is
    `true`), reset the event queue.
 
-3. **Let the browser handle the rest:** If the user navigates away or closes the tab before the
+4. **Let the browser handle the rest:** If the user navigates away or closes the tab before the
    `activateAfter` timeout expires, the browser will still reliably send the payload from your most
    recent `fetchLater()` call.
 

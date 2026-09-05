@@ -210,6 +210,6 @@ Consider as long as  `PublicKeyCredential` is supported,
 `PublicKeyCredential.parseCreationOptionsFromJSON` and `PublicKeyCredential.prototype.toJSON` are
 also supported.
 
-```js 
+```js
 import 'webauthn-polyfills';
-``` 
+```

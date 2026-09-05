@@ -54,7 +54,7 @@ authentication options:
    the response is empty, render a helpful empty-state message (e.g., "No passkeys found").
 2. **Map AAGUID Metadata**: For each passkey, lookup its `aaguid` property against your local
    registry to render its provider details.
-   See [Determine the passkey provider from AAGUID](#aaguid) section for more details.
+   See [Determine the passkey provider from AAGUID](#determine-the-passkey-provider-from-aaguid) section for more details.
 3. **Per-Item UI Requirements**: Every row inside the list container MUST render:
     * **Provider Icon**: AAGUID-derived image or data URI.
     * **Provider/Custom Name**: AAGUID-derived name or user-renamed string.
@@ -79,16 +79,16 @@ The Signal API lets the application communicate credential states to password ma
 user's synced vaults and your backend database in lockstep.
 
 * **Parameter Encoding Rule**:
-    * All `userId` and credential ID parameters passed to Signal API methods (
+  * All `userId` and credential ID parameters passed to Signal API methods (
       `signalAllAcceptedCredentials`, `signalCurrentUserDetails`) MUST be **Base64URL-encoded
       strings**.
 * **Initiating Page Load Sync**:
-    * The application MUST invoke `signalAllAcceptedCredentials()` automatically in a
+  * The application MUST invoke `signalAllAcceptedCredentials()` automatically in a
       `DOMContentLoaded` page load event listener.
 * **Management Updates Sync**:
-    * The application MUST invoke `signalAllAcceptedCredentials()` immediately within your delete
+  * The application MUST invoke `signalAllAcceptedCredentials()` immediately within your delete
       credential click handler post-fetch.
-    * The application MUST invoke `signalCurrentUserDetails()` immediately within your username or
+  * The application MUST invoke `signalCurrentUserDetails()` immediately within your username or
       display name rename click handler post-fetch.
 
 ```javascript
@@ -150,7 +150,7 @@ async function performRename(rpId, userId, updatedName, updatedDisplayName) {
 }
 ```
 
-## Determine the passkey provider from AAGUID {: #aaguid }
+## Determine the passkey provider from AAGUID
 
 An AAGUID (Authenticator Attestation Globally Unique Identifier) is a 128-bit identifier that
 represents the model of the authenticator, not a specific instance. It is included in the
@@ -222,9 +222,9 @@ Always install 'webauthn-polyfills' and import it in the context.
 Consider as long as  `PublicKeyCredential` is supported, `PublicKeyCredential.getClientCapabilities`
 is also supported.
 
-```js 
+```js
 import 'webauthn-polyfills';
-``` 
+```
 
 ### Signal API Synchronization Fallback
 
@@ -234,13 +234,13 @@ Unsupported in: Firefox.
 If the browser does not support `PublicKeyCredential.parseRequestOptionsFromJSON`, use the '
 webauthn-polyfills':
 
-```html 
+```html
 
 <script type="module">
   if (!PublicKeyCredential.parseRequestOptionsFromJSON) {
     await import('https://unpkg.com/webauthn-polyfills');
   }
 </script> 
- ``` 
+ ```
 
 This will also add support for `PublicKeyCredential.prototype.toJSON`.

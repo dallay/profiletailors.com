@@ -40,6 +40,10 @@ enum class MediaAssetStatus {
      * Asset created but upload not yet completed, or upload in progress.
      * @deprecated Legacy state — use PENDING_UPLOAD / UPLOADING for new assets.
      */
+    @Deprecated(
+        message = "Legacy state — use PENDING_UPLOAD / UPLOADING for new assets.",
+        level = DeprecationLevel.WARNING,
+    )
     PROCESSING,
 
     /**
@@ -313,6 +317,14 @@ data class MediaAsset(
          * Generate a legacy storage key for PROCESSING assets.
          * @deprecated Use MediaStorageKeys.canonicalKey() or MediaStorageKeys.tempKey() for CAS assets.
          */
+        @Deprecated(
+            message = "Use MediaStorageKeys.canonicalKey() or MediaStorageKeys.tempKey() for CAS assets.",
+            replaceWith = ReplaceWith(
+                "MediaStorageKeys.canonicalKey(workspaceId, fileHash)",
+                "com.profiletailors.smp.media.domain.MediaStorageKeys",
+            ),
+            level = DeprecationLevel.WARNING,
+        )
         fun generateStorageKey(workspaceId: String, assetId: String): String = "assets/$workspaceId/$assetId"
 
         /**

@@ -97,6 +97,40 @@ jobs:
         shell: bash
         run: ./gradlew :server:smp:detekt --no-daemon
 
+      - name: Restore lychee cache
+        id: restore-lychee-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .lycheecache
+          key: cache-lychee-${{ github.sha }}
+          restore-keys: |
+            cache-lychee-
+
+      - name: Markdown link check (lychee)
+        # In ci-gate via the lint job: broken links block the merge.
+        # Globs are quoted so lychee expands ** recursively (see link-checker.yml).
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >-
+            --no-progress --cache --max-cache-age 1d
+            --exclude-path node_modules
+            --exclude 'http://localhost'
+            --exclude 'https://localhost'
+            --exclude-path openspec
+            './**/*.md'
+            './**/*.mdx'
+
+      - name: Save lychee cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: always()
+        with:
+          path: .lycheecache
+          key: ${{ steps.restore-lychee-cache.outputs.cache-primary-key }}
+
+      - name: Markdown lint (markdownlint-cli2)
+        shell: bash
+        run: pnpm exec markdownlint-cli2
+
   # ──────────────────────────────────────────────────────────────
   # 2. Frontend unit tests (marketing + app)
   # ──────────────────────────────────────────────────────────────

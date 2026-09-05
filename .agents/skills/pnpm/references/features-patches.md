@@ -161,6 +161,7 @@ All workspace packages using `express@4.18.2` will have the patch applied.
    dependencies.
 
 2. **Document patches**: Add comments explaining why the patch exists:
+
    ```bash
    # In patches/README.md
    ## express@4.18.2.patch

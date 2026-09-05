@@ -5,9 +5,6 @@
 1. [E-Commerce Order Processing](#e-commerce-order-processing)
 2. [Food Delivery Application](#food-delivery-application)
 3. [Travel Booking System](#travel-booking-system)
-4. [Banking Transfer System](#banking-transfer-system)
-5. [Microservices Choreography Example](#microservices-choreography-example)
-6. [Microservices Orchestration Example](#microservices-orchestration-example)
 
 ---
 

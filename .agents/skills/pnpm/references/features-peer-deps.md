@@ -223,6 +223,7 @@ pnpm list --depth=Infinity
 3. **Document suppressed warnings** explaining why they're safe
 
 4. **Keep peer deps ranges wide** in libraries:
+
    ```json
    {
      "peerDependencies": {

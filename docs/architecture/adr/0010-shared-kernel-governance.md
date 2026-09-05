@@ -7,7 +7,7 @@
 - Supersedes: None
 - Superseded by: None
 - Related:
-    - C4: [Dependency Graph](../shared/dependencies.md)
+  - C4: [Dependency Graph](../shared/dependencies.md)
 
 ## Overview
 

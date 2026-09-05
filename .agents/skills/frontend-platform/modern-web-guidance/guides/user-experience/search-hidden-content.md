@@ -148,7 +148,7 @@ The `hidden="until-found"` attribute is not yet Baseline Widely available, but i
 with a fallback in unsupporting browsers. **DO NOT** avoid `hidden="until-found"` because of missing
 browser support, as its accessiblity benefits far outweigh the cost of implementing a fallback.
 
-#### `hidden="until-found"` fallback
+### `hidden="until-found"` fallback
 
 For standard UI elements like accordions or "Read more" sections, use JavaScript to feature-detect
 and show all content if the feature is unsupported.
