@@ -1,6 +1,10 @@
 # Profile Tailors Documentation
 
+<<<<<<< HEAD
 **Last Updated:** 2026-09-03
+=======
+**Last Updated:** 2026-09-04
+>>>>>>> origin/main
 
 ## 📖 Table of Contents
 
@@ -27,29 +31,20 @@
 - [Publishing Failure Modes](./publishing-failure-modes.md) - User-facing publishing error taxonomy
 - [Release Verification](./release-verification.md) - Evidence required before release readiness
 
-### Infrastructure & Operations Runbooks
+### Infrastructure
+
 - [Modular Docker Compose](./infrastructure/modular-docker-compose.md) - Reusable infrastructure
   services
-- [Production Rollback Runbook](./runbooks/production-rollback.md) - Step-by-step procedure for emergency production rollback (Docker Swarm / Compose / DB)
-- [Password Recovery Runbook](./runbooks/password-recovery.md) - Operator procedures for identity password recovery incidents
 - [Private Beta Launch Readiness Runbook](./infrastructure/private-beta-launch-readiness-runbook.md) -
   Operator procedures for publishing safe-off, stale visibility, and rollback (DALLAY-555/557)
-- [Private Beta Operator Checklist](./infrastructure/private-beta-operator-checklist.md) -
-  Per-surface read-only checks for readiness, database, media, auth, waitlist, invitation, and publishing worker (DALLAY-557)
-- [Private Beta Incident Response](./infrastructure/private-beta-incident-response.md) -
-  Incident owner, severity ladder, communication templates, and threshold review cadence (DALLAY-557)
-- [Private Beta Correlation Matrix](./infrastructure/private-beta-correlation-matrix.md) -
-  Pivot recipes across `jobId`, `invitationId`, `waitlistEntryId`, and the redaction contract (DALLAY-557)
-- [Private Beta Backup and Restore Status](./infrastructure/private-beta-backup-restore-status.md) -
-  Rehearsed / documented-not-exercised / explicitly-not-rehearsed status of backup and restore (DALLAY-557)
 - [PostgreSQL Setup](../infra/postgres/) - Database configuration
 
 ### Monitoring & Observability
 
-- [Observability Contracts & SLA Matrix](./observability-contracts.md) - Latency SLAs (p95/p99), availability targets, and function-level observability metrics
 - [Prometheus & Grafana Setup](./monitoring/prometheus-grafana-setup.md) - Metrics collection and
   visualization
 - [Actuator Security](./monitoring/actuator-security.md) - Securing Spring Boot Actuator endpoints
+- [Observability Contracts](./observability-contracts.md) - Shared telemetry and logging contracts
 
 ### Development & Testing
 
@@ -81,7 +76,7 @@
 
 - [Monitoring Setup](./monitoring/prometheus-grafana-setup.md)
 - [Infrastructure Management](./infrastructure/modular-docker-compose.md)
-- [Production Rollback](./runbooks/production-rollback.md)
+- [Production Rollback Runbook](./runbooks/production-rollback.md)
 
 ## 📝 Documentation Standards
 

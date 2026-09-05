@@ -15,7 +15,7 @@ import org.springframework.dao.DuplicateKeyException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
-import java.time.OffsetDateTime
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 /**
@@ -51,11 +51,11 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
             .bind("templateId", notification.templateId.value)
             .bind("payload", notification.payload.variables.toJsonb())
             .bind("status", notification.status.name)
-            .bindNullable("sentAt", notification.sentAt?.toOffsetDateTime(), OffsetDateTime::class.java)
-            .bindNullable("failedAt", notification.failedAt?.toOffsetDateTime(), OffsetDateTime::class.java)
+            .bindNullable("sentAt", notification.sentAt?.toUtcLocalDateTime(), LocalDateTime::class.java)
+            .bindNullable("failedAt", notification.failedAt?.toUtcLocalDateTime(), LocalDateTime::class.java)
             .bindNullable("errorMessage", notification.errorMessage, String::class.java)
-            .bind("createdAt", notification.createdAt.toOffsetDateTime())
-            .bind("updatedAt", notification.updatedAt.toOffsetDateTime())
+            .bind("createdAt", notification.createdAt.toUtcLocalDateTime())
+            .bind("updatedAt", notification.updatedAt.toUtcLocalDateTime())
             .fetch()
             .rowsUpdated()
             .asFlow()
@@ -68,10 +68,10 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
     override suspend fun update(notification: Notification): Notification {
         databaseClient.sql(UPDATE_SQL)
             .bind("status", notification.status.name)
-            .bindNullable("sentAt", notification.sentAt?.toOffsetDateTime(), OffsetDateTime::class.java)
-            .bindNullable("failedAt", notification.failedAt?.toOffsetDateTime(), OffsetDateTime::class.java)
+            .bindNullable("sentAt", notification.sentAt?.toUtcLocalDateTime(), LocalDateTime::class.java)
+            .bindNullable("failedAt", notification.failedAt?.toUtcLocalDateTime(), LocalDateTime::class.java)
             .bindNullable("errorMessage", notification.errorMessage, String::class.java)
-            .bind("updatedAt", notification.updatedAt.toOffsetDateTime())
+            .bind("updatedAt", notification.updatedAt.toUtcLocalDateTime())
             .bind("id", notification.id.value)
             .fetch()
             .rowsUpdated()
@@ -117,7 +117,7 @@ internal class R2dbcNotificationRepository(private val databaseClient: DatabaseC
             WHERE idempotency_key = :idempotencyKey
         """
 
-        private fun Instant.toOffsetDateTime(): OffsetDateTime = OffsetDateTime.ofInstant(this, ZoneOffset.UTC)
+        private fun Instant.toUtcLocalDateTime(): LocalDateTime = LocalDateTime.ofInstant(this, ZoneOffset.UTC)
 
         private fun Map<String, String>.toJsonb(): String = buildString {
             append('{')
