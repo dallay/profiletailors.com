@@ -1,10 +1,6 @@
 change: dallay-562-administrative-audit-event-infrastructure
-current_phase: apply
+current_phase: explore
 completed:
-  - propose
-  - spec
-  - design
-  - tasks
-  - apply (partial: phases 1–6 complete, integration test and final verification remaining)
-next: apply (resume: task 5.2 + task 7.1)
-updated: "2026-09-03T12:00:00Z"
+  - explore
+next: propose
+updated: "2026-09-04"
