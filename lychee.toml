@@ -8,6 +8,23 @@ exclude_loopback = true
 exclude_path = [
     "node_modules",
     "openspec",
+    # Generated build output (e.g. dependency-licence reports), not source docs.
+    "/build/",
+]
+
+# Exclude URLs from checking (regex patterns). Each entry below is a
+# verified exception, not a way to hide own-fault breaks:
+exclude = [
+    # Early-history release-please compare links point at tags that were never
+    # pushed and whose release commits no longer exist in history, so they
+    # cannot be restored. Recent releases tag correctly.
+    "github.com/dallay/profiletailors.com/compare/",
+    # Mexican DOF portal: unreachable with an SSL hostname mismatch and no
+    # usable response as of 2026-09-05. Kept as a legal citation.
+    "dof.gob.mx/abrirPDF.php",
+    # Colombian SIC portal: times out for automated checks as of 2026-09-05.
+    # Kept as a legal citation.
+    "sic.gov.co/tema/proteccion-de-datos-personales",
 ]
 
 # Hide progress bar (non-interactive friendly)

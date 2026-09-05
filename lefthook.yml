@@ -47,6 +47,11 @@ pre-commit:
     gitleaks:
       run: 'gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml'
 
+    # Docs: lychee offline check on staged Markdown only (fast, no network).
+    # Catches broken relative links at commit time; externals are covered by CI.
+    docs-links:
+      run: '{ command -v lychee >/dev/null || { echo "lychee not installed, skipping docs link check"; exit 0; }; files=$(git diff --cached --name-only --diff-filter=ACM -- "*.md" "*.mdx" ":!openspec/**"); if [ -z "$files" ]; then exit 0; fi; printf "%s\n" "$files" | xargs lychee --offline --no-progress; }'
+
 
 # ---------- PRE-PUSH ----------
 pre-push:

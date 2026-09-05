@@ -283,7 +283,6 @@ Contact: **security@profiletailors.com**
 
 ## Support
 
-- **Discussions:** https://github.com/dallay/profiletailors.com/discussions
 - **Issues:** https://github.com/dallay/profiletailors.com/issues
 - **Email:** **dev@profiletailors.com**
 

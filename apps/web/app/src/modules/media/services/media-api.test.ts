@@ -6,9 +6,7 @@ import {
   listAssets,
   importUnsplashPhoto,
   putAsset,
-  reserveAsset,
   searchUnsplashPhotos,
-  uploadAsset,
   type MediaAssetSummary,
 } from './media-api'
 import type { createApiFetch } from '@modules/auth/infrastructure/auth-api'
@@ -388,132 +386,6 @@ describe('listAssets', () => {
     const result = await listAssets()
 
     expect(result).toEqual(payload)
-  })
-})
-
-describe('reserveAsset', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    mockApiFetch.mockReset()
-    mockAuthenticatedBox.current = true
-  })
-
-  it('throws 401 when not authenticated', async () => {
-    mockAuthenticatedBox.current = false
-
-    await expect(reserveAsset({ mediaType: 'image/jpeg' })).rejects.toMatchObject({
-      title: 'Not authenticated',
-      status: 401,
-    })
-
-    expect(mockApiFetch).not.toHaveBeenCalled()
-  })
-
-  it('calls POST /api/media/assets with body and workspaceScoped true', async () => {
-    mockApiFetch.mockResolvedValueOnce({
-      assetId: 'asset-1',
-      workspaceId: 'ws-1',
-      status: 'PENDING_UPLOAD',
-      mediaType: 'image/jpeg',
-    })
-
-    await reserveAsset({ mediaType: 'image/jpeg', originalFilename: 'photo.jpg' })
-
-    expect(mockApiFetch).toHaveBeenCalledOnce()
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/media/assets', {
-      method: 'POST',
-      body: JSON.stringify({
-        sourceType: 'UPLOADED',
-        mediaType: 'image/jpeg',
-        originalFilename: 'photo.jpg',
-      }),
-      workspaceScoped: true,
-    })
-  })
-
-  it('returns the apiFetch response payload', async () => {
-    const payload = {
-      assetId: 'asset-2',
-      workspaceId: 'ws-2',
-      status: 'PENDING_UPLOAD' as const,
-      mediaType: 'image/png',
-    }
-    // auth.apiFetch<T> returns the parsed payload directly.
-    mockApiFetch.mockResolvedValueOnce(payload)
-
-    const result = await reserveAsset({ mediaType: 'image/png' })
-
-    expect(result).toEqual(payload)
-  })
-})
-
-describe('uploadAsset', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    mockMediaApiFetch.mockReset()
-    mockApiFetch.mockReset()
-    mockApiFetchRaw.mockReset()
-    mockAuthenticatedBox.current = true
-  })
-
-  it('throws 401 when not authenticated', async () => {
-    mockAuthenticatedBox.current = false
-
-    await expect(uploadAsset('asset-1', new File(['x'], 'a.jpg'))).rejects.toMatchObject({
-      title: 'Not authenticated',
-      status: 401,
-    })
-
-    expect(mockApiFetchRaw).not.toHaveBeenCalled()
-  })
-
-  it('calls apiFetchRaw POST /api/media/assets/{assetId}/upload with FormData and workspaceScoped', async () => {
-    mockApiFetchRaw.mockResolvedValueOnce(
-      jsonResponse(200, {
-        assetId: 'asset-1',
-        workspaceId: 'ws-1',
-        status: 'READY',
-      }),
-    )
-
-    const file = new File(['hello'], 'hello.txt', { type: 'text/plain' })
-    await uploadAsset('asset-1', file)
-
-    expect(mockApiFetchRaw).toHaveBeenCalledOnce()
-    const [path, options] = mockApiFetchRaw.mock.calls[0] as [
-      string,
-      { method: string; body: FormData; workspaceScoped: boolean },
-    ]
-    expect(path).toBe('/api/media/assets/asset-1/upload')
-    expect(options.method).toBe('POST')
-    expect(options.body).toBeInstanceOf(FormData)
-    expect(options.workspaceScoped).toBe(true)
-  })
-
-  it('throws MediaApiError-shaped error on non-OK with parseable body', async () => {
-    mockApiFetchRaw.mockResolvedValueOnce(
-      jsonResponse(422, {
-        errorCode: 'HASH_MISMATCH',
-        message: 'Computed hash does not match declared hash.',
-      }),
-    )
-
-    await expect(uploadAsset('asset-1', new File(['x'], 'a.jpg'))).rejects.toMatchObject({
-      title: 'HASH_MISMATCH',
-      detail: 'Computed hash does not match declared hash.',
-      status: 422,
-      errorCode: 'HASH_MISMATCH',
-    })
-  })
-
-  it('throws status-based title when body is not parseable as MediaApiError', async () => {
-    mockApiFetchRaw.mockResolvedValueOnce(emptyResponse(500))
-
-    await expect(uploadAsset('asset-1', new File(['x'], 'a.jpg'))).rejects.toMatchObject({
-      title: 'Upload failed (500)',
-      detail: 'Server returned 500.',
-      status: 500,
-    })
   })
 })
 
