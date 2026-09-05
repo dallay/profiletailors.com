@@ -1,7 +1,7 @@
 # Data Retention — Quick Reference (Current State)
 
 > **For:** On-call operators, compliance officers
-> **Updated:** 2026-08-02
+> **Updated:** 2026-09-03
 >
 > **Note:** The `/api/governance/retention/*` governance API is **planned, not implemented**.
 > Do not script against it. This card covers only what runs today.
@@ -30,7 +30,7 @@
 
 ## NOT Available (Planned)
 
- - `POST /api/governance/retention/rules` — planned rule registration (not implemented; no `retention_periods` table)
+- `POST /api/governance/retention/rules` — planned rule registration (not implemented; no `retention_periods` table)
 - `/api/governance/retention/purges` — purge job scheduling/status/resume
 - `/api/governance/retention/holds` — legal/operational holds
 - `/api/governance/retention/status` — framework health endpoint

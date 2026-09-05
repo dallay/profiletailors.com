@@ -1,10 +1,6 @@
 # Profile Tailors Documentation
 
-<<<<<<< HEAD
-**Last Updated:** 2026-09-03
-=======
-**Last Updated:** 2026-09-04
->>>>>>> origin/main
+**Last Updated:** 2026-09-05
 
 ## 📖 Table of Contents
 
