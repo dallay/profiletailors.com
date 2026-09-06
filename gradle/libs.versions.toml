@@ -9,7 +9,7 @@ detekt = "2.0.0-alpha.6"
 spotless = "8.10.1"
 owasp = "13.0.0"
 licenceReport = "3.1.4"
-jdk = "21"
+jdk = "25"
 
 # Libraries
 coroutines = "1.10.2"
@@ -45,7 +45,6 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version.ref = "coroutines" }
 kotlinx-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactor", version.ref = "coroutines" }
 kotlinx-coroutines-slf4j = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j", version.ref = "coroutines" }
-kotlinx-coroutines-jdk8 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8", version.ref = "coroutines" }
 
 # Spring Boot Starter Dependencies
 spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }

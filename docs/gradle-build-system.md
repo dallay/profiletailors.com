@@ -1,6 +1,6 @@
 # Gradle Build System & Conventions
 
-**Date:** 2026-07-31
+**Last Updated:** 2026-09-05
 **Status:** ✅ Implemented
 
 ---
@@ -35,7 +35,7 @@ workspace:
 │       ├── build.gradle.kts           # Registers plugin IDs and implementation classes
 │       └── src/main/kotlin/com/profiletailors/buildlogic/
 │           ├── ConventionPlugin.kt    # Base plugin contract interface
-│           ├── AppConfiguration.kt    # Toolchain target definitions (Java 21, Kotlin 2.4)
+│           ├── AppConfiguration.kt    # Toolchain target definitions (Java 25, Kotlin 2.4)
 │           ├── extensions/            # Shared compiler extensions, task configurations
 │           ├── library/               # com.profiletailors.kotlin.library (Base plugin)
 │           └── springboot/            # com.profiletailors.spring.boot.library & .application
@@ -76,7 +76,7 @@ Used for generic business logic packages that have no dependency on any framewor
 `:shared:common`).
 
 * **Configures:**
-  * JVM toolchain targeting **Java 21** and **Kotlin 2.4**.
+  * JVM toolchain targeting **Java 25** and **Kotlin 2.4**.
     * Dynamic compiler flags (e.g., `-Xcontext-receivers`).
     * Enforces code styles via `detekt` using the root `/detekt.yml`.
     * Configures standard JUnit Platform test task.
