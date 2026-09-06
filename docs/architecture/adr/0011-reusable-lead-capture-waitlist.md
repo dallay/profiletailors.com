@@ -7,11 +7,11 @@
 - Supersedes: None
 - Superseded by: None
 - Related:
-    - OpenSpec: `openspec/changes/reusable-lead-capture-waitlist/`
-    - ADR-0010 Shared Kernel Governance
-    - ADR-0002 Hexagonal Architecture
-    - ADR-0004 CQRS via Mediator
-    - ADR-0006 Resource Creation via POST
+  - OpenSpec: `openspec/changes/reusable-lead-capture-waitlist/`
+  - ADR-0010 Shared Kernel Governance
+  - ADR-0002 Hexagonal Architecture
+  - ADR-0004 CQRS via Mediator
+  - ADR-0006 Resource Creation via POST
 
 ## Context
 

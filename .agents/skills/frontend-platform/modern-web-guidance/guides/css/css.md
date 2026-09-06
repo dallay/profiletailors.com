@@ -444,7 +444,7 @@ as normal text containers.
 - Use `text-wrap: balance` or `text-wrap: pretty` deliberately, **DO NOT** apply it on `*` as it
   does have a performance cost.
 - Avoid `text-wrap: balance` on elements with a visible box (backgrounds, borders, shadows, etc) as
-  it does not change the container's width, it only affects how text wraps *within* that width. This
+  it does not change the container's width, it only affects how text wraps _within_ that width. This
   can leave empty space at the end of the container, which is usually undesirable.
 
 ## 8. Visual effects
@@ -480,7 +480,7 @@ Use `in oklch` or `in oklab` to explicitly specify the interpolation color space
   bigger differences between colors
 - `in oklab` stays in gamut more easily (assuming in-gamut endpoints) but can create washed out
   desaturated colors in the middle, especially when interpolating between opposite hues.
-- *DON'T* use `in srgb` unless you have a specific reason to do so (e.g. you are building a color
+- _DON'T_ use `in srgb` unless you have a specific reason to do so (e.g. you are building a color
   picker that needs to interpolate in srgb).
 
 #### Fallback

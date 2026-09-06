@@ -7,7 +7,7 @@
 - Supersedes: None
 - Superseded by: None
 - Related:
-    - C4: [Code Diagram](../c4/04-code.md)
+  - C4: [Code Diagram](../c4/04-code.md)
 
 ## Context
 

@@ -101,9 +101,9 @@ Fields:
 Fields:
 
 - `mode`
-    - `crossfade`
-    - `sequential`
-    - `morph`
+  - `crossfade`
+  - `sequential`
+  - `morph`
 - `overlap_ms`
 - `micro_delay_ms`
 - `scenario_spec`
@@ -262,24 +262,24 @@ Resolved renderer for the current effect.
 Fields:
 
 - `id`
-    - `generic-stagger`
-    - `shared-slide-opacity-stage`
-    - `kinetic-center-build`
-    - `kinetic-top-build`
+  - `generic-stagger`
+  - `shared-slide-opacity-stage`
+  - `kinetic-center-build`
+  - `kinetic-top-build`
 - `source`
-    - `default`
-    - `spec`
-    - `catalog-override`
+  - `default`
+  - `spec`
+  - `catalog-override`
 - `params`
-    - structured renderer-specific data used by the generated recipe
+  - structured renderer-specific data used by the generated recipe
 - `recipe`
-    - the renderer algorithm needed for exact reproduction
-    - may include `initial_state`, `verification`, `canonical_loop_pseudocode`, and
+  - the renderer algorithm needed for exact reproduction
+  - may include `initial_state`, `verification`, `canonical_loop_pseudocode`, and
       `keyframe_recipe` for renderers where prose is not precise enough
-    - `initial_state` defines required pre-animation styles such as word opacity before a reveal
-    - `canonical_loop_pseudocode` defines the low-freedom loop order when prose could lead to
+  - `initial_state` defines required pre-animation styles such as word opacity before a reveal
+  - `canonical_loop_pseudocode` defines the low-freedom loop order when prose could lead to
       double-enter or enter-only implementations
-    - `keyframe_recipe` defines intermediate offsets and formulas that must be preserved for
+  - `keyframe_recipe` defines intermediate offsets and formulas that must be preserved for
       layout-aware renderers
 
 ### `effect.showcase.runtime`

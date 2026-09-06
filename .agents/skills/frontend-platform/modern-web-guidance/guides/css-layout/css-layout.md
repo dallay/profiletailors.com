@@ -161,26 +161,26 @@ lets a nested grid inherit its parent's tracks so grandchildren align across sib
 **Choosing grid features:**
 
 - Do you know exactly how many columns you need?
-    - **Yes** — use explicit tracks (`grid-template-columns: 200px 1fr`, `repeat(3, 1fr)`, etc.)
-        - Do different columns need different sizes (sidebar + main, header spanning all)? → use
+  - **Yes** — use explicit tracks (`grid-template-columns: 200px 1fr`, `repeat(3, 1fr)`, etc.)
+    - Do different columns need different sizes (sidebar + main, header spanning all)? → use
           `grid-template-areas` for named, readable regions
-        - Are all columns uniform or positioned purely by line number? → use `repeat(N, ...)` or
+    - Are all columns uniform or positioned purely by line number? → use `repeat(N, ...)` or
           named lines
-    - **No** (responsive, unknown item count) — use `repeat(auto-fit, minmax(min, 1fr))`
-        - Should items on the last row stretch to fill remaining space? → `auto-fit`
-        - Should empty last-row tracks hold their min size (preserving column ghost slots)? →
+  - **No** (responsive, unknown item count) — use `repeat(auto-fit, minmax(min, 1fr))`
+    - Should items on the last row stretch to fill remaining space? → `auto-fit`
+    - Should empty last-row tracks hold their min size (preserving column ghost slots)? →
           `auto-fill`
 - Do you need to place an item at a specific location?
-    - **Yes** — use `grid-column: <start> / <end>` or `grid-area: <name>`
-    - **No** (just spanning multiple tracks, flow position doesn't matter) — use
+  - **Yes** — use `grid-column: <start> / <end>` or `grid-area: <name>`
+  - **No** (just spanning multiple tracks, flow position doesn't matter) — use
       `grid-column: span <n>`
 - Do child elements need to inherit the parent grid's track sizes (ragged-edge alignment across
   siblings)?
-    - **Yes** — use subgrid on the affected axis
-        - Is the number of children per cell variable? → subgrid **one axis only**; use
+  - **Yes** — use subgrid on the affected axis
+    - Is the number of children per cell variable? → subgrid **one axis only**; use
           `grid-auto-rows`/`grid-auto-columns` for the other
-        - Is the child count fixed? → subgrid on both axes is fine
-    - **No** — standard grid, no subgrid needed
+    - Is the child count fixed? → subgrid on both axes is fine
+  - **No** — standard grid, no subgrid needed
 
 **Do:**
 

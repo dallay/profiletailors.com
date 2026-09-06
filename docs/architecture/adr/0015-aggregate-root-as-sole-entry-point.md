@@ -7,11 +7,11 @@
 - Supersedes: None
 - Superseded by: None
 - Related:
-    - Skills: `.agents/skills/backend-platform/ddd-architecture/SKILL.md`
-    - Companion ADRs:
-        - ADR-0016: Aggregates Communicate by Identity Only (planned)
-        - ADR-0017: Value Objects Are Immutable (planned)
-    - Issues/PRs: bootstrap commit for marker annotations and `AggregateBoundaryTest`
+  - Skills: `.agents/skills/backend-platform/ddd-architecture/SKILL.md`
+  - Companion ADRs:
+    - ADR-0016: Aggregates Communicate by Identity Only (planned)
+    - ADR-0017: Value Objects Are Immutable (planned)
+  - Issues/PRs: bootstrap commit for marker annotations and `AggregateBoundaryTest`
 
 ## Context
 

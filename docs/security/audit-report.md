@@ -178,6 +178,7 @@ configuration deletion was committed in `e3b78d16`.
 
 **Historical execution path:**  
 `IdentitySecurityConfiguration.securityWebFilterChain` contains:
+
 ```kotlin
 it.pathMatchers(
     HttpMethod.GET,
@@ -189,6 +190,7 @@ it.pathMatchers(
     "/api/media/assets/*/content",
 ).permitAll()
 ```
+
 No Spring MVC controller currently handles `GET /api/media/proxy`. A 404 is returned today. However, the security configuration pre-exempts this path from authentication. When a controller is added (SSRF proxy for preview URL fetching is the likely intent), it will be unauthenticated unless the developer explicitly overrides this.
 
 **Historical defenses:** The path returned 404 because no controller existed. That did not provide
@@ -227,11 +229,13 @@ application now rejects the default value when the LinkedIn signer is created.
 **Trust boundary crossed:** LinkedIn OAuth callback → application trust of state payload
 
 **Historical execution path before `eed89343`:**
+
 ```yaml
 publishing:
   linkedin:
     state-signing-secret: ${SMP_LINKEDIN_STATE_SIGNING_SECRET:CHANGE_ME_LINKEDIN_STATE}
 ```
+
 Before the guard was added, `HmacOAuthStateSigner.init` only required `secret.isNotBlank()`. The
 string `CHANGE_ME_LINKEDIN_STATE` was non-blank, so the application started without error. An
 attacker who knew the default secret could generate valid HMAC-signed state parameters, bypassing
@@ -305,6 +309,7 @@ signer throws `IllegalArgumentException` for `CHANGE_ME_LINKEDIN_STATE`, `CHANGE
 ### SEC-001 — Remove pre-authorized unauthenticated proxy path
 
 **Files changed:**
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/IdentitySecurityConfiguration.kt`
 
 **Security invariant introduced:** `GET /api/media/proxy` requires authentication unless explicitly permitted again at implementation time.
@@ -314,6 +319,7 @@ signer throws `IllegalArgumentException` for `CHANGE_ME_LINKEDIN_STATE`, `CHANGE
 commit `e3b78d16` contains the production configuration deletion.
 
 **Tests added:**
+
 - `server/smp/src/test/resources/features/security-endpoint-authorization.feature` — BDD: 401 on `/api/media/proxy`, `/api/media/assets/*`, `/api/workspaces/**`; 200 only on actuator health/prometheus and capabilities/public (5 scenarios, `@security @smoke @fast`)
 - `server/smp/src/test/kotlin/com/profiletailors/smp/bdd/glue/SecurityAuthorizationBddSteps.kt`
 
@@ -328,6 +334,7 @@ entry.
 ### SEC-002 — Fail-fast on predictable LinkedIn OAuth state signing secret
 
 **Files changed:**
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/HmacOAuthStateSigner.kt`
 
 **Security invariant introduced:** Application refuses to start if the OAuth state secret matches the placeholder or is blank.
@@ -336,6 +343,7 @@ entry.
 regression tests.
 
 **Tests added:**
+
 - `server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/HmacOAuthStateSignerTest.kt` — placeholder-prefix rejection (`CHANGE_ME`, `changeme`, `placeholder`, `test-`) and strong-secret acceptance
 
 **Compatibility impact:** Any deployment that has not set `SMP_LINKEDIN_STATE_SIGNING_SECRET` (or uses the `CHANGE_ME_LINKEDIN_STATE` placeholder) will fail to start when the LinkedIn feature is used. Operators must set a strong secret before deploying.
@@ -347,6 +355,7 @@ regression tests.
 ### SEC-009 — Raise password minimum length to 12 (ASVS L2 V2.1.1)
 
 **Files changed:**
+
 - `server/smp/src/main/kotlin/.../identity/application/LocalAuthHandlers.kt` — `MIN_PASSWORD_LENGTH 8 → 12`
 - `server/smp/src/main/kotlin/.../identity/application/ResetPasswordHandler.kt` — `MIN_PASSWORD_LENGTH 8 → 12`
 - `server/smp/src/main/kotlin/.../identity/infrastructure/http/LocalAuthController.kt` — `@Size(min=12)`, `@Schema(minLength=12)`
@@ -357,6 +366,7 @@ regression tests.
 **Security invariant introduced:** Passwords shorter than 12 characters are rejected at registration and password reset. Existing hashed passwords are unaffected.
 
 **Tests added:**
+
 - `server/smp/src/test/resources/features/auth/registration.feature` — BDD: 11-char rejected, 12-char accepted
 - `server/smp/src/test/kotlin/.../identity/application/ResetPasswordHandlerTest.kt` — unit: 11-char rejected
 - `apps/web/app/src/shared/lib/validation/schemas.test.ts` — boundary updated to 12/128

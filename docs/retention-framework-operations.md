@@ -2,7 +2,7 @@
 
 > **Classification:** Internal — Operations and Compliance
 > **Status:** Current-state operations guide — the retention governance API is planned, not implemented
-> **Last updated:** 2026-08-31
+> **Last updated:** 2026-09-05
 >
 > **IMPORTANT:** Earlier drafts of this guide described a retention rule/purge/hold HTTP API
 > (`/api/governance/retention/*`) and a `V100__retention_governance.xml` migration. Neither
@@ -79,8 +79,8 @@ and the gap/plan document is
 | ---------- | -------------------------- |
 | Retention rule registration (planned) | `POST /api/governance/retention/rules` — not implemented |
 | Rule approval workflow | `PUT /api/governance/retention/rules/{id}/approve` |
-| Purge scheduling / status | `POST|GET /api/governance/retention/purges` |
-| Legal/operational holds | `POST|GET /api/governance/retention/holds` |
+| Purge scheduling / status | `POST\|GET /api/governance/retention/purges` |
+| Legal/operational holds | `POST\|GET /api/governance/retention/holds` |
 | Deletion tombstones | `deletion_tombstones` table |
 | Purge evidence | `GET /api/governance/retention/purges/{id}/evidence` |
 | Migration | `V100__retention_governance.xml` (5 tables, 12 indexes) |

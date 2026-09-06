@@ -56,8 +56,9 @@ Add an event listener for `contentvisibilityautostatechange` to pause or resume 
 
 > **Important:** The `contentvisibilityautostatechange` event does not bubble in some browser
 > implementations. To handle this event reliably, you must either:
-> - Attach the event listener directly to the element that has `content-visibility: auto` applied.
-> - Use a capturing event listener (`{ capture: true }`) if you are delegating events to a parent
+>
+> * Attach the event listener directly to the element that has `content-visibility: auto` applied.
+> * Use a capturing event listener (`{ capture: true }`) if you are delegating events to a parent
     container.
 
 ```javascript

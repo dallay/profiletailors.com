@@ -155,6 +155,10 @@ sealed class PutAssetResult {
  * Legacy command to upload binary content to a created asset.
  * @deprecated Use CAS upload flow (PUT + POST /upload with octet-stream) instead.
  */
+@Deprecated(
+    message = "Use CAS upload flow (PUT + octet-stream) instead.",
+    level = DeprecationLevel.WARNING,
+)
 data class LegacyUploadAssetCommand(
     val assetId: String,
     val workspaceId: String,
@@ -174,6 +178,10 @@ data class LegacyUploadAssetCommand(
  * Result of a legacy asset upload.
  * @deprecated Use CAS upload result instead.
  */
+@Deprecated(
+    message = "Use CAS upload result instead.",
+    level = DeprecationLevel.WARNING,
+)
 data class LegacyUploadAssetResult(
     val assetId: String,
     val workspaceId: String,

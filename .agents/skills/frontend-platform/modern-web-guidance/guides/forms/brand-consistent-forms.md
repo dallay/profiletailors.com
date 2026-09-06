@@ -272,7 +272,7 @@ input[type="range"]::-webkit-slider-runnable-track {
 }
 ```
 
-2. **Add JavaScript**: Update the variable on the `input` event:
+1. **Add JavaScript**: Update the variable on the `input` event:
 
 ```javascript
 if (!CSS.supports('accent-color')) {

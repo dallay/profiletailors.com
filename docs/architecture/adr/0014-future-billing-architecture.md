@@ -7,9 +7,9 @@
 - Supersedes: None
 - Superseded by: None
 - Related:
-    - OpenSpec: DALLAY-497
-    - ADR-0013: RateLimitTier vs SubscriptionPlan
-    - Issues/PRs: DALLAY-497
+  - OpenSpec: DALLAY-497
+  - ADR-0013: RateLimitTier vs SubscriptionPlan
+  - Issues/PRs: DALLAY-497
 
 ## Context
 

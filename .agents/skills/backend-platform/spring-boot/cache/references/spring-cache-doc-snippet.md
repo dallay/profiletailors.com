@@ -95,7 +95,7 @@ for using Apache Geode as a cache provider].
 > property. Use this property if you need to use no-op
 > caches in certain
 > environments (such as tests).
-
+>
 > [!TIP]
 > Use the `spring-boot-starter-cache` starter to quickly add basic
 > caching dependencies. The starter brings in `spring-context-support`.
@@ -120,7 +120,7 @@ include-code::MyCacheManagerConfiguration[]
 > customizer is not invoked at all. You can have as many customizers as
 > you want, and you can also order them by using
 > `org.springframework.core.annotation.Order`[format=annotation]
-> or `org.springframework.core.Ordered[].
+> or`org.springframework.core.Ordered[].
 
 ## Generic
 
@@ -159,7 +159,7 @@ cache with implementation details, as shown in the following example:
 > support, Spring Boot prefers the JSR-107 support, so that the same
 > features are available if you switch to a different JSR-107
 > implementation.
-
+>
 > [!TIP]
 > Spring Boot has general support for Hazelcast. If
 > a single `com.hazelcast.core.HazelcastInstance[] is
@@ -189,15 +189,15 @@ There are two ways to customize the underlying
 
 Spring Boot has general support for Hazelcast. If a
 `com.hazelcast.core.HazelcastInstance[] has been
-auto-configured and `com.hazelcast:hazelcast-spring` is on the
+auto-configured and`com.hazelcast:hazelcast-spring` is on the
 classpath, it is automatically wrapped in a
 `org.springframework.cache.CacheManager[].
 
 > [!NOTE]
 > Hazelcast can be used as a JCache compliant cache or as a Spring
 > `org.springframework.cache.CacheManager[] compliant cache.
-> When setting configprop:spring.cache.type[] to `hazelcast`, Spring
-> Boot will use the `org.springframework.cache.CacheManager[]
+> When setting configprop:spring.cache.type[] to`hazelcast`, Spring
+> Boot will use the`org.springframework.cache.CacheManager[]
 > based implementation. If you want to use Hazelcast as a JCache
 > compliant cache, set configprop:spring.cache.type[] to `jcache`. If
 > you have multiple JCache compliant cache providers and want to force
@@ -234,7 +234,7 @@ configured, a
 `org.springframework.data.couchbase.cache.CouchbaseCacheManager[]
 is auto-configured. It is possible to create additional caches on
 startup by setting the configprop:spring.cache.cache-names[] property
-and cache defaults can be configured by using `spring.cache.couchbase.*`
+and cache defaults can be configured by using`spring.cache.couchbase.*`
 properties. For instance, the following configuration creates `cache1`
 and `cache2` caches with an entry *expiration* of 10 minutes:
 
@@ -247,7 +247,7 @@ and `cache2` caches with an entry *expiration* of 10 minutes:
 If you need more control over the configuration, consider registering a
 `org.springframework.boot.autoconfigure.cache.CouchbaseCacheManagerBuilderCustomizer[]
 bean. The following example shows a customizer that configures a
-specific entry expiration for `cache1` and `cache2`:
+specific entry expiration for`cache1` and `cache2`:
 
 include-code::MyCouchbaseCacheManagerConfiguration[]
 
@@ -257,7 +257,7 @@ If [Redis](https://redis.io/) is available and configured, a
 `org.springframework.data.redis.cache.RedisCacheManager[] is
 auto-configured. It is possible to create additional caches on startup
 by setting the configprop:spring.cache.cache-names[] property and
-cache defaults can be configured by using `spring.cache.redis.*`
+cache defaults can be configured by using`spring.cache.redis.*`
 properties. For instance, the following configuration creates `cache1`
 and `cache2` caches with a *time to live* of 10 minutes:
 
@@ -273,7 +273,7 @@ and `cache2` caches with a *time to live* of 10 minutes:
 > invalid values. We strongly recommend keeping this setting enabled if
 > you create your own
 > `org.springframework.data.redis.cache.RedisCacheManager[].
-
+>
 > [!TIP]
 > You can take full control of the default configuration by adding a
 > `org.springframework.data.redis.cache.RedisCacheConfiguration[]
@@ -284,7 +284,7 @@ and `cache2` caches with a *time to live* of 10 minutes:
 If you need more control over the configuration, consider registering a
 `org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer[]
 bean. The following example shows a customizer that configures a
-specific time to live for `cache1` and `cache2`:
+specific time to live for`cache1` and `cache2`:
 
 include-code::MyRedisCacheManagerConfiguration[]
 
@@ -293,7 +293,7 @@ include-code::MyRedisCacheManagerConfiguration[]
 [Caffeine](https://github.com/ben-manes/caffeine) is a Java 8 rewrite of
 Guava’s cache that supersedes support for Guava. If Caffeine is present,
 a `org.springframework.cache.caffeine.CaffeineCacheManager[]
-(provided by the `spring-boot-starter-cache` starter) is
+(provided by the`spring-boot-starter-cache` starter) is
 auto-configured. Caches can be created on startup by setting the
 configprop:spring.cache.cache-names[] property and can be customized
 by one of the following (in the indicated order):
@@ -320,7 +320,7 @@ defined, it is automatically associated to the
 `org.springframework.cache.caffeine.CaffeineCacheManager[].
 Since the `com.github.benmanes.caffeine.cache.CacheLoader[] is
 going to be associated with *all* caches managed by the cache manager,
-it must be defined as `CacheLoader<Object, Object>`. The
+it must be defined as`CacheLoader<Object, Object>`. The
 auto-configuration ignores any other generic type.
 
 ## Cache2k
