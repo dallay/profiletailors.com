@@ -782,6 +782,7 @@ DROP INDEX user_email;
 ### Query Optimization Tips
 
 1. **Use specific labels:**
+
    ```cypher
    // Good
    MATCH (u:User {email: $email}) RETURN u
@@ -791,6 +792,7 @@ DROP INDEX user_email;
    ```
 
 2. **Filter early:**
+
    ```cypher
    // Good
    MATCH (u:User)
@@ -805,6 +807,7 @@ DROP INDEX user_email;
    ```
 
 3. **Use projections to fetch only needed data:**
+
    ```kotlin
    // Good
    List<UserSummary> findAllBy();
@@ -814,6 +817,7 @@ DROP INDEX user_email;
    ```
 
 4. **Limit result sets:**
+
    ```kotlin
    // Use pagination
    Page<User> findAll(Pageable pageable);

@@ -71,6 +71,7 @@ npx -y modern-web-guidance@latest search "<query>" --skill-version 2026_05_16-c5
 
 > **Note**: If search results are vague, return no matches, or show low similarity scores, run the
 `list` command to browse all guides:
+>
 > ```sh
 > npx -y modern-web-guidance@latest list
 > ```
@@ -109,30 +110,30 @@ npx -y modern-web-guidance@latest retrieve "<id>"
 
 ## Interpreting Browser Support & Fallbacks
 
-* **Default Behavior**: All guides assume **Baseline Widely available** features are safe to use
+- **Default Behavior**: All guides assume **Baseline Widely available** features are safe to use
   without fallbacks. For features that are not Baseline widely available, you **MUST** follow the
   fallback recommendations in the guide, unless the user has specified a custom browser support
   policy.
-* **Custom Policies**: If the user has already defined explicit browser support requirements, use
+- **Custom Policies**: If the user has already defined explicit browser support requirements, use
   the browser compatibility data in the guide to determine if a fallback can be safely ignored.
-    - For Baseline YYYY targets, a feature satisfies this target if its "Baseline since" date is <=
+  - For Baseline YYYY targets, a feature satisfies this target if its "Baseline since" date is <=
       YYYY.
-    - **Policy Examples**:
-        - _"Do not implement feature fallbacks."_ (for exploratory prototypes of the cutting-edge
+  - **Policy Examples**:
+    - _"Do not implement feature fallbacks."_ (for exploratory prototypes of the cutting-edge
           web)
-        - _"Safari 17.4+"_ (for internal tools targeting macOS or Tauri-based desktop apps)
-        - _"Never recommend or implement polyfills; if a Baseline Newly Available feature is
+    - _"Safari 17.4+"_ (for internal tools targeting macOS or Tauri-based desktop apps)
+    - _"Never recommend or implement polyfills; if a Baseline Newly Available feature is
           required for core functionality, provide a lightweight custom fallback or redesign the
           approach."_ (to minimize bundle size and avoid technical debt)
-        - _"Assume a modern execution environment where Baseline Newly Available features can be
+    - _"Assume a modern execution environment where Baseline Newly Available features can be
           used natively, provided they are strictly feature-detected and degrade gracefully."_ (for
           progressive enhancement strategies)
-* **Reactive Policy Discovery**: Watch for environmental cues to suggest documenting a policy in
+- **Reactive Policy Discovery**: Watch for environmental cues to suggest documenting a policy in
   CLAUDE.md or AGENTS.md. Suggest this if the developer:
-    - Mentions building for a restricted runtime (e.g., Electron or Tauri).
-    - Explicitly excludes specific targets (e.g., "we don't support Desktop Chrome").
-    - Expresses hesitation about polyfill complexity, bundle size, or performance cost.
-    - Questions if a feature is safe to use without fallbacks.
+  - Mentions building for a restricted runtime (e.g., Electron or Tauri).
+  - Explicitly excludes specific targets (e.g., "we don't support Desktop Chrome").
+  - Expresses hesitation about polyfill complexity, bundle size, or performance cost.
+  - Questions if a feature is safe to use without fallbacks.
 
   No defined policy format. This is an example:
   `**Browser Support:** Allow Newly Available features, but only adopt custom fallback code that adds <= 20 lines and does not require external dependencies.`

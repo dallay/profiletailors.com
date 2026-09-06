@@ -9,6 +9,12 @@ enum class RegistrationMode {
     CLOSED,
     ;
 
+    /**
+     * Determines the registration decision for this mode and invitation-token status.
+     *
+     * @param hasInvitationToken Whether an invitation token is present.
+     * @return The applicable registration decision.
+     */
     fun evaluate(hasInvitationToken: Boolean): RegistrationDecision = when {
         this == OPEN -> RegistrationDecision.ALLOWED
         this == INVITE_ONLY && hasInvitationToken -> RegistrationDecision.ALLOWED

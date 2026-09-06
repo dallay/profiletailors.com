@@ -102,9 +102,8 @@ Certification does not prove controls outside its scope or after its audit perio
 - Ability to suspend, localise, migrate, or delete if the mechanism changes
 - Customer and affected-person information requirements
 
-Complete [
-`international-transfer-assessment-template.md`](international-transfer-assessment-template.md) for
-every restricted route.
+Complete [`international-transfer-assessment-template.md`](international-transfer-assessment-template.md)
+for every restricted route.
 
 ### 7. Contract Review
 

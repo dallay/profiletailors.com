@@ -40,6 +40,7 @@ The existing media projects stay in place for both composer and non-composer sce
 The Dashboard SPA (`apps/web/app`) E2E test matrix officially excludes WebKit (Desktop Safari / Mobile Safari).
 
 **Rationale:**
+
 - **Engine-Level Limitations:** WebKit has a known Playwright limitation (and underlying browser driver issue) where it fails to set or persist cookies from intercepted responses (e.g., via `context.routeFromHAR` or programmatically intercepted `Set-Cookie` headers). Since the Dashboard SPA uses HttpOnly cookies for session/refresh token handling, and all Dashboard E2E tests run in a backend-free (HAR-replayed) environment, WebKit is incapable of running these tests.
 - **CI Strategy:** For the Dashboard SPA, our CI workflows (`.github/workflows/ci.yml`) install and run E2E suites exclusively on **Chromium**-based targets, which is highly stable, deterministic, and cost-effective.
 - **Cross-Browser Scope:** Full cross-browser matrix coverage (including Firefox and WebKit) is maintained for the static/Astro-based marketing site (`apps/web/marketing`) where layout and accessibility are verified across engines.

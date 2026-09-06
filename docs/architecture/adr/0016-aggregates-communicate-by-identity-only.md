@@ -7,11 +7,11 @@
 - Supersedes: None
 - Superseded by: None
 - Related:
-    - Skills: `.agents/skills/backend-platform/ddd-architecture/SKILL.md`
-    - Companion ADRs:
-        - ADR-0015: Aggregate Root Is the Sole Entry Point to an Aggregate
-        - ADR-0017: Value Objects Are Immutable and Validate at Construction
-    - Marker annotations: `com.profiletailors.common.domain.AggregateRoot`,
+  - Skills: `.agents/skills/backend-platform/ddd-architecture/SKILL.md`
+  - Companion ADRs:
+    - ADR-0015: Aggregate Root Is the Sole Entry Point to an Aggregate
+    - ADR-0017: Value Objects Are Immutable and Validate at Construction
+  - Marker annotations: `com.profiletailors.common.domain.AggregateRoot`,
       `com.profiletailors.common.domain.DomainEntity`
 
 ## Context
