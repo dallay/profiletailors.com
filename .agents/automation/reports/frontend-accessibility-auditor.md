@@ -17,7 +17,7 @@ Audit frontend accessibility for regressions and conformance across web template
 ## Changes Applied
 
 - Updated `apps/web/marketing/src/components/WaitlistForm.astro` to wrap the waitlist email field label in `<label for="waitlist-email">` rather than `<span>` for explicit HTML semantic association.
-- Updated `apps/web/app/src/modules/publishing/presentation/components/ComposerChannelSelector.vue` to set `:alt="ch.name ? `${ch.name} avatar` : 'Channel avatar'"` on channel avatar image tags to ensure a fallback accessible alternative text label.
+- Updated `apps/web/app/src/modules/publishing/presentation/components/ComposerChannelSelector.vue` to set `:alt` with fallback string on channel avatar image tags to ensure a fallback accessible alternative text label.
 
 ## Evidence Table
 

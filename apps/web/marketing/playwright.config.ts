@@ -20,7 +20,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: [
     ['list'],
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['html', { outputFolder: 'playwright-report' }],
     [
       '@bgotink/playwright-coverage',
       defineCoverageReporterConfig({
@@ -65,7 +65,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: `WAITLIST_ENABLED=true WAITLIST_API_BASE=http://localhost:${backendPort} pnpm build && ASTRO_PREVIEW_BACKGROUND=0 PORT=${previewPort} pnpm preview`,
+    command: `WAITLIST_ENABLED=true WAITLIST_API_BASE=http://localhost:${backendPort} pnpm build && PORT=${previewPort} pnpm preview`,
     url: `http://localhost:${previewPort}`,
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'true',
     timeout: 120 * 1000,

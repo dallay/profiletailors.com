@@ -1,13 +1,25 @@
 package com.profiletailors.smp.privacy.application
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+
 /**
- * Convenience function for inline JSON serialization using [PrivacyDataSerializer].
- */
-/**
- * Serializes privacy data to a JSON string.
+ * JSON utility shared across privacy application services.
  *
- * @param serializer The serializer used to convert the data.
- * @param data The data to serialize.
- * @return The serialized JSON string.
+ * Uses Jackson with Kotlin module for serialization.
  */
-internal fun mapToJson(serializer: PrivacyDataSerializer, data: Any?): String = serializer.toJson(data)
+internal object PrivacyJson {
+    private val mapper: ObjectMapper = jacksonObjectMapper()
+
+    /**
+     * Serializes [data] to a JSON string.
+     *
+     * Accepts maps, lists, and any Jackson-serializable value.
+     */
+    fun toJson(data: Any?): String = mapper.writeValueAsString(data)
+}
+
+/**
+ * Convenience function for inline JSON serialization.
+ */
+internal fun mapToJson(data: Any?): String = PrivacyJson.toJson(data)

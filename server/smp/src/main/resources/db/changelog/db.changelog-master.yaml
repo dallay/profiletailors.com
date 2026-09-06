@@ -142,9 +142,9 @@ databaseChangeLog:
   - include:
       file: db/changelog/platform-admin/005-harden-invitations.yaml
   - include:
-      file: db/changelog/platform-admin/007-add-invitation-target.yaml
+      file: db/changelog/platform-admin/006-create-administrative-audit-events.yaml
   - include:
-      file: db/changelog/platform-admin/007-add-metadata-to-platform-admin-audit-events.yaml
+      file: db/changelog/platform-admin/007-add-invitation-target.yaml
   # ── Dev seed data (context: dev only) ──────────────────────────
   - include:
       file: db/changelog/dev/001-seed-test-data.yaml
