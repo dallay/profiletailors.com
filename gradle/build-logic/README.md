@@ -8,14 +8,14 @@ Encapsulates standard Gradle build logic for the entire Profile Tailors backend 
 
 ## Tech stack
 
-- **Runtime & Language**: Java 21, Kotlin 2.4, Gradle Kotlin DSL
+- **Runtime & Language**: Java 25, Kotlin 2.4, Gradle Kotlin DSL
 - **Plugins & Libraries**: Spring Boot 4.0 Gradle Plugin, Detekt 1.23, OWASP Dependency Check, Spotless, Kover
 
 ## Getting started
 
 ### Prerequisites
 
-- Java JDK `>= 21`
+- Java JDK `>= 25`
 - Gradle wrapper (`./gradlew` on Linux/macOS, `gradlew.bat` on Windows)
 
 ### Installation

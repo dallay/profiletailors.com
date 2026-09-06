@@ -171,7 +171,7 @@ class R2dbcBulkImportJobRepository(
             bodyText = get("body_text", String::class.java),
             scheduledFor = get("scheduled_for", OffsetDateTime::class.java)?.toInstant(),
             mediaUrls = mediaUrls,
-            hasConflict = get("has_conflict", java.lang.Boolean::class.java)?.booleanValue() ?: false,
+            hasConflict = get("has_conflict", Boolean::class.javaObjectType) ?: false,
         )
     }
 

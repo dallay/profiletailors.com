@@ -1,6 +1,6 @@
 # Profile Tailors Documentation
 
-**Last Updated:** 2026-09-04
+**Last Updated:** 2026-09-06
 
 ## 📖 Table of Contents
 
@@ -43,6 +43,8 @@
 - [Observability Contracts](./observability-contracts.md) - Shared telemetry and logging contracts
 
 ### Development & Testing
+
+- [Technical Debt Remediation](./technical-debt-remediation.md) - Java 25 migration and staged audit follow-up
 
 - [Getting Started](./getting-started.md) - Local developer onboarding, `just` installation, and
   `just setup`

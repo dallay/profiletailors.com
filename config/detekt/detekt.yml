@@ -1,9 +1,6 @@
-# Detekt configuration for profiletailors.com (detekt 2.0.0-alpha.3)
-# Auto-generated baseline — customize rules as needed
-
 config:
   validation: true
-  warningsAsErrors: false
+  warningsAsErrors: true
 
 processors:
   active: true

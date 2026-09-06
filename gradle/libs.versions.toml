@@ -9,7 +9,7 @@ detekt = "2.0.0-alpha.6"
 spotless = "8.10.1"
 owasp = "13.0.0"
 licenceReport = "3.1.4"
-jdk = "21"
+jdk = "25"
 
 # Libraries
 coroutines = "1.10.2"
