@@ -1,0 +1,11 @@
+name: profiletailors-frontend-scope
+
+paths:
+  - apps/web
+  - shared/web
+  - scripts
+
+paths-ignore:
+  - docs
+  - openspec
+  - tmp

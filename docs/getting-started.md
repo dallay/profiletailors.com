@@ -1,6 +1,6 @@
 # Getting Started — Local Development Environment
 
-**Last Updated:** 2026-08-31
+**Last Updated:** 2026-09-06
 **Status:** Active
 
 ## Overview
@@ -16,7 +16,7 @@ Run `just -l` to see every available recipe.
 
 | Requirement | Version      | Install                                                                |
 | ----------- | ------------ | ---------------------------------------------------------------------- |
-| Java        | `>= 21`      | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
+| Java        | `>= 25`      | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
 | Node.js     | `>= 24.19.0` | [nodejs.org](https://nodejs.org)                                       |
 | pnpm        | `>= 11.20.0` | `npm install -g pnpm@11.20.0`                                          |
 | just        | `>= 1.30`    | See below                                                              |
@@ -196,10 +196,10 @@ lsof -ti:4321 | xargs kill -9
 
 ### Gradle build is slow or fails
 
-Ensure you have Java 21+:
+Ensure you have Java 25+:
 
 ```bash
-java -version  # should be 21 or later
+java -version
 ```
 
 If using SDKMAN or jenv, verify the active version matches.

@@ -142,7 +142,7 @@ jobs:
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
           cache: gradle
       - name: Initialize CodeQL
         uses: github/codeql-action/init@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
@@ -168,6 +168,45 @@ jobs:
           {
             echo '### security / codeql-full-backend'
             echo '- Intent: reporting-only deep backend code-graph analysis for `server/smp` and `shared/**`.'
+            echo '- Publication: GitHub code scanning through native CodeQL analysis upload.'
+            echo '- Merge gating: none in the scheduled lane; this run complements the path-aware PR lane.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  codeql-full-frontend:
+    name: security / codeql-full-frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.19.0'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
+        with:
+          languages: javascript-typescript
+          config-file: ./.github/codeql/codeql-frontend-config.yml
+      - name: Analyze with CodeQL
+        uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
+        with:
+          category: codeql-full-frontend
+      - name: Summarize CodeQL reporting channel
+        if: ${{ always() }}
+        run: |
+          {
+            echo '### security / codeql-full-frontend'
+            echo '- Intent: reporting-only deep frontend code-graph analysis for `apps/web` and `shared/web`.'
             echo '- Publication: GitHub code scanning through native CodeQL analysis upload.'
             echo '- Merge gating: none in the scheduled lane; this run complements the path-aware PR lane.'
           } >> "$GITHUB_STEP_SUMMARY"
@@ -251,6 +290,7 @@ jobs:
       - gitleaks-history
       - semgrep-full
       - codeql-full-backend
+      - codeql-full-frontend
       - trivy-full
     if: ${{ always() }}
     runs-on: ubuntu-latest
@@ -327,6 +367,7 @@ jobs:
       - gitleaks-history
       - semgrep-full
       - codeql-full-backend
+      - codeql-full-frontend
       - trivy-full
       - sonar-full
     if: ${{ always() }}
@@ -338,7 +379,8 @@ jobs:
         env:
           GITLEAKS_RESULT: ${{ needs.gitleaks-history.result }}
           SEMGREP_RESULT: ${{ needs.semgrep-full.result }}
-          CODEQL_RESULT: ${{ needs.codeql-full-backend.result }}
+          CODEQL_BACKEND_RESULT: ${{ needs.codeql-full-backend.result }}
+          CODEQL_FRONTEND_RESULT: ${{ needs.codeql-full-frontend.result }}
           TRIVY_RESULT: ${{ needs.trivy-full.result }}
           SONAR_RESULT: ${{ needs.sonar-full.result }}
         run: |
@@ -350,14 +392,15 @@ jobs:
             echo '### Job results'
             echo "- gitleaks-history: $GITLEAKS_RESULT"
             echo "- semgrep-full: $SEMGREP_RESULT"
-            echo "- codeql-full-backend: $CODEQL_RESULT"
+            echo "- codeql-full-backend: $CODEQL_BACKEND_RESULT"
+            echo "- codeql-full-frontend: $CODEQL_FRONTEND_RESULT"
             echo "- trivy-full: $TRIVY_RESULT"
             echo "- sonar-full: $SONAR_RESULT"
             echo ''
             echo '### Findings channels'
             echo '- Gitleaks history: GitHub code scanning via SARIF + retained artifact `security-deep-gitleaks-history`.'
             echo '- Semgrep full: GitHub code scanning via SARIF + retained artifact `security-deep-semgrep-full`.'
-            echo '- CodeQL full backend: native GitHub code scanning upload.'
+            echo '- CodeQL full backend/frontend: native GitHub code scanning upload.'
             echo '- Trivy full: GitHub code scanning via SARIF + retained artifact `security-deep-trivy-full`.'
             echo '- Sonar full: external Sonar dashboard only when enabled.'
             echo ''

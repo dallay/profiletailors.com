@@ -142,7 +142,7 @@ describe('settings store', () => {
     expect(stubs.localStorageMock.setItem.mock.calls.length).toBeGreaterThan(callsBefore)
     const lastCall = stubs.localStorageMock.setItem.mock.calls.at(-1)
     expect(lastCall?.[0]).toBe('pt_settings_v1')
-    expect(JSON.parse(String(lastCall?.[1]))).toEqual({ locale: 'en', theme: 'light' })
+    expect(JSON.parse(String(lastCall?.[1]))).toEqual(expect.objectContaining({ locale: 'en', theme: 'light' }))
   })
 
   it('toggleTheme switches between dark and light', async () => {

@@ -37,7 +37,7 @@ class PublicationWriteToolsTest {
     }
 
     private val objectMapper: ObjectMapper =
-        com.profiletailors.smp.mcp.application.IdempotencyGuard.defaultObjectMapper()
+        com.profiletailors.smp.mcp.infrastructure.JacksonMcpJsonSerializer.defaultObjectMapper()
 
     private val workspaceId = "ws-1"
     private val principalId = "user-1"
@@ -50,7 +50,10 @@ class PublicationWriteToolsTest {
     ): PublicationTools = PublicationTools(
         mediator = mediator,
         errorMapper = McpErrorMapper(),
-        idempotencyGuard = IdempotencyGuard(idempotencyRepository, objectMapper),
+        idempotencyGuard = IdempotencyGuard(
+            idempotencyRepository,
+            com.profiletailors.smp.mcp.infrastructure.JacksonMcpJsonSerializer(objectMapper),
+        ),
         auditEmitter = auditEmitter,
     )
 

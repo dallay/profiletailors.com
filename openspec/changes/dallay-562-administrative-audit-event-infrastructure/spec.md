@@ -1,209 +1,150 @@
-# Delta for Administrative Audit Event Infrastructure
+# Specification: Administrative Audit Event Infrastructure
+
+## Overview
 
-## Purpose
+Consolidate audit event infrastructure on the existing `platformadmin` bounded context by adding
+redaction enforcement inside `R2dbcAdminAuditRepository.publish()`. The orphaned `administrative`
+bounded context and its `administrative_audit_events` table are removed.
 
-Define the `AdministrativeAuditEvent` model, `SensitiveFieldRedactor` redaction policy,
-`AdministrativeAuditEventRepository` port, `AuditEventPublisher` service, and
-Liquibase schema for persisting Back Office administrative audit events without
-leaking tokens, passwords, or secrets.
+## Changes
 
-## ADDED Requirements
+### MODIFIED: Redaction Enforcement
 
-### Requirement: Administrative audit event model
+**Element**: `R2dbcAdminAuditRepository.publish()`
 
-`AdministrativeAuditEvent` MUST be constructed with the following fields:
+The method now calls `redact()` on event metadata before storing it.
 
-| Field | Type | Constraints |
-|-------|------|-------------|
-| `id` | `UUID` | Not null, primary key |
-| `actorId` | `UUID` | Not null |
-| `actorType` | `String` | Not blank, max 64 chars |
-| `action` | `String` | Not blank, max 128 chars |
-| `targetId` | `String` | Not blank, max 255 chars |
-| `targetType` | `String` | Not blank, max 64 chars |
-| `correlationId` | `String?` | Nullable, max 128 chars |
-| `metadata` | `Map<String, String>` | Pre-sanitized by caller via `SensitiveFieldRedactor` |
-| `occurredAt` | `Instant` | Not null |
+**Before**:
+```kotlin
+suspend fun publish(event: AdminAuditEvent) {
+    // stores event.metadata directly — sensitive keys may be stored in plain text
+}
+```
 
-Construction MUST reject any blank string field or null required field.
+**After**:
+```kotlin
+suspend fun publish(event: AdminAuditEvent) {
+    val safeMetadata = redact(event.metadata)
+    // stores safeMetadata — sensitive keys removed before INSERT
+}
+```
 
-#### Scenario: Complete audit event construction
+**Sensitive key substrings** (case-insensitive match):
+`password`, `token`, `secret`, `credential`, `key`, `invitationtoken`, `resettoken`,
+`refreshtoken`, `acresstoken`
 
-- GIVEN valid required fields and null optional correlationId
-- WHEN `AdministrativeAuditEvent` is constructed
-- THEN construction MUST succeed and all fields are queryable
+**Stored data**:
+- `id`, `event_type`, `workspace_id`, `actor_id`, `timestamp` — unchanged
+- `metadata` — only non-sensitive key-value pairs
 
-#### Scenario: Missing required field rejects construction
+### REMOVED: Orphaned `administrative` Context
 
-- GIVEN a blank `actorType`
-- WHEN `AdministrativeAuditEvent` is constructed
-- THEN construction MUST throw `IllegalArgumentException`
+**Elements deleted**:
 
----
+| Element | Type | Location |
+|---|---|---|
+| `AdministrativeBoundedContext` | class | `domain/AdministrativeBoundedContext.kt` |
+| `AdministrativeAuditEvent` | class | `domain/AdministrativeAuditEvent.kt` |
+| `AdministrativeAuditEventRepository` | interface | `domain/AdministrativeAuditEventRepository.kt` |
+| `AuditEventPublisher` | class | `application/AuditEventPublisher.kt` |
+| `R2dbcAdministrativeAuditEventRepository` | class | `infrastructure/R2dbcAdministrativeAuditEventRepository.kt` |
+| `AdministrativeAuditEventRepositoryImplTest` | test | `infrastructure/R2dbcAdministrativeAuditEventRepositoryImplTest.kt` |
+| `AuditEventPublisherTest` | test | `application/AuditEventPublisherTest.kt` |
 
-### Requirement: Sensitive field redaction policy
+**Location**: `server/smp/src/main/kotlin/com/profiletailors/smp/administrative/` and
+`server/smp/src/test/kotlin/com/profiletailors/smp/administrative/`
 
-`SensitiveFieldRedactor` MUST accept a `Map<String, String>` and return a new map
-with all sensitive keys removed. A key is sensitive when its lowercase name
-contains any of the following substrings: `password`, `token`, `secret`,
-`credential`, `key`, `invitationToken`, `resetToken`, `refreshToken`,
-`accessToken`.
+### REMOVED: Orphaned Table Migration
 
-The function MUST be pure (no side effects) and case-insensitive on key names.
-Null maps MUST return an empty map.
+**Option A — Rollback** (if V006 was never deployed to shared environments):
+Migration file `V006__create_administrative_audit_events.sql` is deleted from `db/migration/`.
+The include entry is removed from `db/changelog-master.yaml`.
 
-#### Scenario: Password key is redacted
+**Option B — Forward-drop** (if V006 was already applied to shared environments):
+A new migration `V007__drop_administrative_audit_events.sql` is added:
+```sql
+DROP TABLE IF EXISTS administrative_audit_events;
+```
+The include entry is removed from `db.changelog-master.yaml`.
 
-- GIVEN a map with `{"password": "secret123", "action": "LOGIN"}`
-- WHEN `SensitiveFieldRedactor.redact(input)` is called
-- THEN the result MUST contain only `{"action": "LOGIN"}`
+Which option applies is determined by checking whether `V006__create_administrative_audit_events.sql`
+was merged and deployed before the consolidation decision.
 
-#### Scenario: Token substring keys are redacted
+## Scenarios
 
-- GIVEN a map with `{"accessToken": "abc", "userToken": "xyz", "name": "Alice"}`
-- WHEN `SensitiveFieldRedactor.redact(input)` is called
-- THEN the result MUST contain only `{"name": "Alice"}`
+### Scenario: Publish event with sensitive metadata
 
-#### Scenario: Case-insensitive matching
+**Given** an `AdminAuditEvent` with metadata:
+```json
+{
+  "action": "user.login",
+  "invitationToken": "secret-value",
+  "userId": "user-123"
+}
+```
 
-- GIVEN a map with `{"PASSWORD": "secret", "MyToken": "value"}`
-- WHEN `SensitiveFieldRedactor.redact(input)` is called
-- THEN both keys MUST be absent from the result
+**When** `R2dbcAdminAuditRepository.publish(event)` is called
 
-#### Scenario: Null input returns empty map
+**Then** the row stored in `platform_admin_audit_events` has:
+```json
+{
+  "action": "user.login",
+  "userId": "user-123"
+}
+```
+The `invitationToken` key is removed by `redact()`.
 
-- GIVEN null input
-- WHEN `SensitiveFieldRedactor.redact(null)` is called
-- THEN the result MUST be an empty map
+### Scenario: Publish event with no sensitive metadata
 
-#### Scenario: No sensitive keys returns identical map
+**Given** an `AdminAuditEvent` with metadata:
+```json
+{"action": "user.logout", "userId": "user-456"}
+```
 
-- GIVEN a map with `{"action": "UPDATE", "targetId": "123"}`
-- WHEN `SensitiveFieldRedactor.redact(input)` is called
-- THEN the result MUST contain exactly the same entries
+**When** `R2dbcAdminAuditRepository.publish(event)` is called
 
----
+**Then** the row stored in `platform_admin_audit_events` has all original keys intact.
 
-### Requirement: Administrative audit event repository port
+### Scenario: Publish event with case-variant sensitive keys
 
-`AdministrativeAuditEventRepository` MUST declare the following suspend functions
-in `com.profiletailors.smp.administrative.domain`:
+**Given** an `AdminAuditEvent` with metadata:
+```json
+{"action": "auth", "accessToken": "secret-value", "RESETPassword": "another-secret"}
+```
 
-- `save(event: AdministrativeAuditEvent): AdministrativeAuditEvent` — persists the event and returns it
-- `findById(id: UUID): AdministrativeAuditEvent?` — returns the event or null
-- `findByActor(actorId: UUID): List<AdministrativeAuditEvent>` — returns all events for an actor
-- `findByTarget(targetType: String, targetId: String): List<AdministrativeAuditEvent>` — returns all events for a target
-- `findByCorrelationId(correlationId: String): List<AdministrativeAuditEvent>` — returns all events sharing a correlation ID
+**When** `R2dbcAdminAuditRepository.publish(event)` is called
 
-The port interface MUST have no Spring annotations.
+**Then** the row stored in `platform_admin_audit_events` has:
+```json
+{"action": "auth"}
+```
+Both `accessToken` and `RESETPassword` are removed (case-insensitive substring match on "token" and "password").
 
-#### Scenario: Save and retrieve by id
+### Scenario: No mutation of original event
 
-- GIVEN a valid `AdministrativeAuditEvent`
-- WHEN `repository.save(event)` is called followed by `repository.findById(event.id)`
-- THEN the returned event MUST equal the saved event
+**Given** an `AdminAuditEvent` with metadata containing sensitive keys
 
-#### Scenario: Find by non-existent id returns null
+**When** `redact(event.metadata)` is called
 
-- GIVEN a random UUID with no persisted event
-- WHEN `repository.findById(randomId)` is called
-- THEN the result MUST be null
+**Then** the original `event.metadata` map is unchanged after the call.
 
----
+### Scenario: Orphaned `administrative` context is no longer referenced
 
-### Requirement: Audit event publisher service
+**Given** no code imports `com.profiletailors.smp.administrative.**`
 
-`AuditEventPublisher` in `com.profiletailors.smp.administrative.application`
-MUST accept an `AdministrativeAuditEvent` and delegate persistence to
-`AdministrativeAuditEventRepository`. Capability handlers MUST call this service
-after completing administrative actions; they are responsible for building
-pre-sanitized metadata before calling `publish`.
+**When** compilation completes
 
-The publisher MUST NOT perform redaction itself — callers MUST pre-redact using
-`SensitiveFieldRedactor`.
+**Then** no dead code warnings for the deleted package
 
-#### Scenario: Publisher delegates to repository
+## Acceptance Criteria
 
-- GIVEN a valid `AdministrativeAuditEvent` with pre-sanitized metadata
-- WHEN `AuditEventPublisher.publish(event)` is called
-- THEN the event MUST be persisted via `AdministrativeAuditEventRepository.save`
-
-#### Scenario: Metadata must be pre-sanitized by caller
-
-- GIVEN an event with unsanitized metadata containing `{"password": "secret"}`
-- WHEN `AuditEventPublisher.publish(event)` is called
-- THEN the persisted event metadata MUST NOT contain the password field
-- AND the caller is responsible for pre-sanitizing
-
----
-
-### Requirement: Liquibase migration for administrative_audit_events
-
-The Liquibase migration MUST create `administrative_audit_events` with:
-
-| Column | Type | Constraints |
-|--------|------|-------------|
-| `id` | `uuid` | PK, NOT NULL |
-| `actor_id` | `uuid` | NOT NULL |
-| `actor_type` | `varchar(64)` | NOT NULL |
-| `action` | `varchar(128)` | NOT NULL |
-| `target_id` | `varchar(255)` | NOT NULL |
-| `target_type` | `varchar(64)` | NOT NULL |
-| `correlation_id` | `varchar(128)` | NULL |
-| `metadata` | `text` | NULL (JSON serialized map) |
-| `occurred_at` | `timestamp with time zone` | NOT NULL |
-
-Indexes MUST exist on `actor_id`, `target_id`, `action`, `occurred_at`, and
-`correlation_id`.
-
-#### Scenario: Migration creates table with indexes
-
-- GIVEN the Liquibase changelog entry for `administrative_audit_events`
-- WHEN the migration runs against a blank database
-- THEN the table MUST exist with all columns and indexes defined
-
----
-
-### Requirement: Unit tests for redaction
-
-`SensitiveFieldRedactorTest` MUST cover:
-
-- Exact sensitive key removal (password, token, secret, credential, key)
-- Compound and camelCase variants (invitationToken, resetToken, refreshToken, accessToken)
-- Case-insensitive matching
-- Null and empty map handling
-- Map with no sensitive keys
-- Map with mixed sensitive and non-sensitive keys
-
-`AdministrativeAuditEventTest` MUST cover construction with valid/invalid inputs.
-
-#### Scenario: All denylist substrings are tested
-
-- GIVEN the denylist: password, token, secret, credential, key, invitationToken, resetToken, refreshToken, accessToken
-- WHEN a map with each as a key substring is redacted
-- THEN all such entries MUST be absent from the result
-
-#### Scenario: Construction rejects blank fields
-
-- GIVEN an event with blank `action`
-- WHEN the event is constructed
-- THEN an exception MUST be thrown
-
----
-
-## MODIFIED Requirements
-
-None — this is a new capability with no existing behavior.
-
-## REMOVED Requirements
-
-None.
-
----
-
-## Notes
-
-- The `administrative` bounded context is new; no existing `administrative/` package exists yet
-- Redaction is caller responsibility — `AuditEventPublisher` does not call `SensitiveFieldRedactor`
-- The `metadata` column stores JSON-serialized `Map<String, String>` after redaction
-- Existing `AdminAuditEvent` in `platformadmin` is a separate model for platform-role assignment audit; `AdministrativeAuditEvent` is the generic Back Office administrative action audit model
+- [ ] `R2dbcAdminAuditRepository.publish()` calls `redact()` before storing metadata
+- [ ] `redact()` removes keys containing: password, token, secret, credential, key (case-insensitive)
+- [ ] `redact()` does not mutate the input map
+- [ ] `server/smp/src/main/kotlin/com/profiletailors/smp/administrative/` is deleted
+- [ ] `server/smp/src/test/kotlin/com/profiletailors/smp/administrative/` is deleted
+- [ ] `V006__create_administrative_audit_events.sql` is either deleted (rollback) or superseded by forward-drop migration
+- [ ] `backend-test-fast` passes without errors
+- [ ] `backend-bdd-fast` passes without errors
+- [ ] Unit test covers `redact()` edge cases: empty map, no sensitive keys, all sensitive keys, mixed case variants, original map untouched
+- [ ] Integration test covers: event with sensitive metadata → stored row is sanitized

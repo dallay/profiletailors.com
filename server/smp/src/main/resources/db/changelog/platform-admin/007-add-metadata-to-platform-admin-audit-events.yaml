@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-007-add-metadata-to-platform-admin-audit-events
+      author: platform-admin
+      changes:
+        - addColumn:
+            tableName: platform_admin_audit_events
+            columns:
+              - column:
+                  name: metadata
+                  type: text
