@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.5.0](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.9...smp@v0.5.0) (2026-09-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **platform-admin:** complete Invitation aggregate with lifecycle and CAS ([#944](https://github.com/dallay/profiletailors.com/issues/944))
+
+### Features
+
+* dallay 564 first class invitation ([#950](https://github.com/dallay/profiletailors.com/issues/950)) ([93314c1](https://github.com/dallay/profiletailors.com/commit/93314c17269d12d099d0570f91362f35037e268e))
+* first-class Invitation aggregate with lifecycle and notification integration ([#955](https://github.com/dallay/profiletailors.com/issues/955)) ([811752d](https://github.com/dallay/profiletailors.com/commit/811752d46b6e336076e1c05587755f79915841c6))
+* **platform-admin:** complete Invitation aggregate with lifecycle and CAS ([#944](https://github.com/dallay/profiletailors.com/issues/944)) ([7556b5a](https://github.com/dallay/profiletailors.com/commit/7556b5aea5f3d9b7d51d355529d625fb070b2d91))
+* **platformadmin:** remove orphaned administrative context, enforce redact() in publish() ([#974](https://github.com/dallay/profiletailors.com/issues/974)) ([4c69cb1](https://github.com/dallay/profiletailors.com/commit/4c69cb1c1f0b4383e972a39f6e23580e7d095c40))
+* **publishing:** add bulk scheduling with CSV validation ([#922](https://github.com/dallay/profiletailors.com/issues/922)) ([2a1946b](https://github.com/dallay/profiletailors.com/commit/2a1946b667d0fac392ad8df93c79d67cef3c2526))
+
+
+### Bug Fixes
+
+* **notifications:** dispatch invitation emails ([#927](https://github.com/dallay/profiletailors.com/issues/927)) ([ed46918](https://github.com/dallay/profiletailors.com/commit/ed469186d873c1b2fb2078e7a496772f2925cdb0))
+* **test:** resolve PostgreSQL Testcontainers hang ([#943](https://github.com/dallay/profiletailors.com/issues/943)) ([d8ee58d](https://github.com/dallay/profiletailors.com/commit/d8ee58dba33310fe82b0b229c1381814b4803321))
+
+
+### Refactoring
+
+* **backend:** remediate hexagonal architecture and DDD contract findings ([#969](https://github.com/dallay/profiletailors.com/issues/969)) ([b8da699](https://github.com/dallay/profiletailors.com/commit/b8da69917c2e5fa0af590d2c4d78843e7d3163e7))
+* **lint:** remediate unnecessary linter suppressions and audit remaining rules ([#960](https://github.com/dallay/profiletailors.com/issues/960)) ([d9a1750](https://github.com/dallay/profiletailors.com/commit/d9a175065a6f593fec9a380bebfb3486fb013abb))
+
+
+### Documentation
+
+* **config:** reconcile Spring binding evidence ([#962](https://github.com/dallay/profiletailors.com/issues/962)) ([ff7c9b7](https://github.com/dallay/profiletailors.com/commit/ff7c9b7e2411b7d0990de701be27131862f52305))
+
 ## [Unreleased]
 
 ### ⚠ BREAKING CHANGES
