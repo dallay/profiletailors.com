@@ -1,6 +1,10 @@
 change: dallay-562-administrative-audit-event-infrastructure
-current_phase: explore
+current_phase: verify
 completed:
   - explore
-next: propose
-updated: "2026-09-04"
+  - propose
+  - design
+  - spec
+  - apply
+next: verify
+updated: "2026-09-06"
