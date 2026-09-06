@@ -58,22 +58,7 @@ class GeneratePresignedUrlUseCase(
     suspend fun execute(bucket: String, key: String, expirySeconds: Long, requesterId: String): String {
         validateExpiry(expirySeconds)
 
-        // Rate limit check before generating URL
-        val rateLimitResult = rateLimiter.consumeToken(requesterId)
-        if (rateLimitResult is RateLimitResult.Denied) {
-            metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(
-                StorageObservation.Operations.PRESIGN,
-                provider,
-                bucket,
-                StorageObservation.ErrorTypes.RATE_LIMITED,
-            )
-            throw RateLimitExceededException(
-                retryAfterSeconds = rateLimitResult.retryAfter.seconds,
-                message = "Rate limit exceeded for presigned URL generation. " +
-                    "Retry after ${rateLimitResult.retryAfter.seconds}s",
-            )
-        }
+        enforceRateLimit(bucket, requesterId)
 
         val url = try {
             metrics.recordOperationTime(StorageObservation.Operations.PRESIGN, provider) {
@@ -144,6 +129,24 @@ class GeneratePresignedUrlUseCase(
      */
     suspend fun execute(bucket: String, key: String, requesterId: String): String =
         execute(bucket, key, DEFAULT_MAX_EXPIRY_SECONDS, requesterId)
+
+    private suspend fun enforceRateLimit(bucket: String, requesterId: String) {
+        val rateLimitResult = rateLimiter.consumeToken(requesterId)
+        if (rateLimitResult is RateLimitResult.Denied) {
+            metrics.recordPresignedUrlGenerated(provider, false)
+            metrics.recordError(
+                StorageObservation.Operations.PRESIGN,
+                provider,
+                bucket,
+                StorageObservation.ErrorTypes.RATE_LIMITED,
+            )
+            throw RateLimitExceededException(
+                retryAfterSeconds = rateLimitResult.retryAfter.seconds,
+                message = "Rate limit exceeded for presigned URL generation. " +
+                    "Retry after ${rateLimitResult.retryAfter.seconds}s",
+            )
+        }
+    }
 
     private fun validateExpiry(expirySeconds: Long) {
         require(expirySeconds > 0) {
