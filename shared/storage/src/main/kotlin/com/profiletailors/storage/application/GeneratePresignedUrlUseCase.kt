@@ -60,50 +60,55 @@ class GeneratePresignedUrlUseCase(
 
         enforceRateLimit(bucket, requesterId)
 
-        val url = try {
-            metrics.recordOperationTime(StorageObservation.Operations.PRESIGN, provider) {
+        val url = presignObject(bucket, key, expirySeconds)
+
+        metrics.recordPresignedUrlGenerated(provider, true)
+        publishGeneratedEvent(bucket, key, expirySeconds, requesterId)
+
+        return url
+    }
+
+    /**
+     * Generates a presigned URL using default expiry (1 hour).
+     */
+    suspend fun execute(bucket: String, key: String, requesterId: String): String =
+        execute(bucket, key, DEFAULT_MAX_EXPIRY_SECONDS, requesterId)
+
+    private suspend fun presignObject(bucket: String, key: String, expirySeconds: Long): String {
+        try {
+            return metrics.recordOperationTime(StorageObservation.Operations.PRESIGN, provider) {
                 storage.presignGet(bucket, key, expirySeconds)
             }
         } catch (e: IllegalArgumentException) {
-            // Validation errors (e.g., bucket validation) should not be wrapped as service errors
-            metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(
-                StorageObservation.Operations.PRESIGN,
-                provider,
-                bucket,
-                StorageObservation.ErrorTypes.SECURITY,
-            )
+            recordPresignFailure(bucket, StorageObservation.ErrorTypes.SECURITY)
             throw e
-        } catch (e: StorageObjectNotFoundException) {
-            metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(
-                StorageObservation.Operations.PRESIGN,
-                provider,
-                bucket,
-                StorageObservation.ErrorTypes.NOT_FOUND,
-            )
-            throw StorageServiceException(
-                "Failed to generate presigned URL for '$key' in bucket '$bucket'",
-                e,
-            )
         } catch (e: CancellationException) {
-            throw e // Don't swallow coroutine cancellation
+            throw e
         } catch (e: Exception) {
-            metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(
-                StorageObservation.Operations.PRESIGN,
-                provider,
-                bucket,
-                StorageObservation.ErrorTypes.SERVICE,
-            )
+            val errorType = if (e is StorageObjectNotFoundException) {
+                StorageObservation.ErrorTypes.NOT_FOUND
+            } else {
+                StorageObservation.ErrorTypes.SERVICE
+            }
+            recordPresignFailure(bucket, errorType)
             throw StorageServiceException(
                 "Failed to generate presigned URL for '$key' in bucket '$bucket'",
                 e,
             )
         }
+    }
 
-        metrics.recordPresignedUrlGenerated(provider, true)
+    private fun recordPresignFailure(bucket: String, errorType: String) {
+        metrics.recordPresignedUrlGenerated(provider, false)
+        metrics.recordError(
+            StorageObservation.Operations.PRESIGN,
+            provider,
+            bucket,
+            errorType,
+        )
+    }
 
+    private suspend fun publishGeneratedEvent(bucket: String, key: String, expirySeconds: Long, requesterId: String) {
         try {
             eventPublisher.publish(
                 PresignedUrlGeneratedEvent(
@@ -116,30 +121,15 @@ class GeneratePresignedUrlUseCase(
                 ),
             )
         } catch (e: CancellationException) {
-            throw e // Don't swallow coroutine cancellation
+            throw e
         } catch (e: Exception) {
             logger.warn("Failed to publish PresignedUrlGeneratedEvent for bucket=$bucket, key=$key", e)
         }
-
-        return url
     }
-
-    /**
-     * Generates a presigned URL using default expiry (1 hour).
-     */
-    suspend fun execute(bucket: String, key: String, requesterId: String): String =
-        execute(bucket, key, DEFAULT_MAX_EXPIRY_SECONDS, requesterId)
-
     private suspend fun enforceRateLimit(bucket: String, requesterId: String) {
         val rateLimitResult = rateLimiter.consumeToken(requesterId)
         if (rateLimitResult is RateLimitResult.Denied) {
-            metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(
-                StorageObservation.Operations.PRESIGN,
-                provider,
-                bucket,
-                StorageObservation.ErrorTypes.RATE_LIMITED,
-            )
+            recordPresignFailure(bucket, StorageObservation.ErrorTypes.RATE_LIMITED)
             throw RateLimitExceededException(
                 retryAfterSeconds = rateLimitResult.retryAfter.seconds,
                 message = "Rate limit exceeded for presigned URL generation. " +
