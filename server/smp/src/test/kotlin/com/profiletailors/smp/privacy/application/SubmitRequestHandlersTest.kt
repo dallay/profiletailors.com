@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestRepository
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestStatus
 import com.profiletailors.smp.privacy.domain.RequestType
+import com.profiletailors.smp.privacy.infrastructure.JacksonPrivacyDataSerializer
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -20,8 +21,9 @@ class SubmitAccessRequestHandlerTest {
     private val dataAggregationService = mockk<DataAggregationService>()
     private val auditor = mockk<PrivacyMutationAuditor>(relaxed = true)
     private val clock = Clock.fixed(Instant.parse("2026-07-19T10:00:00Z"), ZoneId.of("UTC"))
+    private val serializer = JacksonPrivacyDataSerializer()
     private val handler: CommandWithResultHandler<SubmitAccessRequestCommand, DataSubjectRequestResponse> =
-        SubmitAccessRequestHandler(repository, dataAggregationService, auditor, clock)
+        SubmitAccessRequestHandler(repository, dataAggregationService, auditor, clock, serializer)
 
     @Test
     fun `handle creates ACCESS request and aggregates data`() = runTest {
@@ -71,8 +73,9 @@ class SubmitExportRequestHandlerTest {
     private val storage = mockk<Storage>()
     private val auditor = mockk<PrivacyMutationAuditor>(relaxed = true)
     private val clock = Clock.fixed(Instant.parse("2026-07-19T10:00:00Z"), ZoneId.of("UTC"))
+    private val serializer = JacksonPrivacyDataSerializer()
     private val handler: CommandWithResultHandler<SubmitExportRequestCommand, DataSubjectRequestResponse> =
-        SubmitExportRequestHandler(repository, dataAggregationService, storage, auditor, clock)
+        SubmitExportRequestHandler(repository, dataAggregationService, storage, auditor, clock, serializer)
 
     @Test
     fun `handle creates EXPORT request and generates JSON`() = runTest {
@@ -144,8 +147,9 @@ class SubmitCorrectionRequestHandlerTest {
     private val anonymizationService = mockk<AnonymizationService>()
     private val auditor = mockk<PrivacyMutationAuditor>(relaxed = true)
     private val clock = Clock.fixed(Instant.parse("2026-07-19T10:00:00Z"), ZoneId.of("UTC"))
+    private val serializer = JacksonPrivacyDataSerializer()
     private val handler: CommandWithResultHandler<SubmitCorrectionRequestCommand, DataSubjectRequestResponse> =
-        SubmitCorrectionRequestHandler(repository, anonymizationService, auditor, clock)
+        SubmitCorrectionRequestHandler(repository, anonymizationService, auditor, clock, serializer)
 
     @Test
     fun `handle creates CORRECTION request with COMPLETED status`() = runTest {

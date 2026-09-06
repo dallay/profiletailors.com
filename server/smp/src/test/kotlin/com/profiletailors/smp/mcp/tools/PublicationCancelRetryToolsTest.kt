@@ -50,7 +50,10 @@ class PublicationCancelRetryToolsTest {
     ): PublicationTools = PublicationTools(
         mediator = mediator,
         errorMapper = McpErrorMapper(),
-        idempotencyGuard = IdempotencyGuard(idempotencyRepository),
+        idempotencyGuard = IdempotencyGuard(
+            idempotencyRepository,
+            com.profiletailors.smp.mcp.infrastructure.JacksonMcpJsonSerializer(),
+        ),
         auditEmitter = auditEmitter,
     )
 
@@ -297,6 +300,6 @@ class PublicationCancelRetryToolsTest {
 
     companion object {
         private fun defaultObjectMapper(): ObjectMapper =
-            com.profiletailors.smp.mcp.application.IdempotencyGuard.defaultObjectMapper()
+            com.profiletailors.smp.mcp.infrastructure.JacksonMcpJsonSerializer.defaultObjectMapper()
     }
 }
