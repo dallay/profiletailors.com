@@ -38,7 +38,7 @@ class KotlinLibraryPlugin : ConventionPlugin {
 
         extensions.configure<DetektExtension> {
             config.setFrom(files(rootDir.resolve("config/detekt/detekt.yml")))
-            buildUponDefaultConfig.set(false)
+            buildUponDefaultConfig.set(true)
             allRules.set(false)
             ignoreFailures.set(false)
         }

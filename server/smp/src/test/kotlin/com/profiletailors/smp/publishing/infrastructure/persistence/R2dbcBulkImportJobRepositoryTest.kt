@@ -334,8 +334,7 @@ class R2dbcBulkImportJobRepositoryTest {
         every { readable.get("status", String::class.java) } returns status.name
         every { readable.get("errors", String::class.java) } returns errorsJson
         every { readable.get("media_urls", String::class.java) } returns mediaUrls
-        every { readable.get("has_conflict", java.lang.Boolean::class.java) } returns
-            (if (hasConflict) java.lang.Boolean.TRUE else java.lang.Boolean.FALSE) as java.lang.Boolean?
+        every { readable.get("has_conflict", Boolean::class.javaObjectType) } returns hasConflict
         every { readable.get("publication_id", String::class.java) } returns null
         every { readable.get("body_text", String::class.java) } returns "row $rowIndex"
         every { readable.get("scheduled_for", OffsetDateTime::class.java) } returns null
