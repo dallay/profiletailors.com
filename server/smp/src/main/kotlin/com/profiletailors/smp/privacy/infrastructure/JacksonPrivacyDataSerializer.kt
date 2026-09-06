@@ -7,11 +7,5 @@ import com.profiletailors.smp.privacy.application.PrivacyDataSerializer
 
 @Service
 class JacksonPrivacyDataSerializer(private val mapper: ObjectMapper = jacksonObjectMapper()) : PrivacyDataSerializer {
-    /**
- * Serializes a value as a JSON string.
- *
- * @param data The nullable value to serialize.
- * @return The JSON representation of the value.
- */
-override fun toJson(data: Any?): String = mapper.writeValueAsString(data)
+    override fun toJson(data: Any?): String = mapper.writeValueAsString(data)
 }

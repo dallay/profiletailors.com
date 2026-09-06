@@ -72,8 +72,8 @@ data class BestTimeSlot(val dayOfWeek: Int, val hour: Int, val score: Double) {
     }
 
     private companion object {
-        const val MIN_DAY_OF_WEEK = 1
-        const val MAX_DAY_OF_WEEK = 7
+        const val MIN_DAY_OF_WEEK = 0
+        const val MAX_DAY_OF_WEEK = 6
         const val MIN_HOUR = 0
         const val MAX_HOUR = 23
     }

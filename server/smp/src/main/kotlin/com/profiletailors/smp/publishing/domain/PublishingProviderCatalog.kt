@@ -31,13 +31,7 @@ data class ProviderCatalogItem(
 }
 
 fun interface ProviderCatalogPolicy {
-    /**
- * Evaluates the requested provider for a workspace using permissive access rules.
- *
- * @param workspaceId The workspace to evaluate provider access for.
- * @return An available catalog item for the provider with no channel limit.
- */
-suspend fun evaluate(provider: SocialProvider, workspaceId: String): ProviderCatalogItem
+    suspend fun evaluate(provider: SocialProvider, workspaceId: String): ProviderCatalogItem
 }
 
 fun interface ProviderCatalogAvailability {
