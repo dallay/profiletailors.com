@@ -70,4 +70,3 @@ Specific passkey and WebAuthn implementation details are mapped to the following
 * **Passkey Reauthentication**: `passkey-reauthentication` (via
   `npx -y modern-web-guidance@latest retrieve "passkey-reauthentication"`) — Re-verifying returning
   signed-in users for sensitive steps.
-

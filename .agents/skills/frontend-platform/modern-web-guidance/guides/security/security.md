@@ -10,33 +10,33 @@ validation.
 
 - When to apply this skill
 - Phase 1: Quick Wins & Obvious Anti-Patterns
-    - 1.1 Secure Contexts
-    - 1.2 Avoid Dangerous DOM Sinks
-    - 1.3 Secure Cookies
-    - 1.4 Clickjacking Protection (Frame-Ancestors & X-Frame-Options)
-    - 1.5 Secure Window Messaging (postMessage)
+  - 1.1 Secure Contexts
+  - 1.2 Avoid Dangerous DOM Sinks
+  - 1.3 Secure Cookies
+  - 1.4 Clickjacking Protection (Frame-Ancestors & X-Frame-Options)
+  - 1.5 Secure Window Messaging (postMessage)
 - Phase 2: Discovery & Data Collection (Prerequisites)
-    - 2.1 Inspect the Application
-    - 2.2 Deploy Report-Only Policies
-    - 2.3 Data Hygiene for Reports
-    - 2.4 Automated Discovery via Browser APIs and DevTools
+  - 2.1 Inspect the Application
+  - 2.2 Deploy Report-Only Policies
+  - 2.3 Data Hygiene for Reports
+  - 2.4 Automated Discovery via Browser APIs and DevTools
 - Phase 3: Interpreting Results & Enforcement
-    - Core enforcement (data-driven rollouts)
-        - 3.1 Analyzing CSP Reports
-        - 3.2 Transitioning to CSP Enforcement
-        - 3.3 Trusted Types Enforcement
-        - 3.4 Cross-Origin Opener Policy (COOP)
-        - 3.5 Cross-Origin Resource Policy (CORP)
-        - 3.6 Cross-Origin Isolation
-        - 3.7 Fetch Metadata (Resource Isolation)
-    - Companion policies (deploy in parallel)
-        - HTTP Strict Transport Security (HSTS)
-        - X-Content-Type-Options
-        - Referrer Policy
-        - Permissions Policy
-        - Subresource Integrity (SRI)
-        - Cross-Origin Resource Sharing (CORS)
-        - Clear-Site-Data (Logout)
+  - Core enforcement (data-driven rollouts)
+    - 3.1 Analyzing CSP Reports
+    - 3.2 Transitioning to CSP Enforcement
+    - 3.3 Trusted Types Enforcement
+    - 3.4 Cross-Origin Opener Policy (COOP)
+    - 3.5 Cross-Origin Resource Policy (CORP)
+    - 3.6 Cross-Origin Isolation
+    - 3.7 Fetch Metadata (Resource Isolation)
+  - Companion policies (deploy in parallel)
+    - HTTP Strict Transport Security (HSTS)
+    - X-Content-Type-Options
+    - Referrer Policy
+    - Permissions Policy
+    - Subresource Integrity (SRI)
+    - Cross-Origin Resource Sharing (CORS)
+    - Clear-Site-Data (Logout)
 
 ## When to apply this skill
 
@@ -192,10 +192,10 @@ Use "Report-Only" headers to identify potential breakages before they happen.
 
 - **DO**: Use report-only headers to dry-run policies without enforcement. Standard report-only
   headers include:
-    - `Content-Security-Policy-Report-Only` for CSP rules.
-    - `Cross-Origin-Opener-Policy-Report-Only` for COOP isolation.
-    - `Cross-Origin-Embedder-Policy-Report-Only` for COEP isolation.
-    - `Document-Policy-Report-Only` for document features.
+  - `Content-Security-Policy-Report-Only` for CSP rules.
+  - `Cross-Origin-Opener-Policy-Report-Only` for COOP isolation.
+  - `Cross-Origin-Embedder-Policy-Report-Only` for COEP isolation.
+  - `Document-Policy-Report-Only` for document features.
 - **DO**: Define a `Reporting-Endpoints` header so violations have somewhere to go, and reference
   its name from `report-to`. Recommend setting an endpoint named `default`, which will automatically
   capture deprecation and crash reports.
@@ -274,17 +274,17 @@ assets that might be present in your markup):
 Once filtered and triaged, analyze the reports against the following common scenarios:
 
 - **Scenario**: Many violations for inline scripts.
-    - **Condition**: The app uses a framework that relies on inline scripts.
-    - **Decision**: Implement Nonces (server-rendered) or Hashes (static) before enforcing.
+  - **Condition**: The app uses a framework that relies on inline scripts.
+  - **Decision**: Implement Nonces (server-rendered) or Hashes (static) before enforcing.
 - **Scenario**: Violations for third-party analytics scripts.
-    - **Condition**: The scripts are required.
-    - **Decision**: Use `'strict-dynamic'` with a per-request nonce so the analytics loader can
+  - **Condition**: The scripts are required.
+  - **Decision**: Use `'strict-dynamic'` with a per-request nonce so the analytics loader can
       attach its dependencies. Do **not** add the analytics origin to a URL allowlist — domain
       allowlists are bypassable via open redirects, JSONP, and dependency injection on the listed
       origin.
 - **Scenario**: Trusted Types violations on specific sinks.
-    - **Condition**: Legacy code paths still write strings to `innerHTML` etc.
-    - **Decision**: Refactor those sinks (per §1.2) or route them through a Trusted Types policy (
+  - **Condition**: Legacy code paths still write strings to `innerHTML` etc.
+  - **Decision**: Refactor those sinks (per §1.2) or route them through a Trusted Types policy (
       §3.3) before enforcing.
 
 #### 3.2 Transitioning to CSP Enforcement

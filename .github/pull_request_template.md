@@ -26,6 +26,7 @@ Describe what changed and why.
 ## Compliance and Legal Checklist
 
 Complete this section if the PR touches any of these paths:
+
 - `docs/compliance/**`
 - `apps/web/marketing/src/i18n/en.ts`
 - `apps/web/marketing/src/i18n/es.ts`

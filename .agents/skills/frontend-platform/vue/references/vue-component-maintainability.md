@@ -28,6 +28,7 @@ When a `<script setup>` exceeds ~80 lines, some logic belongs in a composable.
 Extract everything that is not "painting UI" into a composable.
 
 **Signals you need a composable:**
+
 - `computed` that does math or date formatting
 - `watch` reacting to prop or state changes
 - Local state (`ref`) shared by several components
@@ -35,6 +36,7 @@ Extract everything that is not "painting UI" into a composable.
 - API calls with error handling
 
 **Signals you do NOT need a composable:**
+
 - Logic that lives in one place and is 3–4 lines
 - Event handlers that only call `emit()`
 
@@ -93,6 +95,7 @@ defineEmits<{
 ```
 
 **Rules:**
+
 - Never use `any` — prefer `unknown` with a type guard or generics
 - Optional props with defaults MUST use `withDefaults`
 - Emits MUST be typed, never `defineEmits(['click', 'change'])`

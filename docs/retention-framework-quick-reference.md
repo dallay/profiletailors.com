@@ -30,7 +30,7 @@
 
 ## NOT Available (Planned)
 
- - `POST /api/governance/retention/rules` — planned rule registration (not implemented; no `retention_periods` table)
+- `POST /api/governance/retention/rules` — planned rule registration (not implemented; no `retention_periods` table)
 - `/api/governance/retention/purges` — purge job scheduling/status/resume
 - `/api/governance/retention/holds` — legal/operational holds
 - `/api/governance/retention/status` — framework health endpoint
@@ -53,6 +53,6 @@
 
 ---
 
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-05
 **Version:** 2.0 (corrected — v1.0 described a not-yet-implemented framework)
 **For questions:** [retention-and-erasure-control-plan.md](compliance/retention-and-erasure-control-plan.md)
