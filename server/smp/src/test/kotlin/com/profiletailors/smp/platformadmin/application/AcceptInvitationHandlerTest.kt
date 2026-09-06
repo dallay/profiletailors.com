@@ -88,6 +88,46 @@ class AcceptInvitationHandlerTest {
         }
     }
 
+    @Test
+    fun `falls back to invitation id as workspaceId when workspaceId is null`() = runTest {
+        val coordinator = mockk<InvitationActivationCoordinator>()
+        val invitationId = UUID.randomUUID()
+        val invitation = Invitation(
+            id = InvitationId(invitationId),
+            source = InvitationSource.WAITLIST,
+            sourceReferenceId = "waitlist-1",
+            target = InvitationTarget.NEW_WORKSPACE,
+            workspaceId = null,
+            invitedEmailNormalized = "invitee@example.com",
+            tokenHash = "hashed-token",
+            status = InvitationStatus.ACTIVE,
+            issuedBy = "issuer-1",
+            createdAt = now.minusSeconds(60),
+            expiresAt = now.plusSeconds(3600),
+        )
+        coEvery {
+            coordinator.activateForRegistration(
+                rawToken = "raw-token",
+                email = "invitee@example.com",
+                principalId = "principal-1",
+            )
+        } returns InvitationActivationCoordinator.InvitationActivationResult(
+            invitation = invitation,
+            membershipStatus = WorkspaceMembershipStatus.ACTIVE,
+        )
+
+        val result = handler(coordinator).handle(
+            AcceptInvitationCommand(
+                rawToken = "raw-token",
+                authenticatedPrincipalId = "principal-1",
+                authenticatedEmail = "invitee@example.com",
+            ),
+        )
+
+        assertEquals(invitationId.toString(), result.workspaceId)
+        assertEquals(WorkspaceMembershipStatus.ACTIVE.name, result.membershipStatus)
+    }
+
     private fun handler(coordinator: InvitationActivationCoordinator) = AcceptInvitationHandler(
         coordinator = coordinator,
     )
