@@ -62,7 +62,7 @@ function handleSelect(channelId: string) {
         <img
           v-if="shouldShowAvatar(ch.id, ch.avatarUrl)"
           :src="ch.avatarUrl"
-          :alt="`${ch.name} avatar`"
+          :alt="ch.name ? `${ch.name} avatar` : 'Channel avatar'"
           class="size-4.5 rounded-full object-cover border border-border-subtle"
           @error="onAvatarError(ch.id)"
         />
