@@ -22,7 +22,7 @@ if ('requestPaint' in HTMLCanvasElement.prototype) {
 }
 ```
 
-2. Initialize the canvas to support rendering of descendant HTML elements by adding the
+1. Initialize the canvas to support rendering of descendant HTML elements by adding the
    `layoutsubtree` attribute to the `<canvas>` HTML element. Place your HTML content inside the
    `<canvas>` element with the `layoutsubtree` attribute:
 
@@ -33,7 +33,7 @@ if ('requestPaint' in HTMLCanvasElement.prototype) {
 </canvas>
 ```
 
-3. Scale your canvas grid to match the device scale factor to prevent blurriness:
+1. Scale your canvas grid to match the device scale factor to prevent blurriness:
 
 ```js
 const observer = new ResizeObserver(([entry]) => {
@@ -55,7 +55,7 @@ const options = supportsDevicePixelContentBox
 observer.observe(canvas, options);
 ```
 
-4. Render the HTML content to the canvas inside a `canvas.onpaint` event handler:
+1. Render the HTML content to the canvas inside a `canvas.onpaint` event handler:
 
 - In 2D context, use the `drawElementImage` method:
 
@@ -114,7 +114,7 @@ canvas.onpaint = (event) => {
 };
   ```
 
-5. Update the CSS transform.
+1. Update the CSS transform.
 
 - For the 2D context case, apply the transform returned by the rendering call to the
   `style.transform` property:
@@ -132,17 +132,17 @@ canvas.onpaint = () => {
 
 - For the 3D case with WebGL or WebGPU, the browser needs to map from the 3D coordinate space into
   the CSS coordinate space using a viewport transform. To facilitate this, do the following:
-    - Convert WebGL MVP Matrix to DOM Matrix.
-    - Normalize the HTML element. HTML elements are sized in pixels (for example, 200px wide).
+  - Convert WebGL MVP Matrix to DOM Matrix.
+  - Normalize the HTML element. HTML elements are sized in pixels (for example, 200px wide).
       WebGL, however, usually treats objects as "unit squares", for example, ranging from 0 to 1. If
       you don't normalize, your 200px button will look 200 times larger.
-    - Map to the canvas viewport. This step is the "re-scaling" phase: it stretches that unit-space
+  - Map to the canvas viewport. This step is the "re-scaling" phase: it stretches that unit-space
       math back out to match the actual pixel dimensions of your `<canvas>` element on the screen.
       It also flips the Y-axis, because in WebGL, up is positive, but in CSS, down is positive.
-    - Calculate the final transform. Multiply the matrices in order: Viewport * MVP * Normalization.
+  - Calculate the final transform. Multiply the matrices in order: Viewport *MVP* Normalization.
       Combining them into one final transform produces a "map" that tells the browser exactly where
       that HTML element layer should sit to align with the 3D drawing.
-    - Apply the transform to the HTML element. This moves the HTML element layer to sit directly on
+  - Apply the transform to the HTML element. This moves the HTML element layer to sit directly on
       top of its rendered pixels. This ensures that when a user clicks a button or selects text,
       they are actually hitting the real HTML element.
 
@@ -184,7 +184,7 @@ canvas.onpaint = () => {
   }
   ```
 
-6. [Troubleshooting] If the developer is experiencing a mismatch in the DOM logical layout in 3D
+1. [Troubleshooting] If the developer is experiencing a mismatch in the DOM logical layout in 3D
    even after applying the CSS transform from step 5, check if the developer is experiencing the
    issue in Chromium 148 or earlier. If that's the case, check if `transform.is2D` is correctly set
    to false for a 3D DOMMatrix. If not, re-initialize the DOMMatrix which corrects `is2D` to be
@@ -203,7 +203,7 @@ if (transform.is2D) {
 targetHTMLElement.style.transform = computedTransform.toString();
 ```
 
-7. Use regular canvas export methods like `toDataURL()`, `toBlob()`, or `captureStream()`. The
+1. Use regular canvas export methods like `toDataURL()`, `toBlob()`, or `captureStream()`. The
    exported data will include the rendered HTML content.
 
 ## Example code

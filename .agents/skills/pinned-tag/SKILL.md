@@ -31,10 +31,10 @@ use of full commit SHAs instead of mutable tags.
 - **Immutability for Actions**: For GitHub Actions, always prefer the full 40-character commit SHA
   over a tag name. Tags are mutable and can be moved, leading to security risks or broken builds.
 - **Annotated vs Lightweight Tags**:
-    - **Annotated Tags**: `git ls-remote` returns two entries. The one ending in `^{}` is the "
+  - **Annotated Tags**: `git ls-remote` returns two entries. The one ending in `^{}` is the "
       peeled" reference pointing directly to the commit object. **ALWAYS use this one**.
-    - **Lightweight Tags**: Return only one entry, which is the commit SHA.
-    - **Selection Logic**: When resolving, always sort the results and take the last one to ensure
+  - **Lightweight Tags**: Return only one entry, which is the commit SHA.
+  - **Selection Logic**: When resolving, always sort the results and take the last one to ensure
       `^{}` is preferred over the tag object SHA.
 - **Verification**: Always verify the resolved SHA belongs to the expected tag before applying
   changes.
@@ -42,6 +42,7 @@ use of full commit SHAs instead of mutable tags.
 ## Commands
 
 1. **Resolve Tag to SHA (GitHub Actions Friendly)**:
+
    ```bash
    # Example: Resolve 'v2' tag for actions/checkout
    # This command ensures that for annotated tags, the commit SHA (peeled tag ^{}) is selected
@@ -50,11 +51,13 @@ use of full commit SHAs instead of mutable tags.
    ```
 
 2. **List all remote tags**:
+
    ```bash
    git ls-remote --tags https://github.com/owner/repo.git
    ```
 
 3. **Check for specific tag existence**:
+
    ```bash
    git ls-remote --tags https://github.com/owner/repo.git | rg "refs/tags/v1.2.3"
    ```

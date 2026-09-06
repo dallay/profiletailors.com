@@ -168,8 +168,8 @@ uncertainty does not silently consume a deadline.
   Preliminary authority template requiring jurisdiction adaptation
 - [`breach-notification-subject-template.md`](breach-notification-subject-template.md): Preliminary
   affected-person template requiring jurisdiction adaptation
-- [European Commission breach guidance](https://commission.europa.eu/law/law-topic/data-protection/data-protection-eu/what-should-i-do-if-my-organisation-has-personal-data-breach_en)
+- [European Commission breach guidance](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/obligations_en)
 - [Brazil ANPD incident reporting](https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis)
-- [Canada OPC breach reporting](https://www.priv.gc.ca/en/privacy-topics/business-privacy/safeguards-and-breaches/privacy-breaches/respond-to-a-privacy-breach-at-your-business/report-a-privacy-breach-at-your-organization/)
+- [Canada OPC breach reporting](https://www.priv.gc.ca/en/report-a-concern/report-a-privacy-breach-at-your-organization/)
 - [Japan PPC breach reporting](https://www.ppc.go.jp/personalinfo/legal/leakAction/)
 - [Singapore PDPC breach reporting](https://www.pdpc.gov.sg/report-data-breach/before-you-report-a-data-breach-3/info)

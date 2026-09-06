@@ -21,9 +21,9 @@ automation workflows.
 - No dependency or configuration changes were required to establish the documented local lint
   contract.
 - Existing workflows checked for non-disruption during this change:
-    - `.github/workflows/cla.yml`
-    - `.github/workflows/detekt.yml`
-    - `.github/workflows/release-please.yml`
+  - `.github/workflows/cla.yml`
+  - `.github/workflows/detekt.yml`
+  - `.github/workflows/release-please.yml`
 - Workflow contract verification was executed with a local Ruby YAML validation script.
 - Verified contract points: deep workflow triggers, non-cancelling scheduled concurrency, required
   deep jobs, SARIF-capable permission wiring, Sonar skip contract, PR path-classifier buckets, and
@@ -62,10 +62,10 @@ security problem that should block merge right now?**
 
 - `pull_request` on `main`
 - Event types:
-    - `opened`
-    - `synchronize`
-    - `reopened`
-    - `ready_for_review`
+  - `opened`
+  - `synchronize`
+  - `reopened`
+  - `ready_for_review`
 
 #### Concurrency contract
 
@@ -107,6 +107,7 @@ security-relevant surface bucket wins.
 | `semgrep-backend`         | `backend` or `repo_security`            | Backend and broad-impact SAST               |
 | `semgrep-frontend`        | `frontend` or `repo_security`           | Frontend and broad-impact SAST              |
 | `codeql-backend`          | `backend` or `repo_security`            | Backend/shared code-graph analysis          |
+| `codeql-frontend`         | `frontend` or `repo_security`           | Frontend code-graph analysis (JS/TS)        |
 | `trivy-backend`           | `backend` or `repo_security`            | High-signal vulnerability/misconfig scan    |
 | `frontend-biome-security` | `frontend` or `repo_security`           | Frontend lint and security contract         |
 | `sonar-pr`                | Scope changed and Sonar config is valid | Optional, explicit, reporting-oriented      |
@@ -150,7 +151,8 @@ rerun.
 |-----------------------|---------------------------------------------------------|----------------|
 | `gitleaks-history`    | Full-history secrets scan                               | Reporting-only |
 | `semgrep-full`        | Full-repository SAST and security-sensitive config scan | Reporting-only |
-| `codeql-full-backend` | Deep backend/shared CodeQL analysis                     | Reporting-only |
+| `codeql-full-backend`  | Deep backend/shared CodeQL analysis                     | Reporting-only |
+| `codeql-full-frontend` | Deep frontend CodeQL analysis (JS/TS)                   | Reporting-only |
 | `trivy-full`          | Full filesystem, dependency, and IaC/config scan        | Reporting-only |
 | `sonar-full`          | Optional centralized full Sonar analysis                | Reporting-only |
 | `retention-summary`   | Documents channels, retention, and results              | Reporting-only |
@@ -249,7 +251,7 @@ The repository uses GitHub code scanning where the scanner and execution path su
 
 - Gitleaks history: SARIF uploaded to GitHub code scanning.
 - Semgrep full: SARIF uploaded to GitHub code scanning.
-- CodeQL full backend: native GitHub code scanning upload.
+- CodeQL full backend/frontend: native GitHub code scanning upload.
 - Trivy full: SARIF uploaded to GitHub code scanning.
 - Sonar full: no SARIF; results stay in Sonar.
 
@@ -399,6 +401,7 @@ Suppressions must stay:
 
 - `.semgrep/config.yml`
 - `.github/codeql/codeql-config.yml`
+- `.github/codeql/codeql-frontend-config.yml`
 - `.gitleaks.toml`
 - `.trivyignore`
 - `apps/web/marketing/biome.json`
@@ -416,7 +419,7 @@ Suppressions must stay:
 
 | Scenario                                              | Expected PR behavior                                                                                                   |
 |-------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| Frontend-only change in `apps/web/marketing/**`       | `gitleaks-pr`, `semgrep-frontend`, `frontend-biome-security`, `summary`; backend CodeQL/Trivy jobs stay non-applicable |
+| Frontend-only change in `apps/web/marketing/**`       | `gitleaks-pr`, `semgrep-frontend`, `codeql-frontend`, `frontend-biome-security`, `summary`; backend CodeQL/Trivy jobs stay non-applicable |
 | Backend-only change in `server/smp/**` or `shared/**` | `gitleaks-pr`, `semgrep-backend`, `codeql-backend`, `trivy-backend`, `summary`; frontend biome stays non-applicable    |
 | Workflow or scanner-config change                     | Broad checks run because `repo_security` is true                                                                       |
 | Docs-only change under `docs/**` or `openspec/**`     | Heavy path-specific security jobs skip cleanly; summaries should make that obvious                                     |

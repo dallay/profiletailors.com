@@ -40,6 +40,7 @@ Compliance tooling — a build hygiene check, not a product. The inventory docum
 - Reads the file; does not write, modify, or transmit data
 
 **Constraints:**
+
 - No network calls, no external API calls
 - No interactive mode
 - No partial validation — all required fields must be present or the file fails

@@ -8,7 +8,7 @@ to be exposed over HTTP. The default convention is to use the `id` of the endpoi
 >
 > Actuator is supported natively with Spring MVC, Spring WebFlux, and Jersey. If both Jersey and
 > Spring MVC are available, Spring MVC is used.
-
+>
 > **NOTE**
 >
 > Jackson is a required dependency in order to get the correct JSON responses as documented in

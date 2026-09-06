@@ -134,9 +134,11 @@ implementation of the Translator API:
 ## Security & Performance
 
 - **Permissions Policy:** Cross-origin iframes require explicit permission.
+
   ```html
   <iframe src="https://example.com/" allow="translator"></iframe>
   ```
+
 - **Web Workers:** Currently **not supported** due to Permission Policy
   complexities.
 - **Privacy:** No data is sent to Google servers during the translation process

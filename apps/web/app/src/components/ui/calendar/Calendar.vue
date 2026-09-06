@@ -8,6 +8,7 @@ import { CalendarRoot, useDateFormatter, useForwardPropsEmits } from "reka-ui"
 import { createYear, createYearRange, toDate } from "reka-ui/date"
 import { computed, toRaw } from "vue"
 import { cn } from "@/lib/utils"
+import { selectNumberValue } from "./select-value"
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { CalendarCell, CalendarCellTrigger, CalendarGrid, CalendarGridBody, CalendarGridHead, CalendarGridRow, CalendarHeadCell, CalendarHeader, CalendarHeading, CalendarNextButton, CalendarPrevButton } from "."
 
@@ -54,7 +55,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
           class="text-xs h-8 pr-6 pl-2 text-transparent relative"
           @change="(e: Event) => {
             placeholder = placeholder.set({
-              month: Number((e?.target as any)?.value),
+              month: selectNumberValue(e),
             })
           }"
         >
@@ -77,7 +78,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
           class="text-xs h-8 pr-6 pl-2 text-transparent relative"
           @change="(e: Event) => {
             placeholder = placeholder.set({
-              year: Number((e?.target as any)?.value),
+              year: selectNumberValue(e),
             })
           }"
         >

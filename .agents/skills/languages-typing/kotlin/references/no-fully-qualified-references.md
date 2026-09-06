@@ -15,9 +15,9 @@ Why
 Scope
 
 - Applies to `.kt` files. Covers:
-    - Inline annotations using fully-qualified names.
-    - Fully-qualified class references in code (e.g. `com.example.Foo.Bar`).
-    - Fully-qualified calls to static/Java class methods or properties (e.g.
+  - Inline annotations using fully-qualified names.
+  - Fully-qualified class references in code (e.g. `com.example.Foo.Bar`).
+  - Fully-qualified calls to static/Java class methods or properties (e.g.
       `java.util.UUID.randomUUID()`).
 
 Exceptions

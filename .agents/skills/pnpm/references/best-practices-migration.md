@@ -122,12 +122,14 @@ pnpm install
 ### From npm Workspaces
 
 1. Create `pnpm-workspace.yaml`:
+
    ```yaml
    packages:
      - 'packages/*'
    ```
 
 2. Update internal dependencies to use workspace protocol:
+
    ```json
    {
      "dependencies": {
@@ -137,6 +139,7 @@ pnpm install
    ```
 
 3. Install:
+
    ```bash
    rm -rf node_modules packages/*/node_modules package-lock.json
    pnpm install
@@ -145,18 +148,21 @@ pnpm install
 ### From Yarn Workspaces
 
 1. Remove Yarn-specific files:
+
    ```bash
    rm yarn.lock .yarnrc.yml
    rm -rf .yarn
    ```
 
 2. Create `pnpm-workspace.yaml` matching `workspaces` in package.json:
+
    ```yaml
    packages:
      - 'packages/*'
    ```
 
 3. Update `package.json` - remove Yarn workspace config if not needed:
+
    ```json
    {
      // Remove "workspaces" field (optional, pnpm uses pnpm-workspace.yaml)
@@ -164,6 +170,7 @@ pnpm install
    ```
 
 4. Convert workspace references:
+
    ```json
    // From Yarn
    "@myorg/utils": "*"

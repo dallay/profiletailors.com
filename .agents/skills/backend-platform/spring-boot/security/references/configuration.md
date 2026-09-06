@@ -11,10 +11,6 @@ applications using JJWT library and Spring Security 6.x.
 4. [Token Validation Configuration](#token-validation-configuration)
 5. [Key Management](#key-management)
 6. [CORS and CSRF Configuration](#cors-and-csrf-configuration)
-7. [Session Management](#session-management)
-8. [Error Handling Configuration](#error-handling-configuration)
-9. [Performance Configuration](#performance-configuration)
-10. [Monitoring and Audit Configuration](#monitoring-and-audit-configuration)
 
 ## Application Properties
 

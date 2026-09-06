@@ -177,8 +177,8 @@ Docker commands separately. Run `just -l` to list everything.
 ### Development Notes
 
 - **Frontend Apps**:
-    - `apps/web/marketing/`: Astro-based marketing site.
-    - `apps/web/app/`: Vue 3-based dashboard application.
+  - `apps/web/marketing/`: Astro-based marketing site.
+  - `apps/web/app/`: Vue 3-based dashboard application.
 - The marketing site uses Astro's built-in locale routing with **English as the default locale** and **Spanish under `/es/`**.
 - User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/` and `apps/web/app/src/i18n/`.
 - Shared web assets are sourced from `shared/assets/` using the `@shared/assets/` import alias. Files in `shared/assets/web/*` are copied into `dist/` at build time by the Astro build configuration.
@@ -277,15 +277,14 @@ docs(readme): refresh repository onboarding
 
 If you discover a security issue, **do not open a public issue**.
 
-Contact: **security@profiletailors.com**
+Contact: **<security@profiletailors.com>**
 
 ---
 
 ## Support
 
-- **Discussions:** https://github.com/dallay/profiletailors.com/discussions
-- **Issues:** https://github.com/dallay/profiletailors.com/issues
-- **Email:** **dev@profiletailors.com**
+- **Issues:** <https://github.com/dallay/profiletailors.com/issues>
+- **Email:** **<dev@profiletailors.com>**
 
 ---
 

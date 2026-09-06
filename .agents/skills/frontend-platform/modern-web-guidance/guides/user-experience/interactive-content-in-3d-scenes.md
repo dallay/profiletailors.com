@@ -23,7 +23,7 @@ if ('requestPaint' in HTMLCanvasElement.prototype) {
 }
 ```
 
-2. Initialize `<canvas>` to support descendant HTML elements by adding the `layoutsubtree` attribute
+1. Initialize `<canvas>` to support descendant HTML elements by adding the `layoutsubtree` attribute
    to the `<canvas>` HTML element. Place your HTML content inside the `<canvas>` element with the
    `layoutsubtree` attribute.
 
@@ -34,7 +34,7 @@ if ('requestPaint' in HTMLCanvasElement.prototype) {
 </canvas>
 ```
 
-3. Scale your canvas grid to match the device scale factor to prevent blurriness:
+1. Scale your canvas grid to match the device scale factor to prevent blurriness:
 
 ```js
 const observer = new ResizeObserver(([entry]) => {
@@ -56,7 +56,7 @@ const options = supportsDevicePixelContentBox
 observer.observe(canvas, options);
 ```
 
-4. Render the HTML content to the canvas inside a `canvas.onpaint` event handler:
+1. Render the HTML content to the canvas inside a `canvas.onpaint` event handler:
 
 - In WebGL context, use the `texElementImage2D` method:
 
@@ -105,7 +105,7 @@ canvas.onpaint = (event) => {
 };
 ```
 
-6. Update the CSS transform.
+1. Update the CSS transform.
 
 The browser needs to map from the 3D coordinate space into the CSS coordinate space using a viewport
 transform. To facilitate this, do the following:
@@ -117,7 +117,7 @@ transform. To facilitate this, do the following:
 - Map to the canvas viewport. This step is the "re-scaling" phase: it stretches that unit-space math
   back out to match the actual pixel dimensions of your `<canvas>` element on the screen. It also
   flips the Y-axis, because in WebGL, up is positive, but in CSS, down is positive.
-- Calculate the final transform. Multiply the matrices in order: Viewport * MVP * Normalization.
+- Calculate the final transform. Multiply the matrices in order: Viewport *MVP* Normalization.
   Combining them into one final transform produces a "map" that tells the browser exactly where that
   HTML element layer should sit to align with the 3D drawing.
 - Apply the transform to the HTML element. This moves the HTML element layer to sit directly on top
@@ -162,7 +162,7 @@ if (canvas.getElementTransform) {
 }
 ```
 
-7. [Troubleshooting] If the developer is experiencing a mismatch in the DOM logical layout in 3D
+1. [Troubleshooting] If the developer is experiencing a mismatch in the DOM logical layout in 3D
    even after applying the CSS transform from step 5, check if the developer is experiencing the
    issue in Chromium 148 or earlier. If that's the case, check if `transform.is2D` is correctly set
    to false for a 3D DOMMatrix. If not, re-initialize the DOMMatrix which corrects `is2D` to be
@@ -193,9 +193,9 @@ if ('requestPaint' in HTMLCanvasElement.prototype) {
 }
 ```
 
-2. Create a custom geometry and material for the HTML content.
+1. Create a custom geometry and material for the HTML content.
 
-3. Pass the DOM element into THREE.HTMLTexture:
+2. Pass the DOM element into THREE.HTMLTexture:
 
 ```js
   material.map = new THREE.HTMLTexture(element);
@@ -409,4 +409,4 @@ npm install three-html-render
 <script src="https://cdn.jsdelivr.net/npm/three-html-render/dist/polyfill.js"></script>
 ```
 
-2. Run the `installHtmlInCanvasPolyfill()` method to translate HTML-in-Canvas.
+1. Run the `installHtmlInCanvasPolyfill()` method to translate HTML-in-Canvas.
