@@ -1041,6 +1041,13 @@ class LocalAuthHandlersTest {
 
         override suspend fun findByEmail(email: String): LocalPasswordCredentialRecord? =
             record?.takeIf { it.email == email }
+
+        override suspend fun findByPrincipalId(principalId: String): LocalPasswordCredentialRecord? = record
+
+        override suspend fun updatePasswordHash(principalId: String, passwordHash: String) {
+            createdPrincipalId = principalId
+            createdHash = passwordHash
+        }
     }
 
     private class FakePasswordHasher : PasswordHasher {

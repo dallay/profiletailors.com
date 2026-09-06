@@ -14,17 +14,9 @@ data class ChangePasswordCommand(
     val rawRefreshToken: String? = null,
 )
 
-data class SignInMethodDto(
-    val provider: String,
-    val type: String,
-    val status: String,
-    val identifier: String? = null,
-)
+data class SignInMethodDto(val provider: String, val type: String, val status: String, val identifier: String? = null)
 
-data class SecurityCapabilitiesDto(
-    val hasLocalPassword: Boolean,
-    val signInMethods: List<SignInMethodDto>,
-)
+data class SecurityCapabilitiesDto(val hasLocalPassword: Boolean, val signInMethods: List<SignInMethodDto>)
 
 @Service
 class AccountSecurityService(
@@ -75,13 +67,17 @@ class AccountSecurityService(
             throw InvalidCurrentPasswordException()
         }
 
-        if (command.newPassword.length < 12) {
-            throw ChangePasswordValidationException("Password must contain at least 12 characters.")
+        if (command.newPassword.length < MIN_PASSWORD_LENGTH) {
+            throw ChangePasswordValidationException("Password must contain at least $MIN_PASSWORD_LENGTH characters.")
         }
 
         val newPasswordHash = passwordHasher.hash(command.newPassword)
         localPasswordCredentialGateway.updatePasswordHash(command.principalId, newPasswordHash)
 
         refreshSessionLifecycleService.revokeOthersForPrincipal(command.principalId, command.rawRefreshToken)
+    }
+
+    companion object {
+        private const val MIN_PASSWORD_LENGTH = 12
     }
 }

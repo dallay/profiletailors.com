@@ -54,7 +54,9 @@ open class RefreshSessionLifecycleService(
             } catch (_: Exception) {
                 null
             }
-        } else null
+        } else {
+            null
+        }
 
         if (activeSessionId != null) {
             refreshSessionGateway.revokeOthersForPrincipal(principalId, activeSessionId, clock.instant())

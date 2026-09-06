@@ -503,6 +503,8 @@ class RequestPasswordResetHandlerTest {
 
         override suspend fun findByEmail(email: String): LocalPasswordCredentialRecord? =
             record?.takeIf { it.email == email }
+
+        override suspend fun findByPrincipalId(principalId: String): LocalPasswordCredentialRecord? = record
     }
 
     private class RecordingEventPublisher(private val order: MutableList<String> = mutableListOf()) :

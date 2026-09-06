@@ -13,13 +13,10 @@ data class UpdateUserPreferencesCommand(
 )
 
 @Service
-class UserPreferencesService(
-    private val userPreferencesGateway: UserPreferencesGateway,
-) {
-    suspend fun getPreferences(principalId: String): UserPreferences {
-        return userPreferencesGateway.findByPrincipalId(principalId)
+class UserPreferencesService(private val userPreferencesGateway: UserPreferencesGateway) {
+    suspend fun getPreferences(principalId: String): UserPreferences =
+        userPreferencesGateway.findByPrincipalId(principalId)
             ?: UserPreferences(principalId = principalId)
-    }
 
     suspend fun updatePreferences(principalId: String, command: UpdateUserPreferencesCommand): UserPreferences {
         val existing = getPreferences(principalId)
