@@ -3,7 +3,7 @@
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "features": {
     "ghcr.io/devcontainers/features/java:1.8.0": {
-      "version": "25",
+      "version": "21",
       "installGradle": true,
       "gradleVersion": "9.5"
     },

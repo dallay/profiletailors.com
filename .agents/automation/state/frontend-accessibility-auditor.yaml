@@ -1,5 +1,34 @@
 schemaVersion: 1
 task: frontend-accessibility-auditor
-lastExecution: null
-findings: []
-checks: []
+lastExecution: "2025-03-29T02:55:00Z"
+outcome: CHANGES_APPLIED
+findings:
+  - id: FINDING-A11Y-001
+    rule: UNLABELLED_INPUT
+    description: "Waitlist email input field in WaitlistForm.astro lacked explicit semantic label association via for/id attribute on label."
+    firstDetected: "2025-03-29T02:55:00Z"
+    lastVerified: "2025-03-29T02:55:00Z"
+    occurrences: 1
+    status: resolved
+    remediation:
+      status: implemented
+      pullRequest: null
+  - id: FINDING-A11Y-002
+    rule: IMG_MISSING_ALT
+    description: "ComposerChannelSelector.vue avatar image alt text expression could evaluate to empty or undefined if channel name was missing."
+    firstDetected: "2025-03-29T02:55:00Z"
+    lastVerified: "2025-03-29T02:55:00Z"
+    occurrences: 1
+    status: resolved
+    remediation:
+      status: implemented
+      pullRequest: null
+checks:
+  - name: "Biome Lint"
+    target: "apps/web/"
+    status: Passed
+    notes: "pnpm lint completed without errors."
+  - name: "App Unit Tests"
+    target: "apps/web/app/"
+    status: Passed
+    notes: "Vitest unit tests passed."

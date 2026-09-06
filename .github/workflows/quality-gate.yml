@@ -29,11 +29,11 @@ jobs:
           persist-credentials: false
 
       # Backend: Java/Kotlin setup and tests
-      - name: Set up JDK 25
+      - name: Set up JDK 21
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: 'temurin'
-          java-version: '25'
+          java-version: '21'
           cache: 'gradle'
 
       - name: Run backend tests

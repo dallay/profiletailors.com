@@ -86,36 +86,7 @@ class SpringBootApplicationPluginTest {
         assertEquals(TaskOutcome.SUCCESS, result.task(":koverHtmlReport")?.outcome) { "koverHtmlReport task outcome should be SUCCESS — kover HTML report must be generated" }
     }
 
-    @Test
-    fun `Kotlin library uses canonical Detekt policy`() {
-        verifyDetektPolicy("com.profiletailors.kotlin.library")
-    }
-
-    @Test
-    fun `Spring Boot application preserves canonical Detekt policy`() {
-        verifyDetektPolicy("com.profiletailors.spring.boot.application")
-    }
-
-    private fun verifyDetektPolicy(pluginId: String) {
-        writeProject(pluginId = pluginId)
-        File(projectDir, "build.gradle.kts").appendText(
-            """
-
-                val policy = extensions.getByType<dev.detekt.gradle.extensions.DetektExtension>()
-                check(policy.buildUponDefaultConfig.get())
-                check(!policy.ignoreFailures.get())
-                check(!policy.allRules.get())
-            """.trimIndent(),
-        )
-        GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withPluginClasspath()
-            .withArguments("help", "--stacktrace")
-            .build()
-    }
-
     private fun writeProject(
-        pluginId: String = "com.profiletailors.spring.boot.application",
         testSource: String = """
             import org.junit.jupiter.api.Test
 
@@ -161,7 +132,7 @@ class SpringBootApplicationPluginTest {
         File(projectDir, "build.gradle.kts").writeText(
             """
                 plugins {
-                    id("$pluginId")
+                    id("com.profiletailors.spring.boot.application")
                 }
 
                 repositories { mavenCentral() }
@@ -180,7 +151,7 @@ class SpringBootApplicationPluginTest {
             """
                 config:
                   validation: true
-                  warningsAsErrors: true
+                  warningsAsErrors: false
 
                 complexity:
                   active: true

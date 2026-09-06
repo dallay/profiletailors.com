@@ -4,8 +4,6 @@
 
 ### ⚠ BREAKING CHANGES
 
-* **mcp:** `IdempotencyGuard` now uses `MpJsonSerializer` instead of `ObjectMapper` — `McpJsonSerializer` is a narrower abstraction that produces only the JSON variant the MCP protocol requires. Custom `IdempotencyGuard` implementations that override `serialize(data: Any)` must now accept and produce `McpJson` values. Existing `ObjectMapper`-based logic should be replaced with `McpJsonSerializer` calls. See `IdempotencyGuard.kt`.
-
 * **publishing:** `SocialAccountRepository` now requires `findFirstActiveByWorkspace(workspaceId)` — bulk scheduling uses `SocialAccountRepository.findFirstActiveByWorkspace` to resolve the active connection per workspace; implementations must return the first `ACTIVE` account or `null`. No migration for existing repos, but custom adapters must implement the new method. See `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/domain/PublishingRepositories.kt`.
 
 ### Features

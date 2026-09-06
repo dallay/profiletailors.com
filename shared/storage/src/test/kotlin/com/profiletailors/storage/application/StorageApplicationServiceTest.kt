@@ -81,7 +81,7 @@ class MockEventPublisher : EventPublisher<BaseDomainEvent> {
 
     override suspend fun publish(event: BaseDomainEvent) {
         if (shouldThrowOnPublish) {
-            throw IllegalStateException("Simulated event bus failure")
+            throw RuntimeException("Simulated event bus failure")
         }
         publishedEvents.add(event)
     }
@@ -168,12 +168,12 @@ class TrackingStorageMetrics : StorageObservation {
 internal class StorageApplicationServiceTest {
 
     companion object {
-        private const val BUCKET = "test-bucket"
-        private const val KEY = "test-file.txt"
+        private val BUCKET = "test-bucket"
+        private val KEY = "test-file.txt"
         private val CONTENT = "Hello, World!".toByteArray()
-        private const val UPLOADER_ID = "user-uploader-1"
-        private const val DOWNLOADER_ID = "user-downloader-1"
-        private const val DELETER_ID = "user-deleter-1"
+        private val UPLOADER_ID = "user-uploader-1"
+        private val DOWNLOADER_ID = "user-downloader-1"
+        private val DELETER_ID = "user-deleter-1"
         private val PROVIDER = StorageObservation.Providers.LOCAL
     }
 

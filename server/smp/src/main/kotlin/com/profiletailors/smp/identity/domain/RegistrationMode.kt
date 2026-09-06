@@ -1,8 +1,5 @@
 package com.profiletailors.smp.identity.domain
 
-import com.profiletailors.common.domain.ValueObject
-
-@ValueObject
 enum class RegistrationMode {
     OPEN,
     INVITE_ONLY,
@@ -10,10 +7,10 @@ enum class RegistrationMode {
     ;
 
     /**
-     * Determines the registration decision for this mode and invitation-token status.
+     * Determines whether registration is allowed for this mode.
      *
-     * @param hasInvitationToken Whether an invitation token is present.
-     * @return The applicable registration decision.
+     * @param hasInvitationToken Whether an invitation token is available.
+     * @return The registration decision for this mode and token state.
      */
     fun evaluate(hasInvitationToken: Boolean): RegistrationDecision = when {
         this == OPEN -> RegistrationDecision.ALLOWED

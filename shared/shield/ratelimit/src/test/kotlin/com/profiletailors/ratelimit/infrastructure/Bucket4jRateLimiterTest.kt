@@ -54,7 +54,29 @@ class Bucket4jRateLimiterTest {
                     ),
                 ),
             ),
-            business = businessLimits(),
+            business = RateLimitProperties.BusinessRateLimitConfig(
+                enabled = true,
+                pricingPlans = mapOf(
+                    "free" to RateLimitProperties.BandwidthLimit(
+                        name = "free-plan",
+                        capacity = 3, // Small capacity for testing
+                        refillTokens = 3,
+                        refillDuration = Duration.ofHours(1),
+                    ),
+                    "basic" to RateLimitProperties.BandwidthLimit(
+                        name = "basic-plan",
+                        capacity = 5,
+                        refillTokens = 5,
+                        refillDuration = Duration.ofHours(1),
+                    ),
+                    "professional" to RateLimitProperties.BandwidthLimit(
+                        name = "professional-plan",
+                        capacity = 10,
+                        refillTokens = 10,
+                        refillDuration = Duration.ofHours(1),
+                    ),
+                ),
+            ),
             resume = RateLimitProperties.ResumeRateLimitConfig(
                 enabled = true,
                 limit = RateLimitProperties.BandwidthLimit(
@@ -91,30 +113,6 @@ class Bucket4jRateLimiterTest {
             clock = Clock.systemUTC(),
         )
     }
-
-    private fun businessLimits() = RateLimitProperties.BusinessRateLimitConfig(
-        enabled = true,
-        pricingPlans = mapOf(
-            "free" to RateLimitProperties.BandwidthLimit(
-                name = "free-plan",
-                capacity = 3,
-                refillTokens = 3,
-                refillDuration = Duration.ofHours(1),
-            ),
-            "basic" to RateLimitProperties.BandwidthLimit(
-                name = "basic-plan",
-                capacity = 5,
-                refillTokens = 5,
-                refillDuration = Duration.ofHours(1),
-            ),
-            "professional" to RateLimitProperties.BandwidthLimit(
-                name = "professional-plan",
-                capacity = 10,
-                refillTokens = 10,
-                refillDuration = Duration.ofHours(1),
-            ),
-        ),
-    )
 
     @Test
     fun `should allow token consumption when under limit for AUTH strategy`() = runTest {
