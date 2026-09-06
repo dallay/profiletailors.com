@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.11](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.10...landing@v0.2.11) (2026-09-06)
+
+
+### Bug Fixes
+
+* prevent Playwright worktree hangs ([#976](https://github.com/dallay/profiletailors.com/issues/976)) ([fefd3db](https://github.com/dallay/profiletailors.com/commit/fefd3db76b51002dc47d90f3be310ae243e23651))
+
 ## [0.2.10](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.9...landing@v0.2.10) (2026-09-04)
 
 
