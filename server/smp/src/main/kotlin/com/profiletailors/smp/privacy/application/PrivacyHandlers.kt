@@ -30,7 +30,7 @@ internal class SubmitAccessRequestHandler(
     private val dataAggregationService: DataAggregationService,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
-    private val serializer: PrivacyDataSerializer = PrivacyDataSerializer { data -> data.toString() },
+    private val serializer: PrivacyDataSerializer,
 ) : CommandWithResultHandler<SubmitAccessRequestCommand, DataSubjectRequestResponse> {
 
     /**
@@ -98,7 +98,7 @@ internal class SubmitExportRequestHandler(
     private val storage: Storage,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
-    private val serializer: PrivacyDataSerializer = PrivacyDataSerializer { data -> data.toString() },
+    private val serializer: PrivacyDataSerializer,
 ) : CommandWithResultHandler<SubmitExportRequestCommand, DataSubjectRequestResponse> {
 
     /**
@@ -168,7 +168,7 @@ internal class SubmitCorrectionRequestHandler(
     private val anonymizationService: AnonymizationService,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
-    private val serializer: PrivacyDataSerializer = PrivacyDataSerializer { data -> data.toString() },
+    private val serializer: PrivacyDataSerializer,
 ) : CommandWithResultHandler<SubmitCorrectionRequestCommand, DataSubjectRequestResponse> {
 
     /**
