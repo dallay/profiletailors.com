@@ -16,6 +16,12 @@ private val SENSITIVE_SUBSTRINGS = listOf(
     "accesstoken",
 )
 
+/**
+ * Removes metadata entries whose keys contain sensitive substrings.
+ *
+ * @param metadata The metadata to redact, or null.
+ * @return A map excluding entries with sensitive keys, or an empty map when metadata is null.
+ */
 fun redact(metadata: Map<String, String>?): Map<String, String> = metadata?.filterKeys { key ->
     SENSITIVE_SUBSTRINGS.none { substring -> key.lowercase().contains(substring) }
 } ?: emptyMap()
