@@ -1,0 +1,96 @@
+package com.profiletailors.smp.identity.application
+
+import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
+import org.springframework.stereotype.Service
+
+class InvalidCurrentPasswordException : RuntimeException("Incorrect current password.")
+class ChangePasswordValidationException(message: String) : RuntimeException(message)
+class LocalPasswordCredentialNotFoundException : RuntimeException("Account does not have a local password credential.")
+
+data class ChangePasswordCommand(
+    val principalId: String,
+    val currentPassword: String,
+    val newPassword: String,
+    val rawRefreshToken: String? = null,
+)
+
+data class SignInMethodDto(val provider: String, val type: String, val status: String, val identifier: String? = null)
+
+data class SecurityCapabilitiesDto(val hasLocalPassword: Boolean, val signInMethods: List<SignInMethodDto>)
+
+@Service
+class AccountSecurityService(
+    private val localPasswordCredentialGateway: LocalPasswordCredentialGateway,
+    private val passwordHasher: PasswordHasher,
+    private val principalIdentityLookup: PrincipalIdentityLookup,
+    private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
+) {
+    /**
+     * Retrieves the local-password and external sign-in capabilities for a principal.
+     *
+     * @return The principal's local-password status and available sign-in methods.
+     */
+    suspend fun getSecurityCapabilities(principalId: String): SecurityCapabilitiesDto {
+        val credential = localPasswordCredentialGateway.findByPrincipalId(principalId)
+        val identityFacts = principalIdentityLookup.findByPrincipalId(principalId)
+        val hasLocalPassword = credential != null
+
+        val signInMethods = mutableListOf<SignInMethodDto>()
+        if (credential != null) {
+            signInMethods.add(
+                SignInMethodDto(
+                    provider = "password",
+                    type = "password",
+                    status = "ACTIVE",
+                    identifier = credential.email,
+                ),
+            )
+        }
+
+        if (identityFacts?.provider != null && identityFacts.provider != "local") {
+            signInMethods.add(
+                SignInMethodDto(
+                    provider = identityFacts.provider,
+                    type = "oauth",
+                    status = "CONNECTED",
+                    identifier = identityFacts.email,
+                ),
+            )
+        }
+
+        return SecurityCapabilitiesDto(
+            hasLocalPassword = hasLocalPassword,
+            signInMethods = signInMethods,
+        )
+    }
+
+    /**
+     * Changes the principal's local password and revokes other refresh sessions.
+     *
+     * @param command The password change details and optional refresh token to preserve.
+     * @throws LocalPasswordCredentialNotFoundException If no local password credential exists.
+     * @throws InvalidCurrentPasswordException If the current password is incorrect.
+     * @throws ChangePasswordValidationException If the new password is shorter than 12 characters.
+     */
+    suspend fun changePassword(command: ChangePasswordCommand) {
+        val credential = localPasswordCredentialGateway.findByPrincipalId(command.principalId)
+            ?: throw LocalPasswordCredentialNotFoundException()
+
+        if (!passwordHasher.matches(command.currentPassword, credential.passwordHash)) {
+            throw InvalidCurrentPasswordException()
+        }
+
+        if (command.newPassword.length < MIN_PASSWORD_LENGTH) {
+            throw ChangePasswordValidationException("Password must contain at least $MIN_PASSWORD_LENGTH characters.")
+        }
+
+        val newPasswordHash = passwordHasher.hash(command.newPassword)
+        localPasswordCredentialGateway.updatePasswordHash(command.principalId, newPasswordHash)
+
+        refreshSessionLifecycleService.revokeOthersForPrincipal(command.principalId, command.rawRefreshToken)
+    }
+
+    companion object {
+        private const val MIN_PASSWORD_LENGTH = 12
+    }
+}

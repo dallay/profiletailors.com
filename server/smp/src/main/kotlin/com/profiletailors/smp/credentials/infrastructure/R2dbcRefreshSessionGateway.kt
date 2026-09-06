@@ -145,6 +145,12 @@ class R2dbcRefreshSessionGateway(
         return replacement
     }
 
+    /**
+     * Revokes a refresh session and records the revocation and last-use timestamps.
+     *
+     * @param currentSessionId The identifier of the session to revoke.
+     * @param now The timestamp to record for revocation and last use.
+     */
     override suspend fun revoke(currentSessionId: String, now: Instant) {
         databaseClient.sql(
             """
@@ -164,6 +170,32 @@ class R2dbcRefreshSessionGateway(
             .awaitSingle()
     }
 
+    /**
+     * Revokes all active refresh sessions for a principal except the specified session.
+     *
+     * @param principalId The principal whose sessions should be revoked.
+     * @param excludeSessionId The session to leave active.
+     * @param now The timestamp recorded as the revocation time.
+     */
+    override suspend fun revokeOthersForPrincipal(principalId: String, excludeSessionId: String, now: Instant) {
+        databaseClient.sql(
+            "UPDATE refresh_sessions SET status = 'REVOKED', revoked_at = :now " +
+                "WHERE principal_id = :principalId AND id != :excludeSessionId AND status = 'ACTIVE'",
+        )
+            .bind("principalId", principalId)
+            .bind("excludeSessionId", excludeSessionId)
+            .bind("now", now)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    /**
+     * Revokes all active refresh sessions belonging to a principal.
+     *
+     * @param principalId The identifier of the principal whose sessions are revoked.
+     * @param now The timestamp recorded as the revocation time.
+     */
     override suspend fun revokeAllForPrincipal(principalId: String, now: Instant) {
         databaseClient.sql(
             "UPDATE refresh_sessions SET status = 'REVOKED', revoked_at = :now " +
