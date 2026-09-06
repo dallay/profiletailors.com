@@ -164,6 +164,19 @@ class R2dbcRefreshSessionGateway(
             .awaitSingle()
     }
 
+    override suspend fun revokeOthersForPrincipal(principalId: String, excludeSessionId: String, now: Instant) {
+        databaseClient.sql(
+            "UPDATE refresh_sessions SET status = 'REVOKED', revoked_at = :now " +
+                "WHERE principal_id = :principalId AND id != :excludeSessionId AND status = 'ACTIVE'",
+        )
+            .bind("principalId", principalId)
+            .bind("excludeSessionId", excludeSessionId)
+            .bind("now", now)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
     override suspend fun revokeAllForPrincipal(principalId: String, now: Instant) {
         databaseClient.sql(
             "UPDATE refresh_sessions SET status = 'REVOKED', revoked_at = :now " +

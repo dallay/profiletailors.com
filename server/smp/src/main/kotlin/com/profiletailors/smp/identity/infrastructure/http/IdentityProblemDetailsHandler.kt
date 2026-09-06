@@ -1,7 +1,10 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
+import com.profiletailors.smp.identity.application.ChangePasswordValidationException
 import com.profiletailors.smp.identity.application.CloseAccountConfirmationException
 import com.profiletailors.smp.identity.application.CloseAccountRateLimitException
+import com.profiletailors.smp.identity.application.InvalidCurrentPasswordException
+import com.profiletailors.smp.identity.application.LocalPasswordCredentialNotFoundException
 import com.profiletailors.smp.identity.application.ExpiredPasswordResetTokenException
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
@@ -185,6 +188,27 @@ class IdentityProblemDetailsHandler {
         type = URI("https://api.profiletailors.com/errors/account-closure-rate-limit")
         setProperty("code", "ACCOUNT_CLOSURE_RATE_LIMIT")
     }
+
+    @ExceptionHandler(InvalidCurrentPasswordException::class)
+    fun handle(exception: InvalidCurrentPasswordException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Incorrect current password.").apply {
+            title = "Invalid current password"
+            setProperty("code", "INVALID_CURRENT_PASSWORD")
+        }
+
+    @ExceptionHandler(ChangePasswordValidationException::class)
+    fun handle(exception: ChangePasswordValidationException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Password does not meet requirements.").apply {
+            title = "Invalid new password"
+            setProperty("code", "INVALID_NEW_PASSWORD")
+        }
+
+    @ExceptionHandler(LocalPasswordCredentialNotFoundException::class)
+    fun handle(exception: LocalPasswordCredentialNotFoundException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Local password credential not found.").apply {
+            title = "No local password credential"
+            setProperty("code", "NO_LOCAL_PASSWORD_CREDENTIAL")
+        }
 
     companion object {
         private const val INVALID_CREDENTIALS_DETAIL = "Invalid email or password."

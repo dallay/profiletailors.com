@@ -45,5 +45,23 @@ open class RefreshSessionLifecycleService(
         refreshSessionGateway.revokeAllForPrincipal(principalId, clock.instant())
     }
 
+    open suspend fun revokeOthersForPrincipal(principalId: String, excludeRawRefreshToken: String?) {
+        val activeSessionId = if (!excludeRawRefreshToken.isNullOrBlank()) {
+            try {
+                val parsedToken = refreshSessionTokenService.parse(excludeRawRefreshToken)
+                val activeSession = refreshSessionGateway.requireActive(parsedToken, clock.instant())
+                activeSession.id
+            } catch (_: Exception) {
+                null
+            }
+        } else null
+
+        if (activeSessionId != null) {
+            refreshSessionGateway.revokeOthersForPrincipal(principalId, activeSessionId, clock.instant())
+        } else {
+            refreshSessionGateway.revokeAllForPrincipal(principalId, clock.instant())
+        }
+    }
+
     private fun expiresAt(): Instant = clock.instant().plusSeconds(properties.ttlSeconds)
 }

@@ -47,4 +47,43 @@ class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseCl
         }
         .one()
         .awaitSingleOrNull()
+
+    override suspend fun findByPrincipalId(principalId: String): LocalPasswordCredentialRecord? = databaseClient.sql(
+        """
+            SELECT ui.principal_id,
+                   ui.email,
+                   ui.username,
+                   lpc.password_hash
+            FROM user_identities ui
+            INNER JOIN local_password_credentials lpc ON lpc.principal_id = ui.principal_id
+            WHERE ui.principal_id = :principalId
+        """.trimIndent(),
+    )
+        .bind("principalId", principalId)
+        .map { row, _ ->
+            LocalPasswordCredentialRecord(
+                principalId = requireNotNull(row.get("principal_id", String::class.java)),
+                email = requireNotNull(row.get("email", String::class.java)),
+                username = row.get("username", String::class.java),
+                passwordHash = requireNotNull(row.get("password_hash", String::class.java)),
+            )
+        }
+        .one()
+        .awaitSingleOrNull()
+
+    override suspend fun updatePasswordHash(principalId: String, passwordHash: String) {
+        databaseClient.sql(
+            """
+            UPDATE local_password_credentials
+            SET password_hash = :passwordHash,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE principal_id = :principalId
+            """.trimIndent(),
+        )
+            .bind("principalId", principalId)
+            .bind("passwordHash", passwordHash)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
 }
