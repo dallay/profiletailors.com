@@ -14,10 +14,23 @@ data class UpdateUserPreferencesCommand(
 
 @Service
 class UserPreferencesService(private val userPreferencesGateway: UserPreferencesGateway) {
-    suspend fun getPreferences(principalId: String): UserPreferences =
+    /**
+             * Retrieves the user's preferences, providing defaults when none are stored.
+             *
+             * @param principalId The user's principal identifier.
+             * @return The stored preferences or default preferences for the principal.
+             */
+            suspend fun getPreferences(principalId: String): UserPreferences =
         userPreferencesGateway.findByPrincipalId(principalId)
             ?: UserPreferences(principalId = principalId)
 
+    /**
+     * Updates and saves the user's preferences.
+     *
+     * @param principalId The identifier of the user whose preferences are updated.
+     * @param command The preference values to apply.
+     * @return The saved user preferences.
+     */
     suspend fun updatePreferences(principalId: String, command: UpdateUserPreferencesCommand): UserPreferences {
         val existing = getPreferences(principalId)
         val updated = existing.copy(

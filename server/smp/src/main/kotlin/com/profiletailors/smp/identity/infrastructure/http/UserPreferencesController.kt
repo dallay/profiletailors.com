@@ -25,6 +25,12 @@ data class UserPreferencesResponse(
     val theme: String,
 ) {
     companion object {
+        /**
+         * Creates an API response from user preferences.
+         *
+         * @param domain The user preferences to convert.
+         * @return The corresponding user preferences response.
+         */
         fun fromDomain(domain: UserPreferences): UserPreferencesResponse = UserPreferencesResponse(
             principalId = domain.principalId,
             locale = domain.locale,
@@ -55,6 +61,11 @@ class UserPreferencesController(
     private val principalContextProvider: PrincipalContextProvider,
 ) {
 
+    /**
+     * Retrieves the preferences for the currently authenticated user.
+     *
+     * @return The current user's preferences.
+     */
     @Operation(
         summary = "Get current user preferences",
         description = "Returns user preferences for the currently authenticated user.",
@@ -67,6 +78,11 @@ class UserPreferencesController(
         return ResponseEntity.ok(UserPreferencesResponse.fromDomain(preferences))
     }
 
+    /**
+     * Updates the preferences of the currently authenticated user.
+     *
+     * @return The updated user preferences.
+     */
     @Operation(
         summary = "Update current user preferences",
         description = "Updates user preferences for the currently authenticated user.",

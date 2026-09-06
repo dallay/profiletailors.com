@@ -25,6 +25,11 @@ class AccountSecurityService(
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
 ) {
+    /**
+     * Retrieves the local-password and external sign-in capabilities for a principal.
+     *
+     * @return The principal's local-password status and available sign-in methods.
+     */
     suspend fun getSecurityCapabilities(principalId: String): SecurityCapabilitiesDto {
         val credential = localPasswordCredentialGateway.findByPrincipalId(principalId)
         val identityFacts = principalIdentityLookup.findByPrincipalId(principalId)
@@ -59,6 +64,14 @@ class AccountSecurityService(
         )
     }
 
+    /**
+     * Changes the principal's local password and revokes other refresh sessions.
+     *
+     * @param command The password change details and optional refresh token to preserve.
+     * @throws LocalPasswordCredentialNotFoundException If no local password credential exists.
+     * @throws InvalidCurrentPasswordException If the current password is incorrect.
+     * @throws ChangePasswordValidationException If the new password is shorter than 12 characters.
+     */
     suspend fun changePassword(command: ChangePasswordCommand) {
         val credential = localPasswordCredentialGateway.findByPrincipalId(command.principalId)
             ?: throw LocalPasswordCredentialNotFoundException()

@@ -41,10 +41,21 @@ open class RefreshSessionLifecycleService(
         refreshSessionGateway.revoke(activeSession.id, clock.instant())
     }
 
+    /**
+     * Revokes all refresh sessions belonging to a principal.
+     *
+     * @param principalId The identifier of the principal whose sessions are revoked.
+     */
     open suspend fun revokeAllForPrincipal(principalId: String) {
         refreshSessionGateway.revokeAllForPrincipal(principalId, clock.instant())
     }
 
+    /**
+     * Revokes all refresh sessions for a principal except the active session identified by the optional token.
+     *
+     * @param principalId The identifier of the principal whose sessions are revoked.
+     * @param excludeRawRefreshToken The raw refresh token identifying the session to preserve; if absent, invalid, or inactive, all sessions are revoked.
+     */
     open suspend fun revokeOthersForPrincipal(principalId: String, excludeRawRefreshToken: String?) {
         val activeSessionId = if (!excludeRawRefreshToken.isNullOrBlank()) {
             try {
@@ -65,5 +76,10 @@ open class RefreshSessionLifecycleService(
         }
     }
 
-    private fun expiresAt(): Instant = clock.instant().plusSeconds(properties.ttlSeconds)
+    /**
+ * Calculates the refresh session expiration time from the current clock time and configured TTL.
+ *
+ * @return The calculated expiration timestamp.
+ */
+private fun expiresAt(): Instant = clock.instant().plusSeconds(properties.ttlSeconds)
 }

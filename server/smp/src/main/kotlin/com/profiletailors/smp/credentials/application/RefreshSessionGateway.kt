@@ -19,11 +19,30 @@ interface RefreshSessionGateway {
         now: Instant,
     ): CreatedRefreshSession
 
-    suspend fun revoke(currentSessionId: String, now: Instant)
+    /**
+ * Revokes the specified refresh session.
+ *
+ * @param currentSessionId The identifier of the session to revoke.
+ * @param now The time at which the revocation occurs.
+ */
+suspend fun revoke(currentSessionId: String, now: Instant)
 
-    suspend fun revokeAllForPrincipal(principalId: String, now: Instant) = Unit
+    /**
+ * Revokes all refresh sessions belonging to a principal.
+ *
+ * @param principalId The principal whose sessions should be revoked.
+ * @param now The time at which the revocation occurs.
+ */
+suspend fun revokeAllForPrincipal(principalId: String, now: Instant) = Unit
 
-    suspend fun revokeOthersForPrincipal(principalId: String, excludeSessionId: String, now: Instant) = Unit
+    /**
+ * Revokes all refresh sessions for a principal except the specified session.
+ *
+ * @param principalId The principal whose sessions are revoked.
+ * @param excludeSessionId The session to keep active.
+ * @param now The time at which revocation is evaluated.
+ */
+suspend fun revokeOthersForPrincipal(principalId: String, excludeSessionId: String, now: Instant) = Unit
 }
 
 class RefreshSessionNotActiveException(

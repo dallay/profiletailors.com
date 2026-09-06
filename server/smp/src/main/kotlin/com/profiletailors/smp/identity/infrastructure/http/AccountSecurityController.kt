@@ -39,6 +39,11 @@ class AccountSecurityController(
     private val refreshSessionProperties: RefreshSessionProperties,
 ) {
 
+    /**
+     * Retrieves the security capabilities for the currently authenticated account.
+     *
+     * @return The account's security capabilities.
+     */
     @Operation(
         summary = "Get account security capabilities",
         description = "Returns authentication capability metadata for the currently authenticated user.",
@@ -76,6 +81,12 @@ class AccountSecurityController(
         return ResponseEntity.noContent().build()
     }
 
-    private fun readRefreshCookie(request: ServerHttpRequest): String? =
+    /**
+         * Reads the configured refresh-session cookie from the request.
+         *
+         * @param request The HTTP request containing the cookies.
+         * @return The refresh-session cookie value, or `null` if the cookie is absent.
+         */
+        private fun readRefreshCookie(request: ServerHttpRequest): String? =
         request.cookies.getFirst(refreshSessionProperties.cookieName)?.value
 }
