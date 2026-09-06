@@ -687,12 +687,14 @@ spring:
 ### Common Configuration Issues
 
 1. **Invalid Key Length**
+
    ```
    Error: The signing key's size is 184 bits which is not secure enough for the HS256 algorithm.
    Solution: Use a key of at least 256 bits (32 characters) for HS256.
    ```
 
 2. **Clock Skew Issues**
+
    ```kotlin
    // Add clock skew tolerance
    Jwts.parserBuilder()
@@ -702,6 +704,7 @@ spring:
    ```
 
 3. **Issuer Mismatch**
+
    ```kotlin
    // Always set and validate issuer
    Jwts.parserBuilder()

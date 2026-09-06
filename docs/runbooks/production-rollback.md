@@ -1,6 +1,6 @@
 # Production Rollback Runbook
 
-**Last Updated:** 2026-08-31
+**Last Updated:** 2026-09-05
 **Status:** Active
 **Scope:** Production Docker Swarm, Docker Compose, Database, and Worker Rollback
 **Audience:** Release Manager, On-Call Operator, SRE
@@ -53,6 +53,7 @@ docker stack deploy -c infra/apps/smp/swarm/stack.yaml profiletailors-smp
 Swarm maintains previous task definitions for automatic or manual rollback.
 
 #### Option A: Rollback via `just` helper
+
 ```bash
 # Rollback backend service
 just swarm-rollback backend
@@ -62,6 +63,7 @@ just swarm-rollback dashboard
 ```
 
 #### Option B: Rollback via Docker CLI
+
 ```bash
 # Rollback backend service to previous revision
 docker service rollback profiletailors-smp_backend
@@ -71,6 +73,7 @@ docker service rollback profiletailors-smp_dashboard
 ```
 
 #### Option C: Redeploy Last-Known-Good Image Revision
+
 If a full stack reset to a known release tag/digest is required:
 
 ```bash
@@ -108,13 +111,16 @@ docker compose --env-file .env -f compose.yaml ps
 Profile Tailors uses Liquibase for reactive PostgreSQL schema migrations.
 
 #### Backward Compatibility First (Expand/Contract Pattern)
+
 - DDL changes MUST be backward-compatible (adding nullable columns or new tables).
 - Rolling back application container images while keeping new database columns is the preferred and safest path.
 
 #### Handling Destructive or Incompatible DDL
+
 If a migration changed table structures incompatibly:
 
 1. **Stop Application Traffic:**
+
    ```bash
    # Scale backend replicas to 0 during database recovery
    docker service scale profiletailors-smp_backend=0
@@ -124,6 +130,7 @@ If a migration changed table structures incompatibly:
    If schema or data corruption occurred, restore PostgreSQL from the latest verified automated backup prior to the deployment timestamp. Refer to [`docs/infrastructure/private-beta-backup-restore-status.md`](../infrastructure/private-beta-backup-restore-status.md) for snapshot location and restore procedures.
 
 3. **Re-apply Safe Revision:**
+
    ```bash
    # Scale backend replicas back to 1 after restoration
    docker service scale profiletailors-smp_backend=1
@@ -136,6 +143,7 @@ If a migration changed table structures incompatibly:
 Perform the following verification steps before marking the rollback complete:
 
 1. **Verify Readiness & Liveness Endpoints:**
+
    ```bash
    # Actuator Health
    curl -f http://localhost:9091/actuator/health
@@ -143,6 +151,7 @@ Perform the following verification steps before marking the rollback complete:
    ```
 
 2. **Check Container Logs for Errors:**
+
    ```bash
    just swarm-logs backend
    ```

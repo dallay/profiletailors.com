@@ -71,7 +71,7 @@ function updateDOM(clickedTransitionName) {
 }
 ```
 
-2. **Dynamic list item:** Assign the element on the detail page a `view-transition-name`, and apply
+1. **Dynamic list item:** Assign the element on the detail page a `view-transition-name`, and apply
    that name to the item on the list page when it is selected. Remove the `view-transition-name`
    from the item on the list page when returning to the list page.
 

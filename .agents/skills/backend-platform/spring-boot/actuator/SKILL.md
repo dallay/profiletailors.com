@@ -252,4 +252,3 @@ More end-to-end samples are available in `references/examples.md`.
   `http.server.requests`, `jvm.memory.used`) are present.
 - Run security scans to validate only intended ports and endpoints are reachable from outside the
   trusted network.
-
