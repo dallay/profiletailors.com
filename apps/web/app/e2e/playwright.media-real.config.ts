@@ -25,7 +25,7 @@ export default defineConfig({
 
   reporter: [
     ['list'],
-    ['html', { outputFolder: 'playwright-media-real-report' }],
+    ['html', { outputFolder: 'playwright-media-real-report', open: 'never' }],
     createCoverageConfig('media-real', __dirname),
   ],
 

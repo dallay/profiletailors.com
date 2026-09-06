@@ -17,6 +17,8 @@ const port = process.env.PLAYWRIGHT_PORT || String(portLease.port)
 const env = getRuntimeEnvironment(context, {
   PLAYWRIGHT_PORT: port,
   PLAYWRIGHT_REUSE_EXISTING_SERVER: 'false',
+  PLAYWRIGHT_HTML_OPEN: 'never',
+  ASTRO_PREVIEW_BACKGROUND: '0',
 })
 
 let result
