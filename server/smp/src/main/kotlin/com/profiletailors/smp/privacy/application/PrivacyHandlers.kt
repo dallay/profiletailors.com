@@ -33,6 +33,12 @@ internal class SubmitAccessRequestHandler(
     private val serializer: PrivacyDataSerializer = PrivacyDataSerializer { data -> data.toString() },
 ) : CommandWithResultHandler<SubmitAccessRequestCommand, DataSubjectRequestResponse> {
 
+    /**
+     * Submits an access request and completes it with the requested principal data.
+     *
+     * @param command The access request details.
+     * @return The completed access request response.
+     */
     override suspend fun handle(command: SubmitAccessRequestCommand): DataSubjectRequestResponse {
         val now = clock.instant()
         val request = DataSubjectRequest.create(
@@ -95,6 +101,12 @@ internal class SubmitExportRequestHandler(
     private val serializer: PrivacyDataSerializer = PrivacyDataSerializer { data -> data.toString() },
 ) : CommandWithResultHandler<SubmitExportRequestCommand, DataSubjectRequestResponse> {
 
+    /**
+     * Submits an export request and makes the aggregated data available through a download URL.
+     *
+     * @param command The export request details, including the requesting principal, email, workspace, and notes.
+     * @return The completed export request response containing the download URL.
+     */
     override suspend fun handle(command: SubmitExportRequestCommand): DataSubjectRequestResponse {
         val now = clock.instant()
         val request = DataSubjectRequest.create(
@@ -159,6 +171,12 @@ internal class SubmitCorrectionRequestHandler(
     private val serializer: PrivacyDataSerializer = PrivacyDataSerializer { data -> data.toString() },
 ) : CommandWithResultHandler<SubmitCorrectionRequestCommand, DataSubjectRequestResponse> {
 
+    /**
+     * Applies an identity correction and completes the corresponding data subject request.
+     *
+     * @param command The correction request details, including the principal, field, and new value.
+     * @return The completed data subject request response.
+     */
     override suspend fun handle(command: SubmitCorrectionRequestCommand): DataSubjectRequestResponse {
         // Validate and apply the identity correction
         val correctionResult = anonymizationService.verifyCorrection(
