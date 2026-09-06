@@ -504,7 +504,8 @@ class RequestPasswordResetHandlerTest {
         override suspend fun findByEmail(email: String): LocalPasswordCredentialRecord? =
             record?.takeIf { it.email == email }
 
-        override suspend fun findByPrincipalId(principalId: String): LocalPasswordCredentialRecord? = record
+        override suspend fun findByPrincipalId(principalId: String): LocalPasswordCredentialRecord? =
+            record?.takeIf { it.principalId == principalId }
     }
 
     private class RecordingEventPublisher(private val order: MutableList<String> = mutableListOf()) :
