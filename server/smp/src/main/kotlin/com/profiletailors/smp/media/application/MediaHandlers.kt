@@ -348,7 +348,7 @@ class UploadAssetHandler(
 
         operationalEvents.info(
             "media.asset.upload.failed assetId=$assetId workspaceId=$workspaceId reason=$reason " +
-                "storageWriteAttempted=$storageWriteAttempted storageCleanupSucceeded=${cleanupSucceeded == true}",
+                "storageWriteAttempted=$storageWriteAttempted storageCleanupSucceeded=$cleanupSucceeded",
         )
     }
 

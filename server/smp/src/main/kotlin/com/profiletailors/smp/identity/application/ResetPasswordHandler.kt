@@ -81,7 +81,7 @@ internal class ResetPasswordHandler(
                     name = "identity.password_reset.audit_recording_failed",
                     severity = Severity.ERROR,
                     message = "Audit recording failed for completed password reset; reset outcome is unaffected",
-                    attributes = mapOf("principalId" to principalId),
+                    attributes = emptyMap(),
                     cause = failure,
                 ),
             )

@@ -1,6 +1,5 @@
 package com.profiletailors.smp.media.application
 
-import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.observability.debug
 import com.profiletailors.observability.warn
@@ -66,7 +65,7 @@ class StorageAssetPreviewUrlResolver(
     private val mediaPreviewTokenService: MediaPreviewTokenService,
     private val storageBucket: String,
     private val previewUrlExpirySeconds: Long,
-    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
+    private val operationalEvents: OperationalEventSink,
 ) : AssetPreviewUrlResolver {
 
     /**
@@ -79,11 +78,13 @@ class StorageAssetPreviewUrlResolver(
         binding: com.profiletailors.storage.domain.AttachmentsStorageBinding,
         mediaPreviewTokenService: MediaPreviewTokenService,
         previewUrlExpirySeconds: Long,
+        operationalEvents: OperationalEventSink,
     ) : this(
         bucketRegistry = BucketRegistry { binding.storage },
         mediaPreviewTokenService = mediaPreviewTokenService,
         storageBucket = binding.bucketName,
         previewUrlExpirySeconds = previewUrlExpirySeconds,
+        operationalEvents = operationalEvents,
     )
 
     override suspend fun resolvePreviewUrl(

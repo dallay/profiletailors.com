@@ -56,19 +56,9 @@ suspend fun publish(event: AdminAuditEvent) {
 
 ### REMOVED: Orphaned Table Migration
 
-**Option A — Rollback** (if V006 was never deployed to shared environments):
-Migration file `V006__create_administrative_audit_events.sql` is deleted from `db/migration/`.
-The include entry is removed from `db/changelog-master.yaml`.
-
-**Option B — Forward-drop** (if V006 was already applied to shared environments):
-A new migration `V007__drop_administrative_audit_events.sql` is added:
-```sql
-DROP TABLE IF EXISTS administrative_audit_events;
-```
-The include entry is removed from `db.changelog-master.yaml`.
-
-Which option applies is determined by checking whether `V006__create_administrative_audit_events.sql`
-was merged and deployed before the consolidation decision.
+The migration file `V006__create_administrative_audit_events.sql` was **never committed** — no
+Liquibase rollback or forward-drop migration is required. The orphaned `administrative` bounded
+context was deleted as dead code.
 
 ## Scenarios
 

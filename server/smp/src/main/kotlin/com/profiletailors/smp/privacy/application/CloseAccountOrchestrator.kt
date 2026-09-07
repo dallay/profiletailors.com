@@ -32,18 +32,18 @@ class CloseAccountOrchestrator(
 ) : CloseAccountOrchestration {
 
     override suspend fun execute(principalId: String) {
-        operationalEvents.info("Executing account closure for principal {}", principalId)
+        operationalEvents.info("Executing account closure")
 
         // Step 1: Revoke credentials (sessions + API keys)
         credentialsRevocation.revokeAllSessions(principalId)
         credentialsRevocation.deleteAllApiKeys(principalId)
-        operationalEvents.debug("Revoked credentials for principal {}", principalId)
+        operationalEvents.debug("Revoked credentials")
 
         // Step 2: Clean up publishing context
         publishingDeletion.cancelPendingPublications(principalId)
         publishingDeletion.deleteSocialConnections(principalId)
         publishingDeletion.deleteSecureCredentials(principalId)
-        operationalEvents.debug("Cleaned up publishing data for principal {}", principalId)
+        operationalEvents.debug("Cleaned up publishing data")
 
         // Step 3: Capture workspace IDs before removing memberships
         val workspaceIds = tenancyData.getMembershipWorkspaceIds(principalId)
@@ -52,20 +52,20 @@ class CloseAccountOrchestrator(
         if (workspaceIds.isNotEmpty()) {
             mediaDeletion.markAssetsDeleted(principalId, workspaceIds)
             mediaDeletion.markBlobsReadyForGc(principalId, workspaceIds)
-            operationalEvents.debug("Marked media assets for GC for principal {}", principalId)
+            operationalEvents.debug("Marked media assets for GC")
         }
 
         // Step 5: Remove workspace memberships
         tenancyData.removeAllMemberships(principalId)
-        operationalEvents.debug("Removed workspace memberships for principal {}", principalId)
+        operationalEvents.debug("Removed workspace memberships")
 
         // Step 6: Anonymize identity
         val now = java.time.Clock.systemUTC().instant()
         identityAnonymization.anonymizeUserIdentity(principalId, now)
         identityAnonymization.anonymizePrincipalDisplayIdentity(principalId)
-        operationalEvents.debug("Anonymized identity for principal {}", principalId)
+        operationalEvents.debug("Anonymized identity")
 
-        operationalEvents.info("Account closure completed for principal {}", principalId)
+        operationalEvents.info("Account closure completed")
         // Note: Audit event emission is deferred until a shared audit facility is available.
         // Currently covered by structured logging.
     }

@@ -70,8 +70,10 @@ The SMP infrastructure provides the current `Slf4jOperationalEventSink` adapter.
 backend or adding another exporter therefore does not require changes to domain or application
 use cases. Generic command and query lifecycle events (`bus.request.started`,
 `bus.request.completed`, and `bus.request.failed`) are emitted by the mediator pipeline without
-serializing request or response values. Domain facts and audit records continue to use their
-dedicated domain-event and audit contracts.
+serializing request or response values. The `bus.request.failed` event emits safe error metadata
+(`errorType` with the exception class simple name) instead of the raw `Throwable` to prevent
+sensitive stack traces or exception messages from reaching the log sink. Domain facts and audit
+records continue to use their dedicated domain-event and audit contracts.
 
 ---
 

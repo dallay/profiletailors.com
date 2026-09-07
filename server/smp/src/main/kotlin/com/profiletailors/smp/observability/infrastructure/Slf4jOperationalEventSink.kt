@@ -11,13 +11,16 @@ class Slf4jOperationalEventSink : OperationalEventSink {
     private val logger = LoggerFactory.getLogger("profiletailors.operational")
 
     override fun emit(event: OperationalEvent) {
-        val message = format(event)
-        when (event.severity) {
-            Severity.TRACE -> logger.trace(message, event.cause)
-            Severity.DEBUG -> logger.debug(message, event.cause)
-            Severity.INFO -> logger.info(message, event.cause)
-            Severity.WARN -> logger.warn(message, event.cause)
-            Severity.ERROR -> logger.error(message, event.cause)
+        try {
+            val message = format(event)
+            when (event.severity) {
+                Severity.TRACE -> logger.trace(message, event.cause)
+                Severity.DEBUG -> logger.debug(message, event.cause)
+                Severity.INFO -> logger.info(message, event.cause)
+                Severity.WARN -> logger.warn(message, event.cause)
+                Severity.ERROR -> logger.error(message, event.cause)
+            }
+        } catch (_: Exception) {
         }
     }
 

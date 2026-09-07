@@ -43,9 +43,9 @@ class CloseAccountHandler(
         validateConfirmation(command)
         enforceRateLimit(command.principalId)
 
-        operationalEvents.info("Initiating account closure for principal {}", command.principalId)
+        operationalEvents.info("Initiating account closure")
         orchestration.execute(command.principalId)
-        operationalEvents.info("Account closure completed for principal {}", command.principalId)
+        operationalEvents.info("Account closure completed")
     }
 
     private fun validateConfirmation(command: CloseAccountCommand) {

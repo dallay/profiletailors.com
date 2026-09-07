@@ -11,22 +11,15 @@
 |--------|----------|----------|
 | redact() function | Exists in platformadmin persistence | ✅ |
 | Enforcement in publish() | redact(event.metadata) called | ✅ |
-| V007 migration | Adds TEXT metadata column | ✅ |
-| V006 rollback | File deleted, not in changelog-master | ✅ |
+| V007 migration | Not created — metadata column deferred to future migration | ⚠️ |
+| V006 migration | Never existed — no rollback required | ✅ |
 | administrative context | Deleted from main and test | ✅ |
-| Unit tests | 7 cases | ✅ |
-| backend-test-fast | Pass | ✅ |
-| Detekt | Pass | ✅ |
+| Unit tests | 7 cases (T1.3, T2.2 pending execution) | ⚠️ |
 
 ## Build & Test Evidence
 
-```
-./gradlew :server:smp:test    # backend-test-fast
-BUILD SUCCESSFUL in 1m 24s
-
-./gradlew :server:smp:detekt
-BUILD SUCCESSFUL in 9s
-```
+Build and test evidence not available — verification performed via static inspection of
+implementation artifacts.
 
 ## Spec Compliance Matrix
 

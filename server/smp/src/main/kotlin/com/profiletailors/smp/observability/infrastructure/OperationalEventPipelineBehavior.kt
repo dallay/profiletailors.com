@@ -47,8 +47,8 @@ class OperationalEventPipelineBehavior(private val operationalEvents: Operationa
                 attributes = mapOf(
                     "request" to requestName,
                     "durationMs" to elapsedMillis(startedAt),
+                    "errorType" to failure::class.simpleName,
                 ),
-                cause = failure,
             ),
         )
     }
