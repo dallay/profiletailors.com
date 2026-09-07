@@ -34,9 +34,9 @@ Chain strategy: pending
 
 ## Phase 4: Verification
 
-- [ ] 4.1 Run scoped tests: `just backend-test-fast --tests "*platformadmin*OperatorAccessResolver*"` — **BLOCKED** by pre-existing publishing/ compilation errors
-- [ ] 4.2 Confirm all 3 new resolver cases pass and existing tests still pass — **BLOCKED** by pre-existing publishing/ compilation errors
-- [ ] 4.3 Run full `just backend-test-fast` to confirm no regressions — **BLOCKED** by pre-existing publishing/ compilation errors
+- [x] 4.1 Run scoped tests: `just backend-test-fast --tests "*platformadmin*OperatorAccessResolver*"` — PASSED (no compilation errors, all resolver + controller tests green)
+- [x] 4.2 Confirm all 3 new resolver cases pass and existing tests still pass — PASSED
+- [x] 4.3 Run full `just backend-test-fast` to confirm no regressions — BUILD SUCCESSFUL in 1m 24s
 
 ## Dependencies
 

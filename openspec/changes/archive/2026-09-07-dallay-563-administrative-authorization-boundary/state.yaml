@@ -1,5 +1,5 @@
 change: dallay-563-administrative-authorization-boundary
-current_phase: apply
+current_phase: verify
 completed:
   - init
   - propose
@@ -7,8 +7,9 @@ completed:
   - design
   - tasks
   - apply
-next: verify
-updated: "2026-09-03T20:00:00Z"
+  - verify
+next: archive
+updated: "2026-09-07T00:00:00Z"
 persistence_mode: openspec
 bounded_contexts:
   - platformadmin
@@ -21,3 +22,7 @@ stack:
   testing:
     - cucumber + testcontainers (backend)
     - junit-platform (unit/integration)
+verification_summary:
+  scoped_tests: PASSED (OperatorAccessResolver + AdminOperatorController tests)
+  full_fast_suite: BUILD SUCCESSFUL in 1m 24s
+  pre_existing_compile_error: fixed (InvitationActivationCoordinatorTest missing waitlistEntryAdmin)
