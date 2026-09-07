@@ -4,6 +4,9 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.observability.NoOpOperationalEventSink
+import com.profiletailors.observability.OperationalEvent
+import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
@@ -17,6 +20,7 @@ import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.media.domain.MediaStorageKeys
 import com.profiletailors.smp.media.domain.WorkspaceFileBlob
 import com.profiletailors.storage.domain.Storage
+import com.profiletailors.storage.domain.StorageServiceException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flowOf
@@ -34,6 +38,55 @@ import java.time.Instant
 
 @Suppress("LargeClass")
 class MediaCasHandlersTest {
+    @Test
+    fun `legacy upload isolates cleanup and state transition logging failures`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val storage = FakeStorage(
+            uploadFailure = StorageServiceException("upload failed"),
+            deleteFailure = StorageServiceException("cleanup failed"),
+        )
+        val events = RecordingOperationalEventSink()
+        media.create(pendingAsset(ASSET_A, HASH_A).copy(storageKey = "assets/$WORKSPACE/$ASSET_A"))
+
+        assertThrows<StorageServiceException> {
+            uploadLegacyHandler(media, storage, operationalEvents = events)
+                .handle(LegacyUploadAssetCommand(ASSET_A, WORKSPACE, flowOf(jpegBytes()), jpegBytes().size.toLong()))
+        }
+
+        assertTrue(events.events.any { it.severity.name == "WARN" })
+
+        val failingMedia = InMemoryMediaAssetRepository()
+        failingMedia.failMarkAsFailed = true
+        failingMedia.create(pendingAsset(ASSET_B, HASH_B))
+        assertThrows<IllegalStateException> {
+            uploadLegacyHandler(
+                failingMedia,
+                FakeStorage(uploadFailure = StorageServiceException("upload failed")),
+                operationalEvents = events,
+            ).handle(LegacyUploadAssetCommand(ASSET_B, WORKSPACE, flowOf(jpegBytes()), jpegBytes().size.toLong()))
+        }
+        assertTrue(events.events.any { it.severity.name == "ERROR" })
+    }
+
+    @Test
+    fun `CAS upload emits transactional empty event when blob disappeared and cleanup fails`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val storage = FakeStorage(deleteFailure = StorageServiceException("cleanup failed"))
+        val events = RecordingOperationalEventSink()
+        val bytes = jpegBytes()
+        val hash = sha256(bytes)
+        media.create(pendingAsset(ASSET_A, hash))
+        blobs.saveBlob(uploadingBlob(hash))
+        blobs.hideBlobForUpdate = true
+
+        val result = uploadHandler(media, blobs, storage, operationalEvents = events)
+            .handle(uploadCommand(ASSET_A, hash, bytes))
+
+        assertTrue(result is CasUploadAssetResult.NotFound)
+        assertTrue(events.events.any { it.message?.contains("transactionalEmpty") == true })
+    }
+
     @Test
     fun `unverified user cannot create legacy asset and no asset is persisted`() = runTest {
         val media = InMemoryMediaAssetRepository()
@@ -480,6 +533,120 @@ class MediaCasHandlersTest {
     }
 
     @Test
+    fun `GC emits skip event when a blob has no storage key`() = runTest {
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        blobs.saveBlob(
+            readyBlob(HASH_A).copy(
+                storageKey = null,
+                status = BlobStatus.READY_FOR_GC,
+                orphanedAt = Instant.now().minusSeconds(8 * 24 * 3600),
+            ),
+        )
+        val events = RecordingOperationalEventSink()
+
+        val result = BlobGarbageCollector(
+            blobs,
+            InMemoryMediaAssetRepository(),
+            FakeStorage().port(),
+            reconcilerSettings(),
+            events,
+        ).run()
+
+        assertEquals(1, result.skippedBlobs)
+        assertTrue(events.events.any { it.message?.contains("noStorageKey") == true })
+    }
+
+    @Test
+    fun `GC records storage failures and emits failure event`() = runTest {
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        blobs.saveBlob(
+            readyBlob(HASH_A).copy(
+                status = BlobStatus.READY_FOR_GC,
+                orphanedAt = Instant.now().minusSeconds(8 * 24 * 3600),
+            ),
+        )
+        val events = RecordingOperationalEventSink()
+
+        val result = BlobGarbageCollector(
+            blobs,
+            InMemoryMediaAssetRepository(),
+            FakeStorage(deleteFailure = StorageServiceException("delete failed")).port(),
+            reconcilerSettings(),
+            events,
+        ).run()
+
+        assertEquals(1, result.storageErrors)
+        assertEquals(1, blobs.blob(WORKSPACE, HASH_A)?.gcFailureCount)
+        assertTrue(events.events.any { it.message?.contains("storageFailed") == true })
+    }
+
+    @Test
+    fun `GC records timeout and unexpected runtime failures`() = runTest {
+        val timeoutFailure = try {
+            kotlinx.coroutines.withTimeout(1) { kotlinx.coroutines.delay(10) }
+            error("timeout was not raised")
+        } catch (error: kotlinx.coroutines.TimeoutCancellationException) {
+            error
+        }
+        val timeoutBlobs = InMemoryWorkspaceFileBlobRepository()
+        timeoutBlobs.saveBlob(
+            readyBlob(HASH_A).copy(
+                status = BlobStatus.READY_FOR_GC,
+                orphanedAt = Instant.now().minusSeconds(8 * 24 * 3600),
+            ),
+        )
+        val timeoutEvents = RecordingOperationalEventSink()
+        val timeoutResult = BlobGarbageCollector(
+            timeoutBlobs,
+            InMemoryMediaAssetRepository(),
+            FakeStorage(deleteFailure = timeoutFailure).port(),
+            reconcilerSettings(),
+            timeoutEvents,
+        ).run()
+
+        assertEquals(1, timeoutResult.storageErrors)
+        assertTrue(timeoutEvents.events.any { it.message?.contains("storageTimeout") == true })
+
+        val runtimeBlobs = InMemoryWorkspaceFileBlobRepository()
+        runtimeBlobs.saveBlob(
+            readyBlob(HASH_B).copy(
+                status = BlobStatus.READY_FOR_GC,
+                orphanedAt = Instant.now().minusSeconds(8 * 24 * 3600),
+            ),
+        )
+        val runtimeEvents = RecordingOperationalEventSink()
+        val runtimeResult = BlobGarbageCollector(
+            runtimeBlobs,
+            InMemoryMediaAssetRepository(),
+            FakeStorage(deleteFailure = IllegalArgumentException("unexpected")).port(),
+            reconcilerSettings(),
+            runtimeEvents,
+        ).run()
+
+        assertEquals(1, runtimeResult.storageErrors)
+        assertTrue(runtimeEvents.events.any { it.message?.contains("gc.error") == true })
+    }
+
+    @Test
+    fun `GC isolates repository failures and still returns run metrics`() = runTest {
+        val blobs = InMemoryWorkspaceFileBlobRepository().also {
+            it.findReadyError = IllegalStateException("database unavailable")
+        }
+        val events = RecordingOperationalEventSink()
+
+        val result = BlobGarbageCollector(
+            blobs,
+            InMemoryMediaAssetRepository(),
+            FakeStorage().port(),
+            reconcilerSettings(),
+            events,
+        ).run()
+
+        assertEquals(0, result.blobsScanned)
+        assertTrue(events.events.any { it.message?.contains("run failed") == true })
+    }
+
+    @Test
     fun `PENDING_UPLOAD expiration marks failed and schedules orphan blob for gc`() = runTest {
         val media = InMemoryMediaAssetRepository()
         val blobs = InMemoryWorkspaceFileBlobRepository()
@@ -510,6 +677,57 @@ class MediaCasHandlersTest {
         assertEquals(1, result.uploadingExpired)
         assertEquals("expired:uploading_ttl", media.asset(WORKSPACE, ASSET_A)?.failureReason)
         assertEquals(BlobStatus.READY_FOR_GC, blobs.blob(WORKSPACE, HASH_A)?.status)
+    }
+
+    @Test
+    fun `expiration logs per-asset failures and release failures`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        media.failMarkAsFailed = true
+        media.create(pendingAsset(ASSET_A, HASH_A).copy(createdAt = Instant.now().minusSeconds(25 * 3600)))
+        media.create(
+            pendingAsset(ASSET_B, HASH_B, status = MediaAssetStatus.UPLOADING)
+                .copy(uploadStartedAt = Instant.now().minusSeconds(25 * 3600)),
+        )
+        val events = RecordingOperationalEventSink()
+
+        val result = MediaAssetExpirationJob(
+            media,
+            InMemoryWorkspaceFileBlobRepository(),
+            InMemoryRateLimitRepository(failRelease = true),
+            NoopAtomicTransactionRunner,
+            events,
+        ).run()
+
+        assertEquals(2, result.errors)
+        assertTrue(events.events.any { it.message?.contains("PENDING_UPLOAD") == true })
+        assertTrue(events.events.any { it.message?.contains("UPLOADING") == true })
+
+        media.failMarkAsFailed = false
+        MediaAssetExpirationJob(
+            media,
+            InMemoryWorkspaceFileBlobRepository(),
+            InMemoryRateLimitRepository(failRelease = true),
+            NoopAtomicTransactionRunner,
+            events,
+        ).run()
+        assertTrue(events.events.any { it.message?.contains("No upload slot") == true })
+    }
+
+    @Test
+    fun `expiration isolates repository failure`() = runTest {
+        val media = InMemoryMediaAssetRepository().also { it.failExpiredPendingLookup = true }
+        val events = RecordingOperationalEventSink()
+
+        val result = MediaAssetExpirationJob(
+            media,
+            InMemoryWorkspaceFileBlobRepository(),
+            InMemoryRateLimitRepository(),
+            NoopAtomicTransactionRunner,
+            events,
+        ).run()
+
+        assertEquals(1, result.errors)
+        assertTrue(events.events.any { it.message?.contains("run failed") == true })
     }
 
     @Test
@@ -852,6 +1070,8 @@ class MediaCasHandlersTest {
 
 private class InMemoryMediaAssetRepository : MediaAssetRepository {
     val assets = linkedMapOf<Pair<String, String>, MediaAsset>()
+    var failMarkAsFailed = false
+    var failExpiredPendingLookup = false
 
     fun asset(workspaceId: String, assetId: String) = assets[workspaceId to assetId]
 
@@ -910,6 +1130,7 @@ private class InMemoryMediaAssetRepository : MediaAssetRepository {
     }
 
     override suspend fun markAsFailed(assetId: String, workspaceId: String, reason: String?): MediaAsset? {
+        if (failMarkAsFailed) throw IllegalStateException("mark failed")
         val asset = asset(workspaceId, assetId) ?: return null
         val updated = asset.copy(status = MediaAssetStatus.FAILED, failureReason = reason, uploadStartedAt = null)
         assets[workspaceId to assetId] = updated
@@ -933,10 +1154,13 @@ private class InMemoryMediaAssetRepository : MediaAssetRepository {
     override suspend fun findStaleProcessingAssets(thresholdHours: Long, gracePeriodMinutes: Long) =
         emptyList<MediaAsset>()
     override suspend fun findRecentlyFailedAssets() = emptyList<MediaAsset>()
-    override suspend fun findExpiredPendingUploadAssets(limit: Int) = assets.values.filter {
-        it.status == MediaAssetStatus.PENDING_UPLOAD &&
-            it.createdAt.isBefore(Instant.now().minusSeconds(24 * 3600))
-    }.take(limit)
+    override suspend fun findExpiredPendingUploadAssets(limit: Int): List<MediaAsset> {
+        if (failExpiredPendingLookup) throw IllegalStateException("pending lookup failed")
+        return assets.values.filter {
+            it.status == MediaAssetStatus.PENDING_UPLOAD &&
+                it.createdAt.isBefore(Instant.now().minusSeconds(24 * 3600))
+        }.take(limit)
+    }
     override suspend fun findExpiredUploadingAssets(limit: Int) = assets.values.filter {
         it.status == MediaAssetStatus.UPLOADING &&
             it.uploadStartedAt?.isBefore(Instant.now().minusSeconds(24 * 3600)) == true
@@ -959,6 +1183,8 @@ private class InMemoryMediaAssetRepository : MediaAssetRepository {
 
 private class InMemoryWorkspaceFileBlobRepository : WorkspaceFileBlobRepository {
     val blobs = linkedMapOf<Pair<String, String>, WorkspaceFileBlob>()
+    var findReadyError: IllegalStateException? = null
+    var hideBlobForUpdate = false
     fun blob(workspaceId: String, fileHash: String) = blobs[workspaceId to fileHash]
     fun saveBlob(blob: WorkspaceFileBlob) {
         blobs[blob.workspaceId to blob.fileHash] = blob
@@ -973,7 +1199,8 @@ private class InMemoryWorkspaceFileBlobRepository : WorkspaceFileBlobRepository 
     }
 
     override suspend fun findByWorkspaceAndHash(workspaceId: String, fileHash: String) = blob(workspaceId, fileHash)
-    override suspend fun findBlobForUpdate(workspaceId: String, fileHash: String) = blob(workspaceId, fileHash)
+    override suspend fun findBlobForUpdate(workspaceId: String, fileHash: String) =
+        if (hideBlobForUpdate) null else blob(workspaceId, fileHash)
     override suspend fun countActiveReferences(workspaceId: String, fileHash: String) = 0
     override suspend fun markReadyForGC(workspaceId: String, fileHash: String, orphanedAt: Instant) {
         saveBlob(
@@ -988,7 +1215,7 @@ private class InMemoryWorkspaceFileBlobRepository : WorkspaceFileBlobRepository 
         )
     }
     override suspend fun findReadyForGC(threshold: Instant, batchSize: Int): Flow<WorkspaceFileBlob> =
-        blobs.values.filter {
+        findReadyError?.let { throw it } ?: blobs.values.filter {
             it.status == BlobStatus.READY_FOR_GC &&
                 (it.orphanedAt?.isBefore(threshold) == true) &&
                 it.gcFailureCount < MediaAsset.GC_MAX_FAILURE_COUNT
@@ -1042,11 +1269,15 @@ private class InMemoryWorkspaceFileBlobRepository : WorkspaceFileBlobRepository 
     }
 }
 
-private class InMemoryRateLimitRepository(private val allowCreates: Boolean = true) : MediaRateLimitRepository {
+private class InMemoryRateLimitRepository(
+    private val allowCreates: Boolean = true,
+    private val failRelease: Boolean = false,
+) : MediaRateLimitRepository {
     var releaseCount = 0
         private set
     override suspend fun tryClaimConcurrentUploadSlot(workspaceId: String, maxConcurrent: Int) = true
     override suspend fun releaseConcurrentUploadSlot(workspaceId: String) {
+        if (failRelease) throw IllegalStateException("release failed")
         releaseCount++
     }
     override suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int) = if (allowCreates) {
@@ -1056,7 +1287,8 @@ private class InMemoryRateLimitRepository(private val allowCreates: Boolean = tr
     }
 }
 
-private class FakeStorage : Storage {
+private class FakeStorage(private val uploadFailure: Throwable? = null, private val deleteFailure: Throwable? = null) :
+    Storage {
     val uploaded = linkedMapOf<String, List<ByteArray>>()
     val deletedKeys = mutableListOf<String>()
     val copies = mutableListOf<Pair<String, String>>()
@@ -1079,10 +1311,12 @@ private class FakeStorage : Storage {
             this@FakeStorage.copyObject(bucket, sourceKey, destKey)
     }
     override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
+        uploadFailure?.let { throw it }
         uploaded[key] = content.toList()
     }
     override fun download(bucket: String, key: String): Flow<ByteArray> = flowOf()
     override suspend fun delete(bucket: String, key: String) {
+        deleteFailure?.let { throw it }
         deletedKeys += key
     }
     override suspend fun list(bucket: String, prefix: String) = emptyList<String>()
@@ -1113,6 +1347,7 @@ private fun uploadHandler(
     blobs: InMemoryWorkspaceFileBlobRepository,
     storage: FakeStorage,
     emailStatus: EmailStatus = EmailStatus.VERIFIED,
+    operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) = CasUploadAssetHandler(
     media,
     blobs,
@@ -1122,6 +1357,7 @@ private fun uploadHandler(
     FixedPrincipalContextProvider,
     FixedPrincipalIdentityLookup(emailStatus),
     emailVerificationPolicyOf(),
+    operationalEvents,
 )
 
 private fun uploadLegacyHandler(
@@ -1130,6 +1366,7 @@ private fun uploadLegacyHandler(
     emailStatus: EmailStatus = EmailStatus.VERIFIED,
     transactionRunner: AtomicTransactionRunner = NoopAtomicTransactionRunner,
     rateLimitRepository: InMemoryRateLimitRepository = InMemoryRateLimitRepository(),
+    operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) = UploadAssetHandler(
     media,
     rateLimitRepository,
@@ -1139,7 +1376,16 @@ private fun uploadLegacyHandler(
     FixedPrincipalIdentityLookup(emailStatus),
     emailVerificationPolicyOf(),
     transactionRunner,
+    operationalEvents,
 )
+
+private class RecordingOperationalEventSink : OperationalEventSink {
+    val events = mutableListOf<OperationalEvent>()
+
+    override fun emit(event: OperationalEvent) {
+        events += event
+    }
+}
 private fun deleteHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository) =
     DeleteAssetHandler(media, blobs, NoopAtomicTransactionRunner)
 

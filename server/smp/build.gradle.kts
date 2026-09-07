@@ -60,6 +60,7 @@ tasks.withType<Test>().configureEach {
 
 dependencies {
     implementation(project(":shared:common"))
+    implementation(project(":shared:observability"))
     implementation(project(":shared:bus"))
     implementation(project(":shared:security"))
     implementation(project(":shared:presentation"))

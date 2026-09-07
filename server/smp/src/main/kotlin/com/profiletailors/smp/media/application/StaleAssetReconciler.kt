@@ -2,6 +2,12 @@ package com.profiletailors.smp.media.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.observability.NoOpOperationalEventSink
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.debug
+import com.profiletailors.observability.error
+import com.profiletailors.observability.info
+import com.profiletailors.observability.warn
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAsset.Companion.GC_RETENTION_DAYS
 import com.profiletailors.smp.media.domain.WorkspaceFileBlob
@@ -9,7 +15,6 @@ import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withTimeout
-import org.slf4j.LoggerFactory
 import java.time.Instant
 
 /**
@@ -31,8 +36,8 @@ class BlobGarbageCollector(
     private val mediaAssetRepository: MediaAssetRepository,
     private val storage: MediaStorage,
     private val reconcilerSettings: MediaReconcilerSettings,
+    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) {
-    private val logger = LoggerFactory.getLogger(BlobGarbageCollector::class.java)
 
     companion object {
         private const val BATCH_SIZE = 100
@@ -65,11 +70,11 @@ class BlobGarbageCollector(
                     }
                 }
         } catch (e: IllegalStateException) {
-            logger.error("BlobGarbageCollector run failed", e)
+            operationalEvents.error("BlobGarbageCollector run failed", e)
         }
 
         val durationMs = System.currentTimeMillis() - startTime
-        logger.info(
+        operationalEvents.info(
             "media.gc.run blobsScanned={} blobsDeleted={} storageErrors={} skippedBlobs={} durationMs={}",
             blobsScanned,
             blobsDeleted,
@@ -92,7 +97,7 @@ class BlobGarbageCollector(
     private suspend fun processBlob(blob: WorkspaceFileBlob): BlobGCResult {
         val storageKey = blob.storageKey
         if (storageKey.isNullOrBlank()) {
-            logger.warn(
+            operationalEvents.warn(
                 "media.gc.skip.noStorageKey workspaceId={} fileHash={}",
                 blob.workspaceId,
                 blob.fileHash,
@@ -111,7 +116,7 @@ class BlobGarbageCollector(
 
             workspaceFileBlobRepository.markAsGarbageCollected(blob.workspaceId, blob.fileHash)
 
-            logger.info(
+            operationalEvents.info(
                 "media.gc.deleted workspaceId={} fileHash={} storageKey={}",
                 blob.workspaceId,
                 blob.fileHash,
@@ -122,9 +127,9 @@ class BlobGarbageCollector(
             workspaceFileBlobRepository.recordGCFailure(
                 blob.workspaceId,
                 blob.fileHash,
-                "storage.delete.failed: ${e.message}",
+                "storage.delete.failed: ${e.message.orEmpty()}",
             )
-            logger.warn(
+            operationalEvents.warn(
                 "media.gc.storageFailed workspaceId={} fileHash={} storageKey={} error={}",
                 blob.workspaceId,
                 blob.fileHash,
@@ -138,7 +143,7 @@ class BlobGarbageCollector(
                 blob.fileHash,
                 "storage.delete.timeout",
             )
-            logger.warn(
+            operationalEvents.warn(
                 "media.gc.storageTimeout workspaceId={} fileHash={} storageKey={}",
                 blob.workspaceId,
                 blob.fileHash,
@@ -151,9 +156,9 @@ class BlobGarbageCollector(
             workspaceFileBlobRepository.recordGCFailure(
                 blob.workspaceId,
                 blob.fileHash,
-                "gc.error: ${e.message}",
+                "gc.error: ${e.message.orEmpty()}",
             )
-            logger.error(
+            operationalEvents.error(
                 "media.gc.error workspaceId={} fileHash={}",
                 blob.workspaceId,
                 blob.fileHash,
@@ -192,8 +197,8 @@ class MediaAssetExpirationJob(
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val transactionRunner: AtomicTransactionRunner,
+    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) {
-    private val logger = LoggerFactory.getLogger(MediaAssetExpirationJob::class.java)
 
     companion object {
         private const val BATCH_SIZE = 100
@@ -219,7 +224,7 @@ class MediaAssetExpirationJob(
                     pendingExpired++
                 } catch (e: IllegalStateException) {
                     errors++
-                    logger.error("Failed to expire PENDING_UPLOAD asset: {}", asset.assetId, e)
+                    operationalEvents.error("Failed to expire PENDING_UPLOAD asset: {}", asset.assetId, e)
                 }
             }
 
@@ -232,16 +237,16 @@ class MediaAssetExpirationJob(
                     uploadingExpired++
                 } catch (e: IllegalStateException) {
                     errors++
-                    logger.error("Failed to expire UPLOADING asset: {}", asset.assetId, e)
+                    operationalEvents.error("Failed to expire UPLOADING asset: {}", asset.assetId, e)
                 }
             }
         } catch (e: IllegalStateException) {
             errors++
-            logger.error("MediaAssetExpirationJob run failed", e)
+            operationalEvents.error("MediaAssetExpirationJob run failed", e)
         }
 
         val durationMs = System.currentTimeMillis() - startTime
-        logger.info(
+        operationalEvents.info(
             "media.expiration.run pendingExpired={} uploadingExpired={} blobsScheduledForGC={} errors={} durationMs={}",
             pendingExpired,
             uploadingExpired,
@@ -263,7 +268,7 @@ class MediaAssetExpirationJob(
     private suspend fun expirePendingUploadAsset(asset: MediaAsset): Boolean {
         mediaAssetRepository.markAsFailed(asset.assetId, asset.workspaceId, "expired:pending_upload_ttl")
         releaseUploadSlot(asset)
-        logger.info(
+        operationalEvents.info(
             "media.asset.expired.pendingUpload assetId={} workspaceId={}",
             asset.assetId,
             asset.workspaceId,
@@ -277,7 +282,7 @@ class MediaAssetExpirationJob(
     private suspend fun expireUploadingAsset(asset: MediaAsset): Boolean {
         mediaAssetRepository.markAsFailed(asset.assetId, asset.workspaceId, "expired:uploading_ttl")
         releaseUploadSlot(asset)
-        logger.info(
+        operationalEvents.info(
             "media.asset.expired.uploading assetId={} workspaceId={}",
             asset.assetId,
             asset.workspaceId,
@@ -299,7 +304,7 @@ class MediaAssetExpirationJob(
             if (activeCount == 0) {
                 val orphanedAt = Instant.now()
                 workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
-                logger.info(
+                operationalEvents.info(
                     "media.blob.expired.markedReadyForGC workspaceId={} fileHash={}",
                     workspaceId,
                     fileHash,
@@ -316,7 +321,7 @@ class MediaAssetExpirationJob(
             mediaRateLimitRepository.releaseConcurrentUploadSlot(asset.workspaceId)
         } catch (e: IllegalStateException) {
             // No active upload slot — nothing to release, which is fine
-            logger.debug("No upload slot to release for asset: {}", asset.assetId, e)
+            operationalEvents.debug("No upload slot to release for asset: {}", asset.assetId, e)
         }
     }
 }

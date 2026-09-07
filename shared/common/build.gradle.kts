@@ -7,11 +7,6 @@ group = "com.profiletailors"
 version = "0.0.1-SNAPSHOT"
 
 dependencies {
-    implementation(libs.jackson.module.kotlin)
-    implementation(libs.kotlin.reflect)
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.slf4j.api)
-
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.assertj.core)
     testImplementation(libs.kotest.assertions.core)

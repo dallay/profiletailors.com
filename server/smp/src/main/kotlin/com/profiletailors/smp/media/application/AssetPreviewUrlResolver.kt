@@ -1,8 +1,10 @@
 package com.profiletailors.smp.media.application
 
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.debug
+import com.profiletailors.observability.warn
 import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.PresignableStorage
-import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.Base64
 import javax.crypto.Mac
@@ -63,8 +65,8 @@ class StorageAssetPreviewUrlResolver(
     private val mediaPreviewTokenService: MediaPreviewTokenService,
     private val storageBucket: String,
     private val previewUrlExpirySeconds: Long,
+    private val operationalEvents: OperationalEventSink,
 ) : AssetPreviewUrlResolver {
-    private val logger = LoggerFactory.getLogger(StorageAssetPreviewUrlResolver::class.java)
 
     /**
      * Convenience constructor that resolves its dependencies from the
@@ -76,11 +78,13 @@ class StorageAssetPreviewUrlResolver(
         binding: com.profiletailors.storage.domain.AttachmentsStorageBinding,
         mediaPreviewTokenService: MediaPreviewTokenService,
         previewUrlExpirySeconds: Long,
+        operationalEvents: OperationalEventSink,
     ) : this(
         bucketRegistry = BucketRegistry { binding.storage },
         mediaPreviewTokenService = mediaPreviewTokenService,
         storageBucket = binding.bucketName,
         previewUrlExpirySeconds = previewUrlExpirySeconds,
+        operationalEvents = operationalEvents,
     )
 
     override suspend fun resolvePreviewUrl(
@@ -113,7 +117,7 @@ class StorageAssetPreviewUrlResolver(
                     expirySeconds = previewUrlExpirySeconds,
                 )
             }.onFailure { err ->
-                logger.warn(
+                operationalEvents.warn(
                     "Failed to generate presigned preview URL for assetId={} storageKey={}: {}",
                     assetId,
                     storageKey,
@@ -123,7 +127,7 @@ class StorageAssetPreviewUrlResolver(
             if (presigned != null) return presigned
         }
 
-        logger.debug("Falling back to signed local preview endpoint for assetId={}", assetId)
+        operationalEvents.debug("Falling back to signed local preview endpoint for assetId={}", assetId)
         return mediaPreviewTokenService.buildSignedPreviewPath(assetId, workspaceId)
     }
 }

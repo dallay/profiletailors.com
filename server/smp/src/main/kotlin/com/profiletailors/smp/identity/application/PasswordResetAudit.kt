@@ -12,3 +12,9 @@ fun interface PasswordResetAudit {
      */
     suspend fun recordCompleted(event: PasswordResetAuditEvent)
 }
+
+class PasswordResetAuditUnavailableException(cause: Throwable) :
+    RuntimeException(
+        "Password reset audit storage is unavailable",
+        cause,
+    )
