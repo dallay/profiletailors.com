@@ -12,5 +12,7 @@ completed:
   - apply-phase4-tests
   - apply-phase4-bdd
   - fix-critical1-rawtoken
-next: fix-counters-detekt
+  - fix-counters-detekt
+  - pr-opened
+next: qa
 updated: "2026-09-07T00:00:00Z"
