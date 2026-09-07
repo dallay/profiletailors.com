@@ -3,6 +3,9 @@ package com.profiletailors.smp.publishing.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.observability.NoOpOperationalEventSink
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.warn
 import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.ResolvedAssetSummary
@@ -13,8 +16,6 @@ import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.StaleJob
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Duration
 
@@ -26,8 +27,8 @@ internal class GetCalendarPublicationsHandler(
     private val publicationRepository: PublicationRepository,
     private val mediaAssetResolver: MediaAssetResolver,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
+    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) : QueryHandler<GetCalendarPublicationsQuery, CalendarResponse> {
-    private val logger: Logger = LoggerFactory.getLogger(GetCalendarPublicationsHandler::class.java)
     override suspend fun handle(query: GetCalendarPublicationsQuery): CalendarResponse {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
 
@@ -97,7 +98,7 @@ internal class GetCalendarPublicationsHandler(
                     externalUrl = null,
                 )
             }.onFailure { error ->
-                logger.warn("Failed to resolve preview URL for assetId={}", asset.assetId, error)
+                operationalEvents.warn("Failed to resolve preview URL for assetId={}", asset.assetId, error)
             }.getOrNull()
             if (previewUrl != null) return previewUrl
         }

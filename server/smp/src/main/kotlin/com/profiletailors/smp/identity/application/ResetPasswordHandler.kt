@@ -3,8 +3,11 @@ package com.profiletailors.smp.identity.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.observability.NoOpOperationalEventSink
+import com.profiletailors.observability.OperationalEvent
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.Severity
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
-import org.slf4j.LoggerFactory
 import java.time.Clock
 
 @Service
@@ -17,9 +20,8 @@ internal class ResetPasswordHandler(
     private val clock: Clock,
     private val passwordRecoveryEnabled: () -> Boolean,
     private val passwordResetAudit: PasswordResetAudit,
+    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) : CommandWithResultHandler<ResetPasswordCommand, ResetPasswordResult> {
-
-    private val log = LoggerFactory.getLogger(ResetPasswordHandler::class.java)
 
     /**
      * Resets a user's password using a valid password-reset token.
@@ -73,11 +75,15 @@ internal class ResetPasswordHandler(
             )
         } catch (cancellation: kotlinx.coroutines.CancellationException) {
             throw cancellation
-        } catch (failure: org.springframework.dao.DataAccessException) {
-            log.error(
-                "Audit recording failed for completed password reset of principal '{}'; reset outcome is unaffected",
-                principalId,
-                failure,
+        } catch (failure: PasswordResetAuditUnavailableException) {
+            operationalEvents.emit(
+                OperationalEvent(
+                    name = "identity.password_reset.audit_recording_failed",
+                    severity = Severity.ERROR,
+                    message = "Audit recording failed for completed password reset; reset outcome is unaffected",
+                    attributes = mapOf("principalId" to principalId),
+                    cause = failure,
+                ),
             )
         }
         return ResetPasswordResult()

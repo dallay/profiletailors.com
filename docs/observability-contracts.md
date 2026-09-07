@@ -1,6 +1,6 @@
 # Observability Contracts & SLA Matrix
 
-**Last Updated:** 2026-09-05
+**Last Updated:** 2026-09-07
 **Status:** Active
 **Scope:** System-wide Service Level Agreements (SLAs), Service Level Objectives (SLOs), Service Level Indicators (SLIs), and Observability Standards
 **Audience:** Platform Engineers, Backend Engineers, Operations, SRE
@@ -59,6 +59,19 @@ In accordance with platform security and GDPR policies:
 
 - **STRICTLY FORBIDDEN IN LOGS/METRICS:** Plaintext passwords, authentication tokens (JWT, OAuth refresh/access tokens), encryption keys, user emails, raw IP addresses, or password reset URLs.
 - **Allowed Log Attributes:** Fixed category codes, operation names, bounded status strings, duration in milliseconds, and prefixed entity IDs (`ws-UUID`, `user-UUID`, `pub-UUID`).
+
+### 4. Hexagonal Operational Events
+
+Domain and application code MUST remain independent from SLF4J, Logback, Log4j, Micrometer, and
+OpenTelemetry. Operational signals cross the hexagonal boundary through the pure Kotlin
+`OperationalEvent` and `OperationalEventSink` contracts in `:shared:observability`.
+
+The SMP infrastructure provides the current `Slf4jOperationalEventSink` adapter. Replacing the
+backend or adding another exporter therefore does not require changes to domain or application
+use cases. Generic command and query lifecycle events (`bus.request.started`,
+`bus.request.completed`, and `bus.request.failed`) are emitted by the mediator pipeline without
+serializing request or response values. Domain facts and audit records continue to use their
+dedicated domain-event and audit contracts.
 
 ---
 
