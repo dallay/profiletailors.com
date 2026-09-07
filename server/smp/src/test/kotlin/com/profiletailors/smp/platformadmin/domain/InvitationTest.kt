@@ -116,6 +116,93 @@ class InvitationTest {
     }
 
     @Test
+    fun `NEW_WORKSPACE active invitation requires null workspaceId`() {
+        assertThrows<IllegalArgumentException> {
+            Invitation(
+                id = InvitationId.generate(),
+                source = InvitationSource.WAITLIST,
+                sourceReferenceId = "waitlist-entry-1",
+                target = InvitationTarget.NEW_WORKSPACE,
+                workspaceId = "ws-invalid",
+                invitedEmailNormalized = "invitee@example.com",
+                tokenHash = "hashed-token",
+                status = InvitationStatus.ACTIVE,
+                issuedBy = issuer,
+                createdAt = now,
+                expiresAt = now.plusSeconds(3600),
+            )
+        }
+    }
+
+    @Test
+    fun `NEW_WORKSPACE accepted invitation requires non-blank workspaceId`() {
+        assertThrows<IllegalArgumentException> {
+            Invitation(
+                id = InvitationId.generate(),
+                source = InvitationSource.WAITLIST,
+                sourceReferenceId = "waitlist-entry-1",
+                target = InvitationTarget.NEW_WORKSPACE,
+                workspaceId = null,
+                invitedEmailNormalized = "invitee@example.com",
+                tokenHash = "hashed-token",
+                status = InvitationStatus.ACCEPTED,
+                issuedBy = issuer,
+                createdAt = now,
+                expiresAt = now.plusSeconds(3600),
+                acceptedAt = now.plusSeconds(30),
+                acceptedPrincipalId = "principal-1",
+            )
+        }
+    }
+
+    @Test
+    fun `EXISTING_WORKSPACE invitation requires workspaceId`() {
+        assertThrows<IllegalArgumentException> {
+            Invitation(
+                id = InvitationId.generate(),
+                source = InvitationSource.DIRECT,
+                sourceReferenceId = null,
+                target = InvitationTarget.EXISTING_WORKSPACE,
+                workspaceId = null,
+                invitedEmailNormalized = "invitee@example.com",
+                tokenHash = "hashed-token",
+                status = InvitationStatus.ACTIVE,
+                issuedBy = issuer,
+                createdAt = now,
+                expiresAt = now.plusSeconds(3600),
+            )
+        }
+    }
+
+    @Test
+    fun `NEW_WORKSPACE acceptance requires resolvedWorkspaceId`() {
+        val newWsInvitation = Invitation(
+            id = InvitationId.generate(),
+            source = InvitationSource.WAITLIST,
+            sourceReferenceId = "waitlist-entry-1",
+            target = InvitationTarget.NEW_WORKSPACE,
+            workspaceId = null,
+            invitedEmailNormalized = "invitee@example.com",
+            tokenHash = "hashed-token",
+            status = InvitationStatus.ACTIVE,
+            issuedBy = issuer,
+            createdAt = now,
+            expiresAt = now.plusSeconds(3600),
+        )
+
+        assertThrows<IllegalArgumentException> {
+            newWsInvitation.accept(now.plusSeconds(30), "principal-1", resolvedWorkspaceId = null)
+        }
+
+        val accepted = newWsInvitation.accept(
+            now.plusSeconds(30),
+            "principal-1",
+            resolvedWorkspaceId = "ws-new-created",
+        )
+        assertEquals("ws-new-created", accepted.workspaceId)
+    }
+
+    @Test
     fun `accepted invitation requires acceptance metadata`() {
         assertThrows<IllegalArgumentException> {
             activeInvitation().copy(status = InvitationStatus.ACCEPTED)
@@ -226,6 +313,15 @@ class InvitationTest {
         }
         assertThrows<IllegalArgumentException> {
             activeInvitation().copy(invitedEmailNormalized = "Invitee@example.com")
+        }
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(tokenHash = "")
+        }
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(issuedBy = " ")
+        }
+        assertThrows<IllegalArgumentException> {
+            activeInvitation().copy(version = -1)
         }
     }
 
