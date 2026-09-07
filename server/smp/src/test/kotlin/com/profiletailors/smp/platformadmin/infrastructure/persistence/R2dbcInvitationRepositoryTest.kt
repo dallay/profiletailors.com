@@ -3,6 +3,7 @@ package com.profiletailors.smp.platformadmin.infrastructure.persistence
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.smp.identity.application.InvitationRegistrationGateway
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
@@ -15,6 +16,8 @@ import com.profiletailors.smp.platformadmin.application.InvitationActivationCoor
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
@@ -415,6 +418,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             tokenHasher = tokenHasher,
             principalIdentityLookup = firstPrincipalLookup,
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
+            waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = firstBlockingProvisioner,
             transactionRunner = object : AtomicTransactionRunner {
                 override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
@@ -429,6 +433,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             tokenHasher = tokenHasher,
             principalIdentityLookup = firstPrincipalLookup,
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
+            waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = secondMembershipProvisioner,
             transactionRunner = object : AtomicTransactionRunner {
                 override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
@@ -507,4 +512,12 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             PostgresTestContainerSupport.registerProperties(registry, postgres)
         }
     }
+}
+
+private object NoOpWaitlistEntryAdmin : WaitlistEntryAdmin {
+    override suspend fun findById(id: String): WaitlistEntry? = null
+
+    override suspend fun save(entry: WaitlistEntry): WaitlistEntry = entry
+
+    override suspend fun findInvitationContext(id: String): WaitlistInvitationContext? = null
 }
