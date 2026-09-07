@@ -1,7 +1,6 @@
 export default {
   overviewBadge: 'Resumen de ajustes',
-  subtitle:
-    'Gestiona canales conectados, la identidad del workspace y las preferencias de interfaz.',
+  subtitle: 'Conecta un canal, nombra tu workspace, ajusta la superficie.',
   preferencesEyebrow: 'Preferencias del sistema',
   interfacePreferences: 'Preferencias de Interfaz',
   workspaceIdentityTitle: 'Identidad del workspace',
