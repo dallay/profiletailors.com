@@ -3,23 +3,12 @@ package com.profiletailors.smp.platformadmin.application
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
-import com.profiletailors.leadcapture.common.CaptureLocale
-import com.profiletailors.leadcapture.common.CaptureSource
-import com.profiletailors.leadcapture.common.EmailAddress
-import com.profiletailors.leadcapture.common.LeadMetadata
-import com.profiletailors.leadcapture.common.NormalizedEmail
-import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
-import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
-import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
-import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
-import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
-import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
@@ -48,7 +37,6 @@ class InvitationActivationCoordinatorTest {
     private val principalIdentityLookup = mockk<PrincipalIdentityLookup>()
     private val workspaceProvisioningService = mockk<WorkspaceProvisioningService>()
     private val membershipProvisioner = mockk<WorkspaceMembershipProvisioner>()
-    private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
     private val transactionRunner = NoOpTransactionRunner()
     private val now = Instant.parse("2026-08-15T12:00:00Z")
     private val clock = Clock.fixed(now, ZoneOffset.UTC)
@@ -58,7 +46,6 @@ class InvitationActivationCoordinatorTest {
         tokenHasher = tokenHasher,
         principalIdentityLookup = principalIdentityLookup,
         workspaceProvisioningService = workspaceProvisioningService,
-        waitlistEntryAdmin = waitlistEntryAdmin,
         membershipProvisioner = membershipProvisioner,
         transactionRunner = transactionRunner,
         clock = clock,
@@ -109,103 +96,6 @@ class InvitationActivationCoordinatorTest {
         assertEquals(WorkspaceMembershipStatus.ACTIVE, result.membershipStatus)
 
         coVerify { workspaceProvisioningService.provisionDefaultWorkspace(principalId, "user@example.com") }
-    }
-
-    @Test
-    fun `fails when the referenced waitlist entry no longer exists`() = runTest {
-        val rawToken = "secret-token"
-        val candidateKey = "cand-123"
-        val principalId = "principal-123"
-        val invitation = createInvitation(
-            source = InvitationSource.WAITLIST,
-            sourceReferenceId = "entry-1",
-            target = InvitationTarget.NEW_WORKSPACE,
-            workspaceId = null,
-        )
-        val principalFacts = PrincipalIdentityFacts(
-            principalId = principalId,
-            principalType = PrincipalType.USER,
-            subject = "sub-1",
-            provider = "local",
-            displayIdentity = "User",
-            email = "user@example.com",
-            username = "user",
-            emailStatus = EmailStatus.VERIFIED,
-        )
-
-        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
-        coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
-        coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
-        coEvery { principalIdentityLookup.findByPrincipalId(principalId) } returns principalFacts
-        coEvery {
-            workspaceProvisioningService.provisionDefaultWorkspace(principalId, "user@example.com")
-        } returns
-            WorkspaceProvisioningService.ProvisionedWorkspace("ws-new", "Default", WorkspaceMembershipStatus.ACTIVE)
-        coEvery { membershipProvisioner.reconcile("ws-new", principalId) } returns
-            WorkspaceMembership("wm-1", "ws-new", principalId, PrincipalType.USER, WorkspaceMembershipStatus.ACTIVE)
-        coEvery { waitlistEntryAdmin.findById("entry-1") } returns null
-
-        assertThrows<IllegalStateException> {
-            coordinator.activateForRegistration(rawToken, "user@example.com", principalId)
-        }
-    }
-
-    @Test
-    fun `converts waitlist entry to CONVERTED when invitation is activated`() = runTest {
-        val rawToken = "secret-token"
-        val candidateKey = "cand-123"
-        val principalId = "principal-123"
-        val invitation = createInvitation(
-            source = InvitationSource.WAITLIST,
-            sourceReferenceId = "entry-1",
-            target = InvitationTarget.NEW_WORKSPACE,
-            workspaceId = null,
-        )
-        val principalFacts = PrincipalIdentityFacts(
-            principalId = principalId,
-            principalType = PrincipalType.USER,
-            subject = "sub-1",
-            provider = "local",
-            displayIdentity = "User",
-            email = "user@example.com",
-            username = "user",
-            emailStatus = EmailStatus.VERIFIED,
-        )
-        val waitlistEntry = WaitlistEntry(
-            id = WaitlistEntryId("entry-1"),
-            waitlistId = WaitlistId("wl-1"),
-            email = EmailAddress("user@example.com"),
-            normalizedEmail = NormalizedEmail.fromPersisted("user@example.com"),
-            source = CaptureSource("FORM"),
-            formId = "form-1",
-            locale = CaptureLocale("en"),
-            metadata = LeadMetadata(),
-            consent = WaitlistConsent(earlyAccess = true, version = "1.0"),
-            joinedAt = now.minusSeconds(3600),
-            status = WaitlistEntryStatus.INVITED,
-            invitedAt = now.minusSeconds(60),
-        )
-
-        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
-        coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
-        coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
-        coEvery { principalIdentityLookup.findByPrincipalId(principalId) } returns principalFacts
-        coEvery {
-            workspaceProvisioningService.provisionDefaultWorkspace(principalId, "user@example.com")
-        } returns
-            WorkspaceProvisioningService.ProvisionedWorkspace("ws-new", "Default", WorkspaceMembershipStatus.ACTIVE)
-        coEvery { membershipProvisioner.reconcile("ws-new", principalId) } returns
-            WorkspaceMembership("wm-1", "ws-new", principalId, PrincipalType.USER, WorkspaceMembershipStatus.ACTIVE)
-        coEvery { invitationRepository.updateIfVersionMatches(any()) } returns true
-        coEvery { waitlistEntryAdmin.findById("entry-1") } returns waitlistEntry
-        coEvery { waitlistEntryAdmin.save(any()) } returns waitlistEntry
-
-        val result = coordinator.activateForRegistration(rawToken, "user@example.com", principalId)
-
-        assertEquals(InvitationStatus.ACCEPTED, result.invitation.status)
-        coVerify {
-            waitlistEntryAdmin.save(match { it.status == WaitlistEntryStatus.CONVERTED && it.convertedAt != null })
-        }
     }
 
     @Test
@@ -265,7 +155,6 @@ class InvitationActivationCoordinatorTest {
             tokenHasher = plainHasher,
             principalIdentityLookup = principalIdentityLookup,
             workspaceProvisioningService = workspaceProvisioningService,
-            waitlistEntryAdmin = waitlistEntryAdmin,
             membershipProvisioner = membershipProvisioner,
             transactionRunner = transactionRunner,
             clock = clock,
@@ -442,8 +331,6 @@ class InvitationActivationCoordinatorTest {
     }
 
     private fun createInvitation(
-        source: InvitationSource = InvitationSource.DIRECT,
-        sourceReferenceId: String? = null,
         target: InvitationTarget = InvitationTarget.NEW_WORKSPACE,
         workspaceId: String? = null,
         status: InvitationStatus = InvitationStatus.ACTIVE,
@@ -451,8 +338,8 @@ class InvitationActivationCoordinatorTest {
         expiresAt: Instant = now.plusSeconds(3600),
     ): Invitation = Invitation(
         id = InvitationId(UUID.randomUUID()),
-        source = source,
-        sourceReferenceId = sourceReferenceId,
+        source = InvitationSource.DIRECT,
+        sourceReferenceId = null,
         target = target,
         workspaceId = workspaceId,
         invitedEmailNormalized = "user@example.com",

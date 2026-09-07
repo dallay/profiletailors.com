@@ -3,7 +3,6 @@ package com.profiletailors.smp.platformadmin.infrastructure.persistence
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
-import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.smp.identity.application.InvitationRegistrationGateway
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
@@ -16,8 +15,6 @@ import com.profiletailors.smp.platformadmin.application.InvitationActivationCoor
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
-import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
-import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
@@ -272,6 +269,41 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         }
 
     @Test
+    fun `updateIfVersionMatches returns false when version is 0`() = runTest {
+        val invitation = newInvitation(id = UUID.randomUUID(), version = 0L)
+        val result = repository.updateIfVersionMatches(invitation)
+        assertFalse(result)
+    }
+
+    @Test
+    fun `findBySourceReferenceId finds active waitlist invitation`() = runTest {
+        seedReferenceData()
+        val sourceRef = "waitlist-ref-100"
+        val invitationId = UUID.randomUUID()
+        databaseClient.sql(
+            """
+            INSERT INTO invitations (
+                id, source, source_reference_id, target, workspace_id, invited_email_normalized,
+                candidate_key, token_hash, status, issued_by, created_at, expires_at,
+                accepted_at, accepted_principal_id, version
+            ) VALUES (
+                :id, 'WAITLIST', :sourceRef, 'NEW_WORKSPACE', NULL, 'waitlist@example.com',
+                'cand-waitlist', 'hash-waitlist', 'ACTIVE', 'principal-1', NOW(), NOW() + INTERVAL '7 days',
+                NULL, NULL, 0
+            )
+            """.trimIndent(),
+        )
+            .bind("id", invitationId)
+            .bind("sourceRef", sourceRef)
+            .fetch().rowsUpdated().awaitSingle()
+
+        val found = repository.findBySourceReferenceId(sourceRef)
+        assertNotNull(found)
+        assertEquals(invitationId, found?.id?.value)
+        assertEquals(sourceRef, found?.sourceReferenceId)
+    }
+
+    @Test
     fun `findByCandidateKeyForUpdate locks the row so a concurrent read sees the locked state`() = runTest {
         seedReferenceData()
         val invitationId = UUID.randomUUID()
@@ -418,7 +450,6 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             tokenHasher = tokenHasher,
             principalIdentityLookup = firstPrincipalLookup,
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
-            waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = firstBlockingProvisioner,
             transactionRunner = object : AtomicTransactionRunner {
                 override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
@@ -433,7 +464,6 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             tokenHasher = tokenHasher,
             principalIdentityLookup = firstPrincipalLookup,
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
-            waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = secondMembershipProvisioner,
             transactionRunner = object : AtomicTransactionRunner {
                 override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
@@ -512,12 +542,4 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             PostgresTestContainerSupport.registerProperties(registry, postgres)
         }
     }
-}
-
-private object NoOpWaitlistEntryAdmin : WaitlistEntryAdmin {
-    override suspend fun findById(id: String): WaitlistEntry? = null
-
-    override suspend fun save(entry: WaitlistEntry): WaitlistEntry = entry
-
-    override suspend fun findInvitationContext(id: String): WaitlistInvitationContext? = null
 }
