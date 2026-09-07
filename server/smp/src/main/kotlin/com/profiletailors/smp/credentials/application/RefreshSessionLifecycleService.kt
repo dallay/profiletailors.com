@@ -54,7 +54,8 @@ open class RefreshSessionLifecycleService(
      * Revokes all refresh sessions for a principal except the active session identified by the optional token.
      *
      * @param principalId The identifier of the principal whose sessions are revoked.
-     * @param excludeRawRefreshToken The raw refresh token identifying the session to preserve; if absent, invalid, or inactive, all sessions are revoked.
+     * @param excludeRawRefreshToken The raw refresh token identifying the session to preserve;
+     * if absent, invalid, or inactive, all sessions are revoked.
      */
     open suspend fun revokeOthersForPrincipal(principalId: String, excludeRawRefreshToken: String?) {
         val activeSessionId = if (!excludeRawRefreshToken.isNullOrBlank()) {
@@ -77,9 +78,9 @@ open class RefreshSessionLifecycleService(
     }
 
     /**
- * Calculates the refresh session expiration time from the current clock time and configured TTL.
- *
- * @return The calculated expiration timestamp.
- */
-private fun expiresAt(): Instant = clock.instant().plusSeconds(properties.ttlSeconds)
+     * Calculates the refresh session expiration time from the current clock time and configured TTL.
+     *
+     * @return The calculated expiration timestamp.
+     */
+    private fun expiresAt(): Instant = clock.instant().plusSeconds(properties.ttlSeconds)
 }

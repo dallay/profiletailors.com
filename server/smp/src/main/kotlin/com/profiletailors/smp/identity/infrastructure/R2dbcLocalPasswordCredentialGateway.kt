@@ -26,12 +26,12 @@ class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseCl
     }
 
     /**
-         * Finds local password credentials for a user identified by email.
-         *
-         * @param email The user's email address.
-         * @return The matching credential record, or `null` if no matching record exists.
-         */
-        override suspend fun findByEmail(email: String): LocalPasswordCredentialRecord? = databaseClient.sql(
+     * Finds local password credentials for a user identified by email.
+     *
+     * @param email The user's email address.
+     * @return The matching credential record, or `null` if no matching record exists.
+     */
+    override suspend fun findByEmail(email: String): LocalPasswordCredentialRecord? = databaseClient.sql(
         """
             SELECT ui.principal_id,
                    ui.email,
@@ -55,12 +55,12 @@ class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseCl
         .awaitSingleOrNull()
 
     /**
-         * Finds local password credentials for a principal.
-         *
-         * @param principalId The principal identifier.
-         * @return The matching credential record, or `null` if no record exists.
-         */
-        override suspend fun findByPrincipalId(principalId: String): LocalPasswordCredentialRecord? = databaseClient.sql(
+     * Finds local password credentials for a principal.
+     *
+     * @param principalId The principal identifier.
+     * @return The matching credential record, or `null` if no record exists.
+     */
+    override suspend fun findByPrincipalId(principalId: String): LocalPasswordCredentialRecord? = databaseClient.sql(
         """
             SELECT ui.principal_id,
                    ui.email,

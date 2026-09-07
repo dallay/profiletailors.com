@@ -14,11 +14,11 @@ import java.time.ZoneOffset
 class R2dbcUserPreferencesGateway(private val databaseClient: DatabaseClient) : UserPreferencesGateway {
 
     /**
-         * Loads the preferences associated with a principal.
-         *
-         * @return The matching user preferences, or `null` if no preferences exist for the principal.
-         */
-        override suspend fun findByPrincipalId(principalId: String): UserPreferences? = databaseClient.sql(
+     * Loads the preferences associated with a principal.
+     *
+     * @return The matching user preferences, or `null` if no preferences exist for the principal.
+     */
+    override suspend fun findByPrincipalId(principalId: String): UserPreferences? = databaseClient.sql(
         """
         SELECT principal_id, locale, timezone, time_format, date_format, week_starts_on, theme, updated_at
         FROM user_preferences

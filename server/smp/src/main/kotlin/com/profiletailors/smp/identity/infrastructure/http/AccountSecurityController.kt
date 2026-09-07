@@ -82,11 +82,11 @@ class AccountSecurityController(
     }
 
     /**
-         * Reads the configured refresh-session cookie from the request.
-         *
-         * @param request The HTTP request containing the cookies.
-         * @return The refresh-session cookie value, or `null` if the cookie is absent.
-         */
-        private fun readRefreshCookie(request: ServerHttpRequest): String? =
+     * Reads the configured refresh-session cookie from the request.
+     *
+     * @param request The HTTP request containing the cookies.
+     * @return The refresh-session cookie value, or `null` if the cookie is absent.
+     */
+    private fun readRefreshCookie(request: ServerHttpRequest): String? =
         request.cookies.getFirst(refreshSessionProperties.cookieName)?.value
 }
