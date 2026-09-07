@@ -51,7 +51,7 @@ async function handleDeleteAccount() {
     // On success: clear session and redirect to login
     await auth.logout()
     router.push('/login')
-  } catch (err) {
+  } catch {
     deleteError.value = t('settings.accountClosure.error')
     isDeleting.value = false
   }

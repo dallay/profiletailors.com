@@ -38,7 +38,7 @@ async function handleSaveWorkspaceName() {
     setTimeout(() => {
       saveSuccess.value = false
     }, 4000)
-  } catch (err) {
+  } catch {
     saveError.value = 'Failed to update workspace name.'
   } finally {
     isSaving.value = false
@@ -126,9 +126,9 @@ async function copyWorkspaceId() {
 
         <!-- Workspace ID -->
         <div class="space-y-1.5 pt-2">
-          <label class="block text-xs font-medium text-text-secondary">
+          <span class="block text-xs font-medium text-text-secondary">
             {{ t('settings.workspaceGeneral.workspaceIdLabel') }}
-          </label>
+          </span>
           <div class="flex items-center justify-between gap-4 p-3 rounded-lg border border-border-subtle bg-bg-primary/50">
             <span class="font-mono text-sm text-text-secondary truncate">
               {{ workspaceStore.activeWorkspaceId || '—' }}
