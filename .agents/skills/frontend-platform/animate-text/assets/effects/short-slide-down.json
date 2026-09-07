@@ -88,21 +88,9 @@
     "content": {
       "sample": "Build from above.",
       "phrases": [
-        [
-          "Drop",
-          "into",
-          "place"
-        ],
-        [
-          "Words",
-          "settle",
-          "lower"
-        ],
-        [
-          "Build",
-          "from",
-          "above"
-        ]
+        ["Drop", "into", "place"],
+        ["Words", "settle", "lower"],
+        ["Build", "from", "above"]
       ]
     },
     "content_usage": {
@@ -137,9 +125,7 @@
       "recipe": {
         "id": "kinetic-top-build",
         "summary": "Build a centered vertical stack word by word; each incoming word drops from above and pushes existing words into newly centered y positions.",
-        "required_measurements": [
-          "offsetHeight for every word after appending the incoming word"
-        ],
+        "required_measurements": ["offsetHeight for every word after appending the incoming word"],
         "algorithm": [
           "Create a relative kinetic stack container using the kinetic-stack-host stage preset.",
           "For each phrase word, append an absolutely centered word span.",
@@ -278,12 +264,7 @@
     },
     "playback": {
       "kind": "loop",
-      "cycle": [
-        "build-phrase",
-        "hold",
-        "exit-phrase",
-        "gap"
-      ],
+      "cycle": ["build-phrase", "hold", "exit-phrase", "gap"],
       "replacement_behavior": "phrase-loop",
       "hold_ms": 792,
       "micro_delay_ms": 0,
@@ -328,11 +309,7 @@
         "line_display": "block",
         "transform_origin": "50% 55%",
         "white_space": "pre",
-        "will_change": [
-          "transform",
-          "opacity",
-          "filter"
-        ]
+        "will_change": ["transform", "opacity", "filter"]
       },
       "kinetic_container": {
         "requirement": "Use a relative-positioned block host large enough for the stack; exact dimensions belong to the consuming UI.",
@@ -346,11 +323,7 @@
         "top": "50%",
         "white_space": "nowrap",
         "absolute_centered": true,
-        "will_change": [
-          "transform",
-          "opacity",
-          "filter"
-        ]
+        "will_change": ["transform", "opacity", "filter"]
       }
     },
     "rendering_contract": {
@@ -370,11 +343,7 @@
       "content_replacement": "follow renderer recipe algorithm"
     },
     "library_selection": {
-      "supported_adapters": [
-        "waapi",
-        "motion",
-        "gsap"
-      ],
+      "supported_adapters": ["waapi", "motion", "gsap"],
       "aliases": {
         "web animations api": "waapi",
         "waapi": "waapi",

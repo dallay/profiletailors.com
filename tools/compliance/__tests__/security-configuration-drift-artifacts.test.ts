@@ -68,9 +68,7 @@ describe('security-configuration-drift automation report file', () => {
   })
 
   it('uses the expected report title', () => {
-    expect(report.startsWith('# Security Configuration Drift Audit Report')).toBe(
-      true,
-    )
+    expect(report.startsWith('# Security Configuration Drift Audit Report')).toBe(true)
   })
 
   it('states that no automation execution has been recorded yet', () => {
