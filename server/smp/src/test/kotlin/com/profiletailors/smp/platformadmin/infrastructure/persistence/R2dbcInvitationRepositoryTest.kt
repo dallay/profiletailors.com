@@ -269,6 +269,41 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         }
 
     @Test
+    fun `updateIfVersionMatches returns false when version is 0`() = runTest {
+        val invitation = newInvitation(id = UUID.randomUUID(), version = 0L)
+        val result = repository.updateIfVersionMatches(invitation)
+        assertFalse(result)
+    }
+
+    @Test
+    fun `findBySourceReferenceId finds active waitlist invitation`() = runTest {
+        seedReferenceData()
+        val sourceRef = "waitlist-ref-100"
+        val invitationId = UUID.randomUUID()
+        databaseClient.sql(
+            """
+            INSERT INTO invitations (
+                id, source, source_reference_id, target, workspace_id, invited_email_normalized,
+                candidate_key, token_hash, status, issued_by, created_at, expires_at,
+                accepted_at, accepted_principal_id, version
+            ) VALUES (
+                :id, 'WAITLIST', :sourceRef, 'NEW_WORKSPACE', NULL, 'waitlist@example.com',
+                'cand-waitlist', 'hash-waitlist', 'ACTIVE', 'principal-1', NOW(), NOW() + INTERVAL '7 days',
+                NULL, NULL, 0
+            )
+            """.trimIndent(),
+        )
+            .bind("id", invitationId)
+            .bind("sourceRef", sourceRef)
+            .fetch().rowsUpdated().awaitSingle()
+
+        val found = repository.findBySourceReferenceId(sourceRef)
+        assertNotNull(found)
+        assertEquals(invitationId, found?.id?.value)
+        assertEquals(sourceRef, found?.sourceReferenceId)
+    }
+
+    @Test
     fun `findByCandidateKeyForUpdate locks the row so a concurrent read sees the locked state`() = runTest {
         seedReferenceData()
         val invitationId = UUID.randomUUID()
