@@ -25,13 +25,6 @@ class AdminProblemDetailsHandler {
 
     private val logger = LoggerFactory.getLogger(AdminProblemDetailsHandler::class.java)
 
-    /**
-     * Creates a forbidden problem response for a platform access denial.
-     *
-     * @param ex The access denial exception.
-     * @param exchange The optional request context used to include request details in the log.
-     * @return A problem detail with the `PLATFORM_ACCESS_DENIED` error code.
-     */
     @ExceptionHandler(PlatformAccessDeniedException::class)
     fun handle(ex: PlatformAccessDeniedException, exchange: ServerWebExchange? = null): ProblemDetail {
         logger.warn(
@@ -43,13 +36,7 @@ class AdminProblemDetailsHandler {
         return problem(HttpStatus.FORBIDDEN, "PLATFORM_ACCESS_DENIED", ex.message)
     }
 
-    /**
-         * Creates a not-found problem response for a missing waitlist entry.
-         *
-         * @param ex The exception describing the missing waitlist entry.
-         * @return A 404 problem response with the `WAITLIST_ENTRY_NOT_FOUND` code.
-         */
-        @ExceptionHandler(WaitlistEntryNotFoundException::class)
+    @ExceptionHandler(WaitlistEntryNotFoundException::class)
     fun handle(ex: WaitlistEntryNotFoundException): ProblemDetail =
         problem(HttpStatus.NOT_FOUND, "WAITLIST_ENTRY_NOT_FOUND", ex.message)
 
@@ -70,8 +57,8 @@ class AdminProblemDetailsHandler {
         problem(HttpStatus.NOT_FOUND, "INVITATION_NOT_FOUND", ex.message)
 
     @ExceptionHandler(InvitationNotAcceptableException::class)
-    fun handle(@Suppress("UNUSED_PARAMETER") ex: InvitationNotAcceptableException): ProblemDetail =
-        problem(HttpStatus.BAD_REQUEST, "INVITATION_NOT_ACCEPTABLE", "Invitation is unavailable.")
+    fun handle(ex: InvitationNotAcceptableException): ProblemDetail =
+        problem(HttpStatus.BAD_REQUEST, "INVITATION_NOT_ACCEPTABLE", ex.message ?: "Invitation is unavailable.")
 
     @ExceptionHandler(InvitationAlreadyActiveException::class)
     fun handle(ex: InvitationAlreadyActiveException): ProblemDetail =
@@ -92,39 +79,40 @@ class AdminProblemDetailsHandler {
     @ExceptionHandler(UserNotFoundException::class)
     fun handle(ex: UserNotFoundException): ProblemDetail = problem(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", ex.message)
 
-    /**
-         * Converts an illegal argument exception into a validation error response.
-         *
-         * @param ex The exception containing the validation error detail.
-         * @return A bad-request problem detail with the `VALIDATION_ERROR` code.
-         */
-        @ExceptionHandler(IllegalArgumentException::class)
+    @ExceptionHandler(IllegalArgumentException::class)
     fun handle(ex: IllegalArgumentException): ProblemDetail =
         problem(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.message)
 
-    /**
-         * Extracts the request correlation identifier from the supported headers.
-         *
-         * @param exchange The current server web exchange, if available.
-         * @return The first available correlation identifier, or `null` if none is present.
-         */
-        private fun requestCorrelationId(exchange: ServerWebExchange?): String? = exchange?.request?.headers
-        ?.getFirst("X-Correlation-Id")
-        ?: exchange?.request?.headers?.getFirst("X-Request-Id")
-        ?: exchange?.request?.headers?.getFirst("X-Trace-Id")
-        ?: exchange?.request?.headers?.getFirst("Correlation-Id")
+    private fun requestCorrelationId(exchange: ServerWebExchange?): String {
+        val candidates = listOf(
+            exchange?.request?.headers?.getFirst("X-Correlation-Id"),
+            exchange?.request?.headers?.getFirst("X-Request-Id"),
+            exchange?.request?.headers?.getFirst("X-Trace-Id"),
+            exchange?.request?.headers?.getFirst("Correlation-Id"),
+        )
+        return candidates.firstNotNullOfOrNull { candidate ->
+            sanitizeCorrelationId(candidate).takeIf { it != UNKNOWN_CORRELATION_ID }
+        } ?: UNKNOWN_CORRELATION_ID
+    }
 
-    /**
-         * Creates a problem detail with the specified status, error code, and detail.
-         *
-         * @param status The HTTP status for the problem.
-         * @param code The application-specific error code.
-         * @param detail The problem detail, or the status reason phrase when omitted.
-         * @return The configured problem detail.
-         */
-        private fun problem(status: HttpStatus, code: String, detail: String?): ProblemDetail =
+    private fun sanitizeCorrelationId(raw: String?): String {
+        val value = raw?.trim() ?: return UNKNOWN_CORRELATION_ID
+        return if (value.length <= MAX_CORRELATION_ID_LENGTH && value.matches(VALID_CORRELATION_ID)) {
+            value
+        } else {
+            UNKNOWN_CORRELATION_ID
+        }
+    }
+
+    private fun problem(status: HttpStatus, code: String, detail: String?): ProblemDetail =
         ProblemDetail.forStatusAndDetail(status, detail ?: status.reasonPhrase).apply {
             type = URI.create("urn:profiletailors:error:$code")
             properties = mapOf("code" to code)
         }
+
+    companion object {
+        private const val MAX_CORRELATION_ID_LENGTH = 64
+        private const val UNKNOWN_CORRELATION_ID = "unknown"
+        private val VALID_CORRELATION_ID = Regex("^[A-Za-z0-9._:-]{1,$MAX_CORRELATION_ID_LENGTH}$")
+    }
 }
