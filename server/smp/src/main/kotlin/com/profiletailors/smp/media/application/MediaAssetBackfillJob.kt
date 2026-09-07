@@ -2,14 +2,18 @@ package com.profiletailors.smp.media.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.observability.NoOpOperationalEventSink
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.error
+import com.profiletailors.observability.info
+import com.profiletailors.observability.warn
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaStorageKeys
-import kotlinx.coroutines.flow.collect
-import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.time.Instant
+import java.util.Locale
 
-private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
+private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(Locale.ROOT, it) }
 
 /**
  * Backfills CAS metadata for READY assets created before file_hash existed.
@@ -27,8 +31,8 @@ class MediaAssetBackfillJob(
     private val storage: MediaStorage,
     private val uploadSettings: MediaUploadSettings,
     private val transactionRunner: AtomicTransactionRunner,
+    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) {
-    private val logger = LoggerFactory.getLogger(MediaAssetBackfillJob::class.java)
 
     suspend fun run(limit: Int = BATCH_SIZE): BackfillRunResult {
         val startedAt = Instant.now()
@@ -46,7 +50,7 @@ class MediaAssetBackfillJob(
             }
         }
 
-        logger.info(
+        operationalEvents.info(
             "media.backfill.run scanned={} backfilled={} failed={}",
             scanned,
             backfilled,
@@ -66,7 +70,7 @@ class MediaAssetBackfillJob(
         return try {
             val currentStorageKey = asset.storageKey
             if (currentStorageKey.isNullOrBlank()) {
-                logger.warn(
+                operationalEvents.warn(
                     "media.backfill.skip.noStorageKey assetId={} workspaceId={}",
                     asset.assetId,
                     asset.workspaceId,
@@ -109,7 +113,7 @@ class MediaAssetBackfillJob(
 
             AssetOutcome.BACKFILLED
         } catch (e: Exception) {
-            logger.error(
+            operationalEvents.error(
                 "media.backfill.failed assetId={} workspaceId={}",
                 asset.assetId,
                 asset.workspaceId,
