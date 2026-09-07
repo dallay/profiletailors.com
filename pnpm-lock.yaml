@@ -109,8 +109,8 @@ importers:
   apps/web/app:
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop':
-        specifier: ^1.8.1
-        version: 1.8.1
+        specifier: ^3.1.0
+        version: 3.1.0
       '@internationalized/date':
         specifier: 3.12.3
         version: 3.12.3
@@ -474,8 +474,8 @@ packages:
   '@astrojs/yaml2ts@0.2.4':
     resolution: {integrity: sha512-8oddpOae35pJsXPQXhTkM0ypfKPskVsh2bCxRtbf7e+/Epw2nReakFYpLKjZMEr75CsoF203PMnCocpfz0s69A==}
 
-  '@atlaskit/pragmatic-drag-and-drop@1.8.1':
-    resolution: {integrity: sha512-uXWNPpL8n4OmTVbduH7nq8pk8htqGo/prR5cYEE8sVCPJGAUMWn6lzvWTfI+4VCeQvHiDRODVz4YzH06OVAxhw==}
+  '@atlaskit/pragmatic-drag-and-drop@3.1.0':
+    resolution: {integrity: sha512-VU+2Oh6OgvC6D1xiX3lfm1gZJsaSPD+ZKjAHodOQ9IO6RfOvAyReLlK5ut9gIUpPmbD8d09wlCs7y4A6/I8c5Q==}
 
   '@axe-core/playwright@4.13.0':
     resolution: {integrity: sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg==}
@@ -6348,7 +6348,7 @@ snapshots:
     dependencies:
       yaml: 2.9.0
 
-  '@atlaskit/pragmatic-drag-and-drop@1.8.1':
+  '@atlaskit/pragmatic-drag-and-drop@3.1.0':
     dependencies:
       '@babel/runtime': 7.29.7
       bind-event-listener: 3.0.0
@@ -8139,7 +8139,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.17
       tinyrainbow: 2.0.0
-      vitest: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.5)(@vitest/ui@3.2.7)(jiti@2.7.0)(jsdom@25.0.1(supports-color@7.2.0))(lightningcss@1.33.0)(stylus@0.57.0(supports-color@7.2.0))(supports-color@7.2.0)(yaml@2.9.0)
+      vitest: 3.2.7(@types/debug@4.1.13)(@types/node@24.13.3)(@vitest/ui@3.2.7)(jiti@2.7.0)(jsdom@29.1.1)(lightningcss@1.33.0)(stylus@0.57.0(supports-color@7.2.0))(supports-color@7.2.0)(yaml@2.9.0)
 
   '@vitest/utils@3.2.7':
     dependencies:
