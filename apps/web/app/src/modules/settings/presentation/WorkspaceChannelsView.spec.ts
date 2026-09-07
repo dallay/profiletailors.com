@@ -5,9 +5,20 @@ import WorkspaceChannelsView from './WorkspaceChannelsView.vue'
 const connectLinkedInMock = vi.hoisted(() => vi.fn())
 
 const defaultStore = {
-  channels: [] as never[],
-  providerCatalog: [] as never[],
+  channels: [] as Channel[],
+  providerCatalog: [] as ProviderCatalogItem[],
   connectLinkedInPersonalProfile: connectLinkedInMock,
+}
+
+type Channel = { id: string; name: string; provider: string; avatar: string; status: string }
+type ProviderCatalogItem = {
+  provider: string
+  state: string
+  connectedChannelCount: number
+  accountKinds: string[]
+  channelLimit: null
+  canConnectMore: boolean
+  reason: null
 }
 
 vi.mock('vue-i18n', () => ({

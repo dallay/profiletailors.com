@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import AccountPrivacyView from './AccountPrivacyView.vue'
-import { usePrivacyStore } from '@modules/settings/infrastructure/privacy.store'
 
 const closeAccountMock = vi.hoisted(() => vi.fn())
 const logoutMock = vi.hoisted(() => vi.fn())
@@ -63,14 +62,17 @@ describe('AccountPrivacyView', () => {
 
   it('opens delete modal when delete button is clicked', async () => {
     const wrapper = mount(AccountPrivacyView, { global: { stubs: { teleport: true } } })
-    const deleteBtn = wrapper.findAll('button').find(b => b.text().includes('delete'))
+    const deleteBtn = wrapper.findAll('button').find((b) => b.text().includes('delete'))
     await deleteBtn?.trigger('click')
     expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
   })
 
   it('does not submit when confirmation does not match DELETE', async () => {
     const wrapper = mount(AccountPrivacyView, { global: { stubs: { teleport: true } } })
-    await wrapper.findAll('button').find(b => b.text().includes('delete'))?.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('delete'))
+      ?.trigger('click')
     const input = wrapper.find('input[id="delete-confirm-input"]')
     await input.setValue('WRONG')
     await wrapper.find('form').trigger('submit')
@@ -79,7 +81,10 @@ describe('AccountPrivacyView', () => {
 
   it('calls closeAccount and redirects to /login on success', async () => {
     const wrapper = mount(AccountPrivacyView, { global: { stubs: { teleport: true } } })
-    await wrapper.findAll('button').find(b => b.text().includes('delete'))?.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('delete'))
+      ?.trigger('click')
     const input = wrapper.find('input[id="delete-confirm-input"]')
     await input.setValue('DELETE')
     await wrapper.find('form').trigger('submit')
@@ -92,7 +97,10 @@ describe('AccountPrivacyView', () => {
   it('shows rate limit error when API returns 429', async () => {
     closeAccountMock.mockRejectedValue({ status: 429 })
     const wrapper = mount(AccountPrivacyView, { global: { stubs: { teleport: true } } })
-    await wrapper.findAll('button').find(b => b.text().includes('delete'))?.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('delete'))
+      ?.trigger('click')
     await wrapper.find('input[id="delete-confirm-input"]').setValue('DELETE')
     await wrapper.find('form').trigger('submit')
     expect(wrapper.text()).toContain('rateLimited')
@@ -101,7 +109,10 @@ describe('AccountPrivacyView', () => {
   it('shows generic error when API fails with non-429', async () => {
     closeAccountMock.mockRejectedValue({ status: 500, detail: 'Server error' })
     const wrapper = mount(AccountPrivacyView, { global: { stubs: { teleport: true } } })
-    await wrapper.findAll('button').find(b => b.text().includes('delete'))?.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('delete'))
+      ?.trigger('click')
     await wrapper.find('input[id="delete-confirm-input"]').setValue('DELETE')
     await wrapper.find('form').trigger('submit')
     expect(wrapper.text()).toContain('Server error')
