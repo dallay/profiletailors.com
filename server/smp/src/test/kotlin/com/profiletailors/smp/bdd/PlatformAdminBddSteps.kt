@@ -16,9 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.r2dbc.core.DatabaseClient
-import org.springframework.test.web.reactive.server.EntityExchangeResult
 import org.springframework.test.web.reactive.server.WebTestClient
-import java.security.MessageDigest
 import java.util.UUID
 
 private const val ADMIN_PRINCIPAL_ID = BDD_ADMIN_PRINCIPAL_ID
@@ -36,19 +34,17 @@ class PlatformAdminBddSteps {
 
     private val json = ObjectMapper()
 
-    private var lastResponse: EntityExchangeResult<ByteArray>? = null
-    private var lastEntryId: String? = null
-    private var lastInvitationId: String? = null
-    private var invitationToken: String? = null
+    @Autowired
+    private lateinit var state: PlatformAdminScenarioState
 
     // ── Setup ────────────────────────────────────────────────────────────────
 
     @Before("@platform-admin")
     fun resetPlatformAdminState() = runBlocking {
-        lastResponse = null
-        lastEntryId = null
-        lastInvitationId = null
-        invitationToken = null
+        state.lastResponse = null
+        state.lastEntryId = null
+        state.lastInvitationId = null
+        state.invitationToken = null
         cleanupPlatformAdminData()
     }
 
@@ -75,110 +71,28 @@ class PlatformAdminBddSteps {
     @Given("a pending waitlist entry exists for {string}")
     fun pendingWaitlistEntry(email: String) = runBlocking {
         val entryId = seedWaitlistEntry(email, "PENDING")
-        lastEntryId = entryId
+        state.lastEntryId = entryId
     }
 
     @Given("a converted waitlist entry exists for {string}")
     fun convertedWaitlistEntry(email: String) = runBlocking {
         val entryId = seedWaitlistEntry(email, "CONVERTED")
-        lastEntryId = entryId
+        state.lastEntryId = entryId
     }
 
     @Given("an invited waitlist entry with an active invitation exists for {string}")
     fun invitedWaitlistEntryWithActiveInvitation(email: String) = runBlocking {
         val entryId = seedWaitlistEntry(email, "INVITED")
-        lastEntryId = entryId
+        state.lastEntryId = entryId
         val invitationId = seedActiveInvitation(entryId)
-        lastInvitationId = invitationId
+        state.lastInvitationId = invitationId
     }
-
-    // ── Invitation acceptance ────────────────────────────────────────────────
-
-    @Given("an active direct invitation exists for {string}")
-    fun activeDirectInvitationExists(email: String) = runBlocking {
-        lastInvitationId = null
-        seedInvitation(
-            email = email,
-            source = "DIRECT",
-            sourceReferenceId = null,
-            workspaceId = "invitation-workspace",
-        )
-        lastInvitationId = latestInvitationId(email)
-    }
-
-    @Then("the invitation acceptance workspace should be {string}")
-    fun invitationAcceptanceWorkspaceShouldBe(workspaceId: String) {
-        lastResponseJson().path("workspaceId").asText().let { assertEquals(workspaceId, it) }
-    }
-
-    @Then("the invitation acceptance membership status should be {string}")
-    fun invitationAcceptanceMembershipStatusShouldBe(status: String) {
-        assertEquals(status, lastResponseJson().path("membershipStatus").asText())
-    }
-
-    @Then("the invitation response should not contain the token")
-    fun invitationResponseShouldNotContainToken() {
-        assertTrue(!lastResponseJson().has("token"))
-        assertTrue(!lastResponseJson().has("rawToken"))
-    }
-
-    @When("an unauthenticated principal accepts the invitation")
-    fun unauthenticatedInvitationAcceptance() {
-        lastResponse = webTestClient.post()
-            .uri("/api/invitations/accept")
-            .contentType(MediaType.APPLICATION_JSON)
-            .header(HttpHeaders.ACCEPT, API_V1)
-            .bodyValue("""{"token":"${invitationToken ?: "unused-token"}"}""")
-            .exchange()
-            .expectBody(ByteArray::class.java)
-            .returnResult()
-    }
-
-    @When("the authenticated principal accepts the invitation with an empty token")
-    fun authenticatedInvitationAcceptanceWithEmptyToken() {
-        lastResponse = webTestClient.post()
-            .uri("/api/invitations/accept")
-            .contentType(MediaType.APPLICATION_JSON)
-            .header(HttpHeaders.ACCEPT, API_V1)
-            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
-            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
-            .bodyValue("""{"token":"   "}""")
-            .exchange()
-            .expectBody(ByteArray::class.java)
-            .returnResult()
-    }
-
-    @When("the authenticated principal accepts the invitation")
-    fun authenticatedInvitationAcceptance() = authenticatedInvitationAcceptanceWithToken(
-        invitationToken ?: "unavailable-token",
-    )
-
-    @When("the authenticated principal accepts the invitation with an unavailable token")
-    fun authenticatedInvitationAcceptanceWithUnavailableToken() = authenticatedInvitationAcceptanceWithToken(
-        "unavailable-token",
-    )
-
-    private fun authenticatedInvitationAcceptanceWithToken(token: String) {
-        lastResponse = webTestClient.post()
-            .uri("/api/invitations/accept")
-            .contentType(MediaType.APPLICATION_JSON)
-            .header(HttpHeaders.ACCEPT, API_V1)
-            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
-            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
-            .bodyValue("""{"token":"$token"}""")
-            .exchange()
-            .expectBody(ByteArray::class.java)
-            .returnResult()
-    }
-
-    @When("the authenticated principal accepts the invitation again")
-    fun authenticatedInvitationAcceptanceAgain() = authenticatedInvitationAcceptance()
 
     // ── Actions ──────────────────────────────────────────────────────────────
 
     @When("an unauthenticated principal requests the admin waitlist endpoint")
     fun unauthenticatedAdminRequest() {
-        lastResponse = webTestClient.get()
+        state.lastResponse = webTestClient.get()
             .uri("/api/admin/waitlist-entries")
             .header(HttpHeaders.ACCEPT, API_V1)
             .exchange()
@@ -188,7 +102,7 @@ class PlatformAdminBddSteps {
 
     @When("the principal requests the admin waitlist endpoint")
     fun principalRequestsAdminWaitlist() {
-        lastResponse = webTestClient.get()
+        state.lastResponse = webTestClient.get()
             .uri("/api/admin/waitlist-entries")
             .header(HttpHeaders.ACCEPT, API_V1)
             .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
@@ -199,7 +113,7 @@ class PlatformAdminBddSteps {
 
     @When("the platform operator requests the admin waitlist endpoint")
     fun operatorRequestsAdminWaitlist() {
-        lastResponse = webTestClient.get()
+        state.lastResponse = webTestClient.get()
             .uri("/api/admin/waitlist-entries")
             .header(HttpHeaders.ACCEPT, API_V1)
             .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
@@ -210,7 +124,7 @@ class PlatformAdminBddSteps {
 
     @When("the platform operator searches the waitlist for {string}")
     fun operatorSearchesWaitlistByEmail(email: String) {
-        lastResponse = webTestClient.get()
+        state.lastResponse = webTestClient.get()
             .uri { builder ->
                 builder.path("/api/admin/waitlist-entries")
                     .queryParam("email", email)
@@ -225,7 +139,7 @@ class PlatformAdminBddSteps {
 
     @When("the platform operator filters the waitlist by status {string}")
     fun operatorFiltersWaitlistByStatus(status: String) {
-        lastResponse = webTestClient.get()
+        state.lastResponse = webTestClient.get()
             .uri { builder ->
                 builder.path("/api/admin/waitlist-entries")
                     .queryParam("status", status)
@@ -240,8 +154,8 @@ class PlatformAdminBddSteps {
 
     @When("the auditor attempts to invite the waitlist entry")
     fun auditorAttemptsInvite() {
-        val entryId = requireNotNull(lastEntryId)
-        lastResponse = webTestClient.post()
+        val entryId = requireNotNull(state.lastEntryId)
+        state.lastResponse = webTestClient.post()
             .uri("/api/admin/waitlist-entries/$entryId/invitations")
             .header(HttpHeaders.ACCEPT, API_V1)
             .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
@@ -252,8 +166,8 @@ class PlatformAdminBddSteps {
 
     @When("the platform operator invites the waitlist entry")
     fun operatorInvitesEntry() {
-        val entryId = requireNotNull(lastEntryId)
-        lastResponse = webTestClient.post()
+        val entryId = requireNotNull(state.lastEntryId)
+        state.lastResponse = webTestClient.post()
             .uri("/api/admin/waitlist-entries/$entryId/invitations")
             .header(HttpHeaders.ACCEPT, API_V1)
             .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
@@ -261,19 +175,19 @@ class PlatformAdminBddSteps {
             .expectBody(ByteArray::class.java)
             .returnResult()
 
-        lastResponse?.responseBody?.let { body ->
+        state.lastResponse?.responseBody?.let { body ->
             runCatching { json.readTree(body) }
                 .getOrNull()
                 ?.get("id")
                 ?.asText()
-                ?.let { lastInvitationId = it }
+                ?.let { state.lastInvitationId = it }
         }
     }
 
     @When("the platform operator cancels the waitlist entry with reason {string}")
     fun operatorCancelsEntry(reason: String) {
-        val entryId = requireNotNull(lastEntryId)
-        lastResponse = webTestClient.post()
+        val entryId = requireNotNull(state.lastEntryId)
+        state.lastResponse = webTestClient.post()
             .uri("/api/admin/waitlist-entries/$entryId/cancel")
             .header(HttpHeaders.ACCEPT, API_V1)
             .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
@@ -286,8 +200,8 @@ class PlatformAdminBddSteps {
 
     @When("the platform operator revokes the active invitation")
     fun operatorRevokesInvitation() {
-        val invitationId = requireNotNull(lastInvitationId)
-        lastResponse = webTestClient.post()
+        val invitationId = requireNotNull(state.lastInvitationId)
+        state.lastResponse = webTestClient.post()
             .uri("/api/admin/invitations/$invitationId/revoke")
             .header(HttpHeaders.ACCEPT, API_V1)
             .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
@@ -296,129 +210,21 @@ class PlatformAdminBddSteps {
             .returnResult()
     }
 
-    @Given("a consumed direct invitation exists for {string}")
-    fun consumedDirectInvitationExists(email: String) = runBlocking {
-        lastInvitationId = null
-        seedInvitation(
-            email = email,
-            source = "DIRECT",
-            sourceReferenceId = null,
-            workspaceId = "invitation-workspace",
-        )
-        val invitationId = latestInvitationId(email)
-        databaseClient.sql(
-            """
-            UPDATE invitations
-            SET status = 'ACCEPTED', accepted_at = NOW(), accepted_principal_id = 'principal-1',
-                version = version + 1
-            WHERE id = :id
-            """.trimIndent(),
-        )
-            .bind("id", UUID.fromString(invitationId))
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-        lastInvitationId = invitationId
-    }
-
-    @When("the platform operator creates a direct invitation for {string}")
-    fun operatorCreatesDirectInvitation(email: String) = runBlocking {
-        seedInvitationWorkspace("invitation-workspace")
-        lastResponse = webTestClient.post()
-            .uri("/api/admin/invitations/direct")
-            .header(HttpHeaders.ACCEPT, API_V1)
-            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(directInvitationPayload(email))
-            .exchange()
-            .expectBody(ByteArray::class.java)
-            .returnResult()
-
-        lastResponse?.responseBody?.let { body ->
-            runCatching { json.readTree(body) }
-                .getOrNull()
-                ?.get("invitationId")
-                ?.asText()
-                ?.let { lastInvitationId = it }
-        }
-    }
-
-    @When("an unauthenticated principal creates a direct invitation for {string}")
-    fun unauthenticatedCreatesDirectInvitation(email: String) = runBlocking {
-        seedInvitationWorkspace("invitation-workspace")
-        lastResponse = webTestClient.post()
-            .uri("/api/admin/invitations/direct")
-            .header(HttpHeaders.ACCEPT, API_V1)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(directInvitationPayload(email))
-            .exchange()
-            .expectBody(ByteArray::class.java)
-            .returnResult()
-    }
-
-    @When("the platform operator revokes the direct invitation")
-    fun operatorRevokesDirectInvitation() = runBlocking {
-        val invitationId = requireNotNull(lastInvitationId)
-        val version = invitationVersion(invitationId)
-        lastResponse = webTestClient.post()
-            .uri("/api/admin/invitations/$invitationId/direct-revoke")
-            .header(HttpHeaders.ACCEPT, API_V1)
-            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("""{"expectedVersion":$version}""")
-            .exchange()
-            .expectBody(ByteArray::class.java)
-            .returnResult()
-    }
-
-    @When("the platform operator revokes a missing direct invitation")
-    fun operatorRevokesMissingDirectInvitation() {
-        val invitationId = UUID.randomUUID()
-        lastResponse = webTestClient.post()
-            .uri("/api/admin/invitations/$invitationId/direct-revoke")
-            .header(HttpHeaders.ACCEPT, API_V1)
-            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("""{"expectedVersion":0}""")
-            .exchange()
-            .expectBody(ByteArray::class.java)
-            .returnResult()
-    }
-
-    @When("the platform operator resends the direct invitation")
-    fun operatorResendsDirectInvitation() {
-        val invitationId = requireNotNull(lastInvitationId)
-        lastResponse = webTestClient.post()
-            .uri("/api/admin/invitations/$invitationId/direct-resend")
-            .header(HttpHeaders.ACCEPT, API_V1)
-            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
-            .exchange()
-            .expectBody(ByteArray::class.java)
-            .returnResult()
-    }
-
-    @Then("the direct invitation response should contain an id")
-    fun directInvitationResponseShouldContainId() {
-        assertNotNull(lastResponseJson().path("invitationId").asText(null))
-    }
-
     @Then("the direct invitation status should be {string}")
     fun directInvitationStatusShouldBe(expected: String) = runBlocking {
-        assertEquals(expected, invitationStatus(requireNotNull(lastInvitationId)))
+        assertEquals(expected, invitationStatus(requireNotNull(state.lastInvitationId)))
     }
 
     // ── Assertions ───────────────────────────────────────────────────────────
 
-    private fun lastResponseJson() = json.readTree(requireNotNull(lastResponse).responseBody)
-
     @Then("the admin response status should be {int}")
     fun adminResponseStatus(expected: Int) {
-        assertEquals(expected, lastResponse?.status?.value())
+        assertEquals(expected, state.lastResponse?.status?.value())
     }
 
     @And("the admin response code should be {string}")
     fun adminResponseCode(expected: String) {
-        val body = lastResponse?.responseBody?.let { json.readTree(it) }
+        val body = state.lastResponse?.responseBody?.let { json.readTree(it) }
         val code = body?.get("properties")?.get("code")?.asText()
             ?: body?.get("code")?.asText()
         assertEquals(expected, code)
@@ -426,7 +232,7 @@ class PlatformAdminBddSteps {
 
     @And("the waitlist result should be paginated")
     fun waitlistResultIsPaginated() {
-        val body = lastResponse?.responseBody?.let { json.readTree(it) }
+        val body = state.lastResponse?.responseBody?.let { json.readTree(it) }
         assertNotNull(body?.get("items"))
         assertNotNull(body?.get("totalElements"))
         assertNotNull(body?.get("page"))
@@ -434,7 +240,7 @@ class PlatformAdminBddSteps {
 
     @And("the waitlist result should contain {int} entries")
     fun waitlistResultContainsEntryCount(expected: Int) {
-        val body = lastResponse?.responseBody?.let { json.readTree(it) }
+        val body = state.lastResponse?.responseBody?.let { json.readTree(it) }
         val items = requireNotNull(body?.get("items"))
         assertEquals(expected, items.size())
         assertEquals(expected.toLong(), requireNotNull(body.get("totalElements")).asLong())
@@ -442,7 +248,7 @@ class PlatformAdminBddSteps {
 
     @And("the waitlist result should contain an entry with email {string}")
     fun waitlistResultContainsEntryWithEmail(email: String) {
-        val body = lastResponse?.responseBody?.let { json.readTree(it) }
+        val body = state.lastResponse?.responseBody?.let { json.readTree(it) }
         val items = requireNotNull(body?.get("items"))
         val match = (0 until items.size()).any { i ->
             email.equals(items[i].get("email")?.asText(), ignoreCase = true)
@@ -452,35 +258,35 @@ class PlatformAdminBddSteps {
 
     @And("the waitlist entry status should become {string}")
     fun entryStatusIs(expected: String) = runBlocking {
-        val entryId = requireNotNull(lastEntryId)
+        val entryId = requireNotNull(state.lastEntryId)
         val status = entryStatus(entryId)
         assertEquals(expected, status)
     }
 
     @And("the waitlist entry status should remain {string}")
     fun entryStatusRemains(expected: String) = runBlocking {
-        val entryId = requireNotNull(lastEntryId)
+        val entryId = requireNotNull(state.lastEntryId)
         val status = entryStatus(entryId)
         assertEquals(expected, status)
     }
 
     @And("one active invitation should be created for the entry")
     fun oneActiveInvitationExists() = runBlocking {
-        val entryId = requireNotNull(lastEntryId)
+        val entryId = requireNotNull(state.lastEntryId)
         val count = activeInvitationCount(entryId)
         assertEquals(1L, count)
     }
 
     @And("no active invitation should remain for the entry")
     fun noActiveInvitationExists() = runBlocking {
-        val entryId = requireNotNull(lastEntryId)
+        val entryId = requireNotNull(state.lastEntryId)
         val count = activeInvitationCount(entryId)
         assertEquals(0L, count)
     }
 
     @And("the invitation status should be {string}")
     fun invitationStatusIs(expected: String) = runBlocking {
-        val invId = requireNotNull(lastInvitationId)
+        val invId = requireNotNull(state.lastInvitationId)
         val status = invitationStatus(invId)
         assertEquals(expected, status)
     }
@@ -648,75 +454,6 @@ class PlatformAdminBddSteps {
         return invId.toString()
     }
 
-    private suspend fun seedInvitation(
-        email: String,
-        source: String,
-        sourceReferenceId: String?,
-        workspaceId: String,
-    ) {
-        val token = "bdd-invitation-token-${UUID.randomUUID()}"
-        val invitationId = UUID.randomUUID()
-        val candidateKey = MessageDigest.getInstance("SHA-256")
-            .digest(token.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
-        val tokenHash = org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
-            token,
-            org.springframework.security.crypto.bcrypt.BCrypt.gensalt(),
-        )
-        seedInvitationWorkspace(workspaceId)
-        databaseClient.sql(
-            """
-            INSERT INTO invitations (
-                id, source, source_reference_id, workspace_id, invited_email_normalized,
-                candidate_key, token_hash, status, issued_by, created_at, expires_at
-            ) VALUES (
-                :id, :source, :sourceReferenceId, :workspaceId, :email,
-                :candidateKey, :tokenHash, 'ACTIVE', :issuedBy, NOW(), NOW() + interval '7 days'
-            )
-            """.trimIndent(),
-        )
-            .bind("id", invitationId)
-            .bind("source", source)
-            .let { spec ->
-                if (sourceReferenceId == null) {
-                    spec.bindNull("sourceReferenceId", String::class.java)
-                } else {
-                    spec.bind("sourceReferenceId", sourceReferenceId)
-                }
-            }
-            .bind("workspaceId", workspaceId)
-            .bind("email", email.trim().lowercase())
-            .bind("candidateKey", candidateKey)
-            .bind("tokenHash", tokenHash)
-            .bind("issuedBy", ADMIN_PRINCIPAL_ID)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-        invitationToken = token
-    }
-
-    private fun directInvitationPayload(email: String): String = json.writeValueAsString(
-        mapOf(
-            "email" to email.trim().lowercase(),
-            "target" to "EXISTING_WORKSPACE",
-            "workspaceId" to "invitation-workspace",
-        ),
-    )
-
-    private suspend fun seedInvitationWorkspace(workspaceId: String) {
-        databaseClient.sql(
-            """
-            INSERT INTO workspaces (id, name, status, icon)
-            VALUES (:id, 'Invitation BDD Workspace', 'ACTIVE', NULL)
-            ON CONFLICT DO NOTHING
-            """.trimIndent(),
-        )
-            .bind("id", workspaceId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
-
     private suspend fun entryStatus(entryId: String): String? =
         databaseClient.sql("SELECT status FROM waitlist_entries WHERE id = :id")
             .bind("id", entryId)
@@ -729,22 +466,6 @@ class PlatformAdminBddSteps {
     )
         .bind("entryId", entryId)
         .map { row, _ -> requireNotNull(row.get(0, Long::class.java)) }
-        .one()
-        .awaitSingle()
-
-    private suspend fun latestInvitationId(email: String): String = databaseClient.sql(
-        "SELECT id FROM invitations WHERE invited_email_normalized = :email ORDER BY created_at DESC LIMIT 1",
-    )
-        .bind("email", email.trim().lowercase())
-        .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)).toString() }
-        .one()
-        .awaitSingle()
-
-    private suspend fun invitationVersion(invitationId: String): Long = databaseClient.sql(
-        "SELECT version FROM invitations WHERE id = :id",
-    )
-        .bind("id", UUID.fromString(invitationId))
-        .map { row, _ -> requireNotNull(row.get("version", Long::class.java)) }
         .one()
         .awaitSingle()
 
