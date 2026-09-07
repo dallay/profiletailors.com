@@ -58,7 +58,7 @@ class MediaCasHandlersTest {
         val failingMedia = InMemoryMediaAssetRepository()
         failingMedia.failMarkAsFailed = true
         failingMedia.create(pendingAsset(ASSET_B, HASH_B))
-        assertThrows<StorageServiceException> {
+        assertThrows<IllegalStateException> {
             uploadLegacyHandler(
                 failingMedia,
                 FakeStorage(uploadFailure = StorageServiceException("upload failed")),
