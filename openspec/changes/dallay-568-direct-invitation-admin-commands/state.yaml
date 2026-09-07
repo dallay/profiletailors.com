@@ -1,0 +1,16 @@
+change: dallay-568-direct-invitation-admin-commands
+current_phase: apply
+completed:
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply-pr1-permissions
+  - apply-pr2-handlers-controller
+  - apply-pr2-ui
+  - apply-pr3-persistence
+  - apply-phase4-tests
+  - apply-phase4-bdd
+  - fix-critical1-rawtoken
+next: fix-counters-detekt
+updated: "2026-09-07T00:00:00Z"
