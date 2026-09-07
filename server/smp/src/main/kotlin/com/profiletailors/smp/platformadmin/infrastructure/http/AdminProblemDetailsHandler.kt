@@ -17,7 +17,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
-import org.springframework.web.context.request.WebRequest
+import org.springframework.web.server.ServerWebExchange
 import java.net.URI
 
 @RestControllerAdvice
@@ -26,12 +26,12 @@ class AdminProblemDetailsHandler {
     private val logger = LoggerFactory.getLogger(AdminProblemDetailsHandler::class.java)
 
     @ExceptionHandler(PlatformAccessDeniedException::class)
-    fun handle(ex: PlatformAccessDeniedException, request: WebRequest? = null): ProblemDetail {
+    fun handle(ex: PlatformAccessDeniedException, exchange: ServerWebExchange? = null): ProblemDetail {
         logger.warn(
             "admin.access.denied path={} permission={} correlationId={}",
-            request?.getDescription(false) ?: "unknown",
+            exchange?.request?.path?.value() ?: "unknown",
             ex.permission.key,
-            requestCorrelationId(request),
+            requestCorrelationId(exchange),
         )
         return problem(HttpStatus.FORBIDDEN, "PLATFORM_ACCESS_DENIED", ex.message)
     }
@@ -83,11 +83,11 @@ class AdminProblemDetailsHandler {
     fun handle(ex: IllegalArgumentException): ProblemDetail =
         problem(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.message)
 
-    private fun requestCorrelationId(request: WebRequest?): String? = request
-        ?.getHeader("X-Correlation-Id")
-        ?: request?.getHeader("X-Request-Id")
-        ?: request?.getHeader("X-Trace-Id")
-        ?: request?.getHeader("Correlation-Id")
+    private fun requestCorrelationId(exchange: ServerWebExchange?): String? = exchange?.request?.headers
+        ?.getFirst("X-Correlation-Id")
+        ?: exchange?.request?.headers?.getFirst("X-Request-Id")
+        ?: exchange?.request?.headers?.getFirst("X-Trace-Id")
+        ?: exchange?.request?.headers?.getFirst("Correlation-Id")
 
     private fun problem(status: HttpStatus, code: String, detail: String?): ProblemDetail =
         ProblemDetail.forStatusAndDetail(status, detail ?: status.reasonPhrase).apply {
