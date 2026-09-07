@@ -73,20 +73,29 @@ server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/
 
 ### `redact()` — exact implementation
 
-Defined in `R2dbcAdminAuditRepository.kt` as a private top-level function.
-Alternatively extracted to `AdminAuditRepositoryUtils.kt` if the file grows.
+Defined in `RedactSensitiveMetadata.kt` as a public top-level function.
 
 ```kotlin
+private const val REDACTED_VALUE = "[REDACTED]"
+
 private val SENSITIVE_SUBSTRINGS = listOf(
-    "password", "token", "secret", "credential", "key",
-    "invitationtoken", "resettoken", "refreshtoken", "acresstoken",
+    "password",
+    "secret",
+    "token",
+    "key",
+    "credential",
+    "auth",
+    "bearer",
 )
 
-fun redact(metadata: Map<String, String>): Map<String, String> =
-    metadata.filterKeys { key ->
-        SENSITIVE_SUBSTRINGS.none { substring -> key.lowercase().contains(substring) }
-    }
+fun redact(metadata: Map<String, String>): Map<String, String> = metadata.mapValues { (k, v) ->
+    if (SENSITIVE_SUBSTRINGS.any { sensitive -> k.lowercase().contains(sensitive) }) REDACTED_VALUE else v
+}
 ```
+
+The function replaces values with `"[REDACTED]"` for keys containing any case-insensitive
+sensitive substring. The original map is not mutated; a new map is returned. The stored JSON
+contains all original keys but with redacted values for sensitive fields.
 
 ### `R2dbcAdminAuditRepository.publish()` — modified
 
@@ -129,17 +138,9 @@ Including:
 
 ## Deleted: Orphaned Migration
 
-Migration `006-create-administrative-audit-events.yaml` is either:
-
-- **Deleted** (if V006 was never applied to any shared environment): remove the file
-  and the include from `db.changelog-master.yaml`.
-
-- **Forward-dropped** (if V006 was already applied): a new `V007__drop_administrative_audit_events.sql`
-  migration is added that drops the orphaned table, and the include is removed from
-  `db.changelog-master.yaml`.
-
-Requires checking the git history of `V006__create_administrative_audit_events.sql` before
-deciding which path to take.
+Migration `006-create-administrative-audit-events.yaml` was **not found** in the migration
+directory — the file was never committed. The orphaned `administrative` bounded context was
+deleted as dead code; no rollback migration is required.
 
 ## Testing Strategy
 

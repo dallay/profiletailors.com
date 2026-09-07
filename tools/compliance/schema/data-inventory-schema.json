@@ -21,7 +21,15 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "name", "purposes", "personal_data_categories", "recipients", "retention", "evidence_references"],
+        "required": [
+          "id",
+          "name",
+          "purposes",
+          "personal_data_categories",
+          "recipients",
+          "retention",
+          "evidence_references"
+        ],
         "properties": {
           "id": { "type": "string", "pattern": "^pa-\\d{3}$" },
           "name": { "type": "string", "minLength": 1 },
@@ -40,7 +48,15 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["consent", "contract", "legal_obligation", "vital_interest", "public_task", "legitimate_interest", "controller_instruction"]
+                      "enum": [
+                        "consent",
+                        "contract",
+                        "legal_obligation",
+                        "vital_interest",
+                        "public_task",
+                        "legitimate_interest",
+                        "controller_instruction"
+                      ]
                     },
                     "reference": { "type": "string" }
                   }

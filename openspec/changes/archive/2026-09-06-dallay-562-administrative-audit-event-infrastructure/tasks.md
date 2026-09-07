@@ -7,14 +7,14 @@
    - Contains the `SENSITIVE_SUBSTRINGS` denylist and the filter logic
  - [x] **T1.2** Modify `R2dbcAdminAuditRepository.publish()` to call `redact(event.metadata)` before binding to the SQL statement
    - No signature change; only the bind value changes from `event.metadata` to `redact(event.metadata)`
- - [x] **T1.3** Run `just backend-lint` to verify no compilation errors
+  - [ ] **T1.3** Run `just backend-lint` to verify no compilation errors
 
 ## Phase 2: Add unit tests for `redact()`
 
  - [x] **T2.1** Create `RedactSensitiveMetadataTest.kt` under `platformadmin` test package
    - Location: `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/`
    - Test cases: empty map, no sensitive keys, one sensitive key, multiple sensitive keys, case-variant keys (`accessToken`, `RESETPassword`), original map unchanged after call
- - [x] **T2.2** Run `just backend-test-fast` to confirm all tests pass
+  - [ ] **T2.2** Run `just backend-test-fast` to confirm all tests pass
 
 ## Phase 3: Delete orphaned `administrative` context
 
@@ -41,6 +41,6 @@
 
 ## Phase 6: Open issues
 
- - [ ] **T6.1** Integration test for end-to-end redaction (T3.1 from original spec) requires adding `metadata` column to `platform_admin_audit_events` table
-   - Current `publish()` calls `redact(event.metadata)` but the table has no `metadata` column to persist to
-   - This is a separate migration task beyond the scope of the current change
+  - [ ] **T6.1** Integration test for end-to-end redaction (T3.1 from original spec) requires a
+    `metadata` TEXT column on `platform_admin_audit_events` to persist redacted values. This is a
+    separate migration task beyond the scope of the current change.

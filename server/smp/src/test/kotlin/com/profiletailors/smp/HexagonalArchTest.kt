@@ -208,8 +208,39 @@ internal class HexagonalArchTest {
                 "kotlinx.coroutines.reactor..",
                 "jakarta.persistence..",
                 "javax.persistence..",
+                "com.profiletailors.observability..",
             )
             .because("domain layer must stay pure Kotlin")
+            .check(importedClasses)
+    }
+
+    @Test
+    fun domainAndApplicationLayersShouldNotDependOnObservabilityImplementations() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAnyPackage("..domain..", "..application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "org.slf4j..",
+                "ch.qos.logback..",
+                "org.apache.logging.log4j..",
+                "io.opentelemetry..",
+                "io.micrometer..",
+            )
+            .because("domain and application must remain independent from observability implementations")
+            .check(importedClasses)
+    }
+
+    @Test
+    fun applicationLayerShouldNotDependOnSpringDataAccess() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("org.springframework.dao..")
+            .because("application must use pure ports and exceptions instead of Spring persistence types")
             .check(importedClasses)
     }
 

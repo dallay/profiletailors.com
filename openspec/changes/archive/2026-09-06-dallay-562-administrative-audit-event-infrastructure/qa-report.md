@@ -5,7 +5,7 @@
 **Phase**: qa
 **Date**: 2026-09-06
 **Target**: Backend SMP server (Spring Boot Kotlin)
-**Environment**: Local dev (`just backend-check` passes per verify-report)
+**Environment**: Local dev (verification via static inspection; no `just backend-check` execution recorded)
 
 ---
 

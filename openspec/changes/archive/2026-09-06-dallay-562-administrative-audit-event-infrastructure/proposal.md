@@ -73,12 +73,9 @@ Delete all code under:
 
 ### 4. Migration strategy for `administrative_audit_events`
 
-**Requires investigation before finalizing:**
-
-- If migration `V006__create_administrative_audit_events` was **never applied in any shared environment**, delete the migration file and remove the include from `db.changelog-master.yaml`.
-- If migration `V006` **was applied to any shared environment**, the migration is immutable: do not delete it. Instead, create a forward drop migration (e.g., `V007__drop_administrative_audit_events.sql`) that drops the orphaned table.
-
-The changelog entry for the drop migration should be added to `db.changelog-master.yaml` regardless of which path is taken.
+The migration file `V006__create_administrative_audit_events.sql` was **never committed** — no
+migration existed to roll back. The orphaned `administrative` bounded context was deleted as dead
+code. No Liquibase rollback or forward-drop migration is required.
 
 ### 5. Tests
 
