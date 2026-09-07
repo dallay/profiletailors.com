@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
-import { Check, Copy, Building2, CheckCircle2, AlertCircle } from 'lucide-vue-next'
+import { renameWorkspace } from '@modules/auth/infrastructure/auth-api'
+import { Check, Copy, Building2, CheckCircle2, AlertCircle } from '@lucide/vue'
 
 const { t } = useI18n()
+const auth = useAuthStore()
 const workspaceStore = useWorkspaceStore()
 
 const workspaceName = ref(workspaceStore.activeWorkspace?.name || '')
@@ -26,14 +29,21 @@ watch(
 
 async function handleSaveWorkspaceName() {
   if (!workspaceName.value.trim()) return
-  if (!workspaceStore.activeWorkspaceId) return
+
+  const workspaceId = workspaceStore.activeWorkspaceId
+  const token = auth.accessToken
+  if (!workspaceId || !token) {
+    saveError.value = 'Failed to update workspace name.'
+    return
+  }
 
   isSaving.value = true
   saveSuccess.value = false
   saveError.value = null
 
   try {
-    await workspaceStore.renameWorkspace(workspaceStore.activeWorkspaceId, workspaceName.value.trim())
+    const updated = await renameWorkspace(workspaceName.value.trim(), token, workspaceId)
+    workspaceStore.setWorkspaceName(updated.name)
     saveSuccess.value = true
     setTimeout(() => {
       saveSuccess.value = false

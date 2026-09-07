@@ -7,7 +7,7 @@ import {
   PROVIDER_ACTIONS,
   type ProviderCatalogItem,
 } from '@shared/lib/provider-presentation'
-import { Radio } from 'lucide-vue-next'
+import { Radio } from '@lucide/vue'
 
 const { t } = useI18n()
 const publishingStore = usePublishingStore()
@@ -77,7 +77,7 @@ async function handleConnectProvider(provider: ProviderCatalogItem) {
                 {{ channel.name }}
               </p>
               <p class="text-xs text-text-secondary capitalize truncate">
-                {{ channel.provider }} • {{ channel.accountType || 'Personal profile' }}
+                {{ channel.provider }} • Personal profile
               </p>
             </div>
           </div>

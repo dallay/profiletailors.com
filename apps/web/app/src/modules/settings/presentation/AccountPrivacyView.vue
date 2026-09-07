@@ -1,15 +1,35 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import { closeAccount } from '@modules/auth/infrastructure/auth-api'
+import { usePrivacyStore } from '@modules/settings/infrastructure/privacy.store'
+import type { CorrectionData, DsarRequestType } from '@modules/settings/infrastructure/privacy.store'
 import DsarRequestForm from './components/DsarRequestForm.vue'
 import DsarRequestList from './components/DsarRequestList.vue'
-import { AlertTriangle, X } from 'lucide-vue-next'
+import { AlertTriangle, X } from '@lucide/vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
+const privacy = usePrivacyStore()
+
+async function onDsarSubmit(payload: {
+  type: DsarRequestType
+  notes?: string
+  correctionData?: CorrectionData
+}): Promise<void> {
+  try {
+    await privacy.submitRequest(payload)
+  } catch {
+    // Error is handled by the store.
+  }
+}
+
+onMounted(() => {
+  privacy.fetchRequests().catch(() => undefined)
+})
 
 // Delete account modal state
 const isDeleteModalOpen = ref(false)
@@ -30,29 +50,27 @@ function closeDeleteModal() {
 async function handleDeleteAccount() {
   if (deleteConfirmationText.value.trim() !== 'DELETE') return
 
+  const token = auth.accessToken
+  if (!token) {
+    deleteError.value = t('settings.accountClosure.error')
+    return
+  }
+
   isDeleting.value = true
   deleteError.value = null
 
   try {
-    const res = await auth.apiFetch('/api/v1/account/close', {
-      method: 'POST',
-      body: JSON.stringify({
-        confirmation: 'DELETE',
-      }),
-    })
-
-    if (!res.ok) {
-      const problem = await res.json().catch(() => null)
-      deleteError.value = problem?.detail || t('settings.accountClosure.error')
-      isDeleting.value = false
-      return
-    }
-
+    await closeAccount(token)
     // On success: clear session and redirect to login
     await auth.logout()
     router.push('/login')
-  } catch {
-    deleteError.value = t('settings.accountClosure.error')
+  } catch (err) {
+    const apiError = err as { status?: number; detail?: string }
+    if (apiError.status === 429) {
+      deleteError.value = t('settings.accountClosure.rateLimited')
+    } else {
+      deleteError.value = apiError.detail ?? t('settings.accountClosure.error')
+    }
     isDeleting.value = false
   }
 }
@@ -72,12 +90,15 @@ async function handleDeleteAccount() {
 
     <!-- YOUR DATA (DSAR Form) -->
     <div class="rounded-xl border border-border-subtle bg-bg-surface p-6 space-y-6 shadow-sm">
-      <DsarRequestForm />
+      <DsarRequestForm @submit="onDsarSubmit" />
     </div>
 
     <!-- MY REQUESTS (DSAR Request List) -->
     <div class="rounded-xl border border-border-subtle bg-bg-surface p-6 space-y-6 shadow-sm">
-      <DsarRequestList />
+      <DsarRequestList
+        :requests="privacy.requests"
+        :loading="privacy.loading"
+      />
     </div>
 
     <!-- DANGER ZONE (Account Deletion) -->
