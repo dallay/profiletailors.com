@@ -7,7 +7,10 @@ import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.contracts.AdminInvitationQuery
+import com.profiletailors.smp.platformadmin.application.handler.CreateInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.ResendInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
@@ -27,8 +30,11 @@ class AdminInvitationControllerTest {
     private val entryId = "entry-abc-123"
 
     private val invitationQuery = mockk<AdminInvitationQuery>()
-    private val resendHandler = mockk<ResendWaitlistInvitationHandler>(relaxed = true)
-    private val revokeHandler = mockk<RevokeWaitlistInvitationHandler>(relaxed = true)
+    private val createInvitationHandler = mockk<CreateInvitationHandler>(relaxed = true)
+    private val revokeInvitationHandler = mockk<RevokeInvitationHandler>(relaxed = true)
+    private val resendInvitationHandler = mockk<ResendInvitationHandler>(relaxed = true)
+    private val resendWaitlistHandler = mockk<ResendWaitlistInvitationHandler>(relaxed = true)
+    private val revokeWaitlistHandler = mockk<RevokeWaitlistInvitationHandler>(relaxed = true)
     private val operatorAccessResolver = mockk<OperatorAccessResolver>()
 
     @Test
@@ -84,7 +90,7 @@ class AdminInvitationControllerTest {
     @Test
     fun `resend returns 200 with resend handler result`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
-        coEvery { resendHandler.handle(any()) } returns invitationSummary()
+        coEvery { resendWaitlistHandler.handle(any()) } returns invitationSummary()
 
         webClient()
             .post()
@@ -95,7 +101,7 @@ class AdminInvitationControllerTest {
             .jsonPath("$.id").isEqualTo(invitationId.toString())
             .jsonPath("$.status").isEqualTo("ACTIVE")
 
-        coVerify { resendHandler.handle(match { it.invitationId == invitationId }) }
+        coVerify { resendWaitlistHandler.handle(match { it.invitationId == invitationId }) }
     }
 
     @Test
@@ -110,15 +116,18 @@ class AdminInvitationControllerTest {
             .expectBody()
             .jsonPath("$.status").isEqualTo("revoked")
 
-        coVerify { revokeHandler.handle(match { it.invitationId == invitationId }) }
+        coVerify { revokeWaitlistHandler.handle(match { it.invitationId == invitationId }) }
     }
 
     private fun webClient(principal: PrincipalContext? = operatorPrincipal()): WebTestClient = WebTestClient
         .bindToController(
             AdminInvitationController(
                 invitationQuery = invitationQuery,
-                resendHandler = resendHandler,
-                revokeHandler = revokeHandler,
+                createInvitationHandler = createInvitationHandler,
+                revokeInvitationHandler = revokeInvitationHandler,
+                resendInvitationHandler = resendInvitationHandler,
+                resendWaitlistHandler = resendWaitlistHandler,
+                revokeWaitlistHandler = revokeWaitlistHandler,
                 operatorAccessResolver = operatorAccessResolver,
                 requestContextStore = FakeRequestContextStore(principal),
             ),

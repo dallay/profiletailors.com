@@ -9,6 +9,7 @@ import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
@@ -37,6 +38,7 @@ class InvitationActivationCoordinatorTest {
     private val principalIdentityLookup = mockk<PrincipalIdentityLookup>()
     private val workspaceProvisioningService = mockk<WorkspaceProvisioningService>()
     private val membershipProvisioner = mockk<WorkspaceMembershipProvisioner>()
+    private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
     private val transactionRunner = NoOpTransactionRunner()
     private val now = Instant.parse("2026-08-15T12:00:00Z")
     private val clock = Clock.fixed(now, ZoneOffset.UTC)
@@ -46,6 +48,7 @@ class InvitationActivationCoordinatorTest {
         tokenHasher = tokenHasher,
         principalIdentityLookup = principalIdentityLookup,
         workspaceProvisioningService = workspaceProvisioningService,
+        waitlistEntryAdmin = waitlistEntryAdmin,
         membershipProvisioner = membershipProvisioner,
         transactionRunner = transactionRunner,
         clock = clock,
@@ -155,6 +158,7 @@ class InvitationActivationCoordinatorTest {
             tokenHasher = plainHasher,
             principalIdentityLookup = principalIdentityLookup,
             workspaceProvisioningService = workspaceProvisioningService,
+            waitlistEntryAdmin = waitlistEntryAdmin,
             membershipProvisioner = membershipProvisioner,
             transactionRunner = transactionRunner,
             clock = clock,

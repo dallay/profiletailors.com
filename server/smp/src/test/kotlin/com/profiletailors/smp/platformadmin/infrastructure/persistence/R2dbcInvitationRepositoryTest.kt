@@ -119,6 +119,24 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
     }
 
     @Test
+    fun `hasActiveInvitationFor matches only the same workspace and email`() = runTest {
+        seedReferenceData()
+        seedActiveInvitation(UUID.randomUUID(), "candidate-key-active-1", version = 0)
+
+        assertTrue(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1"))
+        assertFalse(repository.hasActiveInvitationFor("other@example.com", "workspace-1"))
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-2"))
+    }
+
+    @Test
+    fun `hasActiveInvitationFor ignores non-active invitations`() = runTest {
+        seedReferenceData()
+        seedInvitation(UUID.randomUUID(), "candidate-key-revoked-1", InvitationStatus.REVOKED, 1)
+
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1"))
+    }
+
+    @Test
     fun `findByCandidateKeyForUpdate returns the invitation carrying only opaque token material`() = runTest {
         seedReferenceData()
         val invitationId = UUID.randomUUID()

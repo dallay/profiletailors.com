@@ -119,6 +119,7 @@ class PlatformAdminBddSteps {
     @Then("the invitation response should not contain the token")
     fun invitationResponseShouldNotContainToken() {
         assertTrue(!lastResponseJson().has("token"))
+        assertTrue(!lastResponseJson().has("rawToken"))
     }
 
     @When("an unauthenticated principal accepts the invitation")
@@ -293,6 +294,117 @@ class PlatformAdminBddSteps {
             .exchange()
             .expectBody(ByteArray::class.java)
             .returnResult()
+    }
+
+    @Given("a consumed direct invitation exists for {string}")
+    fun consumedDirectInvitationExists(email: String) = runBlocking {
+        lastInvitationId = null
+        seedInvitation(
+            email = email,
+            source = "DIRECT",
+            sourceReferenceId = null,
+            workspaceId = "invitation-workspace",
+        )
+        val invitationId = latestInvitationId(email)
+        databaseClient.sql(
+            """
+            UPDATE invitations
+            SET status = 'ACCEPTED', accepted_at = NOW(), accepted_principal_id = 'principal-1',
+                version = version + 1
+            WHERE id = :id
+            """.trimIndent(),
+        )
+            .bind("id", UUID.fromString(invitationId))
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        lastInvitationId = invitationId
+    }
+
+    @When("the platform operator creates a direct invitation for {string}")
+    fun operatorCreatesDirectInvitation(email: String) = runBlocking {
+        seedInvitationWorkspace("invitation-workspace")
+        lastResponse = webTestClient.post()
+            .uri("/api/admin/invitations/direct")
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(directInvitationPayload(email))
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+
+        lastResponse?.responseBody?.let { body ->
+            runCatching { json.readTree(body) }
+                .getOrNull()
+                ?.get("invitationId")
+                ?.asText()
+                ?.let { lastInvitationId = it }
+        }
+    }
+
+    @When("an unauthenticated principal creates a direct invitation for {string}")
+    fun unauthenticatedCreatesDirectInvitation(email: String) = runBlocking {
+        seedInvitationWorkspace("invitation-workspace")
+        lastResponse = webTestClient.post()
+            .uri("/api/admin/invitations/direct")
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(directInvitationPayload(email))
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the platform operator revokes the direct invitation")
+    fun operatorRevokesDirectInvitation() = runBlocking {
+        val invitationId = requireNotNull(lastInvitationId)
+        val version = invitationVersion(invitationId)
+        lastResponse = webTestClient.post()
+            .uri("/api/admin/invitations/$invitationId/direct-revoke")
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":$version}""")
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the platform operator revokes a missing direct invitation")
+    fun operatorRevokesMissingDirectInvitation() {
+        val invitationId = UUID.randomUUID()
+        lastResponse = webTestClient.post()
+            .uri("/api/admin/invitations/$invitationId/direct-revoke")
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":0}""")
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the platform operator resends the direct invitation")
+    fun operatorResendsDirectInvitation() {
+        val invitationId = requireNotNull(lastInvitationId)
+        lastResponse = webTestClient.post()
+            .uri("/api/admin/invitations/$invitationId/direct-resend")
+            .header(HttpHeaders.ACCEPT, API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @Then("the direct invitation response should contain an id")
+    fun directInvitationResponseShouldContainId() {
+        assertNotNull(lastResponseJson().path("invitationId").asText(null))
+    }
+
+    @Then("the direct invitation status should be {string}")
+    fun directInvitationStatusShouldBe(expected: String) = runBlocking {
+        assertEquals(expected, invitationStatus(requireNotNull(lastInvitationId)))
     }
 
     // ── Assertions ───────────────────────────────────────────────────────────
@@ -583,6 +695,14 @@ class PlatformAdminBddSteps {
         invitationToken = token
     }
 
+    private fun directInvitationPayload(email: String): String = json.writeValueAsString(
+        mapOf(
+            "email" to email.trim().lowercase(),
+            "target" to "EXISTING_WORKSPACE",
+            "workspaceId" to "invitation-workspace",
+        ),
+    )
+
     private suspend fun seedInvitationWorkspace(workspaceId: String) {
         databaseClient.sql(
             """
@@ -617,6 +737,14 @@ class PlatformAdminBddSteps {
     )
         .bind("email", email.trim().lowercase())
         .map { row, _ -> requireNotNull(row.get("id", UUID::class.java)).toString() }
+        .one()
+        .awaitSingle()
+
+    private suspend fun invitationVersion(invitationId: String): Long = databaseClient.sql(
+        "SELECT version FROM invitations WHERE id = :id",
+    )
+        .bind("id", UUID.fromString(invitationId))
+        .map { row, _ -> requireNotNull(row.get("version", Long::class.java)) }
         .one()
         .awaitSingle()
 
