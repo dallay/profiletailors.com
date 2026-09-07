@@ -37,7 +37,9 @@ describe('WorkspaceGeneralView', () => {
     expect(wrapper.find('input[id="workspace-name"]').exists()).toBe(true)
     expect(
       (wrapper.find('input[id="workspace-name"]').element as HTMLInputElement).value,
-    ).toBe('My Workspace')
+    ).toBe(
+      'My Workspace',
+    )
   })
 
   it('copies workspace ID to clipboard when copy button is clicked', async () => {
