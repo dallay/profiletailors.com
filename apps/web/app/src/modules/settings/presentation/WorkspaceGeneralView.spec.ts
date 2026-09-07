@@ -35,9 +35,7 @@ describe('WorkspaceGeneralView', () => {
     const wrapper = mount(WorkspaceGeneralView, { global: { stubs: { teleport: true } } })
     expect(wrapper.find('h1').text()).toBeTruthy()
     expect(wrapper.find('input[id="workspace-name"]').exists()).toBe(true)
-    expect(
-      (wrapper.find('input[id="workspace-name"]').element as HTMLInputElement).value,
-    ).toBe(
+    expect((wrapper.find('input[id="workspace-name"]').element as HTMLInputElement).value).toBe(
       'My Workspace',
     )
   })
