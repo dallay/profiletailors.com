@@ -116,6 +116,34 @@ export type MessageSchema = {
     confirmAssign: string
     confirmRevoke: string
   }
+  directInvitations: {
+    title: string
+    subtitle: string
+    form: {
+      title: string
+      emailPlaceholder: string
+      target: string
+      targetExisting: string
+      targetNew: string
+      workspaceId: string
+      workspaceIdPlaceholder: string
+      submit: string
+      emailInvalid: string
+    }
+    success: {
+      title: string
+      id: string
+      expiresAt: string
+      revoke: string
+      readOnlyNotice: string
+      createdAnnouncement: string
+    }
+    revokeDialog: {
+      title: string
+      message: string
+      confirm: string
+    }
+  }
   errors: {
     PLATFORM_ACCESS_DENIED: string
     WAITLIST_ENTRY_NOT_FOUND: string
@@ -124,6 +152,8 @@ export type MessageSchema = {
     INVITATION_NOT_FOUND: string
     INVITATION_ALREADY_ACTIVE: string
     INVITATION_RATE_LIMIT_EXCEEDED: string
+    INVITATION_VERSION_CONFLICT: string
+    OPTIMISTIC_LOCK_CONFLICT: string
     INTERNAL_ERROR: string
   }
 }
