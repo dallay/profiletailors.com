@@ -3,9 +3,7 @@
   "request": {
     "method": "POST",
     "urlPath": "/rest/posts",
-    "bodyPatterns": [
-      { "matchesJsonPath": "$[?(@.commentary =~ /.*LINKEDIN_RATE_LIMIT_TEST.*/)]" }
-    ]
+    "bodyPatterns": [{ "matchesJsonPath": "$[?(@.commentary =~ /.*LINKEDIN_RATE_LIMIT_TEST.*/)]" }]
   },
   "response": {
     "status": 429,
