@@ -1,13 +1,16 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
+import com.profiletailors.smp.identity.application.ChangePasswordValidationException
 import com.profiletailors.smp.identity.application.CloseAccountConfirmationException
 import com.profiletailors.smp.identity.application.CloseAccountRateLimitException
 import com.profiletailors.smp.identity.application.ExpiredPasswordResetTokenException
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
+import com.profiletailors.smp.identity.application.InvalidCurrentPasswordException
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidPasswordResetTokenException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
 import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
+import com.profiletailors.smp.identity.application.LocalPasswordCredentialNotFoundException
 import com.profiletailors.smp.identity.application.PasswordRecoveryDisabledException
 import com.profiletailors.smp.identity.application.PasswordRecoveryPasswordException
 import com.profiletailors.smp.identity.application.PasswordResetRateLimitExceededException
@@ -175,6 +178,11 @@ class IdentityProblemDetailsHandler {
             title = "Invalid account closure confirmation"
         }
 
+    /**
+     * Creates a problem response when account-closure requests exceed the rate limit.
+     *
+     * @return A rate-limit problem detail with HTTP status 429 and the account-closure error code.
+     */
     @ExceptionHandler(CloseAccountRateLimitException::class)
     @Suppress("UNUSED_PARAMETER")
     fun handle(exception: CloseAccountRateLimitException): ProblemDetail = ProblemDetail.forStatusAndDetail(
@@ -184,6 +192,49 @@ class IdentityProblemDetailsHandler {
         title = "Account closure rate limit exceeded"
         type = URI("https://api.profiletailors.com/errors/account-closure-rate-limit")
         setProperty("code", "ACCOUNT_CLOSURE_RATE_LIMIT")
+    }
+
+    /**
+     * Creates a bad-request response for an incorrect current password.
+     *
+     * @return A problem detail identifying the invalid current password error.
+     */
+    @ExceptionHandler(InvalidCurrentPasswordException::class)
+    fun handle(exception: InvalidCurrentPasswordException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.BAD_REQUEST,
+        exception.message ?: "Incorrect current password.",
+    ).apply {
+        title = "Invalid current password"
+        setProperty("code", "INVALID_CURRENT_PASSWORD")
+    }
+
+    /**
+     * Creates a bad-request problem detail for an invalid new password.
+     *
+     * @param exception The exception describing why the new password is invalid.
+     * @return A problem detail with the validation message and `INVALID_NEW_PASSWORD` code.
+     */
+    @ExceptionHandler(ChangePasswordValidationException::class)
+    fun handle(exception: ChangePasswordValidationException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.BAD_REQUEST,
+        exception.message ?: "Password does not meet requirements.",
+    ).apply {
+        title = "Invalid new password"
+        setProperty("code", "INVALID_NEW_PASSWORD")
+    }
+
+    /**
+     * Handles requests for accounts without a local password credential.
+     *
+     * @return A bad-request problem detail with the `NO_LOCAL_PASSWORD_CREDENTIAL` code.
+     */
+    @ExceptionHandler(LocalPasswordCredentialNotFoundException::class)
+    fun handle(exception: LocalPasswordCredentialNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.BAD_REQUEST,
+        exception.message ?: "Local password credential not found.",
+    ).apply {
+        title = "No local password credential"
+        setProperty("code", "NO_LOCAL_PASSWORD_CREDENTIAL")
     }
 
     companion object {

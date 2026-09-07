@@ -1,0 +1,58 @@
+databaseChangeLog:
+  - changeSet:
+      id: identity-007-create-user-preferences
+      author: opencode
+      changes:
+        - createTable:
+            tableName: user_preferences
+            columns:
+              - column:
+                  name: principal_id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    foreignKeyName: fk_user_preferences_principal
+                    references: principals(id)
+              - column:
+                  name: locale
+                  type: varchar(16)
+                  defaultValue: en
+                  constraints:
+                    nullable: false
+              - column:
+                  name: timezone
+                  type: varchar(64)
+                  defaultValue: UTC
+                  constraints:
+                    nullable: false
+              - column:
+                  name: time_format
+                  type: varchar(16)
+                  defaultValue: 24h
+                  constraints:
+                    nullable: false
+              - column:
+                  name: date_format
+                  type: varchar(32)
+                  defaultValue: DD/MM/YYYY
+                  constraints:
+                    nullable: false
+              - column:
+                  name: week_starts_on
+                  type: varchar(16)
+                  defaultValue: Monday
+                  constraints:
+                    nullable: false
+              - column:
+                  name: theme
+                  type: varchar(16)
+                  defaultValue: dark
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
