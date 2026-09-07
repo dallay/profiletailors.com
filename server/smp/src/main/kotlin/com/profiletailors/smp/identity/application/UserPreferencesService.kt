@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.application
 
+import com.profiletailors.common.domain.Service
 import com.profiletailors.smp.identity.domain.UserPreferences
-import org.springframework.stereotype.Service
 
 data class UpdateUserPreferencesCommand(
     val locale: String,

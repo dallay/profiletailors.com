@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.application
 
+import com.profiletailors.common.domain.Service
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
-import org.springframework.stereotype.Service
 
 class InvalidCurrentPasswordException : RuntimeException("Incorrect current password.")
 class ChangePasswordValidationException(message: String) : RuntimeException(message)
