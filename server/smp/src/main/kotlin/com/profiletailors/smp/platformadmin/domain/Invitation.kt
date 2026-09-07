@@ -123,4 +123,22 @@ data class Invitation(
         }
         return copy(status = InvitationStatus.REVOKED, version = version + 1)
     }
+
+    fun revoke(expectedVersion: Long): Invitation {
+        if (version != expectedVersion) {
+            throw InvitationVersionConflictException(id.value.toString())
+        }
+        return revoke()
+    }
+
+    fun resend(newTokenHash: String, newExpiresAt: Instant): Invitation {
+        if (status != InvitationStatus.ACTIVE) {
+            throw InvitationNotResendableException(id.value.toString())
+        }
+        return copy(
+            tokenHash = newTokenHash,
+            expiresAt = newExpiresAt,
+            version = version + 1,
+        )
+    }
 }

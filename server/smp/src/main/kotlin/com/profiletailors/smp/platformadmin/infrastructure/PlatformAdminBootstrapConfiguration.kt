@@ -9,14 +9,18 @@ import com.profiletailors.smp.platformadmin.application.InvitationActivationCoor
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
+import com.profiletailors.smp.platformadmin.application.handler.CreateInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
+import com.profiletailors.smp.platformadmin.application.handler.ResendInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
 import com.profiletailors.smp.tenancy.application.R2dbcWorkspaceMembershipProvisioner
@@ -166,5 +170,56 @@ class PlatformAdminBootstrapConfiguration {
         roleAssignmentRepository = roleAssignmentRepository,
         auditPublisher = auditPublisher,
         clock = clock,
+    )
+
+    @Bean
+    fun createInvitationHandler(
+        invitationRepository: InvitationRepository,
+        auditPublisher: AdministrativeAuditPublisher,
+        eventPublisher: EventPublisher<DomainEvent>,
+        clock: Clock,
+        tokenHasher: TokenHasher,
+        telemetry: InvitationTelemetry,
+        @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
+    ): CreateInvitationHandler = CreateInvitationHandler(
+        invitationRepository = invitationRepository,
+        auditPublisher = auditPublisher,
+        eventPublisher = eventPublisher,
+        clock = clock,
+        invitationTtl = Duration.ofDays(ttlDays),
+        tokenHasher = tokenHasher,
+        telemetry = telemetry,
+    )
+
+    @Bean
+    fun revokeInvitationHandler(
+        invitationRepository: InvitationRepository,
+        auditPublisher: AdministrativeAuditPublisher,
+        clock: Clock,
+        telemetry: InvitationTelemetry,
+    ): RevokeInvitationHandler = RevokeInvitationHandler(
+        invitationRepository = invitationRepository,
+        auditPublisher = auditPublisher,
+        clock = clock,
+        telemetry = telemetry,
+    )
+
+    @Bean
+    fun resendInvitationHandler(
+        invitationRepository: InvitationRepository,
+        auditPublisher: AdministrativeAuditPublisher,
+        eventPublisher: EventPublisher<DomainEvent>,
+        clock: Clock,
+        tokenHasher: TokenHasher,
+        acceptUrlTemplate: AcceptUrlTemplate,
+        @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
+    ): ResendInvitationHandler = ResendInvitationHandler(
+        invitationRepository = invitationRepository,
+        auditPublisher = auditPublisher,
+        eventPublisher = eventPublisher,
+        clock = clock,
+        invitationTtl = Duration.ofDays(ttlDays),
+        tokenHasher = tokenHasher,
+        acceptUrlTemplateFn = acceptUrlTemplate,
     )
 }

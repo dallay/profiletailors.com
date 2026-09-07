@@ -64,6 +64,14 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
         }
     }
 
+    override suspend fun hasActiveInvitationFor(email: String, workspaceId: String): Boolean =
+        databaseClient.sql(HAS_ACTIVE_INVITATION_FOR)
+            .bind("email", email)
+            .bind("workspaceId", workspaceId)
+            .map { _, _ -> true }
+            .one()
+            .awaitSingleOrNull() ?: false
+
     override suspend fun updateIfVersionMatches(invitation: Invitation): Boolean {
         if (invitation.version == 0L) return false
         val expectedVersion = invitation.version - 1
@@ -129,6 +137,14 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
                 :acceptedAt, :acceptedPrincipalId, :version
             )
         """
+        private const val HAS_ACTIVE_INVITATION_FOR = """
+            SELECT 1 FROM invitations
+            WHERE workspace_id = :workspaceId
+              AND invited_email_normalized = :email
+              AND status = 'ACTIVE'
+            LIMIT 1
+        """
+
         private const val UPDATE_IF_VERSION_MATCHES = """
             UPDATE invitations
             SET status = :status,

@@ -1,11 +1,13 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
+import com.profiletailors.smp.platformadmin.application.OptimisticLockException
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotFoundException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotResendableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableException
 import com.profiletailors.smp.platformadmin.domain.InvitationRateLimitExceededException
+import com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.UserNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyCancelledException
@@ -64,6 +66,14 @@ class AdminProblemDetailsHandler {
     @ExceptionHandler(InvitationRateLimitExceededException::class)
     fun handle(ex: InvitationRateLimitExceededException): ProblemDetail =
         problem(HttpStatus.TOO_MANY_REQUESTS, "INVITATION_RATE_LIMIT_EXCEEDED", ex.message)
+
+    @ExceptionHandler(InvitationVersionConflictException::class)
+    fun handle(ex: InvitationVersionConflictException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "INVITATION_VERSION_CONFLICT", ex.message)
+
+    @ExceptionHandler(OptimisticLockException::class)
+    fun handle(ex: OptimisticLockException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "OPTIMISTIC_LOCK_CONFLICT", ex.message)
 
     @ExceptionHandler(UserNotFoundException::class)
     fun handle(ex: UserNotFoundException): ProblemDetail = problem(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", ex.message)
