@@ -12,18 +12,29 @@ import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyCancelled
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotInvitableException
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.context.request.WebRequest
 import java.net.URI
 
 @RestControllerAdvice
 class AdminProblemDetailsHandler {
 
+    private val logger = LoggerFactory.getLogger(AdminProblemDetailsHandler::class.java)
+
     @ExceptionHandler(PlatformAccessDeniedException::class)
-    fun handle(ex: PlatformAccessDeniedException): ProblemDetail =
-        problem(HttpStatus.FORBIDDEN, "PLATFORM_ACCESS_DENIED", ex.message)
+    fun handle(ex: PlatformAccessDeniedException, request: WebRequest? = null): ProblemDetail {
+        logger.warn(
+            "admin.access.denied path={} permission={} correlationId={}",
+            request?.getDescription(false) ?: "unknown",
+            ex.permission.key,
+            requestCorrelationId(request),
+        )
+        return problem(HttpStatus.FORBIDDEN, "PLATFORM_ACCESS_DENIED", ex.message)
+    }
 
     @ExceptionHandler(WaitlistEntryNotFoundException::class)
     fun handle(ex: WaitlistEntryNotFoundException): ProblemDetail =
@@ -71,6 +82,12 @@ class AdminProblemDetailsHandler {
     @ExceptionHandler(IllegalArgumentException::class)
     fun handle(ex: IllegalArgumentException): ProblemDetail =
         problem(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.message)
+
+    private fun requestCorrelationId(request: WebRequest?): String? = request
+        ?.getHeader("X-Correlation-Id")
+        ?: request?.getHeader("X-Request-Id")
+        ?: request?.getHeader("X-Trace-Id")
+        ?: request?.getHeader("Correlation-Id")
 
     private fun problem(status: HttpStatus, code: String, detail: String?): ProblemDetail =
         ProblemDetail.forStatusAndDetail(status, detail ?: status.reasonPhrase).apply {

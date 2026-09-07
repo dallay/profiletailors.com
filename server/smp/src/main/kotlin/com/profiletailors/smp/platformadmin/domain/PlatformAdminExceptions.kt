@@ -1,6 +1,6 @@
 package com.profiletailors.smp.platformadmin.domain
 
-class PlatformAccessDeniedException(permission: PlatformPermission) :
+class PlatformAccessDeniedException(val permission: PlatformPermission) :
     RuntimeException("Platform permission required: ${permission.key}")
 
 class PlatformRoleRequiredException : RuntimeException("An active platform role assignment is required.")
