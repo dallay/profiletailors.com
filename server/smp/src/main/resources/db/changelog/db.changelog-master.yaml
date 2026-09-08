@@ -12,6 +12,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/identity/006-create-password-reset-notification-failures.yaml
   - include:
+      file: db/changelog/identity/007-create-user-preferences.yaml
+  - include:
       file: db/changelog/credentials/001-create-service-account-credentials.yaml
   - include:
       file: db/changelog/credentials/002-create-api-key-credentials.yaml

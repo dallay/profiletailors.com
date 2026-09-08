@@ -139,6 +139,11 @@ describe('AnalyticsView accessibility', () => {
           CardContent: passthrough,
           CardHeader: passthrough,
           CardTitle: passthrough,
+          Dialog: passthrough,
+          DialogContent: passthrough,
+          DialogDescription: passthrough,
+          DialogHeader: passthrough,
+          DialogTitle: passthrough,
           SocialProviderIcon: passthrough,
         },
       },
@@ -358,6 +363,56 @@ describe('AnalyticsView accessibility', () => {
 
     expect(analyticsStore.fetchPostAnalytics).toHaveBeenNthCalledWith(1, 0)
     expect(analyticsStore.fetchPostAnalytics).toHaveBeenNthCalledWith(2, 2)
+  })
+
+  it('opens detailed post metrics with CTR and a period comparison', async () => {
+    analyticsStore.postAnalytics = {
+      posts: [
+        {
+          postId: 'post-1',
+          title: 'Launch notes',
+          bodyText: null,
+          provider: 'linkedin',
+          publishedAt: '2026-08-01T09:00:00Z',
+          impressions: 1000,
+          clicks: 50,
+          engagements: 80,
+          reactions: 60,
+          comments: 12,
+          shares: 8,
+          engagementRate: 8,
+        },
+        {
+          postId: 'post-2',
+          title: 'Weekly recap',
+          bodyText: null,
+          provider: 'linkedin',
+          publishedAt: '2026-08-02T09:00:00Z',
+          impressions: 500,
+          clicks: 10,
+          engagements: 20,
+          reactions: 15,
+          comments: 3,
+          shares: 2,
+          engagementRate: 4,
+        },
+      ],
+      total: 2,
+      page: 0,
+      size: 20,
+    }
+
+    const wrapper = mountView()
+
+    const postButton = wrapper.findAll('button').find((button) => button.text() === 'Launch notes')
+    await postButton?.trigger('click')
+
+    expect(wrapper.text()).toContain('analytics.clickThroughRate')
+    expect(wrapper.text()).toContain('5.00%')
+    expect(wrapper.text()).toContain('analytics.reactions')
+    expect(wrapper.text()).toContain('analytics.comments')
+    expect(wrapper.text()).toContain('analytics.shares')
+    expect(wrapper.text()).toContain('analytics.aboveAverage')
   })
 
   it('disables pagination controls at the first and last pages', async () => {

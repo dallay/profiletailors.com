@@ -17,15 +17,7 @@
     "source=profiletailors-pnpm-store,target=/home/vscode/.local/share/pnpm/store,type=volume",
     "source=profiletailors-gradle-cache,target=/home/vscode/.gradle,type=volume"
   ],
-  "forwardPorts": [
-    4321,
-    5173,
-    7638,
-    5432,
-    8089,
-    8025,
-    1025
-  ],
+  "forwardPorts": [4321, 5173, 7638, 5432, 8089, 8025, 1025],
   "portsAttributes": {
     "4321": { "label": "Marketing (Astro)", "onAutoForward": "notify" },
     "5173": { "label": "App (Vite + Vue)", "onAutoForward": "notify" },
