@@ -3,6 +3,7 @@ package com.profiletailors.smp.platformadmin.infrastructure.persistence
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.smp.identity.application.InvitationRegistrationGateway
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
@@ -15,7 +16,10 @@ import com.profiletailors.smp.platformadmin.application.InvitationActivationCoor
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
 import com.profiletailors.smp.platformadmin.domain.Invitation
+import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
@@ -43,6 +47,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
@@ -113,6 +118,58 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         seedReferenceData()
         val loaded = repository.findById(InvitationId(UUID.randomUUID()))
         assertThat(loaded).isNull()
+    }
+
+    @Test
+    fun `hasActiveInvitationFor matches only the same workspace and email`() = runTest {
+        seedReferenceData()
+        seedActiveInvitation(UUID.randomUUID(), "candidate-key-active-1", version = 0)
+        val asOf = Instant.now()
+
+        assertTrue(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1", asOf))
+        assertFalse(repository.hasActiveInvitationFor("other@example.com", "workspace-1", asOf))
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-2", asOf))
+    }
+
+    @Test
+    fun `hasActiveInvitationFor ignores non-active invitations`() = runTest {
+        seedReferenceData()
+        seedInvitation(UUID.randomUUID(), "candidate-key-revoked-1", InvitationStatus.REVOKED, 1)
+
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1", Instant.now()))
+    }
+
+    @Test
+    fun `hasActiveInvitationFor ignores active invitations past their expiration`() = runTest {
+        seedReferenceData()
+        seedExpiredActiveInvitation(UUID.randomUUID(), "candidate-key-expired-1")
+
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1", Instant.now()))
+    }
+
+    @Test
+    fun `save maps a duplicate active invitation to InvitationAlreadyActiveException`() = runTest {
+        seedReferenceData()
+        val now = Instant.now()
+        val invitation = Invitation(
+            id = InvitationId(UUID.randomUUID()),
+            source = InvitationSource.DIRECT,
+            sourceReferenceId = null,
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "workspace-1",
+            invitedEmailNormalized = "invitee@example.com",
+            tokenHash = "hash-1",
+            status = InvitationStatus.ACTIVE,
+            issuedBy = "principal-1",
+            createdAt = now,
+            expiresAt = now.plusSeconds(604_800),
+        )
+
+        repository.save(invitation, "candidate-key-dup-1")
+
+        assertThrows<InvitationAlreadyActiveException> {
+            repository.save(invitation.copy(id = InvitationId(UUID.randomUUID())), "candidate-key-dup-2")
+        }
     }
 
     @Test
@@ -341,6 +398,27 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         return newInvitation(id = invitationId, version = version)
     }
 
+    private suspend fun seedExpiredActiveInvitation(invitationId: UUID, candidateKey: String) {
+        databaseClient.sql(
+            """
+            INSERT INTO invitations (
+                id, source, source_reference_id, target, workspace_id, invited_email_normalized,
+                candidate_key, token_hash, status, issued_by, created_at, expires_at,
+                accepted_at, accepted_principal_id, version
+            ) VALUES (
+                :id, 'DIRECT', NULL, 'EXISTING_WORKSPACE', 'workspace-1', 'invitee@example.com',
+                :candidateKey, :candidateKey, 'ACTIVE', 'principal-1', NOW() - INTERVAL '8 days',
+                NOW() - INTERVAL '1 day', NULL, NULL, 0
+            )
+            """.trimIndent(),
+        )
+            .bind("id", invitationId)
+            .bind("candidateKey", candidateKey)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
     private suspend fun seedInvitation(
         invitationId: UUID,
         candidateKey: String,
@@ -450,6 +528,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             tokenHasher = tokenHasher,
             principalIdentityLookup = firstPrincipalLookup,
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
+            waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = firstBlockingProvisioner,
             transactionRunner = object : AtomicTransactionRunner {
                 override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
@@ -464,6 +543,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             tokenHasher = tokenHasher,
             principalIdentityLookup = firstPrincipalLookup,
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
+            waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = secondMembershipProvisioner,
             transactionRunner = object : AtomicTransactionRunner {
                 override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
@@ -542,4 +622,12 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             PostgresTestContainerSupport.registerProperties(registry, postgres)
         }
     }
+}
+
+private object NoOpWaitlistEntryAdmin : WaitlistEntryAdmin {
+    override suspend fun findById(id: String): WaitlistEntry? = null
+
+    override suspend fun save(entry: WaitlistEntry): WaitlistEntry = entry
+
+    override suspend fun findInvitationContext(id: String): WaitlistInvitationContext? = null
 }

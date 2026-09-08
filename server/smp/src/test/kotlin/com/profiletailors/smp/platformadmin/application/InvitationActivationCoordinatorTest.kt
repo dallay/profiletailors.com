@@ -3,12 +3,23 @@ package com.profiletailors.smp.platformadmin.application
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
+import com.profiletailors.leadcapture.common.CaptureLocale
+import com.profiletailors.leadcapture.common.CaptureSource
+import com.profiletailors.leadcapture.common.EmailAddress
+import com.profiletailors.leadcapture.common.LeadMetadata
+import com.profiletailors.leadcapture.common.NormalizedEmail
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistConsent
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
+import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
@@ -37,6 +48,7 @@ class InvitationActivationCoordinatorTest {
     private val principalIdentityLookup = mockk<PrincipalIdentityLookup>()
     private val workspaceProvisioningService = mockk<WorkspaceProvisioningService>()
     private val membershipProvisioner = mockk<WorkspaceMembershipProvisioner>()
+    private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
     private val transactionRunner = NoOpTransactionRunner()
     private val now = Instant.parse("2026-08-15T12:00:00Z")
     private val clock = Clock.fixed(now, ZoneOffset.UTC)
@@ -46,6 +58,7 @@ class InvitationActivationCoordinatorTest {
         tokenHasher = tokenHasher,
         principalIdentityLookup = principalIdentityLookup,
         workspaceProvisioningService = workspaceProvisioningService,
+        waitlistEntryAdmin = waitlistEntryAdmin,
         membershipProvisioner = membershipProvisioner,
         transactionRunner = transactionRunner,
         clock = clock,
@@ -148,6 +161,60 @@ class InvitationActivationCoordinatorTest {
     }
 
     @Test
+    fun `converts a waitlist invitation before accepting it`() = runTest {
+        val rawToken = "secret-token"
+        val candidateKey = "cand-123"
+        val principalId = "principal-123"
+        val invitation = createInvitation(
+            target = InvitationTarget.NEW_WORKSPACE,
+            workspaceId = null,
+            status = InvitationStatus.ACTIVE,
+        ).copy(source = InvitationSource.WAITLIST, sourceReferenceId = "entry-123")
+        val principalFacts = PrincipalIdentityFacts(
+            principalId = principalId,
+            principalType = PrincipalType.USER,
+            subject = "sub-1",
+            provider = "local",
+            displayIdentity = "User",
+            email = "user@example.com",
+            username = "user",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+        val entry = WaitlistEntry(
+            id = WaitlistEntryId("entry-123"),
+            waitlistId = WaitlistId("waitlist-1"),
+            email = EmailAddress("user@example.com"),
+            normalizedEmail = NormalizedEmail.fromPersisted("user@example.com"),
+            source = CaptureSource("test"),
+            formId = null,
+            locale = CaptureLocale("en"),
+            metadata = LeadMetadata(),
+            consent = WaitlistConsent(earlyAccess = true, marketing = false, version = "1.0"),
+            joinedAt = now.minusSeconds(3600),
+            status = WaitlistEntryStatus.PENDING,
+        )
+        entry.invite(now.minusSeconds(1800))
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
+        coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
+        coEvery { principalIdentityLookup.findByPrincipalId(principalId) } returns principalFacts
+        coEvery { waitlistEntryAdmin.findById("entry-123") } returns entry
+        coEvery { waitlistEntryAdmin.save(entry) } returns entry
+        coEvery { invitationRepository.updateIfVersionMatches(any()) } returns true
+        coEvery { workspaceProvisioningService.provisionDefaultWorkspace(principalId, "user@example.com") } returns
+            WorkspaceProvisioningService.ProvisionedWorkspace("ws-new", "Default", WorkspaceMembershipStatus.ACTIVE)
+        coEvery { membershipProvisioner.reconcile("ws-new", principalId) } returns
+            WorkspaceMembership("wm-1", "ws-new", principalId, PrincipalType.USER, WorkspaceMembershipStatus.ACTIVE)
+
+        val result = coordinator.activateForRegistration(rawToken, "user@example.com", principalId)
+
+        assertEquals(InvitationStatus.ACCEPTED, result.invitation.status)
+        assertEquals(WaitlistEntryStatus.CONVERTED, entry.status)
+        coVerify { waitlistEntryAdmin.save(entry) }
+    }
+
+    @Test
     fun `fails when tokenHasher is not InvitationTokenCandidateKey`() = runTest {
         val plainHasher = mockk<TokenHasher>()
         val coord = InvitationActivationCoordinator(
@@ -155,6 +222,7 @@ class InvitationActivationCoordinatorTest {
             tokenHasher = plainHasher,
             principalIdentityLookup = principalIdentityLookup,
             workspaceProvisioningService = workspaceProvisioningService,
+            waitlistEntryAdmin = waitlistEntryAdmin,
             membershipProvisioner = membershipProvisioner,
             transactionRunner = transactionRunner,
             clock = clock,

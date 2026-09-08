@@ -2,6 +2,7 @@ package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.domain.Invitation
+import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
@@ -9,6 +10,7 @@ import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
@@ -41,28 +43,44 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
         .awaitSingleOrNull()
 
     override suspend fun save(invitation: Invitation, candidateKey: String): Invitation {
-        databaseClient.sql(INSERT)
-            .bind("id", invitation.id.value)
-            .bind("source", invitation.source.name)
-            .bindNullableString("sourceReferenceId", invitation.sourceReferenceId)
-            .bind("target", invitation.target.name)
-            .bindNullableString("workspaceId", invitation.workspaceId)
-            .bind("invitedEmailNormalized", invitation.invitedEmailNormalized)
-            .bind("candidateKey", candidateKey)
-            .bind("tokenHash", invitation.tokenHash)
-            .bind("status", invitation.status.name)
-            .bind("issuedBy", invitation.issuedBy)
-            .bind("createdAt", OffsetDateTime.ofInstant(invitation.createdAt, ZoneOffset.UTC))
-            .bind("expiresAt", OffsetDateTime.ofInstant(invitation.expiresAt, ZoneOffset.UTC))
-            .bindNullableInstant("acceptedAt", invitation.acceptedAt)
-            .bindNullableString("acceptedPrincipalId", invitation.acceptedPrincipalId)
-            .bind("version", invitation.version)
-            .then()
-            .awaitSingleOrNull()
+        try {
+            databaseClient.sql(INSERT)
+                .bind("id", invitation.id.value)
+                .bind("source", invitation.source.name)
+                .bindNullableString("sourceReferenceId", invitation.sourceReferenceId)
+                .bind("target", invitation.target.name)
+                .bindNullableString("workspaceId", invitation.workspaceId)
+                .bind("invitedEmailNormalized", invitation.invitedEmailNormalized)
+                .bind("candidateKey", candidateKey)
+                .bind("tokenHash", invitation.tokenHash)
+                .bind("status", invitation.status.name)
+                .bind("issuedBy", invitation.issuedBy)
+                .bind("createdAt", OffsetDateTime.ofInstant(invitation.createdAt, ZoneOffset.UTC))
+                .bind("expiresAt", OffsetDateTime.ofInstant(invitation.expiresAt, ZoneOffset.UTC))
+                .bindNullableInstant("acceptedAt", invitation.acceptedAt)
+                .bindNullableString("acceptedPrincipalId", invitation.acceptedPrincipalId)
+                .bind("version", invitation.version)
+                .then()
+                .awaitSingleOrNull()
+        } catch (duplicate: DuplicateKeyException) {
+            throw InvitationAlreadyActiveException(
+                "${invitation.invitedEmailNormalized} in workspace ${invitation.workspaceId}",
+                duplicate,
+            )
+        }
         return requireNotNull(findById(invitation.id)) {
             "Invitation ${invitation.id.value} was just persisted but cannot be reloaded"
         }
     }
+
+    override suspend fun hasActiveInvitationFor(email: String, workspaceId: String, asOf: Instant): Boolean =
+        databaseClient.sql(HAS_ACTIVE_INVITATION_FOR)
+            .bind("email", email)
+            .bind("workspaceId", workspaceId)
+            .bind("asOf", OffsetDateTime.ofInstant(asOf, ZoneOffset.UTC))
+            .map { _, _ -> true }
+            .one()
+            .awaitSingleOrNull() ?: false
 
     override suspend fun updateIfVersionMatches(invitation: Invitation): Boolean {
         if (invitation.version == 0L) return false
@@ -129,6 +147,15 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
                 :acceptedAt, :acceptedPrincipalId, :version
             )
         """
+        private const val HAS_ACTIVE_INVITATION_FOR = """
+            SELECT 1 FROM invitations
+            WHERE workspace_id = :workspaceId
+              AND invited_email_normalized = :email
+              AND status = 'ACTIVE'
+              AND expires_at > :asOf
+            LIMIT 1
+        """
+
         private const val UPDATE_IF_VERSION_MATCHES = """
             UPDATE invitations
             SET status = :status,
