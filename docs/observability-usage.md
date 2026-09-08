@@ -17,12 +17,8 @@ The labels **Implemented** and **Recommended** are deliberate. A recommendation 
 not evidence that runtime enforcement exists. This documentation-only change does not add a sink,
 exporter, redaction enforcement, correlation propagation, frontend telemetry, or API change.
 
-The governing OpenSpec change is [Shared Observability Usage Standard](../openspec/changes/shared-observability-usage-standard/proposal.md),
-with the [specification](../openspec/changes/shared-observability-usage-standard/specs/observability-usage/spec.md),
-[design](../openspec/changes/shared-observability-usage-standard/design.md),
-[tasks](../openspec/changes/shared-observability-usage-standard/tasks.md), and
-[apply state](../openspec/changes/shared-observability-usage-standard/state.yaml) as its implementation
-record.
+The contract tables below are reconciled directly against the Kotlin sources and tests linked in
+each section; this guide is self-contained and needs no additional change record to be applied.
 
 ## Quick decision guide
 
@@ -518,10 +514,6 @@ capabilities is available.
 
 ## References
 
-- [OpenSpec proposal](../openspec/changes/shared-observability-usage-standard/proposal.md)
-- [OpenSpec specification](../openspec/changes/shared-observability-usage-standard/specs/observability-usage/spec.md)
-- [OpenSpec design](../openspec/changes/shared-observability-usage-standard/design.md)
-- [OpenSpec tasks](../openspec/changes/shared-observability-usage-standard/tasks.md)
 - [Shared module dependency catalog](./architecture/shared/dependencies.md)
 - [ADR-0002: Adhere to Hexagonal Architecture](./architecture/adr/0002-adhere-to-hexagonal-architecture.md)
 - [ADR-0010: Shared Kernel Governance](./architecture/adr/0010-shared-kernel-governance.md)

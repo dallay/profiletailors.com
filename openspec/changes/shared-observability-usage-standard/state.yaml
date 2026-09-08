@@ -1,8 +1,0 @@
-change: shared-observability-usage-standard
-current_phase: verify
-completed: [spec, design, tasks, apply, verify]
-next: qa
-strict_tdd: true
-persistence_mode: openspec
-note: "Documentary change. No new product capability. Redaction enforcement and correlation-id propagation remain explicitly deferred to follow-up implementation work."
-updated: "2026-09-08T00:00:00Z"
