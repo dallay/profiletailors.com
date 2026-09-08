@@ -5,7 +5,7 @@
 ### Requirement: platform.invitations.create is a registered platform permission
 
 `platform.invitations.create` is ADDED to the `PlatformPermission` enum and the permission
-registry. It is required by `POST /api/admin/invitations`. It is granted to `PLATFORM_OWNER`
+registry. It is required by `POST /api/admin/invitations/direct`. It is granted to `PLATFORM_OWNER`
 and `PLATFORM_OPERATOR` roles only; `SUPPORT_AGENT` and `AUDITOR` do not hold this permission.
 
 | Key | Description |

@@ -8,21 +8,21 @@ Platform admin REST endpoints for the `platformadmin` bounded context — one fo
 
 ### Decision: Token never leaves the domain boundary
 
-**Choice**: Invitation tokens are generated in domain logic, appear only in `InvitationCreated` domain events, and only the bcrypt hash is persisted.
+**Choice**: Invitation tokens are generated in domain logic, appear only in `InvitationIssued` / `DirectInvitationResent` domain events (consumed post-commit by `SendInvitationEmailConsumer` to build the accept URL), and only the bcrypt hash plus SHA-256 candidate key are persisted.
 **Alternatives considered**: Return raw token from the controller — rejected because tokens crossing the API layer create audit, logging, and metrics exposure risk.
 **Rationale**: The existing `InviteWaitlistEntryHandler` already follows this pattern with `InvitationTokenCodec`. Reusing it keeps the security boundary consistent and reduces the attack surface.
 
 ### Decision: Domain events drive notification scheduling
 
-**Choice**: `InvitationCreated` and `InvitationRevoked` domain events are published via `DomainEventPublisher`. Downstream notification adapters subscribe asynchronously.
+**Choice**: `InvitationIssued` (create) and `DirectInvitationResent` (resend) domain events are published after persistence. `SendInvitationEmailConsumer` handles them with `@TransactionalEventListener(AFTER_COMMIT)` to build the accept URL from the event's raw token. No `InvitationRevoked` event is published — revocation is terminal state, nothing downstream consumes it.
 **Alternatives considered**: Call `NotificationGateway` directly from the handler — rejected because handler composition would then require the notification adapter at test time.
-**Rationale**: Event-driven decoupling lets the handler remain pure in unit tests. The `InvitationActivationCoordinator` already uses this pattern for waitlist invitations.
+**Rationale**: Event-driven decoupling lets the handler remain pure in unit tests. The post-commit boundary guarantees no email is sent for a rolled-back invitation.
 
 ### Decision: Duplicate active invitation detection via repository query
 
-**Choice**: `InvitationRepository.hasActiveInvitationFor(email, workspaceId)` — a targeted query that checks for non-revoked, non-expired invitations for the same email+workspace pair.
+**Choice**: `InvitationRepository.hasActiveInvitationFor(normalizedEmail, workspaceId, asOf)` — a targeted query for non-revoked, non-expired invitations for the same email+workspace pair (`status = 'ACTIVE' AND expires_at > :asOf`). A concurrent insert racing the check hits the pre-existing partial unique index and is mapped to `InvitationAlreadyActiveException` (→ 409).
 **Alternatives considered**: Load all invitations for the workspace and filter in the handler — rejected because it fetches an unbounded collection. Scan by email only — rejected because workspaces are the isolation boundary.
-**Rationale**: The query is a simple indexed look-up (email + workspace_id + status). Existing `InvitationRepository` already has `findByWorkspaceAndEmail` — extend it with a `hasActive` variant.
+**Rationale**: The query is a simple indexed look-up (email + workspace_id + status). The unique index from `005-harden-invitations.yaml` remains the exactly-once backstop.
 
 ### Decision: New platform permissions `platform.invitations.create` and `platform.invitations.revoke`
 
@@ -60,22 +60,30 @@ AdminInvitationController          CreateInvitationHandler / RevokeInvitationHan
 
 **`CreateInvitationHandler`**
 
-1. Authorize caller (OWNER or OPERATOR via `platform.invitations.create`)
-2. Validate `workspaceId` exists
-3. Check `hasActiveInvitationFor(email, workspaceId)` — if true, throw `InvitationAlreadyExistsException`
-4. Generate token via `InvitationTokenCodec.generate()`
-5. Build `Invitation` aggregate, publish `InvitationCreated` domain event (contains raw token)
-6. Persist aggregate (hash stored, token never returned past the domain boundary)
-7. Return `InvitationCreated` response (token included — one chance to display to admin)
+1. Authorize caller (OWNER or OPERATOR via `platform.invitations.create`, resolved from command roles)
+2. Require non-blank `workspaceId` for `EXISTING_WORKSPACE` targets (existence itself is validated at the acceptance gate, not here — no workspace read port exists in this context)
+3. Normalize email once (`trim().lowercase()`); check `hasActiveInvitationFor(normalizedEmail, workspaceId, now)` — if true, throw `InvitationAlreadyActiveException`
+4. Generate token via `InvitationTokenGenerator` (CSPRNG); persist bcrypt hash + SHA-256 candidate key
+5. Build `Invitation(source=DIRECT, ...)` as `ACTIVE`; `save()` maps a unique-conflict to `InvitationAlreadyActiveException`
+6. Publish `InvitationIssued` domain event (contains raw token for the post-commit email consumer)
+7. Return `{invitationId, status, expiresAt, version}` — NO token field in the HTTP response
 
 **`RevokeInvitationHandler`**
 
 1. Authorize caller (OWNER or OPERATOR via `platform.invitations.revoke`)
 2. Load `Invitation` by ID — throw `InvitationNotFoundException` if absent
-3. Assert workspace ownership matches caller's context
-4. Call `invitation.revoke(version)` — optimistic lock check inside aggregate
-5. Publish `InvitationRevoked` domain event
-6. Persist updated aggregate
+3. Require `invitation.isActive(now)` (status `ACTIVE` AND `expiresAt` in the future) — else `InvitationNotRevocableException`
+4. Call `invitation.revoke(expectedVersion)` — version check inside the aggregate, then `updateIfVersionMatches` for the persistence check
+5. Persist updated aggregate; no revocation domain event is published
+6. Increment `platform.invitations.revoked`
+
+**`ResendInvitationHandler`**
+
+1. Authorize caller via `platform.invitations.resend`
+2. Load by ID — 404 if absent; require `source == DIRECT` (waitlist invitations keep their own resend path with limits)
+3. Require `invitation.isActive(now)` — expired invitations are never revived
+4. Rotate token material, extend expiry, bump version; publish `DirectInvitationResent`
+5. Return `{invitationId, status, expiresAt, version}` — the caller MUST use the returned version for later revokes
 
 ### Ports (application-layer interfaces)
 
@@ -102,22 +110,37 @@ If `rowsUpdated == 0`, `OptimisticLockingFailureException` is thrown and transla
 ### Create Invitation
 
 ```
-POST /api/admin/invitations
-  → AdminInvitationController.create(CreateInvitationCommand)
-    → OperatorAccessResolver.requirePlatformInvitationCreate()   # 403 if missing
-    → WorkspaceExistenceChecker.exists(workspaceId)             # 400 if missing
-    → InvitationRepository.hasActiveInvitationFor(email, workspaceId)  # 409 if duplicate
-    → Invitation.create(...)                                    # generates token
-    → DomainEventPublisher.publish(InvitationCreated(token, ...))
-    → InvitationRepository.save(invitation)                    # hash persisted
-    → InvitationNotificationAdapter.onInvitationCreated(...)     # async email scheduling
-    → return InvitationCreatedResponse(invitationId, token, expiresAt)
+POST /api/admin/invitations/direct
+  → AdminInvitationController.createDirectInvitation(CreateInvitationCommand)
+    → handler requires platform.invitations.create from command roles  # 403 if missing
+    → InvitationRepository.hasActiveInvitationFor(email, workspaceId, now)  # 409 if duplicate
+    → InvitationTokenGenerator.generate()                             # CSPRNG
+    → InvitationRepository.save(invitation, candidateKey)              # hash persisted; DuplicateKey → 409
+    → EventPublisher.publish(InvitationIssued(token, ...))            # post-commit email via SendInvitationEmailConsumer
+    → 201 {invitationId, status, expiresAt, version}                   # NO token
 ```
 
 ### Revoke Invitation
 
 ```
-POST /api/admin/invitations/revoke
+POST /api/admin/invitations/{id}/direct-revoke {expectedVersion}
+  → handler requires platform.invitations.revoke                       # 403 if missing
+  → invitation.isActive(now) required                                  # 409 INVITATION_NOT_REVOCABLE if expired/consumed
+  → invitation.revoke(expectedVersion) + updateIfVersionMatches        # 409 INVITATION_VERSION_CONFLICT on mismatch
+  → 200 {invitationId}
+```
+
+### Resend Invitation
+
+```
+POST /api/admin/invitations/{id}/direct-resend
+  → handler requires platform.invitations.resend                       # 403 if missing
+  → source == DIRECT required                                          # 409 INVITATION_NOT_RESENDABLE for WAITLIST rows
+  → invitation.isActive(now) required                                  # expired invitations are never revived
+  → token rotation + expiry extension + version bump
+  → EventPublisher.publish(DirectInvitationResent(token, ...))
+  → 200 {invitationId, status, expiresAt, version}
+```
   → AdminInvitationController.revoke(RevokeInvitationCommand)
     → OperatorAccessResolver.requirePlatformInvitationRevoke()  # 403 if missing
     → InvitationRepository.findById(id)                        # 404 if missing
@@ -134,12 +157,11 @@ POST /api/admin/invitations/revoke
 |------|--------|-------------|
 | `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/CreateInvitationHandler.kt` | Create | Command handler for `CreateInvitationCommand` |
 | `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/handler/RevokeInvitationHandler.kt` | Create | Command handler for `RevokeInvitationCommand` |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminInvitationController.kt` | Create | REST controller with `POST /api/admin/invitations` and `POST /api/admin/invitations/revoke` |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/PlatformPermission.kt` | Modify | Add `INVITATIONS_CREATE` and `INVITATIONS_REVOKE` values |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/contracts/InvitationRepository.kt` | Modify | Add `hasActiveInvitationFor(email, workspaceId): Boolean` method |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcInvitationRepository.kt` | Modify | Implement `hasActiveInvitationFor` query and optimistic-lock UPDATE for revoke |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/notification/InvitationNotificationAdapter.kt` | Create | Subscribes to `InvitationCreated` / `InvitationRevoked` events and calls `NotificationGateway` |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/PlatformAdminBootstrapConfiguration.kt` | Modify | Wire new adapter to domain event publisher |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminInvitationController.kt` | Create | REST controller with `POST /api/admin/invitations/direct`, `POST /api/admin/invitations/{id}/direct-revoke`, `POST /api/admin/invitations/{id}/direct-resend` |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/PlatformPermission.kt` | Modify | Add `INVITATIONS_CREATE`, `INVITATIONS_REVOKE`, `INVITATIONS_RESEND` values |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/application/contracts/InvitationRepository.kt` | Modify | Add `hasActiveInvitationFor(email, workspaceId, asOf): Boolean` method |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/persistence/R2dbcInvitationRepository.kt` | Modify | Implement `hasActiveInvitationFor` query (excludes expired), map unique-conflict to `InvitationAlreadyActiveException`, optimistic-lock UPDATE for revoke/resend |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/infrastructure/observability/InvitationObservability.kt` | Create | Micrometer adapter behind the `InvitationTelemetry` port (`platform.invitations.created` / `platform.invitations.revoked`) — delivery uses the existing `InvitationIssued` → `SendInvitationEmailConsumer` post-commit seam, no new adapter |
 | `server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/domain/Invitation.kt` | Modify | Add `revoke(expectedVersion: Long)` method with optimistic lock check |
 | `apps/web/admin/src/stores/auth.store.ts` | Modify | Add `platform.invitations.create` and `platform.invitations.revoke` to `PLATFORM_OWNER` and `PLATFORM_OPERATOR` permission lists |
 | `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/application/handler/CreateInvitationHandlerTest.kt` | Create | Unit tests for handler, including duplicate, workspace not found, and permission scenarios |
@@ -199,12 +221,12 @@ data class InvitationCreated(
 
 ## Migration / Rollout
 
-No database migration required. The `Invitation` aggregate and `invitations` table schema were established in DALLAY-564. The `hasActiveInvitationFor` query uses the existing index on `(workspace_id, email, status)`.
+No database migration required. The `invitations` table and the partial unique index `uq_invitations_workspace_active_email` were established before this change (`005-harden-invitations.yaml`); this change only adds the `hasActiveInvitationFor` read query against that index.
 
-Feature flags are not required — this is a new endpoint under the existing `platformadmin` admin scope.
+Feature flags are not required — these are new endpoints under the existing `platformadmin` admin scope.
 
 ## Open Questions
 
-- [ ] Does `platform.invitations.create` also cover re-sending an existing invitation, or is that a separate `platform.invitations.resend` permission? The current spec only covers creating and revoking — resend behavior for direct admin invitations is out of scope for this change.
+- [x] Does `platform.invitations.create` also cover re-sending, or is resend separate? RESOLVED: resend is delivered in this change behind its own `platform.invitations.resend` permission (`POST /api/admin/invitations/{id}/direct-resend`, `DirectInvitationResent` event, handler + BDD coverage).
 - [ ] Should the invitation token be single-use (one acceptance) or multi-use until expiry? The current aggregate design supports multi-use (no redemption counter). If single-use is required, `Invitation` needs a `redeemedAt` field and the accept endpoint must record redemption.
 - [ ] The admin SPA (`apps/web/admin`) will need UI to call these endpoints — should the design document reference the frontend store/permission updates needed, or is that tracked separately?

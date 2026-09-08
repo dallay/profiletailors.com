@@ -3,10 +3,11 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DirectInvitationsView from '@/views/DirectInvitationsView.vue'
+import RevokeInvitationDialog from '@/components/RevokeInvitationDialog.vue'
 import { messages } from '@/i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
 
-const request = vi.fn()
+const request = vi.fn<ReturnType<typeof useAdminAuthStore>['request']>()
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {}, params: {} }),
@@ -33,7 +34,7 @@ describe('DirectInvitationsView', () => {
     setActivePinia(createPinia())
     request.mockReset()
     const authStore = useAdminAuthStore()
-    authStore.request = request as never
+    authStore.request = request
     authStore.principal = {
       principalId: 'p-1',
       email: 'owner@example.com',
@@ -90,6 +91,7 @@ describe('DirectInvitationsView', () => {
           invitationId: 'inv-1',
           status: 'ACTIVE',
           expiresAt: '2030-01-01T00:00:00Z',
+          version: 0,
         }),
         {
           status: 201,
@@ -114,6 +116,77 @@ describe('DirectInvitationsView', () => {
       target: 'EXISTING_WORKSPACE',
       workspaceId: 'ws-99',
     })
+    const headers = new Headers(init.headers)
+    expect(headers.get('Content-Type')).toBe('application/vnd.api.v1+json')
+    wrapper.unmount()
+  })
+
+  it('resends the created invitation and refreshes its version', async () => {
+    request
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            invitationId: 'inv-1',
+            status: 'ACTIVE',
+            expiresAt: '2030-01-01T00:00:00Z',
+            version: 0,
+          }),
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            invitationId: 'inv-1',
+            status: 'ACTIVE',
+            expiresAt: '2030-01-08T00:00:00Z',
+            version: 1,
+          }),
+          { status: 200 },
+        ),
+      )
+    const wrapper = mountView()
+    await wrapper.get('[data-testid="direct-invitation-email"]').setValue('user@example.com')
+    await wrapper.get('[data-testid="direct-invitation-target"]').setValue('NEW_WORKSPACE')
+    await wrapper.get('[data-testid="direct-invitation-submit"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-testid="direct-invitation-resend"]').trigger('click')
+    await flushPromises()
+    expect(request).toHaveBeenCalledWith(
+      '/api/admin/invitations/inv-1/direct-resend',
+      expect.objectContaining({ method: 'POST' }),
+    )
+    const resendInit = request.mock.calls[1]?.[1] as RequestInit
+    expect(new Headers(resendInit.headers).get('Content-Type')).toBe('application/vnd.api.v1+json')
+    wrapper.unmount()
+  })
+
+  it('revokes with the version returned by create instead of a hardcoded zero', async () => {
+    request
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            invitationId: 'inv-1',
+            status: 'ACTIVE',
+            expiresAt: '2030-01-01T00:00:00Z',
+            version: 2,
+          }),
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ invitationId: 'inv-1' }), { status: 200 }),
+      )
+    const wrapper = mountView()
+    await wrapper.get('[data-testid="direct-invitation-email"]').setValue('user@example.com')
+    await wrapper.get('[data-testid="direct-invitation-target"]').setValue('NEW_WORKSPACE')
+    await wrapper.get('[data-testid="direct-invitation-submit"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-testid="direct-invitation-revoke"]').trigger('click')
+    await flushPromises()
+    const dialog = wrapper.findComponent(RevokeInvitationDialog)
+    expect(dialog.props('expectedVersion')).toBe(2)
+    expect(dialog.props('email')).toBe('user@example.com')
     wrapper.unmount()
   })
 

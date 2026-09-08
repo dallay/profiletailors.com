@@ -2,6 +2,7 @@ package com.profiletailors.smp.platformadmin.application.contracts
 
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
+import java.time.Instant
 
 interface InvitationRepository {
     suspend fun findById(id: InvitationId): Invitation?
@@ -14,5 +15,5 @@ interface InvitationRepository {
 
     suspend fun updateIfVersionMatches(invitation: Invitation): Boolean
 
-    suspend fun hasActiveInvitationFor(email: String, workspaceId: String): Boolean
+    suspend fun hasActiveInvitationFor(email: String, workspaceId: String, asOf: Instant): Boolean
 }

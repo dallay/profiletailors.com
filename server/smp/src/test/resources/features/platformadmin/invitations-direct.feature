@@ -52,6 +52,13 @@ Feature: Direct invitation admin commands
     When the platform operator resends the direct invitation
     Then the admin response status should be 200
 
+  Scenario: Operator revokes a resent direct invitation with the returned version
+    Given an active direct invitation exists for "direct-resend-revoke@example.com"
+    When the platform operator resends the direct invitation
+    Then the admin response status should be 200
+    When the platform operator revokes the direct invitation with the returned version
+    Then the admin response status should be 200
+
   Scenario: Resending a consumed direct invitation returns 409
     Given a consumed direct invitation exists for "direct-consumed@example.com"
     When the platform operator resends the direct invitation

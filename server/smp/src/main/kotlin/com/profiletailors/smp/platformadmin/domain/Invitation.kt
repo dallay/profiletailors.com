@@ -131,8 +131,8 @@ data class Invitation(
         return revoke()
     }
 
-    fun resend(newTokenHash: String, newExpiresAt: Instant): Invitation {
-        if (status != InvitationStatus.ACTIVE) {
+    fun resend(newTokenHash: String, newExpiresAt: Instant, at: Instant): Invitation {
+        if (!isActive(at)) {
             throw InvitationNotResendableException(id.value.toString())
         }
         return copy(

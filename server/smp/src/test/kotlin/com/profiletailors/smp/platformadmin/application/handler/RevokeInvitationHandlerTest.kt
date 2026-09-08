@@ -112,6 +112,25 @@ class RevokeInvitationHandlerTest {
     }
 
     @Test
+    fun `handle throws when active invitation is past its expiration`() = runTest {
+        val command = RevokeInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            invitationId = invitationId.value,
+            expectedVersion = 0L,
+        )
+
+        coEvery { invitationRepository.findById(invitationId) } returns activeInvitation().copy(
+            createdAt = fixedClock.instant().minusSeconds(7_200),
+            expiresAt = fixedClock.instant().minusSeconds(60),
+        )
+
+        assertThrows<InvitationNotRevocableException> {
+            handler.handle(command)
+        }
+    }
+
+    @Test
     fun `handle throws when version conflict`() = runTest {
         val command = RevokeInvitationCommand(
             operatorPrincipalId = operatorId,

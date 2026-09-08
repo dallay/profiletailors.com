@@ -19,6 +19,7 @@ import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
 import com.profiletailors.smp.platformadmin.domain.Invitation
+import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
@@ -46,6 +47,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
@@ -122,10 +124,11 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
     fun `hasActiveInvitationFor matches only the same workspace and email`() = runTest {
         seedReferenceData()
         seedActiveInvitation(UUID.randomUUID(), "candidate-key-active-1", version = 0)
+        val asOf = Instant.now()
 
-        assertTrue(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1"))
-        assertFalse(repository.hasActiveInvitationFor("other@example.com", "workspace-1"))
-        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-2"))
+        assertTrue(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1", asOf))
+        assertFalse(repository.hasActiveInvitationFor("other@example.com", "workspace-1", asOf))
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-2", asOf))
     }
 
     @Test
@@ -133,7 +136,40 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         seedReferenceData()
         seedInvitation(UUID.randomUUID(), "candidate-key-revoked-1", InvitationStatus.REVOKED, 1)
 
-        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1"))
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1", Instant.now()))
+    }
+
+    @Test
+    fun `hasActiveInvitationFor ignores active invitations past their expiration`() = runTest {
+        seedReferenceData()
+        seedExpiredActiveInvitation(UUID.randomUUID(), "candidate-key-expired-1")
+
+        assertFalse(repository.hasActiveInvitationFor("invitee@example.com", "workspace-1", Instant.now()))
+    }
+
+    @Test
+    fun `save maps a duplicate active invitation to InvitationAlreadyActiveException`() = runTest {
+        seedReferenceData()
+        val now = Instant.now()
+        val invitation = Invitation(
+            id = InvitationId(UUID.randomUUID()),
+            source = InvitationSource.DIRECT,
+            sourceReferenceId = null,
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "workspace-1",
+            invitedEmailNormalized = "invitee@example.com",
+            tokenHash = "hash-1",
+            status = InvitationStatus.ACTIVE,
+            issuedBy = "principal-1",
+            createdAt = now,
+            expiresAt = now.plusSeconds(604_800),
+        )
+
+        repository.save(invitation, "candidate-key-dup-1")
+
+        assertThrows<InvitationAlreadyActiveException> {
+            repository.save(invitation.copy(id = InvitationId(UUID.randomUUID())), "candidate-key-dup-2")
+        }
     }
 
     @Test
@@ -360,6 +396,27 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
     private suspend fun seedActiveInvitation(invitationId: UUID, candidateKey: String, version: Long): Invitation {
         seedInvitation(invitationId, candidateKey, InvitationStatus.ACTIVE, version)
         return newInvitation(id = invitationId, version = version)
+    }
+
+    private suspend fun seedExpiredActiveInvitation(invitationId: UUID, candidateKey: String) {
+        databaseClient.sql(
+            """
+            INSERT INTO invitations (
+                id, source, source_reference_id, target, workspace_id, invited_email_normalized,
+                candidate_key, token_hash, status, issued_by, created_at, expires_at,
+                accepted_at, accepted_principal_id, version
+            ) VALUES (
+                :id, 'DIRECT', NULL, 'EXISTING_WORKSPACE', 'workspace-1', 'invitee@example.com',
+                :candidateKey, :candidateKey, 'ACTIVE', 'principal-1', NOW() - INTERVAL '8 days',
+                NOW() - INTERVAL '1 day', NULL, NULL, 0
+            )
+            """.trimIndent(),
+        )
+            .bind("id", invitationId)
+            .bind("candidateKey", candidateKey)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
     }
 
     private suspend fun seedInvitation(

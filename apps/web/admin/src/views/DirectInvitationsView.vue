@@ -6,9 +6,13 @@ import RevokeInvitationDialog from '@/components/RevokeInvitationDialog.vue'
 
 interface CreatedInvitation {
   id: string
+  email: string
   status: string
   expiresAt: string
+  version: number
 }
+
+const JSON_API_MEDIA_TYPE = 'application/vnd.api.v1+json'
 
 type DirectInvitationTarget = 'NEW_WORKSPACE' | 'EXISTING_WORKSPACE'
 
@@ -33,6 +37,8 @@ const revokeDialogOpen = ref(false)
 const revokeTarget = ref<{ id: string; email: string; expectedVersion: number } | null>(null)
 const revokePending = ref(false)
 const revokeError = ref<string | null>(null)
+const resending = ref(false)
+const resendError = ref<string | null>(null)
 const lastCreatedId = ref<string | null>(null)
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -69,6 +75,7 @@ async function submit() {
     }
     const res = await authStore.request('/api/admin/invitations/direct', {
       method: 'POST',
+      headers: { 'Content-Type': JSON_API_MEDIA_TYPE },
       body: JSON.stringify(payload),
     })
     if (!res.ok) {
@@ -79,8 +86,15 @@ async function submit() {
       invitationId: string
       status: string
       expiresAt: string
+      version: number
     }
-    created.value = { id: body.invitationId, status: body.status, expiresAt: body.expiresAt }
+    created.value = {
+      id: body.invitationId,
+      email: payload.email,
+      status: body.status,
+      expiresAt: body.expiresAt,
+      version: body.version,
+    }
     lastCreatedId.value = body.invitationId
     form.email = ''
     form.workspaceId = ''
@@ -93,9 +107,44 @@ async function submit() {
 }
 
 function openRevokeDialog(id: string) {
-  revokeTarget.value = { id, email: form.email.trim() || id, expectedVersion: 0 }
+  const invitation = created.value && created.value.id === id ? created.value : null
+  revokeTarget.value = {
+    id,
+    email: invitation?.email ?? id,
+    expectedVersion: invitation?.version ?? 0,
+  }
   revokeError.value = null
   revokeDialogOpen.value = true
+}
+
+async function resendInvitation() {
+  if (!created.value || resending.value) return
+  resending.value = true
+  resendError.value = null
+  try {
+    const res = await authStore.request(
+      `/api/admin/invitations/${created.value.id}/direct-resend`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': JSON_API_MEDIA_TYPE },
+      },
+    )
+    if (!res.ok) {
+      resendError.value = await errorMessage(res)
+      return
+    }
+    const body = (await res.json()) as {
+      invitationId: string
+      status: string
+      expiresAt: string
+      version: number
+    }
+    created.value = { ...created.value, status: body.status, expiresAt: body.expiresAt, version: body.version }
+  } catch {
+    resendError.value = t('common.error')
+  } finally {
+    resending.value = false
+  }
 }
 
 async function confirmRevoke(expectedVersion: number) {
@@ -107,6 +156,7 @@ async function confirmRevoke(expectedVersion: number) {
       `/api/admin/invitations/${revokeTarget.value.id}/direct-revoke`,
       {
         method: 'POST',
+        headers: { 'Content-Type': JSON_API_MEDIA_TYPE },
         body: JSON.stringify({ expectedVersion }),
       },
     )
@@ -287,6 +337,16 @@ function formatExpiry(value: string): string {
       </dl>
       <div class="mt-4 flex flex-wrap gap-3">
         <button
+          v-if="canResend"
+          type="button"
+          class="admin-button-secondary text-sm disabled:opacity-40"
+          data-testid="direct-invitation-resend"
+          :disabled="resending"
+          @click="resendInvitation"
+        >
+          {{ resending ? t('common.loading') : t('directInvitations.success.resend') }}
+        </button>
+        <button
           v-if="canRevoke"
           type="button"
           class="admin-button-danger text-sm"
@@ -301,6 +361,14 @@ function formatExpiry(value: string): string {
         >
           {{ t('directInvitations.success.readOnlyNotice') }}
         </span>
+      </div>
+      <div
+        v-if="resendError"
+        role="alert"
+        class="mt-3 rounded-md border border-error/40 bg-error/10 px-3 py-2 text-sm text-error"
+        data-testid="direct-invitation-resend-error"
+      >
+        {{ resendError }}
       </div>
     </section>
 

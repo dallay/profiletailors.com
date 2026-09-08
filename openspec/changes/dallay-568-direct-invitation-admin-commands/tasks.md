@@ -36,35 +36,36 @@ Chain strategy: github-stacked-prs
 - [x] 2.1 Create `CreateInvitationCommand` data class in `platformadmin/application/contracts/`
 - [x] 2.2 Create `RevokeInvitationCommand` data class in `platformadmin/application/contracts/`
 - [x] 2.3 Create `CreateInvitationResult` and `RevokeInvitationResult` response DTOs
-- [x] 2.4 Add `hasActiveInvitationFor(email: String, workspaceId: WorkspaceId): Boolean` to `InvitationRepository` port interface
-- [x] 2.5 Add `revoke(expectedVersion: Long)` method to `Invitation` aggregate with optimistic lock check (throw `OptimisticLockingFailureException` on mismatch)
-- [x] 2.6 Create `CreateInvitationHandler` in `platformadmin/application/handler/`: authorize via `OperatorAccessResolver.requirePlatformInvitationCreate()`, normalize email, call `hasActiveInvitationFor()`, generate token via `InvitationTokenCodec`, build `Invitation(source=DIRECT, target=EXISTING_WORKSPACE)`, persist, emit `InvitationCreated` domain event, schedule `InvitationNotificationRequested`, increment counter
-- [x] 2.7 Create `RevokeInvitationHandler` in `platformadmin/application/handler/`: authorize via `OperatorAccessResolver.requirePlatformInvitationRevoke()`, load invitation, assert workspace ownership, call `invitation.revoke(expectedVersion)`, emit `InvitationRevoked` domain event, persist, increment counter
-- [x] 2.8 Create `AdminInvitationController` in `platformadmin/infrastructure/http/`: `POST /api/admin/invitations` → `CreateInvitationHandler`, `POST /api/admin/invitations/{id}/revoke` → `RevokeInvitationHandler`; map exceptions to HTTP 201/200/400/403/404/409
-- [x] 2.9 Create `InvitationNotificationAdapter` in `platformadmin/infrastructure/notification/`: subscribe to `InvitationCreated` and `InvitationRevoked` domain events; call `NotificationGateway` to schedule email delivery; failures are async-retried, do not propagate
-- [x] 2.10 Wire `InvitationNotificationAdapter` in `PlatformAdminBootstrapConfiguration.kt` to the domain event publisher
+- [x] 2.4 Add `hasActiveInvitationFor(email: String, workspaceId: String, asOf: Instant): Boolean` to `InvitationRepository` port interface (excludes expired rows via `expires_at > :asOf`)
+- [x] 2.5 `revoke(expectedVersion: Long)` on the `Invitation` aggregate with optimistic lock check (throw `InvitationVersionConflictException` on mismatch); `resend(newTokenHash, newExpiresAt, at)` requires `isActive(at)`
+- [x] 2.6 Create `CreateInvitationHandler` in `platformadmin/application/handler/`: authorize from command roles via `platform.invitations.create`, normalize email once (`trim().lowercase()`), call `hasActiveInvitationFor()`, generate token via `InvitationTokenGenerator`, build `Invitation(source=DIRECT, ...)`, persist, publish `InvitationIssued` domain event, increment counter, return `{invitationId, status, expiresAt, version}` with no token
+- [x] 2.7 Create `RevokeInvitationHandler` in `platformadmin/application/handler/`: authorize from command roles via `platform.invitations.revoke`, load invitation, require `isActive(now)`, call `invitation.revoke(expectedVersion)`, persist via `updateIfVersionMatches`, increment counter (no revocation domain event published)
+- [x] 2.8 Create `AdminInvitationController` in `platformadmin/infrastructure/http/`: `POST /api/admin/invitations/direct` → `CreateInvitationHandler`, `POST /api/admin/invitations/{id}/direct-revoke` → `RevokeInvitationHandler`; map exceptions to HTTP 201/200/400/403/404/409
+- [x] 2.9 Delivery uses the existing `InvitationIssued` → `SendInvitationEmailConsumer` post-commit seam (verified in verify-report); no new `InvitationNotificationAdapter` was introduced
+- [x] 2.10 Wire handler beans plus `InvitationTelemetry`/`InvitationObservability` counters in `PlatformAdminBootstrapConfiguration.kt`
 - [x] 2.11 Load `$impeccable` skill — then design the Create Invitation screen: email input, role selector, workspace selector, submit, error states, loading state, success feedback. Apply Nothing-inspired dark theme per `.agents/DESIGN.md`.
 - [x] 2.12 Design the Revoke Invitation flow: confirmation dialog, reason optional, confirm/cancel, error handling, success toast. Same design system.
 - [x] 2.13 Wire new permissions (`platform.invitations.create`, `platform.invitations.revoke`, `platform.invitations.resend`) to UI: guard button visibility and form submission in the admin invitation panels.
-- [x] 2.14 Create `ResendInvitationHandler` in `platformadmin/application/handler/`: authorize via `requirePlatformInvitationResend()`, load invitation, assert PENDING/EXPIRED status, generate new token, update hash, emit `InvitationResent` domain event, schedule notification, increment counter
-- [x] 2.15 Add `POST /api/admin/invitations/{id}/resend` → `ResendInvitationHandler` in `AdminInvitationController`; map exceptions to HTTP 200/403/404
+- [x] 2.14 Create `ResendInvitationHandler` in `platformadmin/application/handler/`: authorize from command roles via `platform.invitations.resend`, load invitation, require `source == DIRECT` and `isActive(now)`, rotate token material, extend expiry, bump version, publish `DirectInvitationResent`, return the bumped version
+- [x] 2.15 Add `POST /api/admin/invitations/{id}/direct-resend` → `ResendInvitationHandler` in `AdminInvitationController`; map exceptions to HTTP 200/403/404/409
 
 ## Phase 3: Persistence and Concurrency Safety (PR 3)
 
-- [x] 3.1 Implement `hasActiveInvitationFor()` in `RdbcInvitationRepository.kt`: query `SELECT 1 FROM invitations WHERE workspace_id = :ws AND normalized_email = :email AND status = 'ACTIVE' LIMIT 1`
-- [x] 3.2 Add unique index migration: `CREATE UNIQUE INDEX idx_inv_active_email_ws ON invitations(workspace_id, normalized_email) WHERE status = 'ACTIVE'` (or partial index per DB dialect)
-- [x] 3.3 Implement optimistic-lock revoke in `RdbcInvitationRepository.kt`: `UPDATE invitations SET status = 'REVOKED', revoked_at = :now, version = version + 1 WHERE id = :id AND version = :expectedVersion AND status = 'ACTIVE'`
-- [x] 3.4 Map `OptimisticLockingFailureException` → HTTP 409 in the controller advice
+- [x] 3.1 Implement `hasActiveInvitationFor()` in `R2dbcInvitationRepository.kt`: query live `ACTIVE` rows with `expires_at > :asOf` for the workspace+email pair
+- [x] 3.2 No new migration: the partial unique index `uq_invitations_workspace_active_email` from `005-harden-invitations.yaml` already backs the invariant; `save()` maps its conflict to `InvitationAlreadyActiveException`
+- [x] 3.3 Implement optimistic-lock revoke/resend in `R2dbcInvitationRepository.kt`: version-checked `UPDATE ... WHERE id = :id AND version = :expectedVersion`
+- [x] 3.4 Map `InvitationVersionConflictException` → HTTP 409 in the controller advice
 
 ## Phase 4: Testing
 
-- [x] 4.1 Write `CreateInvitationHandlerTest.kt`: happy path, duplicate active invitation (409), workspace not found, missing permission (403), notification-scheduling-failure-does-not-rollback
-- [x] 4.2 Write `RevokeInvitationHandlerTest.kt`: happy path, invitation not found (404), version mismatch (409), missing permission (403), already-revoked idempotency (200 or 404 per spec)
+- [x] 4.1 Write `CreateInvitationHandlerTest.kt`: happy path, duplicate active invitation (409), whitespace email normalization, existing-workspace without workspace, new-workspace without workspace, missing permission (403), event-publish-failure-does-not-rollback
+- [x] 4.2 Write `RevokeInvitationHandlerTest.kt`: happy path, invitation not found (404), version mismatch (409), lost-update conflict (409), missing permission (403), time-expired ACTIVE rejection, already-revoked rejection (409)
 - [x] 4.3 Write `InvitationTest.kt` or inline test for `Invitation.revoke(expectedVersion)` optimistic lock behavior
 - [x] 4.4 Write `RdbcInvitationRepositoryImplTest.kt` or integration test: `hasActiveInvitationFor` returns true/false correctly, optimistic-lock UPDATE affects 0 rows on version mismatch
 - [x] 4.5 Create `invitations-direct.feature` BDD file under `server/smp/src/test/resources/features/platformadmin/`: scenarios for create success, create duplicate (409), create unauthorized (403), revoke success, revoke not found (404), revoke unauthorized (403), resend success, resend already-consumed (409), resend unauthorized (403) — tag with `@smoke @fast`
 - [x] 4.6 Implement BDD step definitions in `PlatformAdminInvitationSteps.kt` using `BddDatabaseSupport`
-- [x] 4.7 Write `ResendInvitationHandlerTest.kt`: happy path, already-consumed (409), missing permission (403)
+- [x] 4.7 Write `ResendInvitationHandlerTest.kt`: happy path, non-DIRECT rejection (409), time-expired rejection (409), already-consumed (409), missing permission (403), version returned for later revokes
+- [ ] 4.8 Workspace-existence validation at creation (deferred — no workspace read port exists in `platformadmin`; existence is enforced at the acceptance gate)
 
 ## Phase 5: Verification and Cleanup
 

@@ -16,6 +16,7 @@ import com.profiletailors.smp.platformadmin.domain.DirectInvitationResent
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationNotFoundException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotResendableException
+import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
@@ -40,6 +41,9 @@ class ResendInvitationHandler(
         val invitationId = InvitationId(command.invitationId)
         val invitation = invitationRepository.findById(invitationId)
             ?: throw InvitationNotFoundException(command.invitationId.toString())
+        if (invitation.source != InvitationSource.DIRECT) {
+            throw InvitationNotResendableException(command.invitationId.toString())
+        }
 
         val now = clock.instant()
         val rawToken = com.profiletailors.smp.platformadmin.domain.InvitationTokenGenerator.generate()
@@ -47,7 +51,7 @@ class ResendInvitationHandler(
         val candidateKey: String = tokenHasher.requireCandidateKey(rawToken)
         val newExpiresAt = now + invitationTtl
 
-        val resentInvitation = invitation.resend(tokenHash, newExpiresAt)
+        val resentInvitation = invitation.resend(tokenHash, newExpiresAt, now)
         val updated = invitationRepository.updateIfVersionMatches(resentInvitation)
         if (!updated) {
             throw InvitationNotResendableException(invitationId.value.toString())
@@ -84,6 +88,7 @@ class ResendInvitationHandler(
             invitationId = invitationId.value,
             status = InvitationStatus.ACTIVE.name,
             expiresAt = newExpiresAt.toString(),
+            version = resentInvitation.version,
         )
     }
 

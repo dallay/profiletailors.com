@@ -135,6 +135,7 @@ export type MessageSchema = {
       id: string
       expiresAt: string
       revoke: string
+      resend: string
       readOnlyNotice: string
       createdAnnouncement: string
     }

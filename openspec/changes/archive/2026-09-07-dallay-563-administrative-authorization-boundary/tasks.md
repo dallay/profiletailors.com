@@ -34,8 +34,8 @@ Chain strategy: pending
 
 ## Phase 4: Verification
 
-- [x] 4.1 Run scoped tests: `just backend-test-fast --tests "*platformadmin*OperatorAccessResolver*"` — PASSED (no compilation errors, all resolver + controller tests green)
-- [x] 4.2 Confirm all 3 new resolver cases pass and existing tests still pass — PASSED
+- [x] 4.1 Run scoped tests: `./gradlew :server:smp:test --tests "*platformadmin*OperatorAccessResolver*"` — PASSED (no compilation errors, all resolver + controller tests green). NOTE (record correction 2026-09-08): the original entry cited `just backend-test-fast --tests ...`, but that recipe forwards no test filter; the scoped gradle invocation above is the accurate record.
+- [x] 4.2 Confirm all 3 new resolver cases pass and existing tests still pass — PASSED (3 cases: task 1.3 already is the prefix-stripping case, so no fourth case exists)
 - [x] 4.3 Run full `just backend-test-fast` to confirm no regressions — BUILD SUCCESSFUL in 1m 24s
 
 ## Dependencies
@@ -49,6 +49,6 @@ Chain strategy: pending
 
 | File | Change |
 |------|--------|
-| `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/application/OperatorAccessResolverTest.kt` | Add 4 new test cases (3 from tasks + 1 prefix-stripping verification) |
+| `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/application/OperatorAccessResolverTest.kt` | Add 3 new test cases (task 1.3 already covers the prefix-stripping case) |
 | `server/smp/src/test/kotlin/com/profiletailors/smp/platformadmin/infrastructure/http/AdminOperatorControllerTest.kt` | No changes needed — tasks 2.1–2.3 already covered by existing tests |
 | `openspec/changes/dallay-563-administrative-authorization-boundary/design.md` | Add `AdminDashboardController` deviation note (Phase 3) |

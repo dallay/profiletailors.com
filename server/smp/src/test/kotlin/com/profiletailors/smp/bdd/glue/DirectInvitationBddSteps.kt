@@ -21,7 +21,6 @@ private const val DIRECT_API_V1 = "application/vnd.api.v1+json"
 private const val ADMIN_PRINCIPAL_ID = BDD_ADMIN_PRINCIPAL_ID
 private const val ADMIN_BEARER = "Bearer $BDD_ADMIN_TOKEN"
 
-@Suppress("TooManyFunctions")
 class DirectInvitationBddSteps {
 
     @Autowired
@@ -179,6 +178,21 @@ class DirectInvitationBddSteps {
     fun operatorRevokesDirectInvitation() = runBlocking {
         val invitationId = requireNotNull(state.lastInvitationId)
         val version = invitationVersion(invitationId)
+        state.lastResponse = webTestClient.post()
+            .uri("/api/admin/invitations/$invitationId/direct-revoke")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":$version}""")
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the platform operator revokes the direct invitation with the returned version")
+    fun operatorRevokesDirectInvitationWithReturnedVersion() {
+        val invitationId = requireNotNull(state.lastInvitationId)
+        val version = lastResponseJson().path("version").asLong()
         state.lastResponse = webTestClient.post()
             .uri("/api/admin/invitations/$invitationId/direct-revoke")
             .header(HttpHeaders.ACCEPT, DIRECT_API_V1)

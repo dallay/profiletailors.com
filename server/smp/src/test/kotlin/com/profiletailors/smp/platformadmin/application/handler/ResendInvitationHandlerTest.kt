@@ -93,6 +93,7 @@ class ResendInvitationHandlerTest {
         assertThat(result.invitationId).isEqualTo(invitationId.value)
         assertThat(result.status).isEqualTo("ACTIVE")
         assertThat(result.expiresAt).isEqualTo(fixedClock.instant().plus(ttl).toString())
+        assertThat(result.version).isEqualTo(1L)
 
         val eventSlot = slot<DirectInvitationResent>()
         coVerify { eventPublisher.publish(capture(eventSlot)) }
@@ -144,5 +145,43 @@ class ResendInvitationHandlerTest {
         assertThrows<PlatformAccessDeniedException> {
             handler.handle(command)
         }
+    }
+
+    @Test
+    fun `handle throws when invitation is not a direct invitation`() = runTest {
+        val command = ResendInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            invitationId = invitationId.value,
+        )
+
+        coEvery { invitationRepository.findById(invitationId) } returns activeInvitation().copy(
+            source = InvitationSource.WAITLIST,
+            sourceReferenceId = "waitlist-entry-1",
+        )
+
+        assertThrows<InvitationNotResendableException> {
+            handler.handle(command)
+        }
+        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any()) }
+    }
+
+    @Test
+    fun `handle throws when active invitation is past its expiration`() = runTest {
+        val command = ResendInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            invitationId = invitationId.value,
+        )
+
+        coEvery { invitationRepository.findById(invitationId) } returns activeInvitation().copy(
+            createdAt = fixedClock.instant().minusSeconds(7_200),
+            expiresAt = fixedClock.instant().minusSeconds(60),
+        )
+
+        assertThrows<InvitationNotResendableException> {
+            handler.handle(command)
+        }
+        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any()) }
     }
 }

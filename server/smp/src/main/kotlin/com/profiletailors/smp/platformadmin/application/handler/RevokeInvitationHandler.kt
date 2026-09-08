@@ -12,13 +12,13 @@ import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationNotFoundException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableException
-import com.profiletailors.smp.platformadmin.domain.InvitationStatus
 import com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
 import java.time.Clock
+import java.time.Instant
 import java.util.UUID
 
 class RevokeInvitationHandler(
@@ -29,7 +29,8 @@ class RevokeInvitationHandler(
 ) {
     suspend fun handle(command: RevokeInvitationCommand): RevokeInvitationResult {
         requireRevokePermission(command.operatorRoles)
-        val invitation = loadActiveInvitation(command.invitationId)
+        val now = clock.instant()
+        val invitation = loadActiveInvitation(command.invitationId, now)
         val revoked = invitation.revoke(command.expectedVersion)
 
         if (!invitationRepository.updateIfVersionMatches(revoked)) {
@@ -37,7 +38,6 @@ class RevokeInvitationHandler(
         }
         telemetry.recordInvitationRevoked()
 
-        val now = clock.instant()
         auditPublisher.publish(
             AdminAuditEvent(
                 eventId = java.util.UUID.randomUUID(),
@@ -60,10 +60,10 @@ class RevokeInvitationHandler(
         }
     }
 
-    private suspend fun loadActiveInvitation(invitationId: UUID): Invitation {
+    private suspend fun loadActiveInvitation(invitationId: UUID, now: Instant): Invitation {
         val invitation = invitationRepository.findById(InvitationId(invitationId))
             ?: throw InvitationNotFoundException(invitationId.toString())
-        if (invitation.status != InvitationStatus.ACTIVE) {
+        if (!invitation.isActive(now)) {
             throw InvitationNotRevocableException(invitationId.toString())
         }
         return invitation

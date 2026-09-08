@@ -47,13 +47,14 @@ class CreateInvitationHandler(
             require(!workspaceId.isNullOrBlank()) { "EXISTING_WORKSPACE invitation requires workspaceId" }
         }
 
+        val normalizedEmail = command.email.trim().lowercase()
+        val now = clock.instant()
         if (workspaceId != null &&
-            invitationRepository.hasActiveInvitationFor(command.email.lowercase(), workspaceId)
+            invitationRepository.hasActiveInvitationFor(normalizedEmail, workspaceId, now)
         ) {
-            throw InvitationAlreadyActiveException("${command.email} in workspace $workspaceId")
+            throw InvitationAlreadyActiveException("$normalizedEmail in workspace $workspaceId")
         }
 
-        val now = clock.instant()
         val rawToken = com.profiletailors.smp.platformadmin.domain.InvitationTokenGenerator.generate()
         val tokenHash: String = tokenHasher.hash(rawToken)
         val candidateKey: String = (tokenHasher as? InvitationTokenCandidateKey)
@@ -66,7 +67,7 @@ class CreateInvitationHandler(
             sourceReferenceId = null,
             target = command.target,
             workspaceId = command.workspaceId,
-            invitedEmailNormalized = command.email.lowercase(),
+            invitedEmailNormalized = normalizedEmail,
             tokenHash = tokenHash,
             status = InvitationStatus.ACTIVE,
             issuedBy = command.operatorPrincipalId.toString(),
@@ -81,7 +82,7 @@ class CreateInvitationHandler(
         eventPublisher.publish(
             InvitationIssued(
                 invitationId = saved.id.value,
-                recipientEmail = command.email,
+                recipientEmail = normalizedEmail,
                 workspaceName = command.workspaceId ?: "",
                 locale = null,
                 rawToken = rawToken,
@@ -92,6 +93,7 @@ class CreateInvitationHandler(
             invitationId = saved.id.value,
             status = saved.status.name,
             expiresAt = saved.expiresAt.toString(),
+            version = saved.version,
         )
     }
 

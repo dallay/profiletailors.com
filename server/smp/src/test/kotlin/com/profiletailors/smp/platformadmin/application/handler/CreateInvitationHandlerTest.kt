@@ -68,7 +68,7 @@ class CreateInvitationHandlerTest {
             workspaceId = "workspace-001",
         )
 
-        coEvery { invitationRepository.hasActiveInvitationFor(any(), any()) } returns false
+        coEvery { invitationRepository.hasActiveInvitationFor(any(), any(), any()) } returns false
         coEvery { invitationRepository.save(any(), any()) } answers {
             val invitation = firstArg<Invitation>()
             invitation.copy(id = invitationId)
@@ -79,6 +79,7 @@ class CreateInvitationHandlerTest {
         assertEquals(invitationId.value, result.invitationId)
         assertEquals("ACTIVE", result.status)
         assertEquals(fixedClock.instant().plus(ttl).toString(), result.expiresAt)
+        assertEquals(0L, result.version)
 
         val eventSlot = slot<InvitationIssued>()
         coVerify { eventPublisher.publish(capture(eventSlot)) }
@@ -97,7 +98,9 @@ class CreateInvitationHandlerTest {
             workspaceId = "workspace-001",
         )
 
-        coEvery { invitationRepository.hasActiveInvitationFor("user@example.com", "workspace-001") } returns true
+        coEvery {
+            invitationRepository.hasActiveInvitationFor("user@example.com", "workspace-001", any())
+        } returns true
 
         assertThrows<com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException> {
             handler.handle(command)
@@ -138,7 +141,37 @@ class CreateInvitationHandlerTest {
 
         assertEquals(invitationId.value, result.invitationId)
         assertEquals("ACTIVE", result.status)
-        coVerify(exactly = 0) { invitationRepository.hasActiveInvitationFor(any(), any()) }
+        coVerify(exactly = 0) { invitationRepository.hasActiveInvitationFor(any(), any(), any()) }
+    }
+
+    @Test
+    fun `handle normalizes email with surrounding whitespace before lookup and persistence`() = runTest {
+        val command = CreateInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            email = "  User@Example.com  ",
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "workspace-001",
+        )
+
+        coEvery {
+            invitationRepository.hasActiveInvitationFor("user@example.com", "workspace-001", any())
+        } returns false
+        coEvery { invitationRepository.save(any(), any()) } answers {
+            val invitation = firstArg<Invitation>()
+            invitation.copy(id = invitationId)
+        }
+
+        val result = handler.handle(command)
+
+        assertEquals(invitationId.value, result.invitationId)
+        coVerify { invitationRepository.hasActiveInvitationFor("user@example.com", "workspace-001", any()) }
+        val savedSlot = slot<Invitation>()
+        coVerify { invitationRepository.save(capture(savedSlot), any()) }
+        assertThat(savedSlot.captured.invitedEmailNormalized).isEqualTo("user@example.com")
+        val eventSlot = slot<InvitationIssued>()
+        coVerify { eventPublisher.publish(capture(eventSlot)) }
+        assertThat(eventSlot.captured.recipientEmail).isEqualTo("user@example.com")
     }
 
     @Test
@@ -154,5 +187,27 @@ class CreateInvitationHandlerTest {
         assertThrows<PlatformAccessDeniedException> {
             handler.handle(command)
         }
+    }
+
+    @Test
+    fun `handle keeps the persisted invitation when event publish fails`() = runTest {
+        val command = CreateInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            email = "user@example.com",
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "workspace-001",
+        )
+
+        coEvery { invitationRepository.hasActiveInvitationFor(any(), any(), any()) } returns false
+        coEvery { invitationRepository.save(any(), any()) } answers {
+            firstArg<Invitation>()
+        }
+        coEvery { eventPublisher.publish(any<DomainEvent>()) } throws RuntimeException("bus unavailable")
+
+        assertThrows<RuntimeException> {
+            handler.handle(command)
+        }
+        coVerify { invitationRepository.save(any(), any()) }
     }
 }
