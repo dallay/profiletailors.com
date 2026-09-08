@@ -1,4 +1,4 @@
-package com.profiletailors.common.domain.presentation.filter
+package com.profiletailors.spring.boot.presentation.filter
 
 import com.profiletailors.common.domain.criteria.Criteria
 import com.profiletailors.common.domain.presentation.FilterInvalidException
@@ -92,6 +92,28 @@ internal class RHSFilterParserTest {
         assertThrows<FilterInvalidException> {
             parser.parse(queryOf(TestResource::name to listOf("xx:value")))
         }
+    }
+
+    @Test
+    fun `should not expose query values when operator is unsupported`() {
+        val secret = "unsupported-operator-secret-value"
+
+        val exception = assertThrows<FilterInvalidException> {
+            parser.parse(queryOf(TestResource::name to listOf("xx:$secret")))
+        }
+
+        assertThat(exception.message ?: "").doesNotContain(secret)
+    }
+
+    @Test
+    fun `should not expose query values when value format is invalid`() {
+        val secret = "missing-separator-secret-value"
+
+        val exception = assertThrows<FilterInvalidException> {
+            parser.parse(queryOf(TestResource::name to listOf(secret)))
+        }
+
+        assertThat(exception.message ?: "").doesNotContain(secret)
     }
 
     companion object {
