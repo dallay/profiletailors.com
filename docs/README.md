@@ -43,8 +43,6 @@
 - [Observability Contracts](./observability-contracts.md) - Shared telemetry and logging contracts
 - [Shared Observability Usage Standard](./observability-usage.md) - Canonical usage guide for
   `shared/observability` and the SMP `observability` bounded context
-- [Shared Observability Usage Standard OpenSpec](../openspec/changes/shared-observability-usage-standard/proposal.md) -
-  Change proposal, specification, design, tasks, and verification evidence
 
 ### Development & Testing
 
