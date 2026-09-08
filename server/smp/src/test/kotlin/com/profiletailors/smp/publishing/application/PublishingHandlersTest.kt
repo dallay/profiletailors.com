@@ -8,8 +8,6 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.observability.OperationalEvent
-import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
@@ -1289,45 +1287,6 @@ class PublishingHandlersTest {
         assertEquals("Europe/Madrid", publicationRepository.lastCountTimezone)
         assertEquals("https://preview.local/assets/workspace-1/asset-1", result.publications.first().previewUrl)
         assertEquals(listOf("asset-1"), result.publications.first().assetIds)
-    }
-
-    @Test
-    fun `calendar isolates preview resolver failures and emits an operational event`() = runTest {
-        val publicationRepository = InMemoryPublicationRepository(
-            seedMany = listOf(
-                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z", assetIds = listOf("asset-1")),
-            ),
-        )
-        val events = mutableListOf<OperationalEvent>()
-        val handler = GetCalendarPublicationsHandler(
-            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
-            publicationRepository = publicationRepository,
-            mediaAssetResolver = FakeMediaAssetResolver().apply {
-                resolvedAssets = listOf(
-                    ResolvedAssetSummary(
-                        assetId = "asset-1",
-                        workspaceId = "workspace-1",
-                        storageKey = "assets/workspace-1/asset-1",
-                        mediaType = "image/png",
-                    ),
-                )
-            },
-            assetPreviewUrlResolver = AssetPreviewUrlResolver { _, _, _, _, _ ->
-                throw IllegalStateException("preview unavailable")
-            },
-            operationalEvents = OperationalEventSink { events += it },
-        )
-
-        val result = handler.handle(
-            GetCalendarPublicationsQuery(
-                from = Instant.parse("2026-06-01T00:00:00Z"),
-                to = Instant.parse("2026-07-01T00:00:00Z"),
-                timezone = "Europe/Madrid",
-            ),
-        )
-
-        assertNull(result.publications.single().previewUrl)
-        assertTrue(events.any { it.message?.contains("preview URL") == true })
     }
 
     @Test

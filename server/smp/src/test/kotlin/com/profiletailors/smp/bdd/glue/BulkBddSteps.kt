@@ -246,7 +246,7 @@ class BulkBddSteps {
                 r,
                 _,
             ->
-            requireNotNull(r.get("total_rows", Int::class.javaObjectType))
+            r.get("total_rows", Integer::class.java)!!.toInt()
         }.one().awaitSingle()
         assertEquals(1000, totalFromDb)
     }

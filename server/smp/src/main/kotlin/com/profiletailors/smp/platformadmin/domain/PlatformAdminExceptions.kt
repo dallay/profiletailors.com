@@ -1,6 +1,6 @@
 package com.profiletailors.smp.platformadmin.domain
 
-class PlatformAccessDeniedException(val permission: PlatformPermission) :
+class PlatformAccessDeniedException(permission: PlatformPermission) :
     RuntimeException("Platform permission required: ${permission.key}")
 
 class PlatformRoleRequiredException : RuntimeException("An active platform role assignment is required.")
@@ -21,8 +21,8 @@ class WaitlistEntryVersionConflictException(id: String) :
 
 class InvitationNotFoundException(id: String) : RuntimeException("Invitation not found: $id")
 
-class InvitationAlreadyActiveException(waitlistEntryId: String, cause: Throwable? = null) :
-    RuntimeException("An active invitation already exists for waitlist entry: $waitlistEntryId", cause)
+class InvitationAlreadyActiveException(waitlistEntryId: String) :
+    RuntimeException("An active invitation already exists for waitlist entry: $waitlistEntryId")
 
 class InvitationNotResendableException(id: String) : RuntimeException("Invitation cannot be resent: $id")
 

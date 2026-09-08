@@ -278,14 +278,12 @@ describe('SettingsView channel connection CTA', () => {
 
     expect(wrapper.find('[data-testid="settings-shell"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="settings-overview"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="settings-page-title"]').exists()).toBe(true)
-    const preferencesPanel = wrapper.find('[data-testid="settings-preferences-panel"]')
-    expect(preferencesPanel.exists()).toBe(true)
-    expect(preferencesPanel.find('[data-testid="settings-language-en"]').exists()).toBe(true)
-    expect(preferencesPanel.find('[data-testid="settings-language-es"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="settings-preferences-panel"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('settings.overviewBadge')
     expect(wrapper.text()).toContain('settings.languageLabel')
     expect(wrapper.text()).toContain('settings.subtitle')
-    // Theme toggle lives in SidebarAccountSection, not in the settings panel.
+    // Theme toggle is no longer in the settings panel — it lives in SidebarAccountSection.
+    expect(wrapper.find('[data-testid="settings-language-en"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="settings-language-es"]').exists()).toBe(true)
   })
 })

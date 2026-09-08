@@ -161,37 +161,6 @@ class R2dbcAdminAuditRepositoryPostgresIntegrationTest : PostgresIntegrationTest
     }
 
     @Test
-    fun `publish redacts sensitive metadata fields before persisting`() = runTest {
-        val sensitiveMetadata = mapOf(
-            "email" to "user@example.com",
-            "ip" to "192.168.1.1",
-            "phone" to "+1-555-0100",
-            "non_sensitive" to "visible-value",
-        )
-        val eventWithMetadata = event().copy(
-            eventId = UUID.fromString("55555555-6666-7777-8888-999999999999"),
-            metadata = sensitiveMetadata,
-        )
-        auditPublisher.publish(eventWithMetadata)
-
-        val persisted = adminAuditQuery.findById(eventWithMetadata.eventId)
-        assertNotNull(persisted)
-    }
-
-    @Test
-    fun `publish persists non-sensitive metadata as-is`() = runTest {
-        val cleanMetadata = mapOf("campaign_id" to "summer-2026", "source" to "waitlist-page")
-        val eventWithCleanMetadata = event().copy(
-            eventId = UUID.fromString("66666666-7777-8888-9999-aaaaaaaaaaaa"),
-            metadata = cleanMetadata,
-        )
-        auditPublisher.publish(eventWithCleanMetadata)
-
-        val persisted = adminAuditQuery.findById(eventWithCleanMetadata.eventId)
-        assertNotNull(persisted)
-    }
-
-    @Test
     fun `list orders by occurred_at descending`() = runTest {
         auditPublisher.publish(event())
         val later = event().copy(

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   BarChart2,
@@ -14,20 +14,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import { useAnalyticsStore } from '@modules/analytics/infrastructure/analytics.store'
-import type { DateRangePreset, PostAnalyticsSummary } from '@modules/analytics/domain/types'
+import type { DateRangePreset } from '@modules/analytics/domain/types'
 
 const { t } = useI18n()
 const store = useAnalyticsStore()
-const selectedPost = ref<PostAnalyticsSummary | null>(null)
 
 onMounted(() => {
   store.refresh()
@@ -52,12 +44,6 @@ const barMax = computed(() => {
   return Math.max(1, ...metrics.map((m) => m.impressions))
 })
 
-const averageEngagementRate = computed(() => {
-  const posts = store.postAnalytics?.posts ?? []
-  if (posts.length === 0) return 0
-  return posts.reduce((total, post) => total + post.engagementRate, 0) / posts.length
-})
-
 function barHeight(impressions: number): string {
   const pct = (impressions / barMax.value) * 100
   return `${Math.max(4, pct)}%`
@@ -73,21 +59,6 @@ function formatRate(r: number): string {
   return `${r.toFixed(2)}%`
 }
 
-function clickThroughRate(post: PostAnalyticsSummary): number {
-  if (post.impressions === 0) return 0
-  return (post.clicks / post.impressions) * 100
-}
-
-function comparisonRate(post: PostAnalyticsSummary): number {
-  return post.engagementRate - averageEngagementRate.value
-}
-
-function comparisonLabel(post: PostAnalyticsSummary): string {
-  const difference = comparisonRate(post)
-  const key = difference >= 0 ? 'analytics.aboveAverage' : 'analytics.belowAverage'
-  return t(key, { rate: formatRate(Math.abs(difference)) })
-}
-
 function onStartDateChange(event: Event): void {
   store.setCustomRange((event.target as HTMLInputElement).value, store.customEnd)
 }
@@ -99,16 +70,12 @@ function onEndDateChange(event: Event): void {
 function previewText(post: { title: string | null; bodyText: string | null }): string {
   return post.title ?? post.bodyText?.slice(0, 60) ?? '—'
 }
-
-
-function closePostDetails(open: boolean): void {
-  if (!open) selectedPost.value = null
-}
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-7xl space-y-10">
 
+    <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
       <div class="space-y-1">
         <h2 class="text-3xl font-light tracking-tight text-text-display">
@@ -119,7 +86,8 @@ function closePostDetails(open: boolean): void {
         </p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <!-- Date range controls -->
+      <div class="flex items-center gap-2">
         <label class="sr-only" for="analytics-date-preset">
           {{ $t('analytics.dateRange') }}
         </label>
@@ -176,14 +144,15 @@ function closePostDetails(open: boolean): void {
       </div>
     </div>
 
+    <!-- Error banner -->
     <div
       v-if="store.error"
-      role="alert"
       class="rounded border border-red-500/30 bg-red-500/10 px-4 py-3 font-mono text-[11px] text-red-400"
     >
       {{ store.error }}
     </div>
 
+    <!-- Overview metrics cards -->
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
       <Card>
         <CardContent class="p-4 space-y-1">
@@ -251,8 +220,10 @@ function closePostDetails(open: boolean): void {
       </Card>
     </div>
 
+    <!-- Trend chart + Best times -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
+      <!-- Daily impressions bar chart -->
       <Card class="lg:col-span-2">
         <CardHeader class="p-0 border-b border-border-subtle pb-4 flex flex-row items-center justify-between">
           <CardTitle class="label-mono text-text-display text-[10px]">
@@ -273,12 +244,7 @@ function closePostDetails(open: boolean): void {
           >
             {{ $t('analytics.noData') }}
           </div>
-          <div
-            v-else
-            class="h-40 flex items-end gap-px overflow-hidden"
-            role="img"
-            :aria-label="$t('analytics.chartDescription')"
-          >
+          <div v-else class="h-40 flex items-end gap-px overflow-hidden">
             <div
               v-for="metric in store.overview.dailyMetrics"
               :key="metric.date"
@@ -288,13 +254,13 @@ function closePostDetails(open: boolean): void {
                 class="w-full bg-border-visible group-hover:bg-text-display transition-colors rounded-t-sm"
                 :style="{ height: barHeight(metric.impressions) }"
                 :title="`${metric.date}: ${metric.impressions} impressions`"
-                :aria-label="`${metric.date}: ${metric.impressions}`"
               />
             </div>
           </div>
         </CardContent>
       </Card>
 
+      <!-- Best times -->
       <Card>
         <CardHeader class="p-0 border-b border-border-subtle pb-4 flex flex-row items-center gap-2">
           <Clock class="size-3 text-text-secondary" />
@@ -318,7 +284,7 @@ function closePostDetails(open: boolean): void {
           <template v-else>
             <div
               v-for="(slot, i) in store.bestTimes.slots.slice(0, 5)"
-              :key="`${slot.dayOfWeek}-${slot.hour}-${i}`"
+              :key="i"
               class="flex items-center justify-between font-mono text-[10px]"
             >
               <span class="text-text-secondary">
@@ -333,6 +299,7 @@ function closePostDetails(open: boolean): void {
       </Card>
     </div>
 
+    <!-- Post analytics table -->
     <Card>
       <CardHeader class="p-0 border-b border-border-subtle pb-4">
         <CardTitle class="label-mono text-text-display text-[10px]">
@@ -352,9 +319,7 @@ function closePostDetails(open: boolean): void {
         >
           {{ $t('analytics.noPostsInPeriod') }}
         </div>
-        <div v-else class="overflow-x-auto">
-        <table class="w-full min-w-160 font-mono text-[10px]">
-          <caption class="sr-only">{{ $t('analytics.postPerformanceDescription') }}</caption>
+        <table v-else class="w-full font-mono text-[10px]">
           <thead>
             <tr class="border-b border-border-subtle text-text-secondary uppercase">
               <th class="py-2 pr-4 text-left font-normal">{{ $t('analytics.post') }}</th>
@@ -373,13 +338,7 @@ function closePostDetails(open: boolean): void {
               <td class="py-2 pr-4">
                 <div class="flex items-center gap-2">
                   <SocialProviderIcon :provider="post.provider" class="size-3 shrink-0" />
-                  <button
-                    type="button"
-                    class="max-w-50 truncate text-left text-text-display underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                    @click="selectedPost = post"
-                  >
-                    {{ previewText(post) }}
-                  </button>
+                  <span class="truncate max-w-50 text-text-primary">{{ previewText(post) }}</span>
                 </div>
               </td>
               <td class="py-2 pr-4 text-right text-text-secondary">{{ formatNumber(post.impressions) }}</td>
@@ -389,8 +348,8 @@ function closePostDetails(open: boolean): void {
             </tr>
           </tbody>
         </table>
-        </div>
 
+        <!-- Pagination -->
         <div
           v-if="store.postAnalytics && (store.postAnalytics.total > store.postAnalytics.size)"
           class="mt-4 flex items-center justify-between font-mono text-[10px] text-text-secondary"
@@ -426,48 +385,5 @@ function closePostDetails(open: boolean): void {
       </CardContent>
     </Card>
 
-    <Dialog :open="selectedPost !== null" @update:open="closePostDetails">
-      <DialogContent class="sm:max-w-xl">
-        <template v-if="selectedPost">
-          <DialogHeader>
-            <div class="flex items-center gap-2 pr-8">
-              <SocialProviderIcon :provider="selectedPost.provider" class="size-4 shrink-0" />
-              <DialogTitle>{{ previewText(selectedPost) }}</DialogTitle>
-            </div>
-            <DialogDescription>
-              {{ $t('analytics.publishedOn', { date: new Date(selectedPost.publishedAt).toLocaleDateString() }) }}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div class="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
-            <div v-for="metric in [
-              { label: $t('analytics.impressions'), value: formatNumber(selectedPost.impressions) },
-              { label: $t('analytics.clicks'), value: formatNumber(selectedPost.clicks) },
-              { label: $t('analytics.clickThroughRate'), value: formatRate(clickThroughRate(selectedPost)) },
-              { label: $t('analytics.reactions'), value: formatNumber(selectedPost.reactions) },
-              { label: $t('analytics.comments'), value: formatNumber(selectedPost.comments) },
-              { label: $t('analytics.shares'), value: formatNumber(selectedPost.shares) },
-            ]" :key="metric.label" class="bg-popover p-4">
-              <p class="font-mono text-[9px] uppercase tracking-wider text-text-secondary">{{ metric.label }}</p>
-              <p class="mt-2 font-mono text-xl tabular-nums text-text-display">{{ metric.value }}</p>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between border-t border-border-subtle pt-4">
-            <div>
-              <p class="font-mono text-[9px] uppercase tracking-wider text-text-secondary">
-                {{ $t('analytics.engagementRate') }}
-              </p>
-              <p class="mt-1 font-mono text-2xl tabular-nums text-text-display">
-                {{ formatRate(selectedPost.engagementRate) }}
-              </p>
-            </div>
-            <p class="font-mono text-[10px] text-text-secondary">
-              {{ comparisonLabel(selectedPost) }}
-            </p>
-          </div>
-        </template>
-      </DialogContent>
-    </Dialog>
   </div>
 </template>

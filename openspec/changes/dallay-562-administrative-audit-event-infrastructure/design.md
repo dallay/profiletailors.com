@@ -2,84 +2,120 @@
 
 ## Technical Approach
 
-Consolidate audit event infrastructure on the existing live `platformadmin` seam by adding
-redaction enforcement inside `R2dbcAdminAuditRepository.publish()`. The orphaned
-`administrative` bounded context is deleted entirely. No new domain models, no new ports,
-no new tables — only a utility function and a single enforcement point in the existing
-persistence adapter.
+Implement a new `administrative/` bounded context that provides a reusable audit event model and R2DBC persistence layer for recording Back Office administrative mutations. The approach follows hexagonal architecture: domain (entity + port) → application (publisher service) → infrastructure (R2DBC adapter). The bounded context is new and isolated; it introduces no external dependencies beyond existing R2DBC, Liquibase, and Spring Modulith infrastructure already present in the SMP backend.
 
 ## Architecture Decisions
 
-### Decision: Redaction inside repository, not at domain model
+### Decision: Package structure and bounded context marker
 
-**Choice**: Apply `redact()` as the last operation inside `R2dbcAdminAuditRepository.publish()`
-before binding metadata to the SQL statement.
+**Choice**: `com.profiletailors.smp.administrative` with a marker object `AdministrativeBoundedContext` in the root package, mirroring the `platformadmin/` context pattern.
 
-**Alternatives considered**: Enforcement at `AdminAuditEvent` construction in the domain layer.
-Rejected because handlers already construct `AdminAuditEvent` with raw metadata; modifying all
-14 handler call sites to pre-sanitize is higher surface area and higher risk than a single
-infrastructure enforcement point.
+**Alternatives considered**: Placing the audit event under `governance/` (existing context). Rejected because audit events are a distinct domain concept that does not belong to the compliance/governance bounded context; the audit table is append-only and has different access patterns from governance takedown/consent records.
 
-**Rationale**: Single enforcement point, no handler changes required, backwards compatible.
+**Rationale**: A dedicated bounded context follows the existing DDD structure of the SMP backend and keeps the audit model independent from governance invariants.
 
-### Decision: Pure top-level `redact()` function
+### Decision: `AdministrativeAuditEvent` as a plain data class, not an aggregate
 
-**Choice**: `redact()` is a public top-level function in the infrastructure layer,
-returning a new map with sensitive keys removed.
+**Choice**: `AdministrativeAuditEvent` is a plain Kotlin data class with validation in an `init` block, not an `@AggregateRoot`.
 
-**Alternatives considered**: A Spring component or class. Rejected because the logic is
-stateless and trivially testable as a pure function.
+**Alternatives considered**: Modeling it as an `@AggregateRoot` with `@AggregateRootId`. Rejected because audit events are immutable once written; they have no behavior, no state transitions, and no invariants beyond field validity. The repository directly persists the data class without a domain service.
 
-**Rationale**: No injected state, easy to test, visible in the same file as the enforcement point.
+**Rationale**: Matches the simplicity of the use case; avoids the ceremony of aggregate modeling for a write-once entity.
 
-### Decision: Case-insensitive substring match on key names
+### Decision: `SensitiveFieldRedactor` as a top-level function returning a new map
 
-**Choice**: Any map key whose lowercase form contains any denylist substring is excluded.
+**Choice**: `SensitiveFieldRedactor` is a public standalone function `redact(metadata: Map<String, String>): Map<String, String>`.
 
-**Rationale**: Matches the orphaned implementation and covers camelCase variants like
-`accessToken`, `resetPassword`, `userToken`.
+**Alternatives considered**: A class with mutable state or a Spring component. Rejected because the redaction logic is pure and stateless; a function is simpler and trivially testable.
+
+**Rationale**: The denylist is a static set of substring patterns; no instance state is needed.
 
 ## Data Flow
 
 ```
-AdminAuditEvent (handler builds metadata with raw sensitive keys)
-        │
-        ▼
-AdministrativeAuditPublisher.publish(event)
-        │
-        ▼
-R2dbcAdminAuditRepository.publish(event)
-        │
-        ├── redact(metadata)      ← enforcement point
-        ▼
-        │
-        ▼
- INSERT INTO platform_admin_audit_events (metadata = <redacted JSON>)
+Capability Handler
+    │
+    ├── builds safe metadata (calls SensitiveFieldRedactor.redact())
+    └── calls AuditEventPublisher.publish(event)
+              │
+              └── delegates to AdministrativeAuditEventRepository.save()
+                        │
+                        └── R2dbcAdministrativeAuditEventRepository.save()
+                                  │
+                                  └── INSERT INTO administrative_audit_events (...)
 ```
 
 ## Package Structure
 
-Only the existing `platformadmin` package is touched. No new packages created.
+```
+server/smp/src/main/kotlin/com/profiletailors/smp/administrative/
+├── AdministrativeBoundedContext.kt          # marker object
+├── domain/
+│   ├── AdministrativeAuditEvent.kt           # entity + SensitiveFieldRedactor
+│   └── AdministrativeAuditEventRepository.kt  # port interface
+└── infrastructure/
+    └── persistence/
+        └── R2dbcAdministrativeAuditEventRepository.kt
+```
 
 ```
-server/smp/src/main/kotlin/com/profiletailors/smp/platformadmin/
-├── infrastructure/
-│   └── persistence/
-│       ├── R2dbcAdminAuditRepository.kt    # MODIFIED: redact() in publish()
-│       └── AdminAuditRepositoryUtils.kt       # NEW: redact() function
+server/smp/src/main/resources/db/changelog/platform-admin/
+└── 006-create-administrative-audit-events.yaml
 ```
 
 ## Interfaces / Contracts
 
-### `redact()` — exact implementation
+### `AdministrativeAuditEvent` entity
 
-Defined in `R2dbcAdminAuditRepository.kt` as a private top-level function.
-Alternatively extracted to `AdminAuditRepositoryUtils.kt` if the file grows.
+```kotlin
+package com.profiletailors.smp.administrative.domain
+
+import java.time.Instant
+import java.util.UUID
+
+data class AdministrativeAuditEvent(
+    val id: UUID,
+    val actorId: UUID,
+    val actorType: String,
+    val action: String,
+    val targetId: String,
+    val targetType: String,
+    val correlationId: String?,
+    val metadata: Map<String, String>,
+    val occurredAt: Instant,
+) {
+    init {
+        require(actorType.isNotBlank()) { "actorType must not be blank" }
+        require(action.isNotBlank()) { "action must not be blank" }
+        require(targetType.isNotBlank()) { "targetType must not be blank" }
+        require(targetId.isNotBlank()) { "targetId must not be blank" }
+        require(metadata.keys.none { SENSITIVE_SUBSTRINGS.any { s -> it.lowercase().contains(s) } }) {
+            "metadata must not contain sensitive keys"
+        }
+    }
+
+    companion object {
+        private val SENSITIVE_SUBSTRINGS = listOf(
+            "password", "token", "secret", "credential", "key",
+            "invitationtoken", "resettoken", "refreshtoken", "accesstoken",
+        )
+    }
+}
+
+fun redact(metadata: Map<String, String>): Map<String, String> =
+    metadata.filterKeys { key ->
+        SENSITIVE_SUBSTRINGS.none { substring -> key.lowercase().contains(substring) }
+    }
+```
+
+### `SensitiveFieldRedactor` — exact implementation
+
+Case-insensitive substring match: any map key whose lowercase form contains any of the denylist substrings is excluded. The function is defined as a top-level function alongside `AdministrativeAuditEvent` in `domain/AdministrativeAuditEvent.kt`.
 
 ```kotlin
 private val SENSITIVE_SUBSTRINGS = listOf(
     "password", "token", "secret", "credential", "key",
-    "invitationtoken", "resettoken", "refreshtoken", "acresstoken",
+    "invitationtoken", "resettoken", "refreshtoken", "accesstoken",
 )
 
 fun redact(metadata: Map<String, String>): Map<String, String> =
@@ -88,69 +124,226 @@ fun redact(metadata: Map<String, String>): Map<String, String> =
     }
 ```
 
-### `R2dbcAdminAuditRepository.publish()` — modified
+### `AdministrativeAuditEventRepository` — port interface (in `domain/`)
 
 ```kotlin
-// Before (current):
-suspend fun publish(event: AdminAuditEvent) {
-    databaseClient.sql(INSERT)
-        .bind("id", event.id)
-        .bind("metadata", event.metadata)  // raw — leaks secrets
-        ...
-}
+package com.profiletailors.smp.administrative.domain
 
-// After (changed):
-suspend fun publish(event: AdminAuditEvent) {
-    databaseClient.sql(INSERT)
-        .bind("id", event.id)
-        .bind("metadata", redact(event.metadata))  // sanitized
-        ...
+interface AdministrativeAuditEventRepository {
+    suspend fun save(event: AdministrativeAuditEvent)
 }
 ```
 
-No changes to the method signature, return type, or port interface.
+No Spring annotations. Pure interface in the domain layer.
 
-## Deleted: Orphaned `administrative` Context
+### `R2dbcAdministrativeAuditEventRepository` — infrastructure adapter
 
-The following packages are deleted in their entirety:
+Pattern mirrors `R2dbcInvitationRepository`: constructor-injected `DatabaseClient`, suspend functions, `awaitSingle`/`awaitSingleOrNull`, `bind`/`bindNullableInstant` extension functions.
 
+```kotlin
+package com.profiletailors.smp.administrative.infrastructure.persistence
+
+import com.profiletailors.smp.administrative.domain.AdministrativeAuditEvent
+import com.profiletailors.smp.administrative.domain.AdministrativeAuditEventRepository
+import io.r2dbc.spi.Readable
+import kotlinx.coroutines.reactor.awaitSingle
+import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.stereotype.Repository
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.util.UUID
+
+@Repository
+class R2dbcAdministrativeAuditEventRepository(
+    private val databaseClient: DatabaseClient,
+) : AdministrativeAuditEventRepository {
+
+    override suspend fun save(event: AdministrativeAuditEvent) {
+        databaseClient.sql(INSERT)
+            .bind("id", event.id)
+            .bind("actorId", event.actorId)
+            .bind("actorType", event.actorType)
+            .bind("action", event.action)
+            .bind("targetId", event.targetId)
+            .bind("targetType", event.targetType)
+            .bindNullableString("correlationId", event.correlationId)
+            .bind("metadata", event.metadata)
+            .bind("occurredAt", OffsetDateTime.ofInstant(event.occurredAt, ZoneOffset.UTC))
+            .then()
+            .awaitSingle()
+    }
+
+    private fun Readable.toEvent(): AdministrativeAuditEvent = AdministrativeAuditEvent(
+        id = requireNotNull(get("id", UUID::class.java)),
+        actorId = requireNotNull(get("actor_id", UUID::class.java)),
+        actorType = requireNotNull(get("actor_type", String::class.java)),
+        action = requireNotNull(get("action", String::class.java)),
+        targetId = requireNotNull(get("target_id", String::class.java)),
+        targetType = requireNotNull(get("target_type", String::class.java)),
+        correlationId = get("correlation_id", String::class.java),
+        metadata = requireNotNull(get("metadata", Map::class.java)) as Map<String, String>,
+        occurredAt = requireNotNull(get("occurred_at", OffsetDateTime::class.java)).toInstant(),
+    )
+
+    companion object {
+        private const val COLUMNS = """
+            id, actor_id, actor_type, action, target_id, target_type,
+            correlation_id, metadata, occurred_at
+        """
+        private const val INSERT = """
+            INSERT INTO administrative_audit_events (
+                id, actor_id, actor_type, action, target_id, target_type,
+                correlation_id, metadata, occurred_at
+            ) VALUES (
+                :id, :actorId, :actorType, :action, :targetId, :targetType,
+                :correlationId, :metadata, :occurredAt
+            )
+        """
+    }
+}
+
+private fun DatabaseClient.GenericExecuteSpec.bindNullableString(
+    name: String,
+    value: String?,
+): DatabaseClient.GenericExecuteSpec =
+    if (value != null) bind(name, value) else bindNull(name, String::class.java)
 ```
-server/smp/src/main/kotlin/com/profiletailors/smp/administrative/
-server/smp/src/test/kotlin/com/profiletailors/smp/administrative/
+
+### `AuditEventPublisher` — application service
+
+```kotlin
+package com.profiletailors.smp.administrative.application
+
+import com.profiletailors.smp.administrative.domain.AdministrativeAuditEvent
+import com.profiletailors.smp.administrative.domain.AdministrativeAuditEventRepository
+
+class AuditEventPublisher(
+    private val repository: AdministrativeAuditEventRepository,
+) {
+    suspend fun publish(event: AdministrativeAuditEvent) {
+        repository.save(event)
+    }
+}
 ```
 
-Including:
-- `AdministrativeBoundedContext.kt`
-- `AdministrativeAuditEvent.kt` (domain entity)
-- `AdministrativeAuditEventRepository.kt` (port interface)
-- `AuditEventPublisher.kt` (application service)
-- `R2dbcAdministrativeAuditEventRepository.kt` (infrastructure adapter)
-- All tests for the above
+## Liquibase Migration
 
-## Deleted: Orphaned Migration
+File: `server/smp/src/main/resources/db/changelog/platform-admin/006-create-administrative-audit-events.yaml`
 
-Migration `006-create-administrative-audit-events.yaml` is either:
+Columns: `id (uuid PK)`, `actor_id (uuid)`, `actor_type (varchar 64)`, `action (varchar 64)`, `target_id (varchar 255)`, `target_type (varchar 64)`, `correlation_id (varchar 128 nullable)`, `metadata (text or jsonb)`, `occurred_at (timestamptz)`.
 
-- **Deleted** (if V006 was never applied to any shared environment): remove the file
-  and the include from `db.changelog-master.yaml`.
+Indexes on: `actor_id`, `target_id`, `action`, `occurred_at`, `correlation_id`.
 
-- **Forward-dropped** (if V006 was already applied): a new `V007__drop_administrative_audit_events.sql`
-  migration is added that drops the orphaned table, and the include is removed from
-  `db.changelog-master.yaml`.
+```yaml
+databaseChangeLog:
+  - changeSet:
+      id: platform-admin-006-create-administrative-audit-events
+      author: administrative
+      changes:
+        - createTable:
+            tableName: administrative_audit_events
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: actor_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: action
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target_type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: correlation_id
+                  type: varchar(128)
+              - column:
+                  name: metadata
+                  type: text
+              - column:
+                  name: occurred_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: administrative_audit_events
+            indexName: idx_administrative_audit_actor
+            columns:
+              - column:
+                  name: actor_id
+        - createIndex:
+            tableName: administrative_audit_events
+            indexName: idx_administrative_audit_target
+            columns:
+              - column:
+                  name: target_id
+        - createIndex:
+            tableName: administrative_audit_events
+            indexName: idx_administrative_audit_action
+            columns:
+              - column:
+                  name: action
+        - createIndex:
+            tableName: administrative_audit_events
+            indexName: idx_administrative_audit_occurred_at
+            columns:
+              - column:
+                  name: occurred_at
+        - createIndex:
+            tableName: administrative_audit_events
+            indexName: idx_administrative_audit_correlation
+            columns:
+              - column:
+                  name: correlation_id
+```
 
-Requires checking the git history of `V006__create_administrative_audit_events.sql` before
-deciding which path to take.
+Add to `db.changelog-master.yaml`:
+```yaml
+  - include:
+      file: db/changelog/platform-admin/006-create-administrative-audit-events.yaml
+```
 
 ## Testing Strategy
 
 | Layer | What to Test | Approach |
 |---|---|---|
-| Unit | `redact()` edge cases (sensitive keys present/absent, case sensitivity, empty map) | Plain JUnit test, no Spring context |
-| Unit | `redact()` does not mutate the input map | Assert original map is unchanged after redact |
-| Integration | Handler emits event with sensitive metadata → stored row has no sensitive keys | `BddDatabaseSupport` + real `DatabaseClient`; query the row after publish |
+| Unit | `SensitiveFieldRedactor` edge cases (keys with/without sensitive substrings, case sensitivity, empty map) | Plain JUnit test, no Spring context |
+| Unit | `AdministrativeAuditEvent` invariants in `init` block | JUnit `assertThrows` for invalid inputs |
+| Unit | `AuditEventPublisher` delegation | Mock `AdministrativeAuditEventRepository`, verify `save` is called with correct event |
+| Integration | `R2dbcAdministrativeAuditEventRepository` round-trip | `BddDatabaseSupport` + `DatabaseClient`; seed a row, reload by id, assert fields match |
+
+Integration test follows `R2dbcInvitationRepositoryTest` pattern: inject `DatabaseClient` via `@BeforeEach`, call `repository.save()`, then `findById()` and assert equality.
+
+`BddDatabaseSupport` cleanup list (`cleanupStatements()`) will need:
+```kotlin
+"DELETE FROM administrative_audit_events",
+```
+
+## Migration / Rollback
+
+Rollback: remove the `include` entry from `db.changelog-master.yaml` and drop the `administrative_audit_events` table. No data migration needed at this stage — the table is new.
 
 ## Open Questions
 
-- [x] Where to apply redaction: repository (chosen) vs domain model construction (rejected)
-- [x] Who calls `redact()`: `R2dbcAdminAuditRepository` (chosen), not `AuditEventPublisher` or domain model
-- [x] Migration 006 status: TBD — requires git history check before deciding rollback vs forward-drop
+- [ ] `metadata` column type: `text` (JSON string) or native `jsonb`? JSON string is simpler and matches how other text maps are stored; `jsonb` enables JSON path queries but requires casting on read. Recommend `text` for now, JSON-serialized by the application layer.
+- [ ] `actorType` values — should these be an enum or freeform strings? Proposal uses freeform `String`; if a fixed set of actor types emerges, extract a `@ValueObject enum class ActorType`.

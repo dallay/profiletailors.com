@@ -1,6 +1,6 @@
 # Profile Tailors Documentation
 
-**Last Updated:** 2026-09-08
+**Last Updated:** 2026-09-04
 
 ## 📖 Table of Contents
 
@@ -41,12 +41,8 @@
   visualization
 - [Actuator Security](./monitoring/actuator-security.md) - Securing Spring Boot Actuator endpoints
 - [Observability Contracts](./observability-contracts.md) - Shared telemetry and logging contracts
-- [Shared Observability Usage Standard](./observability-usage.md) - Canonical usage guide for
-  `shared/observability` and the SMP `observability` bounded context
 
 ### Development & Testing
-
-- [Technical Debt Remediation](./technical-debt-remediation.md) - Java 25 migration and staged audit follow-up
 
 - [Getting Started](./getting-started.md) - Local developer onboarding, `just` installation, and
   `just setup`

@@ -3,7 +3,11 @@
   "mcp": {
     "shadcnVue": {
       "type": "local",
-      "command": ["npx", "shadcn-vue@latest", "mcp"],
+      "command": [
+        "npx",
+        "shadcn-vue@latest",
+        "mcp"
+      ],
       "enabled": true
     }
   },

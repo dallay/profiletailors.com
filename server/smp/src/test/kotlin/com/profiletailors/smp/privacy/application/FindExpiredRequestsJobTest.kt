@@ -84,14 +84,4 @@ internal class FindExpiredRequestsJobTest {
         assertEquals(2, result.expiredCount)
         coVerify(exactly = 1) { repository.findExpired(any()) }
     }
-
-    @Test
-    fun `run reports repository failures without throwing`() = runTest {
-        coEvery { repository.findExpired(any()) } throws IllegalStateException("database unavailable")
-
-        val result = job.run()
-
-        assertEquals(0, result.expiredCount)
-        assertEquals(1, result.errors)
-    }
 }

@@ -39,9 +39,7 @@ if (result.error) {
 }
 
 if (result.status !== 0) {
-  const status = result.signal
-    ? `signal ${result.signal}`
-    : `exit code ${result.status ?? 'unknown'}`
+  const status = result.signal ? `signal ${result.signal}` : `exit code ${result.status ?? 'unknown'}`
   console.error(`\n${separator}`)
   console.error(`❌ CI FAILED — ${label}`)
   console.error(`   Working directory: ${workingDirectory}`)

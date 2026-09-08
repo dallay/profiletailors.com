@@ -133,36 +133,6 @@ export const en: MessageSchema = {
     confirmAssign: 'Assign platform role {role} to {email}?',
     confirmRevoke: 'Revoke platform role {role} from {email}? This takes effect immediately.',
   },
-  directInvitations: {
-    title: 'Direct Invitations',
-    subtitle: 'Issue or revoke invitations independently of the waitlist.',
-    form: {
-      title: 'Create a direct invitation',
-      emailPlaceholder: "name{'@'}example.com",
-      target: 'Target workspace',
-      targetExisting: 'Existing workspace',
-      targetNew: 'New workspace',
-      workspaceId: 'Workspace ID',
-      workspaceIdPlaceholder: 'ws_xxxxxxxx',
-      submit: 'Create invitation',
-      emailInvalid: 'Enter a valid email address.',
-    },
-    success: {
-      title: 'Invitation created',
-      id: 'Invitation ID',
-      expiresAt: 'Expires at',
-      revoke: 'Revoke invitation',
-      resend: 'Resend invitation',
-      readOnlyNotice: 'You do not have permission to revoke this invitation.',
-      createdAnnouncement: 'Direct invitation created successfully.',
-    },
-    revokeDialog: {
-      title: 'Revoke invitation?',
-      message:
-        'The active invitation for {email} will be revoked immediately. This action cannot be undone.',
-      confirm: 'Revoke invitation',
-    },
-  },
   errors: {
     PLATFORM_ACCESS_DENIED: 'You do not have permission to perform this action.',
     WAITLIST_ENTRY_NOT_FOUND: 'Waitlist entry not found.',
@@ -171,10 +141,6 @@ export const en: MessageSchema = {
     INVITATION_NOT_FOUND: 'Invitation not found.',
     INVITATION_ALREADY_ACTIVE: 'An active invitation already exists for this entry.',
     INVITATION_RATE_LIMIT_EXCEEDED: 'Resend rate limit exceeded. Please try again later.',
-    INVITATION_VERSION_CONFLICT:
-      'This invitation was modified by another operator. Reload and retry.',
-    OPTIMISTIC_LOCK_CONFLICT:
-      'The invitation changed while you were acting on it. Reload and retry.',
     INTERNAL_ERROR: 'An internal error occurred. Please try again.',
   },
 }
@@ -312,36 +278,6 @@ export const es: MessageSchema = {
     confirmAssign: '¿Asignar rol de plataforma {role} a {email}?',
     confirmRevoke: '¿Revocar rol de plataforma {role} de {email}? Tendrá efecto inmediato.',
   },
-  directInvitations: {
-    title: 'Invitaciones directas',
-    subtitle: 'Emite o revoca invitaciones de forma independiente de la lista de espera.',
-    form: {
-      title: 'Crear una invitación directa',
-      emailPlaceholder: "nombre{'@'}ejemplo.com",
-      target: 'Espacio de trabajo de destino',
-      targetExisting: 'Espacio de trabajo existente',
-      targetNew: 'Nuevo espacio de trabajo',
-      workspaceId: 'ID del espacio de trabajo',
-      workspaceIdPlaceholder: 'ws_xxxxxxxx',
-      submit: 'Crear invitación',
-      emailInvalid: 'Introduce un correo electrónico válido.',
-    },
-    success: {
-      title: 'Invitación creada',
-      id: 'ID de la invitación',
-      expiresAt: 'Vence',
-      revoke: 'Revocar invitación',
-      resend: 'Reenviar invitación',
-      readOnlyNotice: 'No tienes permiso para revocar esta invitación.',
-      createdAnnouncement: 'Invitación directa creada correctamente.',
-    },
-    revokeDialog: {
-      title: '¿Revocar invitación?',
-      message:
-        'La invitación activa de {email} se revocará de inmediato. Esta acción no se puede deshacer.',
-      confirm: 'Revocar invitación',
-    },
-  },
   errors: {
     PLATFORM_ACCESS_DENIED: 'No tienes permiso para realizar esta acción.',
     WAITLIST_ENTRY_NOT_FOUND: 'Entrada de lista de espera no encontrada.',
@@ -351,10 +287,6 @@ export const es: MessageSchema = {
     INVITATION_ALREADY_ACTIVE: 'Ya existe una invitación activa para esta entrada.',
     INVITATION_RATE_LIMIT_EXCEEDED:
       'Se superó el límite de reenvíos. Inténtalo de nuevo más tarde.',
-    INVITATION_VERSION_CONFLICT:
-      'Esta invitación fue modificada por otro operador. Recarga e inténtalo de nuevo.',
-    OPTIMISTIC_LOCK_CONFLICT:
-      'La invitación cambió mientras actuabas sobre ella. Recarga e inténtalo de nuevo.',
     INTERNAL_ERROR: 'Ocurrió un error interno. Por favor, inténtalo de nuevo.',
   },
 }

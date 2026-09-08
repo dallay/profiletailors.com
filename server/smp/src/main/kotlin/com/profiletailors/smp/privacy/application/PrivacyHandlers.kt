@@ -30,15 +30,8 @@ internal class SubmitAccessRequestHandler(
     private val dataAggregationService: DataAggregationService,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
-    private val serializer: PrivacyDataSerializer,
 ) : CommandWithResultHandler<SubmitAccessRequestCommand, DataSubjectRequestResponse> {
 
-    /**
-     * Submits an access request and completes it with the requested principal data.
-     *
-     * @param command The access request details.
-     * @return The completed access request response.
-     */
     override suspend fun handle(command: SubmitAccessRequestCommand): DataSubjectRequestResponse {
         val now = clock.instant()
         val request = DataSubjectRequest.create(
@@ -64,7 +57,7 @@ internal class SubmitAccessRequestHandler(
             email = command.requestedByEmail,
         )
 
-        val resultJson = serializer.toJson(aggregatedData)
+        val resultJson = mapToJson(aggregatedData)
         val completedRequest = request.transitionTo(
             target = DataSubjectRequestStatus.COMPLETED,
             completedAt = now,
@@ -98,15 +91,8 @@ internal class SubmitExportRequestHandler(
     private val storage: Storage,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
-    private val serializer: PrivacyDataSerializer,
 ) : CommandWithResultHandler<SubmitExportRequestCommand, DataSubjectRequestResponse> {
 
-    /**
-     * Submits an export request and makes the aggregated data available through a download URL.
-     *
-     * @param command The export request details, including the requesting principal, email, workspace, and notes.
-     * @return The completed export request response containing the download URL.
-     */
     override suspend fun handle(command: SubmitExportRequestCommand): DataSubjectRequestResponse {
         val now = clock.instant()
         val request = DataSubjectRequest.create(
@@ -132,7 +118,7 @@ internal class SubmitExportRequestHandler(
             email = command.requestedByEmail,
         )
 
-        val jsonContent = serializer.toJson(aggregatedData)
+        val jsonContent = mapToJson(aggregatedData)
         val exportKey = "dsar-exports/${request.id.value}.json"
         val downloadUrl = storage.uploadJson(exportKey, jsonContent)
 
@@ -168,15 +154,8 @@ internal class SubmitCorrectionRequestHandler(
     private val anonymizationService: AnonymizationService,
     private val auditor: PrivacyMutationAuditor,
     private val clock: Clock = Clock.systemUTC(),
-    private val serializer: PrivacyDataSerializer,
 ) : CommandWithResultHandler<SubmitCorrectionRequestCommand, DataSubjectRequestResponse> {
 
-    /**
-     * Applies an identity correction and completes the corresponding data subject request.
-     *
-     * @param command The correction request details, including the principal, field, and new value.
-     * @return The completed data subject request response.
-     */
     override suspend fun handle(command: SubmitCorrectionRequestCommand): DataSubjectRequestResponse {
         // Validate and apply the identity correction
         val correctionResult = anonymizationService.verifyCorrection(
@@ -195,7 +174,7 @@ internal class SubmitCorrectionRequestHandler(
         }
 
         val now = clock.instant()
-        val correctionData = serializer.toJson(
+        val correctionData = mapToJson(
             mapOf(
                 "field" to command.field.name.lowercase(),
                 "newValue" to command.newValue,

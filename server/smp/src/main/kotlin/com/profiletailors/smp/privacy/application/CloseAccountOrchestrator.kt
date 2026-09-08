@@ -1,10 +1,7 @@
 package com.profiletailors.smp.privacy.application
 
-import com.profiletailors.observability.NoOpOperationalEventSink
-import com.profiletailors.observability.OperationalEventSink
-import com.profiletailors.observability.debug
-import com.profiletailors.observability.info
 import com.profiletailors.smp.identity.application.CloseAccountOrchestration
+import org.slf4j.LoggerFactory
 
 /**
  * Implementation of [CloseAccountOrchestration] that coordinates all
@@ -28,22 +25,23 @@ class CloseAccountOrchestrator(
     private val publishingDeletion: PublishingDeletion,
     private val mediaDeletion: MediaDeletion,
     private val tenancyData: TenancyData,
-    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) : CloseAccountOrchestration {
 
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     override suspend fun execute(principalId: String) {
-        operationalEvents.info("Executing account closure")
+        logger.info("Executing account closure for principal {}", principalId)
 
         // Step 1: Revoke credentials (sessions + API keys)
         credentialsRevocation.revokeAllSessions(principalId)
         credentialsRevocation.deleteAllApiKeys(principalId)
-        operationalEvents.debug("Revoked credentials")
+        logger.debug("Revoked credentials for principal {}", principalId)
 
         // Step 2: Clean up publishing context
         publishingDeletion.cancelPendingPublications(principalId)
         publishingDeletion.deleteSocialConnections(principalId)
         publishingDeletion.deleteSecureCredentials(principalId)
-        operationalEvents.debug("Cleaned up publishing data")
+        logger.debug("Cleaned up publishing data for principal {}", principalId)
 
         // Step 3: Capture workspace IDs before removing memberships
         val workspaceIds = tenancyData.getMembershipWorkspaceIds(principalId)
@@ -52,20 +50,20 @@ class CloseAccountOrchestrator(
         if (workspaceIds.isNotEmpty()) {
             mediaDeletion.markAssetsDeleted(principalId, workspaceIds)
             mediaDeletion.markBlobsReadyForGc(principalId, workspaceIds)
-            operationalEvents.debug("Marked media assets for GC")
+            logger.debug("Marked media assets for GC for principal {}", principalId)
         }
 
         // Step 5: Remove workspace memberships
         tenancyData.removeAllMemberships(principalId)
-        operationalEvents.debug("Removed workspace memberships")
+        logger.debug("Removed workspace memberships for principal {}", principalId)
 
         // Step 6: Anonymize identity
         val now = java.time.Clock.systemUTC().instant()
         identityAnonymization.anonymizeUserIdentity(principalId, now)
         identityAnonymization.anonymizePrincipalDisplayIdentity(principalId)
-        operationalEvents.debug("Anonymized identity")
+        logger.debug("Anonymized identity for principal {}", principalId)
 
-        operationalEvents.info("Account closure completed")
+        logger.info("Account closure completed for principal {}", principalId)
         // Note: Audit event emission is deferred until a shared audit facility is available.
         // Currently covered by structured logging.
     }

@@ -63,7 +63,6 @@ class LocalPasswordCredentialGatewayUpdateTest {
             records[principalId] = existing.copy(passwordHash = passwordHash)
         }
 
-        override suspend fun findByPrincipalId(principalId: String): LocalPasswordCredentialRecord? =
-            records[principalId]
+        fun findByPrincipalId(principalId: String): LocalPasswordCredentialRecord? = records[principalId]
     }
 }

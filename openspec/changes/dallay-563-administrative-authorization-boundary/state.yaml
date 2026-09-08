@@ -1,0 +1,23 @@
+change: dallay-563-administrative-authorization-boundary
+current_phase: apply
+completed:
+  - init
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+next: verify
+updated: "2026-09-03T20:00:00Z"
+persistence_mode: openspec
+bounded_contexts:
+  - platformadmin
+stack:
+  backend:
+    - kotlin
+    - spring-boot-4
+    - webflux
+    - r2dbc
+  testing:
+    - cucumber + testcontainers (backend)
+    - junit-platform (unit/integration)

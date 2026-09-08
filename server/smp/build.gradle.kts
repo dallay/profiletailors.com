@@ -10,7 +10,6 @@ val defaultVersion = "0.0.1-SNAPSHOT"
 version = providers.gradleProperty("releaseVersion").getOrElse(defaultVersion)
 
 tasks.named<BootBuildImage>("bootBuildImage") {
-    environment.put("BP_JVM_VERSION", libs.versions.jdk.get())
     builder.set(
         "paketobuildpacks/builder-noble-java-tiny@sha256:" +
             "c320b12e4d7c9097834090b3e7420e0dd606ac3f55288418ced6b93e348a78cf",
@@ -60,7 +59,6 @@ tasks.withType<Test>().configureEach {
 
 dependencies {
     implementation(project(":shared:common"))
-    implementation(project(":shared:observability"))
     implementation(project(":shared:bus"))
     implementation(project(":shared:security"))
     implementation(project(":shared:presentation"))

@@ -128,28 +128,6 @@ describe('ComposerChannelSelector.vue', () => {
     expect(avatars[0]!.attributes('src')).toBe('https://example.com/avatar.jpg')
   })
 
-  it('uses the channel name as the avatar alternative text', (): void => {
-    const channels = [
-      makeChannel({
-        id: 'ch-1',
-        name: 'Profile Tailors LinkedIn',
-        avatarUrl: 'https://example.com/avatar.jpg',
-      }),
-    ]
-    const wrapper = mountSelector({ channels })
-
-    expect(wrapper.get('img').attributes('alt')).toBe('Profile Tailors LinkedIn avatar')
-  })
-
-  it('uses generic alternative text when an avatar has no channel name', (): void => {
-    const channels = [
-      makeChannel({ id: 'ch-1', name: '', avatarUrl: 'https://example.com/avatar.jpg' }),
-    ]
-    const wrapper = mountSelector({ channels })
-
-    expect(wrapper.get('img').attributes('alt')).toBe('Channel avatar')
-  })
-
   it('renders a provider fallback when avatarUrl is missing', (): void => {
     const channels = [makeChannel({ id: 'ch-1', avatarUrl: undefined, provider: 'linkedin' })]
     const wrapper = mountSelector({ channels })

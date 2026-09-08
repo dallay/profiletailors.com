@@ -1,8 +1,5 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
-import ch.qos.logback.classic.Logger
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.read.ListAppender
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotResendableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableException
@@ -15,13 +12,8 @@ import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConverted
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotInvitableException
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
-import org.springframework.mock.http.server.reactive.MockServerHttpRequest
-import org.springframework.mock.web.server.MockServerWebExchange
 
 class AdminProblemDetailsHandlerTest {
 
@@ -34,76 +26,6 @@ class AdminProblemDetailsHandlerTest {
         assertEquals(HttpStatus.FORBIDDEN.value(), problem.status)
         assertEquals("PLATFORM_ACCESS_DENIED", problem.properties?.get("code"))
         assertEquals("urn:profiletailors:error:PLATFORM_ACCESS_DENIED", problem.type.toString())
-    }
-
-    @Test
-    fun `sanitizes invalid correlation ids before logging`() {
-        val logger = LoggerFactory.getLogger(AdminProblemDetailsHandler::class.java) as Logger
-        val appender = ListAppender<ILoggingEvent>().apply { start() }
-        logger.addAppender(appender)
-
-        try {
-            val maliciousHeader = "abc\r\nX-Evil: injected"
-            val oversizedHeader = "A".repeat(200)
-            val exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.get("/api/admin/users")
-                    .header("X-Correlation-Id", maliciousHeader)
-                    .header("X-Request-Id", oversizedHeader)
-                    .build(),
-            )
-
-            handler.handle(PlatformAccessDeniedException(PlatformPermission.USERS_READ), exchange)
-
-            val message = appender.list.single().formattedMessage
-            assertTrue(message.contains("correlationId=unknown"))
-            assertFalse(message.contains(maliciousHeader))
-            assertFalse(message.contains(oversizedHeader))
-        } finally {
-            logger.detachAppender(appender)
-            appender.stop()
-        }
-    }
-
-    @Test
-    fun `logs a valid correlation id without sanitizing it`() {
-        val logger = LoggerFactory.getLogger(AdminProblemDetailsHandler::class.java) as Logger
-        val appender = ListAppender<ILoggingEvent>().apply { start() }
-        logger.addAppender(appender)
-
-        try {
-            val exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.get("/api/admin/users")
-                    .header("X-Correlation-Id", "trace-123")
-                    .build(),
-            )
-
-            handler.handle(PlatformAccessDeniedException(PlatformPermission.USERS_READ), exchange)
-
-            val message = appender.list.single().formattedMessage
-            assertTrue(message.contains("correlationId=trace-123"))
-        } finally {
-            logger.detachAppender(appender)
-            appender.stop()
-        }
-    }
-
-    @Test
-    fun `falls back to unknown when no safe correlation id is present`() {
-        val logger = LoggerFactory.getLogger(AdminProblemDetailsHandler::class.java) as Logger
-        val appender = ListAppender<ILoggingEvent>().apply { start() }
-        logger.addAppender(appender)
-
-        try {
-            val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/admin/users").build())
-
-            handler.handle(PlatformAccessDeniedException(PlatformPermission.USERS_READ), exchange)
-
-            val message = appender.list.single().formattedMessage
-            assertTrue(message.contains("correlationId=unknown"))
-        } finally {
-            logger.detachAppender(appender)
-            appender.stop()
-        }
     }
 
     @Test

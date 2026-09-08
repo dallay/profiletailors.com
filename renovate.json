@@ -47,12 +47,7 @@
     {
       "description": "Group Spring Framework & Security core",
       "matchManagers": ["gradle"],
-      "matchPackageNames": [
-        "org.springframework{/,}**",
-        "!org.springframework.boot{/,}**",
-        "!org.springframework.modulith{/,}**",
-        "!org.springframework.ai{/,}**"
-      ],
+      "matchPackageNames": ["org.springframework{/,}**", "!org.springframework.boot{/,}**", "!org.springframework.modulith{/,}**", "!org.springframework.ai{/,}**"],
       "groupName": "Spring Framework",
       "groupSlug": "spring-framework"
     },
@@ -203,12 +198,7 @@
       "description": "Group Playwright packages",
       "groupName": "Playwright",
       "groupSlug": "playwright",
-      "matchPackageNames": [
-        "@playwright{/,}**",
-        "playwright{/,}**",
-        "@axe-core{/,}**",
-        "@bgotink{/,}**"
-      ]
+      "matchPackageNames": ["@playwright{/,}**", "playwright{/,}**", "@axe-core{/,}**", "@bgotink{/,}**"]
     },
     {
       "description": "Group Biome tooling",

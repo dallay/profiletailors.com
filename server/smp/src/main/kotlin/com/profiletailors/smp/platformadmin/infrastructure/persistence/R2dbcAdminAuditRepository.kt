@@ -1,7 +1,5 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.profiletailors.smp.platformadmin.application.contracts.AdminAuditQuery
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.model.AdminAuditEventSummary
@@ -18,19 +16,11 @@ import java.time.ZoneOffset
 import java.util.UUID
 
 @Repository
-class R2dbcAdminAuditRepository(
-    private val databaseClient: DatabaseClient,
-    private val objectMapper: ObjectMapper = jacksonObjectMapper(),
-) : AdminAuditQuery,
+class R2dbcAdminAuditRepository(private val databaseClient: DatabaseClient) :
+    AdminAuditQuery,
     AdministrativeAuditPublisher {
 
     override suspend fun publish(event: AdminAuditEvent) {
-        val redactedMetadata = redact(event.metadata)
-        val metadataJson = if (redactedMetadata.isEmpty()) {
-            null
-        } else {
-            objectMapper.writeValueAsString(redactedMetadata)
-        }
         databaseClient.sql(INSERT_EVENT)
             .bind("eventId", event.eventId)
             .bind("occurredAt", OffsetDateTime.ofInstant(event.occurredAt, ZoneOffset.UTC))
@@ -45,7 +35,6 @@ class R2dbcAdminAuditRepository(
             .bindNullable("requestId", event.requestId, String::class.java)
             .bindNullable("sourceIpHash", event.sourceIpHash, String::class.java)
             .bindNullable("userAgentSummary", event.userAgentSummary, String::class.java)
-            .bindNullable("metadata", metadataJson, String::class.java)
             .then()
             .awaitSingleOrNull()
     }
@@ -141,11 +130,11 @@ class R2dbcAdminAuditRepository(
             INSERT INTO platform_admin_audit_events
               (event_id, occurred_at, operator_principal_id, operator_platform_roles,
                action, target_type, target_id, result, reason, correlation_id, request_id,
-               source_ip_hash, user_agent_summary, metadata)
+               source_ip_hash, user_agent_summary)
             VALUES
               (:eventId, :occurredAt, :operatorPrincipalId, :operatorPlatformRoles,
                :action, :targetType, :targetId, :result, :reason, :correlationId, :requestId,
-               :sourceIpHash, :userAgentSummary, :metadata)
+               :sourceIpHash, :userAgentSummary)
         """
         private const val SELECT_BY_ID = """
             SELECT event_id, occurred_at, operator_principal_id, operator_platform_roles,

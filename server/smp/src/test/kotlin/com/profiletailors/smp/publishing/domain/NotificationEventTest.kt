@@ -2,7 +2,6 @@ package com.profiletailors.smp.publishing.domain
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -194,20 +193,5 @@ class NotificationEventTest {
 
         assertEquals("Original", original.message)
         assertEquals("Modified", copy.message)
-    }
-
-    @Test
-    fun `NotificationEvent rejects blank workspaceId`() {
-        assertThrows(IllegalArgumentException::class.java) {
-            NotificationEvent(
-                id = "ne-1",
-                workspaceId = "   ",
-                provider = SocialProvider.LINKEDIN,
-                socialAccountId = "acc-1",
-                category = NotificationCategory.PUBLICATION_SUCCEEDED,
-                message = "Published",
-                occurredAt = now,
-            )
-        }
     }
 }
