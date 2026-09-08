@@ -116,6 +116,55 @@ internal class RHSFilterParserTest {
         assertThat(exception.message ?: "").doesNotContain(secret)
     }
 
+    @Test
+    fun `should parse case-insensitive like operator`() {
+        val result = parser.parse(queryOf(TestResource::name to listOf("ilk:%Test%")))
+
+        assertThat(result).isEqualTo(Criteria.And(listOf(Criteria.Ilike("name", "%Test%"))))
+    }
+
+    @Test
+    fun `should parse not like operator`() {
+        val result = parser.parse(queryOf(TestResource::name to listOf("nl:%test%")))
+
+        assertThat(result).isEqualTo(Criteria.And(listOf(Criteria.NotLike("name", "%test%"))))
+    }
+
+    @Test
+    fun `should parse less than or equals operator`() {
+        val result = parser.parse(queryOf(TestResource::age to listOf("lte:25")))
+
+        assertThat(result).isEqualTo(Criteria.And(listOf(Criteria.LessThanEquals("age", 25))))
+    }
+
+    @Test
+    fun `should return Empty when values are null`() {
+        val result = parser.parse(queryOf(TestResource::name to null))
+
+        assertThat(result).isEqualTo(Criteria.Empty)
+    }
+
+    @Test
+    fun `should ignore null values`() {
+        val result = parser.parse(queryOf(TestResource::name to listOf("eq:john", null)))
+
+        assertThat(result).isEqualTo(Criteria.And(listOf(Criteria.Equals("name", "john"))))
+    }
+
+    @Test
+    fun `should return Empty when all values are null`() {
+        val result = parser.parse(queryOf(TestResource::name to listOf(null)))
+
+        assertThat(result).isEqualTo(Criteria.Empty)
+    }
+
+    @Test
+    fun `should throw FilterInvalidException without asserting message when value conversion fails`() {
+        assertThrows<FilterInvalidException> {
+            parser.parse(queryOf(TestResource::age to listOf("eq:not-a-number")))
+        }
+    }
+
     companion object {
         private fun <T> queryOf(
             vararg entries: Pair<KProperty1<T, *>, Collection<String?>?>,
