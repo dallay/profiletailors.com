@@ -1,11 +1,13 @@
 # Shared Module Dependencies
 
 > Quick-reference dependency graph for the `shared/` Gradle modules in the Profile Tailors monorepo.
-> Last updated: 2026-08-31
+> Last updated: 2026-09-08
 
 ## Shared Kernel Modules
 
-The monorepo contains 10 registered Gradle modules under `shared/` (excluding `shared:assets` and `shared:web` which are asset directories, not Gradle modules):
+The monorepo contains 11 registered Gradle modules under `shared/` (excluding `shared:assets` and `shared:web` which are asset directories, not Gradle modules).
+
+The `:shared:observability` module is a framework-free Kotlin contract consumed by `server:smp`; see the [Shared Observability Usage Standard](../../observability-usage.md).
 
 | Module                          | Path                            | Type                    | Consumed By                  |
 |---------------------------------|---------------------------------|-------------------------|------------------------------|
@@ -19,6 +21,7 @@ The monorepo contains 10 registered Gradle modules under `shared/` (excluding `s
 | `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (Lead Capture)| waitlist, smp                |
 | `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | smp                          |
 | `:shared:notifications`         | `shared/notifications/`         | Notifications           | smp                          |
+| `:shared:observability`         | `shared/observability/`         | Framework-free Kotlin operational event contract | server:smp                 |
 
 ## Lead Capture Modules
 
@@ -33,6 +36,11 @@ The lead-capture capability is split across two framework-free shared modules pe
 Both modules follow the framework-free rules defined by
 [ADR-0010](../adr/0010-shared-kernel-governance.md): no Spring, no R2DBC, no
 `com.profiletailors.smp` imports. ArchUnit assertions enforce this at build time.
+
+The `:shared:observability` module is a framework-free Kotlin contract for structured operational
+ events. `server:smp` consumes it; web applications and `shared/web` do not. See the [Shared
+ Observability Usage Standard](../../observability-usage.md) for contract signatures, layering,
+sensitive-data guidance, and test ownership.
 
 ## Dependency Graph
 
@@ -51,6 +59,7 @@ graph TB
     LC_COMMON["<b>shared:lead-capture:common</b><br/>EmailAddress, NormalizedEmail,<br/>CaptureSource, CaptureLocale, LeadMetadata<br/>Framework-free value objects"]
     LC_WAITLIST["<b>shared:lead-capture:waitlist</b><br/>Waitlist + WaitlistEntry aggregates,<br/>JoinWaitlistHandler, repository ports<br/>Framework-free domain + application"]
     NOTIFICATIONS["<b>shared:notifications</b><br/>Notification abstractions and ports<br/>Email notification domain models"]
+    OBSERVABILITY["<b>shared:observability</b><br/>OperationalEvent, sinks, severity<br/>Framework-free Kotlin contract"]
 
     %% CLIENT NODES
     SMP["<b>server:smp</b><br/>Spring Boot API Application<br/>All bounded contexts"]
@@ -83,6 +92,7 @@ graph TB
     SMP -->|impl| LC_COMMON
     SMP -->|impl| LC_WAITLIST
     SMP -->|impl| NOTIFICATIONS
+    SMP -->|impl| OBSERVABILITY
 
     %% STYLING
     classDef foundation fill:#1a1a2e,stroke:#4a4a6a,color:#e0e0e0,rx:4px
@@ -95,7 +105,7 @@ graph TB
     class BUS,PRESENTATION,SECURITY shared
     class SBC spring
     class STORAGE,RATELIMIT infra
-    class LC_COMMON,LC_WAITLIST,NOTIFICATIONS foundation
+    class LC_COMMON,LC_WAITLIST,NOTIFICATIONS,OBSERVABILITY foundation
     class SMP client
 ```
 
@@ -113,6 +123,7 @@ graph TB
 | `:shared:lead-capture:common`   | `shared/lead-capture/common/`   | Foundation (no deps)    | —                                                                           | waitlist, notifications, smp |
 | `:shared:lead-capture:waitlist` | `shared/lead-capture/waitlist/` | Domain + Ports          | `:shared:lead-capture:common`                                               | notifications, smp           |
 | `:shared:notifications`         | `shared/notifications/`         | Shared                  | `:shared:common`, `:shared:bus`, `:shared:lead-capture:common`, `:shared:lead-capture:waitlist` | smp                          |
+| `:shared:observability`         | `shared/observability/`         | Foundation (framework-free Kotlin) | —                                                                           | server:smp                 |
 | `:server:smp`                   | `server/smp/`                   | Application             | All `shared:*` modules                                                      | —                            |
 
 ## Layer Rules
