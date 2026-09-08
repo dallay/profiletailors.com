@@ -220,6 +220,12 @@ infrastructure wiring:
 - Privacy application: `CloseAccountOrchestrator` and `FindExpiredRequestsJob`.
 - Media infrastructure: `MediaApplicationConfiguration` wires the sink into media application
   services.
+- Storage application: `StorageApplicationService` (upload, download, delete publish paths) and
+  `GeneratePresignedUrlUseCase` (presign publish path) emit
+  `storage.operation.event.publish.failed` at `WARN` with `operation`, `provider`, and sanitized
+  `bucket` attributes plus the original publish `cause`. The object `key`, payloads, metadata,
+  expiry, and requester identity are never emitted; a blank bucket skips the `bucket` attribute.
+  Publish failures swallow-and-continue while a `CancellationException` rethrows with no emit.
 - SMP observability infrastructure: `OperationalEventPipelineBehavior` consumes the sink and
   `Slf4jOperationalEventSink` implements it.
 
@@ -229,7 +235,10 @@ a reason to add more message-derived schemas.
 
 The module dependency is declared by `server:smp` through
 `implementation(project(":shared:observability"))` in
-[`server/smp/build.gradle.kts`](../server/smp/build.gradle.kts). No production source in
+[`server/smp/build.gradle.kts`](../server/smp/build.gradle.kts), and by `:shared:storage` through
+the same declaration in [`shared/storage/build.gradle.kts`](../shared/storage/build.gradle.kts).
+`:shared:observability` keeps zero production dependencies, so the storage-to-observability edge is
+acyclic by construction. No production source in
 `apps/web/**` or `shared/web/**` imports `com.profiletailors.observability`.
 
 ## Recommended backend layering
@@ -302,6 +311,7 @@ example:
 - `bus.request.started`
 - `bus.request.completed`
 - `bus.request.failed`
+- `storage.operation.event.publish.failed`
 - `media.asset.preview.fallback`
 - `identity.reset.failed`
 
@@ -436,6 +446,7 @@ versioning. Those are implementation decisions for a separately approved change.
 | SMP request pipeline | [`OperationalEventPipelineBehaviorTest`](../server/smp/src/test/kotlin/com/profiletailors/smp/observability/infrastructure/OperationalEventPipelineBehaviorTest.kt) checks start/completion, failure rethrow, cause identity, and payload handling |
 | Current SLF4J sink | [`Slf4jOperationalEventSinkTest`](../server/smp/src/test/kotlin/com/profiletailors/smp/observability/infrastructure/Slf4jOperationalEventSinkTest.kt) exercises every severity, rendering, nulls, and causes without throwing |
 | No-op hook defaults | [`NoOpObservabilityHooksTest`](../server/smp/src/test/kotlin/com/profiletailors/smp/observability/infrastructure/NoOpObservabilityHooksTest.kt) checks the metrics and rate-limit no-op hooks |
+| Storage publish-failure events | [`StorageApplicationServiceTest`](../shared/storage/src/test/kotlin/com/profiletailors/storage/application/StorageApplicationServiceTest.kt) (`PublishFailureEvents`) and [`StorageUseCaseTest`](../shared/storage/src/test/kotlin/com/profiletailors/storage/StorageUseCaseTest.kt) (`GeneratePresignedUrlUseCaseTest`) prove the `storage.operation.event.publish.failed` name, `WARN` severity, `operation`/`provider`/`bucket` attributes, absence of `key`, swallow-and-continue, and `CancellationException` rethrow with no emit |
 | Existing application instrumentation | Media, publishing, identity, privacy, password-recovery, and waitlist observability tests cover their current call sites where applicable |
 
 ### Recommended follow-up tests

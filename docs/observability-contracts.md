@@ -72,7 +72,11 @@ use cases. Generic command and query lifecycle events (`bus.request.started`,
 `bus.request.completed`, and `bus.request.failed`) are emitted by the mediator pipeline without
 serializing request or response values. The `bus.request.failed` event emits safe error metadata
 (`errorType` with the exception class simple name) instead of the raw `Throwable` to prevent
-sensitive stack traces or exception messages from reaching the log sink. Domain facts and audit
+sensitive stack traces or exception messages from reaching the log sink. Storage publish failures
+are emitted as `storage.operation.event.publish.failed` at `WARN` severity with `operation`
+(`upload`, `download`, `delete`, or `presign`), `provider`, and sanitized `bucket` attributes plus
+the original publish `cause`. The object `key` and all payloads are never emitted, a blank bucket
+skips the `bucket` attribute, and the message text is constant. Domain facts and audit
 records continue to use their dedicated domain-event and audit contracts.
 
 ---
