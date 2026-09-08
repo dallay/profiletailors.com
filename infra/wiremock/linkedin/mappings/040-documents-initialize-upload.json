@@ -6,7 +6,9 @@
     "queryParameters": {
       "action": { "equalTo": "initializeUpload" }
     },
-    "bodyPatterns": [{ "matchesJsonPath": "$.initializeUploadRequest.owner" }]
+    "bodyPatterns": [
+      { "matchesJsonPath": "$.initializeUploadRequest.owner" }
+    ]
   },
   "response": {
     "status": 200,

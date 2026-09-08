@@ -8,7 +8,6 @@ import com.profiletailors.notifications.domain.NotificationRepository
 import com.profiletailors.notifications.domain.NotificationStatus
 import com.profiletailors.notifications.domain.event.InvitationResent
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
-import com.profiletailors.smp.platformadmin.domain.DirectInvitationResent
 import com.profiletailors.smp.platformadmin.domain.InvitationIssued
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
@@ -199,33 +198,6 @@ internal class SendInvitationEmailConsumerTest {
         saved.captured.idempotencyKey.value shouldBe "invitation:$invitationId:initial"
         updated.captured.status shouldBe NotificationStatus.FAILED
         updated.captured.errorMessage shouldBe "SMTP error"
-    }
-
-    @Test
-    fun `handles direct invitation resent event`() = runTest {
-        val saved = slot<Notification>()
-        val updated = slot<Notification>()
-        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
-        coEvery { notificationRepository.save(capture(saved)) } answers { saved.captured }
-        coEvery { notificationRepository.update(capture(updated)) } answers { updated.captured }
-        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } returns EmailDispatchResult.Success
-
-        consumer.onDirectInvitationResent(
-            DirectInvitationResent(
-                invitationId = invitationId,
-                operatorPrincipalId = operatorPrincipalId,
-                recipient = inviteeEmail,
-                workspaceName = workspaceName,
-                acceptUrl = acceptUrl,
-                rawToken = rawToken,
-                locale = "en",
-                previousInvitationId = previousInvitationId,
-            ),
-        )
-
-        saved.captured.status shouldBe NotificationStatus.PENDING
-        updated.captured.status shouldBe NotificationStatus.SENT
-        coVerify(exactly = 1) { emailDispatcher.dispatch(inviteeEmail, any()) }
     }
 
     @Test

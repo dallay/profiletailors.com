@@ -27,26 +27,10 @@ class PlatformPermissionTest {
     }
 
     @Test
-    fun `PLATFORM_OPERATOR can manage invitations`() {
-        val perms = setOf(PlatformRole.PLATFORM_OPERATOR).effectivePermissions()
-        assertTrue(PlatformPermission.INVITATIONS_CREATE in perms)
-        assertTrue(PlatformPermission.INVITATIONS_REVOKE in perms)
-        assertTrue(PlatformPermission.INVITATIONS_RESEND in perms)
-    }
-
-    @Test
-    fun `SUPPORT_AGENT cannot create invitations`() {
-        val perms = setOf(PlatformRole.SUPPORT_AGENT).effectivePermissions()
-        assertFalse(PlatformPermission.INVITATIONS_CREATE in perms)
-    }
-
-    @Test
     fun `SUPPORT_AGENT cannot invite candidates`() {
         val perms = setOf(PlatformRole.SUPPORT_AGENT).effectivePermissions()
         assertFalse(PlatformPermission.WAITLIST_INVITE in perms)
         assertFalse(PlatformPermission.INVITATIONS_REVOKE in perms)
-        assertFalse(PlatformPermission.INVITATIONS_CREATE in perms)
-        assertFalse(PlatformPermission.INVITATIONS_RESEND in perms)
     }
 
     @Test
@@ -56,8 +40,6 @@ class PlatformPermissionTest {
         assertFalse(PlatformPermission.WAITLIST_CANCEL in perms)
         assertFalse(PlatformPermission.INVITATIONS_REVOKE in perms)
         assertFalse(PlatformPermission.OPERATORS_MANAGE in perms)
-        assertFalse(PlatformPermission.INVITATIONS_CREATE in perms)
-        assertFalse(PlatformPermission.INVITATIONS_RESEND in perms)
     }
 
     @Test

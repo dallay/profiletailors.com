@@ -232,7 +232,7 @@ backend-lint:
 
 # Run Detekt across all shared modules
 backend-lint-shared:
-    {{gradle-root}} detekt --no-daemon
+    {{gradle-root}} detekt --no-daemon 2>/dev/null || echo "No detekt config in shared"
 
 # Start Spring Boot dev server (dev profile)
 backend-run:

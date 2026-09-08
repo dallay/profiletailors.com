@@ -1,6 +1,6 @@
 export default {
   overviewBadge: 'Settings overview',
-  subtitle: 'Connect a channel, name your workspace, change the surface.',
+  subtitle: 'Manage connected channels, workspace identity, and interface preferences.',
   preferencesEyebrow: 'System defaults',
   interfacePreferences: 'Interface Preferences',
   workspaceIdentityTitle: 'Workspace identity',

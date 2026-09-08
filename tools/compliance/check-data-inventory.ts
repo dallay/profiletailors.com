@@ -11,13 +11,8 @@ const purposeSchema = z.object({
   role: z.enum(['controller', 'processor']),
   legal_basis: z.object({
     type: z.enum([
-      'consent',
-      'contract',
-      'legal_obligation',
-      'vital_interest',
-      'public_task',
-      'legitimate_interest',
-      'controller_instruction',
+      'consent', 'contract', 'legal_obligation', 'vital_interest',
+      'public_task', 'legitimate_interest', 'controller_instruction',
     ]),
     reference: z.string(),
   }),
@@ -94,7 +89,9 @@ export function validateDataInventory(yamlContent: string): ValidationResult {
 
     return {
       valid: false,
-      errors: result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
+      errors: result.error.issues.map(
+        (issue) => `${issue.path.join('.')}: ${issue.message}`,
+      ),
     }
   } catch (error) {
     return {

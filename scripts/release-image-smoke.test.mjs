@@ -15,10 +15,7 @@ test('backend runtime image provides its healthcheck client', () => {
   )?.[1]
   assert.ok(runtimeStage)
   assert.match(runtimeStage, /USER root/)
-  assert.match(
-    runtimeStage,
-    /RUN apt-get update[\s\S]*?apt-get install --no-install-recommends --yes wget=/,
-  )
+  assert.match(runtimeStage, /RUN apt-get update[\s\S]*?apt-get install --no-install-recommends --yes wget=/)
   assert.match(runtimeStage, /USER 1002:1001/)
 })
 
@@ -33,8 +30,5 @@ test('production smoke readiness follows the health endpoint contract', () => {
 test('production compose healthcheck uses the installed client', () => {
   const compose = read('infra/apps/smp/production/compose.yaml')
 
-  assert.match(
-    compose,
-    /test: \["CMD", "wget", "-q", "--spider", "http:\/\/127\.0\.0\.1:8080\/healthz"\]/,
-  )
+  assert.match(compose, /test: \["CMD", "wget", "-q", "--spider", "http:\/\/127\.0\.0\.1:8080\/healthz"\]/)
 })

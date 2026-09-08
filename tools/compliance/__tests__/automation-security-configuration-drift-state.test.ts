@@ -18,7 +18,12 @@ const REPORT_PATH = resolve(
 
 const FINDING_STATUSES = ['new', 'unresolved', 'resolved', 'blocked', 'ignored'] as const
 const REMEDIATION_STATUSES = ['none', 'proposed', 'implemented', 'verified'] as const
-const OUTCOMES = ['CHANGES_APPLIED', 'NO_DRIFT_DETECTED', 'PARTIALLY_COMPLETED', 'BLOCKED'] as const
+const OUTCOMES = [
+  'CHANGES_APPLIED',
+  'NO_DRIFT_DETECTED',
+  'PARTIALLY_COMPLETED',
+  'BLOCKED',
+] as const
 const CHECK_STATUSES = ['Passed', 'Failed', 'Not run'] as const
 
 const remediationSchema = z
@@ -67,7 +72,9 @@ describe('security-configuration-drift automation state (.agents/automation/stat
     const parsed = YAML.parse(rawYaml)
     const result = automationStateSchema.safeParse(parsed)
     if (!result.success) {
-      throw new Error(`State file failed schema validation: ${JSON.stringify(result.error.issues)}`)
+      throw new Error(
+        `State file failed schema validation: ${JSON.stringify(result.error.issues)}`,
+      )
     }
     state = result.data
   })

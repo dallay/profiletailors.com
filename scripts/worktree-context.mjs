@@ -330,11 +330,14 @@ export async function prepareBackendEnvironment(context = getWorktreeContext()) 
     process.env.SPRING_DOCKER_COMPOSE_ENABLED !== 'false' &&
     process.env.WORKTREE_INFRA_READY !== '1'
   ) {
-    const up = dockerCompose(['--project-name', context.composeProjectName, 'up', '-d'], {
-      cwd: context.root,
-      env: composeEnvironment,
-      stdio: 'inherit',
-    })
+    const up = dockerCompose(
+      ['--project-name', context.composeProjectName, 'up', '-d'],
+      {
+        cwd: context.root,
+        env: composeEnvironment,
+        stdio: 'inherit',
+      },
+    )
     if ((up.status ?? 1) !== 0) throw new Error('Unable to start worktree infrastructure')
     composeEnvironment.WORKTREE_INFRA_READY = '1'
   }

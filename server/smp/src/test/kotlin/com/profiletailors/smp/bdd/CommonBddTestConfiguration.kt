@@ -13,12 +13,10 @@ import com.profiletailors.smp.identity.domain.RegistrationMode
 import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
-import io.cucumber.spring.CucumberTestContext
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
-import org.springframework.context.annotation.Scope
 import org.springframework.core.task.SyncTaskExecutor
 import org.springframework.core.task.TaskExecutor
 import org.springframework.security.oauth2.jwt.BadJwtException
@@ -47,10 +45,6 @@ private fun isBddUserToken(token: String): Boolean = token == "valid-token" ||
 @TestConfiguration
 @ConditionalOnProperty(name = ["bdd.variant"])
 class CommonBddTestConfiguration {
-
-    @Bean
-    @Scope(CucumberTestContext.SCOPE_CUCUMBER_GLUE)
-    fun platformAdminScenarioState(): PlatformAdminScenarioState = PlatformAdminScenarioState()
 
     @Bean
     @Primary

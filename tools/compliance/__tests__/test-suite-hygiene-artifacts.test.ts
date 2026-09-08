@@ -11,7 +11,12 @@ const STATE_PATH = resolve(REPO_ROOT, '.agents/automation/state/test-suite-hygie
 const REPORT_PATH = resolve(REPO_ROOT, '.agents/automation/reports/test-suite-hygiene.md')
 
 const FINDING_STATUSES = ['new', 'unresolved', 'resolved', 'blocked', 'ignored'] as const
-const OUTCOMES = ['CHANGES_APPLIED', 'NO_DRIFT_DETECTED', 'PARTIALLY_COMPLETED', 'BLOCKED'] as const
+const OUTCOMES = [
+  'CHANGES_APPLIED',
+  'NO_DRIFT_DETECTED',
+  'PARTIALLY_COMPLETED',
+  'BLOCKED',
+] as const
 const CHECK_STATUSES = ['Passed', 'Failed', 'Not run'] as const
 
 const findingSchema = z
@@ -47,7 +52,9 @@ describe('test-suite-hygiene automation state (.agents/automation/state/test-sui
     const parsed = YAML.parse(rawYaml)
     const result = automationStateSchema.safeParse(parsed)
     if (!result.success) {
-      throw new Error(`State file failed schema validation: ${JSON.stringify(result.error.issues)}`)
+      throw new Error(
+        `State file failed schema validation: ${JSON.stringify(result.error.issues)}`,
+      )
     }
     state = result.data
   })

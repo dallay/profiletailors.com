@@ -1,20 +1,14 @@
 package com.profiletailors.smp.publishing.domain
 
-import com.profiletailors.common.domain.AggregateRoot
-import com.profiletailors.common.domain.ValueObject
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.temporal.TemporalAdjusters
 
 /** Supported MVP recurrence frequencies. */
-@ValueObject
 enum class RecurrenceFrequency { DAILY, WEEKLY, MONTHLY }
-
-@ValueObject
 enum class RecurringScheduleStatus { ACTIVE, PAUSED, CANCELLED }
 
-@ValueObject
 data class RecurrenceRule(
     val frequency: RecurrenceFrequency,
     val interval: Int = 1,
@@ -108,7 +102,6 @@ data class RecurrenceRule(
     }
 }
 
-@AggregateRoot
 data class RecurringSchedule(
     val id: String,
     val workspaceId: String,
@@ -120,9 +113,4 @@ data class RecurringSchedule(
     val status: RecurringScheduleStatus,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
-) {
-    init {
-        require(id.isNotBlank()) { "RecurringSchedule id must not be blank." }
-        require(workspaceId.isNotBlank()) { "RecurringSchedule workspaceId must not be blank." }
-    }
-}
+)

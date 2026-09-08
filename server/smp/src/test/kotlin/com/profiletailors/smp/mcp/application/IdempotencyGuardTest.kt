@@ -1,8 +1,8 @@
 package com.profiletailors.smp.mcp.application
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.profiletailors.smp.mcp.application.IdempotencyGuard
 import com.profiletailors.smp.mcp.domain.IdempotencyRecord
-import com.profiletailors.smp.mcp.infrastructure.JacksonMcpJsonSerializer
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -17,8 +17,7 @@ class IdempotencyGuardTest {
 
     private val repository: IdempotencyRecordRepository = mockk()
     private val objectMapper = jacksonObjectMapper()
-    private val serializer = JacksonMcpJsonSerializer(objectMapper)
-    private val guard = IdempotencyGuard(repository, serializer)
+    private val guard = IdempotencyGuard(repository, objectMapper)
 
     @Test
     fun `null idempotency key bypasses the guard and runs execute once`() {

@@ -53,7 +53,29 @@ class BucketConfigurationFactoryTest {
                     ),
                 ),
             ),
-            business = businessLimits(),
+            business = RateLimitProperties.BusinessRateLimitConfig(
+                enabled = true,
+                pricingPlans = mapOf(
+                    "free" to RateLimitProperties.BandwidthLimit(
+                        name = "free-plan",
+                        capacity = 20,
+                        refillTokens = 20,
+                        refillDuration = Duration.ofHours(1),
+                    ),
+                    "basic" to RateLimitProperties.BandwidthLimit(
+                        name = "basic-plan",
+                        capacity = 40,
+                        refillTokens = 40,
+                        refillDuration = Duration.ofHours(1),
+                    ),
+                    "professional" to RateLimitProperties.BandwidthLimit(
+                        name = "professional-plan",
+                        capacity = 100,
+                        refillTokens = 100,
+                        refillDuration = Duration.ofHours(1),
+                    ),
+                ),
+            ),
             resume = RateLimitProperties.ResumeRateLimitConfig(
                 enabled = true,
                 endpoints = listOf("/api/resume/generate"),
@@ -77,30 +99,6 @@ class BucketConfigurationFactoryTest {
         )
         factory = BucketConfigurationFactory(properties)
     }
-
-    private fun businessLimits() = RateLimitProperties.BusinessRateLimitConfig(
-        enabled = true,
-        pricingPlans = mapOf(
-            "free" to RateLimitProperties.BandwidthLimit(
-                name = "free-plan",
-                capacity = 20,
-                refillTokens = 20,
-                refillDuration = Duration.ofHours(1),
-            ),
-            "basic" to RateLimitProperties.BandwidthLimit(
-                name = "basic-plan",
-                capacity = 40,
-                refillTokens = 40,
-                refillDuration = Duration.ofHours(1),
-            ),
-            "professional" to RateLimitProperties.BandwidthLimit(
-                name = "professional-plan",
-                capacity = 100,
-                refillTokens = 100,
-                refillDuration = Duration.ofHours(1),
-            ),
-        ),
-    )
 
     @Test
     fun `should create auth bucket configuration with multiple limits`() {

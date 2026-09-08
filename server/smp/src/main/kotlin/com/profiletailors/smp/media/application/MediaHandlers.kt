@@ -5,11 +5,6 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
-import com.profiletailors.observability.NoOpOperationalEventSink
-import com.profiletailors.observability.OperationalEventSink
-import com.profiletailors.observability.error
-import com.profiletailors.observability.info
-import com.profiletailors.observability.warn
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
@@ -25,14 +20,15 @@ import com.profiletailors.smp.media.domain.MediaStorageKeys
 import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withTimeout
+import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
-private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(Locale.ROOT, it) }
+private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
 
 private val MEDIA_ASSET_SUMMARY_FORMATTER = DateTimeFormatter.ISO_INSTANT
 
@@ -81,10 +77,12 @@ class CreateUploadedAssetHandler(
     private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
-    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) : CommandWithResultHandler<CreateUploadedAssetCommand, CreateUploadedAssetResult> {
 
+    private val logger = LoggerFactory.getLogger(CreateUploadedAssetHandler::class.java)
+
     companion object {
+        private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
         private val WORD_EXTENSIONS = setOf("doc", "docx")
         private val POWERPOINT_EXTENSIONS = setOf("ppt", "pptx")
     }
@@ -111,7 +109,7 @@ class CreateUploadedAssetHandler(
         )
 
         mediaAssetRepository.create(asset)
-        operationalEvents.info(
+        logger.info(
             "media.asset.reserved assetId=$assetId workspaceId=${command.workspaceId} " +
                 "mediaType=${command.mediaType} sourceType=${command.sourceType}",
         )
@@ -217,8 +215,9 @@ class UploadAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
     private val transactionRunner: AtomicTransactionRunner,
-    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) : CommandWithResultHandler<LegacyUploadAssetCommand, LegacyUploadAssetResult> {
+
+    private val logger = LoggerFactory.getLogger(UploadAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -228,6 +227,7 @@ class UploadAssetHandler(
         private const val PNG_SIGNATURE_SIZE = 4
         private const val GIF_SIGNATURE_SIZE = 4
         private const val WEBP_SIGNATURE_SIZE = 12
+        private const val MP4_SIGNATURE_SIZE = 8
         private val JPEG_MAGIC = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
         private val PNG_MAGIC = byteArrayOf(0x89.toByte(), 0x50.toByte(), 0x4E.toByte(), 0x47.toByte())
         private val GIF_MAGIC = byteArrayOf(0x47.toByte(), 0x49.toByte(), 0x46.toByte(), 0x38.toByte())
@@ -257,9 +257,9 @@ class UploadAssetHandler(
         try {
             val asset = requireUploadableAsset(workspaceId, assetId, now)
 
-            operationalEvents.info(
+            logger.info(
                 "media.asset.upload.started assetId=$assetId workspaceId=$workspaceId " +
-                    "contentLength=${command.contentLength ?: "unknown"}",
+                    "contentLength=${command.contentLength}",
             )
 
             val startTime = System.currentTimeMillis()
@@ -271,7 +271,7 @@ class UploadAssetHandler(
             }
 
             val durationMs = System.currentTimeMillis() - startTime
-            operationalEvents.info(
+            logger.info(
                 "media.asset.upload.completed assetId=$assetId workspaceId=$workspaceId " +
                     "fileSizeBytes=$fileSize durationMs=$durationMs",
             )
@@ -346,7 +346,7 @@ class UploadAssetHandler(
         markAssetFailed(assetId, workspaceId)
         val reason = uploadFailureReason(e)
 
-        operationalEvents.info(
+        logger.info(
             "media.asset.upload.failed assetId=$assetId workspaceId=$workspaceId reason=$reason " +
                 "storageWriteAttempted=$storageWriteAttempted storageCleanupSucceeded=$cleanupSucceeded",
         )
@@ -385,7 +385,7 @@ class UploadAssetHandler(
                 "media-reconciler",
             )
         }
-        operationalEvents.info(
+        logger.info(
             "media.asset.cleanup.attempted assetId=$assetId storageKey=$storageKey success=true",
         )
         true
@@ -398,9 +398,9 @@ class UploadAssetHandler(
     }
 
     private fun logCleanupFailure(assetId: String, storageKey: String, cleanupError: Throwable) {
-        operationalEvents.warn(
+        logger.warn(
             "media.asset.cleanup.attempted assetId=$assetId storageKey=$storageKey " +
-                "success=false error=${cleanupError.message.orEmpty()}",
+                "success=false error=${cleanupError.message}",
             cleanupError,
         )
     }
@@ -409,7 +409,7 @@ class UploadAssetHandler(
         try {
             mediaAssetRepository.markAsFailed(assetId, workspaceId)
         } catch (transitionError: IllegalStateException) {
-            operationalEvents.error("Failed to transition asset to FAILED: assetId=$assetId", transitionError)
+            logger.error("Failed to transition asset to FAILED: assetId=$assetId", transitionError)
         }
     }
 
@@ -421,7 +421,7 @@ class UploadAssetHandler(
         is FileTooLargeException -> "file too large"
         is RateLimitExceededException -> "rate limit exceeded"
         is TimeoutCancellationException -> "upload timeout"
-        else -> "storage error: ${error.message.orEmpty()}"
+        else -> "storage error: ${error.message}"
     }
 
     @Suppress("ThrowsCount", "CognitiveComplexMethod")
@@ -539,7 +539,7 @@ class UploadAssetHandler(
     private fun validateMediaTypeMatch(detectedType: String?, declaredType: String) {
         if (detectedType != declaredType) {
             throw UnsupportedMediaTypeException(
-                "Magic-byte validation failed: detected ${detectedType.orEmpty()} but declared $declaredType",
+                "Magic-byte validation failed: detected $detectedType but declared $declaredType",
                 declaredType = declaredType,
                 detectedType = detectedType,
             )
@@ -586,6 +586,8 @@ class ListWorkspaceAssetsHandler(
     private val mediaPreviewTokenService: MediaPreviewTokenService,
 ) : QueryHandler<ListWorkspaceAssetsQuery, ListWorkspaceAssetsResult> {
 
+    private val logger = LoggerFactory.getLogger(ListWorkspaceAssetsHandler::class.java)
+
     override suspend fun handle(query: ListWorkspaceAssetsQuery): ListWorkspaceAssetsResult {
         val result = mediaAssetRepository.listByWorkspace(
             workspaceId = query.workspaceId,
@@ -609,6 +611,8 @@ class GetWorkspaceAssetHandler(
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
 ) : QueryHandler<GetWorkspaceAssetQuery, MediaAssetSummary> {
+
+    private val logger = LoggerFactory.getLogger(GetWorkspaceAssetHandler::class.java)
 
     override suspend fun handle(query: GetWorkspaceAssetQuery): MediaAssetSummary {
         val asset = mediaAssetRepository.findByWorkspaceAndId(query.workspaceId, query.assetId)
@@ -675,8 +679,9 @@ class PutAssetHandler(
     private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
-    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) : CommandWithResultHandler<PutAssetCommand, PutAssetResult> {
+
+    private val logger = LoggerFactory.getLogger(PutAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -776,7 +781,7 @@ class PutAssetHandler(
                             val existingAsset = mediaAssetRepository
                                 .findActiveByWorkspaceAndHash(command.workspaceId, command.fileHash)
                             if (existingAsset != null && existingAsset.assetId != command.assetId) {
-                                operationalEvents.info(
+                                logger.info(
                                     "media.asset.put.dedup.existing assetId={} workspaceId={} fileHash={}",
                                     existingAsset.assetId,
                                     command.workspaceId,
@@ -790,7 +795,7 @@ class PutAssetHandler(
                                     sourceType = MediaSourceType.UPLOADED,
                                     fileHash = command.fileHash,
                                     mediaType = command.declaredMediaType,
-                                    storageKey = requireNotNull(lockedBlob.storageKey),
+                                    storageKey = lockedBlob.storageKey!!,
                                     detectedMediaType = lockedBlob.detectedMediaType,
                                     originalFilename = command.originalFilename,
                                     fileSizeBytes = lockedBlob.fileSizeBytes,
@@ -798,7 +803,7 @@ class PutAssetHandler(
                                     createdAt = now,
                                 )
                                 mediaAssetRepository.create(asset)
-                                operationalEvents.info(
+                                logger.info(
                                     "media.asset.put.dedup assetId={} workspaceId={} fileHash={}",
                                     command.assetId,
                                     command.workspaceId,
@@ -869,7 +874,7 @@ class PutAssetHandler(
             createdAt = now,
         )
         mediaAssetRepository.create(asset)
-        operationalEvents.info(
+        logger.info(
             "media.asset.put.created assetId={} workspaceId={} fileHash={} mediaType={}",
             command.assetId,
             command.workspaceId,
@@ -975,8 +980,9 @@ class CasUploadAssetHandler(
     private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
-    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) : CommandWithResultHandler<CasUploadAssetCommand, CasUploadAssetResult> {
+
+    private val logger = LoggerFactory.getLogger(CasUploadAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -984,6 +990,7 @@ class CasUploadAssetHandler(
         private const val PNG_MAGIC_SIZE = 4
         private const val GIF_MAGIC_SIZE = 4
         private const val WEBP_MAGIC_SIZE = 12
+        private const val MP4_MAGIC_SIZE = 8
         private val JPEG_MAGIC = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
         private val PNG_MAGIC = byteArrayOf(0x89.toByte(), 0x50.toByte(), 0x4E.toByte(), 0x47.toByte())
         private val GIF_MAGIC = byteArrayOf(0x47.toByte(), 0x49.toByte(), 0x46.toByte(), 0x38.toByte())
@@ -1077,7 +1084,7 @@ class CasUploadAssetHandler(
             // safe to perform cleanup outside the transaction.
             cleanupTemp(tempKey)
             markBothFailed(assetId, workspaceId, "BLOB_OR_ASSET_MISSING")
-            operationalEvents.warn(
+            logger.warn(
                 "media.asset.upload.transactionalEmpty assetId={} workspaceId={}",
                 assetId,
                 workspaceId,
@@ -1135,7 +1142,7 @@ class CasUploadAssetHandler(
                     fileSizeBytes = blob.fileSizeBytes,
                 ) ?: throw BlobOrAssetMissingException(assetId)
 
-                operationalEvents.info(
+                logger.info(
                     "media.asset.upload.dedupHit assetId={} workspaceId={} fileHash={}",
                     assetId,
                     workspaceId,
@@ -1194,7 +1201,7 @@ class CasUploadAssetHandler(
                     fileSizeBytes = actualBytes,
                 ) ?: throw BlobOrAssetMissingException(assetId)
 
-                operationalEvents.info(
+                logger.info(
                     "media.asset.upload.completed assetId={} workspaceId={} fileHash={} " +
                         "canonicalKey={} detectedMediaType={} fileSizeBytes={}",
                     assetId,
@@ -1409,7 +1416,7 @@ class CasUploadAssetHandler(
             )
         } catch (e: StorageException) {
             // Best-effort cleanup — log and move on
-            operationalEvents.warn("Failed to cleanup temp key {}: {}", tempKey, e.message)
+            logger.warn("Failed to cleanup temp key {}: {}", tempKey, e.message)
         }
     }
 
@@ -1419,7 +1426,7 @@ class CasUploadAssetHandler(
         if (fileHash != null) {
             workspaceFileBlobRepository.markBlobFailed(workspaceId, fileHash, reason)
         }
-        operationalEvents.info(
+        logger.info(
             "media.asset.upload.failed assetId={} workspaceId={} reason={}",
             assetId,
             workspaceId,
@@ -1433,8 +1440,9 @@ class DeleteAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val transactionRunner: AtomicTransactionRunner,
-    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) : CommandWithResultHandler<DeleteAssetCommand, DeleteAssetResult> {
+
+    private val logger = LoggerFactory.getLogger(DeleteAssetHandler::class.java)
 
     override suspend fun handle(command: DeleteAssetCommand): DeleteAssetResult {
         val assetId = command.assetId
@@ -1446,13 +1454,13 @@ class DeleteAssetHandler(
 
         // Step 2: Idempotent if already deleted
         if (asset.status == MediaAssetStatus.DELETED) {
-            operationalEvents.info("media.asset.delete.idempotent assetId={} workspaceId={}", assetId, workspaceId)
+            logger.info("media.asset.delete.idempotent assetId={} workspaceId={}", assetId, workspaceId)
             return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
         }
 
         // Step 3: Soft-delete asset
         mediaAssetRepository.softDelete(assetId, workspaceId)
-        operationalEvents.info("media.asset.delete.softDeleted assetId={} workspaceId={}", assetId, workspaceId)
+        logger.info("media.asset.delete.softDeleted assetId={} workspaceId={}", assetId, workspaceId)
 
         // Step 4: Get fileHash (nullable for pre-CAS assets)
         val fileHash = asset.fileHash ?: return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
@@ -1483,7 +1491,7 @@ class DeleteAssetHandler(
         if (activeCount == 0) {
             val orphanedAt = Instant.now()
             workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
-            operationalEvents.info(
+            logger.info(
                 "media.blob.markedReadyForGC workspaceId={} fileHash={}",
                 workspaceId,
                 fileHash,

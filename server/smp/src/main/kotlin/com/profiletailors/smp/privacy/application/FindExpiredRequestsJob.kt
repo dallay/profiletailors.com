@@ -1,11 +1,8 @@
 package com.profiletailors.smp.privacy.application
 
 import com.profiletailors.common.domain.Service
-import com.profiletailors.observability.NoOpOperationalEventSink
-import com.profiletailors.observability.OperationalEventSink
-import com.profiletailors.observability.error
-import com.profiletailors.observability.info
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestRepository
+import org.slf4j.LoggerFactory
 import java.time.Instant
 
 /**
@@ -17,10 +14,8 @@ import java.time.Instant
  * @since 1.0.0
  */
 @Service
-class FindExpiredRequestsJob(
-    private val repository: DataSubjectRequestRepository,
-    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
-) {
+class FindExpiredRequestsJob(private val repository: DataSubjectRequestRepository) {
+    private val logger = LoggerFactory.getLogger(FindExpiredRequestsJob::class.java)
 
     /**
      * Run one expiry discovery cycle.
@@ -33,7 +28,7 @@ class FindExpiredRequestsJob(
         val expired = try {
             repository.findExpired(Instant.now())
         } catch (e: Exception) {
-            operationalEvents.error("privacy.expiry.runFailed", e)
+            logger.error("privacy.expiry.runFailed", e)
             return FindExpiredRequestsResult(
                 expiredCount = 0,
                 errors = 1,
@@ -43,7 +38,7 @@ class FindExpiredRequestsJob(
         }
 
         val durationMs = System.currentTimeMillis() - startTime
-        operationalEvents.info(
+        logger.info(
             "privacy.expiry.run expiredCount={} durationMs={}",
             expired.size,
             durationMs,

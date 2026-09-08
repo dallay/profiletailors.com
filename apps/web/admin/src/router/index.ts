@@ -66,12 +66,6 @@ const router = createRouter({
           component: () => import('@/views/AuditView.vue'),
           meta: { permission: 'platform.audit.read' },
         },
-        {
-          path: 'direct-invitations',
-          name: 'direct-invitations',
-          component: () => import('@/views/DirectInvitationsView.vue'),
-          meta: { permission: 'platform.invitations.read' },
-        },
       ],
     },
   ],

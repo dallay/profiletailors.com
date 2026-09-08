@@ -1,9 +1,7 @@
 package com.profiletailors.smp.identity.application
 
 import com.profiletailors.common.domain.Service
-import com.profiletailors.observability.NoOpOperationalEventSink
-import com.profiletailors.observability.OperationalEventSink
-import com.profiletailors.observability.info
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Duration
 
@@ -29,8 +27,8 @@ class CloseAccountHandler(
     private val orchestration: CloseAccountOrchestration,
     private val rateLimit: RateLimit,
     private val clock: Clock = Clock.systemUTC(),
-    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * Executes the full account closure flow.
@@ -43,9 +41,9 @@ class CloseAccountHandler(
         validateConfirmation(command)
         enforceRateLimit(command.principalId)
 
-        operationalEvents.info("Initiating account closure")
+        logger.info("Initiating account closure for principal {}", command.principalId)
         orchestration.execute(command.principalId)
-        operationalEvents.info("Account closure completed")
+        logger.info("Account closure completed for principal {}", command.principalId)
     }
 
     private fun validateConfirmation(command: CloseAccountCommand) {

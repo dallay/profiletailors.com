@@ -1,6 +1,5 @@
 package com.profiletailors.smp.media.application
 
-import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.Storage
@@ -28,7 +27,6 @@ class StorageAssetPreviewUrlResolverTest {
             mediaPreviewTokenService = tokenService,
             storageBucket = storageBucket,
             previewUrlExpirySeconds = 3_600,
-            operationalEvents = NoOpOperationalEventSink,
         )
 
         val result = resolver.resolvePreviewUrl(
@@ -50,7 +48,6 @@ class StorageAssetPreviewUrlResolverTest {
             mediaPreviewTokenService = tokenService,
             storageBucket = storageBucket,
             previewUrlExpirySeconds = 3_600,
-            operationalEvents = NoOpOperationalEventSink,
         )
 
         val result = resolver.resolvePreviewUrl(
@@ -72,7 +69,6 @@ class StorageAssetPreviewUrlResolverTest {
             mediaPreviewTokenService = tokenService,
             storageBucket = storageBucket,
             previewUrlExpirySeconds = 3_600,
-            operationalEvents = NoOpOperationalEventSink,
         )
 
         val result = resolver.resolvePreviewUrl(
@@ -93,7 +89,6 @@ class StorageAssetPreviewUrlResolverTest {
             mediaPreviewTokenService = tokenService,
             storageBucket = storageBucket,
             previewUrlExpirySeconds = 3_600,
-            operationalEvents = NoOpOperationalEventSink,
         )
 
         val result = resolver.resolvePreviewUrl(
@@ -114,7 +109,6 @@ class StorageAssetPreviewUrlResolverTest {
             mediaPreviewTokenService = tokenService,
             storageBucket = storageBucket,
             previewUrlExpirySeconds = 3_600,
-            operationalEvents = NoOpOperationalEventSink,
         )
 
         val result = resolver.resolvePreviewUrl(
@@ -135,7 +129,6 @@ class StorageAssetPreviewUrlResolverTest {
             mediaPreviewTokenService = tokenService,
             storageBucket = storageBucket,
             previewUrlExpirySeconds = 3_600,
-            operationalEvents = NoOpOperationalEventSink,
         )
 
         val result = resolver.resolvePreviewUrl(

@@ -164,16 +164,59 @@ function segmentedControlClass(active: boolean) {
             <span class="size-1.5 rounded-full bg-text-display" />
             {{ $t('settings.overviewBadge') }}
           </div>
-          <p class="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-text-secondary">
-            {{ $t('nav.settings') }}
-          </p>
-          <h1 data-testid="settings-page-title" class="display-lg text-[36px] leading-[1.1] text-text-display">
+          <h1 class="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-text-display">
             {{ $t('nav.settings') }}
           </h1>
           <p class="max-w-2xl text-sm leading-7 text-text-secondary">
             {{ $t('settings.subtitle') }}
           </p>
         </div>
+
+        <aside data-testid="settings-preferences-panel" class="flex shrink-0 flex-wrap gap-4 lg:justify-end">
+          <div class="rounded-2xl border border-border-subtle bg-bg-surface p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
+            <p class="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
+              {{ $t('settings.languageLabel') }}
+            </p>
+            <div class="mt-3">
+              <div
+                class="inline-flex rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[10px]"
+                role="radiogroup"
+                :aria-label="$t('settings.languageLabel')"
+              >
+                <label
+                  data-testid="settings-language-en"
+                  class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                  :class="segmentedControlClass(settings.currentLocale === 'en')"
+                >
+                  <input
+                    type="radio"
+                    name="locale"
+                    value="en"
+                    :checked="settings.currentLocale === 'en'"
+                    class="sr-only"
+                    @change="settings.setLocale('en')"
+                  />
+                  EN
+                </label>
+                <label
+                  data-testid="settings-language-es"
+                  class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                  :class="segmentedControlClass(settings.currentLocale === 'es')"
+                >
+                  <input
+                    type="radio"
+                    name="locale"
+                    value="es"
+                    :checked="settings.currentLocale === 'es'"
+                    class="sr-only"
+                    @change="settings.setLocale('es')"
+                  />
+                  ES
+                </label>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </section>
 
@@ -365,61 +408,6 @@ function segmentedControlClass(active: boolean) {
         </CardContent>
       </Card>
     </div>
-
-    <Card
-      data-testid="settings-preferences-panel"
-      class="border border-border-subtle bg-bg-surface p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
-    >
-      <CardHeader class="space-y-3 border-b border-border-subtle p-0 pb-5">
-        <p class="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
-          {{ $t('settings.preferencesEyebrow') }}
-        </p>
-      </CardHeader>
-
-      <CardContent class="mt-6 space-y-5 p-0">
-        <p class="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
-          {{ $t('settings.languageLabel') }}
-        </p>
-        <div class="mt-3">
-          <div
-            class="inline-flex rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[10px]"
-            role="radiogroup"
-            :aria-label="$t('settings.languageLabel')"
-          >
-            <label
-              data-testid="settings-language-en"
-              class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
-              :class="segmentedControlClass(settings.currentLocale === 'en')"
-            >
-              <input
-                type="radio"
-                name="locale"
-                value="en"
-                :checked="settings.currentLocale === 'en'"
-                class="sr-only"
-                @change="settings.setLocale('en')"
-              />
-              EN
-            </label>
-            <label
-              data-testid="settings-language-es"
-              class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
-              :class="segmentedControlClass(settings.currentLocale === 'es')"
-            >
-              <input
-                type="radio"
-                name="locale"
-                value="es"
-                :checked="settings.currentLocale === 'es'"
-                class="sr-only"
-                @change="settings.setLocale('es')"
-              />
-              ES
-            </label>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
 
     <PrivacySection />
 

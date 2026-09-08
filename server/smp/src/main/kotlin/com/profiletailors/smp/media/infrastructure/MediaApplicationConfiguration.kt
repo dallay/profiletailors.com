@@ -1,6 +1,5 @@
 package com.profiletailors.smp.media.infrastructure
 
-import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.MediaPreviewTokenService
 import com.profiletailors.smp.media.application.MediaReconcilerSettings
@@ -43,11 +42,9 @@ class MediaApplicationConfiguration {
         attachmentsStorageBinding: AttachmentsStorageBinding,
         mediaPreviewTokenService: MediaPreviewTokenService,
         properties: MediaProperties,
-        operationalEvents: OperationalEventSink,
     ): AssetPreviewUrlResolver = StorageAssetPreviewUrlResolver(
         binding = attachmentsStorageBinding,
         mediaPreviewTokenService = mediaPreviewTokenService,
         previewUrlExpirySeconds = properties.previewUrlExpirySeconds,
-        operationalEvents = operationalEvents,
     )
 }
