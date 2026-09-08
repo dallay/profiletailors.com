@@ -6,7 +6,7 @@ description: >
 inputs:
   java-version:
     description: Java version (Eclipse Temurin)
-    default: '21'
+    default: '25'
 
 runs:
   using: composite

@@ -10,8 +10,6 @@ import org.gradle.kotlin.dsl.getByType
 import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 import org.gradle.testing.jacoco.tasks.JacocoReport
 
-import dev.detekt.gradle.extensions.DetektExtension
-
 class SpringBootApplicationPlugin : ConventionPlugin {
     override fun Project.configure() {
         // Apply base Kotlin library plugin (configs toolchains, detekt, basic testing)
@@ -24,11 +22,6 @@ class SpringBootApplicationPlugin : ConventionPlugin {
 
         // Apply Jacoco
         apply(plugin = "jacoco")
-
-        // Configure Detekt for the application module
-        extensions.configure(DetektExtension::class.java) {
-            buildUponDefaultConfig.set(true)
-        }
 
         // Ensure check task runs detekt
         tasks.named("check") {

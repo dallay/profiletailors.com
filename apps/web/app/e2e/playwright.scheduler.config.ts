@@ -55,7 +55,7 @@ export default defineConfig({
 
   reporter: [
     ['list'],
-    ['html', { outputFolder: 'playwright-scheduler-report' }],
+    ['html', { outputFolder: 'playwright-scheduler-report', open: 'never' }],
     createCoverageConfig('scheduler', __dirname),
   ],
 

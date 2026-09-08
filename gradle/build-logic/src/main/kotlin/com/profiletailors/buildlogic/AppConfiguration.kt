@@ -7,7 +7,7 @@ object AppConfiguration {
     const val APP_NAME = "smp"
     const val PACKAGE_NAME = "com.profiletailors"
 
-    val jvmTarget = KtJvmTarget.JVM_21
-    val jvmTargetStr = "21"
+    val jvmTarget = KtJvmTarget.JVM_25
+    val jvmTargetStr = "25"
     val kotlinVersion = KtVersion.KOTLIN_2_4
 }

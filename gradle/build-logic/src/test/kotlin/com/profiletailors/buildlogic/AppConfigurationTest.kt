@@ -19,14 +19,14 @@ class AppConfigurationTest {
     }
 
     @Test
-    fun `jvmTarget and jvmTargetStr remain consistent with JVM 21`() {
-        assertEquals(JvmTarget.JVM_21, AppConfiguration.jvmTarget)
-        assertEquals("21", AppConfiguration.jvmTargetStr)
+    fun `jvmTarget and jvmTargetStr remain consistent with JVM 25`() {
+        assertEquals(JvmTarget.JVM_25, AppConfiguration.jvmTarget)
+        assertEquals("25", AppConfiguration.jvmTargetStr)
     }
 
     @Test
     fun `jvmTargetStr parses as the integer used for JavaLanguageVersion lookups`() {
-        assertEquals(21, AppConfiguration.jvmTargetStr.toInt())
+        assertEquals(25, AppConfiguration.jvmTargetStr.toInt())
     }
 
     @Test

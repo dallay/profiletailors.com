@@ -1,16 +1,21 @@
 package com.profiletailors.smp.publishing.domain
 
+import com.profiletailors.common.domain.ValueObject
+
+@ValueObject
 enum class ProviderCatalogState {
     AVAILABLE,
     LOCKED,
     HIDDEN,
 }
 
+@ValueObject
 enum class ProviderLockReason {
     NOT_ENTITLED,
     CAPACITY_REACHED,
 }
 
+@ValueObject
 data class ProviderCatalogItem(
     val provider: SocialProvider,
     val accountKinds: Set<String>,
@@ -19,7 +24,11 @@ data class ProviderCatalogItem(
     val channelLimit: Int?,
     val connectedChannelCount: Int,
     val canConnectMore: Boolean,
-)
+) {
+    init {
+        require(connectedChannelCount >= 0) { "connectedChannelCount must be non-negative." }
+    }
+}
 
 fun interface ProviderCatalogPolicy {
     suspend fun evaluate(provider: SocialProvider, workspaceId: String): ProviderCatalogItem

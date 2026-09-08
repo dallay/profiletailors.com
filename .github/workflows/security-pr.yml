@@ -54,6 +54,8 @@ jobs:
             frontend:
               - 'apps/web/marketing/**'
               - 'apps/web/app/**'
+              - 'apps/web/admin/**'
+              - 'shared/web/**'
               - 'pnpm-lock.yaml'
               - '.semgrep/**'
               - '.gitleaks.toml'
@@ -207,6 +209,9 @@ jobs:
           semgrep scan \
             --config .semgrep/config.yml \
             --include apps/web/marketing/** \
+            --include apps/web/app/** \
+            --include apps/web/admin/** \
+            --include shared/web/** \
             --include .github/workflows/** \
             --include .semgrep/** \
             --include .gitleaks.toml \
@@ -240,7 +245,7 @@ jobs:
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
           cache: gradle
       - name: Initialize CodeQL
         uses: github/codeql-action/init@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
@@ -260,6 +265,37 @@ jobs:
         uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
         with:
           category: codeql-backend
+
+  codeql-frontend:
+    name: security / codeql-frontend
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.repo_security == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.19.0'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
+        with:
+          languages: javascript-typescript
+          config-file: ./.github/codeql/codeql-frontend-config.yml
+      - name: Analyze with CodeQL
+        uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8
+        with:
+          category: codeql-frontend
 
   trivy-backend:
     name: security / trivy-backend
@@ -349,6 +385,7 @@ jobs:
       - semgrep-backend
       - semgrep-frontend
       - codeql-backend
+      - codeql-frontend
       - trivy-backend
       - frontend-biome-security
     if: ${{ always() }}
@@ -363,7 +400,8 @@ jobs:
           GITLEAKS_RESULT: ${{ needs.gitleaks-pr.result }}
           SEMGREP_BACKEND_RESULT: ${{ needs.semgrep-backend.result }}
           SEMGREP_FRONTEND_RESULT: ${{ needs.semgrep-frontend.result }}
-          CODEQL_RESULT: ${{ needs.codeql-backend.result }}
+          CODEQL_BACKEND_RESULT: ${{ needs.codeql-backend.result }}
+          CODEQL_FRONTEND_RESULT: ${{ needs.codeql-frontend.result }}
           TRIVY_RESULT: ${{ needs.trivy-backend.result }}
           BIOME_RESULT: ${{ needs.frontend-biome-security.result }}
         run: |
@@ -380,12 +418,13 @@ jobs:
             echo "- gitleaks-pr: $GITLEAKS_RESULT"
             echo "- semgrep-backend: $SEMGREP_BACKEND_RESULT"
             echo "- semgrep-frontend: $SEMGREP_FRONTEND_RESULT"
-            echo "- codeql-backend: $CODEQL_RESULT"
+            echo "- codeql-backend: $CODEQL_BACKEND_RESULT"
+            echo "- codeql-frontend: $CODEQL_FRONTEND_RESULT"
             echo "- trivy-backend: $TRIVY_RESULT"
             echo "- frontend-biome-security: $BIOME_RESULT"
             echo ''
             echo '### Findings channels'
-            echo '- CodeQL: GitHub code scanning.'
+            echo '- CodeQL backend/frontend: GitHub code scanning.'
             echo '- Semgrep backend/frontend: GitHub code scanning via uploaded SARIF.'
             echo '- Trivy backend: GitHub code scanning via uploaded SARIF.'
             echo '- Gitleaks: native workflow logs, annotations, and uploaded artifact in this PR lane.'
@@ -399,7 +438,8 @@ jobs:
             "$GITLEAKS_RESULT" \
             "$SEMGREP_BACKEND_RESULT" \
             "$SEMGREP_FRONTEND_RESULT" \
-            "$CODEQL_RESULT" \
+            "$CODEQL_BACKEND_RESULT" \
+            "$CODEQL_FRONTEND_RESULT" \
             "$TRIVY_RESULT" \
             "$BIOME_RESULT"; do
             if [[ "$result" != 'success' && "$result" != 'skipped' ]]; then

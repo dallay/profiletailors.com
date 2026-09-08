@@ -33,7 +33,7 @@ export default defineConfig({
 
   reporter: [
     ['list'],
-    ['html', { outputFolder: 'playwright-media-mocked-report' }],
+    ['html', { outputFolder: 'playwright-media-mocked-report', open: 'never' }],
     createCoverageConfig('media-mocked', __dirname),
   ],
 

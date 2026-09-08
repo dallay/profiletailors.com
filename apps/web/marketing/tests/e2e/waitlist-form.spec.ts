@@ -25,6 +25,19 @@ async function dismissConsentBanner(page: Page): Promise<void> {
 }
 
 test.describe('Waitlist Form — Marketing E2E', () => {
+  test('associates the visible email label with the email input', async ({ page }: { page: Page }): Promise<void> => {
+    await dismissConsentBanner(page);
+    await page.goto('/');
+
+    const emailLabel = page.getByText('EMAIL', { exact: true });
+    const controlledId = await emailLabel.evaluate((element) =>
+      element instanceof HTMLLabelElement ? element.control?.id : null
+    );
+
+    await expect(emailLabel).toBeVisible();
+    expect(controlledId).toBe('waitlist-email');
+  });
+
   test('submits successfully when the backend responds 202', async ({ page }: { page: Page }): Promise<void> => {
     let interceptedBody: unknown = null;
 

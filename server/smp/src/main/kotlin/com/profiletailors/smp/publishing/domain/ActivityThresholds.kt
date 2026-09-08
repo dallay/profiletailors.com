@@ -1,5 +1,8 @@
 package com.profiletailors.smp.publishing.domain
 
+import com.profiletailors.common.domain.ValueObject
+
+@ValueObject
 enum class ActivityDensity {
     NONE,
     LIGHT,
