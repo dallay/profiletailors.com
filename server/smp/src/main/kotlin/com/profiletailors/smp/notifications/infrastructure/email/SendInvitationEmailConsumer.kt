@@ -11,6 +11,7 @@ import com.profiletailors.notifications.domain.NotificationStatus
 import com.profiletailors.notifications.domain.Recipient
 import com.profiletailors.notifications.domain.event.InvitationResent
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
+import com.profiletailors.smp.platformadmin.domain.DirectInvitationResent
 import com.profiletailors.smp.platformadmin.domain.InvitationIssued
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -58,6 +59,17 @@ internal class SendInvitationEmailConsumer(
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     suspend fun onInvitationResent(event: InvitationResent) {
+        dispatch(
+            invitationId = event.invitationId,
+            recipient = event.recipient,
+            workspaceName = event.workspaceName,
+            rawToken = event.rawToken,
+            locale = event.locale,
+        )
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    suspend fun onDirectInvitationResent(event: DirectInvitationResent) {
         dispatch(
             invitationId = event.invitationId,
             recipient = event.recipient,

@@ -21,8 +21,8 @@ class WaitlistEntryVersionConflictException(id: String) :
 
 class InvitationNotFoundException(id: String) : RuntimeException("Invitation not found: $id")
 
-class InvitationAlreadyActiveException(waitlistEntryId: String) :
-    RuntimeException("An active invitation already exists for waitlist entry: $waitlistEntryId")
+class InvitationAlreadyActiveException(waitlistEntryId: String, cause: Throwable? = null) :
+    RuntimeException("An active invitation already exists for waitlist entry: $waitlistEntryId", cause)
 
 class InvitationNotResendableException(id: String) : RuntimeException("Invitation cannot be resent: $id")
 

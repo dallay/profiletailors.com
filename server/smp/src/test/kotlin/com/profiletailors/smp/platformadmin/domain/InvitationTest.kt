@@ -277,6 +277,21 @@ class InvitationTest {
     }
 
     @Test
+    fun `revocation with matching expected version succeeds`() {
+        val revoked = activeInvitation().revoke(0)
+
+        assertEquals(InvitationStatus.REVOKED, revoked.status)
+        assertEquals(1, revoked.version)
+    }
+
+    @Test
+    fun `revocation with stale expected version is rejected`() {
+        assertThrows<InvitationVersionConflictException> {
+            activeInvitation().revoke(99)
+        }
+    }
+
+    @Test
     fun `terminal invitations reject expiration and revocation`() {
         val accepted = activeInvitation().accept(now.plusSeconds(30), "principal-1")
         val expired = activeInvitation().expire(activeInvitation().expiresAt)

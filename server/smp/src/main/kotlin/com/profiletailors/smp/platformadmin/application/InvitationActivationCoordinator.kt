@@ -7,19 +7,23 @@ import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
+import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
+import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import java.time.Clock
+import java.time.Instant
 
 class InvitationActivationCoordinator(
     private val invitationRepository: InvitationRepository,
     private val tokenHasher: TokenHasher,
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val workspaceProvisioningService: WorkspaceProvisioningService,
+    private val waitlistEntryAdmin: WaitlistEntryAdmin,
     private val membershipProvisioner: WorkspaceMembershipProvisioner,
     private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
@@ -69,6 +73,8 @@ class InvitationActivationCoordinator(
                 InvitationTarget.NEW_WORKSPACE -> provisioned?.workspaceId
             }
 
+            convertWaitlistEntryIfNeeded(invitation, now)
+
             val accepted = invitation.accept(now, identity.principalId, resolvedWorkspaceId)
             val success = invitationRepository.updateIfVersionMatches(accepted)
             if (!success) throw OptimisticLockException()
@@ -81,6 +87,17 @@ class InvitationActivationCoordinator(
 
             InvitationActivationResult(accepted, membership.status)
         }
+    }
+
+    private suspend fun convertWaitlistEntryIfNeeded(invitation: Invitation, at: Instant) {
+        if (invitation.target != InvitationTarget.NEW_WORKSPACE || invitation.source != InvitationSource.WAITLIST) {
+            return
+        }
+
+        val entry = waitlistEntryAdmin.findById(requireNotNull(invitation.sourceReferenceId))
+            ?: throw IllegalStateException("Waitlist entry not found")
+        entry.convert(at)
+        waitlistEntryAdmin.save(entry)
     }
 
     private fun normalize(value: String?): String = value?.trim()?.lowercase() ?: ""

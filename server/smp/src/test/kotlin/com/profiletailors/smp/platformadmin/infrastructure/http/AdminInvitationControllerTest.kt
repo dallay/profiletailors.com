@@ -6,15 +6,25 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.command.CreateInvitationCommand
+import com.profiletailors.smp.platformadmin.application.command.ResendInvitationCommand
+import com.profiletailors.smp.platformadmin.application.command.RevokeInvitationCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdminInvitationQuery
+import com.profiletailors.smp.platformadmin.application.handler.CreateInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.ResendInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
+import com.profiletailors.smp.platformadmin.application.result.CreateInvitationResult
+import com.profiletailors.smp.platformadmin.application.result.ResendInvitationResult
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
+import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.time.Instant
 import java.util.UUID
@@ -27,8 +37,11 @@ class AdminInvitationControllerTest {
     private val entryId = "entry-abc-123"
 
     private val invitationQuery = mockk<AdminInvitationQuery>()
-    private val resendHandler = mockk<ResendWaitlistInvitationHandler>(relaxed = true)
-    private val revokeHandler = mockk<RevokeWaitlistInvitationHandler>(relaxed = true)
+    private val createInvitationHandler = mockk<CreateInvitationHandler>(relaxed = true)
+    private val revokeInvitationHandler = mockk<RevokeInvitationHandler>(relaxed = true)
+    private val resendInvitationHandler = mockk<ResendInvitationHandler>(relaxed = true)
+    private val resendWaitlistHandler = mockk<ResendWaitlistInvitationHandler>(relaxed = true)
+    private val revokeWaitlistHandler = mockk<RevokeWaitlistInvitationHandler>(relaxed = true)
     private val operatorAccessResolver = mockk<OperatorAccessResolver>()
 
     @Test
@@ -84,7 +97,7 @@ class AdminInvitationControllerTest {
     @Test
     fun `resend returns 200 with resend handler result`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
-        coEvery { resendHandler.handle(any()) } returns invitationSummary()
+        coEvery { resendWaitlistHandler.handle(any()) } returns invitationSummary()
 
         webClient()
             .post()
@@ -95,7 +108,103 @@ class AdminInvitationControllerTest {
             .jsonPath("$.id").isEqualTo(invitationId.toString())
             .jsonPath("$.status").isEqualTo("ACTIVE")
 
-        coVerify { resendHandler.handle(match { it.invitationId == invitationId }) }
+        coVerify { resendWaitlistHandler.handle(match { it.invitationId == invitationId }) }
+    }
+
+    @Test
+    fun `create direct returns 401 without principal context`() = runTest {
+        webClient(principal = null)
+            .post()
+            .uri("/api/admin/invitations/direct")
+            .contentType(MediaType.valueOf("application/vnd.api.v1+json"))
+            .bodyValue("""{"email":"user@example.com","target":"EXISTING_WORKSPACE","workspaceId":"ws-1"}""")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `create direct returns 201 and delegates request`() = runTest {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { createInvitationHandler.handle(any()) } returns
+            CreateInvitationResult(invitationId, "ACTIVE", "2026-08-06T10:00:00Z", 0)
+
+        webClient()
+            .post()
+            .uri("/api/admin/invitations/direct")
+            .contentType(MediaType.valueOf("application/vnd.api.v1+json"))
+            .bodyValue("""{"email":"user@example.com","target":"EXISTING_WORKSPACE","workspaceId":"ws-1"}""")
+            .exchange()
+            .expectStatus().isCreated
+            .expectBody()
+            .jsonPath("$.invitationId").isEqualTo(invitationId.toString())
+            .jsonPath("$.version").isEqualTo(0)
+
+        coVerify {
+            createInvitationHandler.handle(
+                match<CreateInvitationCommand> {
+                    it.email == "user@example.com" && it.workspaceId == "ws-1"
+                },
+            )
+        }
+    }
+
+    @Test
+    fun `revoke direct returns 401 without principal context`() = runTest {
+        webClient(principal = null)
+            .post()
+            .uri("/api/admin/invitations/$invitationId/direct-revoke")
+            .contentType(MediaType.valueOf("application/vnd.api.v1+json"))
+            .bodyValue("""{"expectedVersion":0}""")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `revoke direct returns 200 and delegates version`() = runTest {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        webClient()
+            .post()
+            .uri("/api/admin/invitations/$invitationId/direct-revoke")
+            .contentType(MediaType.valueOf("application/vnd.api.v1+json"))
+            .bodyValue("""{"expectedVersion":3}""")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.invitationId").isEqualTo(invitationId.toString())
+
+        coVerify {
+            revokeInvitationHandler.handle(match<RevokeInvitationCommand> { it.expectedVersion == 3L })
+        }
+    }
+
+    @Test
+    fun `resend direct returns 401 without principal context`() = runTest {
+        webClient(principal = null)
+            .post()
+            .uri("/api/admin/invitations/$invitationId/direct-resend")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `resend direct returns 200 and delegates invitation`() = runTest {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { resendInvitationHandler.handle(any()) } returns
+            ResendInvitationResult(invitationId, "ACTIVE", "2026-08-06T10:00:00Z", 1)
+
+        webClient()
+            .post()
+            .uri("/api/admin/invitations/$invitationId/direct-resend")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.invitationId").isEqualTo(invitationId.toString())
+            .jsonPath("$.version").isEqualTo(1)
+
+        coVerify {
+            resendInvitationHandler.handle(match<ResendInvitationCommand> { it.invitationId == invitationId })
+        }
     }
 
     @Test
@@ -110,15 +219,18 @@ class AdminInvitationControllerTest {
             .expectBody()
             .jsonPath("$.status").isEqualTo("revoked")
 
-        coVerify { revokeHandler.handle(match { it.invitationId == invitationId }) }
+        coVerify { revokeWaitlistHandler.handle(match { it.invitationId == invitationId }) }
     }
 
     private fun webClient(principal: PrincipalContext? = operatorPrincipal()): WebTestClient = WebTestClient
         .bindToController(
             AdminInvitationController(
                 invitationQuery = invitationQuery,
-                resendHandler = resendHandler,
-                revokeHandler = revokeHandler,
+                createInvitationHandler = createInvitationHandler,
+                revokeInvitationHandler = revokeInvitationHandler,
+                resendInvitationHandler = resendInvitationHandler,
+                resendWaitlistHandler = resendWaitlistHandler,
+                revokeWaitlistHandler = revokeWaitlistHandler,
                 operatorAccessResolver = operatorAccessResolver,
                 requestContextStore = FakeRequestContextStore(principal),
             ),
