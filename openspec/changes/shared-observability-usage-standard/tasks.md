@@ -42,4 +42,3 @@ Chain strategy: single-pr
 
 - [x] 4.1 Run targeted `pnpm exec markdownlint-cli2` on all changed Markdown, `just docs-links`, and `just doc-check`; fix every introduced lint, broken-link, or stale-date finding.
 - [x] 4.2 Manually reconcile the guide against the source files and specification scenarios, confirming no code, redaction enforcement, or correlation-id implementation was added; record exact validation results for apply/verify.
-- [x] 4.2 Manually reconcile the guide against the source files and specification scenarios, confirming no code, redaction enforcement, or correlation-id implementation was added; record exact validation results for apply/verify.
