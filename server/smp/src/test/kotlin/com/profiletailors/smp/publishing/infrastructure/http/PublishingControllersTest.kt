@@ -15,7 +15,9 @@ import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionC
 import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.ConnectedSocialChannelSummary
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
+import com.profiletailors.smp.publishing.application.CreateRecurringScheduleCommand
 import com.profiletailors.smp.publishing.application.DeletePublicationCommand
+import com.profiletailors.smp.publishing.application.DeleteRecurringScheduleCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
@@ -23,19 +25,28 @@ import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiatio
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsResponse
+import com.profiletailors.smp.publishing.application.ListRecurringSchedulesQuery
 import com.profiletailors.smp.publishing.application.PublicationResult
+import com.profiletailors.smp.publishing.application.RecurringScheduleResult
+import com.profiletailors.smp.publishing.application.RecurringSchedulesResponse
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialAccountSummary
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
+import com.profiletailors.smp.publishing.application.UpdateRecurringScheduleCommand
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.PublicationStatus
+import com.profiletailors.smp.publishing.domain.RecurrenceFrequency
+import com.profiletailors.smp.publishing.domain.RecurringScheduleStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
+import com.profiletailors.smp.publishing.infrastructure.http.RecurringScheduleController
+import com.profiletailors.smp.publishing.infrastructure.http.RecurringSchedulePatchRequest
+import com.profiletailors.smp.publishing.infrastructure.http.RecurringScheduleRequest
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -558,6 +569,75 @@ class PublishingControllersTest {
 //      and prove the advice produces 404 ProblemDetail title/detail/status
 // Future work can add a full WebTestClient runtime test by extending IntegrationTestBase.
 
+    @Test
+    fun `create recurring schedule dispatches command with correct parameters`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = RecurringScheduleController(
+            mediator = mediator,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+        )
+
+        val request = RecurringScheduleRequest(
+            templatePostId = "pub-1",
+            frequency = "daily",
+            interval = 1,
+            startsAt = Instant.parse("2026-09-10T10:00:00Z"),
+            timezone = "UTC",
+        )
+        controller.create("workspace-1", request)
+
+        val dispatched = mediator.lastRequest as? CreateRecurringScheduleCommand
+        assertNotNull(dispatched)
+        assertEquals("pub-1", dispatched!!.templatePostId)
+        assertEquals(RecurrenceFrequency.DAILY, dispatched.recurrenceRule.frequency)
+    }
+
+    @Test
+    fun `list recurring schedules dispatches query`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = RecurringScheduleController(
+            mediator = mediator,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+        )
+
+        val response = controller.list("workspace-1")
+
+        assertEquals(1, response.schedules.size)
+        assertEquals("recur-1", mediator.lastQuery)
+    }
+
+    @Test
+    fun `delete recurring schedule dispatches delete command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = RecurringScheduleController(
+            mediator = mediator,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+        )
+
+        controller.cancel("workspace-1", "recur-1")
+
+        val dispatched = mediator.lastRequest as? DeleteRecurringScheduleCommand
+        assertNotNull(dispatched)
+        assertEquals("recur-1", dispatched!!.id)
+    }
+
+    @Test
+    fun `update recurring schedule dispatches patch command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = RecurringScheduleController(
+            mediator = mediator,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+        )
+
+        val request = RecurringSchedulePatchRequest(status = "paused")
+        controller.update("workspace-1", "recur-1", request)
+
+        val dispatched = mediator.lastRequest as? UpdateRecurringScheduleCommand
+        assertNotNull(dispatched)
+        assertEquals("recur-1", dispatched!!.id)
+        assertEquals(RecurringScheduleStatus.PAUSED, dispatched.status)
+    }
+
     private class FixedResourceContextProvider(private val workspaceId: String) : ResourceContextProvider {
         override fun current(): ResourceContext = ResourceContext(
             type = ResourceContextType.WORKSPACE,
@@ -606,6 +686,28 @@ class PublishingControllersTest {
                 is ListPublicationsQuery -> ListPublicationsResponse(
                     publications = emptyList(),
                     total = 0,
+                ) as TResponse
+
+                is ListRecurringSchedulesQuery -> RecurringSchedulesResponse(
+                    schedules = listOf(
+                        RecurringScheduleResult(
+                            id = "recur-1",
+                            workspaceId = "workspace-1",
+                            createdBy = "user-1",
+                            templatePostId = "pub-1",
+                            frequency = "daily",
+                            interval = 1,
+                            daysOfWeek = emptySet(),
+                            dayOfMonth = null,
+                            endDate = null,
+                            maxOccurrences = null,
+                            timezone = "UTC",
+                            nextScheduledAt = Instant.parse("2026-09-10T10:00:00Z"),
+                            status = RecurringScheduleStatus.ACTIVE,
+                            createdAt = Instant.parse("2026-08-27T12:00:00Z"),
+                            updatedAt = Instant.parse("2026-08-27T12:00:00Z"),
+                        ),
+                    ),
                 ) as TResponse
 
                 else -> error("Unsupported query type ${query::class.simpleName}")
@@ -691,6 +793,44 @@ class PublishingControllersTest {
                         else -> null
                     },
                 ) as TResult
+
+                is CreateRecurringScheduleCommand -> RecurringScheduleResult(
+                    id = "recur-1",
+                    workspaceId = "workspace-1",
+                    createdBy = "user-1",
+                    templatePostId = command.templatePostId,
+                    frequency = command.recurrenceRule.frequency.name.lowercase(),
+                    interval = command.recurrenceRule.interval,
+                    daysOfWeek = command.recurrenceRule.daysOfWeek,
+                    dayOfMonth = command.recurrenceRule.dayOfMonth,
+                    endDate = command.recurrenceRule.endDate,
+                    maxOccurrences = command.recurrenceRule.maxOccurrences,
+                    timezone = command.timezone,
+                    nextScheduledAt = command.startsAt,
+                    status = RecurringScheduleStatus.ACTIVE,
+                    createdAt = Instant.parse("2026-08-27T12:00:00Z"),
+                    updatedAt = Instant.parse("2026-08-27T12:00:00Z"),
+                ) as TResult
+
+                is UpdateRecurringScheduleCommand -> RecurringScheduleResult(
+                    id = command.id,
+                    workspaceId = "workspace-1",
+                    createdBy = "user-1",
+                    templatePostId = "pub-1",
+                    frequency = "daily",
+                    interval = 1,
+                    daysOfWeek = emptySet(),
+                    dayOfMonth = null,
+                    endDate = null,
+                    maxOccurrences = null,
+                    timezone = "UTC",
+                    nextScheduledAt = Instant.parse("2026-09-10T10:00:00Z"),
+                    status = command.status ?: RecurringScheduleStatus.ACTIVE,
+                    createdAt = Instant.parse("2026-08-27T12:00:00Z"),
+                    updatedAt = Instant.parse("2026-08-27T12:00:00Z"),
+                ) as TResult
+
+                is DeleteRecurringScheduleCommand -> Unit as TResult
 
                 else -> error("Unsupported request type ${command::class.simpleName}")
             }

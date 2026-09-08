@@ -100,6 +100,184 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
     }
 
     // -------------------------------------------------------------------------
+    // R2dbcRecurringScheduleRepository — query and status operations
+    // -------------------------------------------------------------------------
+
+    @Nested
+    inner class R2dbcRecurringScheduleRepositoryTests {
+
+        @Test
+        fun `findByWorkspace returns schedules ordered by nextScheduledAt then createdAt`() = runTest {
+            val pub1 = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-order-1")
+            val pub2 = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-order-2")
+            val pub3 = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-order-3")
+
+            recurringScheduleRepository.create(
+                RecurringSchedule(
+                    id = "rs-order-later",
+                    workspaceId = "workspace-1",
+                    createdBy = "principal-1",
+                    templatePostId = pub1,
+                    recurrenceRule = RecurrenceRule(frequency = RecurrenceFrequency.DAILY, interval = 1),
+                    timezone = "UTC",
+                    nextScheduledAt = Instant.parse("2026-07-15T10:00:00Z"),
+                    status = RecurringScheduleStatus.ACTIVE,
+                    createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
+                ),
+            )
+            recurringScheduleRepository.create(
+                RecurringSchedule(
+                    id = "rs-order-earlier",
+                    workspaceId = "workspace-1",
+                    createdBy = "principal-1",
+                    templatePostId = pub2,
+                    recurrenceRule = RecurrenceRule(frequency = RecurrenceFrequency.DAILY, interval = 1),
+                    timezone = "UTC",
+                    nextScheduledAt = Instant.parse("2026-07-10T10:00:00Z"),
+                    status = RecurringScheduleStatus.ACTIVE,
+                    createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
+                ),
+            )
+            recurringScheduleRepository.create(
+                RecurringSchedule(
+                    id = "rs-order-null-next",
+                    workspaceId = "workspace-1",
+                    createdBy = "principal-1",
+                    templatePostId = pub3,
+                    recurrenceRule = RecurrenceRule(frequency = RecurrenceFrequency.DAILY, interval = 1),
+                    timezone = "UTC",
+                    nextScheduledAt = null,
+                    status = RecurringScheduleStatus.ACTIVE,
+                    createdAt = Instant.parse("2026-07-02T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-07-02T10:00:00Z"),
+                ),
+            )
+
+            val results = recurringScheduleRepository.findByWorkspace("workspace-1")
+
+            assertEquals(3, results.size)
+            assertEquals("rs-order-earlier", results[0].id)
+            assertEquals("rs-order-later", results[1].id)
+            assertEquals("rs-order-null-next", results[2].id)
+        }
+
+        @Test
+        fun `delete sets status to CANCELLED and returns true`() = runTest {
+            val pubId = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-delete")
+            recurringScheduleRepository.create(
+                RecurringSchedule(
+                    id = "rs-delete-test",
+                    workspaceId = "workspace-1",
+                    createdBy = "principal-1",
+                    templatePostId = pubId,
+                    recurrenceRule = RecurrenceRule(frequency = RecurrenceFrequency.WEEKLY, interval = 1),
+                    timezone = "UTC",
+                    nextScheduledAt = Instant.parse("2026-07-15T10:00:00Z"),
+                    status = RecurringScheduleStatus.ACTIVE,
+                    createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
+                ),
+            )
+
+            val deleted = recurringScheduleRepository.delete("workspace-1", "rs-delete-test")
+
+            assertTrue(deleted)
+            val found = recurringScheduleRepository.findByWorkspaceAndId("workspace-1", "rs-delete-test")
+            assertEquals(RecurringScheduleStatus.CANCELLED, found!!.status)
+        }
+
+        @Test
+        fun `delete returns false when schedule already CANCELLED`() = runTest {
+            val pubId = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-delete-twice")
+            recurringScheduleRepository.create(
+                RecurringSchedule(
+                    id = "rs-delete-twice",
+                    workspaceId = "workspace-1",
+                    createdBy = "principal-1",
+                    templatePostId = pubId,
+                    recurrenceRule = RecurrenceRule(frequency = RecurrenceFrequency.WEEKLY, interval = 1),
+                    timezone = "UTC",
+                    nextScheduledAt = Instant.parse("2026-07-15T10:00:00Z"),
+                    status = RecurringScheduleStatus.CANCELLED,
+                    createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
+                ),
+            )
+
+            val result = recurringScheduleRepository.delete("workspace-1", "rs-delete-twice")
+
+            assertFalse(result)
+        }
+
+        @Test
+        fun `pauseByTemplatePost sets ACTIVE schedules to PAUSED and leaves other statuses unchanged`() = runTest {
+            val pubActive = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-pause-active")
+            val pubPaused = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-pause-paused")
+            val pubCancelled = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-pause-cancelled")
+
+            recurringScheduleRepository.create(
+                RecurringSchedule(
+                    id = "rs-pause-active",
+                    workspaceId = "workspace-1",
+                    createdBy = "principal-1",
+                    templatePostId = pubActive,
+                    recurrenceRule = RecurrenceRule(frequency = RecurrenceFrequency.MONTHLY, interval = 1),
+                    timezone = "UTC",
+                    nextScheduledAt = Instant.parse("2026-08-01T10:00:00Z"),
+                    status = RecurringScheduleStatus.ACTIVE,
+                    createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
+                ),
+            )
+            recurringScheduleRepository.create(
+                RecurringSchedule(
+                    id = "rs-pause-paused",
+                    workspaceId = "workspace-1",
+                    createdBy = "principal-1",
+                    templatePostId = pubPaused,
+                    recurrenceRule = RecurrenceRule(frequency = RecurrenceFrequency.MONTHLY, interval = 1),
+                    timezone = "UTC",
+                    nextScheduledAt = Instant.parse("2026-08-01T10:00:00Z"),
+                    status = RecurringScheduleStatus.PAUSED,
+                    createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
+                ),
+            )
+            recurringScheduleRepository.create(
+                RecurringSchedule(
+                    id = "rs-pause-cancelled",
+                    workspaceId = "workspace-1",
+                    createdBy = "principal-1",
+                    templatePostId = pubCancelled,
+                    recurrenceRule = RecurrenceRule(frequency = RecurrenceFrequency.MONTHLY, interval = 1),
+                    timezone = "UTC",
+                    nextScheduledAt = Instant.parse("2026-08-01T10:00:00Z"),
+                    status = RecurringScheduleStatus.CANCELLED,
+                    createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+                    updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
+                ),
+            )
+
+            recurringScheduleRepository.pauseByTemplatePost("workspace-1", pubActive)
+
+            assertEquals(
+                RecurringScheduleStatus.PAUSED,
+                recurringScheduleRepository.findByWorkspaceAndId("workspace-1", "rs-pause-active")!!.status,
+            )
+            assertEquals(
+                RecurringScheduleStatus.PAUSED,
+                recurringScheduleRepository.findByWorkspaceAndId("workspace-1", "rs-pause-paused")!!.status,
+            )
+            assertEquals(
+                RecurringScheduleStatus.CANCELLED,
+                recurringScheduleRepository.findByWorkspaceAndId("workspace-1", "rs-pause-cancelled")!!.status,
+            )
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // R2dbcPublicationRepository — mark* operations
     // -------------------------------------------------------------------------
 

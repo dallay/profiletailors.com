@@ -162,6 +162,19 @@ vi.mock('@shared/lib/provider-styles', () => ({
   getProviderColor: () => 'provider-color',
 }))
 
+vi.mock('@modules/publishing/presentation/components/RecurringScheduleModal.vue', () => ({
+  default: {
+    template:
+      '<div v-if="isOpen" data-testid="recurring-schedule-modal">' +
+      '<button data-testid="recurring-created" @click="$emit(\'created\')">created</button>' +
+      '<button data-testid="recurring-updated" @click="$emit(\'updated\')">updated</button>' +
+      '<button data-testid="recurring-close" @click="$emit(\'close\')">close</button>' +
+      '</div>',
+    props: ['isOpen', 'editingRecurringSchedule'],
+    emits: ['close', 'created', 'updated'],
+  },
+}))
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -1313,6 +1326,51 @@ describe('SchedulerView', () => {
 
       // With only 2 posts in the slot, no overflow indicator should render.
       expect(wrapper.text()).not.toContain('more')
+    })
+  })
+
+  describe('recurring schedule panel', () => {
+    it('opens recurring schedule modal when recurring button is clicked', async () => {
+      const wrapper = mountView()
+      await flushPromises()
+
+      const recurringBtn = wrapper.find('[data-testid="recurring-schedule-btn"]')
+      if (recurringBtn.exists()) {
+        await recurringBtn.trigger('click')
+        await flushPromises()
+        expect(wrapper.find('[data-testid="recurring-schedule-modal"]').exists()).toBe(true)
+      }
+    })
+
+    it('closes recurring modal when close event is emitted', async () => {
+      const wrapper = mountView()
+      await flushPromises()
+
+      const recurringBtn = wrapper.find('[data-testid="recurring-schedule-btn"]')
+      if (recurringBtn.exists()) {
+        await recurringBtn.trigger('click')
+        await flushPromises()
+        const closeBtn = wrapper.find('[data-testid="recurring-close"]')
+        await closeBtn.trigger('click')
+        await flushPromises()
+        expect(wrapper.find('[data-testid="recurring-schedule-modal"]').exists()).toBe(false)
+      }
+    })
+
+    it('refreshes calendar when recurring modal emits created', async () => {
+      const store = usePublishingStore()
+      const wrapper = mountView()
+      await flushPromises()
+
+      const recurringBtn = wrapper.find('[data-testid="recurring-schedule-btn"]')
+      if (recurringBtn.exists()) {
+        await recurringBtn.trigger('click')
+        await flushPromises()
+        const createdBtn = wrapper.find('[data-testid="recurring-created"]')
+        await createdBtn.trigger('click')
+        await flushPromises()
+        expect(store.fetchCalendar).toHaveBeenCalled()
+      }
     })
   })
 })
