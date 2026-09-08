@@ -2,6 +2,9 @@ package com.profiletailors.storage.application
 
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.observability.OperationalEvent
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.Severity
 import com.profiletailors.storage.domain.FileDeletedEvent
 import com.profiletailors.storage.domain.FileDownloadedEvent
 import com.profiletailors.storage.domain.FileUploadedEvent
@@ -10,6 +13,7 @@ import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageObservation
 import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.domain.StorageServiceException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
@@ -1308,6 +1312,120 @@ internal class StorageApplicationServiceTest {
 
             assertThat(thrown)
                 .isInstanceOf(StorageSecurityException::class.java)
+        }
+    }
+
+    @Nested
+    @DisplayName("publish failure events")
+    inner class PublishFailureEvents {
+
+        private fun serviceWithSink(
+            publisher: EventPublisher<BaseDomainEvent>,
+            events: MutableList<OperationalEvent>,
+        ): StorageApplicationService {
+            val sink = OperationalEventSink { events += it }
+            return StorageApplicationService(storage, publisher, metrics, PROVIDER, sink)
+        }
+
+        @Test
+        fun `upload publish failure emits WARN event without key and continues`() = runTest {
+            eventPublisher.shouldThrowOnPublish = true
+            val events = mutableListOf<OperationalEvent>()
+            val emittingService = serviceWithSink(eventPublisher, events)
+
+            emittingService.upload(BUCKET, KEY, flowOf(CONTENT), UPLOADER_ID)
+
+            assertThat(storage.exists(BUCKET, KEY)).isTrue
+            val event = events.single()
+            assertThat(event.name).isEqualTo("storage.operation.event.publish.failed")
+            assertThat(event.severity).isEqualTo(Severity.WARN)
+            assertThat(event.message).isEqualTo("Storage operation event publish failed")
+            assertThat(event.attributes["operation"]).isEqualTo(StorageObservation.Operations.UPLOAD)
+            assertThat(event.attributes["provider"]).isEqualTo(PROVIDER)
+            assertThat(event.attributes["bucket"]).isEqualTo(BUCKET)
+            assertThat(event.attributes.containsKey("key")).isFalse
+            assertThat(event.cause).isInstanceOf(IllegalStateException::class.java)
+            assertThat(event.message).doesNotContain(KEY)
+        }
+
+        @Test
+        fun `download publish failure emits WARN event without key and continues`() = runTest {
+            storage.upload(BUCKET, KEY, flowOf(CONTENT))
+            eventPublisher.shouldThrowOnPublish = true
+            val events = mutableListOf<OperationalEvent>()
+            val emittingService = serviceWithSink(eventPublisher, events)
+
+            val result = emittingService.download(BUCKET, KEY, DOWNLOADER_ID).toList()
+
+            assertThat(result.first()).isEqualTo(CONTENT)
+            val event = events.single()
+            assertThat(event.name).isEqualTo("storage.operation.event.publish.failed")
+            assertThat(event.severity).isEqualTo(Severity.WARN)
+            assertThat(event.attributes["operation"]).isEqualTo(StorageObservation.Operations.DOWNLOAD)
+            assertThat(event.attributes["provider"]).isEqualTo(PROVIDER)
+            assertThat(event.attributes["bucket"]).isEqualTo(BUCKET)
+            assertThat(event.attributes.containsKey("key")).isFalse
+            assertThat(event.cause).isInstanceOf(IllegalStateException::class.java)
+        }
+
+        @Test
+        fun `delete publish failure emits WARN event without key and continues`() = runTest {
+            storage.upload(BUCKET, KEY, flowOf(CONTENT))
+            eventPublisher.shouldThrowOnPublish = true
+            val events = mutableListOf<OperationalEvent>()
+            val emittingService = serviceWithSink(eventPublisher, events)
+
+            emittingService.delete(BUCKET, KEY, DELETER_ID)
+
+            assertThat(storage.exists(BUCKET, KEY)).isFalse
+            val event = events.single()
+            assertThat(event.name).isEqualTo("storage.operation.event.publish.failed")
+            assertThat(event.severity).isEqualTo(Severity.WARN)
+            assertThat(event.attributes["operation"]).isEqualTo(StorageObservation.Operations.DELETE)
+            assertThat(event.attributes["provider"]).isEqualTo(PROVIDER)
+            assertThat(event.attributes["bucket"]).isEqualTo(BUCKET)
+            assertThat(event.attributes.containsKey("key")).isFalse
+            assertThat(event.cause).isInstanceOf(IllegalStateException::class.java)
+        }
+
+        @Test
+        fun `cancellation during publish rethrows without emitting`() = runTest {
+            val cancellingPublisher = object : EventPublisher<BaseDomainEvent> {
+                override suspend fun publish(event: BaseDomainEvent): Unit = throw CancellationException("cancelled")
+            }
+            val events = mutableListOf<OperationalEvent>()
+            val emittingService = serviceWithSink(cancellingPublisher, events)
+            storage.upload(BUCKET, KEY, flowOf(CONTENT))
+
+            val uploadThrown = runCatching {
+                emittingService.upload(BUCKET, KEY, flowOf(CONTENT), UPLOADER_ID)
+            }.exceptionOrNull()
+            val downloadThrown = runCatching {
+                emittingService.download(BUCKET, KEY, DOWNLOADER_ID).toList()
+            }.exceptionOrNull()
+            val deleteThrown = runCatching {
+                emittingService.delete(BUCKET, KEY, DELETER_ID)
+            }.exceptionOrNull()
+
+            assertThat(uploadThrown).isInstanceOf(CancellationException::class.java)
+            assertThat(downloadThrown).isInstanceOf(CancellationException::class.java)
+            assertThat(deleteThrown).isInstanceOf(CancellationException::class.java)
+            assertThat(events).isEmpty()
+        }
+
+        @Test
+        fun `blank bucket omits bucket attribute`() = runTest {
+            eventPublisher.shouldThrowOnPublish = true
+            val events = mutableListOf<OperationalEvent>()
+            val emittingService = serviceWithSink(eventPublisher, events)
+
+            emittingService.upload("", KEY, flowOf(CONTENT), UPLOADER_ID)
+
+            val event = events.single()
+            assertThat(event.name).isEqualTo("storage.operation.event.publish.failed")
+            assertThat(event.attributes.containsKey("bucket")).isFalse
+            assertThat(event.attributes["operation"]).isEqualTo(StorageObservation.Operations.UPLOAD)
+            assertThat(event.attributes.containsKey("key")).isFalse
         }
     }
 }
