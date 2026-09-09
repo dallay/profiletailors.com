@@ -1,6 +1,6 @@
 # Shared Observability Usage Standard
 
-**Last Updated:** 2026-09-08  
+**Last Updated:** 2026-09-09  
 **Status:** Active documentation standard  
 **Scope:** Kotlin shared modules and the SMP backend  
 **Audience:** Backend engineers, platform engineers, operations, SRE, and reviewers
