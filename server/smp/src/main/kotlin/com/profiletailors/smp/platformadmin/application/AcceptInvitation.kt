@@ -20,7 +20,9 @@ class AcceptInvitationHandler(private val coordinator: InvitationActivationCoord
             principalId = command.authenticatedPrincipalId,
         )
         return InvitationAcceptanceResult(
-            workspaceId = result.invitation.workspaceId ?: result.invitation.id.value.toString(),
+            workspaceId = result.invitation.workspaceId
+                ?.takeIf { it.isNotBlank() }
+                ?: throw IllegalStateException("Invitation workspace could not be resolved."),
             membershipStatus = result.membershipStatus.name,
         )
     }

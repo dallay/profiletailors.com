@@ -105,6 +105,10 @@ internal class RegisterUserHandler(
             acceptedTermsVersion = command.acceptedTermsVersion,
         )
 
+        val invitationContext = invitationToken?.let { token ->
+            invitationRegistrationGateway.prepare(token, normalizedEmail)
+        }
+
         if (
             localPasswordCredentialGateway.findByEmail(normalizedEmail) != null ||
             principalIdentityLookup.findByEmail(normalizedEmail) != null
@@ -121,6 +125,8 @@ internal class RegisterUserHandler(
             subject = subject,
             normalizedEmail = normalizedEmail,
             normalizedUsername = normalizedUsername,
+            invitationToken = invitationToken,
+            invitationContext = invitationContext,
         )
 
         // Publish domain event for async email dispatch
@@ -167,6 +173,8 @@ internal class RegisterUserHandler(
         subject: String,
         normalizedEmail: String,
         normalizedUsername: String,
+        invitationToken: String?,
+        invitationContext: InvitationRegistrationContext?,
     ): RegistrationTransactionResult {
         // Compute password hash BEFORE the transaction to avoid blocking
         // the reactive connection pool with CPU-bound bcrypt hashing.
@@ -188,10 +196,15 @@ internal class RegisterUserHandler(
                     passwordHash = passwordHash,
                 )
 
-                val workspaceId = command.invitationToken
-                    ?.trim()
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let { invitationRegistrationGateway.acceptForRegistration(it, normalizedEmail, principalId) }
+                val workspaceId = invitationContext
+                    ?.let {
+                        invitationRegistrationGateway.complete(
+                            context = it,
+                            rawToken = requireNotNull(invitationToken),
+                            principalId = principalId,
+                            displayName = normalizedUsername,
+                        ).workspaceId
+                    }
                     ?: workspaceProvisioningService.provisionDefaultWorkspace(
                         principalId = principalId,
                         displayName = normalizedUsername,

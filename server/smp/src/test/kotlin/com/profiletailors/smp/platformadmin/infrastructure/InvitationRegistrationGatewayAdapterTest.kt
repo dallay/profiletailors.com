@@ -1,6 +1,9 @@
 package com.profiletailors.smp.platformadmin.infrastructure
 
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
+import com.profiletailors.smp.identity.application.InvitationRegistrationContext
+import com.profiletailors.smp.identity.application.InvitationRegistrationSource
+import com.profiletailors.smp.identity.application.InvitationRegistrationTarget
 import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
@@ -58,29 +61,33 @@ class InvitationRegistrationGatewayAdapterTest {
     fun `should return the workspace when invitation matches`() = runTest {
         val coordinator = mockk<InvitationActivationCoordinator>()
         val invitation = existingWorkspaceInvitation()
+        val context = context(invitation)
         coEvery {
-            coordinator.activateForRegistration(
+            coordinator.complete(
+                context = context,
                 rawToken = "raw-token",
-                email = " Invitee@Example.com ",
                 principalId = "principal-1",
+                displayName = "invitee",
             )
         } returns InvitationActivationCoordinator.InvitationActivationResult(
             invitation = invitation,
             membershipStatus = WorkspaceMembershipStatus.ACTIVE,
         )
 
-        val workspaceId = adapter(coordinator).acceptForRegistration(
+        val result = adapter(coordinator).complete(
+            context = context,
             rawToken = "raw-token",
-            email = " Invitee@Example.com ",
             principalId = "principal-1",
+            displayName = "invitee",
         )
 
-        workspaceId shouldBe "workspace-a"
+        result.workspaceId shouldBe "workspace-a"
         coVerify {
-            coordinator.activateForRegistration(
+            coordinator.complete(
+                context = context,
                 rawToken = "raw-token",
-                email = " Invitee@Example.com ",
                 principalId = "principal-1",
+                displayName = "invitee",
             )
         }
     }
@@ -88,46 +95,66 @@ class InvitationRegistrationGatewayAdapterTest {
     @Test
     fun `should reject invitation when coordinator throws`() = runTest {
         val coordinator = mockk<InvitationActivationCoordinator>()
+        val context = InvitationRegistrationContext(
+            invitationId = "invitation-1",
+            target = InvitationRegistrationTarget.EXISTING_WORKSPACE,
+            workspaceId = "workspace-a",
+            source = InvitationRegistrationSource.DIRECT,
+        )
         coEvery {
-            coordinator.activateForRegistration(
+            coordinator.complete(
+                context = context,
                 rawToken = "raw-token",
-                email = "other@example.com",
                 principalId = "principal-1",
+                displayName = "invitee",
             )
         } throws InvitationNotAcceptableException("unavailable")
 
         shouldThrow<InvitationNotAcceptableException> {
-            adapter(coordinator).acceptForRegistration(
+            adapter(coordinator).complete(
+                context = context,
                 rawToken = "raw-token",
-                email = "other@example.com",
                 principalId = "principal-1",
+                displayName = "invitee",
             )
         }
     }
 
     @Test
-    fun `should return invitation id when workspaceId is null`() = runTest {
+    fun `rejects a new-workspace invitation without a resolved workspace instead of using invitation id`() = runTest {
         val coordinator = mockk<InvitationActivationCoordinator>()
-        val invitation = newWorkspaceInvitation(status = InvitationStatus.ACTIVE, workspaceId = null)
+        val invitation = newWorkspaceInvitation()
+        val context = context(invitation)
         coEvery {
-            coordinator.activateForRegistration(
+            coordinator.complete(
+                context = context,
                 rawToken = "raw-token",
-                email = "invitee@example.com",
                 principalId = "principal-1",
+                displayName = "invitee",
             )
         } returns InvitationActivationCoordinator.InvitationActivationResult(
             invitation = invitation,
             membershipStatus = WorkspaceMembershipStatus.ACTIVE,
         )
 
-        val result = adapter(coordinator).acceptForRegistration(
-            rawToken = "raw-token",
-            email = "invitee@example.com",
-            principalId = "principal-1",
-        )
+        val exception = shouldThrow<IllegalStateException> {
+            adapter(coordinator).complete(
+                context = context,
+                rawToken = "raw-token",
+                principalId = "principal-1",
+                displayName = "invitee",
+            )
+        }
 
-        result shouldBe invitation.id.value.toString()
+        exception.message.orEmpty().contains(invitation.id.value.toString()) shouldBe false
     }
+
+    private fun context(invitation: Invitation) = InvitationRegistrationContext(
+        invitationId = invitation.id.value.toString(),
+        target = InvitationRegistrationTarget.valueOf(invitation.target.name),
+        workspaceId = invitation.workspaceId,
+        source = InvitationRegistrationSource.valueOf(invitation.source.name),
+    )
 
     private fun adapter(coordinator: InvitationActivationCoordinator) = InvitationRegistrationGatewayAdapter(
         coordinator = coordinator,

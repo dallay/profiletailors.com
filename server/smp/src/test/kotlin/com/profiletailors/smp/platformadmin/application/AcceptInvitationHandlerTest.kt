@@ -12,6 +12,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
@@ -89,7 +90,7 @@ class AcceptInvitationHandlerTest {
     }
 
     @Test
-    fun `falls back to invitation id as workspaceId when workspaceId is null`() = runTest {
+    fun `rejects an unresolved workspace instead of returning invitation id as workspaceId`() = runTest {
         val coordinator = mockk<InvitationActivationCoordinator>()
         val invitationId = UUID.randomUUID()
         val invitation = Invitation(
@@ -116,16 +117,17 @@ class AcceptInvitationHandlerTest {
             membershipStatus = WorkspaceMembershipStatus.ACTIVE,
         )
 
-        val result = handler(coordinator).handle(
-            AcceptInvitationCommand(
-                rawToken = "raw-token",
-                authenticatedPrincipalId = "principal-1",
-                authenticatedEmail = "invitee@example.com",
-            ),
-        )
+        val exception = assertThrows<IllegalStateException> {
+            handler(coordinator).handle(
+                AcceptInvitationCommand(
+                    rawToken = "raw-token",
+                    authenticatedPrincipalId = "principal-1",
+                    authenticatedEmail = "invitee@example.com",
+                ),
+            )
+        }
 
-        assertEquals(invitationId.toString(), result.workspaceId)
-        assertEquals(WorkspaceMembershipStatus.ACTIVE.name, result.membershipStatus)
+        assertFalse(exception.message.orEmpty().contains(invitationId.toString()))
     }
 
     private fun handler(coordinator: InvitationActivationCoordinator) = AcceptInvitationHandler(

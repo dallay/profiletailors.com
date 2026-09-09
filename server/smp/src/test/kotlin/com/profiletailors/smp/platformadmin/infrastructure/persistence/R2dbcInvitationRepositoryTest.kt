@@ -568,15 +568,19 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
 
     private suspend fun runConcurrentAcceptance(fixture: ConcurrentAcceptanceFixture): List<Result<String>> =
         coroutineScope {
+            val firstContext = fixture.firstGateway.prepare("raw-token", "invitee@example.com")
+            val secondContext = fixture.secondGateway.prepare("raw-token", "invitee@example.com")
             val first = async {
                 runCatching {
                     fixture.firstOperator.transactional(
                         mono {
-                            fixture.firstGateway.acceptForRegistration(
+                            fixture.firstGateway.complete(
+                                context = firstContext,
                                 rawToken = "raw-token",
-                                email = "invitee@example.com",
                                 principalId = "principal-1",
+                                displayName = "invitee",
                             )
+                                .workspaceId
                         },
                     ).awaitSingle()
                 }
@@ -586,11 +590,13 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                 runCatching {
                     fixture.secondOperator.transactional(
                         mono {
-                            fixture.secondGateway.acceptForRegistration(
+                            fixture.secondGateway.complete(
+                                context = secondContext,
                                 rawToken = "raw-token",
-                                email = "invitee@example.com",
                                 principalId = "principal-1",
+                                displayName = "invitee",
                             )
+                                .workspaceId
                         },
                     ).awaitSingle()
                 }

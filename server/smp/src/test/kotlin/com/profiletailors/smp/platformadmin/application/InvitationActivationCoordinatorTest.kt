@@ -13,6 +13,7 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryId
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
+import com.profiletailors.smp.identity.application.InvitationRegistrationTarget
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
@@ -231,6 +232,24 @@ class InvitationActivationCoordinatorTest {
         assertThrows<InvitationNotAcceptableException> {
             coord.activateForRegistration("token", "user@example.com", "p-1")
         }
+    }
+
+    @Test
+    fun `prepares a valid invitation without taking a row lock`() = runTest {
+        val invitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-existing",
+        )
+        coEvery { tokenHasher.candidateKey("token") } returns "key"
+        coEvery { invitationRepository.findByCandidateKey("key") } returns invitation
+        coEvery { tokenHasher.matches("token", invitation.tokenHash) } returns true
+
+        val context = coordinator.prepare("token", " User@Example.com ")
+
+        assertEquals(invitation.id.value.toString(), context.invitationId)
+        assertEquals(InvitationRegistrationTarget.EXISTING_WORKSPACE, context.target)
+        assertEquals("ws-existing", context.workspaceId)
+        coVerify(exactly = 0) { invitationRepository.findByCandidateKeyForUpdate(any()) }
     }
 
     @Test
