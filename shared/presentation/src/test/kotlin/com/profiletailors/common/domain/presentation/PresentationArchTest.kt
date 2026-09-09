@@ -16,9 +16,7 @@ internal class PresentationArchTest {
         importedClasses = ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages(
-                "com.profiletailors.common.domain.presentation",
-                "com.profiletailors.common.domain.criteria",
-                "com.profiletailors.common.domain.regexp",
+                "com.profiletailors.common.domain",
             )
     }
 

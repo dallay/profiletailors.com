@@ -296,8 +296,8 @@ class StorageApplicationService(
         if (bucket.isBlank()) {
             operationalEvents.emit(
                 severity = Severity.WARN,
-                name = PUBLISH_FAILED_EVENT,
-                message = PUBLISH_FAILED_MESSAGE,
+                name = StorageOperationalEvents.PUBLISH_FAILED_EVENT,
+                message = StorageOperationalEvents.PUBLISH_FAILED_MESSAGE,
                 cause = cause,
                 "operation" to operation,
                 "provider" to provider,
@@ -305,8 +305,8 @@ class StorageApplicationService(
         } else {
             operationalEvents.emit(
                 severity = Severity.WARN,
-                name = PUBLISH_FAILED_EVENT,
-                message = PUBLISH_FAILED_MESSAGE,
+                name = StorageOperationalEvents.PUBLISH_FAILED_EVENT,
+                message = StorageOperationalEvents.PUBLISH_FAILED_MESSAGE,
                 cause = cause,
                 "operation" to operation,
                 "provider" to provider,
@@ -331,8 +331,5 @@ class StorageApplicationService(
         }
     }
 
-    private companion object {
-        const val PUBLISH_FAILED_EVENT = "storage.operation.event.publish.failed"
-        const val PUBLISH_FAILED_MESSAGE = "Storage operation event publish failed"
-    }
+    private companion object
 }

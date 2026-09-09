@@ -150,8 +150,8 @@ class GeneratePresignedUrlUseCase(
         if (bucket.isBlank()) {
             operationalEvents.emit(
                 severity = Severity.WARN,
-                name = PUBLISH_FAILED_EVENT,
-                message = PUBLISH_FAILED_MESSAGE,
+                name = StorageOperationalEvents.PUBLISH_FAILED_EVENT,
+                message = StorageOperationalEvents.PUBLISH_FAILED_MESSAGE,
                 cause = cause,
                 "operation" to StorageObservation.Operations.PRESIGN,
                 "provider" to provider,
@@ -159,8 +159,8 @@ class GeneratePresignedUrlUseCase(
         } else {
             operationalEvents.emit(
                 severity = Severity.WARN,
-                name = PUBLISH_FAILED_EVENT,
-                message = PUBLISH_FAILED_MESSAGE,
+                name = StorageOperationalEvents.PUBLISH_FAILED_EVENT,
+                message = StorageOperationalEvents.PUBLISH_FAILED_MESSAGE,
                 cause = cause,
                 "operation" to StorageObservation.Operations.PRESIGN,
                 "provider" to provider,
@@ -198,7 +198,5 @@ class GeneratePresignedUrlUseCase(
 
     companion object {
         private const val DEFAULT_MAX_EXPIRY_SECONDS = 3600L // 1 hour
-        private const val PUBLISH_FAILED_EVENT = "storage.operation.event.publish.failed"
-        private const val PUBLISH_FAILED_MESSAGE = "Storage operation event publish failed"
     }
 }

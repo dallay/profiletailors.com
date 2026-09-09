@@ -1337,13 +1337,13 @@ internal class StorageApplicationServiceTest {
 
             assertThat(storage.exists(BUCKET, KEY)).isTrue
             val event = events.single()
-            assertThat(event.name).isEqualTo("storage.operation.event.publish.failed")
+            assertThat(event.name).isEqualTo(StorageOperationalEvents.PUBLISH_FAILED_EVENT)
             assertThat(event.severity).isEqualTo(Severity.WARN)
-            assertThat(event.message).isEqualTo("Storage operation event publish failed")
+            assertThat(event.message).isEqualTo(StorageOperationalEvents.PUBLISH_FAILED_MESSAGE)
             assertThat(event.attributes["operation"]).isEqualTo(StorageObservation.Operations.UPLOAD)
             assertThat(event.attributes["provider"]).isEqualTo(PROVIDER)
             assertThat(event.attributes["bucket"]).isEqualTo(BUCKET)
-            assertThat(event.attributes.containsKey("key")).isFalse
+            assertThat(event.attributes.keys).containsExactlyInAnyOrder("operation", "provider", "bucket")
             assertThat(event.cause).isInstanceOf(IllegalStateException::class.java)
             assertThat(event.message).doesNotContain(KEY)
         }
@@ -1359,12 +1359,12 @@ internal class StorageApplicationServiceTest {
 
             assertThat(result.first()).isEqualTo(CONTENT)
             val event = events.single()
-            assertThat(event.name).isEqualTo("storage.operation.event.publish.failed")
+            assertThat(event.name).isEqualTo(StorageOperationalEvents.PUBLISH_FAILED_EVENT)
             assertThat(event.severity).isEqualTo(Severity.WARN)
             assertThat(event.attributes["operation"]).isEqualTo(StorageObservation.Operations.DOWNLOAD)
             assertThat(event.attributes["provider"]).isEqualTo(PROVIDER)
             assertThat(event.attributes["bucket"]).isEqualTo(BUCKET)
-            assertThat(event.attributes.containsKey("key")).isFalse
+            assertThat(event.attributes.keys).containsExactlyInAnyOrder("operation", "provider", "bucket")
             assertThat(event.cause).isInstanceOf(IllegalStateException::class.java)
         }
 
@@ -1379,12 +1379,12 @@ internal class StorageApplicationServiceTest {
 
             assertThat(storage.exists(BUCKET, KEY)).isFalse
             val event = events.single()
-            assertThat(event.name).isEqualTo("storage.operation.event.publish.failed")
+            assertThat(event.name).isEqualTo(StorageOperationalEvents.PUBLISH_FAILED_EVENT)
             assertThat(event.severity).isEqualTo(Severity.WARN)
             assertThat(event.attributes["operation"]).isEqualTo(StorageObservation.Operations.DELETE)
             assertThat(event.attributes["provider"]).isEqualTo(PROVIDER)
             assertThat(event.attributes["bucket"]).isEqualTo(BUCKET)
-            assertThat(event.attributes.containsKey("key")).isFalse
+            assertThat(event.attributes.keys).containsExactlyInAnyOrder("operation", "provider", "bucket")
             assertThat(event.cause).isInstanceOf(IllegalStateException::class.java)
         }
 
@@ -1422,10 +1422,10 @@ internal class StorageApplicationServiceTest {
             emittingService.upload("", KEY, flowOf(CONTENT), UPLOADER_ID)
 
             val event = events.single()
-            assertThat(event.name).isEqualTo("storage.operation.event.publish.failed")
+            assertThat(event.name).isEqualTo(StorageOperationalEvents.PUBLISH_FAILED_EVENT)
             assertThat(event.attributes.containsKey("bucket")).isFalse
             assertThat(event.attributes["operation"]).isEqualTo(StorageObservation.Operations.UPLOAD)
-            assertThat(event.attributes.containsKey("key")).isFalse
+            assertThat(event.attributes.keys).containsExactlyInAnyOrder("operation", "provider")
         }
     }
 }

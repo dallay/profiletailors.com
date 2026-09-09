@@ -8,6 +8,7 @@ import com.profiletailors.observability.Severity
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimiter
 import com.profiletailors.storage.application.GeneratePresignedUrlUseCase
+import com.profiletailors.storage.application.StorageOperationalEvents
 import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.RateLimitExceededException
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
@@ -287,15 +288,15 @@ class GeneratePresignedUrlUseCaseTest {
         assertTrue(url.isNotEmpty())
         assertEquals(1, events.size)
         val event = events.single()
-        assertEquals("storage.operation.event.publish.failed", event.name)
+        assertEquals(StorageOperationalEvents.PUBLISH_FAILED_EVENT, event.name)
         assertEquals(Severity.WARN, event.severity)
-        assertEquals("Storage operation event publish failed", event.message)
+        assertEquals(StorageOperationalEvents.PUBLISH_FAILED_MESSAGE, event.message)
         assertEquals(StorageObservation.Operations.PRESIGN, event.attributes["operation"])
         assertEquals(StorageObservation.Providers.S3, event.attributes["provider"])
         assertEquals(bucket, event.attributes["bucket"])
-        assertTrue(!event.attributes.containsKey("key"))
+        assertEquals(setOf("operation", "provider", "bucket"), event.attributes.keys)
         assertTrue(event.cause is IllegalStateException)
-        assertTrue(event.message?.contains(key) == false)
+        assertTrue(!event.message!!.contains(key))
     }
 
     @Test
@@ -318,11 +319,11 @@ class GeneratePresignedUrlUseCaseTest {
             operationalEvents = sink,
         )
 
-        assertThrows<CancellationException> {
-            runBlocking {
-                useCase.execute(bucket, key, 3600, "user-123")
-            }
-        }
+        val thrown = runCatching {
+            useCase.execute(bucket, key, 3600, "user-123")
+        }.exceptionOrNull()
+
+        assertTrue(thrown is CancellationException)
         assertTrue(events.isEmpty())
     }
 }

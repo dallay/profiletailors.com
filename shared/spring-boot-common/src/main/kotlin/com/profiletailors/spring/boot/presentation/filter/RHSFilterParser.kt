@@ -30,6 +30,8 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
                 useOr -> Criteria.Or(criteriaList)
                 else -> Criteria.And(criteriaList)
             }
+        } catch (e: FilterInvalidException) {
+            throw e
         } catch (e: Exception) {
             throw FilterInvalidException(e.message)
         }
@@ -37,9 +39,9 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
 
     private fun processQueryEntry(key: KProperty1<T, *>, values: Collection<String?>?): List<Criteria> {
         val property = clazz.memberProperties.find { it == key } ?: return emptyList()
-        val clazz = property.returnType.classifier as? KClass<*>
+        val operandType = property.returnType.classifier as? KClass<*>
             ?: throw FilterInvalidException("Can't find operand type. Property: $property")
-        return values?.filterNotNull()?.map { value -> processValue(property, clazz, value) } ?: emptyList()
+        return values?.filterNotNull()?.map { value -> processValue(property, operandType, value) } ?: emptyList()
     }
 
     private fun processValue(property: KProperty1<T, *>, clazz: KClass<*>, value: String): Criteria {
@@ -68,7 +70,7 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
             } catch (_: RuntimeException) {
             }
         }
-        if (converted == null) throw FilterInvalidException("Can't convert operand. Operand: $operand, Type: $clazz")
+        if (converted == null) throw FilterInvalidException("Can't convert operand for type ${clazz.simpleName}")
         return converted
     }
 
