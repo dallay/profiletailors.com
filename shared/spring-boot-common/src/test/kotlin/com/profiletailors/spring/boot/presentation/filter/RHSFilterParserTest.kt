@@ -2,6 +2,7 @@ package com.profiletailors.spring.boot.presentation.filter
 
 import com.profiletailors.common.domain.criteria.Criteria
 import com.profiletailors.common.domain.presentation.FilterInvalidException
+import kotlinx.coroutines.CancellationException
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -162,6 +163,19 @@ internal class RHSFilterParserTest {
     fun `should throw FilterInvalidException without asserting message when value conversion fails`() {
         assertThrows<FilterInvalidException> {
             parser.parse(queryOf(TestResource::age to listOf("eq:not-a-number")))
+        }
+    }
+
+    @Test
+    fun `should rethrow CancellationException without wrapping`() {
+        val cancellingMapper = object : ObjectMapper() {
+            override fun <T> convertValue(fromValue: Any?, toValueType: Class<T>): T =
+                throw CancellationException("cancelled")
+        }
+        val cancellingParser = RHSFilterParser(TestResource::class, cancellingMapper)
+
+        assertThrows<CancellationException> {
+            cancellingParser.parse(queryOf(TestResource::age to listOf("eq:25")))
         }
     }
 

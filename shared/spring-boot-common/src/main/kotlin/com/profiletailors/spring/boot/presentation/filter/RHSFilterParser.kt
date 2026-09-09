@@ -2,6 +2,7 @@ package com.profiletailors.spring.boot.presentation.filter
 
 import com.profiletailors.common.domain.criteria.Criteria
 import com.profiletailors.common.domain.presentation.FilterInvalidException
+import kotlinx.coroutines.CancellationException
 import tools.jackson.databind.ObjectMapper
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
@@ -31,6 +32,8 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
                 else -> Criteria.And(criteriaList)
             }
         } catch (e: FilterInvalidException) {
+            throw e
+        } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             throw FilterInvalidException(e.message)
@@ -67,6 +70,8 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
             try {
                 converted = objectMapper.convertValue(candidate, clazz.java)
                 break
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: RuntimeException) {
             }
         }
