@@ -57,22 +57,55 @@ States A–D: none, stale, valid, DNT/GPC.
 
 ## Phase 4: Testing
 
-- [ ] 4.1 Run `pnpm --filter app test:run` — consent suites green (14 scenarios).
-- [ ] 4.2 E2E `consent.spec.ts`: TASK-026 no `dialog-overlay`, banner visible, sidebar clickable;
+- [x] 4.1 Run `pnpm --filter app test:run` — consent suites green (14 scenarios).
+  → DONE 2026-09-09: full app unit suite PASS — 146 files, 1711 tests, 0 failures
+  (incl. 5-file consent subset: 51 tests PASS).
+- [x] 4.2 E2E `consent.spec.ts`: TASK-026 no `dialog-overlay`, banner visible, sidebar clickable;
   keep TASK-027/028 (R1 S2, R4 S5, R5 S7, R8 S14).
-- [ ] 4.3 E2E: add DNT scenario via `mockPrivacySignals({dnt:true})` — banner shows, analytics OFF
+  → DONE 2026-09-09: `consent.spec.ts` 12/12 PASS (4 tests × chromium/firefox/Mobile Chrome)
+  via base `playwright.config.ts`.
+- [x] 4.3 E2E: add DNT scenario via `mockPrivacySignals({dnt:true})` — banner shows, analytics OFF
   default, accept overrides (R5 D, R6).
-- [ ] 4.4 Run `pnpm --filter app test:e2e:scheduler -- --grep @consent`, then full app E2E (R8).
+  → DONE 2026-09-09: TASK-029 added. RED proven (signal disabled → fails at
+  `receipt.dnt` assertion); GREEN with signal (2.5s chromium; also green firefox/mobile).
+  No prod-code change needed — store/banner already implemented R5-D/R6.
+- [x] 4.4 Run `pnpm --filter app test:e2e:scheduler -- --grep @consent`, then full app E2E (R8).
+  → DONE 2026-09-09 with recorded results: scheduler lane 42/42 PASS (exit 0; note: lane
+  testMatch excludes `consent.spec.ts`, so these are scheduler regression tests, not consent
+  tests). Full base-config chromium suite: 174 passed / 29 failed / 6 skipped in 3.0m.
+  All 29 failures are OUTSIDE consent scope (composer-media-mocked, registration, i18n login
+  heading, scheduler-create, media-real credential lanes, etc.); working tree contains ONLY
+  `e2e/specs/consent.spec.ts` changes, so failures are pre-existing relative to this change
+  (spot-verified: i18n 10.1 fails on 'Welcome back' login heading, unrelated to consent).
+  Full E2E is therefore NOT claimed green — see apply-progress.md waiver notes.
 - [ ] 4.5 Manual Brave QA (Shields ON/OFF × A–D): banner in DOM, no overlay, app clickable, no
   console errors (R7 S11).
+  → BLOCKED 2026-09-09: no human-driven browser harness in this environment (Brave Browser.app
+  present on host but manual Shields ON/OFF matrix requires operator interaction).
+  Exception draft in apply-progress.md for orchestrator approval.
 - [ ] 4.6 Manual Chrome/Chromium + Safari/WebKit: states A–D, EN/ES, light/dark, 320/768/1280 (R7
   S12, R8 S13).
+  → BLOCKED 2026-09-09 (same reason). Partial automated cover exists: consent.spec.ts green on
+  chromium/firefox/Mobile Chrome; dashboard E2E officially excludes WebKit (HAR-cookie engine
+  limitation, see `e2e/README.md` + `playwright.config.ts` comment). Exception draft in
+  apply-progress.md.
 
 ## Phase 5: Cleanup + Docs
 
-- [ ] 5.1 Document Brave root cause (portal overlay paint failure, `z-[51]` patch) + ADRs in PR
+- [x] 5.1 Document Brave root cause (portal overlay paint failure, `z-[51]` patch) + ADRs in PR
   notes (R7).
-- [ ] 5.2 Confirm `ui/dialog/*`, `shared/web/*` diff-clean; remove dead stubs (incl. any leftover
+  → CLOSED 2026-09-09 by orchestrator F-03 decision at archive: `design.md` §Browser Resilience +
+  proposal accepted as the durable root-cause record; NO standalone ADR required. Recorded in
+  `state.yaml` (`f03_adr_waived_2026-09-09`). Root cause was documented in `design.md`
+  §Browser Resilience + proposal; no PR notes filed.
+- [x] 5.2 Confirm `ui/dialog/*`, `shared/web/*` diff-clean; remove dead stubs (incl. any leftover
   `openSettings` refs) (R7).
-- [ ] 5.3 Quality gate: `pnpm --filter app type-check` + `just frontend-lint` + app unit + consent
+  → DONE 2026-09-09: working tree holds ONLY `e2e/specs/consent.spec.ts`; repo-wide grep finds
+  zero `forceOpen`/`closeSettings` refs and `openSettings` only as an unrelated local emit in
+  `SidebarAccountSection.vue` (account popover, not consent store). No consent dead stubs remain.
+- [x] 5.3 Quality gate: `pnpm --filter app type-check` + `just frontend-lint` + app unit + consent
   E2E green (R8).
+  → DONE 2026-09-09: `type-check` PASS; `just frontend-lint` PASS (67 files); biome on touched
+  E2E files PASS; full unit 1711/1711 PASS; consent E2E 12/12 PASS. Caveat: full chromium E2E
+  suite has 29 pre-existing failures outside consent scope (see 4.4) — gate is green for every
+  lane this change touches.
