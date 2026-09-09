@@ -359,7 +359,8 @@ class PublishingBddSteps {
      */
     @Then("the publishing response status should be {int}")
     fun thenPublishingResponseStatusShouldBe(status: Int) {
-        val response = latestPublishingResponse ?: error("No publishing response captured")
+        val response = RecurringPublishingState.latestPublishingResponse ?: latestPublishingResponse
+            ?: error("No publishing response captured")
         val body = String(response.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
         val actualStatus = response.status.value()
         assertEquals(status, actualStatus) {
