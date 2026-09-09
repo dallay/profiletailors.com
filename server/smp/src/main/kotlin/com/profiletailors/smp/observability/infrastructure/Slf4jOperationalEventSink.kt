@@ -10,6 +10,13 @@ import java.util.concurrent.CancellationException
 class Slf4jOperationalEventSink : OperationalEventSink {
     private val logger = LoggerFactory.getLogger("profiletailors.operational")
 
+    /**
+     * Sanitizes [event] and writes it at its declared severity without attaching its throwable cause.
+     *
+     * Ordinary emission failures are discarded so telemetry cannot affect business execution.
+     *
+     * @throws CancellationException If emission is interrupted by cancellation.
+     */
     override fun emit(event: OperationalEvent) {
         try {
             val safeEvent = OperationalEventSanitizer.sanitize(event)

@@ -24,6 +24,11 @@ object OperationalEventSanitizer {
         "pii",
     )
 
+    /**
+     * Returns a copy of [event] with sensitive attributes removed and their string values redacted
+     * from the message. Non-scalar attribute values are replaced by type names. A throwable cause
+     * is removed and, unless already present, represented by an `errorType` attribute.
+     */
     fun sanitize(event: OperationalEvent): OperationalEvent {
         val sensitiveValues = event.attributes
             .filterKeys(::isSensitiveKey)
