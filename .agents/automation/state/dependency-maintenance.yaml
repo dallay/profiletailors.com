@@ -1,11 +1,11 @@
 schemaVersion: 1
 task: dependency-maintenance
 lastExecution:
-  timestamp: "2026-03-31T18:00:00Z"
-  outcome: NO_DRIFT_DETECTED
-  runIdentifier: "jules-330011244414282613-1338a23d"
-  branch: "jules-330011244414282613-1338a23d"
-  commit: "e19ab8058d43d18add940a74357606821bd2877c"
+  timestamp: "2026-09-09T17:30:00Z"
+  outcome: CHANGES_APPLIED
+  runIdentifier: "jules-7220917715206950835-ee323b98"
+  branch: "jules-7220917715206950835-ee323b98"
+  commit: "1a05e96ef09517a0a2f71ec673c5356762f4b06a"
 findings: []
 checks:
   - name: pnpm-licence-check
@@ -14,12 +14,12 @@ checks:
     notes: "All npm workspace package licences compliant with AGPL-3.0 policy."
   - name: gradle-licence-report
     target: "server/smp"
-    status: Passed
-    notes: "Gradle dependency licences compliant."
+    status: Not run
+    notes: "Gradle licence report skipped/failed due to Maven Central HTTP 429 rate limits in sandbox."
   - name: pnpm-outdated-check
     target: "root, apps/web/*, shared/web, tools/compliance"
     status: Passed
-    notes: "No unpinned safe patch or minor updates available; major tooling/runtime updates restricted by framework."
+    notes: "Upgraded @biomejs/biome devDependency from 2.5.11 to 2.5.12; major updates restricted by policy."
   - name: gradle-dependency-check
     target: "gradle/libs.versions.toml"
     status: Passed
