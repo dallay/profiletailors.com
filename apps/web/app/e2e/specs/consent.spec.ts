@@ -1,10 +1,11 @@
 /**
  * Phase 3: E2E Verification — Consent Management (DALLAY-494)
  *
- * Covers TASK-026 through TASK-028:
+ * Covers TASK-026 through TASK-029:
  *   TASK-026  Accept all via banner — source='banner', analytics=true
  *   TASK-027  Withdrawal via CookieSettings — source='settings-panel', analytics=false
  *   TASK-028  Version upgrade re-consent — consentVersion: 0 → banner shows → re-accept
+ *   TASK-029  DNT signal — banner shows, analytics OFF default, Accept All overrides (dnt=true)
  *
  * All tests run against mocked API responses (no backend required).
  * HAR replay handles auth; consent API is intercepted via page.route()
@@ -21,6 +22,7 @@ import {
   clearConsent,
   setConsentReceipt,
   mockConsentSync,
+  mockPrivacySignals,
   expectNoOverlay,
 } from '../fixtures/consent-helpers'
 
@@ -186,5 +188,37 @@ test.describe('Consent Management — App', () => {
     // Step 5: Reload — banner should be hidden (valid consent now)
     await page.reload()
     await expect(banner).not.toBeVisible()
+  })
+
+  // -----------------------------------------------------------------------
+  // TASK-029: DNT/GPC — banner shows, analytics OFF default, Accept overrides
+  // -----------------------------------------------------------------------
+
+  test('TASK-029: DNT signal — banner shows, analytics OFF default, accept overrides @consent @frontend', async ({
+    page,
+  }) => {
+    await mockPrivacySignals(page, { dnt: true })
+    await page.goto('/')
+
+    const banner = page.getByTestId('consent-banner')
+    await expect(banner).toBeVisible()
+    await expectNoOverlay(page)
+
+    await page.getByTestId('customize-btn').click()
+    await expect(page.getByTestId('customize-panel')).toBeVisible()
+    const analyticsSwitch = page.getByTestId('customize-panel').getByRole('switch').nth(1)
+    await expect(analyticsSwitch).toHaveAttribute('data-state', 'unchecked')
+
+    await page.getByTestId('back-btn').click()
+    await page.getByTestId('accept-all-btn').click()
+
+    await expect(banner).not.toBeVisible()
+
+    const receipt = await readReceipt(page)
+    expect(receipt).not.toBeNull()
+    expect(receipt.categories.analytics).toBe(true)
+    expect(receipt.categories.necessary).toBe(true)
+    expect(receipt.source).toBe('banner')
+    expect(receipt.dnt).toBe(true)
   })
 })
