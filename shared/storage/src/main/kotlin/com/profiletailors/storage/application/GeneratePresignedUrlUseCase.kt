@@ -2,6 +2,10 @@ package com.profiletailors.storage.application
 
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.observability.NoOpOperationalEventSink
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimiter
 import com.profiletailors.storage.domain.PresignableStorage
@@ -11,7 +15,6 @@ import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageObservation
 import com.profiletailors.storage.domain.StorageServiceException
 import kotlinx.coroutines.CancellationException
-import org.slf4j.LoggerFactory
 import java.time.Instant
 
 /**
@@ -41,8 +44,8 @@ class GeneratePresignedUrlUseCase(
     private val rateLimiter: RateLimiter,
     private val maxExpirySeconds: Long = DEFAULT_MAX_EXPIRY_SECONDS,
     private val provider: String = StorageObservation.Providers.S3,
+    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) {
-    private val logger = LoggerFactory.getLogger(GeneratePresignedUrlUseCase::class.java)
 
     /**
      * Generates a presigned URL for downloading an object from storage.
@@ -108,6 +111,16 @@ class GeneratePresignedUrlUseCase(
         )
     }
 
+    /**
+     * Publishes an event describing a generated presigned URL.
+     *
+     * Publication failures are reported as operational warnings while leaving URL generation successful.
+     *
+     * @param bucket The storage bucket containing the object.
+     * @param key The object key.
+     * @param expirySeconds The URL validity period in seconds.
+     * @param requesterId The identifier of the requester.
+     */
     private suspend fun publishGeneratedEvent(bucket: String, key: String, expirySeconds: Long, requesterId: String) {
         try {
             eventPublisher.publish(
@@ -123,9 +136,45 @@ class GeneratePresignedUrlUseCase(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logger.warn("Failed to publish PresignedUrlGeneratedEvent for bucket=$bucket, key=$key", e)
+            emitPublishFailure(bucket, e)
         }
     }
+
+    /**
+     * Reports a failed presigned URL event publication as an operational warning.
+     *
+     * @param bucket The storage bucket associated with the operation, if available.
+     * @param cause The failure that prevented event publication.
+     */
+    private fun emitPublishFailure(bucket: String, cause: Throwable) {
+        if (bucket.isBlank()) {
+            operationalEvents.emit(
+                severity = Severity.WARN,
+                name = StorageOperationalEvents.PUBLISH_FAILED_EVENT,
+                message = StorageOperationalEvents.PUBLISH_FAILED_MESSAGE,
+                cause = cause,
+                "operation" to StorageObservation.Operations.PRESIGN,
+                "provider" to provider,
+            )
+        } else {
+            operationalEvents.emit(
+                severity = Severity.WARN,
+                name = StorageOperationalEvents.PUBLISH_FAILED_EVENT,
+                message = StorageOperationalEvents.PUBLISH_FAILED_MESSAGE,
+                cause = cause,
+                "operation" to StorageObservation.Operations.PRESIGN,
+                "provider" to provider,
+                "bucket" to bucket,
+            )
+        }
+    }
+
+    /**
+     * Enforces the requester's rate limit for presigned URL generation.
+     *
+     * @param bucket The storage bucket associated with the request.
+     * @param requesterId The identifier of the requester whose limit is checked.
+     */
     private suspend fun enforceRateLimit(bucket: String, requesterId: String) {
         val rateLimitResult = rateLimiter.consumeToken(requesterId)
         if (rateLimitResult is RateLimitResult.Denied) {
