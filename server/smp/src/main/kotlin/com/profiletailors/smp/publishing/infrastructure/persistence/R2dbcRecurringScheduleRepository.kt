@@ -26,7 +26,8 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
     ).next().awaitSingleOrNull()
 
     override suspend fun findByWorkspace(workspaceId: String): List<RecurringSchedule> = query(
-        "WHERE workspace_id = :workspaceId AND status <> :cancelled ORDER BY next_scheduled_at NULLS LAST, created_at DESC",
+        "WHERE workspace_id = :workspaceId AND status <> :cancelled " +
+            "ORDER BY next_scheduled_at NULLS LAST, created_at DESC",
         mapOf("workspaceId" to workspaceId, "cancelled" to RecurringScheduleStatus.CANCELLED.name),
     ).collectList().awaitSingle()
 

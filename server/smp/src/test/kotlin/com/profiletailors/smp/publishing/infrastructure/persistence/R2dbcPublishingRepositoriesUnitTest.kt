@@ -220,65 +220,13 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
         }
 
         @Test
-        fun `pauseByTemplatePost sets ACTIVE schedules to PAUSED and leaves other statuses unchanged`() = runTest {
+        fun `pauses ACTIVE to PAUSED`() = runTest {
             val pubActive = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-pause-active")
             val pubPaused = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-pause-paused")
             val pubCancelled = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-rs-pause-cancelled")
-
-            recurringScheduleRepository.create(
-                RecurringSchedule(
-                    id = "rs-pause-active",
-                    workspaceId = "workspace-1",
-                    createdBy = "principal-1",
-                    templatePostId = pubActive,
-                    recurrenceRule = RecurrenceRule(
-                        frequency = RecurrenceFrequency.MONTHLY,
-                        interval = 1,
-                        dayOfMonth = 15,
-                    ),
-                    timezone = "UTC",
-                    nextScheduledAt = Instant.parse("2026-08-01T10:00:00Z"),
-                    status = RecurringScheduleStatus.ACTIVE,
-                    createdAt = Instant.parse("2026-07-01T10:00:00Z"),
-                    updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
-                ),
-            )
-            recurringScheduleRepository.create(
-                RecurringSchedule(
-                    id = "rs-pause-paused",
-                    workspaceId = "workspace-1",
-                    createdBy = "principal-1",
-                    templatePostId = pubPaused,
-                    recurrenceRule = RecurrenceRule(
-                        frequency = RecurrenceFrequency.MONTHLY,
-                        interval = 1,
-                        dayOfMonth = 15,
-                    ),
-                    timezone = "UTC",
-                    nextScheduledAt = Instant.parse("2026-08-01T10:00:00Z"),
-                    status = RecurringScheduleStatus.PAUSED,
-                    createdAt = Instant.parse("2026-07-01T10:00:00Z"),
-                    updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
-                ),
-            )
-            recurringScheduleRepository.create(
-                RecurringSchedule(
-                    id = "rs-pause-cancelled",
-                    workspaceId = "workspace-1",
-                    createdBy = "principal-1",
-                    templatePostId = pubCancelled,
-                    recurrenceRule = RecurrenceRule(
-                        frequency = RecurrenceFrequency.MONTHLY,
-                        interval = 1,
-                        dayOfMonth = 15,
-                    ),
-                    timezone = "UTC",
-                    nextScheduledAt = Instant.parse("2026-08-01T10:00:00Z"),
-                    status = RecurringScheduleStatus.CANCELLED,
-                    createdAt = Instant.parse("2026-07-01T10:00:00Z"),
-                    updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
-                ),
-            )
+            insertRecurringSchedule("rs-pause-active", pubActive, RecurringScheduleStatus.ACTIVE)
+            insertRecurringSchedule("rs-pause-paused", pubPaused, RecurringScheduleStatus.PAUSED)
+            insertRecurringSchedule("rs-pause-cancelled", pubCancelled, RecurringScheduleStatus.CANCELLED)
 
             recurringScheduleRepository.pauseByTemplatePost("workspace-1", pubActive)
 
@@ -1762,6 +1710,27 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+    }
+
+    private suspend fun insertRecurringSchedule(id: String, templatePostId: String, status: RecurringScheduleStatus) {
+        recurringScheduleRepository.create(
+            RecurringSchedule(
+                id = id,
+                workspaceId = "workspace-1",
+                createdBy = "principal-1",
+                templatePostId = templatePostId,
+                recurrenceRule = RecurrenceRule(
+                    frequency = RecurrenceFrequency.MONTHLY,
+                    interval = 1,
+                    dayOfMonth = 15,
+                ),
+                timezone = "UTC",
+                nextScheduledAt = Instant.parse("2026-08-01T10:00:00Z"),
+                status = status,
+                createdAt = Instant.parse("2026-07-01T10:00:00Z"),
+                updatedAt = Instant.parse("2026-07-01T10:00:00Z"),
+            ),
+        )
     }
 
     private suspend fun insertPublicationJobWithClaim(
