@@ -1,8 +1,7 @@
-package com.profiletailors.common.domain.presentation.filter
+package com.profiletailors.spring.boot.presentation.filter
 
 import com.profiletailors.common.domain.criteria.Criteria
 import com.profiletailors.common.domain.presentation.FilterInvalidException
-import org.slf4j.LoggerFactory
 import tools.jackson.databind.ObjectMapper
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
@@ -25,7 +24,6 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
                 else -> Criteria.And(criteriaList)
             }
         } catch (e: Exception) {
-            log.error("Error parsing query: {}", query, e)
             throw FilterInvalidException(e.message)
         }
     }
@@ -53,7 +51,6 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
                 converted = objectMapper.convertValue(candidate, clazz.java)
                 break
             } catch (_: RuntimeException) {
-                // Candidate conversion failed, continue to next candidate
             }
         }
         if (converted == null) throw FilterInvalidException("Can't convert operand. Operand: $operand, Type: $clazz")
@@ -71,9 +68,5 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
         "lt" -> Criteria.LessThan(property.name, value as Comparable<Any?>)
         "lte" -> Criteria.LessThanEquals(property.name, value as Comparable<Any?>)
         else -> throw FilterInvalidException("Not support operator.")
-    }
-
-    companion object {
-        private val log = LoggerFactory.getLogger(RHSFilterParser::class.java)
     }
 }
