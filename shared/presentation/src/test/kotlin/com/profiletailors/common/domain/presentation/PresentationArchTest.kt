@@ -1,4 +1,4 @@
-package com.profiletailors.storage
+package com.profiletailors.common.domain.presentation
 
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
@@ -7,7 +7,7 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-internal class StorageArchTest {
+internal class PresentationArchTest {
 
     private lateinit var importedClasses: JavaClasses
 
@@ -15,31 +15,9 @@ internal class StorageArchTest {
     fun setUp() {
         importedClasses = ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-            .importPackages("com.profiletailors.storage")
-    }
-
-    @Test
-    fun domainShouldNotDependOnApplicationOrInfrastructure() {
-        ArchRuleDefinition.noClasses()
-            .that()
-            .resideInAPackage("..domain..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("..application..", "..infrastructure..")
-            .because("storage domain must not depend on application or infrastructure")
-            .check(importedClasses)
-    }
-
-    @Test
-    fun applicationShouldNotDependOnInfrastructure() {
-        ArchRuleDefinition.noClasses()
-            .that()
-            .resideInAPackage("..application..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAPackage("..infrastructure..")
-            .because("storage application must not depend on infrastructure")
-            .check(importedClasses)
+            .importPackages(
+                "com.profiletailors.common.domain",
+            )
     }
 
     @Test
@@ -59,7 +37,7 @@ internal class StorageArchTest {
                 "com.fasterxml.jackson..",
                 "com.profiletailors.observability..",
             )
-            .because("storage domain must stay independent from observability frameworks")
+            .because("presentation domain must stay independent from observability frameworks")
             .check(importedClasses)
     }
 
@@ -79,7 +57,8 @@ internal class StorageArchTest {
                 "tools.jackson..",
                 "com.fasterxml.jackson..",
             )
-            .because("storage application must use the observability sink port instead of implementations")
+            .allowEmptyShould(true)
+            .because("presentation application must use the observability sink port instead of implementations")
             .check(importedClasses)
     }
 }

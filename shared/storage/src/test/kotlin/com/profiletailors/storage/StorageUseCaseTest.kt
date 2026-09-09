@@ -2,17 +2,23 @@ package com.profiletailors.storage
 
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.observability.OperationalEvent
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.Severity
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimiter
 import com.profiletailors.storage.application.GeneratePresignedUrlUseCase
+import com.profiletailors.storage.application.StorageOperationalEvents
 import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.RateLimitExceededException
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageObservation
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -255,5 +261,103 @@ class GeneratePresignedUrlUseCaseTest {
         assertTrue(exception.retryAfterSeconds == 30L) {
             "Expected retryAfterSeconds of 30 but got ${exception.retryAfterSeconds}"
         }
+    }
+
+    @Test
+    fun `publish failure emits WARN event without key and continues`() = runTest {
+        val storage = MockPresignableStorage()
+        val bucket = "test-bucket"
+        val key = "test.txt"
+        storage.upload(bucket, key, kotlinx.coroutines.flow.flowOf("test content".toByteArray()))
+        val events = mutableListOf<OperationalEvent>()
+        val sink = OperationalEventSink { events += it }
+        val failingPublisher = object : EventPublisher<BaseDomainEvent> {
+            override suspend fun publish(event: BaseDomainEvent): Unit = throw IllegalStateException("bus down")
+        }
+        val useCase = GeneratePresignedUrlUseCase(
+            storage,
+            failingPublisher,
+            TestStorageMetrics(),
+            MockRateLimiter(),
+            maxExpirySeconds = 3600,
+            operationalEvents = sink,
+        )
+
+        val url = useCase.execute(bucket, key, 3600, "user-123")
+
+        assertTrue(url.isNotEmpty())
+        assertEquals(1, events.size)
+        val event = events.single()
+        assertEquals(StorageOperationalEvents.PUBLISH_FAILED_EVENT, event.name)
+        assertEquals(Severity.WARN, event.severity)
+        assertEquals(StorageOperationalEvents.PUBLISH_FAILED_MESSAGE, event.message)
+        assertEquals(StorageObservation.Operations.PRESIGN, event.attributes["operation"])
+        assertEquals(StorageObservation.Providers.S3, event.attributes["provider"])
+        assertEquals(bucket, event.attributes["bucket"])
+        assertEquals(setOf("operation", "provider", "bucket"), event.attributes.keys)
+        assertTrue(event.cause is IllegalStateException)
+        assertTrue(!event.message!!.contains(key))
+    }
+
+    @Test
+    fun `publish failure with blank bucket emits WARN event without bucket attribute`() = runTest {
+        val storage = MockPresignableStorage()
+        val bucket = ""
+        val key = "test.txt"
+        storage.upload(bucket, key, kotlinx.coroutines.flow.flowOf("test content".toByteArray()))
+        val events = mutableListOf<OperationalEvent>()
+        val sink = OperationalEventSink { events += it }
+        val failingPublisher = object : EventPublisher<BaseDomainEvent> {
+            override suspend fun publish(event: BaseDomainEvent): Unit = throw IllegalStateException("bus down")
+        }
+        val useCase = GeneratePresignedUrlUseCase(
+            storage,
+            failingPublisher,
+            TestStorageMetrics(),
+            MockRateLimiter(),
+            maxExpirySeconds = 3600,
+            operationalEvents = sink,
+        )
+
+        val url = useCase.execute(bucket, key, 3600, "user-123")
+
+        assertTrue(url.isNotEmpty())
+        assertEquals(1, events.size)
+        val event = events.single()
+        assertEquals(StorageOperationalEvents.PUBLISH_FAILED_EVENT, event.name)
+        assertEquals(Severity.WARN, event.severity)
+        assertEquals(StorageOperationalEvents.PUBLISH_FAILED_MESSAGE, event.message)
+        assertEquals(StorageObservation.Operations.PRESIGN, event.attributes["operation"])
+        assertEquals(StorageObservation.Providers.S3, event.attributes["provider"])
+        assertEquals(setOf("operation", "provider"), event.attributes.keys)
+        assertTrue(event.cause is IllegalArgumentException)
+    }
+
+    @Test
+    fun `cancellation during publish rethrows without emitting`() = runTest {
+        val storage = MockPresignableStorage()
+        val bucket = "test-bucket"
+        val key = "test.txt"
+        storage.upload(bucket, key, kotlinx.coroutines.flow.flowOf("test content".toByteArray()))
+        val events = mutableListOf<OperationalEvent>()
+        val sink = OperationalEventSink { events += it }
+        val cancellingPublisher = object : EventPublisher<BaseDomainEvent> {
+            override suspend fun publish(event: BaseDomainEvent): Unit = throw CancellationException("cancelled")
+        }
+        val useCase = GeneratePresignedUrlUseCase(
+            storage,
+            cancellingPublisher,
+            TestStorageMetrics(),
+            MockRateLimiter(),
+            maxExpirySeconds = 3600,
+            operationalEvents = sink,
+        )
+
+        val thrown = runCatching {
+            useCase.execute(bucket, key, 3600, "user-123")
+        }.exceptionOrNull()
+
+        assertTrue(thrown is CancellationException)
+        assertTrue(events.isEmpty())
     }
 }
