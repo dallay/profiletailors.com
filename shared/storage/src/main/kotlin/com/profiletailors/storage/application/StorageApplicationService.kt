@@ -85,6 +85,15 @@ class StorageApplicationService(
         }
     }
 
+    /**
+     * Publishes an event after a successful upload.
+     *
+     * @param bucket The bucket containing the uploaded file.
+     * @param key The key of the uploaded file.
+     * @param totalSize The uploaded file size in bytes.
+     * @param uploaderId The identifier of the uploader.
+     * @param metadata Metadata associated with the uploaded file.
+     */
     private suspend fun onUploadSuccess(
         bucket: String,
         key: String,
@@ -111,14 +120,12 @@ class StorageApplicationService(
     }
 
     /**
-     * Download a file from storage with security validation, auditing, and metrics.
+     * Downloads an object from storage while recording metrics and publishing an audit event.
      *
-     * @param bucket The bucket name
-     * @param key The object key
-     * @param downloaderId Identifier of who is downloading (for auditing)
-     * @return Flow of byte arrays containing the file content
-     * @throws StorageSecurityException If path traversal is detected
-     * @throws StorageObjectNotFoundException If the object doesn't exist
+     * @param bucket The name of the storage bucket.
+     * @param key The object key.
+     * @param downloaderId The identifier of the user or process performing the download.
+     * @return A flow of byte arrays containing the object content.
      */
     fun download(bucket: String, key: String, downloaderId: String): Flow<ByteArray> {
         validateBucketAndKey(bucket, key)
@@ -196,6 +203,13 @@ class StorageApplicationService(
         }
     }
 
+    /**
+     * Publishes the event for a successful file deletion.
+     *
+     * @param bucket The bucket containing the deleted file.
+     * @param key The key of the deleted file.
+     * @param deleterId The identifier of the user or process that deleted the file.
+     */
     private suspend fun onDeleteSuccess(bucket: String, key: String, deleterId: String) {
         try {
             eventPublisher.publish(
@@ -246,11 +260,11 @@ class StorageApplicationService(
     }
 
     /**
-     * List objects in a bucket with prefix filtering.
+     * Lists object keys in a bucket, optionally filtered by a prefix.
      *
-     * @param bucket The bucket name
-     * @param prefix Optional prefix to filter objects
-     * @return List of object keys
+     * @param bucket The bucket containing the objects.
+     * @param prefix The optional prefix used to filter object keys.
+     * @return The matching object keys.
      */
     suspend fun list(bucket: String, prefix: String = ""): List<String> = try {
         metrics.recordOperationTime(StorageObservation.Operations.LIST, provider) {
@@ -271,6 +285,13 @@ class StorageApplicationService(
         throw e
     }
 
+    /**
+     * Reports a domain-event publication failure as a warning operational event.
+     *
+     * @param operation The storage operation whose event could not be published.
+     * @param bucket The affected bucket name, when available.
+     * @param cause The failure that prevented event publication.
+     */
     private fun emitPublishFailure(operation: String, bucket: String, cause: Throwable) {
         if (bucket.isBlank()) {
             operationalEvents.emit(
@@ -295,8 +316,11 @@ class StorageApplicationService(
     }
 
     /**
-     * Validates bucket and key for obvious path traversal patterns
-     * at the application layer as defense-in-depth.
+     * Rejects bucket names and object keys containing path traversal sequences.
+     *
+     * @param bucket The bucket name to validate.
+     * @param key The object key to validate.
+     * @throws StorageSecurityException If the bucket name or key contains `..`.
      */
     private fun validateBucketAndKey(bucket: String, key: String) {
         if (bucket.contains("..")) {

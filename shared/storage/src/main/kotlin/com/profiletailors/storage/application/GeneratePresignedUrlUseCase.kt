@@ -111,6 +111,16 @@ class GeneratePresignedUrlUseCase(
         )
     }
 
+    /**
+     * Publishes an event describing a generated presigned URL.
+     *
+     * Publication failures are reported as operational warnings while leaving URL generation successful.
+     *
+     * @param bucket The storage bucket containing the object.
+     * @param key The object key.
+     * @param expirySeconds The URL validity period in seconds.
+     * @param requesterId The identifier of the requester.
+     */
     private suspend fun publishGeneratedEvent(bucket: String, key: String, expirySeconds: Long, requesterId: String) {
         try {
             eventPublisher.publish(
@@ -130,6 +140,12 @@ class GeneratePresignedUrlUseCase(
         }
     }
 
+    /**
+     * Reports a failed presigned URL event publication as an operational warning.
+     *
+     * @param bucket The storage bucket associated with the operation, if available.
+     * @param cause The failure that prevented event publication.
+     */
     private fun emitPublishFailure(bucket: String, cause: Throwable) {
         if (bucket.isBlank()) {
             operationalEvents.emit(
@@ -153,6 +169,12 @@ class GeneratePresignedUrlUseCase(
         }
     }
 
+    /**
+     * Enforces the requester's rate limit for presigned URL generation.
+     *
+     * @param bucket The storage bucket associated with the request.
+     * @param requesterId The identifier of the requester whose limit is checked.
+     */
     private suspend fun enforceRateLimit(bucket: String, requesterId: String) {
         val rateLimitResult = rateLimiter.consumeToken(requesterId)
         if (rateLimitResult is RateLimitResult.Denied) {

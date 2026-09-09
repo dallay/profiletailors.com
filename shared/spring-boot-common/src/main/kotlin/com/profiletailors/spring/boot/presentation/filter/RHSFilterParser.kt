@@ -11,6 +11,13 @@ import kotlin.reflect.full.memberProperties
 class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectMapper: ObjectMapper) {
     private val regex = Regex("(.[^:]+):(.+)")
 
+    /**
+     * Parses filter query values into a combined criteria expression.
+     *
+     * @param query The properties and filter values to parse.
+     * @param useOr Whether to combine the resulting criteria with OR instead of AND.
+     * @return An empty, OR-combined, or AND-combined criteria expression.
+     */
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
     fun parse(query: Map<KProperty1<T, *>, Collection<String?>?>, useOr: Boolean = false): Criteria {
         try {
@@ -42,6 +49,14 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
         return create(property, operator, parsed)
     }
 
+    /**
+     * Converts an operand string to the specified Kotlin type.
+     *
+     * @param operand The string value to convert.
+     * @param clazz The target Kotlin class.
+     * @return The converted operand.
+     * @throws FilterInvalidException If the operand cannot be converted to the target type.
+     */
     private fun convert(operand: String, clazz: KClass<*>): Any {
         val candidates =
             listOfNotNull(operand, operand.toIntOrNull(), operand.toLongOrNull(), operand.toBooleanStrictOrNull())
@@ -57,6 +72,15 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
         return converted
     }
 
+    /**
+     * Creates a criterion for a property using the specified operator and value.
+     *
+     * @param property The property to which the criterion applies.
+     * @param operator The comparison operator.
+     * @param value The value used by the criterion.
+     * @return The criterion matching the operator.
+     * @throws FilterInvalidException If the operator is unsupported.
+     */
     private fun create(property: KProperty1<T, *>, operator: String, value: Any): Criteria = when (operator) {
         "ne" -> Criteria.NotEquals(property.name, value)
         "eq" -> Criteria.Equals(property.name, value)
