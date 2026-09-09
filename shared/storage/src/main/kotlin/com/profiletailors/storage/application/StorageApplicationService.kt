@@ -3,6 +3,10 @@ package com.profiletailors.storage.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.observability.NoOpOperationalEventSink
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import com.profiletailors.storage.domain.FileDeletedEvent
 import com.profiletailors.storage.domain.FileDownloadedEvent
 import com.profiletailors.storage.domain.FileUploadedEvent
@@ -15,10 +19,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
-import org.slf4j.LoggerFactory
 import java.time.Instant
-
-private val logger = LoggerFactory.getLogger(StorageApplicationService::class.java)
 
 /**
  * Main application service for file storage operations.
@@ -34,6 +35,7 @@ class StorageApplicationService(
     private val eventPublisher: EventPublisher<BaseDomainEvent>,
     private val metrics: StorageObservation,
     private val provider: String = StorageObservation.Providers.LOCAL,
+    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) {
 
     /**
@@ -83,6 +85,15 @@ class StorageApplicationService(
         }
     }
 
+    /**
+     * Publishes an event after a successful upload.
+     *
+     * @param bucket The bucket containing the uploaded file.
+     * @param key The key of the uploaded file.
+     * @param totalSize The uploaded file size in bytes.
+     * @param uploaderId The identifier of the uploader.
+     * @param metadata Metadata associated with the uploaded file.
+     */
     private suspend fun onUploadSuccess(
         bucket: String,
         key: String,
@@ -104,19 +115,17 @@ class StorageApplicationService(
         } catch (e: CancellationException) {
             throw e // Don't swallow coroutine cancellation
         } catch (e: Exception) {
-            logger.warn("Failed to publish FileUploadedEvent for bucket=$bucket, key=$key", e)
+            emitPublishFailure(StorageObservation.Operations.UPLOAD, bucket, e)
         }
     }
 
     /**
-     * Download a file from storage with security validation, auditing, and metrics.
+     * Downloads an object from storage while recording metrics and publishing an audit event.
      *
-     * @param bucket The bucket name
-     * @param key The object key
-     * @param downloaderId Identifier of who is downloading (for auditing)
-     * @return Flow of byte arrays containing the file content
-     * @throws StorageSecurityException If path traversal is detected
-     * @throws StorageObjectNotFoundException If the object doesn't exist
+     * @param bucket The name of the storage bucket.
+     * @param key The object key.
+     * @param downloaderId The identifier of the user or process performing the download.
+     * @return A flow of byte arrays containing the object content.
      */
     fun download(bucket: String, key: String, downloaderId: String): Flow<ByteArray> {
         validateBucketAndKey(bucket, key)
@@ -135,7 +144,7 @@ class StorageApplicationService(
             } catch (e: CancellationException) {
                 throw e // Don't swallow coroutine cancellation
             } catch (e: Exception) {
-                logger.warn("Failed to publish FileDownloadedEvent for bucket=$bucket, key=$key", e)
+                emitPublishFailure(StorageObservation.Operations.DOWNLOAD, bucket, e)
             }
 
             var bytesDownloaded = 0L
@@ -194,6 +203,13 @@ class StorageApplicationService(
         }
     }
 
+    /**
+     * Publishes the event for a successful file deletion.
+     *
+     * @param bucket The bucket containing the deleted file.
+     * @param key The key of the deleted file.
+     * @param deleterId The identifier of the user or process that deleted the file.
+     */
     private suspend fun onDeleteSuccess(bucket: String, key: String, deleterId: String) {
         try {
             eventPublisher.publish(
@@ -207,7 +223,7 @@ class StorageApplicationService(
         } catch (e: CancellationException) {
             throw e // Don't swallow coroutine cancellation
         } catch (e: Exception) {
-            logger.warn("Failed to publish FileDeletedEvent for bucket=$bucket, key=$key", e)
+            emitPublishFailure(StorageObservation.Operations.DELETE, bucket, e)
         }
     }
 
@@ -244,11 +260,11 @@ class StorageApplicationService(
     }
 
     /**
-     * List objects in a bucket with prefix filtering.
+     * Lists object keys in a bucket, optionally filtered by a prefix.
      *
-     * @param bucket The bucket name
-     * @param prefix Optional prefix to filter objects
-     * @return List of object keys
+     * @param bucket The bucket containing the objects.
+     * @param prefix The optional prefix used to filter object keys.
+     * @return The matching object keys.
      */
     suspend fun list(bucket: String, prefix: String = ""): List<String> = try {
         metrics.recordOperationTime(StorageObservation.Operations.LIST, provider) {
@@ -270,8 +286,41 @@ class StorageApplicationService(
     }
 
     /**
-     * Validates bucket and key for obvious path traversal patterns
-     * at the application layer as defense-in-depth.
+     * Reports a domain-event publication failure as a warning operational event.
+     *
+     * @param operation The storage operation whose event could not be published.
+     * @param bucket The affected bucket name, when available.
+     * @param cause The failure that prevented event publication.
+     */
+    private fun emitPublishFailure(operation: String, bucket: String, cause: Throwable) {
+        if (bucket.isBlank()) {
+            operationalEvents.emit(
+                severity = Severity.WARN,
+                name = StorageOperationalEvents.PUBLISH_FAILED_EVENT,
+                message = StorageOperationalEvents.PUBLISH_FAILED_MESSAGE,
+                cause = cause,
+                "operation" to operation,
+                "provider" to provider,
+            )
+        } else {
+            operationalEvents.emit(
+                severity = Severity.WARN,
+                name = StorageOperationalEvents.PUBLISH_FAILED_EVENT,
+                message = StorageOperationalEvents.PUBLISH_FAILED_MESSAGE,
+                cause = cause,
+                "operation" to operation,
+                "provider" to provider,
+                "bucket" to bucket,
+            )
+        }
+    }
+
+    /**
+     * Rejects bucket names and object keys containing path traversal sequences.
+     *
+     * @param bucket The bucket name to validate.
+     * @param key The object key to validate.
+     * @throws StorageSecurityException If the bucket name or key contains `..`.
      */
     private fun validateBucketAndKey(bucket: String, key: String) {
         if (bucket.contains("..")) {
@@ -281,4 +330,6 @@ class StorageApplicationService(
             throw StorageSecurityException("Invalid key: path traversal detected")
         }
     }
+
+    private companion object
 }

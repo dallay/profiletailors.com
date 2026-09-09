@@ -41,4 +41,45 @@ internal class RatelimitArchTest {
             .because("ratelimit application must not depend on infrastructure")
             .check(importedClasses)
     }
+
+    @Test
+    fun domainShouldNotDependOnObservabilityFrameworks() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..domain..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "org.slf4j..",
+                "ch.qos.logback..",
+                "org.apache.logging.log4j..",
+                "io.opentelemetry..",
+                "io.micrometer..",
+                "tools.jackson..",
+                "com.fasterxml.jackson..",
+                "com.profiletailors.observability..",
+            )
+            .because("ratelimit domain must stay independent from observability frameworks")
+            .check(importedClasses)
+    }
+
+    @Test
+    fun applicationShouldNotDependOnObservabilityImplementations() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "org.slf4j..",
+                "ch.qos.logback..",
+                "org.apache.logging.log4j..",
+                "io.opentelemetry..",
+                "io.micrometer..",
+                "tools.jackson..",
+                "com.fasterxml.jackson..",
+            )
+            .because("ratelimit application must use the observability sink port instead of implementations")
+            .check(importedClasses)
+    }
 }

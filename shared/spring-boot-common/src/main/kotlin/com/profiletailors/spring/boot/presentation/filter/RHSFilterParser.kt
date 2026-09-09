@@ -1,8 +1,8 @@
-package com.profiletailors.common.domain.presentation.filter
+package com.profiletailors.spring.boot.presentation.filter
 
 import com.profiletailors.common.domain.criteria.Criteria
 import com.profiletailors.common.domain.presentation.FilterInvalidException
-import org.slf4j.LoggerFactory
+import kotlinx.coroutines.CancellationException
 import tools.jackson.databind.ObjectMapper
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
@@ -12,6 +12,13 @@ import kotlin.reflect.full.memberProperties
 class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectMapper: ObjectMapper) {
     private val regex = Regex("(.[^:]+):(.+)")
 
+    /**
+     * Parses filter query values into a combined criteria expression.
+     *
+     * @param query The properties and filter values to parse.
+     * @param useOr Whether to combine the resulting criteria with OR instead of AND.
+     * @return An empty, OR-combined, or AND-combined criteria expression.
+     */
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
     fun parse(query: Map<KProperty1<T, *>, Collection<String?>?>, useOr: Boolean = false): Criteria {
         try {
@@ -24,17 +31,20 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
                 useOr -> Criteria.Or(criteriaList)
                 else -> Criteria.And(criteriaList)
             }
+        } catch (e: FilterInvalidException) {
+            throw e
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            log.error("Error parsing query: {}", query, e)
             throw FilterInvalidException(e.message)
         }
     }
 
     private fun processQueryEntry(key: KProperty1<T, *>, values: Collection<String?>?): List<Criteria> {
         val property = clazz.memberProperties.find { it == key } ?: return emptyList()
-        val clazz = property.returnType.classifier as? KClass<*>
+        val operandType = property.returnType.classifier as? KClass<*>
             ?: throw FilterInvalidException("Can't find operand type. Property: $property")
-        return values?.filterNotNull()?.map { value -> processValue(property, clazz, value) } ?: emptyList()
+        return values?.filterNotNull()?.map { value -> processValue(property, operandType, value) } ?: emptyList()
     }
 
     private fun processValue(property: KProperty1<T, *>, clazz: KClass<*>, value: String): Criteria {
@@ -44,6 +54,14 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
         return create(property, operator, parsed)
     }
 
+    /**
+     * Converts an operand string to the specified Kotlin type.
+     *
+     * @param operand The string value to convert.
+     * @param clazz The target Kotlin class.
+     * @return The converted operand.
+     * @throws FilterInvalidException If the operand cannot be converted to the target type.
+     */
     private fun convert(operand: String, clazz: KClass<*>): Any {
         val candidates =
             listOfNotNull(operand, operand.toIntOrNull(), operand.toLongOrNull(), operand.toBooleanStrictOrNull())
@@ -52,14 +70,24 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
             try {
                 converted = objectMapper.convertValue(candidate, clazz.java)
                 break
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: RuntimeException) {
-                // Candidate conversion failed, continue to next candidate
             }
         }
-        if (converted == null) throw FilterInvalidException("Can't convert operand. Operand: $operand, Type: $clazz")
+        if (converted == null) throw FilterInvalidException("Can't convert operand for type ${clazz.simpleName}")
         return converted
     }
 
+    /**
+     * Creates a criterion for a property using the specified operator and value.
+     *
+     * @param property The property to which the criterion applies.
+     * @param operator The comparison operator.
+     * @param value The value used by the criterion.
+     * @return The criterion matching the operator.
+     * @throws FilterInvalidException If the operator is unsupported.
+     */
     private fun create(property: KProperty1<T, *>, operator: String, value: Any): Criteria = when (operator) {
         "ne" -> Criteria.NotEquals(property.name, value)
         "eq" -> Criteria.Equals(property.name, value)
@@ -71,9 +99,5 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
         "lt" -> Criteria.LessThan(property.name, value as Comparable<Any?>)
         "lte" -> Criteria.LessThanEquals(property.name, value as Comparable<Any?>)
         else -> throw FilterInvalidException("Not support operator.")
-    }
-
-    companion object {
-        private val log = LoggerFactory.getLogger(RHSFilterParser::class.java)
     }
 }

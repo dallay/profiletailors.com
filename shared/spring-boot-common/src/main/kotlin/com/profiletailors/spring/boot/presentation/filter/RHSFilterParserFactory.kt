@@ -1,6 +1,5 @@
 package com.profiletailors.spring.boot.presentation.filter
 
-import com.profiletailors.common.domain.presentation.filter.RHSFilterParser
 import org.springframework.stereotype.Component
 import tools.jackson.databind.ObjectMapper
 import kotlin.reflect.KClass
