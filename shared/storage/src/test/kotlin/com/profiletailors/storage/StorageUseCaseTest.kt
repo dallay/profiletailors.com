@@ -300,6 +300,40 @@ class GeneratePresignedUrlUseCaseTest {
     }
 
     @Test
+    fun `publish failure with blank bucket emits WARN event without bucket attribute`() = runTest {
+        val storage = MockPresignableStorage()
+        val bucket = ""
+        val key = "test.txt"
+        storage.upload(bucket, key, kotlinx.coroutines.flow.flowOf("test content".toByteArray()))
+        val events = mutableListOf<OperationalEvent>()
+        val sink = OperationalEventSink { events += it }
+        val failingPublisher = object : EventPublisher<BaseDomainEvent> {
+            override suspend fun publish(event: BaseDomainEvent): Unit = throw IllegalStateException("bus down")
+        }
+        val useCase = GeneratePresignedUrlUseCase(
+            storage,
+            failingPublisher,
+            TestStorageMetrics(),
+            MockRateLimiter(),
+            maxExpirySeconds = 3600,
+            operationalEvents = sink,
+        )
+
+        val url = useCase.execute(bucket, key, 3600, "user-123")
+
+        assertTrue(url.isNotEmpty())
+        assertEquals(1, events.size)
+        val event = events.single()
+        assertEquals(StorageOperationalEvents.PUBLISH_FAILED_EVENT, event.name)
+        assertEquals(Severity.WARN, event.severity)
+        assertEquals(StorageOperationalEvents.PUBLISH_FAILED_MESSAGE, event.message)
+        assertEquals(StorageObservation.Operations.PRESIGN, event.attributes["operation"])
+        assertEquals(StorageObservation.Providers.S3, event.attributes["provider"])
+        assertEquals(setOf("operation", "provider"), event.attributes.keys)
+        assertTrue(event.cause is IllegalArgumentException)
+    }
+
+    @Test
     fun `cancellation during publish rethrows without emitting`() = runTest {
         val storage = MockPresignableStorage()
         val bucket = "test-bucket"
