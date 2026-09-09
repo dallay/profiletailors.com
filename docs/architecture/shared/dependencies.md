@@ -38,9 +38,16 @@ Both modules follow the framework-free rules defined by
 `com.profiletailors.smp` imports. ArchUnit assertions enforce this at build time.
 
 The `:shared:observability` module is a framework-free Kotlin contract for structured operational
-  events. `:shared:storage` and `server:smp` consume it; web applications and `shared/web` do not. See the [Shared
-  Observability Usage Standard](../../observability-usage.md) for contract signatures, layering,
-sensitive-data guidance, and test ownership.
+events and its shared sanitizer/best-effort adapter decorator. `:shared:storage` and `server:smp`
+consume it; web applications and `shared/web` do not. See the [Shared Observability Usage
+Standard](../../observability-usage.md) for contract signatures, layering, sensitive-data guidance,
+and test ownership.
+
+Observability boundary rules are reused from
+`shared/common/src/testFixtures/kotlin/com/profiletailors/architecture/ObservabilityArchitectureRules.kt`.
+Modules with `domain` or `application` layers should consume that test fixture and declare their
+package root instead of copying the vendor package list. Existing module-specific architecture
+rules remain in place.
 
 ## Dependency Graph
 

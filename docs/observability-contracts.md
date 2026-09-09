@@ -66,16 +66,18 @@ Domain and application code MUST remain independent from SLF4J, Logback, Log4j, 
 OpenTelemetry. Operational signals cross the hexagonal boundary through the pure Kotlin
 `OperationalEvent` and `OperationalEventSink` contracts in `:shared:observability`.
 
-The SMP infrastructure provides the current `Slf4jOperationalEventSink` adapter. Replacing the
-backend or adding another exporter therefore does not require changes to domain or application
-use cases. Generic command and query lifecycle events (`bus.request.started`,
+The SMP infrastructure provides the current `Slf4jOperationalEventSink` adapter behind the shared
+`BestEffortOperationalEventSink` decorator. Replacing the backend or adding another exporter
+therefore does not require changes to domain or application use cases. Generic command and query lifecycle events (`bus.request.started`,
 `bus.request.completed`, and `bus.request.failed`) are emitted by the mediator pipeline without
-serializing request or response values. The `bus.request.failed` event emits safe error metadata
-(`errorType` with the exception class simple name) instead of the raw `Throwable` to prevent
-sensitive stack traces or exception messages from reaching the log sink. Storage publish failures
+serializing request or response values. The `bus.request.failed` event retains the original
+`Throwable` in the in-memory event contract, while the sanitizer emits only safe error metadata
+(`errorType` with the exception class simple name) to prevent sensitive stack traces or exception
+messages from reaching the log sink. Storage publish failures
 are emitted as `storage.operation.event.publish.failed` at `WARN` severity with `operation`
 (`upload`, `download`, `delete`, or `presign`), `provider`, and sanitized `bucket` attributes plus
-the original publish `cause`. The object `key` and all payloads are never emitted, a blank bucket
+the original publish `cause` in the event contract; concrete adapters receive only its safe type.
+The object `key` and all payloads are never emitted, a blank bucket
 skips the `bucket` attribute, and the message text is constant. Domain facts and audit
 records continue to use their dedicated domain-event and audit contracts.
 

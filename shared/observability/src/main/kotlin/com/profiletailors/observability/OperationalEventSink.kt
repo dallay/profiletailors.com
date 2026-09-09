@@ -1,5 +1,6 @@
 package com.profiletailors.observability
 
+/** Framework-free port for semantic operational events; concrete technology belongs in adapters. */
 fun interface OperationalEventSink {
     fun emit(event: OperationalEvent)
 }
@@ -26,14 +27,19 @@ fun OperationalEventSink.emit(
     )
 }
 
+@Deprecated("Use the structured emit overload with a stable event name and named attributes")
 fun OperationalEventSink.trace(message: String, vararg arguments: Any?) = emitLegacy(Severity.TRACE, message, arguments)
 
+@Deprecated("Use the structured emit overload with a stable event name and named attributes")
 fun OperationalEventSink.debug(message: String, vararg arguments: Any?) = emitLegacy(Severity.DEBUG, message, arguments)
 
+@Deprecated("Use the structured emit overload with a stable event name and named attributes")
 fun OperationalEventSink.info(message: String, vararg arguments: Any?) = emitLegacy(Severity.INFO, message, arguments)
 
+@Deprecated("Use the structured emit overload with a stable event name and named attributes")
 fun OperationalEventSink.warn(message: String, vararg arguments: Any?) = emitLegacy(Severity.WARN, message, arguments)
 
+@Deprecated("Use the structured emit overload with a stable event name and named attributes")
 fun OperationalEventSink.error(message: String, vararg arguments: Any?) = emitLegacy(Severity.ERROR, message, arguments)
 
 private fun OperationalEventSink.emitLegacy(severity: Severity, message: String, arguments: Array<out Any?>) {

@@ -1,5 +1,6 @@
 package com.profiletailors.common.domain.presentation
 
+import com.profiletailors.architecture.ObservabilityArchitectureRules
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
@@ -22,43 +23,17 @@ internal class PresentationArchTest {
 
     @Test
     fun domainShouldNotDependOnObservabilityFrameworks() {
-        ArchRuleDefinition.noClasses()
-            .that()
-            .resideInAPackage("..domain..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage(
-                "org.slf4j..",
-                "ch.qos.logback..",
-                "org.apache.logging.log4j..",
-                "io.opentelemetry..",
-                "io.micrometer..",
-                "tools.jackson..",
-                "com.fasterxml.jackson..",
-                "com.profiletailors.observability..",
-            )
-            .because("presentation domain must stay independent from observability frameworks")
+        ObservabilityArchitectureRules.domainMustNotDependOnObservabilityVendors("com.profiletailors.common")
+            .check(importedClasses)
+
+        ObservabilityArchitectureRules.domainMustNotDependOnOperationalEventSink("com.profiletailors.common")
             .check(importedClasses)
     }
 
     @Test
     fun applicationShouldNotDependOnObservabilityImplementations() {
-        ArchRuleDefinition.noClasses()
-            .that()
-            .resideInAPackage("..application..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage(
-                "org.slf4j..",
-                "ch.qos.logback..",
-                "org.apache.logging.log4j..",
-                "io.opentelemetry..",
-                "io.micrometer..",
-                "tools.jackson..",
-                "com.fasterxml.jackson..",
-            )
+        ObservabilityArchitectureRules.applicationMustNotDependOnObservabilityVendors("com.profiletailors.common")
             .allowEmptyShould(true)
-            .because("presentation application must use the observability sink port instead of implementations")
             .check(importedClasses)
     }
 }
