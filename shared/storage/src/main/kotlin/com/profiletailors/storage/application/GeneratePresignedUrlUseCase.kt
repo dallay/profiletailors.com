@@ -2,6 +2,10 @@ package com.profiletailors.storage.application
 
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.observability.NoOpOperationalEventSink
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimiter
 import com.profiletailors.storage.domain.PresignableStorage
@@ -11,7 +15,6 @@ import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageObservation
 import com.profiletailors.storage.domain.StorageServiceException
 import kotlinx.coroutines.CancellationException
-import org.slf4j.LoggerFactory
 import java.time.Instant
 
 /**
@@ -41,8 +44,8 @@ class GeneratePresignedUrlUseCase(
     private val rateLimiter: RateLimiter,
     private val maxExpirySeconds: Long = DEFAULT_MAX_EXPIRY_SECONDS,
     private val provider: String = StorageObservation.Providers.S3,
+    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) {
-    private val logger = LoggerFactory.getLogger(GeneratePresignedUrlUseCase::class.java)
 
     /**
      * Generates a presigned URL for downloading an object from storage.
@@ -123,9 +126,33 @@ class GeneratePresignedUrlUseCase(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logger.warn("Failed to publish PresignedUrlGeneratedEvent for bucket=$bucket, key=$key", e)
+            emitPublishFailure(bucket, e)
         }
     }
+
+    private fun emitPublishFailure(bucket: String, cause: Throwable) {
+        if (bucket.isBlank()) {
+            operationalEvents.emit(
+                severity = Severity.WARN,
+                name = PUBLISH_FAILED_EVENT,
+                message = PUBLISH_FAILED_MESSAGE,
+                cause = cause,
+                "operation" to StorageObservation.Operations.PRESIGN,
+                "provider" to provider,
+            )
+        } else {
+            operationalEvents.emit(
+                severity = Severity.WARN,
+                name = PUBLISH_FAILED_EVENT,
+                message = PUBLISH_FAILED_MESSAGE,
+                cause = cause,
+                "operation" to StorageObservation.Operations.PRESIGN,
+                "provider" to provider,
+                "bucket" to bucket,
+            )
+        }
+    }
+
     private suspend fun enforceRateLimit(bucket: String, requesterId: String) {
         val rateLimitResult = rateLimiter.consumeToken(requesterId)
         if (rateLimitResult is RateLimitResult.Denied) {
@@ -149,5 +176,7 @@ class GeneratePresignedUrlUseCase(
 
     companion object {
         private const val DEFAULT_MAX_EXPIRY_SECONDS = 3600L // 1 hour
+        private const val PUBLISH_FAILED_EVENT = "storage.operation.event.publish.failed"
+        private const val PUBLISH_FAILED_MESSAGE = "Storage operation event publish failed"
     }
 }

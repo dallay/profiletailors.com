@@ -3,6 +3,10 @@ package com.profiletailors.storage.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.observability.NoOpOperationalEventSink
+import com.profiletailors.observability.OperationalEventSink
+import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import com.profiletailors.storage.domain.FileDeletedEvent
 import com.profiletailors.storage.domain.FileDownloadedEvent
 import com.profiletailors.storage.domain.FileUploadedEvent
@@ -15,10 +19,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
-import org.slf4j.LoggerFactory
 import java.time.Instant
-
-private val logger = LoggerFactory.getLogger(StorageApplicationService::class.java)
 
 /**
  * Main application service for file storage operations.
@@ -34,6 +35,7 @@ class StorageApplicationService(
     private val eventPublisher: EventPublisher<BaseDomainEvent>,
     private val metrics: StorageObservation,
     private val provider: String = StorageObservation.Providers.LOCAL,
+    private val operationalEvents: OperationalEventSink = NoOpOperationalEventSink,
 ) {
 
     /**
@@ -104,7 +106,7 @@ class StorageApplicationService(
         } catch (e: CancellationException) {
             throw e // Don't swallow coroutine cancellation
         } catch (e: Exception) {
-            logger.warn("Failed to publish FileUploadedEvent for bucket=$bucket, key=$key", e)
+            emitPublishFailure(StorageObservation.Operations.UPLOAD, bucket, e)
         }
     }
 
@@ -135,7 +137,7 @@ class StorageApplicationService(
             } catch (e: CancellationException) {
                 throw e // Don't swallow coroutine cancellation
             } catch (e: Exception) {
-                logger.warn("Failed to publish FileDownloadedEvent for bucket=$bucket, key=$key", e)
+                emitPublishFailure(StorageObservation.Operations.DOWNLOAD, bucket, e)
             }
 
             var bytesDownloaded = 0L
@@ -207,7 +209,7 @@ class StorageApplicationService(
         } catch (e: CancellationException) {
             throw e // Don't swallow coroutine cancellation
         } catch (e: Exception) {
-            logger.warn("Failed to publish FileDeletedEvent for bucket=$bucket, key=$key", e)
+            emitPublishFailure(StorageObservation.Operations.DELETE, bucket, e)
         }
     }
 
@@ -269,6 +271,29 @@ class StorageApplicationService(
         throw e
     }
 
+    private fun emitPublishFailure(operation: String, bucket: String, cause: Throwable) {
+        if (bucket.isBlank()) {
+            operationalEvents.emit(
+                severity = Severity.WARN,
+                name = PUBLISH_FAILED_EVENT,
+                message = PUBLISH_FAILED_MESSAGE,
+                cause = cause,
+                "operation" to operation,
+                "provider" to provider,
+            )
+        } else {
+            operationalEvents.emit(
+                severity = Severity.WARN,
+                name = PUBLISH_FAILED_EVENT,
+                message = PUBLISH_FAILED_MESSAGE,
+                cause = cause,
+                "operation" to operation,
+                "provider" to provider,
+                "bucket" to bucket,
+            )
+        }
+    }
+
     /**
      * Validates bucket and key for obvious path traversal patterns
      * at the application layer as defense-in-depth.
@@ -280,5 +305,10 @@ class StorageApplicationService(
         if (key.contains("..")) {
             throw StorageSecurityException("Invalid key: path traversal detected")
         }
+    }
+
+    private companion object {
+        const val PUBLISH_FAILED_EVENT = "storage.operation.event.publish.failed"
+        const val PUBLISH_FAILED_MESSAGE = "Storage operation event publish failed"
     }
 }
