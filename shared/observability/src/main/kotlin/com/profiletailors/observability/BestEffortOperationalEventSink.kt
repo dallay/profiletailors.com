@@ -10,6 +10,11 @@ import java.util.concurrent.CancellationException
  * their normal semantics.
  */
 class BestEffortOperationalEventSink(private val delegate: OperationalEventSink) : OperationalEventSink {
+    /**
+     * Sanitizes [event] before forwarding it and discards ordinary failures during emission.
+     *
+     * @throws CancellationException If emission is interrupted by cancellation.
+     */
     override fun emit(event: OperationalEvent) {
         try {
             delegate.emit(OperationalEventSanitizer.sanitize(event))
