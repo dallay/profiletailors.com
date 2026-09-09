@@ -30,8 +30,8 @@ class RecurringPublishingBddSteps {
         RecurringPublishingState.reset()
     }
 
-    @Given("a connected LinkedIn social account exists")
-    fun givenConnectedLinkedInSocialAccountExists() = runBlocking {
+    @Given("a scheduled publication exists for recurring schedules")
+    fun givenScheduledPublicationExistsForRecurringSchedules() = runBlocking {
         bddDatabaseSupport.seedWorkspace()
         bddDatabaseSupport.seedSocialConnection("social-conn-1", "LINKEDIN", "ACTIVE")
         bddDatabaseSupport.seedSocialAccount(
@@ -42,11 +42,6 @@ class RecurringPublishingBddSteps {
             accountKind = "PERSONAL_PROFILE",
             displayName = "Yuniel Acosta",
         )
-    }
-
-    @Given("a scheduled publication exists")
-    fun givenScheduledPublicationExists() = runBlocking {
-        givenConnectedLinkedInSocialAccountExists()
         bddDatabaseSupport.seedScheduledPublication(
             publicationId = "pub-bdd-scheduled-1",
             socialAccountId = "social-acc-1",

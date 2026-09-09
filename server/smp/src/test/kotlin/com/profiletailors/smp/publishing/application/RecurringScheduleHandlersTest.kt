@@ -10,6 +10,7 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
+import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.RecurrenceRule
 import com.profiletailors.smp.publishing.domain.RecurringSchedule
 import com.profiletailors.smp.publishing.domain.RecurringScheduleRepository
@@ -72,14 +73,14 @@ class RecurringScheduleHandlersTest {
         val pubRepo = mockk<PublicationRepository>()
         val jobRepo = mockk<PublicationJobRepository>()
         val txRunner = mockk<AtomicTransactionRunner>()
-        val schedulingPolicy = mockk<PublicationSchedulingPolicy>()
-        coEvery { repo.findByWorkspaceAndId(workspaceId, "pub-1") } returns mockk(relaxed = true) {
-            coEvery { status } returns RecurringScheduleStatus.ACTIVE
-        }
+        val schedulingPolicy = mockk<PublicationSchedulingPolicy>(relaxed = true)
         coEvery { txRunner.runAtomically(any<suspend () -> Unit>()) } answers {
             runBlocking { (firstArg() as suspend () -> Unit).invoke() }
         }
         coEvery { repo.create(any()) } returns mockk()
+        coEvery { pubRepo.findByWorkspaceAndId(any(), any()) } returns mockk(relaxed = true) {
+            coEvery { status } returns PublicationStatus.PUBLISHED
+        }
         coEvery { pubRepo.createDraft(any()) } returns mockk()
         coEvery { jobRepo.enqueue(any()) } returns mockk()
 

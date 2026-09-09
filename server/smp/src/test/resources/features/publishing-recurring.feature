@@ -4,7 +4,7 @@ Feature: Recurring publication schedules
 
   Background:
     Given an authorized workspace member exists
-    Given a scheduled publication exists
+    Given a scheduled publication exists for recurring schedules
 
   Scenario: Create and pause a daily recurring schedule
     When the client creates a daily recurring schedule

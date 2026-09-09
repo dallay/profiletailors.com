@@ -12,7 +12,9 @@ test.describe('Scheduler — Recurring Posts', () => {
     await ensureChannelsLoaded(page)
   })
 
-  test('TC-R01: recurring panel opens when recurring toggle is activated @recurring @e2e', async ({ page }) => {
+  test('TC-R01: recurring panel opens when recurring toggle is activated @recurring @e2e', async ({
+    page,
+  }) => {
     const scheduler = new SchedulerPage(page)
 
     await scheduler.clickNewPost()
@@ -27,7 +29,9 @@ test.describe('Scheduler — Recurring Posts', () => {
     }
   })
 
-  test('TC-R02: daily recurring schedule can be created from composer @recurring @e2e', async ({ page }) => {
+  test('TC-R02: daily recurring schedule can be created from composer @recurring @e2e', async ({
+    page,
+  }) => {
     const scheduler = new SchedulerPage(page)
     const testText = `Recurring daily post ${Date.now()}`
 
@@ -58,11 +62,14 @@ test.describe('Scheduler — Recurring Posts', () => {
     }
 
     const successToast = page.getByText(/recurring|schedule|saved/i).first()
-    await expect(successToast.or(page.locator('[data-testid="success-toast"]'))).toBeVisible({ timeout: 5000 }).catch(() => {
-    })
+    await expect(successToast.or(page.locator('[data-testid="success-toast"]')))
+      .toBeVisible({ timeout: 5000 })
+      .catch(() => {})
   })
 
-  test('TC-R03: weekly recurring schedule requires weekday selection @recurring @validation @e2e', async ({ page }) => {
+  test('TC-R03: weekly recurring schedule requires weekday selection @recurring @validation @e2e', async ({
+    page,
+  }) => {
     const scheduler = new SchedulerPage(page)
 
     await scheduler.clickNewPost()
@@ -92,20 +99,24 @@ test.describe('Scheduler — Recurring Posts', () => {
     }
   })
 
-  test('TC-R04: recurring schedules appear in scheduler list view @recurring @list @e2e', async ({ page }) => {
+  test('TC-R04: recurring schedules appear in scheduler list view @recurring @list @e2e', async ({
+    page,
+  }) => {
     const scheduler = new SchedulerPage(page)
 
     await scheduler.switchToList()
     await page.waitForTimeout(1000)
 
     const recurringBadge = page.getByTestId('recurring-badge')
-    const hasRecurring = await recurringBadge.count() > 0
+    const hasRecurring = (await recurringBadge.count()) > 0
     if (hasRecurring) {
       await expect(recurringBadge.first()).toBeVisible()
     }
   })
 
-  test('TC-R05: recurring schedule can be paused from post menu @recurring @e2e', async ({ page }) => {
+  test('TC-R05: recurring schedule can be paused from post menu @recurring @e2e', async ({
+    page,
+  }) => {
     const scheduler = new SchedulerPage(page)
 
     await scheduler.switchToList()
@@ -122,8 +133,9 @@ test.describe('Scheduler — Recurring Posts', () => {
         await pauseOption.click()
         await page.waitForTimeout(500)
         const resumeOption = page.getByText(/resume/i).first()
-        await expect(resumeOption.or(page.getByText(/paused/i).first())).toBeVisible({ timeout: 3000 }).catch(() => {
-        })
+        await expect(resumeOption.or(page.getByText(/paused/i).first()))
+          .toBeVisible({ timeout: 3000 })
+          .catch(() => {})
       }
     }
   })

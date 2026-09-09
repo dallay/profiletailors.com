@@ -4,11 +4,32 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import RecurringScheduleModal from './RecurringScheduleModal.vue'
 
+const mockT = (key: string) => key
+const publication = {
+  id: 'pub-1',
+  content: 'Test post',
+  channels: [],
+  scheduledAt: '2099-12-31T12:00:00.000Z',
+  status: 'DRAFT' as const,
+  priority: false,
+}
+const mockStore = vi.hoisted(() => ({
+  createRecurringSchedule: vi.fn(),
+  updateRecurringSchedule: vi.fn(),
+}))
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({ t: mockT, locale: { value: 'en' } }),
+  createI18n: () => ({ global: { locale: { value: 'en' } } }),
+}))
+
+vi.mock('@shared/i18n', () => ({
+  default: { global: { locale: { value: 'en' } } },
+}))
+
 vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
   usePublishingStore: () => ({
-    workspaces: [
-      { id: 'ws-1', name: 'Test Workspace', active: true },
-    ],
+    workspaces: [{ id: 'ws-1', name: 'Test Workspace', active: true }],
     selectedWorkspaceId: 'ws-1',
     linkedinChannels: [
       { id: 'li-1', name: 'My Page', type: 'PAGE' as const },
@@ -18,6 +39,8 @@ vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
     fetchLinkedInChannels: vi.fn(),
     createPost: vi.fn(),
     fetchPosts: vi.fn(),
+    createRecurringSchedule: mockStore.createRecurringSchedule,
+    updateRecurringSchedule: mockStore.updateRecurringSchedule,
   }),
 }))
 
@@ -29,39 +52,30 @@ function bodyQuery(selector: string): Element | null {
   return document.body.querySelector(selector)
 }
 
-function triggerChange(selector: string, value: string | string[]) {
-  const el = bodyQuery(selector) as HTMLInputElement | HTMLSelectElement | null
-  if (!el) return
-  if (el instanceof HTMLSelectElement) {
-    el.value = Array.isArray(value) ? value[0] : value
-    el.dispatchEvent(new Event('change', { bubbles: true }))
-  } else if (el.type === 'checkbox') {
-    const checked = Array.isArray(value) ? value.includes((el as HTMLInputElement).value) : !!value
-    ;(el as HTMLInputElement).checked = checked
-    el.dispatchEvent(new Event('change', { bubbles: true }))
-  } else {
-    el.value = Array.isArray(value) ? value[0] : value
-    el.dispatchEvent(new Event('input', { bubbles: true }))
-    el.dispatchEvent(new Event('change', { bubbles: true }))
+function submitForm() {
+  const form = bodyQuery('form')
+  if (form) {
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
   }
 }
 
-function clickButton(selector: string) {
-  const btn = bodyQuery(selector) as HTMLButtonElement | null
-  if (!btn) return
-  btn.click()
-  document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }))
+async function selectFrequency(frequency: string) {
+  const select = bodyQuery('select[data-testid="frequency-select"]')
+  if (select instanceof HTMLSelectElement) {
+    select.value = frequency
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+    await nextTick()
+  }
 }
 
-function submitForm() {
-  const form = bodyQuery('form')
-  if (!form) return
-  const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null
-  if (submitBtn) submitBtn.click()
-}
-
-function selectFrequency(freq: string) {
-  triggerChange('select[data-testid="frequency-select"]', freq)
+async function setStartDate(value: string) {
+  const input = bodyQuery('input[data-testid="starts-at-input"]')
+  if (input instanceof HTMLInputElement) {
+    input.value = value
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+    await nextTick()
+  }
 }
 
 describe('RecurringScheduleModal', () => {
@@ -71,6 +85,17 @@ describe('RecurringScheduleModal', () => {
     pinia = createPinia()
     setActivePinia(pinia)
     vi.clearAllMocks()
+    mockStore.createRecurringSchedule.mockImplementation(async (templatePostId, input) => ({
+      id: 'rs-1',
+      workspaceId: 'ws-1',
+      createdBy: 'user-1',
+      templatePostId,
+      ...input,
+      nextScheduledAt: input.startsAt,
+      status: 'ACTIVE' as const,
+      createdAt: null,
+      updatedAt: null,
+    }))
   })
 
   afterEach(() => {
@@ -81,7 +106,7 @@ describe('RecurringScheduleModal', () => {
     it('renders and accepts valid daily recurring schedule', async () => {
       const props = {
         isOpen: true,
-        publication: { id: 'pub-1', content: 'Test post' },
+        publication,
         schedule: null,
       }
 
@@ -93,8 +118,9 @@ describe('RecurringScheduleModal', () => {
       await flushPromises()
       await nextTick()
 
-      selectFrequency('daily')
+      await selectFrequency('daily')
       await nextTick()
+      await setStartDate('2099-12-31T12:00')
       await nextTick()
 
       submitForm()
@@ -104,7 +130,7 @@ describe('RecurringScheduleModal', () => {
 
       const emitted = wrapper.emitted()
       expect(emitted?.saved).toBeDefined()
-      const savedEvent = emitted?.saved?.[0] as Record<string, unknown>
+      const savedEvent = wrapper.emitted('saved')?.[0]?.[0]
       expect(savedEvent).toBeDefined()
       expect((savedEvent as { frequency: string }).frequency).toBe('daily')
     })
@@ -112,7 +138,7 @@ describe('RecurringScheduleModal', () => {
     it('sets interval to 1 by default for daily recurrence', async () => {
       const props = {
         isOpen: true,
-        publication: { id: 'pub-1', content: 'Test post' },
+        publication,
         schedule: null,
       }
 
@@ -124,8 +150,9 @@ describe('RecurringScheduleModal', () => {
       await flushPromises()
       await nextTick()
 
-      selectFrequency('daily')
+      await selectFrequency('daily')
       await nextTick()
+      await setStartDate('2099-12-31T12:00')
       await nextTick()
 
       submitForm()
@@ -133,8 +160,8 @@ describe('RecurringScheduleModal', () => {
       await nextTick()
       await nextTick()
 
-      const emitted = wrapper.emitted()
-      const savedEvent = emitted?.saved?.[0] as Record<string, unknown>
+      const savedEvent = wrapper.emitted('saved')?.[0]?.[0]
+      expect(savedEvent).toBeDefined()
       expect((savedEvent as { interval: number }).interval).toBe(1)
     })
   })
@@ -143,7 +170,7 @@ describe('RecurringScheduleModal', () => {
     it('renders weekly frequency option', async () => {
       const props = {
         isOpen: true,
-        publication: { id: 'pub-1', content: 'Test post' },
+        publication,
         schedule: null,
       }
 
@@ -155,20 +182,34 @@ describe('RecurringScheduleModal', () => {
       await flushPromises()
       await nextTick()
 
-      selectFrequency('weekly')
+      await selectFrequency('weekly')
+      await nextTick()
+
+      const checkboxes = bodyQueryAll('input[type="checkbox"]')
+      checkboxes.forEach((checkbox) => {
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }))
+      })
+      await nextTick()
+
+      await setStartDate('2099-12-31T12:00')
+      await nextTick()
+
+      submitForm()
+      await flushPromises()
       await nextTick()
       await nextTick()
 
       const emitted = wrapper.emitted()
       expect(emitted?.saved).toBeDefined()
-      const savedEvent = emitted?.saved?.[0] as Record<string, unknown>
+      const savedEvent = wrapper.emitted('saved')?.[0]?.[0]
+      expect(savedEvent).toBeDefined()
       expect((savedEvent as { frequency: string }).frequency).toBe('weekly')
     })
 
     it('fails validation when no weekdays are selected for weekly', async () => {
       const props = {
         isOpen: true,
-        publication: { id: 'pub-1', content: 'Test post' },
+        publication,
         schedule: null,
       }
 
@@ -180,15 +221,17 @@ describe('RecurringScheduleModal', () => {
       await flushPromises()
       await nextTick()
 
-      selectFrequency('weekly')
-      await nextTick()
+      await selectFrequency('weekly')
       await nextTick()
 
       const checkboxes = bodyQueryAll('input[type="checkbox"]')
-      checkboxes.forEach((cb) => {
-        ;(cb as HTMLInputElement).checked = false
-        cb.dispatchEvent(new Event('change', { bubbles: true }))
-      })
+      const selectedCheckbox = checkboxes.find(
+        (checkbox) => checkbox instanceof HTMLInputElement && checkbox.checked,
+      )
+      selectedCheckbox?.dispatchEvent(new Event('change', { bubbles: true }))
+      await nextTick()
+
+      await setStartDate('2099-12-31T12:00')
       await nextTick()
 
       submitForm()
@@ -199,13 +242,13 @@ describe('RecurringScheduleModal', () => {
       const emitted = wrapper.emitted()
       expect(emitted?.saved).toBeUndefined()
       const errorEl = bodyQuery('[data-testid="recurrence-error"]')
-      expect(errorEl?.textContent).toContain('recurring.schedule.validation.weekly.needs.weekday')
+      expect(errorEl?.textContent).toContain('weekdayRequired')
     })
 
     it('accepts valid weekly with weekdays selected', async () => {
       const props = {
         isOpen: true,
-        publication: { id: 'pub-1', content: 'Test post' },
+        publication,
         schedule: null,
       }
 
@@ -217,7 +260,7 @@ describe('RecurringScheduleModal', () => {
       await flushPromises()
       await nextTick()
 
-      selectFrequency('weekly')
+      await selectFrequency('weekly')
       await nextTick()
       await nextTick()
 
@@ -226,11 +269,14 @@ describe('RecurringScheduleModal', () => {
         ;(cb as HTMLInputElement).checked = false
         cb.dispatchEvent(new Event('change', { bubbles: true }))
       })
-      const mondayCb = checkboxes.find((cb) => (cb as HTMLInputElement).value === '1')
-      if (mondayCb) {
-        ;(mondayCb as HTMLInputElement).checked = true
+      const mondayCb = checkboxes.find((checkbox) => (checkbox as HTMLInputElement).value === '1')
+      if (mondayCb instanceof HTMLInputElement) {
+        mondayCb.checked = true
         mondayCb.dispatchEvent(new Event('change', { bubbles: true }))
       }
+      await nextTick()
+
+      await setStartDate('2099-12-31T12:00')
       await nextTick()
 
       submitForm()
@@ -240,7 +286,8 @@ describe('RecurringScheduleModal', () => {
 
       const emitted = wrapper.emitted()
       expect(emitted?.saved).toBeDefined()
-      const savedEvent = emitted?.saved?.[0] as Record<string, unknown>
+      const savedEvent = wrapper.emitted('saved')?.[0]?.[0]
+      expect(savedEvent).toBeDefined()
       expect((savedEvent as { daysOfWeek: number[] }).daysOfWeek).toContain(1)
     })
   })
@@ -249,7 +296,7 @@ describe('RecurringScheduleModal', () => {
     it('renders and accepts valid monthly recurring schedule', async () => {
       const props = {
         isOpen: true,
-        publication: { id: 'pub-1', content: 'Test post' },
+        publication,
         schedule: null,
       }
 
@@ -261,16 +308,19 @@ describe('RecurringScheduleModal', () => {
       await flushPromises()
       await nextTick()
 
-      selectFrequency('monthly')
+      await selectFrequency('monthly')
       await nextTick()
       await nextTick()
 
-      const dayInput = bodyQuery('input[data-testid="day-of-month-input"]') as HTMLInputElement | null
-      if (dayInput) {
+      const dayInput = bodyQuery('input[data-testid="day-of-month-input"]')
+      if (dayInput instanceof HTMLInputElement) {
         dayInput.value = '15'
         dayInput.dispatchEvent(new Event('input', { bubbles: true }))
         dayInput.dispatchEvent(new Event('change', { bubbles: true }))
       }
+      await nextTick()
+
+      await setStartDate('2099-12-31T12:00')
       await nextTick()
 
       submitForm()
@@ -280,7 +330,8 @@ describe('RecurringScheduleModal', () => {
 
       const emitted = wrapper.emitted()
       expect(emitted?.saved).toBeDefined()
-      const savedEvent = emitted?.saved?.[0] as Record<string, unknown>
+      const savedEvent = wrapper.emitted('saved')?.[0]?.[0]
+      expect(savedEvent).toBeDefined()
       expect((savedEvent as { dayOfMonth: number }).dayOfMonth).toBe(15)
     })
   })
@@ -289,7 +340,7 @@ describe('RecurringScheduleModal', () => {
     it('shows error when frequency is missing', async () => {
       const props = {
         isOpen: true,
-        publication: { id: 'pub-1', content: 'Test post' },
+        publication,
         schedule: null,
       }
 
@@ -299,6 +350,9 @@ describe('RecurringScheduleModal', () => {
       })
 
       await flushPromises()
+      await nextTick()
+
+      await setStartDate('2000-01-01T12:00')
       await nextTick()
 
       submitForm()

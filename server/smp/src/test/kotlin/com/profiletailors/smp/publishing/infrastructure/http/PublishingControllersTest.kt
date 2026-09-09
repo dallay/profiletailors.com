@@ -603,7 +603,8 @@ class PublishingControllersTest {
         val response = controller.list("workspace-1")
 
         assertEquals(1, response.schedules.size)
-        assertEquals("recur-1", mediator.lastQuery)
+        assertNotNull(mediator.lastQuery)
+        assertTrue(mediator.lastQuery is ListRecurringSchedulesQuery)
     }
 
     @Test
