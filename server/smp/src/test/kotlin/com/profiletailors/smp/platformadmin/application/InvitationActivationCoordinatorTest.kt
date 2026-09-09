@@ -1,7 +1,6 @@
 package com.profiletailors.smp.platformadmin.application
 
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.leadcapture.common.CaptureLocale
 import com.profiletailors.leadcapture.common.CaptureSource
@@ -50,7 +49,6 @@ class InvitationActivationCoordinatorTest {
     private val workspaceProvisioningService = mockk<WorkspaceProvisioningService>()
     private val membershipProvisioner = mockk<WorkspaceMembershipProvisioner>()
     private val waitlistEntryAdmin = mockk<WaitlistEntryAdmin>()
-    private val transactionRunner = NoOpTransactionRunner()
     private val now = Instant.parse("2026-08-15T12:00:00Z")
     private val clock = Clock.fixed(now, ZoneOffset.UTC)
 
@@ -61,7 +59,6 @@ class InvitationActivationCoordinatorTest {
         workspaceProvisioningService = workspaceProvisioningService,
         waitlistEntryAdmin = waitlistEntryAdmin,
         membershipProvisioner = membershipProvisioner,
-        transactionRunner = transactionRunner,
         clock = clock,
     )
 
@@ -225,7 +222,6 @@ class InvitationActivationCoordinatorTest {
             workspaceProvisioningService = workspaceProvisioningService,
             waitlistEntryAdmin = waitlistEntryAdmin,
             membershipProvisioner = membershipProvisioner,
-            transactionRunner = transactionRunner,
             clock = clock,
         )
 
@@ -441,8 +437,4 @@ class InvitationActivationCoordinatorTest {
     interface CandidateKeyTokenHasher :
         TokenHasher,
         InvitationTokenCandidateKey
-
-    private class NoOpTransactionRunner : AtomicTransactionRunner {
-        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
-    }
 }

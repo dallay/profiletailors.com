@@ -1,7 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.smp.identity.application.InvitationRegistrationGateway
@@ -530,12 +529,6 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
             waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = firstBlockingProvisioner,
-            transactionRunner = object : AtomicTransactionRunner {
-                override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
-                    val operator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory))
-                    return operator.transactional(mono { block() }).awaitSingle()
-                }
-            },
             clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
         )
         val secondCoordinator = InvitationActivationCoordinator(
@@ -545,12 +538,6 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
             waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = secondMembershipProvisioner,
-            transactionRunner = object : AtomicTransactionRunner {
-                override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
-                    val operator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory))
-                    return operator.transactional(mono { block() }).awaitSingle()
-                }
-            },
             clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
         )
         return ConcurrentAcceptanceFixture(

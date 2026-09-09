@@ -34,8 +34,8 @@ Chain strategy: `github-stacked-prs`; each higher layer targets the immediately 
 
 - [x] 1.1 Add failing unit tests in `InvitationActivationCoordinatorTest.kt` and `LocalAuthHandlersTest.kt` for pre-mutation token/lifecycle/expiry/normalized-email validation and no token/PII leakage. [DALLAY-567: validity]
 - [x] 1.2 Add failing tests in `InvitationRegistrationGatewayAdapterTest.kt` for immutable context, target-only workspace resolution, and rejection of invitation-ID/client-workspace fallback. [DALLAY-567: tenancy]
-- [ ] 1.3 Add failing matching-authentication/no-duplicate tests for existing identities; successful acceptance requires authenticated identity and exact normalized-email match. [DALLAY-567: identity]
-- [ ] 1.4 Add failing PostgreSQL/Testcontainers tests in `LocalAuthHandlersTransactionPostgresIntegrationTest.kt` for failure injection, rollback, two-client race, one winner, one new workspace, and existing-workspace membership. [DALLAY-567: atomicity/concurrency]
+- [x] 1.3 Add failing matching-authentication/no-duplicate tests for existing identities; successful acceptance requires authenticated identity and exact normalized-email match. [DALLAY-567: identity]
+- [x] 1.4 Add failing PostgreSQL/Testcontainers tests in `LocalAuthHandlersTransactionPostgresIntegrationTest.kt` for failure injection, rollback, two-client race, one winner, one new workspace, and existing-workspace membership. [DALLAY-567: atomicity/concurrency]
 - [ ] 1.5 Add failing API/BDD tests in `LocalAuthControllerTest.kt`, `features/local-auth.feature`, and `LocalAuthCapabilitiesBddSteps.kt` for valid invite-only registration, safe rejection, override decision, response/session, and redaction.
 - [x] 1.6 Add failing tests for the resolved Problem Details taxonomy and generic, non-sensitive error details. [DALLAY-567: API/security]
 - [ ] 1.7 Add failing Vitest/Playwright coverage in `accept-invitation.store.spec.ts`, `AcceptInvitationView.spec.ts`, and `apps/web/app/e2e/specs/invitee-private-beta.spec.ts` for accepted, invalid, replay, and safe-error flows. [DALLAY-567: frontend]
@@ -43,7 +43,7 @@ Chain strategy: `github-stacked-prs`; each higher layer targets the immediately 
 ## Phase 2: GREEN — Transactional Core and Wiring
 
 - [x] 2.1 Create `identity/application/InvitationRegistrationContext.kt`; modify `InvitationRegistrationGateway.kt` with `prepare(rawToken, normalizedEmail)` and in-transaction `complete(...)` semantics.
-- [ ] 2.2 Modify `identity/application/LocalAuthHandlers.kt` to preflight read-only, hash before the transaction, revalidate inside `AtomicTransactionRunner`, reuse identity/verification/consent policy, and issue session/events post-commit.
+- [x] 2.2 Modify `identity/application/LocalAuthHandlers.kt` to preflight read-only, hash before the transaction, revalidate inside `AtomicTransactionRunner`, reuse identity/verification/consent policy, and issue session/events post-commit.
 - [x] 2.3 Modify `platformadmin/application/InvitationActivationCoordinator.kt` and `AcceptInvitation.kt` to split lock/revalidation from completion, remove nested transactions, link principal, consume once, and derive workspace from the invitation.
 - [x] 2.4 Modify `InvitationRegistrationGatewayAdapter.kt`, `PlatformAdminBootstrapConfiguration.kt`, and the platformadmin Problem Details advice to wire the shared transaction and approved failure mapping without exposing raw token/email.
 

@@ -58,7 +58,6 @@ class PlatformAdminBootstrapConfiguration {
         workspaceProvisioningService: WorkspaceProvisioningService,
         waitlistEntryAdmin: WaitlistEntryAdmin,
         membershipProvisioner: WorkspaceMembershipProvisioner,
-        transactionRunner: AtomicTransactionRunner,
         clock: Clock,
     ): InvitationActivationCoordinator = InvitationActivationCoordinator(
         invitationRepository = invitationRepository,
@@ -67,13 +66,17 @@ class PlatformAdminBootstrapConfiguration {
         workspaceProvisioningService = workspaceProvisioningService,
         waitlistEntryAdmin = waitlistEntryAdmin,
         membershipProvisioner = membershipProvisioner,
-        transactionRunner = transactionRunner,
         clock = clock,
     )
 
     @Bean
-    fun acceptInvitationHandler(coordinator: InvitationActivationCoordinator): AcceptInvitationHandler =
-        AcceptInvitationHandler(coordinator)
+    fun acceptInvitationHandler(
+        coordinator: InvitationActivationCoordinator,
+        transactionRunner: AtomicTransactionRunner,
+    ): AcceptInvitationHandler = AcceptInvitationHandler(
+        coordinator = coordinator,
+        transactionRunner = transactionRunner,
+    )
 
     @Bean
     fun acceptUrlTemplate(

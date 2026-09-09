@@ -109,12 +109,7 @@ internal class RegisterUserHandler(
             invitationRegistrationGateway.prepare(token, normalizedEmail)
         }
 
-        if (
-            localPasswordCredentialGateway.findByEmail(normalizedEmail) != null ||
-            principalIdentityLookup.findByEmail(normalizedEmail) != null
-        ) {
-            throw UserAlreadyExistsException(normalizedEmail)
-        }
+        ensureEmailAvailable(normalizedEmail)
 
         val principalId = "user-${UUID.randomUUID()}"
         val subject = "local:$normalizedEmail"
@@ -182,6 +177,7 @@ internal class RegisterUserHandler(
 
         return try {
             transactionRunner.runAtomically {
+                ensureEmailAvailable(normalizedEmail)
                 identityRegistrationGateway.createUserIdentity(
                     principalId = principalId,
                     subject = subject,
@@ -237,6 +233,15 @@ internal class RegisterUserHandler(
                 throw UserAlreadyExistsException(normalizedEmail)
             }
             throw e
+        }
+    }
+
+    private suspend fun ensureEmailAvailable(normalizedEmail: String) {
+        if (
+            localPasswordCredentialGateway.findByEmail(normalizedEmail) != null ||
+            principalIdentityLookup.findByEmail(normalizedEmail) != null
+        ) {
+            throw UserAlreadyExistsException(normalizedEmail)
         }
     }
 

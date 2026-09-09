@@ -12,17 +12,28 @@ import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
 import com.profiletailors.smp.identity.application.EmailVerificationTokenHasher
 import com.profiletailors.smp.identity.application.IdentityRegistrationGateway
+import com.profiletailors.smp.identity.application.InvitationRegistrationContext
+import com.profiletailors.smp.identity.application.InvitationRegistrationGateway
+import com.profiletailors.smp.identity.application.InvitationRegistrationResult
 import com.profiletailors.smp.identity.application.IssuedAccessToken
 import com.profiletailors.smp.identity.application.LocalJwtIssuer
+import com.profiletailors.smp.identity.application.RegisterUserCommand
+import com.profiletailors.smp.identity.application.RegisterUserHandler
 import com.profiletailors.smp.identity.application.ResendVerificationCommand
 import com.profiletailors.smp.identity.application.ResendVerificationHandler
+import com.profiletailors.smp.identity.application.UserAlreadyExistsException
 import com.profiletailors.smp.identity.application.VerifyEmailCommand
 import com.profiletailors.smp.identity.application.VerifyEmailHandler
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.infrastructure.R2dbcIdentityRegistrationGateway
 import com.profiletailors.smp.identity.infrastructure.R2dbcPrincipalIdentityLookup
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcAtomicTransactionRunner
+import com.profiletailors.smp.platformadmin.domain.InvitationTarget
+import com.profiletailors.smp.platformadmin.infrastructure.BCryptTokenHasher
 import com.profiletailors.smp.test.TestStorageConfiguration
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.test.runTest
@@ -34,8 +45,12 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Primary
 import org.springframework.r2dbc.connection.R2dbcTransactionManager
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -58,7 +73,10 @@ import java.time.ZoneOffset
 )
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Import(TestStorageConfiguration::class)
+@Import(
+    TestStorageConfiguration::class,
+    LocalAuthHandlersTransactionPostgresIntegrationTest.RegistrationFailureConfiguration::class,
+)
 class LocalAuthHandlersTransactionPostgresIntegrationTest {
 
     @Autowired
@@ -66,6 +84,9 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
 
     @Autowired
     private lateinit var transactionManager: R2dbcTransactionManager
+
+    @Autowired
+    private lateinit var registerUserHandler: RegisterUserHandler
 
     private lateinit var identityRegistrationGateway: R2dbcIdentityRegistrationGateway
     private lateinit var principalIdentityLookup: R2dbcPrincipalIdentityLookup
@@ -80,6 +101,7 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
         identityRegistrationGateway = R2dbcIdentityRegistrationGateway(databaseClient)
         principalIdentityLookup = R2dbcPrincipalIdentityLookup(databaseClient)
         transactionRunner = R2dbcAtomicTransactionRunner(TransactionalOperator.create(transactionManager))
+        failAfterInvitationCompletion = false
     }
 
     @Test
@@ -136,6 +158,173 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
         assertEquals(1, activeTokenCount("issue193@example.com"))
         assertEquals(emptyList<DomainEvent>(), eventPublisher.published)
     }
+
+    @Test
+    fun `registration rolls back invitation completion when a later mutation fails`() = runTest {
+        val invitation = seedInvitation(
+            email = "transaction-rollback@example.com",
+            rawToken = "transaction-rollback-token",
+            target = InvitationTarget.EXISTING_WORKSPACE,
+        )
+        failAfterInvitationCompletion = true
+
+        assertThrows(InjectedInvitationCompletionFailure::class.java) {
+            kotlinx.coroutines.runBlocking {
+                registerUserHandler.handle(registerCommand(invitation))
+            }
+        }
+
+        assertEquals(
+            1,
+            countRows("SELECT COUNT(*) FROM invitations WHERE id = '${invitation.id}' AND status = 'ACTIVE'"),
+        )
+        assertEquals(0, countRows("SELECT COUNT(*) FROM user_identities WHERE email = '${invitation.email}'"))
+        assertEquals(
+            0,
+            countRows("SELECT COUNT(*) FROM workspace_memberships WHERE workspace_id = '${invitation.workspaceId}'"),
+        )
+        assertEquals(
+            0,
+            countRows("SELECT COUNT(*) FROM email_verification_tokens WHERE email = '${invitation.email}'"),
+        )
+        assertEquals(
+            0,
+            countRows("SELECT COUNT(*) FROM consent_records WHERE workspace_id = '${invitation.workspaceId}'"),
+        )
+    }
+
+    @Test
+    fun `concurrent registration with one invitation produces one winner`() = runTest {
+        val invitation = seedInvitation(
+            email = "transaction-race@example.com",
+            rawToken = "transaction-race-token",
+            target = InvitationTarget.EXISTING_WORKSPACE,
+        )
+
+        val outcomes = coroutineScope {
+            listOf(
+                async { runCatching { registerUserHandler.handle(registerCommand(invitation)) } },
+                async { runCatching { registerUserHandler.handle(registerCommand(invitation)) } },
+            ).awaitAll()
+        }
+
+        assertEquals(1, outcomes.count { it.isSuccess })
+        assertEquals(1, outcomes.count { it.exceptionOrNull() is UserAlreadyExistsException })
+        val winner = outcomes.single { it.isSuccess }.getOrThrow()
+        assertEquals(
+            1,
+            countRows(
+                "SELECT COUNT(*) FROM invitations WHERE id = '${invitation.id}' AND status = 'ACCEPTED' " +
+                    "AND accepted_principal_id = '${winner.tokens.principalId}'",
+            ),
+        )
+        assertEquals(
+            1,
+            countRows(
+                "SELECT COUNT(*) FROM workspace_memberships " +
+                    "WHERE workspace_id = '${invitation.workspaceId}' " +
+                    "AND principal_id = '${winner.tokens.principalId}'",
+            ),
+        )
+        assertEquals(1, countRows("SELECT COUNT(*) FROM user_identities WHERE email = '${invitation.email}'"))
+    }
+
+    @Test
+    fun `new workspace invitation provisions one resolved workspace and membership`() = runTest {
+        val invitation = seedInvitation(
+            email = "transaction-new-workspace@example.com",
+            rawToken = "transaction-new-workspace-token",
+            target = InvitationTarget.NEW_WORKSPACE,
+        )
+
+        val result = registerUserHandler.handle(registerCommand(invitation))
+        val workspaceId = requireNotNull(result.tokens.workspaceId)
+
+        assertEquals(
+            1,
+            countRows(
+                "SELECT COUNT(*) FROM invitations WHERE id = '${invitation.id}' AND status = 'ACCEPTED' " +
+                    "AND workspace_id = '$workspaceId'",
+            ),
+        )
+        assertEquals(1, countRows("SELECT COUNT(*) FROM workspaces WHERE id = '$workspaceId'"))
+        assertEquals(
+            1,
+            countRows(
+                "SELECT COUNT(*) FROM workspace_memberships " +
+                    "WHERE workspace_id = '$workspaceId' AND principal_id = '${result.tokens.principalId}'",
+            ),
+        )
+    }
+
+    private fun registerCommand(invitation: SeededInvitation): RegisterUserCommand = RegisterUserCommand(
+        email = invitation.email,
+        password = "TEST_PASSWORD_S3cr3tP@ssw0rd*123",
+        username = invitation.email.substringBefore('@'),
+        confirmedAgeEligibility = true,
+        acceptedTermsVersion = "terms-v1.0.0",
+        invitationToken = invitation.rawToken,
+    )
+
+    private suspend fun seedInvitation(email: String, rawToken: String, target: InvitationTarget): SeededInvitation {
+        val invitationId = java.util.UUID.randomUUID()
+        val issuerId = "transaction-issuer-${java.util.UUID.randomUUID()}"
+        val workspaceId = "transaction-workspace-${java.util.UUID.randomUUID()}"
+        val tokenHasher = BCryptTokenHasher()
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES (:issuerId, 'USER', :subject, NULL, 'transaction issuer')
+            """.trimIndent(),
+        )
+            .bind("issuerId", issuerId)
+            .bind("subject", "local:$issuerId@example.com")
+            .fetch().rowsUpdated().awaitSingle()
+        if (target == InvitationTarget.EXISTING_WORKSPACE) {
+            databaseClient.sql(
+                """
+                INSERT INTO workspaces (id, name, status, icon)
+                VALUES (:workspaceId, 'Transaction Workspace', 'ACTIVE', NULL)
+                """.trimIndent(),
+            )
+                .bind("workspaceId", workspaceId)
+                .fetch().rowsUpdated().awaitSingle()
+        }
+        val workspaceExpression = if (target == InvitationTarget.EXISTING_WORKSPACE) ":workspaceId" else "NULL"
+        databaseClient.sql(
+            """
+            INSERT INTO invitations (
+                id, source, source_reference_id, target, workspace_id, invited_email_normalized,
+                candidate_key, token_hash, status, issued_by, created_at, expires_at
+            ) VALUES (
+                :id, 'DIRECT', NULL, '${target.name}', $workspaceExpression, :email,
+                :candidateKey, :tokenHash, 'ACTIVE', :issuerId, :createdAt, :expiresAt
+            )
+            """.trimIndent(),
+        )
+            .bind("id", invitationId)
+            .bind("email", email)
+            .bind("candidateKey", tokenHasher.candidateKey(rawToken))
+            .bind("tokenHash", tokenHasher.hash(rawToken))
+            .bind("issuerId", issuerId)
+            .bind("createdAt", now)
+            .bind("expiresAt", Instant.parse("2099-01-01T00:00:00Z"))
+            .apply { if (target == InvitationTarget.EXISTING_WORKSPACE) bind("workspaceId", workspaceId) }
+            .fetch().rowsUpdated().awaitSingle()
+        return SeededInvitation(invitationId.toString(), email, rawToken, workspaceId)
+    }
+
+    private data class SeededInvitation(
+        val id: String,
+        val email: String,
+        val rawToken: String,
+        val workspaceId: String,
+    )
+
+    private suspend fun countRows(sql: String): Long = databaseClient.sql(sql)
+        .map { row, _ -> (row.get(0) as Number).toLong() }
+        .one()
+        .awaitSingle()
 
     private suspend fun cleanupTestData() {
         databaseClient.sql("DELETE FROM email_verification_tokens WHERE email = 'issue193@example.com'")
@@ -204,6 +393,31 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
     private class InjectedEmailStatusFailure : RuntimeException("Injected email status update failure")
 
     private class InjectedTokenCreationFailure : RuntimeException("Injected token creation failure")
+
+    private class InjectedInvitationCompletionFailure :
+        RuntimeException("Injected invitation completion failure")
+
+    @TestConfiguration
+    class RegistrationFailureConfiguration {
+        @Bean
+        @Primary
+        fun invitationRegistrationGateway(
+            @Qualifier("invitationRegistrationGatewayAdapter") delegate: InvitationRegistrationGateway,
+        ): InvitationRegistrationGateway = object : InvitationRegistrationGateway by delegate {
+            override suspend fun complete(
+                context: InvitationRegistrationContext,
+                rawToken: String,
+                principalId: String,
+                displayName: String,
+            ): InvitationRegistrationResult {
+                val result = delegate.complete(context, rawToken, principalId, displayName)
+                if (failAfterInvitationCompletion) {
+                    throw InjectedInvitationCompletionFailure()
+                }
+                return result
+            }
+        }
+    }
 
     private class FailingEmailStatusGateway(private val delegate: IdentityRegistrationGateway) :
         IdentityRegistrationGateway by delegate {
@@ -275,6 +489,9 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
     }
 
     companion object {
+        @Volatile
+        private var failAfterInvitationCompletion: Boolean = false
+
         @Container
         @JvmStatic
         val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16-alpine")

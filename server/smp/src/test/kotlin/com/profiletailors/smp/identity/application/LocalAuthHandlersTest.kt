@@ -109,6 +109,54 @@ class LocalAuthHandlersTest {
     }
 
     @Test
+    fun `revalidates identity availability inside registration transaction`() = runTest {
+        val order = mutableListOf<String>()
+        val principalIdentityLookup = mockk<PrincipalIdentityLookup>()
+        val existingIdentity = PrincipalIdentityFacts(
+            principalId = "existing-user",
+            principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+            subject = "local:race@example.com",
+            provider = null,
+            displayIdentity = "race",
+            email = "race@example.com",
+            username = "race",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+        coEvery { principalIdentityLookup.findByEmail("race@example.com") } returnsMany listOf(null, existingIdentity)
+        val transactionRunner = RecordingAtomicTransactionRunner(order)
+        val handler = RegisterUserHandler(
+            registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(order),
+            principalIdentityLookup = principalIdentityLookup,
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(order),
+            eventPublisher = RecordingEventPublisher(order),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(order),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
+            transactionRunner = transactionRunner,
+            recordConsentHandler = recordConsentHandler(order),
+        )
+
+        assertThrows<UserAlreadyExistsException> {
+            handler.handle(
+                RegisterUserCommand(
+                    email = "race@example.com",
+                    password = validPassword,
+                    username = "race",
+                    confirmedAgeEligibility = true,
+                    acceptedTermsVersion = "terms-v1.0.0",
+                ),
+            )
+        }
+
+        assertEquals(listOf("tx:start", "tx:rollback"), order)
+        assertEquals(1, transactionRunner.invocations)
+    }
+
+    @Test
     fun `should throw when registration disabled`() = runTest {
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.CLOSED),
@@ -498,14 +546,16 @@ class LocalAuthHandlersTest {
 
     @Test
     fun `rejects duplicate registration`() = runTest {
+        val identityRegistrationGateway = FakeIdentityRegistrationGateway()
+        val passwordGateway = FakeLocalPasswordCredentialGateway()
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
-            identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            identityRegistrationGateway = identityRegistrationGateway,
             invitationRegistrationGateway = FakeInvitationRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 existingEmail = "yuniel@example.com",
             ),
-            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
+            localPasswordCredentialGateway = passwordGateway,
             passwordHasher = FakePasswordHasher(),
             workspaceProvisioningService = FakeWorkspaceProvisioningService(),
             eventPublisher = RecordingEventPublisher(),
@@ -530,6 +580,9 @@ class LocalAuthHandlersTest {
         } catch (e: UserAlreadyExistsException) {
             assertEquals("User already exists.", e.message)
         }
+
+        assertEquals(null, identityRegistrationGateway.created)
+        assertEquals(null, passwordGateway.createdPrincipalId)
     }
 
     @Test

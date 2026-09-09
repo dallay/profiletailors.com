@@ -1,5 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationCommand
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
@@ -21,6 +22,9 @@ class InvitationAcceptanceController(
     suspend fun accept(@RequestBody request: AcceptInvitationRequest): ResponseEntity<InvitationAcceptanceResult> {
         val principal = requestContextStore.currentPrincipalContext()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (principal.principalType != PrincipalType.USER) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+        }
         val token = request.token?.trim()
             ?.takeIf { it.isNotEmpty() }
             ?: return ResponseEntity.badRequest().build()

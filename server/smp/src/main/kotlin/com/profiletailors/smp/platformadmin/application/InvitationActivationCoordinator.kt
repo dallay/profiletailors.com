@@ -1,7 +1,6 @@
 package com.profiletailors.smp.platformadmin.application
 
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.identity.application.InvitationRegistrationContext
 import com.profiletailors.smp.identity.application.InvitationRegistrationSource
@@ -29,7 +28,6 @@ class InvitationActivationCoordinator(
     private val workspaceProvisioningService: WorkspaceProvisioningService,
     private val waitlistEntryAdmin: WaitlistEntryAdmin,
     private val membershipProvisioner: WorkspaceMembershipProvisioner,
-    private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
 ) {
     data class InvitationActivationResult(val invitation: Invitation, val membershipStatus: WorkspaceMembershipStatus)
@@ -64,19 +62,16 @@ class InvitationActivationCoordinator(
         principalId: String,
     ): InvitationActivationResult {
         val candidateKey = candidateKey(rawToken)
-
-        return transactionRunner.runAtomically {
-            val invitation = invitationRepository.findByCandidateKeyForUpdate(candidateKey)
-                ?: fail(InvitationAcceptanceFailureCode.INVALID)
-            completeLocked(
-                context = invitation.toRegistrationContext(),
-                invitation = invitation,
-                rawToken = rawToken,
-                principalId = principalId,
-                displayName = email,
-                requestedEmail = email,
-            )
-        }
+        val invitation = invitationRepository.findByCandidateKeyForUpdate(candidateKey)
+            ?: fail(InvitationAcceptanceFailureCode.INVALID)
+        return completeLocked(
+            context = invitation.toRegistrationContext(),
+            invitation = invitation,
+            rawToken = rawToken,
+            principalId = principalId,
+            displayName = email,
+            requestedEmail = email,
+        )
     }
 
     private suspend fun completeLocked(
