@@ -68,6 +68,7 @@ vi.mock('@/components/ui/sidebar', () => ({
   SidebarProvider: { template: '<div class="sidebar-provider"><slot /></div>' },
   SidebarRail: { template: '<div />' },
   SidebarTrigger: { template: '<button class="sidebar-trigger" />' },
+  useSidebar: () => sidebarContext,
 }))
 
 vi.mock('@/components/ui/sidebar/utils', () => ({

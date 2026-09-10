@@ -11,6 +11,7 @@ import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.AuthTokens
+import com.profiletailors.smp.identity.application.InvitationWorkspaceOverrideException
 import com.profiletailors.smp.identity.application.LocalAuthSessionResult
 import com.profiletailors.smp.identity.application.LoginUserCommand
 import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
@@ -25,6 +26,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.http.server.reactive.ServerHttpRequest
 
 class LocalAuthControllerTest {
@@ -112,6 +114,29 @@ class LocalAuthControllerTest {
                 acceptedTermsVersion = "terms-v1.0.0",
                 invitationToken = "raw-token",
             )
+    }
+
+    @Test
+    fun `rejects a client workspace override before dispatching registration`() = runTest {
+        val mediator = CapturingMediator(
+            sessionResult = sessionResult("token", "user", "invitee@example.com", "invitee", "PENDING"),
+        )
+        val controller = controller(mediator)
+
+        assertThrows<InvitationWorkspaceOverrideException> {
+            controller.register(
+                RegisterUserRequest(
+                    email = "invitee@example.com",
+                    password = validPassword,
+                    confirmedAgeEligibility = true,
+                    acceptedTermsVersion = "terms-v1.0.0",
+                    invitationToken = "raw-token",
+                    workspaceId = "client-workspace",
+                ),
+            )
+        }
+
+        mediator.lastRequest shouldBe null
     }
 
     @Test

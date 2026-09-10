@@ -41,7 +41,7 @@ data class WaitlistInvitation(
 
     fun accept(at: Instant): WaitlistInvitation {
         if (!isActive(at)) {
-            throw InvitationNotAcceptableException(id.value.toString())
+            throw InvitationNotAcceptableException()
         }
         return copy(status = WaitlistInvitationStatus.ACCEPTED, acceptedAt = at)
     }
