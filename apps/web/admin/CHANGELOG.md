@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.6...admin@v0.0.7) (2026-09-10)
+
+
+### Features
+
+* **platformadmin:** direct invitation admin commands (DALLAY-568) ([#988](https://github.com/dallay/profiletailors.com/issues/988)) ([68cc405](https://github.com/dallay/profiletailors.com/commit/68cc40598797a71054f19bcffd8ed3bfc0bad4c9))
+
 ## [0.0.6](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.5...admin@v0.0.6) (2026-08-31)
 
 
