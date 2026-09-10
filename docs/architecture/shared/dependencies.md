@@ -1,9 +1,14 @@
 # Shared Module Dependencies
 
 > Quick-reference dependency graph for the `shared/` Gradle modules in the Profile Tailors monorepo.
-> Last updated: 2026-09-09
+> Last updated: 2026-09-10
 
-## Shared Kernel Modules
+## Overview
+
+This document describes the dependency direction, module ownership, and framework isolation rules
+for the `shared/` Gradle modules.
+
+### Shared Kernel Modules
 
 The monorepo contains 11 registered Gradle modules under `shared/` (excluding `shared:assets` and `shared:web` which are asset directories, not Gradle modules).
 
@@ -23,7 +28,7 @@ The `:shared:observability` module is a framework-free Kotlin contract consumed 
 | `:shared:notifications`         | `shared/notifications/`         | Notifications           | smp                          |
 | `:shared:observability`         | `shared/observability/`         | Framework-free Kotlin operational event contract | server:smp, storage        |
 
-## Lead Capture Modules
+### Lead Capture Modules
 
 The lead-capture capability is split across two framework-free shared modules per
 [ADR-0011](../adr/0011-reusable-lead-capture-waitlist.md):
@@ -38,11 +43,26 @@ Both modules follow the framework-free rules defined by
 `com.profiletailors.smp` imports. ArchUnit assertions enforce this at build time.
 
 The `:shared:observability` module is a framework-free Kotlin contract for structured operational
-  events. `:shared:storage` and `server:smp` consume it; web applications and `shared/web` do not. See the [Shared
-  Observability Usage Standard](../../observability-usage.md) for contract signatures, layering,
-sensitive-data guidance, and test ownership.
+events and its shared sanitizer/best-effort adapter decorator. `:shared:storage` and `server:smp`
+consume it; web applications and `shared/web` do not. See the [Shared Observability Usage
+Standard](../../observability-usage.md) for contract signatures, layering, sensitive-data guidance,
+and test ownership.
 
-## Dependency Graph
+Observability boundary rules are reused from
+`shared/common/src/testFixtures/kotlin/com/profiletailors/architecture/ObservabilityArchitectureRules.kt`.
+Modules with `domain` or `application` layers should consume that test fixture and declare their
+package root instead of copying the vendor package list. Existing module-specific architecture
+rules remain in place.
+
+## Changes
+
+The observability contract and its sanitizer are isolated in `:shared:observability`. Shared
+architecture fixtures enforce that domain and application code cannot import the listed
+observability vendor packages.
+
+## Usage
+
+### Dependency Graph
 
 ```mermaid
 %%{init: {'theme':'neutral', 'themeVariables': {'primaryColor':'#1a1a2e','primaryTextColor':'#e0e0e0','primaryBorderColor':'#4a4a6a','lineColor':'#6a6a8a','tertiaryColor':'#16213e'}}}%%
@@ -110,7 +130,7 @@ graph TB
     class SMP client
 ```
 
-## Module Reference
+### Module Reference
 
 | Module                          | Path                            | Type                    | Depends On                                                                  | Consumed By                  |
 |---------------------------------|---------------------------------|-------------------------|-----------------------------------------------------------------------------|------------------------------|
@@ -127,7 +147,7 @@ graph TB
 | `:shared:observability`         | `shared/observability/`         | Foundation (framework-free Kotlin) | —                                                                           | `:shared:storage`, server:smp |
 | `:server:smp`                   | `server/smp/`                   | Application             | All `shared:*` modules                                                      | —                            |
 
-## Layer Rules
+### Layer Rules
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -149,7 +169,7 @@ graph TB
 └─────────────────────────────────────────────┘
 ```
 
-## Design Rules
+### Design Rules
 
 1. **Cycles forbidden** — The graph is strictly acyclic. No module depends on something that depends
    on it.
@@ -161,3 +181,15 @@ graph TB
    internal.
 5. **Version alignment** — All shared modules use the same Kotlin, Jackson, and Spring Boot versions
    via the Gradle version catalog (`gradle/libs.versions.toml`).
+
+## Troubleshooting
+
+When a dependency check fails, identify the importing module and move provider-specific code toward
+infrastructure. Do not solve a boundary violation by adding an exception to the shared graph or by
+copying a vendor package allowlist into another module.
+
+## References
+
+- [ADR-0010 — Shared Kernel Governance](../adr/0010-shared-kernel-governance.md)
+- [ADR-0011 — Reusable Lead Capture Waitlist](../adr/0011-reusable-lead-capture-waitlist.md)
+- [Shared Observability Usage Standard](../../observability-usage.md)
