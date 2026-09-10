@@ -23,7 +23,7 @@ ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 RUN pnpm --filter app build
 
-FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:a6c3ec0c0d249d68b0682df854d4a9e222b90fb607dc3fcf2f1d2fcbc85d347e AS runtime
+FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:2ddec616f1cb58bcac057aa388f28cb81e35137641ef4226d321714499329bd1 AS runtime
 
 ARG IMAGE_VERSION="dev"
 ARG IMAGE_CREATED=""
