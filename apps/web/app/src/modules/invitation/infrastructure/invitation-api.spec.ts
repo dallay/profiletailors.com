@@ -320,16 +320,16 @@ describe('acceptInvitationRequest', () => {
     expect(result.errorStatus).toBe(403)
   })
 
-  it('does not send Authorization header', async () => {
+  it('sends the authenticated access token as a Bearer Authorization header', async () => {
     const fetchMock = stubFetch(
       new Response(JSON.stringify({ workspaceId: 'ws-1' }), { status: 200 }),
     )
 
-    await acceptInvitationRequest('tok')
+    await acceptInvitationRequest('tok', 'access-token-1')
 
     const { init } = getFetchArgs(fetchMock)
     const headers = init.headers as Record<string, string>
-    expect(headers.Authorization).toBeUndefined()
-    expect(headers['X-Workspace-Id']).toBeUndefined()
+
+    expect(headers.Authorization).toBe('Bearer access-token-1')
   })
 })

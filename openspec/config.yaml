@@ -52,13 +52,3 @@ qa:
   archive_blockers:
     - "Unresolved CRITICAL, P0, or P1 findings"
     - "Acceptance-relevant BLOCKED or NOT TESTED scenarios"
-  local_environment:
-    serve_command: "just serve"
-    infra_command: "just infra-up"
-    urls_command: "just worktree-info"
-    backend_profile: "dev"
-    seed_source: "server/smp/src/main/resources/db/changelog/data/dev/"
-    seed_identity: "dev-user-001"
-    seed_email: "dev@profiletailors.com"
-    credentials_reference: "apps/web/app/e2e/fixtures/test-data.ts and openspec/specs/e2e/scheduler-posts-test-plan.md Auth line, E2E_TEST_USER_EMAIL override supported"
-    portless_note: "Branch host from worktree context may require ephemeral SMP_CORS_ALLOWED_ORIGINS override, never commit env changes"

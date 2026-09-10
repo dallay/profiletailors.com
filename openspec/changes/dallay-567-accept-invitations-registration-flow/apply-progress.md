@@ -24,6 +24,7 @@
 - [x] 3.1 Added the accepted domain event, bounded invitation telemetry, and post-commit audit listener without raw token or email data.
 - [x] 3.2 Made the RED integration, BDD, and E2E tests pass and completed the configured focused and broad verification lanes.
 - [x] 3.3 Reviewed the final changed paths and contracts; the implementation remains scoped to DALLAY-567.
+- [x] 3.4 Fixed QA-F-011 by forwarding the in-memory access token as a Bearer header during authenticated invitation acceptance; added focused regression coverage.
 
 ## Acceptance-Evidence Follow-up Completed
 

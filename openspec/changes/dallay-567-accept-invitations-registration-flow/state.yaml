@@ -8,7 +8,7 @@ completed:
   - apply
   - verify
   - qa
-next: clarification
+next: archive
 updated: "2026-09-10"
 linear_issue: DALLAY-567
 active_linear_issue: DALLAY-556
@@ -26,6 +26,7 @@ note: >
   open P2 raw-token URL/history/referrer warning. Accessibility and locale scenarios remain NOT
   TESTED. The deterministic QA runner/FSM is unavailable; QA records visible fallback and maps the
   runner capability to NOT TESTED. Local evidence is not deployed acceptance. Local exploratory QA
-  additionally found QA-F-011: the authenticated existing-identity browser path omits the access token
-  from POST /api/invitations/accept and is redirected to Dashboard after a 401. Implementation is
-  paused pending authorization to fix this P1 defect.
+  found and then resolved QA-F-011: the invitation API now sends the in-memory Bearer access token;
+  the authenticated invalid-token browser path returned the expected domain 400 instead of 401.
+  Archive remains blocked by independent acceptance and QA limitations; do not archive until those
+  blockers are explicitly waived or covered.

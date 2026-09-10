@@ -137,20 +137,21 @@ finding is still an archive blocker by policy.
 - Preserve the platformadmin-owned advice mapping unless a new architecture decision changes the module-boundary rationale.
 - Configure the approved deterministic QA runner/FSM before treating runner execution as tested; until then retain `fallback` and `NOT TESTED`.
 - This report is acceptance QA evidence for the supplied local implementation and is not a claim of deployed product acceptance.
+- QA-F-011 was resolved locally after the original fallback exploration; the retained deployed-acceptance and independent QA limitations still block archive.
 
 ## 10. Local Exploratory Addendum
 - Target: `https://dallay-567-invitation-evidence.pt-app.localhost:1355` with the worktree-local backend and PostgreSQL infrastructure.
 - The Portless origin required an ephemeral `SMP_CORS_ALLOWED_ORIGINS` override; the repository `.env` does not include this branch-specific hostname. No repository configuration or secret was changed.
-- Local authentication succeeded with the seeded development identity: `/api/auth/login` returned `200`, `/api/auth/me` returned `200`, and the dashboard loaded without console errors.
+- Local authentication succeeded with the seeded development identity: `/api/auth/login` returned `200` and `/api/auth/me` returned `200`.
 - Synthetic unauthenticated invitation submission followed the registration handoff to `/register?invitationToken=...`.
 - Missing-token navigation rendered the expected accessible alert and did not render the submit form.
-- Authenticated submission of a synthetic invalid token called `POST /api/invitations/accept` without an `Authorization` header, received `401`, and was redirected through the guest-only registration route to the dashboard. This confirms the existing-identity browser path cannot currently reach the backend invitation acceptance contract.
+- After the QA-F-011 fix, authenticated submission of a synthetic invalid token called `POST /api/invitations/accept` with a Bearer `Authorization` header and received the expected domain `400` invalid-invitation response rather than `401` authentication failure.
 - The seeded fixture documentation and stored bcrypt hash disagree on the password spelling; the hash was validated against the unprefixed local development password. No seed file was changed.
 
-## 11. New Finding
+## 11. Finding Resolution
 | ID | Severity | Scenario / location | Evidence | Status |
 |---|---|---|---|---|
-| QA-F-011 | P1 | Authenticated existing-identity acceptance in `apps/web/app/src/modules/invitation/infrastructure/invitation-api.ts` | Local browser session authenticated successfully, but `POST /api/invitations/accept` was sent without `Authorization`; backend returned `401` and the UI redirected to Dashboard through the guest-only registration route. | Open; requires implementation authorization before entering apply. |
+| QA-F-011 | P1 | Authenticated existing-identity acceptance in `apps/web/app/src/modules/invitation/infrastructure/invitation-api.ts` | Regression test now requires the Bearer header; local browser verification observed the header and a domain-level `400` for the synthetic invalid token. | Resolved locally; focused tests and local browser recheck passed. |
 
-### QA-F-011 Impact
-The backend acceptance contract requires an authenticated user principal, while the browser client submits only the raw invitation token. The existing-user acceptance journey is therefore not operational in the real local browser flow, despite the retained backend and mocked/browser evidence passing. Archive remains blocked.
+### QA-F-011 Resolution
+The invitation store now passes the in-memory auth access token to the invitation API, and the API adds it as a Bearer header. This restores authentication for the existing-identity acceptance path without persisting the token or exposing it in the invitation URL. Archive remains blocked by the independent deployed-acceptance, deterministic-runner, accessibility/locale, and raw-token URL limitations.

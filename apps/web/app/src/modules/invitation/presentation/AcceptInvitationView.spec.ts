@@ -8,6 +8,7 @@ const hydrateSession = vi.hoisted(() => vi.fn())
 const routerReplace = vi.hoisted(() => vi.fn())
 
 const authState = reactive({
+  accessToken: null as string | null,
   hydrated: false,
 })
 
@@ -71,6 +72,9 @@ vi.mock('@modules/auth/infrastructure/public-capabilities.store', () => ({
 vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({
     hydrateSession,
+    get accessToken() {
+      return authState.accessToken
+    },
     get isAuthenticated() {
       return authState.hydrated
     },
@@ -101,6 +105,7 @@ describe('AcceptInvitationView', () => {
     state.errorStatus = null
     capabilitiesState.resolved = true
     capabilitiesState.invitationAcceptanceEnabled = true
+    authState.accessToken = null
     authState.hydrated = false
     accept.mockReset()
     hydrateSession.mockReset()
@@ -138,7 +143,7 @@ describe('AcceptInvitationView', () => {
     await flushPromises()
     await flushPromises()
 
-    expect(accept).toHaveBeenCalledWith('raw-token')
+    expect(accept).toHaveBeenCalledWith('raw-token', null)
     expect(state.workspaceId).toBe('ws-abc')
   })
 

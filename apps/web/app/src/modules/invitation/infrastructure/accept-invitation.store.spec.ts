@@ -38,6 +38,16 @@ describe('useAcceptInvitationStore', () => {
     mockAcceptInvitationRequest.mockReset()
   })
 
+  it('passes the authenticated access token to the invitation api', async () => {
+    mockAcceptInvitationRequest.mockResolvedValue(successResult())
+
+    const store = useAcceptInvitationStore()
+
+    await store.accept('valid-token', 'access-token-1')
+
+    expect(mockAcceptInvitationRequest).toHaveBeenCalledWith('valid-token', 'access-token-1')
+  })
+
   it('exposes initial state', () => {
     const store = useAcceptInvitationStore()
 

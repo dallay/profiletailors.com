@@ -54,7 +54,7 @@ function canonicalErrorKey(): string {
 async function handleSubmit(): Promise<void> {
   if (submitted.value || store.pending) return
   submitted.value = true
-  const result = await store.accept(props.token)
+  const result = await store.accept(props.token, auth.accessToken)
   if (result.errorCode === 'INVITATION_REQUIRES_LOGIN') {
     await router.replace({ name: 'register', query: { invitationToken: props.token } })
     return

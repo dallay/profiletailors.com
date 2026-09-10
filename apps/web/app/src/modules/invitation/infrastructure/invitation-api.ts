@@ -19,7 +19,10 @@ export type AcceptInvitationResult = {
  * @param token - The raw invitation token to submit.
  * @returns The invitation acceptance result, including workspace and membership data on success or error details on failure.
  */
-export async function acceptInvitationRequest(token: string): Promise<AcceptInvitationResult> {
+export async function acceptInvitationRequest(
+  token: string,
+  accessToken?: string | null,
+): Promise<AcceptInvitationResult> {
   let response: Response
   try {
     response = await fetch(resolveApiUrl('/api/invitations/accept'), {
@@ -28,6 +31,7 @@ export async function acceptInvitationRequest(token: string): Promise<AcceptInvi
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/vnd.api.v1+json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
       body: JSON.stringify({ token }),
     })
