@@ -3,7 +3,9 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import com.profiletailors.smp.platformadmin.domain.InvitationAcceptanceFailureCode
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
+import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotResendableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableException
 import com.profiletailors.smp.platformadmin.domain.InvitationRateLimitExceededException
@@ -144,6 +146,19 @@ class AdminProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.CONFLICT.value(), problem.status)
         assertEquals("INVITATION_ALREADY_ACTIVE", problem.properties?.get("code"))
+    }
+
+    @Test
+    fun `maps invitation email mismatch to a stable redacted problem detail`() {
+        val problem = handler.handle(
+            InvitationNotAcceptableException(InvitationAcceptanceFailureCode.EMAIL_MISMATCH),
+        )
+
+        assertEquals(HttpStatus.FORBIDDEN.value(), problem.status)
+        assertEquals("Invitation unavailable", problem.title)
+        assertEquals("Invitation is unavailable.", problem.detail)
+        assertEquals("INVITATION_EMAIL_MISMATCH", problem.properties?.get("code"))
+        assertFalse(problem.detail?.contains("EMAIL_MISMATCH") == true)
     }
 
     @Test

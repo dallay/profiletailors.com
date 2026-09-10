@@ -3,6 +3,15 @@ import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import SidebarChannelsSection, { type SidebarChannel } from './SidebarChannelsSection.vue'
 
+const sidebarState = vi.hoisted(() => ({
+  isMobile: { value: true },
+  setOpenMobile: vi.fn(),
+}))
+
+vi.mock('@/components/ui/sidebar', () => ({
+  useSidebar: () => sidebarState,
+}))
+
 vi.mock('@layouts/sidebar/SidebarChannelRow.vue', () => ({
   default: {
     name: 'SidebarChannelRow',
@@ -154,5 +163,22 @@ describe('SidebarChannelsSection', () => {
     expect(wrapper.emitted('selectChannel')).toBeTruthy()
     const payload = wrapper.emitted('selectChannel')?.[0]?.[0] as string
     expect(payload).toBe('acc-2')
+  })
+
+  it('closes the mobile sidebar when a channel is selected', async () => {
+    sidebarState.setOpenMobile.mockClear()
+    const wrapper = mount(SidebarChannelsSection, {
+      props: {
+        channels: [makeChannel({ accountId: 'acc-1' })],
+        activeChannelId: null,
+        totalQueuedCount: 0,
+        isSchedulerRoute: true,
+      },
+    })
+
+    const row = wrapper.findComponent({ name: 'SidebarChannelRow' })
+    await row.vm.$emit('select')
+
+    expect(sidebarState.setOpenMobile).toHaveBeenCalledWith(false)
   })
 })

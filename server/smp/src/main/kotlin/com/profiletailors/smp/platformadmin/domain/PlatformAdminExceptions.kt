@@ -30,7 +30,27 @@ class InvitationNotRevocableException(id: String) : RuntimeException("Invitation
 
 class InvitationNotExpirableException(id: String) : RuntimeException("Invitation cannot be expired: $id")
 
-class InvitationNotAcceptableException(id: String) : RuntimeException("Invitation cannot be accepted: $id")
+enum class InvitationAcceptanceFailureCode(val publicCode: String) {
+    INVALID("INVITATION_INVALID"),
+    EXPIRED("INVITATION_EXPIRED"),
+    REVOKED("INVITATION_REVOKED"),
+    ALREADY_CONSUMED("INVITATION_ALREADY_CONSUMED"),
+    REPLAYED("INVITATION_REPLAYED"),
+    EMAIL_MISMATCH("INVITATION_EMAIL_MISMATCH"),
+    WORKSPACE_OVERRIDE_NOT_ALLOWED("INVITATION_WORKSPACE_OVERRIDE_NOT_ALLOWED"),
+}
+
+class InvitationNotAcceptableException(
+    val failureCode: InvitationAcceptanceFailureCode = InvitationAcceptanceFailureCode.INVALID,
+) : RuntimeException("Invitation is unavailable.") {
+    constructor(reason: String) : this(
+        if (reason.contains("email", ignoreCase = true) && reason.contains("match", ignoreCase = true)) {
+            InvitationAcceptanceFailureCode.EMAIL_MISMATCH
+        } else {
+            InvitationAcceptanceFailureCode.INVALID
+        },
+    )
+}
 
 class InvitationRateLimitExceededException(waitlistEntryId: String) :
     RuntimeException("Invitation resend rate limit exceeded for entry: $waitlistEntryId")

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.test.web.reactive.server.EntityExchangeResult
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.nio.charset.StandardCharsets
 
 class LocalAuthCapabilitiesBddSteps {
     @Autowired
@@ -27,14 +28,19 @@ class LocalAuthCapabilitiesBddSteps {
     @Autowired
     private lateinit var passwordRecoveryFlag: MutablePasswordRecoveryFlag
 
+    @Autowired
+    private lateinit var platformAdminState: PlatformAdminScenarioState
+
     private var response: EntityExchangeResult<ByteArray>? = null
     private val disabledEmail = "registration-disabled@example.com"
+    private var submittedInvitationToken: String? = null
 
     @Before
     fun resetAuthCapabilityState() {
         registrationFlag.enable()
         passwordRecoveryFlag.enable()
         response = null
+        submittedInvitationToken = null
     }
 
     @Given("public registration and password recovery are enabled")
@@ -86,6 +92,81 @@ class LocalAuthCapabilitiesBddSteps {
             .exchange()
             .expectBody()
             .returnResult()
+    }
+
+    @When("the visitor submits invite-only registration for {string}")
+    fun submitInviteOnlyRegistration(email: String) {
+        submitInviteOnlyRegistration(
+            email = email,
+            token = requireNotNull(platformAdminState.invitationToken),
+        )
+    }
+
+    @When("the visitor submits invite-only registration for {string} with token {string}")
+    fun submitInviteOnlyRegistrationWithToken(email: String, token: String) {
+        submitInviteOnlyRegistration(email = email, token = token)
+    }
+
+    @When("the visitor submits invite-only registration for {string} with the invitation token and workspace {string}")
+    fun submitInviteOnlyRegistrationWithWorkspace(email: String, workspaceId: String) {
+        submitInviteOnlyRegistration(
+            email = email,
+            token = requireNotNull(platformAdminState.invitationToken),
+            workspaceId = workspaceId,
+        )
+    }
+
+    @Then("the invite-only registration response status should be {int}")
+    fun inviteOnlyRegistrationResponseStatus(status: Int) {
+        assertEquals(status, requireResponse().status.value())
+    }
+
+    @Then("the invite-only auth response should include email {string}")
+    fun inviteOnlyAuthResponseShouldIncludeEmail(email: String) {
+        assertTrue(responseBody().contains(""""email":"$email""""), responseBody())
+    }
+
+    @Then("the invite-only auth response should include emailStatus {string}")
+    fun inviteOnlyAuthResponseShouldIncludeEmailStatus(status: String) {
+        assertTrue(responseBody().contains(""""emailStatus":"$status""""), responseBody())
+    }
+
+    @Then("the invite-only auth response should include an access token")
+    fun inviteOnlyAuthResponseShouldIncludeAccessToken() {
+        assertTrue(Regex(""""accessToken":"[^"]+"""").containsMatchIn(responseBody()))
+    }
+
+    @Then("the invite-only response should contain a workspaceId")
+    fun inviteOnlyResponseShouldContainWorkspaceId() {
+        assertTrue(responseBody().contains("\"workspaceId\":"), responseBody())
+    }
+
+    @Then("the invite-only response should set a refresh cookie")
+    fun inviteOnlyResponseShouldSetRefreshCookie() {
+        assertFalse(requireResponse().responseHeaders[HttpHeaders.SET_COOKIE].isNullOrEmpty())
+    }
+
+    @Then("the invite-only response should not contain the submitted invitation token")
+    fun inviteOnlyResponseShouldNotContainSubmittedInvitationToken() {
+        val token = requireNotNull(submittedInvitationToken)
+        assertFalse(responseBody().contains(token), responseBody())
+    }
+
+    @Then("the invite-only response should not contain {string}")
+    fun inviteOnlyResponseShouldNotContain(value: String) {
+        assertFalse(responseBody().contains(value), responseBody())
+    }
+
+    @Then("the invite-only problem response should include code {string}")
+    fun inviteOnlyProblemResponseShouldIncludeCode(code: String) {
+        assertTrue(responseBody().contains(""""code":"$code""""), responseBody())
+    }
+
+    @Then("no invite-only registration mutation should exist for {string}")
+    fun noInviteOnlyRegistrationMutation(email: String) = runBlocking {
+        assertEquals(0L, database.countAccountsByEmail(email))
+        assertFalse(responseBody().contains("accessToken"), responseBody())
+        assertTrue(requireResponse().responseHeaders[HttpHeaders.SET_COOKIE].isNullOrEmpty())
     }
 
     @Then("the public capabilities response status should be {int}")
@@ -166,4 +247,31 @@ class LocalAuthCapabilitiesBddSteps {
     }
 
     private fun response(): EntityExchangeResult<ByteArray> = requireNotNull(response) { "No response captured" }
+
+    private fun requireResponse(): EntityExchangeResult<ByteArray> = response()
+
+    private fun responseBody(): String = String(
+        requireResponse().responseBody ?: ByteArray(0),
+        StandardCharsets.UTF_8,
+    )
+
+    private fun submitInviteOnlyRegistration(email: String, token: String, workspaceId: String? = null) {
+        submittedInvitationToken = token
+        val body = mutableMapOf<String, Any>(
+            "email" to email,
+            "password" to "bdd-RegisteredP@ssw0rd1",
+            "confirmedAgeEligibility" to true,
+            "acceptedTermsVersion" to "terms-v1.0.0",
+            "invitationToken" to token,
+        )
+        workspaceId?.let { body["workspaceId"] = it }
+        response = webTestClient.post()
+            .uri("/api/auth/register")
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .bodyValue(body)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
 }

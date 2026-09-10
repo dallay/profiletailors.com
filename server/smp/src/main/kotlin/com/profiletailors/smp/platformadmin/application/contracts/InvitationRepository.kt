@@ -9,6 +9,8 @@ interface InvitationRepository {
 
     suspend fun findBySourceReferenceId(sourceReferenceId: String): Invitation?
 
+    suspend fun findByCandidateKey(candidateKey: String): Invitation?
+
     suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation?
 
     suspend fun save(invitation: Invitation, candidateKey: String): Invitation

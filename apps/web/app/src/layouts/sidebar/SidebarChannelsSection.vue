@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { Users } from '@lucide/vue'
+import { useSidebar } from '@/components/ui/sidebar'
 import SidebarChannelRow from './SidebarChannelRow.vue'
 import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
 
@@ -20,6 +21,8 @@ const emit = defineEmits<{
   (e: 'selectAll'): void
   (e: 'selectChannel', accountId: string): void
 }>()
+
+const { isMobile, setOpenMobile } = useSidebar()
 
 /**
  * Avatar-failed map. Source of truth for the row's local `avatarLoadFailed`
@@ -41,6 +44,20 @@ function isRowActive(accountId: string): boolean {
   return props.isSchedulerRoute && props.activeChannelId === accountId
 }
 
+function closeMobileSidebar(): void {
+  if (isMobile.value) setOpenMobile(false)
+}
+
+function selectAll(): void {
+  emit('selectAll')
+  closeMobileSidebar()
+}
+
+function selectChannel(accountId: string): void {
+  emit('selectChannel', accountId)
+  closeMobileSidebar()
+}
+
 const allBadge = computed(() => {
   if (props.totalQueuedCount <= 0) return null
   const n = props.totalQueuedCount
@@ -54,7 +71,7 @@ const allBadge = computed(() => {
       type="button"
       class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
       :class="isSchedulerRoute && !activeChannelId ? 'border-border-visible bg-bg-primary text-text-display' : ''"
-      @click="emit('selectAll')"
+      @click="selectAll"
     >
       <Users class="size-4 shrink-0 text-text-secondary" />
       <span class="sr-only">All channels</span>
@@ -73,7 +90,7 @@ const allBadge = computed(() => {
       :channel="channel"
       :is-active="isRowActive(channel.accountId)"
       :queued-count="channel.queuedCount"
-      @select="emit('selectChannel', channel.accountId)"
+      @select="selectChannel(channel.accountId)"
       @avatar-error="() => { avatarLoadFailedMap[channel.id] = true }"
     />
   </div>

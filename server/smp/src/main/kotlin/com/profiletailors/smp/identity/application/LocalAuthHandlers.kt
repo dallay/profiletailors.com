@@ -59,7 +59,11 @@ internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSes
     )
 }
 
-private data class RegistrationTransactionResult(val rawVerificationToken: String, val workspaceId: String)
+private data class RegistrationTransactionResult(
+    val rawVerificationToken: String,
+    val workspaceId: String,
+    val postCommitEvent: DomainEvent?,
+)
 
 @Service
 internal class RegisterUserHandler(
@@ -105,12 +109,11 @@ internal class RegisterUserHandler(
             acceptedTermsVersion = command.acceptedTermsVersion,
         )
 
-        if (
-            localPasswordCredentialGateway.findByEmail(normalizedEmail) != null ||
-            principalIdentityLookup.findByEmail(normalizedEmail) != null
-        ) {
-            throw UserAlreadyExistsException(normalizedEmail)
+        val invitationContext = invitationToken?.let { token ->
+            invitationRegistrationGateway.prepare(token, normalizedEmail)
         }
+
+        ensureEmailAvailable(normalizedEmail)
 
         val principalId = "user-${UUID.randomUUID()}"
         val subject = "local:$normalizedEmail"
@@ -121,6 +124,8 @@ internal class RegisterUserHandler(
             subject = subject,
             normalizedEmail = normalizedEmail,
             normalizedUsername = normalizedUsername,
+            invitationToken = invitationToken,
+            invitationContext = invitationContext,
         )
 
         // Publish domain event for async email dispatch
@@ -132,6 +137,7 @@ internal class RegisterUserHandler(
                 rawVerificationToken = registrationResult.rawVerificationToken,
             ),
         )
+        registrationResult.postCommitEvent?.let { eventPublisher.publish(it) }
 
         return issueAuthSession(
             AuthSessionContext(
@@ -167,6 +173,8 @@ internal class RegisterUserHandler(
         subject: String,
         normalizedEmail: String,
         normalizedUsername: String,
+        invitationToken: String?,
+        invitationContext: InvitationRegistrationContext?,
     ): RegistrationTransactionResult {
         // Compute password hash BEFORE the transaction to avoid blocking
         // the reactive connection pool with CPU-bound bcrypt hashing.
@@ -174,6 +182,7 @@ internal class RegisterUserHandler(
 
         return try {
             transactionRunner.runAtomically {
+                ensureEmailAvailable(normalizedEmail)
                 identityRegistrationGateway.createUserIdentity(
                     principalId = principalId,
                     subject = subject,
@@ -188,10 +197,16 @@ internal class RegisterUserHandler(
                     passwordHash = passwordHash,
                 )
 
-                val workspaceId = command.invitationToken
-                    ?.trim()
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let { invitationRegistrationGateway.acceptForRegistration(it, normalizedEmail, principalId) }
+                val invitationResult = invitationContext
+                    ?.let {
+                        invitationRegistrationGateway.complete(
+                            context = it,
+                            rawToken = requireNotNull(invitationToken),
+                            principalId = principalId,
+                            displayName = normalizedUsername,
+                        )
+                    }
+                val workspaceId = invitationResult?.workspaceId
                     ?: workspaceProvisioningService.provisionDefaultWorkspace(
                         principalId = principalId,
                         displayName = normalizedUsername,
@@ -209,6 +224,7 @@ internal class RegisterUserHandler(
                 RegistrationTransactionResult(
                     rawVerificationToken = generated.rawToken,
                     workspaceId = workspaceId,
+                    postCommitEvent = invitationResult?.postCommitEvent,
                 )
             }
         } catch (e: RuntimeException) {
@@ -224,6 +240,15 @@ internal class RegisterUserHandler(
                 throw UserAlreadyExistsException(normalizedEmail)
             }
             throw e
+        }
+    }
+
+    private suspend fun ensureEmailAvailable(normalizedEmail: String) {
+        if (
+            localPasswordCredentialGateway.findByEmail(normalizedEmail) != null ||
+            principalIdentityLookup.findByEmail(normalizedEmail) != null
+        ) {
+            throw UserAlreadyExistsException(normalizedEmail)
         }
     }
 

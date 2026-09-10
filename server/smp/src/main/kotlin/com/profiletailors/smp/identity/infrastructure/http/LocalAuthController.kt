@@ -7,6 +7,7 @@ import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.domain.SessionCookie
 import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.AuthTokens
+import com.profiletailors.smp.identity.application.InvitationWorkspaceOverrideException
 import com.profiletailors.smp.identity.application.LocalAuthSessionResult
 import com.profiletailors.smp.identity.application.LoginUserCommand
 import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
@@ -57,6 +58,7 @@ class LocalAuthController(
     @Operation(summary = "Register a new user account")
     @PostMapping("/register", consumes = ["application/json"], version = "1")
     suspend fun register(@Valid @RequestBody request: RegisterUserRequest): ResponseEntity<AuthTokens> {
+        if (request.workspaceId != null) throw InvitationWorkspaceOverrideException()
         val result = mediator.send(
             RegisterUserCommand(
                 email = request.email,
@@ -227,6 +229,9 @@ data class RegisterUserRequest(
         required = false,
     )
     val invitationToken: String? = null,
+
+    @field:Schema(hidden = true)
+    val workspaceId: String? = null,
 )
 
 /**

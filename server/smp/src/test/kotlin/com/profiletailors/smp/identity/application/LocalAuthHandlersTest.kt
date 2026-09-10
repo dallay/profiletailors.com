@@ -23,6 +23,7 @@ import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.domain.RegistrationMode
 import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
+import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -107,6 +109,54 @@ class LocalAuthHandlersTest {
     }
 
     @Test
+    fun `revalidates identity availability inside registration transaction`() = runTest {
+        val order = mutableListOf<String>()
+        val principalIdentityLookup = mockk<PrincipalIdentityLookup>()
+        val existingIdentity = PrincipalIdentityFacts(
+            principalId = "existing-user",
+            principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+            subject = "local:race@example.com",
+            provider = null,
+            displayIdentity = "race",
+            email = "race@example.com",
+            username = "race",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+        coEvery { principalIdentityLookup.findByEmail("race@example.com") } returnsMany listOf(null, existingIdentity)
+        val transactionRunner = RecordingAtomicTransactionRunner(order)
+        val handler = RegisterUserHandler(
+            registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
+            invitationRegistrationGateway = FakeInvitationRegistrationGateway(order),
+            principalIdentityLookup = principalIdentityLookup,
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(order),
+            eventPublisher = RecordingEventPublisher(order),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(order),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
+            transactionRunner = transactionRunner,
+            recordConsentHandler = recordConsentHandler(order),
+        )
+
+        assertThrows<UserAlreadyExistsException> {
+            handler.handle(
+                RegisterUserCommand(
+                    email = "race@example.com",
+                    password = validPassword,
+                    username = "race",
+                    confirmedAgeEligibility = true,
+                    acceptedTermsVersion = "terms-v1.0.0",
+                ),
+            )
+        }
+
+        assertEquals(listOf("tx:start", "tx:rollback"), order)
+        assertEquals(1, transactionRunner.invocations)
+    }
+
+    @Test
     fun `should throw when registration disabled`() = runTest {
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.CLOSED),
@@ -175,6 +225,51 @@ class LocalAuthHandlersTest {
         invitationGateway.email shouldBe "invitee@example.com"
         result.tokens.workspaceId shouldBe "invited-workspace"
         order shouldNotContain "workspace:provision"
+    }
+
+    @Test
+    fun `invalid invite is rejected before registration mutations`() = runTest {
+        val order = mutableListOf<String>()
+        val invitationGateway = mockk<InvitationRegistrationGateway>()
+        coEvery {
+            invitationGateway.prepare(
+                rawToken = "invalid-token",
+                normalizedEmail = "invitee@example.com",
+            )
+        } answers {
+            order += "invitation:validated"
+            throw InvitationNotAcceptableException("invalid invitation")
+        }
+        val handler = RegisterUserHandler(
+            registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.INVITE_ONLY),
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(order),
+            invitationRegistrationGateway = invitationGateway,
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(order = order),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(order),
+            eventPublisher = RecordingEventPublisher(order),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(order),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(order),
+            transactionRunner = RecordingAtomicTransactionRunner(order),
+            recordConsentHandler = recordConsentHandler(order),
+        )
+
+        assertThrows<InvitationNotAcceptableException> {
+            handler.handle(
+                RegisterUserCommand(
+                    email = "invitee@example.com",
+                    password = validPassword,
+                    username = "invitee",
+                    confirmedAgeEligibility = true,
+                    acceptedTermsVersion = "terms-v1.0.0",
+                    invitationToken = "invalid-token",
+                ),
+            )
+        }
+
+        assertEquals(listOf("invitation:validated"), order)
     }
 
     @Test
@@ -451,14 +546,16 @@ class LocalAuthHandlersTest {
 
     @Test
     fun `rejects duplicate registration`() = runTest {
+        val identityRegistrationGateway = FakeIdentityRegistrationGateway()
+        val passwordGateway = FakeLocalPasswordCredentialGateway()
         val handler = RegisterUserHandler(
             registrationPolicy = FakeRegistrationPolicy(mode = RegistrationMode.OPEN),
-            identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            identityRegistrationGateway = identityRegistrationGateway,
             invitationRegistrationGateway = FakeInvitationRegistrationGateway(),
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 existingEmail = "yuniel@example.com",
             ),
-            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
+            localPasswordCredentialGateway = passwordGateway,
             passwordHasher = FakePasswordHasher(),
             workspaceProvisioningService = FakeWorkspaceProvisioningService(),
             eventPublisher = RecordingEventPublisher(),
@@ -483,6 +580,9 @@ class LocalAuthHandlersTest {
         } catch (e: UserAlreadyExistsException) {
             assertEquals("User already exists.", e.message)
         }
+
+        assertEquals(null, identityRegistrationGateway.created)
+        assertEquals(null, passwordGateway.createdPrincipalId)
     }
 
     @Test
@@ -1064,11 +1164,30 @@ class LocalAuthHandlersTest {
         var rawToken: String? = null
         var email: String? = null
 
-        override suspend fun acceptForRegistration(rawToken: String, email: String, principalId: String): String {
-            order?.add("invitation:accept")
+        override suspend fun prepare(rawToken: String, normalizedEmail: String): InvitationRegistrationContext {
+            order?.add("invitation:prepare")
             this.rawToken = rawToken
-            this.email = email
-            return "invited-workspace"
+            this.email = normalizedEmail
+            return InvitationRegistrationContext(
+                invitationId = "invitation-1",
+                target = InvitationRegistrationTarget.EXISTING_WORKSPACE,
+                workspaceId = "invited-workspace",
+                source = InvitationRegistrationSource.DIRECT,
+            )
+        }
+
+        override suspend fun complete(
+            context: InvitationRegistrationContext,
+            rawToken: String,
+            principalId: String,
+            displayName: String,
+        ): InvitationRegistrationResult {
+            order?.add("invitation:complete")
+            this.rawToken = rawToken
+            return InvitationRegistrationResult(
+                workspaceId = requireNotNull(context.workspaceId),
+                membershipStatus = WorkspaceMembershipStatus.ACTIVE.name,
+            )
         }
     }
 

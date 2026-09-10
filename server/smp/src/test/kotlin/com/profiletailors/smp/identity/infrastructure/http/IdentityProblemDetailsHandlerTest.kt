@@ -59,6 +59,18 @@ class IdentityProblemDetailsHandlerTest {
     }
 
     @Test
+    fun `workspace override maps to a generic invitation problem detail`() {
+        val result = handler.handle()
+
+        result.status shouldBe HttpStatus.BAD_REQUEST.value()
+        result.title shouldBe "Invalid invitation workspace selection"
+        result.type shouldBe URI("/problems/invitation-workspace-override")
+        result.detail shouldBe "Workspace selection is not allowed for invitation registration."
+        result.properties?.get("code") shouldBe "INVITATION_WORKSPACE_OVERRIDE_NOT_ALLOWED"
+        result.detail?.contains("workspace-id", ignoreCase = true) shouldBe false
+    }
+
+    @Test
     fun `invalid credentials map to generic problem detail`() {
         val result = handler.handle(InvalidEmailPasswordException())
 
