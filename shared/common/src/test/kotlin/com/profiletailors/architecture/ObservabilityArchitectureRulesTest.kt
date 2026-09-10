@@ -1,13 +1,12 @@
-package com.profiletailors.common.domain.presentation
+package com.profiletailors.architecture
 
-import com.profiletailors.architecture.ObservabilityArchitectureRules
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-internal class PresentationArchTest {
+class ObservabilityArchitectureRulesTest {
 
     private lateinit var importedClasses: JavaClasses
 
@@ -15,24 +14,17 @@ internal class PresentationArchTest {
     fun setUp() {
         importedClasses = ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-            .importPackages(
-                "com.profiletailors.common.domain",
-            )
+            .importPackages("com.profiletailors.common")
     }
 
     @Test
-    fun domainShouldNotDependOnObservabilityFrameworks() {
+    fun `should enforce observability boundaries for common layers`() {
         ObservabilityArchitectureRules.domainMustNotDependOnObservabilityVendors("com.profiletailors.common")
             .check(importedClasses)
-
-        ObservabilityArchitectureRules.domainMustNotDependOnOperationalEventSink("com.profiletailors.common")
-            .check(importedClasses)
-    }
-
-    @Test
-    fun applicationShouldNotDependOnObservabilityImplementations() {
         ObservabilityArchitectureRules.applicationMustNotDependOnObservabilityVendors("com.profiletailors.common")
             .allowEmptyShould(true)
+            .check(importedClasses)
+        ObservabilityArchitectureRules.domainMustNotDependOnOperationalEventSink("com.profiletailors.common")
             .check(importedClasses)
     }
 }
