@@ -96,4 +96,4 @@ curl http://smp-internal:9091/actuator/prometheus
 ## References
 
 - [Spring Boot Management Port Documentation](https://docs.spring.io/spring-boot/reference/actuator/monitoring.html#actuator.monitoring.customizing-management-server-port)
-- [OWASP API Security Top 10](https://owasp.org/API-Security/)
+- [OWASP API Security Top 10](https://github.com/OWASP/API-Security)
