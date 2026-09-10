@@ -30,6 +30,9 @@ representing Bounded Contexts.
 The backend MUST be built as a Modular Monolith.
 Bounded contexts MUST be isolated by package boundaries.
 Spring Modulith MUST be used to enforce these boundaries.
+Backend sources under `server/smp/src` MUST use Kotlin. Spring Modulith package metadata MUST use
+internal `ModuleMetadata` types annotated with `@PackageInfo` and `@NamedInterface` instead of Java
+`package-info.java` files.
 
 ## Scope and boundaries
 
@@ -78,13 +81,14 @@ Enforced via `ModularityVerificationTest.kt` using Spring Modulith's `verify()` 
 
 ## Migration or remediation
 
-Current violation in `authorization -> audit :: application` MUST be resolved or explicitly
-whitelisted in the Modulith configuration.
+The previously recorded `authorization -> audit :: application` violation was resolved without
+weakening Modulith verification. The Kotlin metadata migration preserves the resulting module and
+named-interface model.
 
 ## Follow-up actions
 
-- [ ] Fix pre-existing Modulith violation between Authorization and Audit.
-- [ ] Re-enable `ModularityVerificationTest`.
+- [x] Fix pre-existing Modulith violation between Authorization and Audit.
+- [x] Re-enable `ModularityVerificationTest`.
 
 ## Revisit conditions
 
