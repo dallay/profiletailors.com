@@ -1,5 +1,6 @@
 package com.profiletailors.storage
 
+import com.profiletailors.architecture.ObservabilityArchitectureRules
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
@@ -44,42 +45,16 @@ internal class StorageArchTest {
 
     @Test
     fun domainShouldNotDependOnObservabilityFrameworks() {
-        ArchRuleDefinition.noClasses()
-            .that()
-            .resideInAPackage("..domain..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage(
-                "org.slf4j..",
-                "ch.qos.logback..",
-                "org.apache.logging.log4j..",
-                "io.opentelemetry..",
-                "io.micrometer..",
-                "tools.jackson..",
-                "com.fasterxml.jackson..",
-                "com.profiletailors.observability..",
-            )
-            .because("storage domain must stay independent from observability frameworks")
+        ObservabilityArchitectureRules.domainMustNotDependOnObservabilityVendors("com.profiletailors.storage")
+            .check(importedClasses)
+
+        ObservabilityArchitectureRules.domainMustNotDependOnOperationalEventSink("com.profiletailors.storage")
             .check(importedClasses)
     }
 
     @Test
     fun applicationShouldNotDependOnObservabilityImplementations() {
-        ArchRuleDefinition.noClasses()
-            .that()
-            .resideInAPackage("..application..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage(
-                "org.slf4j..",
-                "ch.qos.logback..",
-                "org.apache.logging.log4j..",
-                "io.opentelemetry..",
-                "io.micrometer..",
-                "tools.jackson..",
-                "com.fasterxml.jackson..",
-            )
-            .because("storage application must use the observability sink port instead of implementations")
+        ObservabilityArchitectureRules.applicationMustNotDependOnObservabilityVendors("com.profiletailors.storage")
             .check(importedClasses)
     }
 }

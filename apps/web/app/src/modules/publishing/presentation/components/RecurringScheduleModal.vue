@@ -142,7 +142,7 @@ async function save(): Promise<void> {
           <div class="grid grid-cols-2 gap-3">
             <label class="space-y-1 text-xs font-mono uppercase tracking-wider">
               {{ t('postDetail.recurring.frequency') }}
-              <select v-model="frequency" class="w-full rounded-xl border border-border-visible bg-bg-primary px-3 py-2 text-sm normal-case tracking-normal">
+              <select v-model="frequency" data-testid="frequency-select" class="w-full rounded-xl border border-border-visible bg-bg-primary px-3 py-2 text-sm normal-case tracking-normal">
                 <option value="daily">{{ t('postDetail.recurring.daily') }}</option>
                 <option value="weekly">{{ t('postDetail.recurring.weekly') }}</option>
                 <option value="monthly">{{ t('postDetail.recurring.monthly') }}</option>
@@ -166,13 +166,13 @@ async function save(): Promise<void> {
 
           <label v-if="frequency === 'monthly'" class="block space-y-1 text-xs font-mono uppercase tracking-wider">
             {{ t('postDetail.recurring.dayOfMonth') }}
-            <input v-model.number="dayOfMonth" min="1" max="31" type="number" class="w-full rounded-xl border border-border-visible bg-bg-primary px-3 py-2 text-sm normal-case tracking-normal" />
+            <input v-model.number="dayOfMonth" data-testid="day-of-month-input" min="1" max="31" type="number" class="w-full rounded-xl border border-border-visible bg-bg-primary px-3 py-2 text-sm normal-case tracking-normal" />
           </label>
 
           <div class="grid grid-cols-2 gap-3">
             <label class="space-y-1 text-xs font-mono uppercase tracking-wider">
               {{ t('postDetail.recurring.startsAt') }}
-              <input v-model="startsAt" type="datetime-local" class="w-full rounded-xl border border-border-visible bg-bg-primary px-3 py-2 text-sm normal-case tracking-normal" />
+              <input v-model="startsAt" data-testid="starts-at-input" type="datetime-local" class="w-full rounded-xl border border-border-visible bg-bg-primary px-3 py-2 text-sm normal-case tracking-normal" />
             </label>
             <label class="space-y-1 text-xs font-mono uppercase tracking-wider">
               {{ t('postDetail.recurring.endDate') }}
@@ -185,7 +185,7 @@ async function save(): Promise<void> {
             <input v-model="maxOccurrences" min="1" type="number" :placeholder="t('postDetail.recurring.optional')" class="w-full rounded-xl border border-border-visible bg-bg-primary px-3 py-2 text-sm normal-case tracking-normal" />
           </label>
           <p class="text-xs text-text-secondary">{{ t('postDetail.recurring.timezone', { timezone }) }}</p>
-          <p v-if="error" role="alert" class="text-xs text-error">{{ error }}</p>
+          <p v-if="error" data-testid="recurrence-error" role="alert" class="text-xs text-error">{{ error }}</p>
           <footer class="flex justify-end gap-2 border-t border-border-subtle pt-4">
             <button type="button" class="rounded-xl border border-border-visible px-3 py-2 text-xs font-mono uppercase tracking-wider" @click="emit('close')">{{ t('postDetail.recurring.cancel') }}</button>
             <button type="submit" :disabled="isSaving" class="rounded-xl bg-text-display px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider text-bg-primary disabled:opacity-50">{{ t('postDetail.recurring.save') }}</button>

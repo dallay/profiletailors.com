@@ -1,5 +1,6 @@
 package com.profiletailors.smp
 
+import com.profiletailors.architecture.ObservabilityArchitectureRules
 import com.tngtech.archunit.core.domain.JavaClasses
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
@@ -179,19 +180,15 @@ internal class HexagonalArchTest {
 
     @Test
     fun domainAndApplicationLayersShouldNotDependOnObservabilityImplementations() {
-        ArchRuleDefinition.noClasses()
-            .that()
-            .resideInAnyPackage("..domain..", "..application..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage(
-                "org.slf4j..",
-                "ch.qos.logback..",
-                "org.apache.logging.log4j..",
-                "io.opentelemetry..",
-                "io.micrometer..",
-            )
-            .because("domain and application must remain independent from observability implementations")
+        ObservabilityArchitectureRules.domainMustNotDependOnObservabilityVendors("com.profiletailors.smp")
+            .check(importedClasses)
+        ObservabilityArchitectureRules.applicationMustNotDependOnObservabilityVendors("com.profiletailors.smp")
+            .check(importedClasses)
+    }
+
+    @Test
+    fun `should reject OperationalEventSink dependency when class is in domain layer`() {
+        ObservabilityArchitectureRules.domainMustNotDependOnOperationalEventSink("com.profiletailors.smp")
             .check(importedClasses)
     }
 

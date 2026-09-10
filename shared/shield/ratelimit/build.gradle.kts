@@ -6,6 +6,8 @@ group = "com.profiletailors"
 version = "1.0-SNAPSHOT"
 
 dependencies {
+    testImplementation(testFixtures(project(":shared:common")))
+
     implementation(project(":shared:common"))
     implementation(project(":shared:bus"))
     implementation(project(":shared:spring-boot-common"))

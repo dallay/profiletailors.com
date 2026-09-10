@@ -1,0 +1,28 @@
+change: consent-ux-replace-blocking-consent-modal-with-a-non-modal-banner-and-harden-privacy-browser-behavior
+current_phase: archive
+completed: [ init, explore, propose, spec, design, tasks, apply, verify, qa, archive ]
+next: none
+decisions_approved:
+  - delivery: single PR with size:exception (user approved)
+  - i18n_copy: '"Customize"/"Customizar", "Back"/"Volver" (approved)'
+  - forceOpen: remove forceOpen/openSettings/closeSettings from store (approved)
+  - maintainer_exception_archive_2026-09-09: proceed to archive with tasks 4.5/4.6 (manual Brave/Safari matrix) recorded as NOT RUN — operator acceptance outstanding, visible warning carried in qa-report.md, main spec Browser Resilience requirement, and release notes until a human runs matrix A-D x Brave Shields ON/OFF, Safari, EN/ES, light/dark, 320/768/1280. Rationale: (1) R7 orphaned-overlay failure class removed structurally (zero dialog/portal/overlay primitives in banner path, verified by component tests + expectNoOverlay E2E on chromium/firefox/Mobile Chrome); (2) DNT/GPC state-D has dedicated passing E2E TASK-029; (3) full unit + consent E2E green. Docs-only exception NOT invoked (behavior change) — explicit maintainer acceptance.
+  - f03_adr_waived_2026-09-09: accept design.md §Browser Resilience + proposal as the durable Brave root-cause record; NO standalone ADR required. Task 5.1 closed by this decision.
+warnings:
+  - DNT/GPC dedicated E2E scenario still missing
+  - Full app E2E suite not executed in this pass
+  - Manual Brave Shields ON/OFF and Safari/WebKit matrix not run
+defects_fixed_in_qa:
+  - AppShell.test.ts: re-added useConsentStore mock with new minimal API (P0)
+updated: 2026-09-09
+decisions_approved:
+  - delivery: single PR with size:exception (user approved)
+  - i18n_copy: '"Customize"/"Customizar", "Back"/"Volver" (approved)'
+  - forceOpen: remove forceOpen/openSettings/closeSettings from store (approved)
+warnings:
+  - DNT/GPC dedicated E2E scenario still missing
+  - Full app E2E suite not executed in this pass
+  - Manual Brave Shields ON/OFF and Safari/WebKit matrix not run
+defects_fixed_in_qa:
+  - AppShell.test.ts: re-added useConsentStore mock with new minimal API (P0)
+updated: 2026-08-12

@@ -1,6 +1,6 @@
 # Shared Observability Usage Standard
 
-**Last Updated:** 2026-09-09  
+**Last Updated:** 2026-09-10
 **Status:** Active documentation standard  
 **Scope:** Kotlin shared modules and the SMP backend  
 **Audience:** Backend engineers, platform engineers, operations, SRE, and reviewers
@@ -14,8 +14,9 @@ This guide is the canonical usage standard for `shared/observability` and the SM
 2. Define the recommended norm for new or changed code.
 
 The labels **Implemented** and **Recommended** are deliberate. A recommendation in this guide is
-not evidence that runtime enforcement exists. This documentation-only change does not add a sink,
-exporter, redaction enforcement, correlation propagation, frontend telemetry, or API change.
+not evidence that runtime enforcement exists. The shared module now provides the pure-Kotlin
+sanitizer and best-effort decorator; correlation propagation, exporters, and frontend telemetry
+remain outside this change.
 
 The contract tables below are reconciled directly against the Kotlin sources and tests linked in
 each section; this guide is self-contained and needs no additional change record to be applied.
@@ -27,7 +28,7 @@ each section; this guide is self-contained and needs no additional change record
 | A domain or application operation needs an operational event | Inject `OperationalEventSink` and emit a structured `OperationalEvent` | Import SLF4J, Micrometer, or OpenTelemetry directly into a handler |
 | A component needs a no-op default for a focused unit test or optional background job | `NoOpOperationalEventSink` | Create a second ad hoc no-op contract |
 | A new event is needed | A stable dotted `name`, a suitable `Severity`, and bounded attributes | Put secrets, personal values, request payloads, or unbounded user text in attributes |
-| A failure crosses the handler or mediator boundary | Preserve the original `Throwable` as `cause`, emit the failure event, and rethrow the failure | Replace the cause with a string or make observability swallow the business failure |
+| A failure crosses the handler or mediator boundary | Preserve the original `Throwable` in the event contract, emit the failure event, and rethrow the failure | Pass raw exception details to a concrete sink or turn the business failure into success |
 | A frontend needs telemetry | Use a web-owned contract and implementation | Import `com.profiletailors.observability` from `apps/web/**` or `shared/web/**` |
 | An SLO, SLI, or latency target needs to change | Update the owner document, [Observability Contracts & SLA Matrix](./observability-contracts.md) | Treat an operational log event as an SLO definition |
 
@@ -202,12 +203,13 @@ The `request` value is the request class simple name, or `anonymous` when the re
 
 Source: [`Slf4jOperationalEventSink.kt`](../server/smp/src/main/kotlin/com/profiletailors/smp/observability/infrastructure/Slf4jOperationalEventSink.kt)
 
-The current sink maps the five `Severity` values to the corresponding SLF4J method and passes
-`event.cause` as the logger cause. It renders the optional message and named attributes as text.
-Keys beginning with `argument.` are used for message placeholder rendering and are excluded from
-the appended named-attribute segment. The current sink catches `Exception` while formatting or
-logging and does not rethrow that sink failure. It does not implement secret or personal-data
-redaction.
+The current default sink maps the five `Severity` values to the corresponding SLF4J method and renders the
+optional message and named attributes as text. Keys beginning with `argument.` are used for message
+placeholder rendering and are excluded from the appended named-attribute segment. The production
+bean is wrapped in `BestEffortOperationalEventSink`, which sanitizes events and isolates ordinary
+adapter exceptions. The default bean is conditional, so an approved infrastructure adapter can
+replace it without changing core consumers. `Slf4jOperationalEventSink` also sanitizes when instantiated directly. It
+does not pass the original `Throwable` to SLF4J; only its safe `errorType` is rendered.
 
 ### Existing consumers
 
@@ -229,9 +231,10 @@ infrastructure wiring:
 - SMP observability infrastructure: `OperationalEventPipelineBehavior` consumes the sink and
   `Slf4jOperationalEventSink` implements it.
 
-Some of these consumers use the legacy `info`, `warn`, `debug`, and `error` extensions, while the
-pipeline and selected handlers construct structured events. This is an observed mixed state, not
-a reason to add more message-derived schemas.
+Some of these consumers still use the deprecated `info`, `warn`, `debug`, and `error` extensions,
+while the pipeline and selected handlers construct structured events. This is an explicitly
+supported migration state: new code MUST use structured events, and remaining legacy call sites
+must be migrated or removed before the compatibility extensions can be deleted.
 
 The module dependency is declared by `server:smp` through
 `implementation(project(":shared:observability"))` in
@@ -291,6 +294,21 @@ Infrastructure configuration may use Spring. Application and domain code must no
 infrastructure binding. The architecture boundaries remain those described in the
 [architecture overview](./architecture/) and [C4 code model](./architecture/c4/04-code.md).
 
+## Architecture enforcement
+
+**Implemented:** The shared test fixture
+`com.profiletailors.architecture.ObservabilityArchitectureRules` centralizes the vendor package
+ban for `domain` and `application` layers and the rule that domain must not depend on
+`OperationalEventSink`. `server:smp`, `shared:storage`, `shared:presentation`, and
+`shared:shield:ratelimit` use the fixture with their package roots. Existing module-specific rules
+remain local; this fixture does not add a new `ARCH` contract or replace the repository's existing
+architecture owners.
+
+When a new Kotlin module exposes `domain` or `application` packages, its architecture test should
+depend on `testFixtures(project(":shared:common"))` and apply the reusable rules with the module's
+package root. The module remains responsible for its own layer direction and framework-specific
+constraints.
+
 ## Kotlin-only web boundary
 
 **Implemented:** `shared/observability` is a Kotlin Gradle module. The repository currently has no
@@ -330,19 +348,21 @@ messages as attributes.
 This is an operational-event rule, not a promise about every existing log statement in the
 repository. Review adjacent logging and telemetry code when adding a new event.
 
-## Sensitive data and the current redaction gap
+## Sensitive data and redaction
 
-### Recommended sink policy
+### Implemented sink policy
 
-Every future or replaced sink MUST remove any attribute whose key contains one of these
-secret-like or personal-data terms before emission:
+`OperationalEventSanitizer` removes any attribute whose key contains one of these secret-like or
+personal-data terms before emission:
 
 - `token`
 - `password`
 - `secret`
 - `authorization`
+- `auth`
 - `cookie`
 - `set-cookie`
+- `credential`
 - `pii`
 - `email`
 - `otp`
@@ -351,16 +371,17 @@ A sink MUST NOT emit the raw value or the sensitive key. The policy applies to s
 attributes and to any rendered representation derived from them. Redaction tests are required for
 each new sink.
 
-### Implemented behavior and explicit gap
+### Runtime enforcement
 
-**Current state:** Sink redaction is not enforced. `Slf4jOperationalEventSink` filters
-`argument.*` keys only for placeholder rendering; that is not sensitive-data redaction. The current
-sink formats named attributes and passes the original `cause` to SLF4J. Do not claim that the
-current logger strips the terms above.
+`BestEffortOperationalEventSink` sanitizes the event before delegating to an adapter. The current
+`Slf4jOperationalEventSink` also sanitizes defensively when used directly. Sensitive keys are
+removed, safe scalar values are preserved, arbitrary object values are reduced to their type name,
+and a `Throwable` is represented only by an `errorType` attribute; its message, stack, cause chain,
+and raw value are not passed to the logger. Sensitive string values present in attributes are also
+replaced in the human-readable message.
 
-Until a follow-up implementation adds and tests redaction at the sink boundary, callers MUST avoid
-putting sensitive values into event messages, arguments, attributes, or causes where the cause could
-contain sensitive data. This caller discipline reduces risk but is not runtime enforcement.
+Callers MUST still avoid putting sensitive values into messages or event names. Boundary
+sanitization is defense-in-depth, not permission to use unsafe event schemas.
 
 ### Safe example
 
@@ -380,17 +401,18 @@ val event = OperationalEvent(
 )
 ```
 
-The example excludes keys containing `token`, `password`, `secret`, `authorization`, `cookie`,
-`set-cookie`, `pii`, `email`, and `otp`, and contains no values from those categories. A real
-caller must make the same exclusion before constructing an event; the current sink cannot be relied
-on to repair an unsafe event.
+The example excludes keys containing `token`, `password`, `secret`, `authorization`, `auth`,
+`cookie`, `set-cookie`, `credential`, `pii`, `email`, and `otp`, and contains no values from those
+categories. The sink applies the same policy as defense-in-depth.
 
 ## Failures, causes, and correlation
 
 ### Failure and cause handling
 
 **Implemented:** `OperationalEventPipelineBehavior` emits `bus.request.failed` with the original
-`Throwable` in `cause`, then rethrows the same failure to its caller. The success path emits
+`Throwable` in `cause`, then rethrows the same failure to its caller. The production bean is a
+`BestEffortOperationalEventSink`, so adapter failures cannot change the request result. The
+concrete SLF4J adapter receives only sanitized error metadata. The success path emits
 `bus.request.completed`; the failed path remains observable as a failed request.
 
 **Recommended:** Emit failures at the handler or mediator boundary where the request name and
@@ -398,9 +420,9 @@ operation duration are available. Preserve the original cause for infrastructure
 troubleshooting. Do not replace it with only `failure.message`, and do not catch and convert the
 business failure into a success merely because event emission is best effort.
 
-A sink may protect the request path from a sink-internal failure, as the current SLF4J sink does,
-but that behavior must not suppress the handler failure or become a reason to omit the failure
-event.
+The best-effort decorator catches ordinary adapter exceptions, rethrows coroutine cancellation,
+and does not catch fatal JVM `Error` types. It must not suppress the handler failure or become a
+reason to omit the failure event.
 
 ### Correlation status
 
@@ -445,6 +467,8 @@ versioning. Those are implementation decisions for a separately approved change.
 | Shared structured and legacy sink contract | [`OperationalEventSinkTest`](../shared/observability/src/test/kotlin/com/profiletailors/observability/OperationalEventSinkTest.kt) checks structured fields, cause identity, and legacy argument mapping |
 | SMP request pipeline | [`OperationalEventPipelineBehaviorTest`](../server/smp/src/test/kotlin/com/profiletailors/smp/observability/infrastructure/OperationalEventPipelineBehaviorTest.kt) checks start/completion, failure rethrow, cause identity, and payload handling |
 | Current SLF4J sink | [`Slf4jOperationalEventSinkTest`](../server/smp/src/test/kotlin/com/profiletailors/smp/observability/infrastructure/Slf4jOperationalEventSinkTest.kt) exercises every severity, rendering, nulls, and causes without throwing |
+| Shared safety boundary | [`OperationalEventSafetyTest`](../shared/observability/src/test/kotlin/com/profiletailors/observability/OperationalEventSafetyTest.kt) checks key matching, message protection, throwable policy, adapter failure isolation, and cancellation |
+| Reusable architecture enforcement | `ObservabilityArchitectureRules` is applied by SMP, storage, presentation, and ratelimit architecture tests |
 | No-op hook defaults | [`NoOpObservabilityHooksTest`](../server/smp/src/test/kotlin/com/profiletailors/smp/observability/infrastructure/NoOpObservabilityHooksTest.kt) checks the metrics and rate-limit no-op hooks |
 | Storage publish-failure events | [`StorageApplicationServiceTest`](../shared/storage/src/test/kotlin/com/profiletailors/storage/application/StorageApplicationServiceTest.kt) (`PublishFailureEvents`) and [`StorageUseCaseTest`](../shared/storage/src/test/kotlin/com/profiletailors/storage/StorageUseCaseTest.kt) (`GeneratePresignedUrlUseCaseTest`) prove the `storage.operation.event.publish.failed` name, `WARN` severity, `operation`/`provider`/`bucket` attributes, absence of `key`, swallow-and-continue, and `CancellationException` rethrow with no emit |
 | Existing application instrumentation | Media, publishing, identity, privacy, password-recovery, and waitlist observability tests cover their current call sites where applicable |
@@ -459,8 +483,8 @@ versioning. Those are implementation decisions for a separately approved change.
 | Correlation implementation | End-to-end test proves generation or acceptance rules, Reactor `Context` propagation, MDC visibility, sink output, and response behavior |
 | Shared contract change | Shared-module unit tests plus affected SMP consumers and compatibility evidence |
 
-This matrix records implemented tests separately from recommended tests. It does not claim that the
-recommended redaction or correlation tests exist today.
+This matrix records implemented tests separately from recommended tests. Correlation propagation
+remains a follow-up and is not claimed as implemented here.
 
 ## Ownership and review checklist
 
@@ -480,8 +504,8 @@ Before approving an observability change, reviewers should confirm:
 - The original cause is preserved for failure events without changing the caller-visible failure.
 - Handlers do not import SLF4J, Micrometer, OpenTelemetry, or an infrastructure sink directly.
 - No new dependency crosses the `shared/` framework-free boundary.
-- Redaction coverage exists for every new sink; the current `Slf4jOperationalEventSink` gap is not
-  described as fixed.
+- Redaction coverage exists for every new sink; the shared sanitizer and current SLF4J adapter
+  tests cover the active boundary policy.
 - Correlation claims are limited to implemented MCP behavior until a platform-wide contract exists.
 - Relevant unit, pipeline, integration, and end-to-end tests are present or explicitly recorded as
   deferred.
@@ -511,12 +535,11 @@ alone.
 
 This standard does not implement or approve:
 
-- New operational sinks, Micrometer exporters, OpenTelemetry exporters, or replacement of
-  `Slf4jOperationalEventSink`.
+- New Micrometer exporters, OpenTelemetry exporters, or replacement of `Slf4jOperationalEventSink`.
 - Centralized correlation-id propagation through Reactor `Context` and SLF4J MDC.
 - Frontend telemetry or error-reporting SDK integration.
-- Changes to `OperationalEvent`, `OperationalEventSink`, `Severity`, or `RequestOutcome`.
-- Runtime redaction enforcement in the current sink.
+- Changes to the shape of `OperationalEvent`, `OperationalEventSink`, `Severity`, or
+  `RequestOutcome`.
 - A new event schema-version field or migration framework.
 
 Those items require a separately scoped change with implementation, tests, ownership, and rollout

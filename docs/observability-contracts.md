@@ -1,19 +1,19 @@
 # Observability Contracts & SLA Matrix
 
-**Last Updated:** 2026-09-09
+**Last Updated:** 2026-09-10
 **Status:** Active
 **Scope:** System-wide Service Level Agreements (SLAs), Service Level Objectives (SLOs), Service Level Indicators (SLIs), and Observability Standards
 **Audience:** Platform Engineers, Backend Engineers, Operations, SRE
 
 ---
 
-## 📐 Overview
+## Overview
 
 This document defines the official Service Level Agreements (SLAs) and Service Level Objectives (SLOs) for Profile Tailors API functions and bounded contexts. It establishes latency targets, availability expectations, throughput boundaries, and the observability metrics (SLIs) used to monitor compliance.
 
 ---
 
-## 📊 Function-Level SLA & SLO Matrix
+### Function-Level SLA & SLO Matrix
 
 | Bounded Context / API Group | Target Endpoint Pattern | Availability Target (SLO) | Latency SLA (p95) | Latency SLA (p99) | Throughput / Rate Limit Cap | Key SLI Metric / Instrument |
 |---|---|---|---|---|---|---|
@@ -32,7 +32,15 @@ This document defines the official Service Level Agreements (SLAs) and Service L
 
 ---
 
-## 🔍 Observability Standards & Telemetry Contracts
+## Changes
+
+The active observability contract now includes a framework-free operational-event port, a
+best-effort adapter boundary, and sanitizer rules for sensitive attributes, exception metadata, and
+legacy positional arguments.
+
+---
+
+## Usage
 
 ### 1. Prometheus Metrics Naming & Conventions
 
@@ -66,22 +74,24 @@ Domain and application code MUST remain independent from SLF4J, Logback, Log4j, 
 OpenTelemetry. Operational signals cross the hexagonal boundary through the pure Kotlin
 `OperationalEvent` and `OperationalEventSink` contracts in `:shared:observability`.
 
-The SMP infrastructure provides the current `Slf4jOperationalEventSink` adapter. Replacing the
-backend or adding another exporter therefore does not require changes to domain or application
-use cases. Generic command and query lifecycle events (`bus.request.started`,
+The SMP infrastructure provides the current `Slf4jOperationalEventSink` adapter behind the shared
+`BestEffortOperationalEventSink` decorator. Replacing the backend or adding another exporter
+therefore does not require changes to domain or application use cases. Generic command and query lifecycle events (`bus.request.started`,
 `bus.request.completed`, and `bus.request.failed`) are emitted by the mediator pipeline without
-serializing request or response values. The `bus.request.failed` event emits safe error metadata
-(`errorType` with the exception class simple name) instead of the raw `Throwable` to prevent
-sensitive stack traces or exception messages from reaching the log sink. Storage publish failures
+serializing request or response values. The `bus.request.failed` event retains the original
+`Throwable` in the in-memory event contract, while the sanitizer emits only safe error metadata
+(`errorType` with the exception class simple name) to prevent sensitive stack traces or exception
+messages from reaching the log sink. Storage publish failures
 are emitted as `storage.operation.event.publish.failed` at `WARN` severity with `operation`
 (`upload`, `download`, `delete`, or `presign`), `provider`, and sanitized `bucket` attributes plus
-the original publish `cause`. The object `key` and all payloads are never emitted, a blank bucket
+the original publish `cause` in the event contract; concrete adapters receive only its safe type.
+The object `key` and all payloads are never emitted, a blank bucket
 skips the `bucket` attribute, and the message text is constant. Domain facts and audit
 records continue to use their dedicated domain-event and audit contracts.
 
 ---
 
-## 🚨 Error Budgets & SLA Review Cadence
+### Error Budgets & SLA Review Cadence
 
 1. **Error Budget Calculation:**
    - **Monthly Budget (99.9% Availability):** Maximum `43.8 minutes` of cumulative downtime per month.
@@ -93,7 +103,18 @@ records continue to use their dedicated domain-event and audit contracts.
 
 ---
 
-## 📚 References
+## Troubleshooting
+
+When an operational event is missing, inspect the adapter wiring and the event sink failure path;
+business execution must continue when an adapter throws an ordinary exception;
+`CancellationException` must propagate through `BestEffortOperationalEventSink` and
+`Slf4jOperationalEventSink`. When an attribute or message value is missing, verify that it was not
+removed by the sensitive-data policy and replace positional logging with named attributes.
+Correlation identifiers must remain bounded to the documented pivot identifiers.
+
+---
+
+## References
 
 - [`docs/README.md`](./README.md)
 - [`docs/monitoring/prometheus-grafana-setup.md`](./monitoring/prometheus-grafana-setup.md)
