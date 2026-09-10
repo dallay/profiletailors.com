@@ -1,5 +1,6 @@
 package com.profiletailors.smp
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -21,10 +22,37 @@ class ModularStructureTest {
 
     private val modules = ApplicationModules.of(SmpApplication::class.java)
 
+    private val expectedLayerInterfaces = mapOf(
+        "audit" to setOf("application", "domain", "infrastructure"),
+        "authorization" to setOf("application", "domain", "infrastructure"),
+        "credentials" to setOf("application", "domain", "infrastructure"),
+        "governance" to setOf("application", "domain", "infrastructure"),
+        "identity" to setOf("application", "domain", "infrastructure"),
+        "media" to setOf("application", "domain", "infrastructure"),
+        "observability" to setOf("application", "domain", "infrastructure"),
+        "platform" to setOf("application", "domain", "infrastructure"),
+        "publishing" to setOf("application", "domain", "infrastructure"),
+        "tenancy" to setOf("application", "domain", "infrastructure"),
+    )
+
     @Test
     fun `verifies modular structure`() {
         // This will fail if there are any violations of module boundaries
         modules.verify()
+    }
+
+    @Test
+    fun `preserves layer named interfaces`() {
+        val actualLayerInterfaces = modules
+            .filter { it.identifier.toString() in expectedLayerInterfaces }
+            .associate { module ->
+                module.identifier.toString() to module.namedInterfaces
+                    .filter { it.isNamed }
+                    .map { it.name }
+                    .toSet()
+            }
+
+        assertThat(actualLayerInterfaces).isEqualTo(expectedLayerInterfaces)
     }
 
     @Test
