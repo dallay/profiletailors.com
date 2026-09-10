@@ -12,6 +12,12 @@ export default {
   unavailableMessage:
     'No podemos aceptar invitaciones en este momento. Inténtalo de nuevo más tarde.',
   errors: {
+    invalid: 'Este enlace de invitación ya no es válido. Solicita una nueva invitación.',
+    expired: 'Este enlace de invitación ha expirado. Solicita una nueva invitación.',
+    revoked: 'Este enlace de invitación fue revocado. Solicita una nueva invitación.',
+    alreadyConsumed: 'Esta invitación ya fue utilizada.',
+    replayed: 'Esta invitación ya fue utilizada.',
+    emailMismatch: 'Inicia sesión con el correo invitado para aceptar esta invitación.',
     notAcceptable: 'Este enlace de invitación ya no es válido o ya fue utilizado.',
     notFound: 'No encontramos esta invitación. Puede haber sido revocada o ya aceptada.',
     requiresLogin: 'Inicia sesión en tu cuenta para aceptar esta invitación.',

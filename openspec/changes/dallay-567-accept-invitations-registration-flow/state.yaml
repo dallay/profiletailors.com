@@ -1,12 +1,15 @@
 change: dallay-567-accept-invitations-registration-flow
-current_phase: tasks
+current_phase: qa
 completed:
   - propose
   - spec
   - design
   - tasks
-next: apply
-updated: "2026-09-08"
+  - apply
+  - verify
+  - qa
+next: clarification
+updated: "2026-09-10"
 linear_issue: DALLAY-567
 active_linear_issue: DALLAY-556
 persistence_mode: openspec
@@ -14,3 +17,15 @@ bounded_contexts:
   - identity
   - platformadmin
   - tenancy
+note: >
+  QA completed with BLOCKED verdict on branch feat/dallay-567-invitation-evidence at merge HEAD
+  d4b461f8. QA-06 through QA-10 have exact local evidence at 5/5 PASS; invitation Playwright is
+  36/36, scheduler-filtering is 9/9, fast Cucumber reports 24/24 local-auth and 20/20
+  platform-admin, and app Vitest is 1,729/1,729. Deployed/manual acceptance remains BLOCKED pending
+  target, credentials, permissions, and controlled invitation fixtures. QA-16 remains FAIL with an
+  open P2 raw-token URL/history/referrer warning. Accessibility and locale scenarios remain NOT
+  TESTED. The deterministic QA runner/FSM is unavailable; QA records visible fallback and maps the
+  runner capability to NOT TESTED. Local evidence is not deployed acceptance. Local exploratory QA
+  additionally found QA-F-011: the authenticated existing-identity browser path omits the access token
+  from POST /api/invitations/accept and is redirected to Dashboard after a 401. Implementation is
+  paused pending authorization to fix this P1 defect.

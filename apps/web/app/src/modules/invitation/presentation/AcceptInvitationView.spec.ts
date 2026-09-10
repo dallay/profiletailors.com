@@ -205,14 +205,14 @@ describe('AcceptInvitationView', () => {
     )
   })
 
-  it('shows the canonical not-acceptable copy when the backend rejects with that code', async () => {
+  it('shows the canonical invalid copy when the backend rejects with that code', async () => {
     accept.mockImplementation(async () => {
-      state.errorCode = 'INVITATION_NOT_ACCEPTABLE'
+      state.errorCode = 'INVITATION_INVALID'
       state.errorStatus = 400
       return {
         workspaceId: null,
         membershipStatus: null,
-        errorCode: 'INVITATION_NOT_ACCEPTABLE',
+        errorCode: 'INVITATION_INVALID',
         errorStatus: 400,
       }
     })
@@ -225,7 +225,36 @@ describe('AcceptInvitationView', () => {
     await flushPromises()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('invitation.errors.notAcceptable')
+    expect(wrapper.text()).toContain('invitation.errors.invalid')
+  })
+
+  it.each([
+    ['INVITATION_EXPIRED', 'invitation.errors.expired', 410],
+    ['INVITATION_REVOKED', 'invitation.errors.revoked', 410],
+    ['INVITATION_ALREADY_CONSUMED', 'invitation.errors.alreadyConsumed', 409],
+    ['INVITATION_REPLAYED', 'invitation.errors.replayed', 409],
+    ['INVITATION_EMAIL_MISMATCH', 'invitation.errors.emailMismatch', 403],
+  ])('shows safe copy for %s', async (errorCode, translationKey, errorStatus) => {
+    accept.mockImplementation(async () => {
+      state.errorCode = errorCode
+      state.errorStatus = errorStatus
+      return {
+        workspaceId: null,
+        membershipStatus: null,
+        errorCode,
+        errorStatus,
+      }
+    })
+    const wrapper = mount(AcceptInvitationView, {
+      props: { token: 'raw-token' },
+      global: { stubs: { RouterLink: true, RouterView: true } },
+    })
+
+    await wrapper.find('form').trigger('submit.prevent')
+    await flushPromises()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(translationKey)
   })
 
   it('falls back to the safe generic copy on unexpected failures', async () => {

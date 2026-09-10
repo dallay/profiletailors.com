@@ -69,6 +69,7 @@ import java.time.ZoneOffset
     properties = [
         "spring.liquibase.enabled=true",
         "spring.main.allow-bean-definition-overriding=true",
+        "app.identity.registration.mode=OPEN",
     ],
 )
 @Testcontainers(disabledWithoutDocker = true)
@@ -309,7 +310,13 @@ class LocalAuthHandlersTransactionPostgresIntegrationTest {
             .bind("issuerId", issuerId)
             .bind("createdAt", now)
             .bind("expiresAt", Instant.parse("2099-01-01T00:00:00Z"))
-            .apply { if (target == InvitationTarget.EXISTING_WORKSPACE) bind("workspaceId", workspaceId) }
+            .let { spec ->
+                if (target == InvitationTarget.EXISTING_WORKSPACE) {
+                    spec.bind("workspaceId", workspaceId)
+                } else {
+                    spec
+                }
+            }
             .fetch().rowsUpdated().awaitSingle()
         return SeededInvitation(invitationId.toString(), email, rawToken, workspaceId)
     }

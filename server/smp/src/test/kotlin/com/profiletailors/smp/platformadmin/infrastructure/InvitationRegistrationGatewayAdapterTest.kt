@@ -70,7 +70,7 @@ class InvitationRegistrationGatewayAdapterTest {
                 displayName = "invitee",
             )
         } returns InvitationActivationCoordinator.InvitationActivationResult(
-            invitation = invitation,
+            invitation = invitation.accept(now, "principal-1"),
             membershipStatus = WorkspaceMembershipStatus.ACTIVE,
         )
 

@@ -7,6 +7,7 @@ import com.profiletailors.smp.identity.application.InvitationRegistrationSource
 import com.profiletailors.smp.identity.application.InvitationRegistrationTarget
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
@@ -29,10 +30,21 @@ class InvitationActivationCoordinator(
     private val waitlistEntryAdmin: WaitlistEntryAdmin,
     private val membershipProvisioner: WorkspaceMembershipProvisioner,
     private val clock: Clock,
+    private val telemetry: InvitationTelemetry = InvitationTelemetry.noop(),
 ) {
     data class InvitationActivationResult(val invitation: Invitation, val membershipStatus: WorkspaceMembershipStatus)
 
-    private fun fail(code: InvitationAcceptanceFailureCode): Nothing = throw InvitationNotAcceptableException(code)
+    private fun fail(code: InvitationAcceptanceFailureCode): Nothing {
+        when (code) {
+            InvitationAcceptanceFailureCode.EXPIRED -> telemetry.recordInvitationExpired()
+            InvitationAcceptanceFailureCode.ALREADY_CONSUMED,
+            InvitationAcceptanceFailureCode.REPLAYED,
+            -> telemetry.recordInvitationReplayRejected()
+
+            else -> Unit
+        }
+        throw InvitationNotAcceptableException(code)
+    }
 
     suspend fun prepare(rawToken: String, normalizedEmail: String): InvitationRegistrationContext {
         val candidateKey = candidateKey(rawToken)

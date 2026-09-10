@@ -72,9 +72,11 @@ export async function acceptInvitationRequest(token: string): Promise<AcceptInvi
 }
 
 function classifyStatus(status: number): string {
-  if (status === 400 || status === 409) return 'INVITATION_NOT_ACCEPTABLE'
+  if (status === 400 || status === 404) return 'INVITATION_INVALID'
+  if (status === 403) return 'INVITATION_EMAIL_MISMATCH'
+  if (status === 409) return 'INVITATION_ALREADY_CONSUMED'
+  if (status === 410) return 'INVITATION_EXPIRED'
   if (status === 401) return 'INVITATION_REQUIRES_LOGIN'
-  if (status === 404) return 'INVITATION_NOT_FOUND'
   if (status === 429) return 'INVITATION_RATE_LIMITED'
   return 'INTERNAL_ERROR'
 }

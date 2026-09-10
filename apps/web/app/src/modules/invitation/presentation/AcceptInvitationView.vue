@@ -28,10 +28,18 @@ function canonicalErrorKey(): string {
   const code = store.errorCode
   if (!code) return 'invitation.errors.generic'
   switch (code) {
-    case 'INVITATION_NOT_ACCEPTABLE':
-      return 'invitation.errors.notAcceptable'
-    case 'INVITATION_NOT_FOUND':
-      return 'invitation.errors.notFound'
+    case 'INVITATION_INVALID':
+      return 'invitation.errors.invalid'
+    case 'INVITATION_EXPIRED':
+      return 'invitation.errors.expired'
+    case 'INVITATION_REVOKED':
+      return 'invitation.errors.revoked'
+    case 'INVITATION_ALREADY_CONSUMED':
+      return 'invitation.errors.alreadyConsumed'
+    case 'INVITATION_REPLAYED':
+      return 'invitation.errors.replayed'
+    case 'INVITATION_EMAIL_MISMATCH':
+      return 'invitation.errors.emailMismatch'
     case 'INVITATION_REQUIRES_LOGIN':
       return 'invitation.errors.requiresLogin'
     case 'INVITATION_RATE_LIMITED':

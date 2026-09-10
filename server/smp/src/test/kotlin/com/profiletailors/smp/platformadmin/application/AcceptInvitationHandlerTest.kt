@@ -51,7 +51,7 @@ class AcceptInvitationHandlerTest {
     @Test
     fun `runs authenticated acceptance inside one transaction`() = runTest {
         val coordinator = mockk<InvitationActivationCoordinator>()
-        val invitation = invitation(workspaceId = "workspace-a")
+        val invitation = invitation(workspaceId = "workspace-a").accept(now, "principal-1")
         coEvery {
             coordinator.activateForRegistration(
                 rawToken = "raw-token",
@@ -84,7 +84,7 @@ class AcceptInvitationHandlerTest {
             issuedBy = "issuer-1",
             createdAt = now.minusSeconds(60),
             expiresAt = now.plusSeconds(3600),
-        )
+        ).accept(now, "principal-1")
         coEvery {
             coordinator.activateForRegistration(
                 rawToken = "raw-token",

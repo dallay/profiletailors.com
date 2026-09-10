@@ -10,6 +10,12 @@ export default {
   unavailableTitle: 'Invitation acceptance is currently unavailable',
   unavailableMessage: 'We cannot accept invitations right now. Please try again later.',
   errors: {
+    invalid: 'This invitation link is no longer valid. Request a new invitation.',
+    expired: 'This invitation link has expired. Request a new invitation.',
+    revoked: 'This invitation link has been revoked. Request a new invitation.',
+    alreadyConsumed: 'This invitation has already been used.',
+    replayed: 'This invitation has already been used.',
+    emailMismatch: 'Sign in with the invited email address to accept this invitation.',
     notAcceptable: 'This invitation link is no longer valid or has already been used.',
     notFound: 'We could not find this invitation. It may have been revoked or already accepted.',
     requiresLogin: 'Sign in to your account to accept this invitation.',

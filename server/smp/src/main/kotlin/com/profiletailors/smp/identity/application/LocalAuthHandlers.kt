@@ -59,7 +59,11 @@ internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSes
     )
 }
 
-private data class RegistrationTransactionResult(val rawVerificationToken: String, val workspaceId: String)
+private data class RegistrationTransactionResult(
+    val rawVerificationToken: String,
+    val workspaceId: String,
+    val postCommitEvent: DomainEvent?,
+)
 
 @Service
 internal class RegisterUserHandler(
@@ -133,6 +137,7 @@ internal class RegisterUserHandler(
                 rawVerificationToken = registrationResult.rawVerificationToken,
             ),
         )
+        registrationResult.postCommitEvent?.let { eventPublisher.publish(it) }
 
         return issueAuthSession(
             AuthSessionContext(
@@ -192,15 +197,16 @@ internal class RegisterUserHandler(
                     passwordHash = passwordHash,
                 )
 
-                val workspaceId = invitationContext
+                val invitationResult = invitationContext
                     ?.let {
                         invitationRegistrationGateway.complete(
                             context = it,
                             rawToken = requireNotNull(invitationToken),
                             principalId = principalId,
                             displayName = normalizedUsername,
-                        ).workspaceId
+                        )
                     }
+                val workspaceId = invitationResult?.workspaceId
                     ?: workspaceProvisioningService.provisionDefaultWorkspace(
                         principalId = principalId,
                         displayName = normalizedUsername,
@@ -218,6 +224,7 @@ internal class RegisterUserHandler(
                 RegistrationTransactionResult(
                     rawVerificationToken = generated.rawToken,
                     workspaceId = workspaceId,
+                    postCommitEvent = invitationResult?.postCommitEvent,
                 )
             }
         } catch (e: RuntimeException) {

@@ -1,5 +1,7 @@
 package com.profiletailors.smp.identity.application
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
+
 data class InvitationRegistrationContext(
     val invitationId: String,
     val target: InvitationRegistrationTarget,
@@ -30,7 +32,11 @@ enum class InvitationRegistrationSource {
     WAITLIST,
 }
 
-data class InvitationRegistrationResult(val workspaceId: String, val membershipStatus: String) {
+data class InvitationRegistrationResult(
+    val workspaceId: String,
+    val membershipStatus: String,
+    val postCommitEvent: DomainEvent? = null,
+) {
     init {
         require(workspaceId.isNotBlank()) { "Invitation registration requires a resolved workspaceId" }
         require(membershipStatus.isNotBlank()) { "Invitation registration requires a membership status" }
