@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -37,5 +38,30 @@ class InvitationAcceptedTest {
         assertFalse(event.toString().contains("raw-token"))
         assertFalse(event.toString().contains("invitee@example.com"))
         assertTrue(event.toString().contains("principal-567"))
+    }
+
+    @Test
+    fun `throws IllegalArgumentException when principalId or workspaceId is blank`() {
+        val invitationId = UUID.randomUUID()
+
+        val ex1 = assertThrows<IllegalArgumentException> {
+            InvitationAccepted(
+                invitationId = invitationId,
+                principalId = "   ",
+                workspaceId = "ws-1",
+                target = InvitationTarget.NEW_WORKSPACE,
+            )
+        }
+        assertEquals("Accepted principal id must not be blank", ex1.message)
+
+        val ex2 = assertThrows<IllegalArgumentException> {
+            InvitationAccepted(
+                invitationId = invitationId,
+                principalId = "p-1",
+                workspaceId = "  ",
+                target = InvitationTarget.NEW_WORKSPACE,
+            )
+        }
+        assertEquals("Accepted workspace id must not be blank", ex2.message)
     }
 }
