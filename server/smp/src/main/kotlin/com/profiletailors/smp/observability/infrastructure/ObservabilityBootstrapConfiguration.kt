@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class ObservabilityBootstrapConfiguration {
 
-    /** Provides a fallback sink that sanitizes events and isolates ordinary adapter failures. */
     @Bean
     @ConditionalOnMissingBean(OperationalEventSink::class)
     fun operationalEventSink(): OperationalEventSink = BestEffortOperationalEventSink(Slf4jOperationalEventSink())

@@ -43,6 +43,8 @@ class OperationalEventSafetyTest {
                 "provider.secretValue" to "secret",
                 "http.authorizationHeader" to "authorization",
                 "request.authContext" to "auth",
+                "provider.apiKey" to "api-key",
+                "provider.api-key" to "api-key-dashed",
                 "request.cookieHeader" to "cookie",
                 "response.set-cookie" to "set-cookie",
                 "provider.credential" to "credential",
@@ -71,6 +73,39 @@ class OperationalEventSafetyTest {
 
         assertEquals("reset failed token=[REDACTED]", sanitized.message)
         assertEquals(emptyMap(), sanitized.attributes)
+    }
+
+    @Test
+    fun `sanitizer removes API-key attributes and redacts their values`() {
+        val sanitized = OperationalEventSanitizer.sanitize(
+            OperationalEvent(
+                name = "provider.request.failed",
+                severity = Severity.ERROR,
+                message = "apiKey=key-123 api-key=dashed-456",
+                attributes = mapOf(
+                    "apiKey" to "key-123",
+                    "api-key" to "dashed-456",
+                ),
+            ),
+        )
+
+        assertEquals("apiKey=[REDACTED] api-key=[REDACTED]", sanitized.message)
+        assertEquals(emptyMap(), sanitized.attributes)
+    }
+
+    @Test
+    fun `sanitizer removes legacy positional arguments before adapter rendering`() {
+        val sanitized = OperationalEventSanitizer.sanitize(
+            OperationalEvent(
+                name = "provider.request.failed",
+                severity = Severity.ERROR,
+                message = "request token={}",
+                attributes = mapOf("argument.0" to "secret-token"),
+            ),
+        )
+
+        assertEquals("request token={}", sanitized.message)
+        assertEquals(mapOf("argument.0" to "[REDACTED]"), sanitized.attributes)
     }
 
     @Test

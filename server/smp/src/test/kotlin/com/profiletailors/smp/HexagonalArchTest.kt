@@ -224,7 +224,7 @@ internal class HexagonalArchTest {
     }
 
     @Test
-    fun domainLayerShouldNotDependOnOperationalEventSink() {
+    fun `should reject OperationalEventSink dependency when class is in domain layer`() {
         ObservabilityArchitectureRules.domainMustNotDependOnOperationalEventSink("com.profiletailors.smp")
             .check(importedClasses)
     }

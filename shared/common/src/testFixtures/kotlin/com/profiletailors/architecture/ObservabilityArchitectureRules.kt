@@ -3,7 +3,6 @@ package com.profiletailors.architecture
 import com.tngtech.archunit.lang.ArchRule
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition
 
-/** Reusable observability boundary rules for modules that expose domain/application layers. */
 object ObservabilityArchitectureRules {
     private val observabilityVendorPackages = arrayOf(
         "org.slf4j..",
@@ -11,6 +10,7 @@ object ObservabilityArchitectureRules {
         "org.apache.logging.log4j..",
         "io.opentelemetry..",
         "io.micrometer..",
+        "kotlinx.serialization.json..",
         "tools.jackson..",
         "com.fasterxml.jackson..",
     )
@@ -36,8 +36,7 @@ object ObservabilityArchitectureRules {
             .resideInAnyPackage("com.profiletailors.observability..")
             .because("domain must not depend on the operational observability port")
 
-    private fun noClassesInLayer(packageRoot: String, layer: String) =
-        ArchRuleDefinition.noClasses()
-            .that()
-            .resideInAPackage("$packageRoot..$layer..")
+    private fun noClassesInLayer(packageRoot: String, layer: String) = ArchRuleDefinition.noClasses()
+        .that()
+        .resideInAPackage("$packageRoot..$layer..")
 }

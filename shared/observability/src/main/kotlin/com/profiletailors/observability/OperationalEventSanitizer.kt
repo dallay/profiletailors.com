@@ -1,14 +1,8 @@
 package com.profiletailors.observability
 
-/**
- * Applies the shared safety policy before an operational event reaches a concrete adapter.
- *
- * Sensitive attributes are removed instead of replacing their values so that neither the key nor
- * the value can be accidentally rendered by a future adapter. Throwable details are represented
- * only by their simple type name; exception messages and causes are not trusted log data.
- */
 object OperationalEventSanitizer {
     private const val REDACTED_VALUE = "[REDACTED]"
+    private const val ARGUMENT_PREFIX = "argument."
 
     private val sensitiveKeyFragments = setOf(
         "token",
@@ -16,6 +10,8 @@ object OperationalEventSanitizer {
         "secret",
         "authorization",
         "auth",
+        "apikey",
+        "api-key",
         "cookie",
         "set-cookie",
         "credential",
@@ -24,11 +20,6 @@ object OperationalEventSanitizer {
         "pii",
     )
 
-    /**
-     * Returns a copy of [event] with sensitive attributes removed and their string values redacted
-     * from the message. Non-scalar attribute values are replaced by type names. A throwable cause
-     * is removed and, unless already present, represented by an `errorType` attribute.
-     */
     fun sanitize(event: OperationalEvent): OperationalEvent {
         val sensitiveValues = event.attributes
             .filterKeys(::isSensitiveKey)
@@ -38,7 +29,7 @@ object OperationalEventSanitizer {
 
         val attributes = event.attributes
             .filterKeys { !isSensitiveKey(it) }
-            .mapValues { (_, value) -> safeValue(value) }
+            .mapValues { (key, value) -> if (key.startsWith(ARGUMENT_PREFIX)) REDACTED_VALUE else safeValue(value) }
             .toMutableMap()
 
         event.cause?.let { cause ->

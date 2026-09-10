@@ -37,6 +37,6 @@ class OperationalEventSinkTest {
         val event = events.single()
         assertEquals("media.asset.failed", event.name)
         assertEquals(Severity.WARN, event.severity)
-        assertEquals("asset-1", event.attributes["argument.0"])
+        assertEquals("[REDACTED]", event.attributes["argument.0"])
     }
 }

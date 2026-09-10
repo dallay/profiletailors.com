@@ -7,13 +7,13 @@
 
 ---
 
-## 📐 Overview
+## Overview
 
 This document defines the official Service Level Agreements (SLAs) and Service Level Objectives (SLOs) for Profile Tailors API functions and bounded contexts. It establishes latency targets, availability expectations, throughput boundaries, and the observability metrics (SLIs) used to monitor compliance.
 
 ---
 
-## 📊 Function-Level SLA & SLO Matrix
+### Function-Level SLA & SLO Matrix
 
 | Bounded Context / API Group | Target Endpoint Pattern | Availability Target (SLO) | Latency SLA (p95) | Latency SLA (p99) | Throughput / Rate Limit Cap | Key SLI Metric / Instrument |
 |---|---|---|---|---|---|---|
@@ -32,7 +32,15 @@ This document defines the official Service Level Agreements (SLAs) and Service L
 
 ---
 
-## 🔍 Observability Standards & Telemetry Contracts
+## Changes
+
+The active observability contract now includes a framework-free operational-event port, a
+best-effort adapter boundary, and sanitizer rules for sensitive attributes, exception metadata, and
+legacy positional arguments.
+
+---
+
+## Usage
 
 ### 1. Prometheus Metrics Naming & Conventions
 
@@ -83,7 +91,7 @@ records continue to use their dedicated domain-event and audit contracts.
 
 ---
 
-## 🚨 Error Budgets & SLA Review Cadence
+### Error Budgets & SLA Review Cadence
 
 1. **Error Budget Calculation:**
    - **Monthly Budget (99.9% Availability):** Maximum `43.8 minutes` of cumulative downtime per month.
@@ -95,7 +103,17 @@ records continue to use their dedicated domain-event and audit contracts.
 
 ---
 
-## 📚 References
+## Troubleshooting
+
+When an operational event is missing, inspect the adapter wiring and the event sink failure path;
+business execution must continue when an adapter fails. When an attribute or message value is
+missing, verify that it was not removed by the sensitive-data policy and replace positional
+logging with named attributes. Correlation identifiers must remain bounded to the documented
+pivot identifiers.
+
+---
+
+## References
 
 - [`docs/README.md`](./README.md)
 - [`docs/monitoring/prometheus-grafana-setup.md`](./monitoring/prometheus-grafana-setup.md)
