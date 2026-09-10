@@ -1,7 +1,7 @@
 # Shared Module Dependencies
 
 > Quick-reference dependency graph for the `shared/` Gradle modules in the Profile Tailors monorepo.
-> Last updated: 2026-09-09
+> Last updated: 2026-09-10
 
 ## Overview
 
@@ -57,8 +57,8 @@ rules remain in place.
 ## Changes
 
 The observability contract and its sanitizer are isolated in `:shared:observability`. Shared
-architecture fixtures enforce that domain and application code cannot import logging, metrics,
-tracing, JSON, or infrastructure vendor packages.
+architecture fixtures enforce that domain and application code cannot import the listed
+observability vendor packages.
 
 ## Usage
 

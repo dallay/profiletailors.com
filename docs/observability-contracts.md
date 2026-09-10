@@ -1,6 +1,6 @@
 # Observability Contracts & SLA Matrix
 
-**Last Updated:** 2026-09-09
+**Last Updated:** 2026-09-10
 **Status:** Active
 **Scope:** System-wide Service Level Agreements (SLAs), Service Level Objectives (SLOs), Service Level Indicators (SLIs), and Observability Standards
 **Audience:** Platform Engineers, Backend Engineers, Operations, SRE
@@ -106,10 +106,11 @@ records continue to use their dedicated domain-event and audit contracts.
 ## Troubleshooting
 
 When an operational event is missing, inspect the adapter wiring and the event sink failure path;
-business execution must continue when an adapter fails. When an attribute or message value is
-missing, verify that it was not removed by the sensitive-data policy and replace positional
-logging with named attributes. Correlation identifiers must remain bounded to the documented
-pivot identifiers.
+business execution must continue when an adapter throws an ordinary exception;
+`CancellationException` must propagate through `BestEffortOperationalEventSink` and
+`Slf4jOperationalEventSink`. When an attribute or message value is missing, verify that it was not
+removed by the sensitive-data policy and replace positional logging with named attributes.
+Correlation identifiers must remain bounded to the documented pivot identifiers.
 
 ---
 
