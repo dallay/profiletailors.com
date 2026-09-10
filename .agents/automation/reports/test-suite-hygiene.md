@@ -34,7 +34,7 @@ None. Revalidated codebase state and verified that no illegitimate test suppress
 
 | Check Name | Target | Status | Notes |
 | :--- | :--- | :--- | :--- |
-| `app-unit-test` | `apps/web/app` | Passed | 1527 unit tests passed across 125 test files |
+| `app-unit-test` | `apps/web/app` | Passed | 1730 unit tests passed across 147 test files |
 | `backend-test-fast` | `server/smp` | Passed | Fast backend unit tests passed |
 | `ci-local` | Workspace root | Passed | Full local CI simulation passed without errors |
 
@@ -48,7 +48,7 @@ None.
 
 ## Automation State
 
-- **Last Execution:** `2026-04-01T00:00:00Z`
+- **Last Execution:** `2026-09-10T17:56:01Z`
 - **Schema Version:** `1`
 - **Task Identity:** `test-suite-hygiene`
 - **Outcome:** `NO_DRIFT_DETECTED`
