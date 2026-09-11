@@ -9,17 +9,17 @@ class PlatformPrincipalIdsTest {
     private val uuid = UUID.fromString("00000000-0000-0000-0000-000000000001")
 
     @Test
-    fun `fromUuid prefixes a bare uuid`() {
+    fun `should prefix a bare uuid when fromUuid receives one`() {
         PlatformPrincipalIds.fromUuid(uuid) shouldBe "user-$uuid"
     }
 
     @Test
-    fun `fromUuid keeps an already prefixed principal id`() {
+    fun `should keep an already prefixed principal id when fromUuid receives one`() {
         PlatformPrincipalIds.fromUuid("user-$uuid") shouldBe "user-$uuid"
     }
 
     @Test
-    fun `fromUuid never double prefixes`() {
+    fun `should never double prefix when fromUuid receives a prefixed id`() {
         val once = PlatformPrincipalIds.fromUuid(uuid.toString())
 
         once shouldBe "user-$uuid"
@@ -28,7 +28,7 @@ class PlatformPrincipalIdsTest {
     }
 
     @Test
-    fun `toUuid strips the prefix and parses bare uuids`() {
+    fun `should strip the prefix and parse bare uuids when toUuid receives either form`() {
         PlatformPrincipalIds.toUuid("user-$uuid") shouldBe uuid
         PlatformPrincipalIds.toUuid(uuid.toString()) shouldBe uuid
     }
