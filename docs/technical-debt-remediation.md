@@ -1,6 +1,6 @@
 # Technical Debt Remediation and Java 25
 
-**Last Updated:** 2026-09-10
+**Last Updated:** 2026-09-11
 **Status:** In progress; not a completion report
 
 ## Overview
@@ -99,7 +99,7 @@ bytecode, resolve its compatibility rather than disabling it or hiding its findi
 ## References
 
 - [Kotlin releases](https://kotlinlang.org/docs/releases.html)
-- [Kotlin 2.3 Java 25 support](https://kotlinlang.org/docs/whatsnew23.html)
+- [Kotlin 2.4 release notes](https://kotlinlang.org/docs/whatsnew24.html)
 - [Gradle Java compatibility](https://docs.gradle.org/current/userguide/compatibility.html)
 - [Spring Boot 4 Java 25 support](https://spring.io/blog/2025/11/20/spring-boot-4-0-0-available-now/)
 - [Paketo JVM configuration](https://paketo.io/docs/howto/java/)
