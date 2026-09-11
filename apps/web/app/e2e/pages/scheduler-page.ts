@@ -68,6 +68,17 @@ export class SchedulerPage {
       .first()
   }
 
+  async openMobileSidebar(): Promise<void> {
+    const isMobile = await this.page.evaluate(() => window.matchMedia('(max-width: 768px)').matches)
+    if (!isMobile) return
+
+    const sidebar = this.page.locator('[data-slot="sidebar"][data-mobile="true"]')
+    if (await sidebar.isVisible()) return
+
+    await this.page.getByRole('button', { name: /toggle sidebar/i }).click()
+    await expect(sidebar).toBeVisible()
+  }
+
   // Post type filter dropdown
   get postTypeFilter(): Locator {
     return this.page

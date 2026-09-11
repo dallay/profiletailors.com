@@ -10,6 +10,7 @@ import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidPasswordResetTokenException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
 import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
+import com.profiletailors.smp.identity.application.InvitationWorkspaceOverrideException
 import com.profiletailors.smp.identity.application.LocalPasswordCredentialNotFoundException
 import com.profiletailors.smp.identity.application.PasswordRecoveryDisabledException
 import com.profiletailors.smp.identity.application.PasswordRecoveryPasswordException
@@ -94,6 +95,16 @@ class IdentityProblemDetailsHandler {
         title = "Invitation required"
         type = URI("/problems/registration-invitation-required")
         setProperty("code", "REGISTRATION_INVITATION_REQUIRED")
+    }
+
+    @ExceptionHandler(InvitationWorkspaceOverrideException::class)
+    fun handle(): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.BAD_REQUEST,
+        INVITATION_WORKSPACE_OVERRIDE_DETAIL,
+    ).apply {
+        title = "Invalid invitation workspace selection"
+        type = URI("/problems/invitation-workspace-override")
+        setProperty("code", "INVITATION_WORKSPACE_OVERRIDE_NOT_ALLOWED")
     }
 
     /**
@@ -250,6 +261,8 @@ class IdentityProblemDetailsHandler {
         private const val INVALID_PASSWORD_DETAIL = "Password does not meet policy requirements."
         private const val RATE_LIMIT_DETAIL = "Authentication rate limit exceeded. Try again later."
         private const val PASSWORD_RECOVERY_DISABLED_DETAIL = "Password recovery is not available."
+        private const val INVITATION_WORKSPACE_OVERRIDE_DETAIL =
+            "Workspace selection is not allowed for invitation registration."
         private const val VALIDATION_DETAIL = "Validation failure"
 
         private fun invalidResetProblem(exception: RuntimeException, code: String): ProblemDetail =

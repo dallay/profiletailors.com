@@ -38,6 +38,16 @@ describe('useAcceptInvitationStore', () => {
     mockAcceptInvitationRequest.mockReset()
   })
 
+  it('passes the authenticated access token to the invitation api', async () => {
+    mockAcceptInvitationRequest.mockResolvedValue(successResult())
+
+    const store = useAcceptInvitationStore()
+
+    await store.accept('valid-token', 'access-token-1')
+
+    expect(mockAcceptInvitationRequest).toHaveBeenCalledWith('valid-token', 'access-token-1')
+  })
+
   it('exposes initial state', () => {
     const store = useAcceptInvitationStore()
 
@@ -129,17 +139,17 @@ describe('useAcceptInvitationStore', () => {
   })
 
   it('stores api-returned error fields when request resolves with error', async () => {
-    mockAcceptInvitationRequest.mockResolvedValue(errorResult('INVITATION_NOT_FOUND', 404))
+    mockAcceptInvitationRequest.mockResolvedValue(errorResult('INVITATION_INVALID', 400))
     const store = useAcceptInvitationStore()
     store.workspaceId = 'ws-old'
     store.membershipStatus = 'ACTIVE'
 
     const result = await store.accept('tok')
 
-    expect(result.errorCode).toBe('INVITATION_NOT_FOUND')
-    expect(result.errorStatus).toBe(404)
-    expect(store.errorCode).toBe('INVITATION_NOT_FOUND')
-    expect(store.errorStatus).toBe(404)
+    expect(result.errorCode).toBe('INVITATION_INVALID')
+    expect(result.errorStatus).toBe(400)
+    expect(store.errorCode).toBe('INVITATION_INVALID')
+    expect(store.errorStatus).toBe(400)
     expect(store.workspaceId).toBeNull()
     expect(store.membershipStatus).toBeNull()
     expect(store.hasAccepted).toBe(false)
@@ -161,7 +171,7 @@ describe('useAcceptInvitationStore', () => {
     await store.accept('tok')
     expect(store.workspaceId).toBe('ws-1')
 
-    mockAcceptInvitationRequest.mockResolvedValueOnce(errorResult('INVITATION_NOT_ACCEPTABLE', 400))
+    mockAcceptInvitationRequest.mockResolvedValueOnce(errorResult('INVITATION_INVALID', 400))
     await store.accept('tok2')
 
     expect(store.workspaceId).toBeNull()
@@ -285,10 +295,10 @@ describe('useAcceptInvitationStore', () => {
   })
 
   it('reset after error clears error fields', async () => {
-    mockAcceptInvitationRequest.mockResolvedValue(errorResult('INVITATION_NOT_ACCEPTABLE', 400))
+    mockAcceptInvitationRequest.mockResolvedValue(errorResult('INVITATION_INVALID', 400))
     const store = useAcceptInvitationStore()
     await store.accept('tok')
-    expect(store.errorCode).toBe('INVITATION_NOT_ACCEPTABLE')
+    expect(store.errorCode).toBe('INVITATION_INVALID')
 
     store.reset()
 

@@ -34,6 +34,14 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
             .one()
             .awaitSingleOrNull()
 
+    override suspend fun findByCandidateKey(candidateKey: String): Invitation? = databaseClient.sql(
+        SELECT_BY_CANDIDATE_KEY,
+    )
+        .bind("candidateKey", candidateKey)
+        .map { row, _ -> row.toInvitation() }
+        .one()
+        .awaitSingleOrNull()
+
     override suspend fun findByCandidateKeyForUpdate(candidateKey: String): Invitation? = databaseClient.sql(
         SELECT_BY_CANDIDATE_KEY_FOR_UPDATE,
     )
@@ -135,6 +143,11 @@ class R2dbcInvitationRepository(private val databaseClient: DatabaseClient) : In
             FROM invitations
             WHERE candidate_key = :candidateKey
             FOR UPDATE
+        """
+        private const val SELECT_BY_CANDIDATE_KEY = """
+            SELECT $COLUMNS
+            FROM invitations
+            WHERE candidate_key = :candidateKey
         """
         private const val INSERT = """
             INSERT INTO invitations (

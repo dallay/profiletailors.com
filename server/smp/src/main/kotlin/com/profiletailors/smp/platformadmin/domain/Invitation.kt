@@ -91,7 +91,7 @@ data class Invitation(
 
     fun accept(at: Instant, principalId: String, resolvedWorkspaceId: String? = null): Invitation {
         if (!isActive(at)) {
-            throw InvitationNotAcceptableException(id.value.toString())
+            throw InvitationNotAcceptableException()
         }
         require(principalId.isNotBlank()) { "Accepted principal id must not be blank" }
         val resolvedWsId = when (target) {

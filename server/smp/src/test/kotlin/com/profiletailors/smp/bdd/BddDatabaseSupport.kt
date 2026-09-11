@@ -1519,9 +1519,34 @@ class BddDatabaseSupport(
         "SELECT COUNT(*) AS total FROM user_identities WHERE email = :email",
     ).bind("email", email).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
 
+    suspend fun countIdentities(principalId: String): Long = databaseClient.sql(
+        "SELECT COUNT(*) AS total FROM user_identities WHERE principal_id = :id",
+    ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+
+    suspend fun countInvitationsByEmail(email: String): Long = databaseClient.sql(
+        "SELECT COUNT(*) AS total FROM invitations WHERE invited_email_normalized = :email",
+    ).bind("email", email.trim().lowercase())
+        .map { row, _ -> (row.get("total") as Number).toLong() }
+        .one()
+        .awaitSingle()
+
     suspend fun countPasswordCredentials(principalId: String): Long = databaseClient.sql(
         "SELECT COUNT(*) AS total FROM local_password_credentials WHERE principal_id = :id",
     ).bind("id", principalId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+
+    suspend fun countWorkspaces(workspaceId: String): Long = databaseClient.sql(
+        "SELECT COUNT(*) AS total FROM workspaces WHERE id = :id",
+    ).bind("id", workspaceId).map { row, _ -> (row.get("total") as Number).toLong() }.one().awaitSingle()
+
+    suspend fun countWorkspaceMemberships(principalId: String, workspaceId: String): Long = databaseClient.sql(
+        "SELECT COUNT(*) AS total FROM workspace_memberships " +
+            "WHERE principal_id = :principalId AND workspace_id = :workspaceId",
+    )
+        .bind("principalId", principalId)
+        .bind("workspaceId", workspaceId)
+        .map { row, _ -> (row.get("total") as Number).toLong() }
+        .one()
+        .awaitSingle()
 
     suspend fun lookupPasswordHash(principalId: String): String? = databaseClient.sql(
         "SELECT password_hash FROM local_password_credentials WHERE principal_id = :id",

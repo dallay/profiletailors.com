@@ -29,6 +29,71 @@ Feature: Local authentication session lifecycle
     And the invite-only registration response code should be "REGISTRATION_INVITATION_REQUIRED"
     And no local account, credential, workspace, consent, event, or session should be created
 
+  Scenario: Invite-only registration accepts a valid invitation and returns a session
+    Given public registration is invite-only
+    And an active direct invitation exists for "invitee-registration@example.com"
+    When the visitor submits invite-only registration for "invitee-registration@example.com"
+    Then the invite-only registration response status should be 201
+    And the invite-only auth response should include email "invitee-registration@example.com"
+    And the invite-only auth response should include emailStatus "PENDING"
+    And the invite-only auth response should include an access token
+    And the invite-only response should contain a workspaceId
+    And the invite-only response should set a refresh cookie
+    And the invite-only response should not contain the submitted invitation token
+
+  Scenario: Invite-only registration rejects an invalid invitation before mutation
+    Given public registration is invite-only
+    When the visitor submits invite-only registration for "invalid-invitation@example.com" with token "invalid-invitation-token"
+    Then the invite-only registration response status should be 400
+    And the invite-only problem response should include code "INVITATION_INVALID"
+    And no invite-only registration mutation should exist for "invalid-invitation@example.com"
+    And the invite-only response should not contain "invalid-invitation-token"
+
+  Scenario: Invite-only registration rejects an expired invitation before mutation
+    Given public registration is invite-only
+    And an expired direct invitation exists for "expired-invitation@example.com"
+    When the visitor submits invite-only registration for "expired-invitation@example.com"
+    Then the invite-only registration response status should be 410
+    And the invite-only problem response should include code "INVITATION_EXPIRED"
+    And no invite-only registration mutation should exist for "expired-invitation@example.com"
+    And the invite-only response should not contain the submitted invitation token
+    And the invite-only response should not contain "expired-invitation@example.com"
+    And the invitation status should be "ACTIVE"
+    And exactly one direct invitation should exist for "expired-invitation@example.com"
+
+  Scenario: Invite-only registration rejects a revoked invitation before mutation
+    Given public registration is invite-only
+    And a revoked direct invitation exists for "revoked-invitation@example.com"
+    When the visitor submits invite-only registration for "revoked-invitation@example.com"
+    Then the invite-only registration response status should be 410
+    And the invite-only problem response should include code "INVITATION_REVOKED"
+    And no invite-only registration mutation should exist for "revoked-invitation@example.com"
+    And the invite-only response should not contain the submitted invitation token
+    And the invite-only response should not contain "revoked-invitation@example.com"
+    And the invitation status should be "REVOKED"
+    And exactly one direct invitation should exist for "revoked-invitation@example.com"
+
+  Scenario: Invite-only registration rejects a normalized email mismatch before mutation
+    Given public registration is invite-only
+    And an active direct invitation exists for "target-invitation@example.com"
+    When the visitor submits invite-only registration for "mismatch-invitation@example.com"
+    Then the invite-only registration response status should be 403
+    And the invite-only problem response should include code "INVITATION_EMAIL_MISMATCH"
+    And no invite-only registration mutation should exist for "mismatch-invitation@example.com"
+    And the invite-only response should not contain the submitted invitation token
+    And the invite-only response should not contain "target-invitation@example.com"
+    And the invite-only response should not contain "mismatch-invitation@example.com"
+    And the invitation status should be "ACTIVE"
+    And exactly one direct invitation should exist for "target-invitation@example.com"
+
+  Scenario: Invite-only registration rejects a client workspace override
+    Given public registration is invite-only
+    And an active direct invitation exists for "override-invitation@example.com"
+    When the visitor submits invite-only registration for "override-invitation@example.com" with the invitation token and workspace "client-workspace"
+    Then the invite-only registration response status should be 400
+    And the invite-only problem response should include code "INVITATION_WORKSPACE_OVERRIDE_NOT_ALLOWED"
+    And no invite-only registration mutation should exist for "override-invitation@example.com"
+
   Scenario: Disabled password recovery request rejects before token creation
     Given password recovery is disabled
     When the visitor requests a password reset for "user@example.com"

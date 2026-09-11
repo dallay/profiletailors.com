@@ -22,6 +22,7 @@ test.describe('Scheduler — Filtering & Views', () => {
     await scheduler.switchToWeek()
 
     // Click "All Channels" button to ensure we start from a clean state
+    await scheduler.openMobileSidebar()
     await scheduler.allChannelsButton.click({ force: true })
     await page.waitForTimeout(300)
 
@@ -29,6 +30,7 @@ test.describe('Scheduler — Filtering & Views', () => {
     await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible()
 
     // Select a single channel — LinkedIn
+    await scheduler.openMobileSidebar()
     await scheduler.linkedInFilterButton.click()
     await page.waitForTimeout(300)
 
@@ -36,6 +38,7 @@ test.describe('Scheduler — Filtering & Views', () => {
     expect(page.url()).toContain('channels')
 
     // Reset to all channels
+    await scheduler.openMobileSidebar()
     await scheduler.allChannelsButton.click({ force: true })
     await page.waitForTimeout(300)
 

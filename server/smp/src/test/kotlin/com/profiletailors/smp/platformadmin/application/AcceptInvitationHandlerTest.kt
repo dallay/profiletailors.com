@@ -1,5 +1,6 @@
 package com.profiletailors.smp.platformadmin.application
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.platformadmin.domain.Invitation
 import com.profiletailors.smp.platformadmin.domain.InvitationId
@@ -12,6 +13,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Instant
@@ -23,6 +25,7 @@ class AcceptInvitationHandlerTest {
     @Test
     fun `rejects when coordinator throws`() = runTest {
         val coordinator = mockk<InvitationActivationCoordinator>()
+        val transactionRunner = RecordingTransactionRunner()
         coEvery {
             coordinator.activateForRegistration(
                 rawToken = "raw-token",
@@ -32,7 +35,7 @@ class AcceptInvitationHandlerTest {
         } throws InvitationNotAcceptableException("unavailable")
 
         assertThrows<InvitationNotAcceptableException> {
-            handler(coordinator).handle(
+            handler(coordinator, transactionRunner).handle(
                 AcceptInvitationCommand(
                     rawToken = "raw-token",
                     authenticatedPrincipalId = "principal-1",
@@ -40,6 +43,30 @@ class AcceptInvitationHandlerTest {
                 ),
             )
         }
+
+        assertEquals(1, transactionRunner.invocationCount)
+        assertEquals(1, transactionRunner.rollbackCount)
+    }
+
+    @Test
+    fun `runs authenticated acceptance inside one transaction`() = runTest {
+        val coordinator = mockk<InvitationActivationCoordinator>()
+        val invitation = invitation(workspaceId = "workspace-a").accept(now, "principal-1")
+        coEvery {
+            coordinator.activateForRegistration(
+                rawToken = "raw-token",
+                email = "invitee@example.com",
+                principalId = "principal-1",
+            )
+        } returns InvitationActivationCoordinator.InvitationActivationResult(
+            invitation = invitation,
+            membershipStatus = WorkspaceMembershipStatus.ACTIVE,
+        )
+        val transactionRunner = RecordingTransactionRunner()
+
+        handler(coordinator, transactionRunner).handle(command())
+
+        assertEquals(1, transactionRunner.invocationCount)
     }
 
     @Test
@@ -57,7 +84,7 @@ class AcceptInvitationHandlerTest {
             issuedBy = "issuer-1",
             createdAt = now.minusSeconds(60),
             expiresAt = now.plusSeconds(3600),
-        )
+        ).accept(now, "principal-1")
         coEvery {
             coordinator.activateForRegistration(
                 rawToken = "raw-token",
@@ -89,7 +116,7 @@ class AcceptInvitationHandlerTest {
     }
 
     @Test
-    fun `falls back to invitation id as workspaceId when workspaceId is null`() = runTest {
+    fun `rejects an unresolved workspace instead of returning invitation id as workspaceId`() = runTest {
         val coordinator = mockk<InvitationActivationCoordinator>()
         val invitationId = UUID.randomUUID()
         val invitation = Invitation(
@@ -116,19 +143,66 @@ class AcceptInvitationHandlerTest {
             membershipStatus = WorkspaceMembershipStatus.ACTIVE,
         )
 
-        val result = handler(coordinator).handle(
-            AcceptInvitationCommand(
-                rawToken = "raw-token",
-                authenticatedPrincipalId = "principal-1",
-                authenticatedEmail = "invitee@example.com",
-            ),
-        )
+        val exception = assertThrows<IllegalStateException> {
+            handler(coordinator).handle(
+                AcceptInvitationCommand(
+                    rawToken = "raw-token",
+                    authenticatedPrincipalId = "principal-1",
+                    authenticatedEmail = "invitee@example.com",
+                ),
+            )
+        }
 
-        assertEquals(invitationId.toString(), result.workspaceId)
-        assertEquals(WorkspaceMembershipStatus.ACTIVE.name, result.membershipStatus)
+        assertFalse(exception.message.orEmpty().contains(invitationId.toString()))
     }
 
     private fun handler(coordinator: InvitationActivationCoordinator) = AcceptInvitationHandler(
         coordinator = coordinator,
+        transactionRunner = NoOpTransactionRunner(),
     )
+
+    private fun handler(coordinator: InvitationActivationCoordinator, transactionRunner: AtomicTransactionRunner) =
+        AcceptInvitationHandler(
+            coordinator = coordinator,
+            transactionRunner = transactionRunner,
+        )
+
+    private fun command() = AcceptInvitationCommand(
+        rawToken = "raw-token",
+        authenticatedPrincipalId = "principal-1",
+        authenticatedEmail = "invitee@example.com",
+    )
+
+    private fun invitation(workspaceId: String?) = Invitation(
+        id = InvitationId(UUID.randomUUID()),
+        source = InvitationSource.DIRECT,
+        sourceReferenceId = null,
+        target = if (workspaceId == null) InvitationTarget.NEW_WORKSPACE else InvitationTarget.EXISTING_WORKSPACE,
+        workspaceId = workspaceId,
+        invitedEmailNormalized = "invitee@example.com",
+        tokenHash = "hashed-token",
+        status = InvitationStatus.ACTIVE,
+        issuedBy = "issuer-1",
+        createdAt = now.minusSeconds(60),
+        expiresAt = now.plusSeconds(3600),
+    )
+
+    private class NoOpTransactionRunner : AtomicTransactionRunner {
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
+    }
+
+    private class RecordingTransactionRunner : AtomicTransactionRunner {
+        var invocationCount = 0
+        var rollbackCount = 0
+
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+            invocationCount += 1
+            return try {
+                block()
+            } catch (error: Throwable) {
+                rollbackCount += 1
+                throw error
+            }
+        }
+    }
 }
