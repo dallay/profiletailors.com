@@ -28,7 +28,7 @@ Chain strategy: single-pr
 - [x] 1.2 Add RED test seeding `principals(id=user-<uuid>)` then direct create via `CreateInvitationHandler`; assert `issuedBy == user-<uuid>` and 201 persist.
 - [x] 1.3 Run new test to confirm RED (`DataIntegrityViolationException` on `fk_invitations_issued_by` before fix).
 
-## Phase 2: Prefix fix (helper único)
+## Phase 2: Prefix fix (single helper)
 
 - [x] 2.1 Fix `CreateInvitationHandler.kt:73`: `issuedBy = PlatformPrincipalIds.fromUuid(command.operatorPrincipalId)`.
 - [x] 2.2 Fix `InviteWaitlistEntryHandler.kt:142` same helper; guard `:101` `UUID.fromString` against prefixed value (strip via `toUuid` or reuse stored value).
