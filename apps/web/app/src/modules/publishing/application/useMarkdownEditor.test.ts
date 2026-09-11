@@ -55,28 +55,16 @@ describe('useMarkdownEditor', () => {
     expect(postText.value).toBe('Hello**text** world')
   })
 
-  it('applyItalic wraps selected text with single asterisk', () => {
+  it.each([
+    ['applyItalic', '*Hello*'],
+    ['applyStrikethrough', '~~Hello~~'],
+    ['applyInlineCode', '`Hello`'],
+  ])('%s wraps selected text', (method, expected) => {
     const { postText, editor, fakeTextarea } = setup('Hello')
     fakeTextarea.selectionStart = 0
     fakeTextarea.selectionEnd = 5
-    editor.applyItalic()
-    expect(postText.value).toBe('*Hello*')
-  })
-
-  it('applyStrikethrough wraps with tilde markers', () => {
-    const { postText, editor, fakeTextarea } = setup('Hello')
-    fakeTextarea.selectionStart = 0
-    fakeTextarea.selectionEnd = 5
-    editor.applyStrikethrough()
-    expect(postText.value).toBe('~~Hello~~')
-  })
-
-  it('applyInlineCode wraps with backticks', () => {
-    const { postText, editor, fakeTextarea } = setup('Hello')
-    fakeTextarea.selectionStart = 0
-    fakeTextarea.selectionEnd = 5
-    editor.applyInlineCode()
-    expect(postText.value).toBe('`Hello`')
+    editor[method as 'applyItalic']()
+    expect(postText.value).toBe(expected)
   })
 
   it('applyHeading adds heading marker', () => {

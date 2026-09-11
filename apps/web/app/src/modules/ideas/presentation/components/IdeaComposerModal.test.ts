@@ -222,7 +222,7 @@ describe('IdeaComposerModal', () => {
       await addBtn.trigger('click')
       await nextTick()
       const chips = wrapper.findAll('[data-testid^="tag-chip-"]')
-      expect(chips.length).toBe(2)
+      expect(chips).toHaveLength(2)
     } else {
       expect(wrapper.find('[data-testid="markdown-toolbar"]').exists()).toBe(true)
     }
@@ -240,7 +240,7 @@ describe('IdeaComposerModal', () => {
       await urlInput.setValue('https://example.com')
       await addLinkBtn.trigger('click')
       await nextTick()
-      expect(wrapper.findAll('[data-testid^="link-chip-"]').length).toBe(1)
+      expect(wrapper.findAll('[data-testid^="link-chip-"]')).toHaveLength(1)
     } else {
       expect(wrapper.find('[data-testid="composer-link-url"]').exists() || true).toBeTruthy()
     }

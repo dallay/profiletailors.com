@@ -61,7 +61,7 @@ export function useBulkCsvParser(): {
       const cols = parseCsvLine(rawLine)
       const padded =
         cols.length < header.length
-          ? [...cols, ...Array(header.length - cols.length).fill('')]
+          ? [...cols, ...new Array(header.length - cols.length).fill('')]
           : cols
       const bodyText = padded[bodyIdx] ?? ''
       const scheduledFor = padded[scheduledIdx] ?? ''

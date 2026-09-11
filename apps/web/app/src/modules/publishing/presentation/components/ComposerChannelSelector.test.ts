@@ -46,7 +46,7 @@ describe('ComposerChannelSelector.vue', () => {
     const wrapper = mountSelector({ channels: [] })
     const allButtons = wrapper.findAll('button')
     // Only the "Connect another channel" button is shown when there are no channels
-    expect(allButtons.length).toBe(1)
+    expect(allButtons).toHaveLength(1)
     expect(wrapper.find('[title="Connect another channel"]').exists()).toBe(true)
   })
 
@@ -57,7 +57,7 @@ describe('ComposerChannelSelector.vue', () => {
     ]
     const wrapper = mountSelector({ channels })
     const buttons = wrapper.findAll('[data-testid="channel-button"]')
-    expect(buttons.length).toBe(2)
+    expect(buttons).toHaveLength(2)
   })
 
   it('shows the channel name in the button', (): void => {
@@ -77,7 +77,7 @@ describe('ComposerChannelSelector.vue', () => {
     const channels = [makeChannel({ id: 'ch-1' }), makeChannel({ id: 'ch-2' })]
     const wrapper = mountSelector({ channels, selectedChannelId: 'ch-1' })
     const deselectIcons = wrapper.findAll('[data-testid="channel-deselected-icon"]')
-    expect(deselectIcons.length).toBe(1)
+    expect(deselectIcons).toHaveLength(1)
   })
 
   it('emits select with the channel id when a non-selected channel button is clicked', async (): Promise<void> => {
@@ -124,7 +124,7 @@ describe('ComposerChannelSelector.vue', () => {
     const channels = [makeChannel({ id: 'ch-1', avatarUrl: 'https://example.com/avatar.jpg' })]
     const wrapper = mountSelector({ channels })
     const avatars = wrapper.findAll('img')
-    expect(avatars.length).toBe(1)
+    expect(avatars).toHaveLength(1)
     expect(avatars[0]!.attributes('src')).toBe('https://example.com/avatar.jpg')
   })
 
@@ -132,7 +132,7 @@ describe('ComposerChannelSelector.vue', () => {
     const channels = [makeChannel({ id: 'ch-1', avatarUrl: undefined, provider: 'linkedin' })]
     const wrapper = mountSelector({ channels })
     const fallbacks = wrapper.findAll('[data-testid="channel-avatar-fallback"]')
-    expect(fallbacks.length).toBe(1)
+    expect(fallbacks).toHaveLength(1)
     expect(fallbacks[0]!.text()).toContain('in')
   })
 

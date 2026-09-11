@@ -104,7 +104,7 @@ describe('SidebarNavSection', () => {
     })
 
     const links = wrapper.findAll('a')
-    expect(links.length).toBe(5)
+    expect(links).toHaveLength(5)
 
     const schedulerLink = links.find((l: DOMWrapper<Element>) => l.text().includes('nav.scheduler'))
     expect(schedulerLink).toBeTruthy()

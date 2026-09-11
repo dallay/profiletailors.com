@@ -26,60 +26,20 @@ describe('useComposerTextFormatting', () => {
   // ============================================================================
 
   describe('normalizeHashtag', () => {
-    it('adds # prefix if missing', () => {
+    it.each([
+      ['socialmedia', '#socialmedia'],
+      ['#socialmedia', '#socialmedia'],
+      ['#SOCIALMEDIA', '#socialmedia'],
+      ['#hello-world!', '#helloworld'],
+      ['#social_media_2026', '#social_media_2026'],
+      ['!!!', ''],
+      ['#', ''],
+      ['#!!!', ''],
+    ])('normalizes %s to %s', (input, expected) => {
       const postText = createRef('')
       const formatting = useComposerTextFormatting({ postText })
 
-      expect(formatting.normalizeHashtag('socialmedia')).toBe('#socialmedia')
-    })
-
-    it('keeps # prefix if present', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      expect(formatting.normalizeHashtag('#socialmedia')).toBe('#socialmedia')
-    })
-
-    it('converts to lowercase', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      expect(formatting.normalizeHashtag('#SOCIALMEDIA')).toBe('#socialmedia')
-    })
-
-    it('removes invalid characters', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      expect(formatting.normalizeHashtag('#hello-world!')).toBe('#helloworld')
-    })
-
-    it('keeps numbers and underscores', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      expect(formatting.normalizeHashtag('#social_media_2026')).toBe('#social_media_2026')
-    })
-
-    it('returns empty string for invalid input', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      expect(formatting.normalizeHashtag('!!!')).toBe('')
-    })
-
-    it('returns empty string for # alone', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      expect(formatting.normalizeHashtag('#')).toBe('')
-    })
-
-    it('returns empty string for # with only invalid characters', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      expect(formatting.normalizeHashtag('#!!!')).toBe('')
+      expect(formatting.normalizeHashtag(input)).toBe(expected)
     })
   })
 
@@ -227,40 +187,18 @@ describe('useComposerTextFormatting', () => {
   // ============================================================================
 
   describe('insertEmoji', () => {
-    it('inserts emoji to empty text', () => {
-      const postText = createRef('')
+    it.each([
+      ['', '🚀', '🚀'],
+      ['Hello', '🚀', 'Hello 🚀'],
+      ['Hello ', '🚀', 'Hello 🚀'],
+      ['Hello', '', 'Hello'],
+    ])('inserts emoji into text', (initial, emoji, expected) => {
+      const postText = createRef(initial)
       const formatting = useComposerTextFormatting({ postText })
 
-      formatting.insertEmoji('🚀')
+      formatting.insertEmoji(emoji)
 
-      expect(postText.value).toBe('🚀')
-    })
-
-    it('inserts emoji with space if text exists', () => {
-      const postText = createRef('Hello')
-      const formatting = useComposerTextFormatting({ postText })
-
-      formatting.insertEmoji('🚀')
-
-      expect(postText.value).toBe('Hello 🚀')
-    })
-
-    it('does not add space if text ends with space', () => {
-      const postText = createRef('Hello ')
-      const formatting = useComposerTextFormatting({ postText })
-
-      formatting.insertEmoji('🚀')
-
-      expect(postText.value).toBe('Hello 🚀')
-    })
-
-    it('does nothing for empty emoji', () => {
-      const postText = createRef('Hello')
-      const formatting = useComposerTextFormatting({ postText })
-
-      formatting.insertEmoji('')
-
-      expect(postText.value).toBe('Hello')
+      expect(postText.value).toBe(expected)
     })
 
     it('calls onEmojiInserted callback', () => {
@@ -368,7 +306,7 @@ describe('useComposerTextFormatting', () => {
 
       // Solo se aplicó una vez
       expect(postText.value).toContain('Profile Tailors')
-      expect(postText.value.split('Profile Tailors').length).toBe(2) // Solo una ocurrencia
+      expect(postText.value.split('Profile Tailors')).toHaveLength(2) // Solo una ocurrencia
     })
   })
 
@@ -377,40 +315,16 @@ describe('useComposerTextFormatting', () => {
   // ============================================================================
 
   describe('normalizeAllHashtags', () => {
-    it('normalizes all hashtags to lowercase', () => {
+    it.each([
+      ['Hello #WORLD #Foo', 'Hello #world #foo'],
+      ['#hello-world! #test', '#helloworld #test'],
+      ['Hello WORLD Foo', 'Hello WORLD Foo'],
+      ['Hello    #world', 'Hello #world'],
+    ])('normalizes %s to %s', (input, expected) => {
       const postText = createRef('')
       const formatting = useComposerTextFormatting({ postText })
 
-      const result = formatting.normalizeAllHashtags('Hello #WORLD #Foo')
-
-      expect(result).toBe('Hello #world #foo')
-    })
-
-    it('removes invalid characters from hashtags', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      const result = formatting.normalizeAllHashtags('#hello-world! #test')
-
-      expect(result).toBe('#helloworld #test')
-    })
-
-    it('leaves non-hashtag words unchanged', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      const result = formatting.normalizeAllHashtags('Hello WORLD Foo')
-
-      expect(result).toBe('Hello WORLD Foo')
-    })
-
-    it('normalizes multiple spaces', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      const result = formatting.normalizeAllHashtags('Hello    #world')
-
-      expect(result).toBe('Hello #world')
+      expect(formatting.normalizeAllHashtags(input)).toBe(expected)
     })
   })
 
@@ -419,49 +333,17 @@ describe('useComposerTextFormatting', () => {
   // ============================================================================
 
   describe('formatForBackend', () => {
-    it('normalizes hashtags', () => {
+    it.each([
+      ['#HELLO #WORLD', '#hello #world'],
+      ['  Hello world  ', 'Hello world'],
+      ['Hello\n\n\n\n\nWorld', 'Hello\n\nWorld'],
+      ['Hello\nWorld\n\nFoo\nBar', 'Hello\nWorld\n\nFoo\nBar'],
+      ['  #HELLO\n\n\n\n  #WORLD  ', '#hello\n\n#world'],
+    ])('formats text for backend', (input, expected) => {
       const postText = createRef('')
       const formatting = useComposerTextFormatting({ postText })
 
-      const result = formatting.formatForBackend('#HELLO #WORLD')
-
-      expect(result).toBe('#hello #world')
-    })
-
-    it('trims whitespace', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      const result = formatting.formatForBackend('  Hello world  ')
-
-      expect(result).toBe('Hello world')
-    })
-
-    it('reduces multiple line breaks to max 2', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      const result = formatting.formatForBackend('Hello\n\n\n\n\nWorld')
-
-      expect(result).toBe('Hello\n\nWorld')
-    })
-
-    it('preserves single and double line breaks', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      const result = formatting.formatForBackend('Hello\nWorld\n\nFoo\nBar')
-
-      expect(result).toBe('Hello\nWorld\n\nFoo\nBar')
-    })
-
-    it('combines all normalizations', () => {
-      const postText = createRef('')
-      const formatting = useComposerTextFormatting({ postText })
-
-      const result = formatting.formatForBackend('  #HELLO\n\n\n\n  #WORLD  ')
-
-      expect(result).toBe('#hello\n\n#world')
+      expect(formatting.formatForBackend(input)).toBe(expected)
     })
   })
 

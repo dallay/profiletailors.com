@@ -41,7 +41,7 @@ const ROUTE_INVENTORY: readonly RouteId[] = [
   '/accessibility/',
 ] as const
 
-export function counterpartPath(locale: Locale, route: RouteId): RouteId | string {
+export function counterpartPath(locale: Locale, route: RouteId): string {
   if (route === '/') {
     return locale === 'en' ? '/es/' : '/'
   }
@@ -49,8 +49,13 @@ export function counterpartPath(locale: Locale, route: RouteId): RouteId | strin
 }
 
 export function canonicalUrl(locale: Locale, route: RouteId, base: URL): string {
-  const path = locale === 'en' ? route : route === '/' ? '/es/' : `/es${route}`
-  return new URL(path, base).href
+  return new URL(localizedPath(locale, route), base).href
+}
+
+function localizedPath(locale: Locale, route: RouteId): string {
+  if (locale === 'en') return route
+  if (route === '/') return '/es/'
+  return `/es${route}`
 }
 
 export function routeSeoEntries(): readonly RouteSeo[] {

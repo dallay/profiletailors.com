@@ -81,7 +81,7 @@ describe('sitemap.xml — 12 URL SEO contract', () => {
     const res: Response = await GET({ site: new URL('https://profiletailors.com') } as never);
     const xml: string = await res.text();
     const entries: RegExpMatchArray[] = [...xml.matchAll(/<url>[\s\S]*?<\/url>/g)];
-    expect(entries.length).toBe(12);
+    expect(entries).toHaveLength(12);
     for (const entry of entries) {
       expect(entry[0]).toContain('<lastmod>');
       expect(entry[0]).toContain('<changefreq>weekly</changefreq>');

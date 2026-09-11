@@ -41,37 +41,19 @@ describe('ComposerSchedulePanel.vue', () => {
     expect(wrapper.text()).toContain('Pick Date')
   })
 
-  it('emits update:scheduleMode when Now is clicked', async (): Promise<void> => {
-    const wrapper = mountPanel({ scheduleMode: 'next' as ScheduleMode })
+  it.each([
+    ['schedule-mode-now', 'next', 'now'],
+    ['schedule-mode-next', 'now', 'next'],
+    ['schedule-mode-custom', 'now', 'custom'],
+  ])('emits update:scheduleMode when %s is clicked', async (testid, initialMode, expected) => {
+    const wrapper = mountPanel({ scheduleMode: initialMode as ScheduleMode })
 
-    const input = wrapper.get('[data-testid="schedule-mode-now"]').find('input[type="radio"]')
+    const input = wrapper.get(`[data-testid="${testid}"]`).find('input[type="radio"]')
     await input.setValue(true)
 
     const emissions = wrapper.emitted('update:scheduleMode')
     expect(emissions).toBeDefined()
-    expect(emissions![0]).toEqual(['now'])
-  })
-
-  it('emits update:scheduleMode when Next Schedule is clicked', async (): Promise<void> => {
-    const wrapper = mountPanel({ scheduleMode: 'now' as ScheduleMode })
-
-    const input = wrapper.get('[data-testid="schedule-mode-next"]').find('input[type="radio"]')
-    await input.setValue(true)
-
-    const emissions = wrapper.emitted('update:scheduleMode')
-    expect(emissions).toBeDefined()
-    expect(emissions![0]).toEqual(['next'])
-  })
-
-  it('emits update:scheduleMode when Pick Date is clicked', async (): Promise<void> => {
-    const wrapper = mountPanel({ scheduleMode: 'now' as ScheduleMode })
-
-    const input = wrapper.get('[data-testid="schedule-mode-custom"]').find('input[type="radio"]')
-    await input.setValue(true)
-
-    const emissions = wrapper.emitted('update:scheduleMode')
-    expect(emissions).toBeDefined()
-    expect(emissions![0]).toEqual(['custom'])
+    expect(emissions![0]).toEqual([expected])
   })
 
   it('does not show date picker or time input in now mode', (): void => {
