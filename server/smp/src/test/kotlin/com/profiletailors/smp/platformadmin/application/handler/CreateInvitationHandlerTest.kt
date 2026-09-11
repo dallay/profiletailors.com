@@ -14,6 +14,7 @@ import com.profiletailors.smp.platformadmin.domain.InvitationIssued
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -89,7 +90,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle persists issuedBy as prefixed platform principal id`() = runTest {
+    fun `should persist issuedBy as prefixed platform principal id when creating a direct invitation`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -106,7 +107,7 @@ class CreateInvitationHandlerTest {
 
         handler.handle(command)
 
-        assertThat(savedSlot.captured.issuedBy).isEqualTo("user-$operatorId")
+        savedSlot.captured.issuedBy shouldBe "user-$operatorId"
     }
 
     @Test
