@@ -8,4 +8,7 @@ object PlatformPrincipalIds {
     fun toUuid(principalId: String): UUID = UUID.fromString(principalId.removePrefix(USER_PREFIX))
 
     fun fromUuid(principalId: UUID): String = "$USER_PREFIX$principalId"
+
+    fun fromUuid(principalId: String): String =
+        if (principalId.startsWith(USER_PREFIX)) principalId else "$USER_PREFIX$principalId"
 }

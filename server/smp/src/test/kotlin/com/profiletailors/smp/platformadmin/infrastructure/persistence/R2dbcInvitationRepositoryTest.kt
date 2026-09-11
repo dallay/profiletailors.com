@@ -455,6 +455,12 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('user-principal-1', 'USER', 'subject-user-principal-1', 'https://issuer.example', 'Accepter')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
             INSERT INTO workspaces (id, name, status, icon)
             VALUES ('workspace-1', 'Workspace One', 'ACTIVE', NULL)
             """.trimIndent(),
