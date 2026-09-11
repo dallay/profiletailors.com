@@ -89,6 +89,27 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
+    fun `handle persists issuedBy as prefixed platform principal id`() = runTest {
+        val command = CreateInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            email = "user@example.com",
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "workspace-001",
+        )
+
+        coEvery { invitationRepository.hasActiveInvitationFor(any(), any(), any()) } returns false
+        val savedSlot = slot<Invitation>()
+        coEvery { invitationRepository.save(capture(savedSlot), any()) } answers {
+            firstArg<Invitation>()
+        }
+
+        handler.handle(command)
+
+        assertThat(savedSlot.captured.issuedBy).isEqualTo("user-$operatorId")
+    }
+
+    @Test
     fun `handle throws when active invitation already exists`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,

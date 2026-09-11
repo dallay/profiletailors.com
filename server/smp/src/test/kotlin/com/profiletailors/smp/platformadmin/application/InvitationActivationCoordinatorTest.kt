@@ -32,6 +32,7 @@ import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -376,6 +377,94 @@ class InvitationActivationCoordinatorTest {
         assertThrows<InvitationNotAcceptableException> {
             coordinator.activateForRegistration("token", "user@example.com", "p-1")
         }
+    }
+
+    @Test
+    fun `persists acceptedPrincipalId with single user prefix for bare uuid identity`() = runTest {
+        val rawToken = "secret-token"
+        val candidateKey = "cand-123"
+        val operatorUuid = UUID.randomUUID()
+        val invitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-existing",
+            status = InvitationStatus.ACTIVE,
+        )
+        val principalFacts = PrincipalIdentityFacts(
+            principalId = operatorUuid.toString(),
+            principalType = PrincipalType.USER,
+            subject = "sub-1",
+            provider = "local",
+            displayIdentity = "User",
+            email = "user@example.com",
+            username = "user",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
+        coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
+        coEvery { principalIdentityLookup.findByPrincipalId(operatorUuid.toString()) } returns principalFacts
+        val savedSlot = slot<Invitation>()
+        coEvery { invitationRepository.updateIfVersionMatches(capture(savedSlot)) } returns true
+        coEvery {
+            membershipProvisioner.reconcile("ws-existing", operatorUuid.toString())
+        } returns
+            WorkspaceMembership(
+                "wm-3",
+                "ws-existing",
+                operatorUuid.toString(),
+                PrincipalType.USER,
+                WorkspaceMembershipStatus.ACTIVE,
+            )
+
+        val result = coordinator.activateForRegistration(rawToken, "user@example.com", operatorUuid.toString())
+
+        assertEquals("user-$operatorUuid", result.invitation.acceptedPrincipalId)
+        assertEquals("user-$operatorUuid", savedSlot.captured.acceptedPrincipalId)
+    }
+
+    @Test
+    fun `keeps already prefixed acceptedPrincipalId without double prefix`() = runTest {
+        val rawToken = "secret-token"
+        val candidateKey = "cand-123"
+        val prefixedPrincipalId = "user-${UUID.randomUUID()}"
+        val invitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-existing",
+            status = InvitationStatus.ACTIVE,
+        )
+        val principalFacts = PrincipalIdentityFacts(
+            principalId = prefixedPrincipalId,
+            principalType = PrincipalType.USER,
+            subject = "sub-1",
+            provider = "local",
+            displayIdentity = "User",
+            email = "user@example.com",
+            username = "user",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
+        coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
+        coEvery { principalIdentityLookup.findByPrincipalId(prefixedPrincipalId) } returns principalFacts
+        val savedSlot = slot<Invitation>()
+        coEvery { invitationRepository.updateIfVersionMatches(capture(savedSlot)) } returns true
+        coEvery {
+            membershipProvisioner.reconcile("ws-existing", prefixedPrincipalId)
+        } returns
+            WorkspaceMembership(
+                "wm-4",
+                "ws-existing",
+                prefixedPrincipalId,
+                PrincipalType.USER,
+                WorkspaceMembershipStatus.ACTIVE,
+            )
+
+        val result = coordinator.activateForRegistration(rawToken, "user@example.com", prefixedPrincipalId)
+
+        assertEquals(prefixedPrincipalId, result.invitation.acceptedPrincipalId)
+        assertEquals(prefixedPrincipalId, savedSlot.captured.acceptedPrincipalId)
     }
 
     @Test
