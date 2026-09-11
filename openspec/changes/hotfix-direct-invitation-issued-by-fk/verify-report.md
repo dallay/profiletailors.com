@@ -12,7 +12,7 @@
 |-------|-------|------|----------|
 | 1 Evidence + RED regression (TDD) | 1.1, 1.2, 1.3 | 3/3 | Grep hits confirmed in code; new tests assert `user-<uuid>`; RED logic sound (see Correctness) |
 | 2 Prefix fix (single helper) | 2.1, 2.2, 2.3, 2.4 | 4/4 | Diff shows `PlatformPrincipalIds.fromUuid` at all 3 write points + idempotent overload; `InvitationId` untouched; zero migrations |
-| 3 Focused verification | 3.1, 3.2, 3.3 | 3/3 | Focused unit PASS, BDD fast 247/247 PASS, Detekt + Spotless PASS, `git diff --check` PASS |
+| 3 Focused verification | 3.1, 3.2, 3.3 | 3/3 | Focused unit PASS; `platformadmin.*` suite, including `R2dbcInvitationRepositoryTest`, PASS; BDD fast 247/247 PASS; Detekt + Spotless PASS; `git diff --check` PASS |
 | 4 Done + Rollback | 4.1, 4.2 | 2/2 | RED→GREEN shown by test assertions; rollback = redeploy v0.5.0, no schema rollback |
 
 ## Build / Tests / Coverage Evidence
@@ -26,6 +26,7 @@
 | `InvitationActivationCoordinatorTest` | **Passed** | `tests=16 failures=0 errors=0 skipped=0` (incl. 2 new bare-uuid/prefixed `acceptedPrincipalId` tests) |
 | `AcceptInvitationHandlerTest` | **Passed** | `tests=4 failures=0 errors=0 skipped=0` |
 | `InvitationTest` | **Passed** | `tests=23 failures=0 errors=0 skipped=0` |
+| `R2dbcInvitationRepositoryTest` (`@postgres`) | **Passed** | `./gradlew :server:smp:test --tests "com.profiletailors.smp.platformadmin.*"` → PASS; the matching suite included this repository test after its prefixed `principals` seed was added |
 | BDD fast (full suite) | **Passed** | `./gradlew :server:smp:bddFastTest` → `BUILD SUCCESSFUL in 5m 18s`; XML aggregate `files=36 tests=247 failures=0 errors=0 skipped=0` |
 | BDD `invitations-direct` lane | **Passed** | `TEST-...-platformadmin-invitations-direct.feature.xml: tests=11 failures=0 errors=0` (incl. `Operator creates a direct invitation` 201 path) |
 | Detekt + Spotless | **Passed** | `./gradlew :server:smp:detekt :server:smp:spotlessKotlinCheck` → `BUILD SUCCESSFUL in 13s` |
@@ -39,7 +40,7 @@ Proposal declares no new/modified capabilities and no delta spec (pure defect fi
 
 | Success criterion (proposal) | Covering test (runtime PASS) | Status |
 |------------------------------|------------------------------|--------|
-| Regression test fails before fix, passes after | `CreateInvitationHandlerTest.handle persists issuedBy as prefixed platform principal id`, `InviteWaitlistEntryHandlerTest.persists waitlist invitation issuedBy as prefixed platform principal id`, `InvitationActivationCoordinatorTest` bare-uuid + prefixed pair, `PlatformPrincipalIdsTest` (4) | **COMPLIANT** — GREEN proven by runs above; RED proven by construction (pre-fix persisted bare `UUID.toString()`, which cannot equal asserted `user-<uuid>`; `UUID.fromString` on prefixed `issuedBy` threw `IllegalArgumentException` pre-fix per apply-progress) |
+| Regression test fails before fix, passes after | `CreateInvitationHandlerTest.should persist issuedBy as prefixed platform principal id when creating a direct invitation`, `InviteWaitlistEntryHandlerTest.persists waitlist invitation issuedBy as prefixed platform principal id`, `InvitationActivationCoordinatorTest` bare-uuid + prefixed pair, `PlatformPrincipalIdsTest` (4) | **COMPLIANT** — GREEN proven by runs above; RED proven by construction (pre-fix persisted bare `UUID.toString()`, which cannot equal asserted `user-<uuid>`; `UUID.fromString` on prefixed `issuedBy` threw `IllegalArgumentException` pre-fix per apply-progress) |
 | `POST /api/admin/invitations/direct` returns 201 with seeded `user-<uuid>` operator | BDD `invitations-direct`: `Operator creates a direct invitation` (11/11 PASS) with seeded `user-<admin-uuid>` principal in `PlatformAdminBddSteps` | **COMPLIANT** |
 | No Detekt/compiler warnings; scoped backend-check + relevant BDD fast green | Detekt + Spotless PASS; BDD fast 247/247 PASS; focused unit PASS; `backend-check` intentionally not run (broad) | **DEFERRED** — Detekt + Spotless PASS, BDD fast 247/247 PASS, and focused unit PASS retained as scoped evidence only; `backend-check` itself was not run (broad scope, no approved replacement), so full compliance cannot be claimed |
 | 0.5.1 deployed healthy; QA-01 passes | Not in verify scope | **DEFERRED** → explicit Next, owned by deploy + `sdd-qa` |
