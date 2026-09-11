@@ -257,6 +257,14 @@ describe('IdeaComposerModal', () => {
     expect((nativeSelect.element as HTMLSelectElement).value).toBe('done')
   })
 
+  it('associates native column select with a label', () => {
+    const wrapper = mountModal({ idea: null })
+    const nativeSelect = wrapper.get('[data-testid="composer-column-select-native"]')
+    const id = nativeSelect.attributes('id')
+    expect(id).toBeTruthy()
+    expect(wrapper.find(`label[for="${id}"]`).exists()).toBe(true)
+  })
+
   it('duplicate save guard disables button while saving', async () => {
     let resolveSave: (v: unknown) => void = () => {}
     mockCreateIdea.mockImplementation(

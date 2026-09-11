@@ -31,8 +31,10 @@ defineEmits<{
             <span :data-testid="`bulk-row-status-${row.rowIndex}`" :class="row.status === 'VALID' ? 'text-success' : 'text-error'">{{ row.status }}</span>
           </td>
           <td class="px-3 py-2">
+            <label :for="`bulk-row-body-${row.rowIndex}`" class="sr-only">Row {{ row.rowIndex + 1 }} body text</label>
             <input
               v-if="editable"
+              :id="`bulk-row-body-${row.rowIndex}`"
               :data-testid="`bulk-row-body-${row.rowIndex}`"
               :value="row.bodyText ?? ''"
               class="w-full rounded border px-2 py-1"
@@ -41,8 +43,10 @@ defineEmits<{
             <span v-else>{{ row.bodyText }}</span>
           </td>
           <td class="px-3 py-2">
+            <label :for="`bulk-row-scheduled-${row.rowIndex}`" class="sr-only">Row {{ row.rowIndex + 1 }} scheduled date</label>
             <input
               v-if="editable"
+              :id="`bulk-row-scheduled-${row.rowIndex}`"
               :data-testid="`bulk-row-scheduled-${row.rowIndex}`"
               :value="row.scheduledFor ?? ''"
               class="w-full rounded border px-2 py-1"
