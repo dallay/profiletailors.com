@@ -42,6 +42,13 @@ describe('ResetPasswordView capability gate', () => {
     expect(route.query.token).toBe('opaque')
   })
 
+  it('announces the loading state with a native output element', () => {
+    const wrapper = mount(ResetPasswordView)
+    const output = wrapper.find('output')
+    expect(output.exists()).toBe(true)
+    expect(output.text()).toContain('passwordRecovery.checkingAvailability')
+  })
+
   it('fails closed in place when recovery is unavailable', () => {
     state.resolved = true
     const wrapper = mount(ResetPasswordView)

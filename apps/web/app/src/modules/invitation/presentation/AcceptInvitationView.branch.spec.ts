@@ -125,7 +125,7 @@ describe('AcceptInvitationView branch coverage', () => {
       global: { stubs: { RouterLink: true } },
     })
     expect(wrapper.text()).toContain('invitation.checkingAvailability')
-    expect(wrapper.find('[role="status"]').exists()).toBe(true)
+    expect(wrapper.find('output').exists()).toBe(true)
   })
 
   it('shows invalid canonical copy', async () => {
@@ -259,7 +259,7 @@ describe('AcceptInvitationView branch coverage', () => {
     await flushPromises()
     await flushPromises()
     expect(wrapper.text()).toContain('invitation.redirecting')
-    expect(wrapper.find('[role="status"][aria-live="polite"]').exists()).toBe(true)
+    expect(wrapper.find('output[aria-live="polite"]').exists()).toBe(true)
   })
 
   it('sets document title when redirecting', async () => {
