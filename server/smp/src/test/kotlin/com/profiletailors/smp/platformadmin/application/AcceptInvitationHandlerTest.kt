@@ -1,8 +1,11 @@
 package com.profiletailors.smp.platformadmin.application
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.platformadmin.domain.Invitation
+import com.profiletailors.smp.platformadmin.domain.InvitationAccepted
 import com.profiletailors.smp.platformadmin.domain.InvitationId
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
@@ -11,6 +14,7 @@ import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -70,8 +74,9 @@ class AcceptInvitationHandlerTest {
     }
 
     @Test
-    fun `accepts and returns workspaceId and membershipStatus`() = runTest {
+    fun `accepts, publishes InvitationAccepted event, and returns workspaceId and membershipStatus`() = runTest {
         val coordinator = mockk<InvitationActivationCoordinator>()
+        val eventPublisher = mockk<EventPublisher<DomainEvent>>(relaxed = true)
         val invitation = Invitation(
             id = InvitationId(UUID.randomUUID()),
             source = InvitationSource.DIRECT,
@@ -96,7 +101,11 @@ class AcceptInvitationHandlerTest {
             membershipStatus = WorkspaceMembershipStatus.ACTIVE,
         )
 
-        val result = handler(coordinator).handle(
+        val result = AcceptInvitationHandler(
+            coordinator = coordinator,
+            transactionRunner = NoOpTransactionRunner(),
+            eventPublisher = eventPublisher,
+        ).handle(
             AcceptInvitationCommand(
                 rawToken = "raw-token",
                 authenticatedPrincipalId = "principal-1",
@@ -111,6 +120,15 @@ class AcceptInvitationHandlerTest {
                 rawToken = "raw-token",
                 email = "invitee@example.com",
                 principalId = "principal-1",
+            )
+        }
+        verify {
+            eventPublisher.publish(
+                match<InvitationAccepted> { event ->
+                    event.invitationId == invitation.id.value &&
+                        event.principalId == "principal-1" &&
+                        event.workspaceId == "workspace-a"
+                },
             )
         }
     }

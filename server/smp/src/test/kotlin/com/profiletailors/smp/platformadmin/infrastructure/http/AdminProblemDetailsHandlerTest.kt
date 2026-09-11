@@ -202,3 +202,38 @@ class AdminProblemDetailsHandlerTest {
         assertEquals("urn:profiletailors:error:VALIDATION_ERROR", problem.type.toString())
     }
 }
+
+    @Test
+    fun `maps InvitationNotAcceptableException failure codes to correct HTTP status codes`() {
+        val testCases = listOf(
+            InvitationAcceptanceFailureCode.INVALID to HttpStatus.BAD_REQUEST,
+            InvitationAcceptanceFailureCode.WORKSPACE_OVERRIDE_NOT_ALLOWED to HttpStatus.BAD_REQUEST,
+            InvitationAcceptanceFailureCode.EXPIRED to HttpStatus.GONE,
+            InvitationAcceptanceFailureCode.REVOKED to HttpStatus.GONE,
+            InvitationAcceptanceFailureCode.ALREADY_CONSUMED to HttpStatus.CONFLICT,
+            InvitationAcceptanceFailureCode.REPLAYED to HttpStatus.CONFLICT,
+            InvitationAcceptanceFailureCode.EMAIL_MISMATCH to HttpStatus.FORBIDDEN,
+        )
+
+        for ((code, expectedStatus) in testCases) {
+            val problem = handler.handle(InvitationNotAcceptableException(code))
+            assertEquals(expectedStatus.value(), problem.status, "Failed for failure code $code")
+            assertEquals(code.publicCode, problem.properties?.get("code"))
+        }
+    }
+
+    @Test
+    fun `maps InvitationNotFoundException, InvitationVersionConflictException and OptimisticLockException`() {
+        val p1 = handler.handle(com.profiletailors.smp.platformadmin.domain.InvitationNotFoundException("inv-1"))
+        assertEquals(HttpStatus.NOT_FOUND.value(), p1.status)
+        assertEquals("INVITATION_NOT_FOUND", p1.properties?.get("code"))
+
+        val p2 = handler.handle(com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException("inv-1"))
+        assertEquals(HttpStatus.CONFLICT.value(), p2.status)
+        assertEquals("INVITATION_VERSION_CONFLICT", p2.properties?.get("code"))
+
+        val p3 = handler.handle(com.profiletailors.smp.platformadmin.application.OptimisticLockException())
+        assertEquals(HttpStatus.CONFLICT.value(), p3.status)
+        assertEquals("OPTIMISTIC_LOCK_CONFLICT", p3.properties?.get("code"))
+    }
+}
