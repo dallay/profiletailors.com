@@ -48,7 +48,7 @@ class ResendInvitationHandler(
         val now = clock.instant()
         val rawToken = com.profiletailors.smp.platformadmin.domain.InvitationTokenGenerator.generate()
         val tokenHash: String = tokenHasher.hash(rawToken)
-        val candidateKey: String = tokenHasher.requireCandidateKey(rawToken)
+        check(tokenHasher is InvitationTokenCandidateKey) { "TokenHasher must implement InvitationTokenCandidateKey" }
         val newExpiresAt = now + invitationTtl
 
         val resentInvitation = invitation.resend(tokenHash, newExpiresAt, now)
@@ -97,8 +97,4 @@ class ResendInvitationHandler(
             throw PlatformAccessDeniedException(PlatformPermission.INVITATIONS_RESEND)
         }
     }
-
-    private fun TokenHasher.requireCandidateKey(rawToken: String): String =
-        (this as? InvitationTokenCandidateKey)?.candidateKey(rawToken)
-            ?: throw IllegalStateException("TokenHasher must implement InvitationTokenCandidateKey")
 }

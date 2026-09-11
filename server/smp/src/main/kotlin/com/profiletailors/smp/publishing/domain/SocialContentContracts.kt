@@ -177,7 +177,7 @@ interface SocialContentCommentRepository {
     suspend fun upsert(comment: SocialComment): SocialComment
 }
 
-interface SocialContentBatchWriter {
+fun interface SocialContentBatchWriter {
     suspend fun persist(posts: Collection<SocialPost>, tombstoneIds: Set<ExternalPostId>, checkpoint: SyncCheckpoint)
 }
 
@@ -255,7 +255,7 @@ data class ReplyCommandResult(
 enum class ReplyCommandState { PROCESSING, SUCCEEDED, FAILED }
 
 /** Resolves whether an actor is allowed to perform a [CapabilityOperation] given the supplied retention. */
-interface SocialContentCapabilityResolver {
+fun interface SocialContentCapabilityResolver {
     /**
      * Determines whether an actor may perform an operation under the specified retention requirements.
      *
@@ -272,10 +272,4 @@ interface SocialContentCapabilityResolver {
 }
 
 class DefaultSocialContentCapabilityResolver(private val resolver: DefaultCapabilityResolver) :
-    SocialContentCapabilityResolver {
-    override fun resolve(
-        actor: SocialContentActor,
-        operation: CapabilityOperation,
-        retention: RetentionRequirements,
-    ): CapabilityDecision = resolver.resolve(actor, operation, retention)
-}
+    SocialContentCapabilityResolver by resolver

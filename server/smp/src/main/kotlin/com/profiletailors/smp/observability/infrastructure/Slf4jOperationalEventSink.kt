@@ -24,6 +24,7 @@ class Slf4jOperationalEventSink : OperationalEventSink {
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (_: Exception) {
+            logger.warn("Failed to emit operational event ${event.name}")
         }
     }
 

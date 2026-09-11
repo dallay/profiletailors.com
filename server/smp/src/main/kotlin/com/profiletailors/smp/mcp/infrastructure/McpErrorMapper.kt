@@ -125,24 +125,6 @@ class McpErrorMapper {
     private fun auth(builder: ErrorBuilder, message: String, code: String = INSUFFICIENT_SCOPE): ApplicationError =
         builder.code(code).category(CATEGORY_AUTHORIZATION).retryable(false).message(message).build()
 
-    private fun notFound(builder: ErrorBuilder, message: String): ApplicationError =
-        builder.code(PUBLICATION_NOT_FOUND).category(CATEGORY_NOT_FOUND).retryable(false).message(message).build()
-
-    private fun validation(
-        builder: ErrorBuilder,
-        message: String,
-        code: String = PUBLICATION_VALIDATION_FAILED,
-    ): ApplicationError = builder.code(code).category(CATEGORY_VALIDATION).retryable(false).message(message).build()
-
-    private fun platform(builder: ErrorBuilder, message: String): ApplicationError =
-        builder.code(MEDIA_UNAVAILABLE).category(CATEGORY_PLATFORM).retryable(true).message(message).build()
-
-    private fun idem(builder: ErrorBuilder, message: String): ApplicationError =
-        builder.code(IDEMPOTENCY_CONFLICT).category(CATEGORY_IDEMPOTENCY).retryable(false).message(message).build()
-
-    private fun throttling(builder: ErrorBuilder, message: String): ApplicationError =
-        builder.code(RATE_LIMIT_EXCEEDED).category(CATEGORY_THROTTLING).retryable(true).message(message).build()
-
     private fun sanitize(message: String): String =
         if (DANGEROUS_PATTERN.containsMatchIn(message)) "Invalid input." else message
 
