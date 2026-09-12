@@ -1,5 +1,7 @@
 # Level 3: Component Diagram
 
+**Last Updated:** 2026-09-12
+
 ## Overview
 
 The Component diagram zooms into the API Application container and shows the internal structure

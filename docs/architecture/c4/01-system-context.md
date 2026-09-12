@@ -1,5 +1,7 @@
 # Level 1: System Context Diagram
 
+**Last Updated:** 2026-09-12
+
 ## Overview
 
 The System Context diagram shows Profile Tailors and how it fits into the world around it. It shows
