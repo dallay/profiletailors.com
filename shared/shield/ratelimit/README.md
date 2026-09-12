@@ -8,7 +8,7 @@ Protects Profile Tailors API endpoints against brute-force attacks, abuse, and r
 
 ## Tech stack
 
-- **Runtime & Language**: Java 25, Kotlin 2.4, Coroutines
+- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines
 - **Framework & Libraries**: Spring WebFlux, Bucket4j 8.10, Caffeine 3.1, Micrometer
 - **Testing**: JUnit 5, AssertJ, Kotest, MockK
 
@@ -16,7 +16,7 @@ Protects Profile Tailors API endpoints against brute-force attacks, abuse, and r
 
 ### Prerequisites
 
-- Java JDK `>= 25`
+- Java JDK `>= 21`
 - Gradle wrapper (`./gradlew`)
 
 ### Installation

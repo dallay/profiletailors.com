@@ -1,5 +1,7 @@
 # Login Flow Architecture & Sequence Diagrams
 
+****Last Updated:** 2026-09-12
+
 - **Status**: Active / Implemented
 - **Bounded Contexts**: `com.profiletailors.smp.identity`, `com.profiletailors.smp.credentials`
 - **Related Specifications**: [ADR-0009: JWT & HttpOnly Cookie Authentication](adr/0009-jwt-and-httponly-cookie-authentication.md), [IAM Platform](iam-platform.md)
