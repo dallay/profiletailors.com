@@ -2,7 +2,7 @@ package com.profiletailors.smp.tenancy.application
 
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot
 
-interface WorkspaceMembershipProvisioner {
+fun interface WorkspaceMembershipProvisioner {
     suspend fun reconcile(workspaceId: String, principalId: String): WorkspaceMembershipSnapshot
 }
 

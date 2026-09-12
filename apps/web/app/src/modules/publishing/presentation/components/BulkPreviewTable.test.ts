@@ -53,4 +53,38 @@ describe('BulkPreviewTable', () => {
     const wrapper = mount(BulkPreviewTable, { props: { rows: [] } })
     expect(wrapper.get('[data-testid="bulk-preview-empty"]').isVisible()).toBe(true)
   })
+
+  it('associates editable inputs with labels', () => {
+    const wrapper = mount(BulkPreviewTable, {
+      props: {
+        editable: true,
+        rows: [
+          {
+            rowIndex: 0,
+            status: 'VALID',
+            errors: [],
+            bodyText: 'Hello',
+            scheduledFor: '2026-06-15T10:00:00Z',
+          },
+          {
+            rowIndex: 1,
+            status: 'VALID',
+            errors: [],
+            bodyText: 'World',
+            scheduledFor: '2026-06-16T10:00:00Z',
+          },
+        ],
+      },
+    })
+    for (const rowIndex of [0, 1]) {
+      for (const field of ['body', 'scheduled']) {
+        const input = wrapper.get(`[data-testid="bulk-row-${field}-${rowIndex}"]`)
+        const id = input.attributes('id')
+        expect(id).toBeTruthy()
+        expect(wrapper.find(`label[for="${id}"]`).exists()).toBe(true)
+      }
+    }
+    const ids = wrapper.findAll('input').map((input) => input.attributes('id'))
+    expect(new Set(ids).size).toBe(ids.length)
+  })
 })

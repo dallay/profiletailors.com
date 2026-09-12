@@ -59,44 +59,44 @@ export type UseUploadAssetReturn = {
  * Composable that runs the PUT-first media upload flow with bounded retry/backoff.
  */
 export function useUploadAsset(): UseUploadAssetReturn {
-  async function uploadAsset(
-    file: File,
-    workspaceId: string,
-    assetId?: string,
-    options: UploadAssetOptions = {},
-  ): Promise<UploadResult> {
-    const maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
-    const initialDelayMs = options.initialDelayMs ?? DEFAULT_INITIAL_DELAY_MS
-    const maxDelayMs = options.maxDelayMs ?? DEFAULT_MAX_DELAY_MS
-
-    if (!Number.isInteger(maxAttempts) || maxAttempts <= 0 || !Number.isFinite(maxAttempts)) {
-      throw new Error('maxAttempts must be a positive finite integer')
-    }
-    if (!Number.isFinite(initialDelayMs) || initialDelayMs < 0) {
-      throw new Error('initialDelayMs must be a finite non-negative number')
-    }
-    if (!Number.isFinite(maxDelayMs) || maxDelayMs < 0) {
-      throw new Error('maxDelayMs must be a finite non-negative number')
-    }
-
-    let lastError: unknown
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        return await putAsset(file, workspaceId, assetId)
-      } catch (err) {
-        lastError = err
-        if (!isRetryable(err) || attempt === maxAttempts) {
-          throw err
-        }
-        await sleep(backoffDelay(attempt, initialDelayMs, maxDelayMs))
-      }
-    }
-
-    throw lastError instanceof Error ? lastError : new Error('Upload failed')
-  }
-
   return {
     uploadAsset,
   }
+}
+
+async function uploadAsset(
+  file: File,
+  workspaceId: string,
+  assetId?: string,
+  options: UploadAssetOptions = {},
+): Promise<UploadResult> {
+  const maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
+  const initialDelayMs = options.initialDelayMs ?? DEFAULT_INITIAL_DELAY_MS
+  const maxDelayMs = options.maxDelayMs ?? DEFAULT_MAX_DELAY_MS
+
+  if (!Number.isInteger(maxAttempts) || maxAttempts <= 0 || !Number.isFinite(maxAttempts)) {
+    throw new Error('maxAttempts must be a positive finite integer')
+  }
+  if (!Number.isFinite(initialDelayMs) || initialDelayMs < 0) {
+    throw new Error('initialDelayMs must be a finite non-negative number')
+  }
+  if (!Number.isFinite(maxDelayMs) || maxDelayMs < 0) {
+    throw new Error('maxDelayMs must be a finite non-negative number')
+  }
+
+  let lastError: unknown
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await putAsset(file, workspaceId, assetId)
+    } catch (err) {
+      lastError = err
+      if (!isRetryable(err) || attempt === maxAttempts) {
+        throw err
+      }
+      await sleep(backoffDelay(attempt, initialDelayMs, maxDelayMs))
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Upload failed')
 }

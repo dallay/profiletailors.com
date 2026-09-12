@@ -45,12 +45,8 @@ class BulkValidationPipeline(
         if (lines.isEmpty()) return BulkValidationResult(emptyList())
         val headerLine = lines.first().trim()
         if (headerLine.isBlank()) return BulkValidationResult(emptyList())
-        val headerColumns = parseCsvLine(headerLine).map { it.trim() }
-        val canonical = BulkTemplate.canonicalHeader().split(",")
-        val headerMatches =
-            headerColumns.size == canonical.size &&
-                headerColumns.map { it.lowercase() } == canonical.map { it.lowercase() }
-        if (!headerMatches) {
+        val headerResult = BulkHeaderParser.parse(headerLine)
+        if (headerResult is BulkHeaderParseResult.Invalid) {
             return BulkValidationResult(
                 listOf(
                     BulkRowValidation(
@@ -66,128 +62,158 @@ class BulkValidationPipeline(
                 ),
             )
         }
-        val headerIndex = canonical.associateWith { col ->
-            headerColumns.indexOfFirst { it.equals(col, ignoreCase = true) }
-        }
-        val bodyIdx = headerIndex["bodyText"] ?: 0
-        val scheduledIdx = headerIndex["scheduledFor"] ?: 1
-        val mediaIdx = headerIndex["media_urls"] ?: 3
-
+        val columns = (headerResult as BulkHeaderParseResult.Valid).columns
+        val canonicalSize = BulkTemplate.canonicalHeader().split(",").size
         val seenHashes = mutableSetOf<String>()
         val rows = mutableListOf<BulkRowValidation>()
         var dataRowIndex = 0
         for (rawLine in lines.drop(1)) {
-            if (rawLine.isBlank()) continue
-            val columns = parseCsvLine(rawLine)
-            val padded = if (columns.size <
-                canonical.size
-            ) {
-                columns + List(canonical.size - columns.size) { "" }
-            } else {
-                columns
+            val validated = validateDataRow(workspaceId, rawLine, columns, canonicalSize, seenHashes, dataRowIndex)
+            if (validated != null) {
+                rows.add(validated)
+                dataRowIndex++
             }
-            val bodyText = padded.getOrNull(bodyIdx)?.trim()
-            val scheduledForRaw = padded.getOrNull(scheduledIdx)?.trim()
-            val mediaUrlsRaw = padded.getOrNull(mediaIdx)?.trim()
-            val isBlankRow = (
-                bodyText.isNullOrBlank() &&
-                    scheduledForRaw.isNullOrBlank() &&
-                    mediaUrlsRaw.isNullOrBlank()
-                )
-            if (isBlankRow) continue
-            val errors = mutableListOf<ImportError>()
-            var scheduledFor: Instant? = null
-            if (scheduledForRaw.isNullOrBlank()) {
-                errors.add(ImportError(code = "INVALID_DATE", message = "scheduledFor is required"))
-            } else {
-                try {
-                    scheduledFor = Instant.parse(scheduledForRaw)
-                    val earliestAllowed = clock.instant().plus(MIN_SCHEDULE_OFFSET)
-                    if (scheduledFor.isBefore(earliestAllowed)) {
-                        errors.add(ImportError(code = "INVALID_DATE", message = "scheduledFor must be in the future"))
-                        scheduledFor = null
-                    }
-                } catch (_: Exception) {
-                    errors.add(ImportError(code = "INVALID_DATE", message = "scheduledFor must be ISO-8601"))
-                }
-            }
-            val mediaUrls = mediaUrlsRaw?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
-            val hasBody = !bodyText.isNullOrBlank()
-            val hasMedia = mediaUrls.isNotEmpty()
-            if (!hasBody && !hasMedia) {
-                errors.add(ImportError(code = "MISSING_CONTENT", message = "bodyText or media_urls is required"))
-            }
-            for (url in mediaUrls) {
-                val blockedReason = ssrfBlockReason(url)
-                if (blockedReason != null) {
-                    errors.add(ImportError(code = "INVALID_MEDIA", message = blockedReason))
-                    break
-                }
-            }
-            val dedupKey = computeDedupHash(workspaceId, bodyText ?: "", scheduledForRaw ?: "")
-            if (!seenHashes.add(dedupKey)) {
-                errors.add(ImportError(code = "DUPLICATE", message = "duplicate row"))
-            }
-            if (hasMedia && errors.none { it.code == "INVALID_MEDIA" }) {
-                val validationAccount = resolveValidationAccount(workspaceId) ?: syntheticValidationAccount(workspaceId)
-                val assets = mediaUrls.map { url ->
-                    PublicationAsset(
-                        id = "asset-$dataRowIndex-${url.hashCode()}",
-                        workspaceId = workspaceId,
-                        sourceType = AssetSourceType.EXTERNAL_URL,
-                        mediaType = MediaUrlPolicy.inferMediaType(url),
-                        externalUrl = url,
-                        status = PublicationAssetStatus.READY,
-                        createdByPrincipalId = "bulk-validation",
-                    )
-                }
-                val draft = PublicationDraft(
-                    id = "draft-bulk-$dataRowIndex",
-                    workspaceId = workspaceId,
-                    authorPrincipalId = "bulk-validation",
-                    provider = validationAccount.provider,
-                    socialAccountId = validationAccount.id,
-                    status = PublicationStatus.DRAFT,
-                    scheduleMode = ScheduleMode.SCHEDULED_AT,
-                    priority = false,
-                    bodyText = bodyText?.takeIf { it.isNotBlank() },
-                    assetIds = assets.map { it.id },
-                    scheduledFor = scheduledFor,
-                )
-                try {
-                    providerCapabilityValidator.validate(
-                        ProviderCapabilityValidationInput(
-                            provider = validationAccount.provider,
-                            socialAccount = validationAccount,
-                            publication = draft,
-                            assets = assets,
-                        ),
-                    )
-                } catch (ex: IllegalArgumentException) {
-                    errors.add(
-                        ImportError(code = "CAPABILITY_VIOLATION", message = ex.message ?: "capability violation"),
-                    )
-                }
-            }
-            val hasInvalid = errors.any { it.code in INVALID_ROW_CODES }
-            val status = if (hasInvalid) BulkRowStatus.INVALID else BulkRowStatus.VALID
-            rows.add(
-                BulkRowValidation(
-                    rowIndex = dataRowIndex,
-                    status = status,
-                    errors = errors,
-                    bodyText = bodyText,
-                    scheduledFor = scheduledFor,
-                    mediaUrls = mediaUrls,
-                ),
-            )
-            dataRowIndex++
         }
         val conflictIndexes = detectConflictIndexes(workspaceId, rows)
         val flagged = rows.map { r ->
             if (r.rowIndex in conflictIndexes) r.copy(hasConflict = true) else r
         }
         return BulkValidationResult(rows = flagged)
+    }
+
+    private suspend fun validateDataRow(
+        workspaceId: String,
+        rawLine: String,
+        columns: BulkHeaderColumns,
+        canonicalSize: Int,
+        seenHashes: MutableSet<String>,
+        dataRowIndex: Int,
+    ): BulkRowValidation? {
+        if (rawLine.isBlank()) return null
+        val fields = extractRowFields(rawLine, columns, canonicalSize)
+        if (fields.isBlankRow) return null
+        val errors = mutableListOf<ImportError>()
+        val schedule = BulkScheduleParser.parse(fields.scheduledForRaw, clock)
+        schedule.error?.let { errors.add(it) }
+        val mediaUrls = parseMediaUrls(fields.mediaUrlsRaw)
+        contentPresenceError(fields.bodyText, mediaUrls)?.let { errors.add(it) }
+        firstMediaBlockError(mediaUrls)?.let { errors.add(it) }
+        duplicateError(workspaceId, fields.bodyText, fields.scheduledForRaw, seenHashes)?.let { errors.add(it) }
+        rowCapabilityError(workspaceId, dataRowIndex, fields, mediaUrls, schedule.scheduledFor, errors)?.let {
+            errors.add(it)
+        }
+        val status = if (errors.any { it.code in INVALID_ROW_CODES }) BulkRowStatus.INVALID else BulkRowStatus.VALID
+        return BulkRowValidation(
+            rowIndex = dataRowIndex,
+            status = status,
+            errors = errors,
+            bodyText = fields.bodyText,
+            scheduledFor = schedule.scheduledFor,
+            mediaUrls = mediaUrls,
+        )
+    }
+
+    private data class BulkRawFields(
+        val bodyText: String?,
+        val scheduledForRaw: String?,
+        val mediaUrlsRaw: String?,
+        val isBlankRow: Boolean,
+    )
+
+    private fun extractRowFields(rawLine: String, columns: BulkHeaderColumns, canonicalSize: Int): BulkRawFields {
+        val parsed = parseCsvLine(rawLine)
+        val padded = padColumns(parsed, canonicalSize)
+        val bodyText = padded.getOrNull(columns.bodyIdx)?.trim()
+        val scheduledForRaw = padded.getOrNull(columns.scheduledIdx)?.trim()
+        val mediaUrlsRaw = padded.getOrNull(columns.mediaIdx)?.trim()
+        val isBlank = bodyText.isNullOrBlank() && scheduledForRaw.isNullOrBlank() && mediaUrlsRaw.isNullOrBlank()
+        return BulkRawFields(bodyText, scheduledForRaw, mediaUrlsRaw, isBlank)
+    }
+
+    private fun padColumns(columns: List<String>, canonicalSize: Int): List<String> {
+        if (columns.size >= canonicalSize) return columns
+        return columns + List(canonicalSize - columns.size) { "" }
+    }
+
+    private fun parseMediaUrls(raw: String?): List<String> =
+        raw?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
+
+    private fun contentPresenceError(bodyText: String?, mediaUrls: List<String>): ImportError? {
+        val hasBody = !bodyText.isNullOrBlank()
+        val hasMedia = mediaUrls.isNotEmpty()
+        if (hasBody || hasMedia) return null
+        return ImportError(code = "MISSING_CONTENT", message = "bodyText or media_urls is required")
+    }
+
+    private fun firstMediaBlockError(mediaUrls: List<String>): ImportError? {
+        for (url in mediaUrls) {
+            val blockedReason = ssrfBlockReason(url)
+            if (blockedReason != null) {
+                return ImportError(code = "INVALID_MEDIA", message = blockedReason)
+            }
+        }
+        return null
+    }
+
+    private fun duplicateError(
+        workspaceId: String,
+        bodyText: String?,
+        scheduledForRaw: String?,
+        seenHashes: MutableSet<String>,
+    ): ImportError? {
+        val dedupKey = computeDedupHash(workspaceId, bodyText ?: "", scheduledForRaw ?: "")
+        if (seenHashes.add(dedupKey)) return null
+        return ImportError(code = "DUPLICATE", message = "duplicate row")
+    }
+
+    private suspend fun rowCapabilityError(
+        workspaceId: String,
+        dataRowIndex: Int,
+        fields: BulkRawFields,
+        mediaUrls: List<String>,
+        scheduledFor: Instant?,
+        errors: List<ImportError>,
+    ): ImportError? {
+        if (mediaUrls.isEmpty()) return null
+        if (errors.any { it.code == "INVALID_MEDIA" }) return null
+        val validationAccount = resolveValidationAccount(workspaceId) ?: syntheticValidationAccount(workspaceId)
+        val assets = mediaUrls.map { url ->
+            PublicationAsset(
+                id = "asset-$dataRowIndex-${url.hashCode()}",
+                workspaceId = workspaceId,
+                sourceType = AssetSourceType.EXTERNAL_URL,
+                mediaType = MediaUrlPolicy.inferMediaType(url),
+                externalUrl = url,
+                status = PublicationAssetStatus.READY,
+                createdByPrincipalId = "bulk-validation",
+            )
+        }
+        val draft = PublicationDraft(
+            id = "draft-bulk-$dataRowIndex",
+            workspaceId = workspaceId,
+            authorPrincipalId = "bulk-validation",
+            provider = validationAccount.provider,
+            socialAccountId = validationAccount.id,
+            status = PublicationStatus.DRAFT,
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            priority = false,
+            bodyText = fields.bodyText?.takeIf { it.isNotBlank() },
+            assetIds = assets.map { it.id },
+            scheduledFor = scheduledFor,
+        )
+        return try {
+            providerCapabilityValidator.validate(
+                ProviderCapabilityValidationInput(
+                    provider = validationAccount.provider,
+                    socialAccount = validationAccount,
+                    publication = draft,
+                    assets = assets,
+                ),
+            )
+            null
+        } catch (ex: IllegalArgumentException) {
+            ImportError(code = "CAPABILITY_VIOLATION", message = ex.message ?: "capability violation")
+        }
     }
 
     private fun computeDedupHash(workspaceId: String, body: String, scheduledFor: String): String {

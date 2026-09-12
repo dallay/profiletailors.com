@@ -38,6 +38,19 @@ export type UseComposerTextFormattingOptions = {
  * await formatting.applyAiAssist()
  * ```
  */
+function normalizeHashtag(tag: string): string {
+  if (tag.startsWith('#')) {
+    const body = tag
+      .slice(1)
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '')
+    return body ? `#${body}` : ''
+  }
+
+  const cleaned = tag.toLowerCase().replace(/[^a-z0-9_]/g, '')
+  return cleaned ? `#${cleaned}` : ''
+}
+
 export function useComposerTextFormatting(
   options: UseComposerTextFormattingOptions,
 ): UseComposerTextFormattingResult {
@@ -50,19 +63,6 @@ export function useComposerTextFormatting(
   // ============================================================================
   // HASHTAGS
   // ============================================================================
-
-  function normalizeHashtag(tag: string): string {
-    if (tag.startsWith('#')) {
-      const body = tag
-        .slice(1)
-        .toLowerCase()
-        .replace(/[^a-z0-9_]/g, '')
-      return body ? `#${body}` : ''
-    }
-
-    const cleaned = tag.toLowerCase().replace(/[^a-z0-9_]/g, '')
-    return cleaned ? `#${cleaned}` : ''
-  }
 
   function appendHashtag(tag: string): boolean {
     if (!tag || tag.trim() === '') return false

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { requestPasswordReset, type ApiError } from '@modules/auth/infrastructure/auth-api'
 import { usePublicCapabilitiesStore } from '@modules/auth/infrastructure/public-capabilities.store'
 import { forgotPasswordSchema } from '@shared/lib/validation/schemas'
+import { resolveRequestErrorKey } from './password-recovery-errors'
 import AuthShell from './AuthShell.vue'
 import PasswordRecoveryUnavailable from './PasswordRecoveryUnavailable.vue'
 
@@ -28,18 +29,14 @@ async function submit() {
     success.value = true
   } catch (cause) {
     const error = cause as ApiError
-    requestError.value = error.status === 429
-      ? 'passwordRecovery.rateLimited'
-      : error.status === 503 || error.code === 'PASSWORD_RECOVERY_DISABLED'
-        ? 'passwordRecovery.unavailable'
-        : 'passwordRecovery.genericError'
+    requestError.value = resolveRequestErrorKey(error.status, error.code)
   } finally { pending.value = false }
 }
 </script>
 
 <template>
   <AuthShell>
-    <div v-if="!capabilities.resolved" role="status" class="text-center text-sm text-text-secondary">{{ t('passwordRecovery.checkingAvailability') }}</div>
+    <output v-if="!capabilities.resolved" aria-live="polite" class="block text-center text-sm text-text-secondary">{{ t('passwordRecovery.checkingAvailability') }}</output>
     <PasswordRecoveryUnavailable v-else-if="!capabilities.passwordRecoveryEnabled" />
     <div v-else class="space-y-6">
       <header class="space-y-2 text-center"><h1 class="text-2xl font-semibold text-text-display">{{ t('passwordRecovery.forgotTitle') }}</h1><p class="text-sm text-text-secondary">{{ t('passwordRecovery.forgotDescription') }}</p></header>

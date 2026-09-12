@@ -69,7 +69,7 @@ class LinkedInCommunityManagement(
         )
         val candidates = mutableListOf<SocialContentActorCandidate>()
         var start = 0
-        var total = 0
+        var total: Int
         do {
             val response = getJson(
                 scope = scope,

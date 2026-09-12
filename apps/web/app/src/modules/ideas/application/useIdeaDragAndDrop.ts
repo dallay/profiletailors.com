@@ -36,6 +36,21 @@ type UseIdeaDragAndDropOptions = {
   dependencies?: DndDependencies
 }
 
+function getDropTargetData(event: ElementEventPayloadMap['onDrop']): DropTargetData | null {
+  for (const target of event.location.current.dropTargets) {
+    const kind = target.data.kind
+    const columnId = target.data.columnId
+    if ((kind === 'card' || kind === 'column') && typeof columnId === 'string') {
+      return {
+        kind,
+        columnId,
+        ideaId: typeof target.data.ideaId === 'string' ? target.data.ideaId : undefined,
+      }
+    }
+  }
+  return null
+}
+
 export function useIdeaDragAndDrop(options: UseIdeaDragAndDropOptions) {
   const dnd = options.dependencies ?? { monitorForElements, draggable, dropTargetForElements }
   const columnElements = new Map<string, HTMLElement>()
@@ -75,21 +90,6 @@ export function useIdeaDragAndDrop(options: UseIdeaDragAndDropOptions) {
       const index = column.ideas.findIndex((idea) => idea.id === ideaId)
       if (index >= 0) {
         return { columnId: column.id, index }
-      }
-    }
-    return null
-  }
-
-  function getDropTargetData(event: ElementEventPayloadMap['onDrop']): DropTargetData | null {
-    for (const target of event.location.current.dropTargets) {
-      const kind = target.data.kind
-      const columnId = target.data.columnId
-      if ((kind === 'card' || kind === 'column') && typeof columnId === 'string') {
-        return {
-          kind,
-          columnId,
-          ideaId: typeof target.data.ideaId === 'string' ? target.data.ideaId : undefined,
-        }
       }
     }
     return null

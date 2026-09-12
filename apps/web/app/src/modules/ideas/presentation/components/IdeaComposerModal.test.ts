@@ -222,7 +222,7 @@ describe('IdeaComposerModal', () => {
       await addBtn.trigger('click')
       await nextTick()
       const chips = wrapper.findAll('[data-testid^="tag-chip-"]')
-      expect(chips.length).toBe(2)
+      expect(chips).toHaveLength(2)
     } else {
       expect(wrapper.find('[data-testid="markdown-toolbar"]').exists()).toBe(true)
     }
@@ -240,7 +240,7 @@ describe('IdeaComposerModal', () => {
       await urlInput.setValue('https://example.com')
       await addLinkBtn.trigger('click')
       await nextTick()
-      expect(wrapper.findAll('[data-testid^="link-chip-"]').length).toBe(1)
+      expect(wrapper.findAll('[data-testid^="link-chip-"]')).toHaveLength(1)
     } else {
       expect(wrapper.find('[data-testid="composer-link-url"]').exists() || true).toBeTruthy()
     }
@@ -255,6 +255,14 @@ describe('IdeaComposerModal', () => {
     expect(nativeSelect.exists()).toBe(true)
     await nativeSelect.setValue('done')
     expect((nativeSelect.element as HTMLSelectElement).value).toBe('done')
+  })
+
+  it('associates native column select with a label', () => {
+    const wrapper = mountModal({ idea: null })
+    const nativeSelect = wrapper.get('[data-testid="composer-column-select-native"]')
+    const id = nativeSelect.attributes('id')
+    expect(id).toBeTruthy()
+    expect(wrapper.find(`label[for="${id}"]`).exists()).toBe(true)
   })
 
   it('duplicate save guard disables button while saving', async () => {

@@ -110,10 +110,36 @@ describe('BulkImportModal', () => {
     wrapper.unmount()
   })
 
-  it('click self on backdrop emits close', async () => {
+  it('backdrop click does not dismiss the modal', async () => {
     const wrapper = mountModal()
-    const backdrop = document.body.querySelector('[data-testid="bulk-import-modal"]') as HTMLElement
-    backdrop.click()
+    const dialog = document.body.querySelector(
+      'dialog[data-testid="bulk-import-modal"]',
+    ) as HTMLDialogElement
+    dialog.click()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.emitted('close')).toBeFalsy()
+    wrapper.unmount()
+  })
+
+  it('renders a native modal dialog when open', async () => {
+    const wrapper = mountModal({ isOpen: true })
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    const dialog = document.body.querySelector(
+      'dialog[data-testid="bulk-import-modal"]',
+    ) as HTMLDialogElement
+    expect(dialog).not.toBeNull()
+    expect(dialog.hasAttribute('open')).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('emits close when the native dialog closes', async () => {
+    const wrapper = mountModal({ isOpen: true })
+    await wrapper.vm.$nextTick()
+    const dialog = document.body.querySelector(
+      'dialog[data-testid="bulk-import-modal"]',
+    ) as HTMLDialogElement
+    dialog.dispatchEvent(new Event('close'))
     await wrapper.vm.$nextTick()
     expect(wrapper.emitted('close')).toBeTruthy()
     wrapper.unmount()
