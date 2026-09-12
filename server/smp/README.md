@@ -8,7 +8,7 @@ Acts as the central backend service (`server/smp`) for Profile Tailors. It expos
 
 ## Tech stack
 
-- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines & Flow
+- **Runtime & Language**: Java 25, Kotlin 2.4, Coroutines & Flow
 - **Framework**: Spring Boot 4.0, Spring WebFlux, Spring Modulith
 - **Database & Persistence**: PostgreSQL 16, R2DBC, Spring Data R2DBC, Flyway
 - **Security & Cryptography**: Spring Security Reactive, JWT, AES-256-GCM
@@ -19,7 +19,7 @@ Acts as the central backend service (`server/smp`) for Profile Tailors. It expos
 
 ### Prerequisites
 
-- Java JDK `>= 21`
+- Java JDK `>= 25`
 - Docker & Docker Compose (for local PostgreSQL infrastructure)
 - `just` command runner (`>= 1.30`)
 

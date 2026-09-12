@@ -8,14 +8,14 @@ Defines core lead acquisition abstractions used by waitlist management services 
 
 ## Tech stack
 
-- **Runtime & Language**: Java 21, Kotlin 2.4
+- **Runtime & Language**: Java 25, Kotlin 2.4
 - **Testing**: JUnit 5, Kotest, ArchUnit
 
 ## Getting started
 
 ### Prerequisites
 
-- Java JDK `>= 21`
+- Java JDK `>= 25`
 - Gradle wrapper (`./gradlew`)
 
 ### Installation

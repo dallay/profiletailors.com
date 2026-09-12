@@ -8,7 +8,7 @@ Provides unified file and media asset storage abstractions for Profile Tailors b
 
 ## Tech stack
 
-- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines & Flow
+- **Runtime & Language**: Java 25, Kotlin 2.4, Coroutines & Flow
 - **Framework & Cloud SDKs**: AWS S3 SDK v2, Spring Boot 4.0, Project Reactor Bridge
 - **Testing**: JUnit 5, Kotest, MockK
 
@@ -16,7 +16,7 @@ Provides unified file and media asset storage abstractions for Profile Tailors b
 
 ### Prerequisites
 
-- Java JDK `>= 21`
+- Java JDK `>= 25`
 - Gradle wrapper (`./gradlew`)
 
 ### Installation
