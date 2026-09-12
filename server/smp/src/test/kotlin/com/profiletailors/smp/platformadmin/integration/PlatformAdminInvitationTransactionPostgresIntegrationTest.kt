@@ -80,6 +80,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
 
     override suspend fun seedScenario() {
         seedPrincipal(operatorId.toString())
+        seedPrincipal("user-$operatorId")
         databaseClient.sql(
             """
             INSERT INTO waitlists (id, key, name, context, status)

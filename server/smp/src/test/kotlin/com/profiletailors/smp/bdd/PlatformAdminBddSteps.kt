@@ -321,7 +321,7 @@ class PlatformAdminBddSteps {
     // ── Database helpers ─────────────────────────────────────────────────────
 
     private suspend fun cleanupPlatformAdminData() {
-        val principalIds = "'$ADMIN_PRINCIPAL_ID', 'principal-1'"
+        val principalIds = "'$ADMIN_PRINCIPAL_ID', 'user-$ADMIN_PRINCIPAL_ID', 'principal-1', 'user-principal-1'"
         val deleteByPrincipal = { table: String ->
             "DELETE FROM $table WHERE principal_id IN ($principalIds)"
         }
@@ -368,7 +368,23 @@ class PlatformAdminBddSteps {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('user-$ADMIN_PRINCIPAL_ID', 'USER', 'local:admin-issued@platform.example', NULL, 'Platform Admin')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
             VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'jwt-user@example.com')
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('user-principal-1', 'USER', 'accepted-123', 'https://issuer.example', 'jwt-user@example.com')
             ON CONFLICT DO NOTHING
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
