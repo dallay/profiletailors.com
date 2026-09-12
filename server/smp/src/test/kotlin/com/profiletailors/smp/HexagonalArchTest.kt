@@ -9,18 +9,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-/**
- * Architecture tests that enforce hexagonal layer boundaries in the smp module.
- *
- * Rules:
- * - domain: pure Kotlin, no Spring, no upward dependencies
- * - application: depends on domain only (within smp packages)
- * - infrastructure: may depend on domain and application
- * - every bounded context exposes domain, application, and infrastructure packages
- *
- * Bounded contexts are auto-discovered from the package tree so that
- * adding a new context automatically includes it in the validation.
- */
 internal class HexagonalArchTest {
 
     private lateinit var importedClasses: JavaClasses
@@ -54,12 +42,6 @@ internal class HexagonalArchTest {
             .haveSimpleNameNotEndingWith("ModuleMetadata")
             .and()
             .haveSimpleNameNotEndingWith("package-info")
-            .and()
-            .haveSimpleNameNotContaining("InvitationIssued")
-            .and()
-            .haveSimpleNameNotContaining("DirectInvitationResent")
-            .and()
-            .haveSimpleNameNotContaining("DomainLayerExports")
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage("org.springframework..")
@@ -119,10 +101,6 @@ internal class HexagonalArchTest {
             .check(importedClasses)
     }
 
-    /**
-     * Guards against the real violation: application layer using Spring R2DBC, HTTP, or Security
-     * imports directly — bypassing the domain port/abstraction layer.
-     */
     @Test
     fun applicationLayerShouldNotDependOnSpringR2dbcHttpOrSecurity() {
         ArchRuleDefinition.noClasses()
@@ -143,9 +121,6 @@ internal class HexagonalArchTest {
             .check(importedClasses)
     }
 
-    /**
-     * Guards against reactive/infrastructure imports leaking into application via coroutine adapters.
-     */
     @Test
     fun applicationLayerShouldNotDependOnReactorOrCoroutinesReactor() {
         ArchRuleDefinition.noClasses()
@@ -164,9 +139,6 @@ internal class HexagonalArchTest {
             .check(importedClasses)
     }
 
-    /**
-     * Guards against Spring Security base classes leaking into application exceptions.
-     */
     @Test
     fun applicationLayerShouldNotExtendSpringSecurityClasses() {
         ArchRuleDefinition.noClasses()
@@ -182,9 +154,6 @@ internal class HexagonalArchTest {
             .check(importedClasses)
     }
 
-    /**
-     * Guards domain from any infrastructure framework — even narrower than the existing Spring check.
-     */
     @Test
     fun domainLayerShouldNotDependOnInfrastructureFrameworks() {
         ArchRuleDefinition.noClasses()
@@ -194,12 +163,6 @@ internal class HexagonalArchTest {
             .haveSimpleNameNotEndingWith("ModuleMetadata")
             .and()
             .haveSimpleNameNotEndingWith("package-info")
-            .and()
-            .haveSimpleNameNotContaining("InvitationIssued")
-            .and()
-            .haveSimpleNameNotContaining("DirectInvitationResent")
-            .and()
-            .haveSimpleNameNotContaining("DomainLayerExports")
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage(
