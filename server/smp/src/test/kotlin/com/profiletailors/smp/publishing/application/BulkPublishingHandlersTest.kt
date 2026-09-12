@@ -1,7 +1,6 @@
 @file:Suppress("MaxLineLength", "ktlint:standard:max-line-length")
 
 package com.profiletailors.smp.publishing.application
-
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
@@ -9,6 +8,7 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.BulkImportJob
 import com.profiletailors.smp.publishing.domain.BulkImportJobRepository
 import com.profiletailors.smp.publishing.domain.BulkJobStatus
@@ -216,5 +216,127 @@ class BulkPublishingHandlersTest {
         val result = handler.handle(BulkTemplatesQuery(workspaceId = "ws-1"))
         result.templates.isNotEmpty() shouldBe true
         result.templates.first().header shouldBe "bodyText,scheduledFor,timezone,media_urls,hashtags"
+    }
+
+    @Test
+    fun `get job handler returns job with rows when found`() = runTest {
+        val jobId = "job-123"
+        val workspaceId = "ws-1"
+        val repo = mockk<BulkImportJobRepository>()
+        val job = BulkImportJob(
+            id = jobId,
+            workspaceId = workspaceId,
+            principalId = "user-1",
+            idempotencyKey = "2ff0ee0d946cafd0c29e5534f406f194f313f925576ae4c7beef87d5bced8209",
+            csvHash = "hash-1",
+            status = BulkJobStatus.SCHEDULED,
+            totalRows = 1,
+            scheduledCount = 1,
+            failedCount = 0,
+            createdAt = Instant.parse("2026-01-01T00:00:00Z"),
+        )
+        val rows = listOf(
+            com.profiletailors.smp.publishing.domain.BulkImportRow(
+                id = "row-1",
+                jobId = jobId,
+                rowIndex = 0,
+                status = com.profiletailors.smp.publishing.domain.BulkRowStatus.SCHEDULED,
+                errors = emptyList(),
+                publicationId = "pub-1",
+                bodyText = "Hello",
+                scheduledFor = Instant.parse("2026-02-01T12:00:00Z"),
+                mediaUrls = emptyList(),
+                hasConflict = false,
+            ),
+        )
+        coEvery { repo.findByWorkspaceAndId(workspaceId, jobId) } returns job
+        coEvery { repo.findRows(jobId) } returns rows
+
+        val handler = GetBulkJobHandler(repo)
+        val result = handler.handle(GetBulkJobQuery(workspaceId = workspaceId, jobId = jobId))
+
+        result.jobId shouldBe jobId
+        result.status shouldBe "SCHEDULED"
+        result.totalRows shouldBe 1
+        result.scheduledCount shouldBe 1
+        result.failedCount shouldBe 0
+        result.rows.size shouldBe 1
+        result.rows[0].rowIndex shouldBe 0
+        result.rows[0].bodyText shouldBe "Hello"
+        result.rows[0].status shouldBe "SCHEDULED"
+    }
+
+    @Test
+    fun `template csv handler returns canonical header and csv`() = runTest {
+        val handler = BulkTemplateCsvHandler()
+        val result = handler.handle(BulkTemplateCsvQuery(workspaceId = "ws-1", templateId = "tmpl-1"))
+        result.header shouldBe "bodyText,scheduledFor,timezone,media_urls,hashtags"
+        result.csv shouldBe "bodyText,scheduledFor,timezone,media_urls,hashtags\n"
+    }
+
+    @Test
+    fun `schedule handler rethrows MediaServiceUnavailableException`() = runTest {
+        val workspaceId = "ws-1"
+        val principalId = "u-1"
+        coEvery { principalContextProvider.require() } returns
+            PrincipalContext(principalId, PrincipalType.USER, principalId)
+        every { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { bulkImportJobRepository.findByIdempotencyKey(any()) } returns null
+        coEvery { bulkImportJobRepository.save(any()) } answers { it.invocation.args[0] as BulkImportJob }
+        coEvery { bulkImportJobRepository.saveRows(any()) } returns Unit
+        coEvery { socialAccountRepository.findFirstActiveByWorkspace(workspaceId) } returns SocialAccount(
+            id = "acc-1",
+            socialConnectionId = "conn-1",
+            workspaceId = workspaceId,
+            provider = SocialProvider.LINKEDIN,
+            providerAccountId = "p-1",
+            kind = SocialAccountKind.PERSONAL_PROFILE,
+            displayName = "Active",
+            status = SocialConnectionStatus.ACTIVE,
+        )
+        coEvery {
+            publicationCreationService.create(any(), any(), any(), any(), any(), any(), any(), any(), any())
+        } throws MediaServiceUnavailableException("Media service down")
+
+        val csv = "bodyText,scheduledFor,timezone,media_urls,hashtags\nValid row,2026-02-01T12:00:00Z,UTC,,"
+        assertThrows<MediaServiceUnavailableException> {
+            scheduleHandler.handle(ScheduleBulkCommand(workspaceId = workspaceId, csvText = csv, csvHash = csv))
+        }
+    }
+
+    @Test
+    fun `schedule handler maps generic exception to failed row`() = runTest {
+        val workspaceId = "ws-1"
+        val principalId = "u-1"
+        coEvery { principalContextProvider.require() } returns
+            PrincipalContext(principalId, PrincipalType.USER, principalId)
+        every { resourceContextProvider.require() } returns ResourceContext(ResourceContextType.WORKSPACE, workspaceId)
+        coEvery { bulkImportJobRepository.findByIdempotencyKey(any()) } returns null
+        coEvery { bulkImportJobRepository.save(any()) } answers { it.invocation.args[0] as BulkImportJob }
+        coEvery { bulkImportJobRepository.saveRows(any()) } returns Unit
+        coEvery { socialAccountRepository.findFirstActiveByWorkspace(workspaceId) } returns SocialAccount(
+            id = "acc-1",
+            socialConnectionId = "conn-1",
+            workspaceId = workspaceId,
+            provider = SocialProvider.LINKEDIN,
+            providerAccountId = "p-1",
+            kind = SocialAccountKind.PERSONAL_PROFILE,
+            displayName = "Active",
+            status = SocialConnectionStatus.ACTIVE,
+        )
+        coEvery {
+            publicationCreationService.create(any(), any(), any(), any(), any(), any(), any(), any(), any())
+        } throws RuntimeException("Unexpected error during creation")
+
+        val csv = "bodyText,scheduledFor,timezone,media_urls,hashtags\nValid row,2026-02-01T12:00:00Z,UTC,,"
+        val result = scheduleHandler.handle(
+            ScheduleBulkCommand(workspaceId = workspaceId, csvText = csv, csvHash = csv),
+        )
+
+        result.totalRows shouldBe 1
+        result.scheduledCount shouldBe 0
+        result.failedCount shouldBe 1
+        result.rows[0].status shouldBe "FAILED"
+        result.rows[0].errors.first().code shouldBe "UNKNOWN"
     }
 }

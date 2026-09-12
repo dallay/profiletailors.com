@@ -8,7 +8,7 @@ Forms the foundation of the shared kernel for the Kotlin backend. It is imported
 
 ## Tech stack
 
-- **Runtime & Language**: Java 25, Kotlin 2.4, Coroutines
+- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines
 - **JSON**: Jackson Kotlin Module
 - **Testing**: JUnit 5, AssertJ, Kotest, MockK
 
@@ -16,7 +16,7 @@ Forms the foundation of the shared kernel for the Kotlin backend. It is imported
 
 ### Prerequisites
 
-- Java JDK `>= 25`
+- Java JDK `>= 21`
 - Gradle wrapper (`./gradlew`)
 
 ### Installation

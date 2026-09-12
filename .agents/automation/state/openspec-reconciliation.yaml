@@ -1,18 +1,18 @@
 schemaVersion: 1
 task: openspec-reconciliation
-lastExecution: "2026-09-11T18:06:35Z"
+lastExecution: "2026-09-04T18:11:15Z"
 outcome: NO_DRIFT_DETECTED
 findings: []
 checks:
   - name: active-changes-audit
     target: openspec/changes
     status: Passed
-    notes: "All active changes audited (dallay-565, dallay-565-invitation-notification-integration, dallay-567-accept-invitations-registration-flow, dallay-568-direct-invitation-admin-commands, hotfix-direct-invitation-issued-by-fk, private-beta-launch-readiness); states are accurate and aligned with SDD lifecycle."
+    notes: All active changes audited (consent-ux, dallay-413, dallay-414, dallay-561, dallay-565, private-beta-launch-readiness); states are accurate and aligned with SDD lifecycle.
   - name: global-specs-validation
     target: openspec/specs
     status: Passed
-    notes: "Global specs match current baseline (63 files); active changes have not been prematurely archived."
+    notes: Global specs match current baseline; active changes have not been prematurely archived.
   - name: frontend-check
     target: apps/web/marketing
     status: Passed
-    notes: "astro check passed with 0 errors and 0 warnings."
+    notes: astro check passed with 0 errors and 0 warnings.
