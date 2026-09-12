@@ -33,6 +33,8 @@ import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -220,7 +222,7 @@ class InvitationActivationCoordinatorTest {
     }
 
     @Test
-    fun `throws IllegalStateException when waitlist entry is missing during waitlist conversion`() = runTest {
+    fun `should fail when waitlist entry is missing during conversion`() = runTest {
         val rawToken = "secret-token"
         val candidateKey = "cand-123"
         val principalId = "principal-123"
@@ -244,91 +246,145 @@ class InvitationActivationCoordinatorTest {
         coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
         coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
         coEvery { principalIdentityLookup.findByPrincipalId(principalId) } returns principalFacts
+        coEvery { workspaceProvisioningService.provisionDefaultWorkspace(principalId, "user@example.com") } returns
+            WorkspaceProvisioningService.ProvisionedWorkspace("ws-new", "Default", WorkspaceMembershipStatus.ACTIVE)
         coEvery { waitlistEntryAdmin.findById("entry-123") } returns null
 
-        val ex = assertThrows<IllegalStateException> {
+        val exception = shouldThrow<IllegalStateException> {
             coordinator.activateForRegistration(rawToken, "user@example.com", principalId)
         }
-        assertEquals("Waitlist entry not found", ex.message)
+
+        exception.message shouldBe "Waitlist entry not found"
     }
 
     @Test
-    fun `records telemetry when invitation is expired or replayed`() = runTest {
+    fun `should record expired telemetry when invitation is expired`() = runTest {
         val rawToken = "secret-token"
         val candidateKey = "cand-123"
         val expiredInvitation = createInvitation(status = InvitationStatus.EXPIRED)
-        val acceptedInvitation = createInvitation(status = InvitationStatus.ACCEPTED)
 
         coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
         coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns expiredInvitation
         coEvery { tokenHasher.matches(rawToken, expiredInvitation.tokenHash) } returns true
 
-        val ex1 = assertThrows<InvitationNotAcceptableException> {
+        val exception = shouldThrow<InvitationNotAcceptableException> {
             coordinator.activateForRegistration(rawToken, "user@example.com", "principal-1")
         }
-        assertEquals(InvitationAcceptanceFailureCode.EXPIRED, ex1.failureCode)
-        verify { telemetry.recordInvitationExpired() }
 
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.EXPIRED
+        verify(exactly = 1) { telemetry.recordInvitationExpired() }
+    }
+
+    @Test
+    fun `should record replay telemetry when invitation is already accepted`() = runTest {
+        val rawToken = "secret-token"
+        val candidateKey = "cand-123"
+        val acceptedInvitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-existing",
+        ).accept(now, "principal-1")
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
         coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns acceptedInvitation
         coEvery { tokenHasher.matches(rawToken, acceptedInvitation.tokenHash) } returns true
 
-        val ex2 = assertThrows<InvitationNotAcceptableException> {
+        val exception = shouldThrow<InvitationNotAcceptableException> {
             coordinator.activateForRegistration(rawToken, "user@example.com", "principal-1")
         }
-        assertEquals(InvitationAcceptanceFailureCode.ALREADY_CONSUMED, ex2.failureCode)
-        verify { telemetry.recordInvitationReplayRejected() }
+
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.ALREADY_CONSUMED
+        verify(exactly = 1) { telemetry.recordInvitationReplayRejected() }
     }
 
     @Test
-    fun `prepare fails and records telemetry or throws appropriate failure codes`() = runTest {
+    fun `should reject preparation when candidate key is unknown`() = runTest {
         val rawToken = "token"
         val candidateKey = "cand"
 
-        // Invalid candidate key
         coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
         coEvery { invitationRepository.findByCandidateKey(candidateKey) } returns null
 
-        val ex1 = assertThrows<InvitationNotAcceptableException> {
+        val exception = shouldThrow<InvitationNotAcceptableException> {
             coordinator.prepare(rawToken, "user@example.com")
         }
-        assertEquals(InvitationAcceptanceFailureCode.INVALID, ex1.failureCode)
 
-        // Expired
-        val expiredInvitation = createInvitation(status = InvitationStatus.EXPIRED)
-        coEvery { invitationRepository.findByCandidateKey(candidateKey) } returns expiredInvitation
-        coEvery { tokenHasher.matches(rawToken, expiredInvitation.tokenHash) } returns true
-
-        val ex2 = assertThrows<InvitationNotAcceptableException> {
-            coordinator.prepare(rawToken, "user@example.com")
-        }
-        assertEquals(InvitationAcceptanceFailureCode.EXPIRED, ex2.failureCode)
-
-        // Revoked
-        val revokedInvitation = createInvitation(status = InvitationStatus.REVOKED)
-        coEvery { invitationRepository.findByCandidateKey(candidateKey) } returns revokedInvitation
-        coEvery { tokenHasher.matches(rawToken, revokedInvitation.tokenHash) } returns true
-
-        val ex3 = assertThrows<InvitationNotAcceptableException> {
-            coordinator.prepare(rawToken, "user@example.com")
-        }
-        assertEquals(InvitationAcceptanceFailureCode.REVOKED, ex3.failureCode)
-
-        // Email mismatch
-        val validInvitation = createInvitation(status = InvitationStatus.ACTIVE)
-        coEvery { invitationRepository.findByCandidateKey(candidateKey) } returns validInvitation
-        coEvery { tokenHasher.matches(rawToken, validInvitation.tokenHash) } returns true
-
-        val ex4 = assertThrows<InvitationNotAcceptableException> {
-            coordinator.prepare(rawToken, "mismatch@example.com")
-        }
-        assertEquals(InvitationAcceptanceFailureCode.EMAIL_MISMATCH, ex4.failureCode)
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.INVALID
     }
 
     @Test
-    fun `complete validates context and fails when context properties mismatch`() = runTest {
+    fun `should reject preparation and record telemetry when invitation is expired`() = runTest {
+        val rawToken = "token"
+        val candidateKey = "cand"
+        val expiredInvitation = createInvitation(status = InvitationStatus.EXPIRED)
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKey(candidateKey) } returns expiredInvitation
+        coEvery { tokenHasher.matches(rawToken, expiredInvitation.tokenHash) } returns true
+
+        val exception = shouldThrow<InvitationNotAcceptableException> {
+            coordinator.prepare(rawToken, "user@example.com")
+        }
+
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.EXPIRED
+        verify(exactly = 1) { telemetry.recordInvitationExpired() }
+    }
+
+    @Test
+    fun `should reject preparation when invitation is revoked`() = runTest {
+        val rawToken = "token"
+        val candidateKey = "cand"
+        val revokedInvitation = createInvitation(status = InvitationStatus.REVOKED)
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKey(candidateKey) } returns revokedInvitation
+        coEvery { tokenHasher.matches(rawToken, revokedInvitation.tokenHash) } returns true
+
+        val exception = shouldThrow<InvitationNotAcceptableException> {
+            coordinator.prepare(rawToken, "user@example.com")
+        }
+
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.REVOKED
+    }
+
+    @Test
+    fun `should reject preparation and record telemetry when invitation is already accepted`() = runTest {
+        val rawToken = "token"
+        val candidateKey = "cand"
+        val acceptedInvitation = createInvitation().accept(now, "principal-1", "ws-new")
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKey(candidateKey) } returns acceptedInvitation
+        coEvery { tokenHasher.matches(rawToken, acceptedInvitation.tokenHash) } returns true
+
+        val exception = shouldThrow<InvitationNotAcceptableException> {
+            coordinator.prepare(rawToken, "user@example.com")
+        }
+
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.ALREADY_CONSUMED
+        verify(exactly = 1) { telemetry.recordInvitationReplayRejected() }
+    }
+
+    @Test
+    fun `should reject preparation when invitation email does not match`() = runTest {
+        val rawToken = "token"
+        val candidateKey = "cand"
+        val validInvitation = createInvitation(status = InvitationStatus.ACTIVE)
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKey(candidateKey) } returns validInvitation
+        coEvery { tokenHasher.matches(rawToken, validInvitation.tokenHash) } returns true
+
+        val exception = shouldThrow<InvitationNotAcceptableException> {
+            coordinator.prepare(rawToken, "mismatch@example.com")
+        }
+
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.EMAIL_MISMATCH
+    }
+
+    @Test
+    fun `should reject completion when context invitation id does not match`() = runTest {
         val rawToken = "raw-token"
         val candidateKey = "cand-123"
-        val principalId = "principal-123"
         val invitation = createInvitation(
             target = InvitationTarget.EXISTING_WORKSPACE,
             workspaceId = "ws-1",
@@ -339,31 +395,96 @@ class InvitationActivationCoordinatorTest {
         coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
         coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
 
-        // Context ID mismatch
-        val mismatchIdContext = InvitationRegistrationContext(
+        val context = InvitationRegistrationContext(
             invitationId = UUID.randomUUID().toString(),
             target = InvitationRegistrationTarget.EXISTING_WORKSPACE,
             workspaceId = "ws-1",
             source = InvitationRegistrationSource.DIRECT,
         )
 
-        val ex1 = assertThrows<InvitationNotAcceptableException> {
-            coordinator.complete(mismatchIdContext, rawToken, principalId, "User")
+        val exception = shouldThrow<InvitationNotAcceptableException> {
+            coordinator.complete(context, rawToken, "principal-123", "User")
         }
-        assertEquals(InvitationAcceptanceFailureCode.INVALID, ex1.failureCode)
 
-        // Target mismatch
-        val mismatchTargetContext = InvitationRegistrationContext(
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.INVALID
+    }
+
+    @Test
+    fun `should reject completion when context target does not match`() = runTest {
+        val rawToken = "raw-token"
+        val candidateKey = "cand-123"
+        val invitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-1",
+        )
+        val context = InvitationRegistrationContext(
             invitationId = invitation.id.value.toString(),
             target = InvitationRegistrationTarget.NEW_WORKSPACE,
             workspaceId = null,
             source = InvitationRegistrationSource.DIRECT,
         )
 
-        val ex2 = assertThrows<InvitationNotAcceptableException> {
-            coordinator.complete(mismatchTargetContext, rawToken, principalId, "User")
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
+        coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
+
+        val exception = shouldThrow<InvitationNotAcceptableException> {
+            coordinator.complete(context, rawToken, "principal-123", "User")
         }
-        assertEquals(InvitationAcceptanceFailureCode.INVALID, ex2.failureCode)
+
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.INVALID
+    }
+
+    @Test
+    fun `should reject completion when context source does not match`() = runTest {
+        val rawToken = "raw-token"
+        val candidateKey = "cand-123"
+        val invitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-1",
+        )
+        val context = InvitationRegistrationContext(
+            invitationId = invitation.id.value.toString(),
+            target = InvitationRegistrationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-1",
+            source = InvitationRegistrationSource.WAITLIST,
+        )
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
+        coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
+
+        val exception = shouldThrow<InvitationNotAcceptableException> {
+            coordinator.complete(context, rawToken, "principal-123", "User")
+        }
+
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.INVALID
+    }
+
+    @Test
+    fun `should reject completion when context workspace id does not match`() = runTest {
+        val rawToken = "raw-token"
+        val candidateKey = "cand-123"
+        val invitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-1",
+        )
+        val context = InvitationRegistrationContext(
+            invitationId = invitation.id.value.toString(),
+            target = InvitationRegistrationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-other",
+            source = InvitationRegistrationSource.DIRECT,
+        )
+
+        coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
+        coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
+        coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
+
+        val exception = shouldThrow<InvitationNotAcceptableException> {
+            coordinator.complete(context, rawToken, "principal-123", "User")
+        }
+
+        exception.failureCode shouldBe InvitationAcceptanceFailureCode.INVALID
     }
 
     @Test

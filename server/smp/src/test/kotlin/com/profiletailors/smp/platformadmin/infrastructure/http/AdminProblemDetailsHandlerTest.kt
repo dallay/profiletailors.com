@@ -3,12 +3,15 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import com.profiletailors.smp.platformadmin.application.OptimisticLockException
 import com.profiletailors.smp.platformadmin.domain.InvitationAcceptanceFailureCode
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
+import com.profiletailors.smp.platformadmin.domain.InvitationNotFoundException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotResendableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableException
 import com.profiletailors.smp.platformadmin.domain.InvitationRateLimitExceededException
+import com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.UserNotFoundException
@@ -16,6 +19,7 @@ import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyCancelled
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotInvitableException
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -201,10 +205,9 @@ class AdminProblemDetailsHandlerTest {
         assertEquals("VALIDATION_ERROR", problem.properties?.get("code"))
         assertEquals("urn:profiletailors:error:VALIDATION_ERROR", problem.type.toString())
     }
-}
 
     @Test
-    fun `maps InvitationNotAcceptableException failure codes to correct HTTP status codes`() {
+    fun `should map each invitation failure code to its public problem detail`() {
         val testCases = listOf(
             InvitationAcceptanceFailureCode.INVALID to HttpStatus.BAD_REQUEST,
             InvitationAcceptanceFailureCode.WORKSPACE_OVERRIDE_NOT_ALLOWED to HttpStatus.BAD_REQUEST,
@@ -217,23 +220,39 @@ class AdminProblemDetailsHandlerTest {
 
         for ((code, expectedStatus) in testCases) {
             val problem = handler.handle(InvitationNotAcceptableException(code))
-            assertEquals(expectedStatus.value(), problem.status, "Failed for failure code $code")
-            assertEquals(code.publicCode, problem.properties?.get("code"))
+
+            problem.status shouldBe expectedStatus.value()
+            problem.title shouldBe "Invitation unavailable"
+            problem.detail shouldBe "Invitation is unavailable."
+            problem.type.toString() shouldBe "/problems/invitation-unavailable"
+            problem.properties?.get("code") shouldBe code.publicCode
         }
     }
 
     @Test
-    fun `maps InvitationNotFoundException, InvitationVersionConflictException and OptimisticLockException`() {
-        val p1 = handler.handle(com.profiletailors.smp.platformadmin.domain.InvitationNotFoundException("inv-1"))
-        assertEquals(HttpStatus.NOT_FOUND.value(), p1.status)
-        assertEquals("INVITATION_NOT_FOUND", p1.properties?.get("code"))
+    fun `should map invitation not found when invitation does not exist`() {
+        val problem = handler.handle(InvitationNotFoundException("inv-1"))
 
-        val p2 = handler.handle(com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException("inv-1"))
-        assertEquals(HttpStatus.CONFLICT.value(), p2.status)
-        assertEquals("INVITATION_VERSION_CONFLICT", p2.properties?.get("code"))
+        problem.status shouldBe HttpStatus.NOT_FOUND.value()
+        problem.properties?.get("code") shouldBe "INVITATION_NOT_FOUND"
+        problem.detail shouldBe "Invitation not found: inv-1"
+    }
 
-        val p3 = handler.handle(com.profiletailors.smp.platformadmin.application.OptimisticLockException())
-        assertEquals(HttpStatus.CONFLICT.value(), p3.status)
-        assertEquals("OPTIMISTIC_LOCK_CONFLICT", p3.properties?.get("code"))
+    @Test
+    fun `should map version conflict when invitation update is stale`() {
+        val problem = handler.handle(InvitationVersionConflictException("inv-1"))
+
+        problem.status shouldBe HttpStatus.CONFLICT.value()
+        problem.properties?.get("code") shouldBe "INVITATION_VERSION_CONFLICT"
+        problem.detail shouldBe "Concurrent modification detected for invitation: inv-1"
+    }
+
+    @Test
+    fun `should map optimistic lock conflict when atomic invitation update fails`() {
+        val problem = handler.handle(OptimisticLockException())
+
+        problem.status shouldBe HttpStatus.CONFLICT.value()
+        problem.properties?.get("code") shouldBe "OPTIMISTIC_LOCK_CONFLICT"
+        problem.detail shouldBe "Invitation update failed due to concurrent modification"
     }
 }
