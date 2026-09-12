@@ -8,7 +8,7 @@ Coordinates notification dispatch for backend operations. It depends on `:shared
 
 ## Tech stack
 
-- **Runtime & Language**: Java 25, Kotlin 2.4, Coroutines
+- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines
 - **Logging**: SLF4J
 - **Testing**: JUnit 5, Kotest, MockK
 
@@ -16,7 +16,7 @@ Coordinates notification dispatch for backend operations. It depends on `:shared
 
 ### Prerequisites
 
-- Java JDK `>= 25`
+- Java JDK `>= 21`
 - Gradle wrapper (`./gradlew`)
 
 ### Installation

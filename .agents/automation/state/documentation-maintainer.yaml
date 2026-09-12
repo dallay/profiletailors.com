@@ -1,7 +1,7 @@
 schemaVersion: 1
 task: documentation-maintainer
-lastExecution: "2026-09-11T09:35:00Z"
-runId: "documentation-maintainer-run-20260911-093500"
+lastExecution: "2026-09-04T17:39:18Z"
+runId: "documentation-maintainer-run-20260904-173918"
 outcome: "CHANGES_APPLIED"
 findings:
   - id: "DOC-20260904-01"
@@ -10,7 +10,7 @@ findings:
     risk: "LOW"
     status: "resolved"
     firstDetected: "2026-09-04T17:39:18Z"
-    lastVerified: "2026-09-11T09:35:00Z"
+    lastVerified: "2026-09-04T17:39:18Z"
     occurrences: 1
     remediation:
       status: "implemented"
@@ -22,49 +22,21 @@ findings:
     risk: "LOW"
     status: "resolved"
     firstDetected: "2026-09-04T17:39:18Z"
-    lastVerified: "2026-09-11T09:35:00Z"
+    lastVerified: "2026-09-04T17:39:18Z"
     occurrences: 1
     remediation:
       status: "implemented"
       pullRequest: "draft"
       details: "Updated Kotlin version reference in docs/gradle-build-system.md to Kotlin 2.4."
-  - id: "DOC-20260911-01"
-    category: "documentation-drift"
-    description: "server/smp/README.md and 10 shared/*/README.md files referenced Java 21 / JDK >= 21 instead of Java 25 / JDK >= 25 as defined in AppConfiguration.kt and gradle/libs.versions.toml"
-    risk: "LOW"
-    status: "resolved"
-    firstDetected: "2026-09-11T09:35:00Z"
-    lastVerified: "2026-09-11T09:35:00Z"
-    occurrences: 1
-    remediation:
-      status: "implemented"
-      pullRequest: "draft"
-      details: "Updated Runtime & Language and Prerequisites Java version declarations to Java 25 / JDK >= 25 in server/smp/README.md and shared/*/README.md."
-  - id: "DOC-20260911-02"
-    category: "documentation-drift"
-    description: "docs/technical-debt-remediation.md contained reference link pointing to Kotlin 2.3 release notes instead of Kotlin 2.4"
-    risk: "LOW"
-    status: "resolved"
-    firstDetected: "2026-09-11T09:35:00Z"
-    lastVerified: "2026-09-11T09:35:00Z"
-    occurrences: 1
-    remediation:
-      status: "implemented"
-      pullRequest: "draft"
-      details: "Updated reference link to Kotlin 2.4 release notes in docs/technical-debt-remediation.md."
 checks:
   - name: "node-version-alignment"
     target: "apps/web/app/package.json, README.md, docs/getting-started.md, Justfile"
     status: "Passed"
     notes: "All Node.js version claims reconciled with .nvmrc and package.json (>= 24.19.0)."
   - name: "kotlin-version-alignment"
-    target: "docs/gradle-build-system.md, docs/technical-debt-remediation.md"
+    target: "docs/gradle-build-system.md"
     status: "Passed"
-    notes: "Kotlin version references reconciled with gradle/libs.versions.toml (2.4.10)."
-  - name: "java-version-alignment"
-    target: "server/smp/README.md, shared/*/README.md, AppConfiguration.kt, gradle/libs.versions.toml"
-    status: "Passed"
-    notes: "Java version references reconciled with AppConfiguration.kt (JVM_25) and gradle/libs.versions.toml (jdk = 25)."
+    notes: "Kotlin version reference reconciled with gradle/libs.versions.toml (2.4.10)."
   - name: "relative-links-audit"
     target: "docs/, README.md"
     status: "Passed"

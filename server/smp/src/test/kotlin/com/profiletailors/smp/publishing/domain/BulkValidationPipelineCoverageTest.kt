@@ -333,4 +333,43 @@ class BulkValidationPipelineCoverageTest {
         assertEquals(1, result.rows.size)
         assertEquals(BulkRowStatus.VALID, result.rows.first().status)
     }
+
+    @Test
+    fun `BulkHeaderParser parse invalid headers`() = runTest {
+        val res1 = BulkHeaderParser.parse("col1,col2")
+        assertTrue(res1 is BulkHeaderParseResult.Invalid)
+
+        val res2 = BulkHeaderParser.parse("bodyText,scheduledFor,timezone,media_urls,wrong")
+        assertTrue(res2 is BulkHeaderParseResult.Invalid)
+    }
+
+    @Test
+    fun `media blocked when URL has no host or malformed`() = runTest {
+        val csv = """
+            bodyText,scheduledFor,timezone,media_urls,hashtags
+            Hello,2026-09-01T10:00:00Z,UTC,http:///path,
+        """.trimIndent()
+        val result = pipeline().validate("ws-1", csv)
+        assertTrue(result.rows.first().errors.any { it.code == "INVALID_MEDIA" })
+    }
+
+    @Test
+    fun `media blocked when URL is invalid URI`() = runTest {
+        val csv = """
+            bodyText,scheduledFor,timezone,media_urls,hashtags
+            Hello,2026-09-01T10:00:00Z,UTC,http://bad^url,
+        """.trimIndent()
+        val result = pipeline().validate("ws-1", csv)
+        assertTrue(result.rows.first().errors.any { it.code == "INVALID_MEDIA" })
+    }
+
+    @Test
+    fun `media blocked 172 range out of bounds`() = runTest {
+        val csv = """
+            bodyText,scheduledFor,timezone,media_urls,hashtags
+            Hello,2026-09-01T10:00:00Z,UTC,http://172.15.0.1/a.jpg,
+        """.trimIndent()
+        val result = pipeline().validate("ws-1", csv)
+        assertTrue(result.rows.first().errors.any { it.code == "INVALID_MEDIA" && it.message.contains("allowlist") })
+    }
 }
