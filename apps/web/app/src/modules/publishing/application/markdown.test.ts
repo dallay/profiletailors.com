@@ -92,6 +92,17 @@ describe('stripMarkdownToPlainText', () => {
     )
   })
 
+  it('degrades nested parentheses in urls without backtracking', () => {
+    expect(stripMarkdownToPlainText('[wiki](https://example.com/a_(b))')).toBe(
+      'wiki (https://example.com/a_(b))',
+    )
+  })
+
+  it('returns promptly on unclosed link destinations', () => {
+    const input = `![alt](${'x'.repeat(5000)}`
+    expect(stripMarkdownToPlainText(input)).toBe(input)
+  })
+
   it('handles multiline markdown content', () => {
     const input = '# Title\n\n**Bold** paragraph\n\n- Item 1\n- Item 2'
     const expected = 'Title\n\nBold paragraph\n\nItem 1\nItem 2'

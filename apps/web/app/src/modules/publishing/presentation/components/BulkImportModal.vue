@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useBulkCsvParser } from '@modules/publishing/application/useBulkCsvParser'
 import { useBulkImport } from '@modules/publishing/application/useBulkImport'
 import { BULK_CANONICAL_HEADER } from '@modules/publishing/domain/bulk'
@@ -56,6 +56,20 @@ function handleClose() {
   emit('close')
 }
 
+const dialogRef = ref<HTMLDialogElement | null>(null)
+
+watch(
+  () => props.isOpen,
+  async (open) => {
+    await nextTick()
+    const dialog = dialogRef.value
+    if (!dialog) return
+    if (open && !dialog.open) dialog.showModal()
+    else if (!open && dialog.open) dialog.close()
+  },
+  { immediate: true },
+)
+
 function onPreviewBodyText(rowIndex: number, value: string) {
   if (!bulk.validateResult.value) return
   const target = bulk.validateResult.value.rows.find((r) => r.rowIndex === rowIndex)
@@ -73,10 +87,17 @@ function onPreviewScheduledFor(rowIndex: number, value: string) {
 
 <template>
   <Teleport to="body">
-    <div v-if="props.isOpen" data-testid="bulk-import-modal" role="dialog" aria-modal="true" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="handleClose" @keydown.esc="handleClose">
-      <div class="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border bg-bg-surface p-6">
+    <dialog
+      v-if="props.isOpen"
+      ref="dialogRef"
+      data-testid="bulk-import-modal"
+      aria-labelledby="bulk-import-title"
+      class="w-[calc(100%-2rem)] max-w-3xl border-0 bg-transparent p-0 backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+      @close="handleClose"
+    >
+      <div class="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border bg-bg-surface p-6">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold">Bulk Import</h2>
+          <h2 id="bulk-import-title" class="text-lg font-bold">Bulk Import</h2>
           <button data-testid="bulk-modal-close" class="rounded border px-2 py-1" @click="handleClose">Close</button>
         </div>
 
@@ -119,6 +140,6 @@ function onPreviewScheduledFor(rowIndex: number, value: string) {
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   </Teleport>
 </template>
