@@ -40,7 +40,7 @@ None.
 | :--- | :--- | :--- | :--- |
 | `feature-flag-declarations-consistency` | Backend Properties & Yaml | Passed | Verified call sites and default values across application.yaml, .env.example, and properties classes. |
 | `feature-flag-rollout-intent-audit` | Monorepo Feature Toggles | Passed | Confirmed no dead or stale flags exist. |
-| `backend-tests` | `:server:smp:test` | Passed | Ran `./gradlew :server:smp:test -PexcludeTags=modularity,postgres`. |
+| `backend-tests` | `:server:smp:test` | Passed | Ran `node scripts/gradle-run.mjs :server:smp:test -PexcludeTags=modularity,postgres`. |
 
 ## Unresolved Findings
 
@@ -52,7 +52,7 @@ None.
 
 ## Automation State
 
-- **Last Execution:** `2026-09-05T17:57:01Z`
+- **Last Execution:** `2026-09-12T18:08:06Z`
 - **Schema Version:** `1`
 - **Task Identity:** `feature-flag-auditor`
 
