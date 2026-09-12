@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.8](https://github.com/dallay/profiletailors.com/compare/app@v0.3.7...app@v0.3.8) (2026-09-12)
+
+
+### Bug Fixes
+
+* **sonarqube:** batch remediation of quality-gate findings ([#1026](https://github.com/dallay/profiletailors.com/issues/1026)) ([861e2c0](https://github.com/dallay/profiletailors.com/commit/861e2c07b4764fc5b08b91ccbfc24b06675b3738))
+
 ## [0.3.7](https://github.com/dallay/profiletailors.com/compare/app@v0.3.6...app@v0.3.7) (2026-09-11)
 
 
