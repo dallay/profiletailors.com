@@ -48,7 +48,15 @@ None.
 
 ## Blockers
 
-None.
+`None` applies only to reconciliation execution: the audit completed without a blocker and found
+no drift. Active-change lifecycle gates remain:
+
+- `dallay-565` remains blocked on the DALLAY-566 token handoff.
+- `dallay-567-accept-invitations-registration-flow` remains in `qa`, blocked by acceptance QA.
+- `dallay-568-direct-invitation-admin-commands` remains in `apply`, pending QA.
+- `hotfix-direct-invitation-issued-by-fk` remains in `verify`, pending deployment and the QA-01
+  rerun.
+- `private-beta-launch-readiness` remains in `qa`, blocked by acceptance QA.
 
 ## Automation State
 
