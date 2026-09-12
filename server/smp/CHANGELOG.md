@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.2](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.1...smp@v0.5.2) (2026-09-12)
+
+
+### Bug Fixes
+
+* **sonarqube:** batch remediation of quality-gate findings ([#1026](https://github.com/dallay/profiletailors.com/issues/1026)) ([861e2c0](https://github.com/dallay/profiletailors.com/commit/861e2c07b4764fc5b08b91ccbfc24b06675b3738))
+
+
+### Documentation
+
+* reconcile Java version declarations and documentation references ([#1023](https://github.com/dallay/profiletailors.com/issues/1023)) ([e53ed2f](https://github.com/dallay/profiletailors.com/commit/e53ed2f59d6433951401a819f95cd47a1ad0d9dc))
+
 ## [0.5.1](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.0...smp@v0.5.1) (2026-09-11)
 
 
