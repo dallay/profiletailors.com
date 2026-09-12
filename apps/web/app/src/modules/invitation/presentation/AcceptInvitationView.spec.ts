@@ -123,6 +123,45 @@ describe('AcceptInvitationView', () => {
     expect(wrapper.text()).toContain('invitation.unavailableTitle')
   })
 
+  it('announces capability loading with a native output element', () => {
+    capabilitiesState.resolved = false
+    const wrapper = mount(AcceptInvitationView, {
+      props: { token: 'raw-token' },
+      global: { stubs: { RouterLink: true } },
+    })
+    const output = wrapper.find('output')
+    expect(output.exists()).toBe(true)
+    expect(output.text()).toContain('invitation.checkingAvailability')
+  })
+
+  it('announces redirection with a native output element after acceptance', async () => {
+    accept.mockImplementation(async () => {
+      state.workspaceId = 'ws-abc'
+      state.membershipStatus = 'ACTIVE'
+      return {
+        workspaceId: 'ws-abc',
+        membershipStatus: 'ACTIVE',
+        errorCode: null,
+        errorStatus: null,
+      }
+    })
+    hydrateSession.mockImplementation(async () => {
+      authState.hydrated = true
+    })
+    const wrapper = mount(AcceptInvitationView, {
+      props: { token: 'raw-token' },
+      global: { stubs: { RouterLink: true, RouterView: true } },
+    })
+
+    await wrapper.find('form').trigger('submit.prevent')
+    await flushPromises()
+    await flushPromises()
+
+    const output = wrapper.find('output')
+    expect(output.exists()).toBe(true)
+    expect(output.text()).toContain('invitation.redirecting')
+  })
+
   it('submits the token from props and exposes the resolved workspace id', async () => {
     accept.mockImplementation(async () => {
       state.workspaceId = 'ws-abc'

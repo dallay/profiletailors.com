@@ -34,6 +34,13 @@ describe('ForgotPasswordView capability gate', () => {
     expect(load).toHaveBeenCalledOnce()
   })
 
+  it('announces the loading state with a native output element', () => {
+    const wrapper = mount(ForgotPasswordView, { global: { stubs: { RouterLink: true } } })
+    const output = wrapper.find('output')
+    expect(output.exists()).toBe(true)
+    expect(output.text()).toContain('passwordRecovery.checkingAvailability')
+  })
+
   it('fails closed in place after capability failure or disablement', async () => {
     state.resolved = true
     const wrapper = mount(ForgotPasswordView, { global: { stubs: { RouterLink: true } } })

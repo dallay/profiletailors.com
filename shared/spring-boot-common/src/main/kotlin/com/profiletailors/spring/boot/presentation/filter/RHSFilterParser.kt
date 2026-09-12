@@ -67,16 +67,19 @@ class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectM
             listOfNotNull(operand, operand.toIntOrNull(), operand.toLongOrNull(), operand.toBooleanStrictOrNull())
         var converted: Any? = null
         for (candidate in candidates) {
-            try {
-                converted = objectMapper.convertValue(candidate, clazz.java)
-                break
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: RuntimeException) {
-            }
+            converted = tryConvert(candidate, clazz)
+            if (converted != null) break
         }
         if (converted == null) throw FilterInvalidException("Can't convert operand for type ${clazz.simpleName}")
         return converted
+    }
+
+    private fun tryConvert(candidate: Any, clazz: KClass<*>): Any? = try {
+        objectMapper.convertValue(candidate, clazz.java)
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (_: RuntimeException) {
+        null
     }
 
     /**

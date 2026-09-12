@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.0...smp@v0.5.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **smp:** address review findings on invitation hotfix ([#1018](https://github.com/dallay/profiletailors.com/issues/1018)) ([3674450](https://github.com/dallay/profiletailors.com/commit/3674450b68c4cd5a8bd7373d035cd8aedcb7af32))
+* **smp:** store invitation issuer IDs with user- prefix ([#1016](https://github.com/dallay/profiletailors.com/issues/1016)) ([8e1007d](https://github.com/dallay/profiletailors.com/commit/8e1007dfeaa07d6735711d7ac0a1de13dd7256fb))
+
 ## [0.5.0](https://github.com/dallay/profiletailors.com/compare/smp@v0.4.9...smp@v0.5.0) (2026-09-11)
 
 
