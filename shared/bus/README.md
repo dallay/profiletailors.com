@@ -8,14 +8,14 @@ Provides the Mediator pattern implementation for internal communication between 
 
 ## Tech stack
 
-- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines
+- **Runtime & Language**: Java 25, Kotlin 2.4, Coroutines
 - **Testing**: JUnit 5, Kotest, MockK
 
 ## Getting started
 
 ### Prerequisites
 
-- Java JDK `>= 21`
+- Java JDK `>= 25`
 - Gradle wrapper (`./gradlew`)
 
 ### Installation

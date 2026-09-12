@@ -8,7 +8,7 @@ Serves as the Spring WebFlux adapter bridge for Profile Tailors shared modules a
 
 ## Tech stack
 
-- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines & Flow
+- **Runtime & Language**: Java 25, Kotlin 2.4, Coroutines & Flow
 - **Framework & Libraries**: Spring Boot 4.0, Spring WebFlux, Jackson Kotlin, Spring Data R2DBC
 - **Testing**: JUnit 5, AssertJ, Kotest, MockK
 
@@ -16,7 +16,7 @@ Serves as the Spring WebFlux adapter bridge for Profile Tailors shared modules a
 
 ### Prerequisites
 
-- Java JDK `>= 21`
+- Java JDK `>= 25`
 - Gradle wrapper (`./gradlew`)
 
 ### Installation
