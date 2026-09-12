@@ -6,22 +6,72 @@ export type FormatResult = {
 
 const SAFE_URL = /^(?:https?:\/\/|mailto:|www\.)/i
 
+type ParsedBracketLink = {
+  end: number
+  label: string
+  url: string
+  image: boolean
+}
+
+function readBalancedDestination(
+  text: string,
+  openParen: number,
+): { end: number; url: string } | null {
+  let depth = 0
+  for (let index = openParen; index < text.length; index++) {
+    if (text[index] === '(') depth++
+    else if (text[index] === ')') {
+      depth--
+      if (depth === 0) return { end: index + 1, url: text.slice(openParen + 1, index) }
+    }
+  }
+  return null
+}
+
+function readBracketLink(text: string, start: number): ParsedBracketLink | null {
+  const image = start > 0 && text[start - 1] === '!'
+  const labelStart = start + 1
+  const closeBracket = text.indexOf(']', labelStart)
+  if (closeBracket === -1 || text[closeBracket + 1] !== '(') return null
+  const destination = readBalancedDestination(text, closeBracket + 1)
+  if (destination === null) return null
+  return {
+    end: destination.end,
+    label: text.slice(labelStart, closeBracket),
+    url: destination.url,
+    image,
+  }
+}
+
+function renderBracketLink(link: ParsedBracketLink): string {
+  if (link.image) return link.label
+  const trimmedUrl = link.url.trim()
+  if (!SAFE_URL.test(trimmedUrl)) return link.label
+  if (link.label.trim() === trimmedUrl) return trimmedUrl
+  return link.label.trim() ? `${link.label} (${trimmedUrl})` : trimmedUrl
+}
+
+function stripLinksAndImages(text: string): string {
+  let result = ''
+  let cursor = 0
+  while (cursor < text.length) {
+    const openBracket = text.indexOf('[', cursor)
+    if (openBracket === -1) return result + text.slice(cursor)
+    const link = readBracketLink(text, openBracket)
+    if (link === null) {
+      result += text.slice(cursor, openBracket + 1)
+      cursor = openBracket + 1
+      continue
+    }
+    result += text.slice(cursor, link.image ? openBracket - 1 : openBracket)
+    result += renderBracketLink(link)
+    cursor = link.end
+  }
+  return result
+}
+
 function stripInlineMarkdown(text: string): string {
-  return text
-    .replace(/!\[([^\]]*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g, '$1')
-    .replace(
-      /\[([^\]]*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g,
-      (_match: string, label: string, url: string): string => {
-        const trimmedUrl = url.trim()
-        if (!SAFE_URL.test(trimmedUrl)) {
-          return label
-        }
-        if (label.trim() === trimmedUrl) {
-          return trimmedUrl
-        }
-        return label.trim() ? `${label} (${trimmedUrl})` : trimmedUrl
-      },
-    )
+  return stripLinksAndImages(text)
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/\*(.+?)\*/g, '$1')
     .replace(/~~(.+?)~~/g, '$1')
@@ -204,7 +254,7 @@ export function applyHeading(
   const end = lineEnd === -1 ? text.length : lineEnd
   const line = text.slice(lineStart, end)
 
-  const headingMatch = line.match(/^(#{1,3})\s+/)
+  const headingMatch = /^(#{1,3})\s+/.exec(line)
   if (headingMatch) {
     const currentLevel = headingMatch[1]?.length ?? 0
     const nextLevel = currentLevel >= 3 ? 0 : currentLevel + 1

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
@@ -46,6 +46,20 @@ function openDeleteModal() {
 function closeDeleteModal() {
   isDeleteModalOpen.value = false
 }
+
+const deleteDialogRef = ref<HTMLDialogElement | null>(null)
+
+watch(
+  isDeleteModalOpen,
+  async (open) => {
+    await nextTick()
+    const dialog = deleteDialogRef.value
+    if (!dialog) return
+    if (open && !dialog.open) dialog.showModal()
+    else if (!open && dialog.open) dialog.close()
+  },
+  { immediate: true },
+)
 
 async function handleDeleteAccount() {
   if (deleteConfirmationText.value.trim() !== 'DELETE') return
@@ -128,15 +142,15 @@ async function handleDeleteAccount() {
     </div>
 
     <!-- Delete Account Modal -->
-    <div
+    <dialog
       v-if="isDeleteModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-      role="dialog"
-      aria-modal="true"
+      ref="deleteDialogRef"
       aria-labelledby="delete-account-modal-title"
+      class="w-[calc(100%-2rem)] max-w-md border-0 bg-transparent p-0 backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+      @close="closeDeleteModal"
     >
       <div
-        class="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-surface p-6 shadow-2xl space-y-6 relative"
+        class="w-full rounded-2xl border border-border-subtle bg-bg-surface p-6 shadow-2xl space-y-6 relative"
       >
         <div class="flex items-center justify-between border-b border-border-subtle pb-4">
           <div class="flex items-center gap-2.5 text-red-400">
@@ -200,6 +214,6 @@ async function handleDeleteAccount() {
           </div>
         </form>
       </div>
-    </div>
+    </dialog>
   </div>
 </template>
