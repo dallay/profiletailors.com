@@ -9,8 +9,10 @@ import {
   ArrowDown,
   Lightbulb,
   Trash2,
+  ChevronDown,
   Grid2X2,
   LayoutGrid,
+  Tag,
 } from '@lucide/vue'
 import type { Idea, IdeaColumn } from '@modules/ideas/domain'
 import { useIdeasStore } from '@modules/ideas/infrastructure/ideas.store'
@@ -51,6 +53,7 @@ const newColumnName = ref('')
 const newColumnColor = ref('')
 const viewMode = ref<'board' | 'gallery'>('board')
 const selectedTag = ref<string | null>(null)
+const isTagFilterOpen = ref(false)
 
 const columns = computed(() => ideasStore.orderedColumns)
 
@@ -91,6 +94,7 @@ watch(
   () => workspace.activeWorkspaceId,
   async (workspaceId) => {
     selectedTag.value = null
+    isTagFilterOpen.value = false
     if (!workspaceId) {
       ideasStore.clearState()
       return
@@ -105,6 +109,7 @@ watch(
 )
 
 function openComposerCreate(columnId?: string): void {
+  isTagFilterOpen.value = false
   selectedIdeaId.value = null
   composerInitialColumnId.value = columnId ?? columns.value[0]?.id ?? null
   isComposerOpen.value = true
@@ -163,6 +168,7 @@ async function handlePublishingCreated(payload: unknown): Promise<void> {
 }
 
 function openColumnSettings(): void {
+  isTagFilterOpen.value = false
   columnDraft.value = columns.value.map((column) => ({ ...column, color: column.color ?? '' }))
   newColumnName.value = ''
   newColumnColor.value = ''
@@ -213,6 +219,11 @@ async function saveColumns(): Promise<void> {
 
 function selectTag(tag: string | null): void {
   selectedTag.value = tag
+  isTagFilterOpen.value = false
+}
+
+function clearTagFilter(): void {
+  selectTag(null)
 }
 </script>
 
@@ -255,30 +266,54 @@ function selectTag(tag: string | null): void {
     </header>
 
     <div class="flex flex-wrap items-center justify-between gap-3" data-testid="ideas-toolbar">
-      <div>
-        <label for="ideas-tag-select" class="sr-only">{{ t('ideas.filters.tags') }}</label>
-        <select
-          id="ideas-tag-select"
+      <div class="relative">
+        <button
+          type="button"
+          class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border-visible bg-bg-surface px-3 text-sm text-text-body transition hover:border-text-secondary"
           data-testid="ideas-tag-filter"
-          :value="selectedTag ?? ''"
-          class="min-h-10 rounded-lg border border-border-visible bg-bg-surface px-3 text-sm text-text-body transition hover:border-text-secondary"
-          @change="selectTag(($event.target as HTMLSelectElement).value || null)"
+          :aria-expanded="isTagFilterOpen"
+          aria-haspopup="listbox"
+          @click="isTagFilterOpen = !isTagFilterOpen"
+          @keydown.esc="isTagFilterOpen = false"
         >
-          <option value="" data-testid="ideas-tag-all">
-            {{ t('ideas.filters.all') }} ({{ ideasStore.ideas.length }})
-          </option>
-          <option
+          <Tag class="size-4 text-text-secondary" />
+          <span>{{ selectedTag ? `#${selectedTag}` : t('ideas.filters.tags') }}</span>
+          <ChevronDown class="size-3.5 text-text-secondary" />
+        </button>
+        <div
+          v-if="isTagFilterOpen"
+          class="absolute left-0 top-12 z-30 min-w-48 rounded-lg border border-border-visible bg-bg-surface p-1"
+          data-testid="ideas-tag-menu"
+          role="listbox"
+          :aria-label="t('ideas.filters.tags')"
+        >
+          <button
+            type="button"
+            role="option"
+            class="flex min-h-10 w-full items-center justify-between rounded-md px-3 text-left text-sm text-text-body hover:bg-bg-primary"
+            :aria-selected="selectedTag === null"
+            data-testid="ideas-tag-all"
+            @click="clearTagFilter"
+          >
+            {{ t('ideas.filters.all') }}
+            <span class="font-mono text-[10px] text-text-secondary">{{ ideasStore.ideas.length }}</span>
+          </button>
+          <button
             v-for="tag in availableTags"
             :key="tag"
-            :value="tag"
+            type="button"
+            role="option"
+            class="flex min-h-10 w-full items-center rounded-md px-3 text-left text-sm text-text-body hover:bg-bg-primary"
+            :aria-selected="selectedTag === tag"
             :data-testid="`ideas-tag-${tag}`"
+            @click="selectTag(tag)"
           >
             #{{ tag }}
-          </option>
-        </select>
-        <p v-if="availableTags.length === 0" class="px-1 py-1 text-xs text-text-secondary">
-          {{ t('ideas.filters.empty') }}
-        </p>
+          </button>
+          <p v-if="availableTags.length === 0" class="px-3 py-2 text-xs text-text-secondary">
+            {{ t('ideas.filters.empty') }}
+          </p>
+        </div>
       </div>
 
       <div class="flex items-center gap-3">

@@ -86,8 +86,10 @@ class R2dbcRecurringScheduleRepository(private val databaseClient: DatabaseClien
                 .bind("createdAt", schedule.createdAt ?: now)
         }
         val rowsUpdated = spec.fetch().rowsUpdated().awaitSingle()
-        require(insert || rowsUpdated != 0L) {
-            "Recurring schedule ${schedule.id} not found or not owned by workspace ${schedule.workspaceId}"
+        if (!insert && rowsUpdated == 0L) {
+            throw IllegalArgumentException(
+                "Recurring schedule ${schedule.id} not found or not owned by workspace ${schedule.workspaceId}",
+            )
         }
         return schedule.copy(createdAt = schedule.createdAt ?: now, updatedAt = now)
     }

@@ -58,24 +58,10 @@ const averageEngagementRate = computed(() => {
   return posts.reduce((total, post) => total + post.engagementRate, 0) / posts.length
 })
 
-function barGeometry(
-  impressions: number,
-  index: number,
-  count: number,
-): { x: number; y: number; width: number; height: number } {
-  const slot = 100 / count
-  const height = (Math.max(4, (impressions / barMax.value) * 100) / 100) * 40
-  return { x: index * slot + slot * 0.05, y: 40 - height, width: slot * 0.9, height }
+function barHeight(impressions: number): string {
+  const pct = (impressions / barMax.value) * 100
+  return `${Math.max(4, pct)}%`
 }
-
-const chartBars = computed(() => {
-  const metrics = store.overview?.dailyMetrics ?? []
-  return metrics.map((metric, index) => ({
-    date: metric.date,
-    impressions: metric.impressions,
-    ...barGeometry(metric.impressions, index, metrics.length),
-  }))
-})
 
 function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -287,27 +273,25 @@ function closePostDetails(open: boolean): void {
           >
             {{ $t('analytics.noData') }}
           </div>
-          <svg
+          <div
             v-else
-            class="h-40 w-full"
-            viewBox="0 0 100 40"
-            preserveAspectRatio="none"
-            data-testid="analytics-trend-chart"
+            class="h-40 flex items-end gap-px overflow-hidden"
+            role="img"
+            :aria-label="$t('analytics.chartDescription')"
           >
-            <title>{{ $t('analytics.chartDescription') }}</title>
-            <rect
-              v-for="bar in chartBars"
-              :key="bar.date"
-              :x="bar.x"
-              :y="bar.y"
-              :width="bar.width"
-              :height="bar.height"
-              rx="0.5"
-              class="fill-border-visible transition-colors hover:fill-text-display"
+            <div
+              v-for="metric in store.overview.dailyMetrics"
+              :key="metric.date"
+              class="flex-1 group relative"
             >
-              <title>{{ `${bar.date}: ${bar.impressions} impressions` }}</title>
-            </rect>
-          </svg>
+              <div
+                class="w-full bg-border-visible group-hover:bg-text-display transition-colors rounded-t-sm"
+                :style="{ height: barHeight(metric.impressions) }"
+                :title="`${metric.date}: ${metric.impressions} impressions`"
+                :aria-label="`${metric.date}: ${metric.impressions}`"
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 

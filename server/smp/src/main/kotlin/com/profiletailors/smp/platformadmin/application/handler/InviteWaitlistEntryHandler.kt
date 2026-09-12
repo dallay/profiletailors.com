@@ -3,7 +3,6 @@ package com.profiletailors.smp.platformadmin.application.handler
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
-import com.profiletailors.smp.platformadmin.application.PlatformPrincipalIds
 import com.profiletailors.smp.platformadmin.application.command.InviteWaitlistEntryCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
@@ -99,7 +98,7 @@ open class InviteWaitlistEntryHandler(
                     acceptedAt = null,
                     revokedAt = clock.instant(),
                     revokedBy = null,
-                    createdBy = PlatformPrincipalIds.toUuid(existingInvitation.issuedBy),
+                    createdBy = UUID.fromString(existingInvitation.issuedBy),
                     deliveryStatus = InvitationDeliveryStatus.PENDING.name,
                     deliveryAttemptCount = 0,
                     version = existingInvitation.version + 1,
@@ -140,7 +139,7 @@ open class InviteWaitlistEntryHandler(
             invitedEmailNormalized = context.recipientEmail.lowercase(),
             tokenHash = tokenHash,
             status = InvitationStatus.ACTIVE,
-            issuedBy = PlatformPrincipalIds.fromUuid(command.operatorPrincipalId),
+            issuedBy = command.operatorPrincipalId.toString(),
             createdAt = now,
             expiresAt = now + invitationTtl,
         )

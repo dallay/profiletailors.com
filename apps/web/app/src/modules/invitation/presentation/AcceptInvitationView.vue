@@ -5,7 +5,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublicCapabilitiesStore } from '@modules/auth/infrastructure/public-capabilities.store'
 import { useAcceptInvitationStore } from '@modules/invitation/infrastructure/accept-invitation.store'
-import { buildLoginRedirect } from './login-redirect'
 import AuthShell from '@modules/auth/presentation/AuthShell.vue'
 
 const props = defineProps<{ token: string }>()
@@ -69,7 +68,7 @@ async function handleSubmit(): Promise<void> {
     if (auth.isAuthenticated) {
       await router.replace('/')
     } else {
-      const fullPath = buildLoginRedirect(route.path, route.query as Record<string, string>)
+      const fullPath = `${route.path}${route.query && Object.keys(route.query).length > 0 ? `?${new URLSearchParams(route.query as Record<string, string>).toString()}` : ''}`
       await router.replace({ path: '/login', query: { redirect: fullPath } })
     }
   }
@@ -84,9 +83,9 @@ watch(redirecting, (value) => {
 
 <template>
   <AuthShell>
-    <output v-if="!capabilities.resolved" aria-live="polite" class="block text-center text-sm text-text-secondary">
+    <div v-if="!capabilities.resolved" role="status" class="text-center text-sm text-text-secondary">
       {{ t('invitation.checkingAvailability') }}
-    </output>
+    </div>
     <div v-else-if="!capabilities.invitationAcceptanceEnabled" class="space-y-4 text-center">
       <h1 class="text-2xl font-semibold text-text-display">{{ t('invitation.unavailableTitle') }}</h1>
       <p class="text-sm text-text-secondary">{{ t('invitation.unavailableMessage') }}</p>
@@ -100,9 +99,9 @@ watch(redirecting, (value) => {
       <div v-if="tokenMissing" role="alert" class="text-sm text-error">
         {{ t('invitation.errors.missingToken') }}
       </div>
-      <output v-else-if="store.hasAccepted && redirecting" aria-live="polite" class="block space-y-3 text-center">
+      <div v-else-if="store.hasAccepted && redirecting" role="status" aria-live="polite" class="space-y-3 text-center">
         <p class="text-sm text-text-secondary">{{ t('invitation.redirecting') }}</p>
-      </output>
+      </div>
       <div v-else-if="store.errorCode" role="alert" class="text-sm text-error">
         {{ t(canonicalErrorKey()) }}
       </div>

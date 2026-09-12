@@ -48,10 +48,6 @@ function applyFormat(
   }
 }
 
-function stripMarkdown(text: string): string {
-  return stripMarkdownToPlainText(text)
-}
-
 export function useMarkdownEditor(options: UseMarkdownEditorOptions): UseMarkdownEditorResult {
   const textareaEl = ref<HTMLTextAreaElement | null>(null)
 
@@ -163,11 +159,16 @@ export function useMarkdownEditor(options: UseMarkdownEditorOptions): UseMarkdow
     if (event.shiftKey && key === 'k') {
       event.preventDefault()
       applyLink()
+      return
     }
   }
 
   function plainTextForSubmit(): string {
     return normalizeForSubmission(options.postText.value)
+  }
+
+  function stripMarkdown(text: string): string {
+    return stripMarkdownToPlainText(text)
   }
 
   return {

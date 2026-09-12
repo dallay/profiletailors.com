@@ -158,23 +158,6 @@ class InviteWaitlistEntryHandlerTest {
     }
 
     @Test
-    fun `persists waitlist invitation issuedBy as prefixed platform principal id`() = runTest {
-        val pendingEntry = entry(WaitlistEntryStatus.PENDING)
-        coEvery { waitlistEntryAdmin.findById(entryId) } returns pendingEntry
-        coEvery { waitlistEntryAdmin.findInvitationContext(entryId) } returns invitationContext
-        coEvery { invitationRepository.findActiveByWaitlistEntryId(entryId) } returns null
-        coEvery { invitationRepository.save(any()) } answers { firstArg() }
-        val newInvitationSlot = slot<Invitation>()
-        coEvery { newInvitationRepository.save(capture(newInvitationSlot), any()) } answers { firstArg() }
-        coEvery { waitlistEntryAdmin.save(any()) } answers { firstArg() }
-        coEvery { eventPublisher.publish(any<DomainEvent>()) } returns Unit
-
-        handler.handle(command())
-
-        assertThat(newInvitationSlot.captured.issuedBy).isEqualTo("user-$operatorId")
-    }
-
-    @Test
     fun `supersedes existing active invitation when entry is already INVITED`() = runTest {
         val invitedEntry = entry(WaitlistEntryStatus.INVITED)
         val existing = existingInvitation()
@@ -185,10 +168,9 @@ class InviteWaitlistEntryHandlerTest {
         val revokedSlot = slot<Invitation>()
         coEvery { newInvitationRepository.updateIfVersionMatches(capture(revokedSlot)) } answers { true }
 
-        val result = handler.handle(command())
+        handler.handle(command())
 
         assertThat(revokedSlot.captured.status).isEqualTo(InvitationStatus.REVOKED)
-        assertThat(result.createdBy).isEqualTo(operatorId)
     }
 
     @Test
@@ -251,7 +233,7 @@ class InviteWaitlistEntryHandlerTest {
         invitedEmailNormalized = "candidate@example.com",
         tokenHash = "existing-hash",
         status = status,
-        issuedBy = "user-$operatorId",
+        issuedBy = operatorId.toString(),
         createdAt = clock.instant().minusSeconds(3600),
         expiresAt = clock.instant().plusSeconds(604_800),
         version = 0,

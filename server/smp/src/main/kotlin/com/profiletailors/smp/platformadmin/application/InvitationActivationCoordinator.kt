@@ -120,9 +120,7 @@ class InvitationActivationCoordinator(
 
         convertWaitlistEntryIfNeeded(invitation, now)
 
-        val acceptedPrincipalId = PlatformPrincipalIds.fromUuid(identity.principalId)
-        require(acceptedPrincipalId.startsWith("user-")) { "Accepted principal id must use user- prefix" }
-        val accepted = invitation.accept(now, acceptedPrincipalId, resolvedWorkspaceId)
+        val accepted = invitation.accept(now, identity.principalId, resolvedWorkspaceId)
         val success = invitationRepository.updateIfVersionMatches(accepted)
         if (!success) throw OptimisticLockException()
 

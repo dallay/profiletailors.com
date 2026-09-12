@@ -400,7 +400,8 @@ describe('IdeasView accessibility', () => {
     ideasStore.ideasByColumn = { raw: [launchIdea, otherIdea], done: [] }
 
     const wrapper = mountIdeasView()
-    await wrapper.find('[data-testid="ideas-tag-filter"]').setValue('launch')
+    await wrapper.find('[data-testid="ideas-tag-filter"]').trigger('click')
+    await wrapper.find('[data-testid="ideas-tag-launch"]').trigger('click')
 
     expect(wrapper.findAll('[data-dnd-draggable]')).toHaveLength(1)
     expect(wrapper.find('[data-dnd-draggable="launch-idea"]').exists()).toBe(true)
@@ -410,15 +411,17 @@ describe('IdeasView accessibility', () => {
     expect(wrapper.find('[data-testid="idea-gallery-column-raw"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="idea-gallery-column-done"]').exists()).toBe(true)
 
-    await wrapper.find('[data-testid="ideas-tag-filter"]').setValue('')
+    await wrapper.find('[data-testid="ideas-tag-filter"]').trigger('click')
+    await wrapper.find('[data-testid="ideas-tag-all"]').trigger('click')
     expect(wrapper.findAll('[data-dnd-draggable]')).toHaveLength(2)
   })
 
   it('shows an empty tag-filter state when ideas have no tags', async () => {
     const wrapper = mountIdeasView()
 
-    expect(wrapper.find('[data-testid="ideas-tag-filter"]').element.tagName).toBe('SELECT')
-    expect(wrapper.text()).toContain('ideas.filters.empty')
+    await wrapper.find('[data-testid="ideas-tag-filter"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="ideas-tag-menu"]').text()).toContain('ideas.filters.empty')
   })
 
   it('associates board settings inputs and selects with stable labels', async () => {

@@ -1,7 +1,5 @@
 # Level 3: Component Diagram
 
-****Last Updated:** 2026-09-12
-
 ## Overview
 
 The Component diagram zooms into the API Application container and shows the internal structure
@@ -891,4 +889,4 @@ framework features, it belongs in `shared/spring-boot-common` instead.
 
 ---
 
-Last updated: 2026-09-12
+Last updated: 2026-09-10

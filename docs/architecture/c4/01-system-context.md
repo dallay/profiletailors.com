@@ -1,7 +1,5 @@
 # Level 1: System Context Diagram
 
-****Last Updated:** 2026-09-12
-
 ## Overview
 
 The System Context diagram shows Profile Tailors and how it fits into the world around it. It shows
@@ -190,4 +188,4 @@ Profile Tailors enables teams to:
 - Team collaboration enhancements
 - Media asset management improvements
 
-Last updated: 2026-09-12
+Last updated: 2026-09-10

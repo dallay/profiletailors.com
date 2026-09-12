@@ -10,7 +10,7 @@ import com.profiletailors.smp.publishing.domain.SocialContentApprovalEvidence
 import com.profiletailors.smp.publishing.domain.SocialContentApprovalEvidenceRepository
 import com.profiletailors.smp.publishing.domain.SocialContentFeatureGates
 
-fun interface SocialContentAccessGate {
+interface SocialContentAccessGate {
     suspend fun authorize(request: SocialContentAccessRequest)
 }
 

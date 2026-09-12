@@ -104,12 +104,16 @@ class PublishingStaleJobsController(
     private fun parseThreshold(raw: String): Duration {
         val duration = runCatching { Duration.parse(raw) }
             .getOrElse { throw IllegalArgumentException(INVALID_THRESHOLD_MESSAGE) }
-        require(!duration.isZero && !duration.isNegative) { INVALID_THRESHOLD_MESSAGE }
+        if (duration.isZero || duration.isNegative) {
+            throw IllegalArgumentException(INVALID_THRESHOLD_MESSAGE)
+        }
         return duration
     }
 
     private fun requireValidLimit(limit: Int) {
-        require(limit in MIN_LIMIT..MAX_LIMIT) { "limit must be between $MIN_LIMIT and $MAX_LIMIT." }
+        if (limit !in MIN_LIMIT..MAX_LIMIT) {
+            throw IllegalArgumentException("limit must be between $MIN_LIMIT and $MAX_LIMIT.")
+        }
     }
 
     private companion object {

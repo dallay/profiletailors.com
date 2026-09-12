@@ -107,12 +107,8 @@ describe('useComposerValidation', () => {
       )
     })
 
-    it.each([
-      ['', false],
-      ['   \n\t  ', false],
-      ['Hello', true],
-    ])('hasText is %s for text %s', (text, expected) => {
-      const postText = createRef(text)
+    it('hasText is false for empty text', () => {
+      const postText = createRef('')
       const options = createMockOptions({
         postText,
         selectedChannel: undefined,
@@ -124,7 +120,39 @@ describe('useComposerValidation', () => {
 
       const validation = useComposerValidation(options)
 
-      expect(validation.hasText.value).toBe(expected)
+      expect(validation.hasText.value).toBe(false)
+    })
+
+    it('hasText is false for whitespace-only text', () => {
+      const postText = createRef('   \n\t  ')
+      const options = createMockOptions({
+        postText,
+        selectedChannel: undefined,
+        attachmentCount: 0,
+        isScheduleValid: true,
+        isEditMode: false,
+        isSubmitting: false,
+      })
+
+      const validation = useComposerValidation(options)
+
+      expect(validation.hasText.value).toBe(false)
+    })
+
+    it('hasText is true for text with content', () => {
+      const postText = createRef('Hello')
+      const options = createMockOptions({
+        postText,
+        selectedChannel: undefined,
+        attachmentCount: 0,
+        isScheduleValid: true,
+        isEditMode: false,
+        isSubmitting: false,
+      })
+
+      const validation = useComposerValidation(options)
+
+      expect(validation.hasText.value).toBe(true)
     })
   })
 
@@ -133,14 +161,10 @@ describe('useComposerValidation', () => {
   // ============================================================================
 
   describe('attachment limits', () => {
-    it.each([
-      ['linkedin', 9],
-      ['twitter', 4],
-      ['facebook', 10],
-    ])('returns %i for %s', (provider, expected) => {
+    it('returns 9 for LinkedIn', () => {
       const selectedChannel = createRef({
         id: 'ch1',
-        provider,
+        provider: 'linkedin',
         name: 'Test',
         status: 'ACTIVE',
       })
@@ -151,7 +175,41 @@ describe('useComposerValidation', () => {
 
       const validation = useComposerValidation(options)
 
-      expect(validation.effectiveAttachmentLimit.value).toBe(expected)
+      expect(validation.effectiveAttachmentLimit.value).toBe(9)
+    })
+
+    it('returns 4 for Twitter', () => {
+      const selectedChannel = createRef({
+        id: 'ch1',
+        provider: 'twitter',
+        name: 'Test',
+        status: 'ACTIVE',
+      })
+      const options = createMockOptions({
+        postText: createRef('Hello'),
+        selectedChannel,
+      })
+
+      const validation = useComposerValidation(options)
+
+      expect(validation.effectiveAttachmentLimit.value).toBe(4)
+    })
+
+    it('returns 10 for Facebook', () => {
+      const selectedChannel = createRef({
+        id: 'ch1',
+        provider: 'facebook',
+        name: 'Test',
+        status: 'ACTIVE',
+      })
+      const options = createMockOptions({
+        postText: createRef('Hello'),
+        selectedChannel,
+      })
+
+      const validation = useComposerValidation(options)
+
+      expect(validation.effectiveAttachmentLimit.value).toBe(10)
     })
 
     it('returns Infinity for unknown providers', () => {

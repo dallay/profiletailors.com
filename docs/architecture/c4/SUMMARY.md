@@ -5,8 +5,6 @@ status: 🔄 In Progress
 
 # Profile Tailors — C4 Architecture Summary
 
-**Last updated: 2026-09-12
-
 ## Executive Summary
 
 Profile Tailors is a social media management platform built with a modern, reactive architecture.
@@ -279,4 +277,4 @@ Managed & Local Storage
 
 ---
 
-Last updated: 2026-09-12
+Last updated: 2026-09-10

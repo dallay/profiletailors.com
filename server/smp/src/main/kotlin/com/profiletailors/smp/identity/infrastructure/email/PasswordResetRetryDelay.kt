@@ -12,6 +12,13 @@ fun interface PasswordResetRetryDelay {
     suspend fun await(duration: Duration)
 }
 
-val coroutinePasswordResetRetryDelay: PasswordResetRetryDelay = PasswordResetRetryDelay { duration ->
-    delay(duration.toMillis())
+object CoroutinePasswordResetRetryDelay : PasswordResetRetryDelay {
+    /**
+     * Suspends execution for the specified duration.
+     *
+     * @param duration The duration to wait.
+     */
+    override suspend fun await(duration: Duration) {
+        delay(duration.toMillis())
+    }
 }

@@ -2,7 +2,6 @@ package com.profiletailors.smp.platformadmin.application.handler
 
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
-import com.profiletailors.smp.platformadmin.application.PlatformPrincipalIds
 import com.profiletailors.smp.platformadmin.application.command.CreateInvitationCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
@@ -71,7 +70,7 @@ class CreateInvitationHandler(
             invitedEmailNormalized = normalizedEmail,
             tokenHash = tokenHash,
             status = InvitationStatus.ACTIVE,
-            issuedBy = PlatformPrincipalIds.fromUuid(command.operatorPrincipalId),
+            issuedBy = command.operatorPrincipalId.toString(),
             createdAt = now,
             expiresAt = now + invitationTtl,
         )

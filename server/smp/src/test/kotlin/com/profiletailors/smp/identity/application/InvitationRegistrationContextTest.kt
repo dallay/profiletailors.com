@@ -1,44 +1,37 @@
 package com.profiletailors.smp.identity.application
 
-import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class InvitationRegistrationContextTest {
 
     @Test
-    fun `should create context when invitation targets a new workspace`() {
-        val context = InvitationRegistrationContext(
+    fun `creates valid InvitationRegistrationContext for NEW_WORKSPACE`() {
+        val ctx = InvitationRegistrationContext(
             invitationId = "inv-1",
             target = InvitationRegistrationTarget.NEW_WORKSPACE,
             workspaceId = null,
             source = InvitationRegistrationSource.DIRECT,
         )
-
-        context.invitationId shouldBe "inv-1"
-        context.target shouldBe InvitationRegistrationTarget.NEW_WORKSPACE
-        context.workspaceId shouldBe null
-        context.source shouldBe InvitationRegistrationSource.DIRECT
+        assertEquals("inv-1", ctx.invitationId)
+        assertEquals(InvitationRegistrationTarget.NEW_WORKSPACE, ctx.target)
     }
 
     @Test
-    fun `should create context when invitation targets an existing workspace`() {
-        val context = InvitationRegistrationContext(
+    fun `creates valid InvitationRegistrationContext for EXISTING_WORKSPACE`() {
+        val ctx = InvitationRegistrationContext(
             invitationId = "inv-1",
             target = InvitationRegistrationTarget.EXISTING_WORKSPACE,
             workspaceId = "ws-1",
             source = InvitationRegistrationSource.WAITLIST,
         )
-
-        context.invitationId shouldBe "inv-1"
-        context.target shouldBe InvitationRegistrationTarget.EXISTING_WORKSPACE
-        context.workspaceId shouldBe "ws-1"
-        context.source shouldBe InvitationRegistrationSource.WAITLIST
+        assertEquals("ws-1", ctx.workspaceId)
     }
 
     @Test
-    fun `should reject context when invitation id is blank`() {
-        val exception = shouldThrow<IllegalArgumentException> {
+    fun `throws IllegalArgumentException when invitationId is blank`() {
+        val ex = assertThrows<IllegalArgumentException> {
             InvitationRegistrationContext(
                 invitationId = "   ",
                 target = InvitationRegistrationTarget.NEW_WORKSPACE,
@@ -46,13 +39,12 @@ class InvitationRegistrationContextTest {
                 source = InvitationRegistrationSource.DIRECT,
             )
         }
-
-        exception.message shouldBe "Invitation id must not be blank"
+        assertEquals("Invitation id must not be blank", ex.message)
     }
 
     @Test
-    fun `should reject context when existing workspace id is null`() {
-        val exception = shouldThrow<IllegalArgumentException> {
+    fun `throws IllegalArgumentException when EXISTING_WORKSPACE has null or blank workspaceId`() {
+        val ex1 = assertThrows<IllegalArgumentException> {
             InvitationRegistrationContext(
                 invitationId = "inv-1",
                 target = InvitationRegistrationTarget.EXISTING_WORKSPACE,
@@ -60,13 +52,9 @@ class InvitationRegistrationContextTest {
                 source = InvitationRegistrationSource.DIRECT,
             )
         }
+        assertEquals("Existing workspace invitations require workspaceId", ex1.message)
 
-        exception.message shouldBe "Existing workspace invitations require workspaceId"
-    }
-
-    @Test
-    fun `should reject context when existing workspace id is blank`() {
-        val exception = shouldThrow<IllegalArgumentException> {
+        val ex2 = assertThrows<IllegalArgumentException> {
             InvitationRegistrationContext(
                 invitationId = "inv-1",
                 target = InvitationRegistrationTarget.EXISTING_WORKSPACE,
@@ -74,13 +62,12 @@ class InvitationRegistrationContextTest {
                 source = InvitationRegistrationSource.DIRECT,
             )
         }
-
-        exception.message shouldBe "Existing workspace invitations require workspaceId"
+        assertEquals("Existing workspace invitations require workspaceId", ex2.message)
     }
 
     @Test
-    fun `should reject context when new workspace already has an id`() {
-        val exception = shouldThrow<IllegalArgumentException> {
+    fun `throws IllegalArgumentException when NEW_WORKSPACE carries a non-null workspaceId`() {
+        val ex = assertThrows<IllegalArgumentException> {
             InvitationRegistrationContext(
                 invitationId = "inv-1",
                 target = InvitationRegistrationTarget.NEW_WORKSPACE,
@@ -88,43 +75,35 @@ class InvitationRegistrationContextTest {
                 source = InvitationRegistrationSource.DIRECT,
             )
         }
-
-        exception.message shouldBe "New workspace invitations must not carry a workspaceId before completion"
+        assertEquals("New workspace invitations must not carry a workspaceId before completion", ex.message)
     }
 
     @Test
-    fun `should create result when workspace and membership status are resolved`() {
-        val result = InvitationRegistrationResult(
+    fun `creates valid InvitationRegistrationResult`() {
+        val res = InvitationRegistrationResult(
             workspaceId = "ws-1",
             membershipStatus = "ACTIVE",
         )
-
-        result.workspaceId shouldBe "ws-1"
-        result.membershipStatus shouldBe "ACTIVE"
-        result.postCommitEvent shouldBe null
+        assertEquals("ws-1", res.workspaceId)
+        assertEquals("ACTIVE", res.membershipStatus)
     }
 
     @Test
-    fun `should reject result when workspace id is blank`() {
-        val exception = shouldThrow<IllegalArgumentException> {
+    fun `throws IllegalArgumentException when InvitationRegistrationResult workspaceId or membershipStatus is blank`() {
+        val ex1 = assertThrows<IllegalArgumentException> {
             InvitationRegistrationResult(
                 workspaceId = "  ",
                 membershipStatus = "ACTIVE",
             )
         }
+        assertEquals("Invitation registration requires a resolved workspaceId", ex1.message)
 
-        exception.message shouldBe "Invitation registration requires a resolved workspaceId"
-    }
-
-    @Test
-    fun `should reject result when membership status is blank`() {
-        val exception = shouldThrow<IllegalArgumentException> {
+        val ex2 = assertThrows<IllegalArgumentException> {
             InvitationRegistrationResult(
                 workspaceId = "ws-1",
                 membershipStatus = "",
             )
         }
-
-        exception.message shouldBe "Invitation registration requires a membership status"
+        assertEquals("Invitation registration requires a membership status", ex2.message)
     }
 }

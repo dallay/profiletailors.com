@@ -1,5 +1,5 @@
 package com.profiletailors.smp.platformadmin.application.contracts
 
-fun interface WaitlistQueryTelemetry {
+interface WaitlistQueryTelemetry {
     fun recordListQuery(statusFilterApplied: Boolean, emailSearch: Boolean)
 }

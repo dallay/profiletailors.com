@@ -14,7 +14,6 @@ import com.profiletailors.smp.platformadmin.domain.InvitationIssued
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
-import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -87,27 +86,6 @@ class CreateInvitationHandlerTest {
         assertThat(eventSlot.captured.recipientEmail).isEqualTo("user@example.com")
         assertThat(eventSlot.captured.rawToken).isNotEmpty()
         verify { telemetry.recordInvitationCreated() }
-    }
-
-    @Test
-    fun `should persist issuedBy as prefixed platform principal id when creating a direct invitation`() = runTest {
-        val command = CreateInvitationCommand(
-            operatorPrincipalId = operatorId,
-            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
-            email = "user@example.com",
-            target = InvitationTarget.EXISTING_WORKSPACE,
-            workspaceId = "workspace-001",
-        )
-
-        coEvery { invitationRepository.hasActiveInvitationFor(any(), any(), any()) } returns false
-        val savedSlot = slot<Invitation>()
-        coEvery { invitationRepository.save(capture(savedSlot), any()) } answers {
-            firstArg<Invitation>()
-        }
-
-        handler.handle(command)
-
-        savedSlot.captured.issuedBy shouldBe "user-$operatorId"
     }
 
     @Test

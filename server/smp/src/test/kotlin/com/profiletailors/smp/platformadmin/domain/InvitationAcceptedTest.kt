@@ -1,11 +1,10 @@
 package com.profiletailors.smp.platformadmin.domain
 
-import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -42,10 +41,10 @@ class InvitationAcceptedTest {
     }
 
     @Test
-    fun `should reject event when principal id is blank`() {
+    fun `throws IllegalArgumentException when principalId or workspaceId is blank`() {
         val invitationId = UUID.randomUUID()
 
-        val exception = shouldThrow<IllegalArgumentException> {
+        val ex1 = assertThrows<IllegalArgumentException> {
             InvitationAccepted(
                 invitationId = invitationId,
                 principalId = "   ",
@@ -53,15 +52,9 @@ class InvitationAcceptedTest {
                 target = InvitationTarget.NEW_WORKSPACE,
             )
         }
+        assertEquals("Accepted principal id must not be blank", ex1.message)
 
-        exception.message shouldBe "Accepted principal id must not be blank"
-    }
-
-    @Test
-    fun `should reject event when workspace id is blank`() {
-        val invitationId = UUID.randomUUID()
-
-        val exception = shouldThrow<IllegalArgumentException> {
+        val ex2 = assertThrows<IllegalArgumentException> {
             InvitationAccepted(
                 invitationId = invitationId,
                 principalId = "p-1",
@@ -69,7 +62,6 @@ class InvitationAcceptedTest {
                 target = InvitationTarget.NEW_WORKSPACE,
             )
         }
-
-        exception.message shouldBe "Accepted workspace id must not be blank"
+        assertEquals("Accepted workspace id must not be blank", ex2.message)
     }
 }

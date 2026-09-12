@@ -13,7 +13,7 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.WorkspaceScope
 import java.time.Duration
 
-fun interface LinkedInPageDiscoveryHandler {
+interface LinkedInPageDiscoveryHandler {
     suspend fun handle(scope: WorkspaceScope, connectionId: String, provider: SocialProvider): List<SocialContentActor>
 }
 
