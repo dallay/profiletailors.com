@@ -1,6 +1,7 @@
 @file:Suppress("MaxLineLength", "ktlint:standard:max-line-length")
 
 package com.profiletailors.smp.publishing.application
+
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
