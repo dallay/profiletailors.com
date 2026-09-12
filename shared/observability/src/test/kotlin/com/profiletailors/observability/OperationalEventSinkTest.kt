@@ -27,16 +27,4 @@ class OperationalEventSinkTest {
         assertSame(cause, event.cause)
     }
 
-    @Test
-    fun `legacy convenience emission keeps message and arguments`() {
-        val events = mutableListOf<OperationalEvent>()
-        val sink = OperationalEventSink { events += it }
-
-        sink.warn("media.asset.failed assetId={}", "asset-1")
-
-        val event = events.single()
-        assertEquals("media.asset.failed", event.name)
-        assertEquals(Severity.WARN, event.severity)
-        assertEquals("[REDACTED]", event.attributes["argument.0"])
-    }
 }

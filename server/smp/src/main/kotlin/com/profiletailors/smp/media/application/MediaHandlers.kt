@@ -7,9 +7,8 @@ import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEventSink
-import com.profiletailors.observability.error
-import com.profiletailors.observability.info
-import com.profiletailors.observability.warn
+import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
@@ -73,6 +72,10 @@ private suspend fun MediaAsset.toSummary(
     metadata = metadata,
 )
 
+private const val ASSET_ID_ATTRIBUTE = "assetId"
+private const val WORKSPACE_ID_ATTRIBUTE = "workspaceId"
+private const val FILE_HASH_ATTRIBUTE = "fileHash"
+
 @Service
 class CreateUploadedAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
@@ -111,9 +114,15 @@ class CreateUploadedAssetHandler(
         )
 
         mediaAssetRepository.create(asset)
-        operationalEvents.info(
-            "media.asset.reserved assetId=$assetId workspaceId=${command.workspaceId} " +
-                "mediaType=${command.mediaType} sourceType=${command.sourceType}",
+        operationalEvents.emit(
+            severity = Severity.INFO,
+            name = "media.asset.reserved",
+            attributes = arrayOf(
+                ASSET_ID_ATTRIBUTE to assetId,
+                WORKSPACE_ID_ATTRIBUTE to command.workspaceId,
+                "mediaType" to command.mediaType,
+                "sourceType" to command.sourceType,
+            ),
         )
 
         return CreateUploadedAssetResult(
@@ -257,9 +266,14 @@ class UploadAssetHandler(
         try {
             val asset = requireUploadableAsset(workspaceId, assetId, now)
 
-            operationalEvents.info(
-                "media.asset.upload.started assetId=$assetId workspaceId=$workspaceId " +
-                    "contentLength=${command.contentLength ?: "unknown"}",
+            operationalEvents.emit(
+                severity = Severity.INFO,
+                name = "media.asset.upload.started",
+                attributes = arrayOf(
+                    ASSET_ID_ATTRIBUTE to assetId,
+                    WORKSPACE_ID_ATTRIBUTE to workspaceId,
+                    "contentLength" to command.contentLength,
+                ),
             )
 
             val startTime = System.currentTimeMillis()
@@ -271,9 +285,15 @@ class UploadAssetHandler(
             }
 
             val durationMs = System.currentTimeMillis() - startTime
-            operationalEvents.info(
-                "media.asset.upload.completed assetId=$assetId workspaceId=$workspaceId " +
-                    "fileSizeBytes=$fileSize durationMs=$durationMs",
+            operationalEvents.emit(
+                severity = Severity.INFO,
+                name = "media.asset.upload.completed",
+                attributes = arrayOf(
+                    ASSET_ID_ATTRIBUTE to assetId,
+                    WORKSPACE_ID_ATTRIBUTE to workspaceId,
+                    "fileSizeBytes" to fileSize,
+                    "durationMs" to durationMs,
+                ),
             )
 
             return LegacyUploadAssetResult(
@@ -346,9 +366,16 @@ class UploadAssetHandler(
         markAssetFailed(assetId, workspaceId)
         val reason = uploadFailureReason(e)
 
-        operationalEvents.info(
-            "media.asset.upload.failed assetId=$assetId workspaceId=$workspaceId reason=$reason " +
-                "storageWriteAttempted=$storageWriteAttempted storageCleanupSucceeded=$cleanupSucceeded",
+        operationalEvents.emit(
+            severity = Severity.INFO,
+            name = "media.asset.upload.failed",
+            attributes = arrayOf(
+                ASSET_ID_ATTRIBUTE to assetId,
+                WORKSPACE_ID_ATTRIBUTE to workspaceId,
+                "reason" to reason,
+                "storageWriteAttempted" to storageWriteAttempted,
+                "storageCleanupSucceeded" to cleanupSucceeded,
+            ),
         )
     }
 
@@ -385,8 +412,14 @@ class UploadAssetHandler(
                 "media-reconciler",
             )
         }
-        operationalEvents.info(
-            "media.asset.cleanup.attempted assetId=$assetId storageKey=$storageKey success=true",
+        operationalEvents.emit(
+            severity = Severity.INFO,
+            name = "media.asset.cleanup.attempted",
+            attributes = arrayOf(
+                ASSET_ID_ATTRIBUTE to assetId,
+                "storageKey" to storageKey,
+                "success" to true,
+            ),
         )
         true
     } catch (cleanupError: StorageException) {
@@ -398,10 +431,15 @@ class UploadAssetHandler(
     }
 
     private fun logCleanupFailure(assetId: String, storageKey: String, cleanupError: Throwable) {
-        operationalEvents.warn(
-            "media.asset.cleanup.attempted assetId=$assetId storageKey=$storageKey " +
-                "success=false error=${cleanupError.message.orEmpty()}",
-            cleanupError,
+        operationalEvents.emit(
+            severity = Severity.WARN,
+            name = "media.asset.cleanup.attempted",
+            cause = cleanupError,
+            attributes = arrayOf(
+                ASSET_ID_ATTRIBUTE to assetId,
+                "storageKey" to storageKey,
+                "success" to false,
+            ),
         )
     }
 
@@ -409,7 +447,12 @@ class UploadAssetHandler(
         try {
             mediaAssetRepository.markAsFailed(assetId, workspaceId)
         } catch (transitionError: IllegalStateException) {
-            operationalEvents.error("Failed to transition asset to FAILED: assetId=$assetId", transitionError)
+            operationalEvents.emit(
+                severity = Severity.ERROR,
+                name = "media.asset.transition.failed",
+                cause = transitionError,
+                attributes = arrayOf(ASSET_ID_ATTRIBUTE to assetId, WORKSPACE_ID_ATTRIBUTE to workspaceId),
+            )
         }
     }
 
@@ -470,8 +513,8 @@ class UploadAssetHandler(
                 content = uploadFlow,
                 uploaderId = command.workspaceId,
                 metadata = mapOf(
-                    "assetId" to asset.assetId,
-                    "workspaceId" to asset.workspaceId,
+                    ASSET_ID_ATTRIBUTE to asset.assetId,
+                    WORKSPACE_ID_ATTRIBUTE to asset.workspaceId,
                     "contentType" to asset.mediaType,
                 ),
             )
@@ -776,11 +819,14 @@ class PutAssetHandler(
                             val existingAsset = mediaAssetRepository
                                 .findActiveByWorkspaceAndHash(command.workspaceId, command.fileHash)
                             if (existingAsset != null && existingAsset.assetId != command.assetId) {
-                                operationalEvents.info(
-                                    "media.asset.put.dedup.existing assetId={} workspaceId={} fileHash={}",
-                                    existingAsset.assetId,
-                                    command.workspaceId,
-                                    command.fileHash,
+                                operationalEvents.emit(
+                                    severity = Severity.INFO,
+                                    name = "media.asset.put.dedup.existing",
+                                    attributes = arrayOf(
+                                        ASSET_ID_ATTRIBUTE to existingAsset.assetId,
+                                        WORKSPACE_ID_ATTRIBUTE to command.workspaceId,
+                                        FILE_HASH_ATTRIBUTE to command.fileHash,
+                                    ),
                                 )
                                 buildAlreadyExistsFromExisting(existingAsset)
                             } else {
@@ -798,11 +844,14 @@ class PutAssetHandler(
                                     createdAt = now,
                                 )
                                 mediaAssetRepository.create(asset)
-                                operationalEvents.info(
-                                    "media.asset.put.dedup assetId={} workspaceId={} fileHash={}",
-                                    command.assetId,
-                                    command.workspaceId,
-                                    command.fileHash,
+                                operationalEvents.emit(
+                                    severity = Severity.INFO,
+                                    name = "media.asset.put.dedup",
+                                    attributes = arrayOf(
+                                        ASSET_ID_ATTRIBUTE to command.assetId,
+                                        WORKSPACE_ID_ATTRIBUTE to command.workspaceId,
+                                        FILE_HASH_ATTRIBUTE to command.fileHash,
+                                    ),
                                 )
                                 PutAssetResult.AlreadyExists(
                                     assetId = command.assetId,
@@ -869,12 +918,15 @@ class PutAssetHandler(
             createdAt = now,
         )
         mediaAssetRepository.create(asset)
-        operationalEvents.info(
-            "media.asset.put.created assetId={} workspaceId={} fileHash={} mediaType={}",
-            command.assetId,
-            command.workspaceId,
-            command.fileHash,
-            command.declaredMediaType,
+        operationalEvents.emit(
+            severity = Severity.INFO,
+            name = "media.asset.put.created",
+            attributes = arrayOf(
+                ASSET_ID_ATTRIBUTE to command.assetId,
+                WORKSPACE_ID_ATTRIBUTE to command.workspaceId,
+                FILE_HASH_ATTRIBUTE to command.fileHash,
+                "mediaType" to command.declaredMediaType,
+            ),
         )
         return PutAssetResult.Created(
             assetId = command.assetId,
@@ -1077,10 +1129,13 @@ class CasUploadAssetHandler(
             // safe to perform cleanup outside the transaction.
             cleanupTemp(tempKey)
             markBothFailed(assetId, workspaceId, "BLOB_OR_ASSET_MISSING")
-            operationalEvents.warn(
-                "media.asset.upload.transactionalEmpty assetId={} workspaceId={}",
-                assetId,
-                workspaceId,
+            operationalEvents.emit(
+                severity = Severity.WARN,
+                name = "media.asset.upload.transactionalEmpty",
+                attributes = arrayOf(
+                    ASSET_ID_ATTRIBUTE to assetId,
+                    WORKSPACE_ID_ATTRIBUTE to workspaceId,
+                ),
             )
             CasUploadAssetResult.NotFound(assetId)
         } catch (e: StorageException) {
@@ -1135,11 +1190,14 @@ class CasUploadAssetHandler(
                     fileSizeBytes = blob.fileSizeBytes,
                 ) ?: throw BlobOrAssetMissingException(assetId)
 
-                operationalEvents.info(
-                    "media.asset.upload.dedupHit assetId={} workspaceId={} fileHash={}",
-                    assetId,
-                    workspaceId,
-                    fileHash,
+                operationalEvents.emit(
+                    severity = Severity.INFO,
+                    name = "media.asset.upload.dedupHit",
+                    attributes = arrayOf(
+                        ASSET_ID_ATTRIBUTE to assetId,
+                        WORKSPACE_ID_ATTRIBUTE to workspaceId,
+                        FILE_HASH_ATTRIBUTE to fileHash,
+                    ),
                 )
                 CasUploadAssetResult.Ready(
                     assetId = assetId,
@@ -1194,15 +1252,17 @@ class CasUploadAssetHandler(
                     fileSizeBytes = actualBytes,
                 ) ?: throw BlobOrAssetMissingException(assetId)
 
-                operationalEvents.info(
-                    "media.asset.upload.completed assetId={} workspaceId={} fileHash={} " +
-                        "canonicalKey={} detectedMediaType={} fileSizeBytes={}",
-                    assetId,
-                    workspaceId,
-                    fileHash,
-                    canonicalKey,
-                    detectedMediaType,
-                    actualBytes,
+                operationalEvents.emit(
+                    severity = Severity.INFO,
+                    name = "media.asset.upload.completed",
+                    attributes = arrayOf(
+                        ASSET_ID_ATTRIBUTE to assetId,
+                        WORKSPACE_ID_ATTRIBUTE to workspaceId,
+                        FILE_HASH_ATTRIBUTE to fileHash,
+                        "canonicalKey" to canonicalKey,
+                        "detectedMediaType" to detectedMediaType,
+                        "fileSizeBytes" to actualBytes,
+                    ),
                 )
 
                 CasUploadAssetResult.Ready(
@@ -1346,8 +1406,8 @@ class CasUploadAssetHandler(
                 content = uploadFlow,
                 uploaderId = command.workspaceId,
                 metadata = mapOf(
-                    "assetId" to command.assetId,
-                    "workspaceId" to command.workspaceId,
+                    ASSET_ID_ATTRIBUTE to command.assetId,
+                    WORKSPACE_ID_ATTRIBUTE to command.workspaceId,
                     "declaredMediaType" to command.declaredMediaType,
                     "detectedMediaType" to (detectedMediaType ?: "pending"),
                 ),
@@ -1409,7 +1469,12 @@ class CasUploadAssetHandler(
             )
         } catch (e: StorageException) {
             // Best-effort cleanup — log and move on
-            operationalEvents.warn("Failed to cleanup temp key {}: {}", tempKey, e.message)
+            operationalEvents.emit(
+                severity = Severity.WARN,
+                name = "media.asset.cleanup.tempFailed",
+                cause = e,
+                attributes = arrayOf("tempKey" to tempKey),
+            )
         }
     }
 
@@ -1419,11 +1484,14 @@ class CasUploadAssetHandler(
         if (fileHash != null) {
             workspaceFileBlobRepository.markBlobFailed(workspaceId, fileHash, reason)
         }
-        operationalEvents.info(
-            "media.asset.upload.failed assetId={} workspaceId={} reason={}",
-            assetId,
-            workspaceId,
-            reason,
+        operationalEvents.emit(
+            severity = Severity.INFO,
+            name = "media.asset.upload.failed",
+            attributes = arrayOf(
+                ASSET_ID_ATTRIBUTE to assetId,
+                WORKSPACE_ID_ATTRIBUTE to workspaceId,
+                "reason" to reason,
+            ),
         )
     }
 }
@@ -1446,13 +1514,21 @@ class DeleteAssetHandler(
 
         // Step 2: Idempotent if already deleted
         if (asset.status == MediaAssetStatus.DELETED) {
-            operationalEvents.info("media.asset.delete.idempotent assetId={} workspaceId={}", assetId, workspaceId)
+            operationalEvents.emit(
+                severity = Severity.INFO,
+                name = "media.asset.delete.idempotent",
+                attributes = arrayOf(ASSET_ID_ATTRIBUTE to assetId, WORKSPACE_ID_ATTRIBUTE to workspaceId),
+            )
             return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
         }
 
         // Step 3: Soft-delete asset
         mediaAssetRepository.softDelete(assetId, workspaceId)
-        operationalEvents.info("media.asset.delete.softDeleted assetId={} workspaceId={}", assetId, workspaceId)
+        operationalEvents.emit(
+            severity = Severity.INFO,
+            name = "media.asset.delete.softDeleted",
+            attributes = arrayOf(ASSET_ID_ATTRIBUTE to assetId, WORKSPACE_ID_ATTRIBUTE to workspaceId),
+        )
 
         // Step 4: Get fileHash (nullable for pre-CAS assets)
         val fileHash = asset.fileHash ?: return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
@@ -1483,10 +1559,10 @@ class DeleteAssetHandler(
         if (activeCount == 0) {
             val orphanedAt = Instant.now()
             workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
-            operationalEvents.info(
-                "media.blob.markedReadyForGC workspaceId={} fileHash={}",
-                workspaceId,
-                fileHash,
+            operationalEvents.emit(
+                severity = Severity.INFO,
+                name = "media.blob.markedReadyForGC",
+                attributes = arrayOf(WORKSPACE_ID_ATTRIBUTE to workspaceId, FILE_HASH_ATTRIBUTE to fileHash),
             )
             return DeleteAssetResult(deleted = true, blobScheduledForGC = true)
         }

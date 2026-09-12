@@ -1,0 +1,14 @@
+change: observability-closure-slice
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - qa
+  - archive
+next: none
+updated: 2026-09-12

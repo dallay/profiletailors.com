@@ -84,7 +84,7 @@ class MediaCasHandlersTest {
             .handle(uploadCommand(ASSET_A, hash, bytes))
 
         assertTrue(result is CasUploadAssetResult.NotFound)
-        assertTrue(events.events.any { it.message?.contains("transactionalEmpty") == true })
+        assertTrue(events.events.any { it.name == "media.asset.upload.transactionalEmpty" })
     }
 
     @Test
@@ -553,7 +553,7 @@ class MediaCasHandlersTest {
         ).run()
 
         assertEquals(1, result.skippedBlobs)
-        assertTrue(events.events.any { it.message?.contains("noStorageKey") == true })
+        assertTrue(events.events.any { it.name == "media.gc.skip.noStorageKey" })
     }
 
     @Test
@@ -577,7 +577,7 @@ class MediaCasHandlersTest {
 
         assertEquals(1, result.storageErrors)
         assertEquals(1, blobs.blob(WORKSPACE, HASH_A)?.gcFailureCount)
-        assertTrue(events.events.any { it.message?.contains("storageFailed") == true })
+        assertTrue(events.events.any { it.name == "media.gc.storageFailed" })
     }
 
     @Test
@@ -605,7 +605,7 @@ class MediaCasHandlersTest {
         ).run()
 
         assertEquals(1, timeoutResult.storageErrors)
-        assertTrue(timeoutEvents.events.any { it.message?.contains("storageTimeout") == true })
+        assertTrue(timeoutEvents.events.any { it.name == "media.gc.storageTimeout" })
 
         val runtimeBlobs = InMemoryWorkspaceFileBlobRepository()
         runtimeBlobs.saveBlob(
@@ -624,7 +624,7 @@ class MediaCasHandlersTest {
         ).run()
 
         assertEquals(1, runtimeResult.storageErrors)
-        assertTrue(runtimeEvents.events.any { it.message?.contains("gc.error") == true })
+        assertTrue(runtimeEvents.events.any { it.name == "media.gc.error" })
     }
 
     @Test
@@ -643,7 +643,7 @@ class MediaCasHandlersTest {
         ).run()
 
         assertEquals(0, result.blobsScanned)
-        assertTrue(events.events.any { it.message?.contains("run failed") == true })
+        assertTrue(events.events.any { it.name == "media.gc.run.failed" || it.name == "media.expiration.run.failed" })
     }
 
     @Test
@@ -699,8 +699,8 @@ class MediaCasHandlersTest {
         ).run()
 
         assertEquals(2, result.errors)
-        assertTrue(events.events.any { it.message?.contains("PENDING_UPLOAD") == true })
-        assertTrue(events.events.any { it.message?.contains("UPLOADING") == true })
+        assertTrue(events.events.any { it.name == "media.expiration.pendingUpload.failed" })
+        assertTrue(events.events.any { it.name == "media.expiration.uploading.failed" })
 
         media.failMarkAsFailed = false
         MediaAssetExpirationJob(
@@ -710,7 +710,7 @@ class MediaCasHandlersTest {
             NoopAtomicTransactionRunner,
             events,
         ).run()
-        assertTrue(events.events.any { it.message?.contains("No upload slot") == true })
+        assertTrue(events.events.any { it.name == "media.expiration.uploadSlotReleaseFailed" })
     }
 
     @Test
@@ -727,7 +727,7 @@ class MediaCasHandlersTest {
         ).run()
 
         assertEquals(1, result.errors)
-        assertTrue(events.events.any { it.message?.contains("run failed") == true })
+        assertTrue(events.events.any { it.name == "media.gc.run.failed" || it.name == "media.expiration.run.failed" })
     }
 
     @Test

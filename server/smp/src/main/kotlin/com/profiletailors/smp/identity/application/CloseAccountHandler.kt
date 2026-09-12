@@ -3,7 +3,8 @@ package com.profiletailors.smp.identity.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEventSink
-import com.profiletailors.observability.info
+import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import java.time.Clock
 import java.time.Duration
 
@@ -43,9 +44,9 @@ class CloseAccountHandler(
         validateConfirmation(command)
         enforceRateLimit(command.principalId)
 
-        operationalEvents.info("Initiating account closure")
+        operationalEvents.emit(Severity.INFO, "identity.accountClosure.started")
         orchestration.execute(command.principalId)
-        operationalEvents.info("Account closure completed")
+        operationalEvents.emit(Severity.INFO, "identity.accountClosure.completed")
     }
 
     private fun validateConfirmation(command: CloseAccountCommand) {

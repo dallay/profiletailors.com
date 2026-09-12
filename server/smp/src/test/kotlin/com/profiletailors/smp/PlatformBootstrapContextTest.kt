@@ -2,6 +2,7 @@ package com.profiletailors.smp
 
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import com.profiletailors.smp.media.application.CreateUploadedAssetHandler
 import com.profiletailors.smp.publishing.domain.SocialContentBatchWriter
 import com.profiletailors.smp.test.TestStorageConfiguration
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -31,6 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PlatformBootstrapContextTest(
+    @Autowired private val applicationContext: ApplicationContext,
     @Autowired private val mediator: Mediator,
     @Autowired @Qualifier("socialContentBatchWriter") private val socialContentBatchWriter: SocialContentBatchWriter,
 ) {
@@ -38,6 +41,11 @@ class PlatformBootstrapContextTest(
     @Test
     fun `registers mediator platform bean`() {
         assertNotNull(mediator)
+    }
+
+    @Test
+    fun `registers uploaded asset handler for mediator dispatch`() {
+        assertNotNull(applicationContext.getBean(CreateUploadedAssetHandler::class.java))
     }
 
     @Test

@@ -33,6 +33,71 @@ class OperationalEventSafetyTest {
     }
 
     @Test
+    fun `sanitizer keeps ordinary author fields while protecting auth families`() {
+        val sanitized = OperationalEventSanitizer.sanitize(
+            OperationalEvent(
+                name = "publishing.author.updated",
+                severity = Severity.INFO,
+                attributes = mapOf(
+                    "author" to "Ada",
+                    "authorId" to "author-1",
+                    "authorship" to "editorial",
+                    "authentication" to "session",
+                    "authToken" to "token",
+                    "authHeader" to "Bearer token",
+                    "apiKey" to "key",
+                    "set-cookie" to "cookie",
+                ),
+            ),
+        )
+
+        assertEquals(
+            mapOf(
+                "author" to "Ada",
+                "authorId" to "author-1",
+                "authorship" to "editorial",
+            ),
+            sanitized.attributes,
+        )
+    }
+
+    @Test
+    fun `sanitizer maps throwable to class name and removes original cause`() {
+        val cause = IllegalStateException("secret")
+
+        val sanitized = OperationalEventSanitizer.sanitize(
+            OperationalEvent(
+                name = "operation.failed",
+                severity = Severity.ERROR,
+                cause = cause,
+            ),
+        )
+
+        assertEquals("IllegalStateException", sanitized.attributes["errorType"])
+        assertNull(sanitized.cause)
+        assertSame(cause, cause)
+    }
+
+    @Test
+    fun `best effort sink swallows ordinary exceptions but preserves cancellation and errors`() {
+        val ordinaryFailure = IllegalStateException("sink failed")
+        BestEffortOperationalEventSink(OperationalEventSink { throw ordinaryFailure })
+            .emit(OperationalEvent(name = "operation.failed", severity = Severity.ERROR))
+
+        val cancellation = CancellationException("cancelled")
+        assertFailsWith<CancellationException> {
+            BestEffortOperationalEventSink(OperationalEventSink { throw cancellation })
+                .emit(OperationalEvent(name = "operation.cancelled", severity = Severity.INFO))
+        }
+
+        val fatal = AssertionError("fatal")
+        assertFailsWith<AssertionError> {
+            BestEffortOperationalEventSink(OperationalEventSink { throw fatal })
+                .emit(OperationalEvent(name = "operation.fatal", severity = Severity.ERROR))
+        }
+    }
+
+    @Test
     fun `sanitizer removes nested variants of every sensitive key family`() {
         val event = OperationalEvent(
             name = "security.event",

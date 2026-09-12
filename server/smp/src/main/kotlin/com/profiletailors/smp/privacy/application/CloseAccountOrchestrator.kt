@@ -2,8 +2,8 @@ package com.profiletailors.smp.privacy.application
 
 import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEventSink
-import com.profiletailors.observability.debug
-import com.profiletailors.observability.info
+import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import com.profiletailors.smp.identity.application.CloseAccountOrchestration
 
 /**
@@ -32,18 +32,18 @@ class CloseAccountOrchestrator(
 ) : CloseAccountOrchestration {
 
     override suspend fun execute(principalId: String) {
-        operationalEvents.info("Executing account closure")
+        operationalEvents.emit(Severity.INFO, "privacy.accountClosure.started")
 
         // Step 1: Revoke credentials (sessions + API keys)
         credentialsRevocation.revokeAllSessions(principalId)
         credentialsRevocation.deleteAllApiKeys(principalId)
-        operationalEvents.debug("Revoked credentials")
+        operationalEvents.emit(Severity.DEBUG, "privacy.accountClosure.credentialsRevoked")
 
         // Step 2: Clean up publishing context
         publishingDeletion.cancelPendingPublications(principalId)
         publishingDeletion.deleteSocialConnections(principalId)
         publishingDeletion.deleteSecureCredentials(principalId)
-        operationalEvents.debug("Cleaned up publishing data")
+        operationalEvents.emit(Severity.DEBUG, "privacy.accountClosure.publishingCleaned")
 
         // Step 3: Capture workspace IDs before removing memberships
         val workspaceIds = tenancyData.getMembershipWorkspaceIds(principalId)
@@ -52,20 +52,20 @@ class CloseAccountOrchestrator(
         if (workspaceIds.isNotEmpty()) {
             mediaDeletion.markAssetsDeleted(principalId, workspaceIds)
             mediaDeletion.markBlobsReadyForGc(principalId, workspaceIds)
-            operationalEvents.debug("Marked media assets for GC")
+            operationalEvents.emit(Severity.DEBUG, "privacy.accountClosure.mediaMarkedForGc")
         }
 
         // Step 5: Remove workspace memberships
         tenancyData.removeAllMemberships(principalId)
-        operationalEvents.debug("Removed workspace memberships")
+        operationalEvents.emit(Severity.DEBUG, "privacy.accountClosure.membershipsRemoved")
 
         // Step 6: Anonymize identity
         val now = java.time.Clock.systemUTC().instant()
         identityAnonymization.anonymizeUserIdentity(principalId, now)
         identityAnonymization.anonymizePrincipalDisplayIdentity(principalId)
-        operationalEvents.debug("Anonymized identity")
+        operationalEvents.emit(Severity.DEBUG, "privacy.accountClosure.identityAnonymized")
 
-        operationalEvents.info("Account closure completed")
+        operationalEvents.emit(Severity.INFO, "privacy.accountClosure.completed")
         // Note: Audit event emission is deferred until a shared audit facility is available.
         // Currently covered by structured logging.
     }
