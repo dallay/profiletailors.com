@@ -8,14 +8,14 @@ Implements the waitlist domain context. It depends on `:shared:lead-capture:comm
 
 ## Tech stack
 
-- **Runtime & Language**: Java 25, Kotlin 2.4, Coroutines
+- **Runtime & Language**: Java 21, Kotlin 2.4, Coroutines
 - **Testing**: JUnit 5, Kotest, ArchUnit, MockK
 
 ## Getting started
 
 ### Prerequisites
 
-- Java JDK `>= 25`
+- Java JDK `>= 21`
 - Gradle wrapper (`./gradlew`)
 
 ### Installation

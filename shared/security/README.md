@@ -8,14 +8,14 @@ Defines core security interfaces used across all bounded contexts in `server/smp
 
 ## Tech stack
 
-- **Runtime & Language**: Java 25, Kotlin 2.4
+- **Runtime & Language**: Java 21, Kotlin 2.4
 - **Testing**: JUnit 5, AssertJ, Kotest, MockK
 
 ## Getting started
 
 ### Prerequisites
 
-- Java JDK `>= 25`
+- Java JDK `>= 21`
 - Gradle wrapper (`./gradlew`)
 
 ### Installation

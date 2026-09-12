@@ -1,5 +1,7 @@
 # IAM Platform Architecture
 
+****Last Updated:** 2026-09-12
+
 ## Overview
 
 The IAM Platform is the reusable identity and access management foundation for `server/smp`. It is
