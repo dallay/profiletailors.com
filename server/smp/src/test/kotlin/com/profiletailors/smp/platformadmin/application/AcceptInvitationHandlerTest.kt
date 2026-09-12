@@ -11,10 +11,10 @@ import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableExcept
 import com.profiletailors.smp.platformadmin.domain.InvitationSource
 import com.profiletailors.smp.platformadmin.domain.InvitationStatus
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -74,7 +74,7 @@ class AcceptInvitationHandlerTest {
     }
 
     @Test
-    fun `accepts, publishes InvitationAccepted event, and returns workspaceId and membershipStatus`() = runTest {
+    fun `should publish acceptance event when invitation is accepted`() = runTest {
         val coordinator = mockk<InvitationActivationCoordinator>()
         val eventPublisher = mockk<EventPublisher<DomainEvent>>(relaxed = true)
         val invitation = Invitation(
@@ -113,8 +113,8 @@ class AcceptInvitationHandlerTest {
             ),
         )
 
-        assertEquals("workspace-a", result.workspaceId)
-        assertEquals(WorkspaceMembershipStatus.ACTIVE.name, result.membershipStatus)
+        result.workspaceId shouldBe "workspace-a"
+        result.membershipStatus shouldBe WorkspaceMembershipStatus.ACTIVE.name
         coVerify {
             coordinator.activateForRegistration(
                 rawToken = "raw-token",
@@ -122,12 +122,14 @@ class AcceptInvitationHandlerTest {
                 principalId = "principal-1",
             )
         }
-        verify {
+        coVerify(exactly = 1) {
             eventPublisher.publish(
                 match<InvitationAccepted> { event ->
                     event.invitationId == invitation.id.value &&
                         event.principalId == "principal-1" &&
-                        event.workspaceId == "workspace-a"
+                        event.workspaceId == "workspace-a" &&
+                        event.target == InvitationTarget.EXISTING_WORKSPACE &&
+                        event.occurredAt == now
                 },
             )
         }
