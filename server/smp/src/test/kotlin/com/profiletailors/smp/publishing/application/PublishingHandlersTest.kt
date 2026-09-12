@@ -1327,7 +1327,7 @@ class PublishingHandlersTest {
         )
 
         assertNull(result.publications.single().previewUrl)
-        assertTrue(events.any { it.message?.contains("preview URL") == true })
+        assertTrue(events.any { it.name == "publishing.asset.previewResolutionFailed" })
     }
 
     @Test

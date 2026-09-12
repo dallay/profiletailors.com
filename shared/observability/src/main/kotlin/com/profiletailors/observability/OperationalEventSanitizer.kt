@@ -1,20 +1,20 @@
 package com.profiletailors.observability
 
+import java.util.Locale
+
 object OperationalEventSanitizer {
     private const val REDACTED_VALUE = "[REDACTED]"
     private const val ARGUMENT_PREFIX = "argument."
 
-    private val sensitiveKeyFragments = setOf(
+    private val sensitiveKeySegments = setOf(
+        "credential",
         "token",
         "password",
         "secret",
         "authorization",
+        "authentication",
         "auth",
-        "apikey",
-        "api-key",
         "cookie",
-        "set-cookie",
-        "credential",
         "otp",
         "email",
         "pii",
@@ -26,7 +26,6 @@ object OperationalEventSanitizer {
             .values
             .filterIsInstance<String>()
             .filter(String::isNotBlank)
-
         val attributes = event.attributes
             .filterKeys { !isSensitiveKey(it) }
             .mapValues { (key, value) -> if (key.startsWith(ARGUMENT_PREFIX)) REDACTED_VALUE else safeValue(value) }
@@ -48,8 +47,12 @@ object OperationalEventSanitizer {
     }
 
     private fun isSensitiveKey(key: String): Boolean {
-        val normalized = key.lowercase()
-        return sensitiveKeyFragments.any(normalized::contains)
+        val normalized = key
+            .replace(Regex("([a-z0-9])([A-Z])"), "$1.$2")
+            .lowercase(Locale.ROOT)
+        val segments = normalized.split('.', '_', '-', '/', ':')
+        return segments.any(sensitiveKeySegments::contains) ||
+            segments.zipWithNext().any { (first, second) -> first == "api" && second == "key" }
     }
 
     private fun safeValue(value: Any?): Any? = when (value) {
@@ -60,7 +63,6 @@ object OperationalEventSanitizer {
         is String,
         is Enum<*>,
         -> value
-
         else -> value::class.simpleName ?: "Object"
     }
 }

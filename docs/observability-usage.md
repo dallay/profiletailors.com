@@ -94,26 +94,10 @@ It constructs an `OperationalEvent` and converts the attribute pairs with `toMap
 attribute keys therefore follow Kotlin map construction behavior; callers should not provide
 ambiguous duplicate keys.
 
-The legacy severity convenience extensions remain implemented:
-
-```kotlin
-fun OperationalEventSink.trace(message: String, vararg arguments: Any?)
-fun OperationalEventSink.debug(message: String, vararg arguments: Any?)
-fun OperationalEventSink.info(message: String, vararg arguments: Any?)
-fun OperationalEventSink.warn(message: String, vararg arguments: Any?)
-fun OperationalEventSink.error(message: String, vararg arguments: Any?)
-```
-
-Their current adapter behavior is important when reading existing consumers:
-
-- The event name is `message.substringBefore(' ')`.
-- If the last argument is a `Throwable`, it becomes `cause` and is removed from the argument list.
-- Other arguments are stored as `argument.0`, `argument.1`, and so on.
-- The original message is retained as `message`.
-
-New code SHOULD prefer the structured overload because the name and attribute keys are explicit.
-Existing legacy calls must not be interpreted as evidence that message text is a stable event
-schema.
+The deprecated severity convenience extensions and their private legacy emitter have been removed.
+All production consumers use stable dotted event names with bounded named attributes. New code MUST
+continue using the structured overload; unrelated `logger.info`, `logger.warn`, and `logger.error`
+calls are separate SLF4J concerns and are not part of this contract.
 
 ### `Severity`
 
@@ -352,20 +336,25 @@ repository. Review adjacent logging and telemetry code when adding a new event.
 
 ### Implemented sink policy
 
-`OperationalEventSanitizer` removes any attribute whose key contains one of these secret-like or
-personal-data terms before emission:
+`OperationalEventSanitizer` removes any attribute whose normalized key contains one of these
+case-insensitive sensitive segments or segment families before emission:
 
+- `credential`
 - `token`
 - `password`
 - `secret`
 - `authorization`
-- `auth`
-- `cookie`
-- `set-cookie`
-- `credential`
-- `pii`
-- `email`
+- `authentication`
+- `authToken`
+- `authHeader`
+- `apiKey` and `api-key`
+- `cookie` and `set-cookie`
 - `otp`
+- `email`
+- `pii`
+
+Matching is segment-aware. Ordinary operational fields such as `author`, `authorId`, and
+`authorship` are retained and are not redacted merely because they contain the letters `auth`.
 
 A sink MUST NOT emit the raw value or the sensitive key. The policy applies to structured
 attributes and to any rendered representation derived from them. Redaction tests are required for
@@ -373,12 +362,13 @@ each new sink.
 
 ### Runtime enforcement
 
-`BestEffortOperationalEventSink` sanitizes the event before delegating to an adapter. The current
-`Slf4jOperationalEventSink` also sanitizes defensively when used directly. Sensitive keys are
-removed, safe scalar values are preserved, arbitrary object values are reduced to their type name,
-and a `Throwable` is represented only by an `errorType` attribute; its message, stack, cause chain,
-and raw value are not passed to the logger. Sensitive string values present in attributes are also
-replaced in the human-readable message.
+`BestEffortOperationalEventSink` is the sole sanitization and ordinary-`Exception` isolation
+boundary. Sensitive keys are removed, safe scalar values are preserved, arbitrary object values are
+reduced to their type name, and a `Throwable` is represented only by an `errorType` attribute; its
+message, stack, cause chain, and raw value are not passed to the logger. Sensitive string values
+present in attributes are also replaced in the human-readable message. `CancellationException` and
+fatal `Error` instances propagate unchanged. `Slf4jOperationalEventSink` only formats and emits the
+already-safe event and does not sanitize or catch failures.
 
 Callers MUST still avoid putting sensitive values into messages or event names. Boundary
 sanitization is defense-in-depth, not permission to use unsafe event schemas.
@@ -401,9 +391,8 @@ val event = OperationalEvent(
 )
 ```
 
-The example excludes keys containing `token`, `password`, `secret`, `authorization`, `auth`,
-`cookie`, `set-cookie`, `credential`, `pii`, `email`, and `otp`, and contains no values from those
-categories. The sink applies the same policy as defense-in-depth.
+The example excludes keys in the sensitive families above and contains no values from those
+categories. The best-effort boundary applies the policy once as defense-in-depth.
 
 ## Failures, causes, and correlation
 
@@ -423,6 +412,13 @@ business failure into a success merely because event emission is best effort.
 The best-effort decorator catches ordinary adapter exceptions, rethrows coroutine cancellation,
 and does not catch fatal JVM `Error` types. It must not suppress the handler failure or become a
 reason to omit the failure event.
+
+### Correlation, tracing, and exporter status
+
+**Not implemented:** This closure slice does not implement correlation or request-context
+propagation, distributed tracing, metrics exporters, log exporters, or a real OpenTelemetry adapter.
+The current SMP adapter is the local SLF4J adapter behind the shared best-effort boundary. These
+remain separate future changes that require an approved contract and architecture decision.
 
 ### Correlation status
 
