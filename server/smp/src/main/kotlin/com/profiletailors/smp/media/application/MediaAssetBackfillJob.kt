@@ -4,11 +4,11 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEventSink
-import com.profiletailors.observability.error
-import com.profiletailors.observability.info
-import com.profiletailors.observability.warn
+import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaStorageKeys
+import kotlinx.coroutines.CancellationException
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.Locale
@@ -50,11 +50,14 @@ class MediaAssetBackfillJob(
             }
         }
 
-        operationalEvents.info(
-            "media.backfill.run scanned={} backfilled={} failed={}",
-            scanned,
-            backfilled,
-            failed,
+        operationalEvents.emit(
+            severity = Severity.INFO,
+            name = "media.backfill.run",
+            attributes = arrayOf(
+                "scanned" to scanned,
+                "backfilled" to backfilled,
+                "failed" to failed,
+            ),
         )
 
         return BackfillRunResult(
@@ -70,10 +73,13 @@ class MediaAssetBackfillJob(
         return try {
             val currentStorageKey = asset.storageKey
             if (currentStorageKey.isNullOrBlank()) {
-                operationalEvents.warn(
-                    "media.backfill.skip.noStorageKey assetId={} workspaceId={}",
-                    asset.assetId,
-                    asset.workspaceId,
+                operationalEvents.emit(
+                    severity = Severity.WARN,
+                    name = "media.backfill.skip.noStorageKey",
+                    attributes = arrayOf(
+                        "assetId" to asset.assetId,
+                        "workspaceId" to asset.workspaceId,
+                    ),
                 )
                 return AssetOutcome.FAILED
             }
@@ -112,12 +118,17 @@ class MediaAssetBackfillJob(
             }
 
             AssetOutcome.BACKFILLED
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            operationalEvents.error(
-                "media.backfill.failed assetId={} workspaceId={}",
-                asset.assetId,
-                asset.workspaceId,
-                e,
+            operationalEvents.emit(
+                severity = Severity.ERROR,
+                name = "media.backfill.failed",
+                cause = e,
+                attributes = arrayOf(
+                    "assetId" to asset.assetId,
+                    "workspaceId" to asset.workspaceId,
+                ),
             )
             AssetOutcome.FAILED
         }
