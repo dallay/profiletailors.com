@@ -7,6 +7,7 @@ import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEvent
 import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
 import java.time.Clock
 

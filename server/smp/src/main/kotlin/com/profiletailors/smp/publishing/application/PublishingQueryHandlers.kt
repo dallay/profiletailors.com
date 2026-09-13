@@ -5,7 +5,8 @@ import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.observability.NoOpOperationalEventSink
 import com.profiletailors.observability.OperationalEventSink
-import com.profiletailors.observability.warn
+import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.ResolvedAssetSummary
@@ -98,7 +99,12 @@ internal class GetCalendarPublicationsHandler(
                     externalUrl = null,
                 )
             }.onFailure { error ->
-                operationalEvents.warn("Failed to resolve preview URL for assetId={}", asset.assetId, error)
+                operationalEvents.emit(
+                    severity = Severity.WARN,
+                    name = "publishing.asset.previewResolutionFailed",
+                    cause = error,
+                    attributes = arrayOf("assetId" to asset.assetId),
+                )
             }.getOrNull()
             if (previewUrl != null) return previewUrl
         }
