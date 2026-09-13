@@ -240,7 +240,6 @@ class UploadAssetHandler(
         private const val MILLIS_PER_SECOND = 1_000L
     }
 
-    @Suppress("TooGenericExceptionCaught")
     override suspend fun handle(command: LegacyUploadAssetCommand): LegacyUploadAssetResult {
         requireEmailVerification(
             principalContextProvider.require(),
