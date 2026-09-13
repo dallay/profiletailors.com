@@ -46,6 +46,8 @@ class OperationalEventSafetyTest {
                     "authToken" to "token",
                     "authHeader" to "Bearer token",
                     "apiKey" to "key",
+                    "APIKey" to "uppercase-key",
+                    "APIKEY" to "all-uppercase-key",
                     "set-cookie" to "cookie",
                 ),
             ),
@@ -64,18 +66,17 @@ class OperationalEventSafetyTest {
     @Test
     fun `sanitizer maps throwable to class name and removes original cause`() {
         val cause = IllegalStateException("secret")
-
-        val sanitized = OperationalEventSanitizer.sanitize(
-            OperationalEvent(
-                name = "operation.failed",
-                severity = Severity.ERROR,
-                cause = cause,
-            ),
+        val event = OperationalEvent(
+            name = "operation.failed",
+            severity = Severity.ERROR,
+            cause = cause,
         )
+
+        val sanitized = OperationalEventSanitizer.sanitize(event)
 
         assertEquals("IllegalStateException", sanitized.attributes["errorType"])
         assertNull(sanitized.cause)
-        assertSame(cause, cause)
+        assertSame(cause, event.cause)
     }
 
     @Test

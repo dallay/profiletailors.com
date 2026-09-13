@@ -8,6 +8,7 @@ import com.profiletailors.observability.Severity
 import com.profiletailors.observability.emit
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaStorageKeys
+import kotlinx.coroutines.CancellationException
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.Locale
@@ -117,6 +118,8 @@ class MediaAssetBackfillJob(
             }
 
             AssetOutcome.BACKFILLED
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             operationalEvents.emit(
                 severity = Severity.ERROR,

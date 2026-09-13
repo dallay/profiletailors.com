@@ -14,6 +14,7 @@ object OperationalEventSanitizer {
         "authorization",
         "authentication",
         "auth",
+        "apikey",
         "cookie",
         "otp",
         "email",
@@ -52,6 +53,7 @@ object OperationalEventSanitizer {
             .lowercase(Locale.ROOT)
         val segments = normalized.split('.', '_', '-', '/', ':')
         return segments.any(sensitiveKeySegments::contains) ||
+            normalized in sensitiveKeySegments ||
             segments.zipWithNext().any { (first, second) -> first == "api" && second == "key" }
     }
 

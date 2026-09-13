@@ -5,6 +5,7 @@ import com.profiletailors.observability.Severity
 import com.profiletailors.observability.emit
 import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.PresignableStorage
+import kotlinx.coroutines.CancellationException
 import java.time.Instant
 import java.util.Base64
 import javax.crypto.Mac
@@ -117,6 +118,7 @@ class StorageAssetPreviewUrlResolver(
                     expirySeconds = previewUrlExpirySeconds,
                 )
             }.onFailure { err ->
+                if (err is CancellationException) throw err
                 operationalEvents.emit(
                     severity = Severity.WARN,
                     name = "media.asset.preview.presignFailed",

@@ -44,7 +44,7 @@ class PlatformBootstrapContextTest(
     }
 
     @Test
-    fun `registers uploaded asset handler for mediator dispatch`() {
+    fun `should register uploaded asset handler when bootstrap context starts`() {
         assertNotNull(applicationContext.getBean(CreateUploadedAssetHandler::class.java))
     }
 

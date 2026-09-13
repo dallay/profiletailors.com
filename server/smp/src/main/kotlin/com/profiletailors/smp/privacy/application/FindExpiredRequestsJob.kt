@@ -6,6 +6,7 @@ import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.observability.Severity
 import com.profiletailors.observability.emit
 import com.profiletailors.smp.privacy.domain.DataSubjectRequestRepository
+import kotlinx.coroutines.CancellationException
 import java.time.Instant
 
 /**
@@ -32,6 +33,8 @@ class FindExpiredRequestsJob(
 
         val expired = try {
             repository.findExpired(Instant.now())
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             operationalEvents.emit(
                 severity = Severity.ERROR,

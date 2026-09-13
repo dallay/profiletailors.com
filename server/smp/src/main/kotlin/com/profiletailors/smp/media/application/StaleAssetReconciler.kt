@@ -10,6 +10,7 @@ import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAsset.Companion.GC_RETENTION_DAYS
 import com.profiletailors.smp.media.domain.WorkspaceFileBlob
 import com.profiletailors.storage.domain.StorageException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withTimeout
@@ -173,6 +174,8 @@ class BlobGarbageCollector(
                 ),
             )
             BlobGCResult.StorageFailed
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: RuntimeException) {
             // Defensive: unexpected runtime errors should not silently disappear
             workspaceFileBlobRepository.recordGCFailure(

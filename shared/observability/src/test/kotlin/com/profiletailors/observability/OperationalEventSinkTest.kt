@@ -26,5 +26,4 @@ class OperationalEventSinkTest {
         assertEquals("p-1", event.attributes["principalId"])
         assertSame(cause, event.cause)
     }
-
 }
