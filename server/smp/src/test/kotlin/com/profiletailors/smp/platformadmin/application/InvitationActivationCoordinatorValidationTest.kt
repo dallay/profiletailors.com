@@ -81,6 +81,14 @@ class InvitationActivationCoordinatorValidationTest {
         coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns invitation
         coEvery { tokenHasher.matches(rawToken, invitation.tokenHash) } returns true
         coEvery { principalIdentityLookup.findByPrincipalId(principalId) } returns principalFacts
+        coEvery {
+            workspaceProvisioningService.provisionDefaultWorkspace(principalId, "user@example.com")
+        } returns
+            WorkspaceProvisioningService.ProvisionedWorkspace(
+                "ws-new",
+                "ws-new",
+                com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.ACTIVE,
+            )
         coEvery { waitlistEntryAdmin.findById("entry-123") } returns null
 
         val ex = assertThrows<IllegalStateException> {
@@ -94,7 +102,11 @@ class InvitationActivationCoordinatorValidationTest {
         val rawToken = "secret-token"
         val candidateKey = "cand-123"
         val expiredInvitation = createInvitation(status = InvitationStatus.EXPIRED)
-        val acceptedInvitation = createInvitation(status = InvitationStatus.ACCEPTED)
+        val acceptedInvitation = createInvitation(
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "ws-existing",
+            status = InvitationStatus.ACTIVE,
+        ).copy(status = InvitationStatus.ACCEPTED, acceptedAt = now, acceptedPrincipalId = "user-principal-1")
 
         coEvery { tokenHasher.candidateKey(rawToken) } returns candidateKey
         coEvery { invitationRepository.findByCandidateKeyForUpdate(candidateKey) } returns expiredInvitation
@@ -198,66 +210,68 @@ class InvitationActivationCoordinatorValidationTest {
     }
 
     @Test
-    fun `fails activation when candidate key lookup returns null, invitation not found, or token mismatches`() = runTest {
-        coEvery { tokenHasher.candidateKey("invalid") } returns ""
-        coEvery { invitationRepository.findByCandidateKeyForUpdate("") } returns null
+    fun `fails activation when candidate key lookup returns null, invitation not found, or token mismatches`() =
+        runTest {
+            coEvery { tokenHasher.candidateKey("invalid") } returns ""
+            coEvery { invitationRepository.findByCandidateKeyForUpdate("") } returns null
 
-        assertThrows<InvitationNotAcceptableException> {
-            coordinator.activateForRegistration("invalid", "user@example.com", "p-1")
+            assertThrows<InvitationNotAcceptableException> {
+                coordinator.activateForRegistration("invalid", "user@example.com", "p-1")
+            }
+
+            val invitation = createInvitation()
+            coEvery { tokenHasher.candidateKey("token") } returns "key"
+            coEvery { invitationRepository.findByCandidateKeyForUpdate("key") } returns invitation
+            coEvery { tokenHasher.matches("token", invitation.tokenHash) } returns false
+
+            assertThrows<InvitationNotAcceptableException> {
+                coordinator.activateForRegistration("token", "user@example.com", "p-1")
+            }
         }
-
-        val invitation = createInvitation()
-        coEvery { tokenHasher.candidateKey("token") } returns "key"
-        coEvery { invitationRepository.findByCandidateKeyForUpdate("key") } returns invitation
-        coEvery { tokenHasher.matches("token", invitation.tokenHash) } returns false
-
-        assertThrows<InvitationNotAcceptableException> {
-            coordinator.activateForRegistration("token", "user@example.com", "p-1")
-        }
-    }
 
     @Test
-    fun `fails activation when principal identity not found, email mismatches, or principalType is not USER`() = runTest {
-        val invitation = createInvitation()
-        coEvery { tokenHasher.candidateKey("token") } returns "key"
-        coEvery { invitationRepository.findByCandidateKeyForUpdate("key") } returns invitation
-        coEvery { tokenHasher.matches("token", invitation.tokenHash) } returns true
+    fun `fails activation when principal identity not found, email mismatches, or principalType is not USER`() =
+        runTest {
+            val invitation = createInvitation()
+            coEvery { tokenHasher.candidateKey("token") } returns "key"
+            coEvery { invitationRepository.findByCandidateKeyForUpdate("key") } returns invitation
+            coEvery { tokenHasher.matches("token", invitation.tokenHash) } returns true
 
-        coEvery { principalIdentityLookup.findByPrincipalId("p-1") } returns null
-        assertThrows<InvitationNotAcceptableException> {
-            coordinator.activateForRegistration("token", "user@example.com", "p-1")
-        }
+            coEvery { principalIdentityLookup.findByPrincipalId("p-1") } returns null
+            assertThrows<InvitationNotAcceptableException> {
+                coordinator.activateForRegistration("token", "user@example.com", "p-1")
+            }
 
-        val mismatchedEmailFacts = PrincipalIdentityFacts(
-            principalId = "p-1",
-            principalType = PrincipalType.USER,
-            subject = "sub-1",
-            provider = "local",
-            displayIdentity = "User",
-            email = "other@example.com",
-            username = "user",
-            emailStatus = EmailStatus.VERIFIED,
-        )
-        coEvery { principalIdentityLookup.findByPrincipalId("p-1") } returns mismatchedEmailFacts
-        assertThrows<InvitationNotAcceptableException> {
-            coordinator.activateForRegistration("token", "user@example.com", "p-1")
-        }
+            val mismatchedEmailFacts = PrincipalIdentityFacts(
+                principalId = "p-1",
+                principalType = PrincipalType.USER,
+                subject = "sub-1",
+                provider = "local",
+                displayIdentity = "User",
+                email = "other@example.com",
+                username = "user",
+                emailStatus = EmailStatus.VERIFIED,
+            )
+            coEvery { principalIdentityLookup.findByPrincipalId("p-1") } returns mismatchedEmailFacts
+            assertThrows<InvitationNotAcceptableException> {
+                coordinator.activateForRegistration("token", "user@example.com", "p-1")
+            }
 
-        val serviceAccountFacts = PrincipalIdentityFacts(
-            principalId = "p-1",
-            principalType = PrincipalType.SERVICE_ACCOUNT,
-            subject = "sub-1",
-            provider = "local",
-            displayIdentity = "User",
-            email = "user@example.com",
-            username = "user",
-            emailStatus = EmailStatus.VERIFIED,
-        )
-        coEvery { principalIdentityLookup.findByPrincipalId("p-1") } returns serviceAccountFacts
-        assertThrows<InvitationNotAcceptableException> {
-            coordinator.activateForRegistration("token", "user@example.com", "p-1")
+            val serviceAccountFacts = PrincipalIdentityFacts(
+                principalId = "p-1",
+                principalType = PrincipalType.SERVICE_ACCOUNT,
+                subject = "sub-1",
+                provider = "local",
+                displayIdentity = "User",
+                email = "user@example.com",
+                username = "user",
+                emailStatus = EmailStatus.VERIFIED,
+            )
+            coEvery { principalIdentityLookup.findByPrincipalId("p-1") } returns serviceAccountFacts
+            assertThrows<InvitationNotAcceptableException> {
+                coordinator.activateForRegistration("token", "user@example.com", "p-1")
+            }
         }
-    }
 
     @Test
     fun `throws OptimisticLockException when updateIfVersionMatches returns false`() = runTest {

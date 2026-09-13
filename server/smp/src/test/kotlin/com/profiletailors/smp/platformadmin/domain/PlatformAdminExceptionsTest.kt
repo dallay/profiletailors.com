@@ -1,7 +1,6 @@
 package com.profiletailors.smp.platformadmin.domain
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 
 class PlatformAdminExceptionsTest {
@@ -10,7 +9,7 @@ class PlatformAdminExceptionsTest {
     fun `exercises PlatformAdmin exception constructors and messages`() {
         val permEx = PlatformAccessDeniedException(PlatformPermission.USERS_READ)
         assertEquals(PlatformPermission.USERS_READ, permEx.permission)
-        assertEquals("Platform permission required: users:read", permEx.message)
+        assertEquals("Platform permission required: ${PlatformPermission.USERS_READ.key}", permEx.message)
 
         val roleEx = PlatformRoleRequiredException()
         assertEquals("An active platform role assignment is required.", roleEx.message)

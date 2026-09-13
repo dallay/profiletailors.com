@@ -201,7 +201,6 @@ class AdminProblemDetailsHandlerTest {
         assertEquals("VALIDATION_ERROR", problem.properties?.get("code"))
         assertEquals("urn:profiletailors:error:VALIDATION_ERROR", problem.type.toString())
     }
-}
 
     @Test
     fun `maps InvitationNotAcceptableException failure codes to correct HTTP status codes`() {
