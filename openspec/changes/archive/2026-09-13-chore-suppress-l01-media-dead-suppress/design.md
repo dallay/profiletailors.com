@@ -1,4 +1,4 @@
-# Design: Lote 1 — Remove Dead TooGenericExceptionCaught Suppressions
+# Design: Batch 1 — Remove Dead TooGenericExceptionCaught Suppression
 
 ## Technical Approach
 
@@ -8,7 +8,7 @@ Delete-only: remove 1 dead `@Suppress("TooGenericExceptionCaught")` line in `med
 
 | Option | Tradeoff | Decision |
 |--------|----------|----------|
-| Delete annotations, keep files in place | Zero risk, zero behavior change | **Chosen** — matches proposal, respects `domain <- application <- infrastructure` |
+| Delete only the `MediaHandlers.kt` annotation; defer `StaleAssetReconciler.kt` and keep files in place | Zero risk, zero behavior change; leaves a minor documentation/maintainability issue as recorded debt | **Chosen** — matches proposal scope, respects `domain <- application <- infrastructure` |
 | Move handlers / restructure layers | Unrelated churn, violates minimal-scope rule | Rejected |
 | Touch `detekt.yml` / baseline manually | Out of scope, baseline is a ratchet (shrink only via tool run) | Rejected — never hand-edit baseline |
 
@@ -21,11 +21,11 @@ Not applicable — no runtime change. Annotation removal only affects static ana
 | File | Action | Description |
 |------|--------|-------------|
 | `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/MediaHandlers.kt:243` | Modify (delete 1 line) | Remove `@Suppress("TooGenericExceptionCaught")` above `handle(LegacyUploadAssetCommand)` |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/StaleAssetReconciler.kt:96` | Deferred (retained byte-identical) | Removal resurfaces `LongMethod:processBlob` because `detekt-baseline.xml:88` embeds the annotation text in the ID; deferred to a future lote with tool-run baseline regeneration |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/StaleAssetReconciler.kt:96` | Deferred (retained byte-identical) | Removal resurfaces `LongMethod:processBlob` because `detekt-baseline.xml:88` embeds the annotation text in the ID; any potential removal belongs to a separately scoped future batch with tool-run baseline regeneration |
 
 ## Baseline Debt
 
-`detekt-baseline.xml:88` couples the `StaleAssetReconciler.kt:96` annotation text into the `LongMethod:processBlob` baseline ID. Any future lote touching annotated methods MUST budget a tool-run baseline regeneration (shrink via Detekt run, never hand-edit). Verified 2026-09-13: deletion → `backend-lint` FAILED with resurfaced LongMethod; restore byte-identical → PASS.
+`detekt-baseline.xml:88` couples the `StaleAssetReconciler.kt:96` annotation text into the `LongMethod:processBlob` baseline ID. If a future batch chooses to remove the annotation, it MUST budget a tool-run baseline regeneration (shrink via Detekt run, never hand-edit); removal is not required by this design. Verified 2026-09-13: deletion → `backend-lint` FAILED with resurfaced LongMethod; restore byte-identical → PASS.
 
 Non-goals: tenancy x2, UNUSED_PARAMETER, SQL constants, publishing structural suppressions; `shared/`, `detekt.yml`, `detekt-baseline.xml`, production logic; `package.json`/`pnpm-lock.yaml` untouched.
 
@@ -41,7 +41,7 @@ None — no new types, APIs, or signatures.
 | Arch | Hexagonal direction intact | `just backend-check` PASS (`HexagonalArchTest`, `ComponentScanArchTest` green) |
 | Unit/Integration/E2E | None required | No behavior change; no BDD scenario for pure annotation deletion |
 
-Confirmed debt: `server/smp/detekt-baseline.xml:88` embeds the annotation text in the `LongMethod:processBlob` ID. Deletion resurfaced it as a new finding during apply (`backend-lint` FAILED); the line was restored byte-identical per the pre-approved fallback (→ PASS). Removal is deferred to a future lote with tool-run baseline regeneration, never a hand-edit.
+Confirmed debt: `server/smp/detekt-baseline.xml:88` embeds the annotation text in the `LongMethod:processBlob` ID. Deletion resurfaced it as a new finding during apply (`backend-lint` FAILED); the line was restored byte-identical per the pre-approved fallback (→ PASS). Any potential removal is deferred to a separately scoped future batch with tool-run baseline regeneration, never a hand-edit.
 
 ## Migration / Rollout
 

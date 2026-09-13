@@ -20,7 +20,7 @@ The system MUST NOT contain `@Suppress("TooGenericExceptionCaught")` in `server/
 
 ### Requirement: Deferred Baseline-Coupled Debt in StaleAssetReconciler
 
-The system SHALL retain `@Suppress("TooGenericExceptionCaught")` + trailing comment at `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/StaleAssetReconciler.kt:96` byte-identical until a future lote removes it together with a tool-run baseline regeneration. The annotation is dead w.r.t. the Detekt rule but load-bearing w.r.t. baseline stability: `detekt-baseline.xml:88` embeds the annotation text in the `LongMethod:processBlob` ID, so deletion resurfaces LongMethod as a new finding. The baseline MUST NOT be hand-edited.
+The system SHALL retain `@Suppress("TooGenericExceptionCaught")` + trailing comment at `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/StaleAssetReconciler.kt:96` byte-identical for this change. The annotation is dead w.r.t. the Detekt rule but load-bearing w.r.t. baseline stability: `detekt-baseline.xml:88` embeds the annotation text in the `LongMethod:processBlob` ID, so deletion resurfaces LongMethod as a new finding. Any potential future removal is a separately scoped change and would require tool-run baseline regeneration; removal is not required by this specification. The baseline MUST NOT be hand-edited.
 
 #### Scenario: Annotation retained as recorded debt
 
@@ -30,9 +30,9 @@ The system SHALL retain `@Suppress("TooGenericExceptionCaught")` + trailing comm
 
 #### Scenario: Removal deferred with baseline regeneration
 
-- GIVEN a future lote under epic #1019
+- GIVEN a future batch under epic #1019
 - WHEN `StaleAssetReconciler.kt:96` is removed
-- THEN `detekt-baseline.xml` is regenerated/shrunk via tool run in the same lote, never by hand-edit
+- THEN `detekt-baseline.xml` is regenerated/shrunk via tool run in the same batch, never by hand-edit
 
 ### Requirement: Static-Analysis Gates Stay Green
 
@@ -47,8 +47,8 @@ The system SHALL retain `@Suppress("TooGenericExceptionCaught")` + trailing comm
 #### Scenario: No new suppressions
 
 - GIVEN the applied change
-- WHEN the diff is scanned for `@Suppress`
-- THEN zero added `@Suppress` lines exist
+- WHEN Kotlin source changes are scanned for added `@Suppress` lines or `ForbiddenSuppress` results are inspected
+- THEN zero added `@Suppress` lines exist in Kotlin source and `ForbiddenSuppress` stays clean; OpenSpec documentation text is excluded from the scan
 
 ### Requirement: Architecture and Config Integrity
 
@@ -62,6 +62,6 @@ The system SHALL retain `@Suppress("TooGenericExceptionCaught")` + trailing comm
 
 #### Scenario: Protected files untouched
 
-- GIVEN the applied change
-- WHEN `git status --porcelain` is inspected
+- GIVEN the change is applied to a clean checkout or its PR base revision is identified
+- WHEN `git status --porcelain` is inspected in that clean checkout or the PR diff is compared with its base
 - THEN only `MediaHandlers.kt` plus OpenSpec artifacts are modified
