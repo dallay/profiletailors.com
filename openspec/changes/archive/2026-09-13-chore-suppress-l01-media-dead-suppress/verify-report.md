@@ -1,6 +1,6 @@
-# Verification Report: Lote 1 — Remove Dead TooGenericExceptionCaught Suppressions (v2, amended contract)
+# Verification Report: Batch 1 — Remove Dead TooGenericExceptionCaught Suppression (v2, amended contract)
 
-- change: `chore-suppress-l01-media-dead-suppress` (epic issue #1019, Lote 1)
+- change: `chore-suppress-l01-media-dead-suppress` (epic issue #1019, Batch 1)
 - mode: openspec
 - date: 2026-09-13
 - verifier: sdd-verify sub-agent
@@ -13,7 +13,7 @@
 | Task | Status | Evidence |
 |------|--------|----------|
 | 1.1 Delete `@Suppress` at `MediaHandlers.kt:243` | DONE | `git diff --numstat` → `0 1` (exactly 1 deleted line, zero added); verified 2026-09-13 |
-| 1.2 `StaleAssetReconciler.kt:96` deferred | DEFERRED (recorded debt, not incomplete) | Line present byte-identical with trailing comment; deletion resurfaced `LongMethod:processBlob` via `detekt-baseline.xml:88` ID coupling; restore per pre-approved fallback; removal scheduled with tool-run baseline regeneration in a future lote |
+| 1.2 `StaleAssetReconciler.kt:96` deferred | DEFERRED (recorded debt, not incomplete) | Line present byte-identical with trailing comment; deletion resurfaced `LongMethod:processBlob` via `detekt-baseline.xml:88` ID coupling; restore per pre-approved fallback; any potential removal belongs to a future batch with tool-run baseline regeneration |
 | 1.3 Deletion-only diff per amended contract | DONE | Diff = 1 deleted line (`MediaHandlers.kt` only); `media/application` grep = exactly 1 match (the deferred line) |
 | 2.1 `just backend-lint` PASS | PASS | `tasks.md`: BUILD SUCCESSFUL, 40s; v1 verify: forced `--rerun-tasks` BUILD SUCCESSFUL in 48s; baseline untouched; no code change since those runs |
 | 2.2 `just backend-check` PASS | PASS (accepted evidence, not re-run per instruction) | `tasks.md`: BUILD SUCCESSFUL in 44m15s, EXIT_CODE=0; HexagonalArchTest 13/13, ComponentScanArchTest 5/5, 0 failures |
@@ -37,7 +37,7 @@ Core scope completion: **1 of 1 amended deletions effective (100%) + 1 recorded 
 | Req Dead-Suppression-Removal (MediaHandlers) — "Dead annotation is gone" (grep over `MediaHandlers.kt` = zero) | PASS | `grep -c` over `MediaHandlers.kt` → 0 matches (verified 2026-09-13) |
 | Req Dead-Suppression-Removal — "Deletion-only diff" (exactly 1 deleted line, zero added) | PASS | `git diff` → 1 deleted line, `numstat 0 1` |
 | Req Deferred-Baseline-Coupled-Debt — "Annotation retained as recorded debt" (exactly 1 match at `StaleAssetReconciler.kt:96`, byte-identical) | PASS | `grep -rn` → 1 match at `:96` with original trailing comment; no diff on that file |
-| Req Deferred-Baseline-Coupled-Debt — "Removal deferred with baseline regeneration" (future lote regenerates via tool run, never hand-edit) | PASS (prospective) | Debt recorded in spec + design Baseline Debt section; baseline unedited in this change |
+| Req Deferred-Baseline-Coupled-Debt — "Removal deferred with baseline regeneration" (future batch regenerates via tool run, never hand-edit) | PASS (prospective) | Debt recorded in spec + design Baseline Debt section; baseline unedited in this change; removal is not required |
 | Req Static-Analysis-Gates — "Backend lint passes" | PASS | Detekt BUILD SUCCESSFUL (accepted evidence) |
 | Req Static-Analysis-Gates — "No new suppressions" | PASS | Zero added `@Suppress` lines |
 | Req Arch-and-Config — "Backend check passes" | PASS | Recorded 44m run, arch tests green |
@@ -65,15 +65,15 @@ Core scope completion: **1 of 1 amended deletions effective (100%) + 1 recorded 
 
 | Finding | Judge A | Judge B | Severity | Status |
 |---------|---------|---------|----------|--------|
-| `package.json` / `pnpm-lock.yaml` dirty in worktree (pre-existing, out of scope) | ✅ | ❌ | WARNING (pre-existing) | INFO — untouched by this change, exclude from lote PR |
-| Baseline-ID-embeds-annotation-text coupling will bite future lotes touching annotated methods | ✅ | ✅ | WARNING (systemic) | Confirmed — future lotes must budget tool-run baseline regeneration |
-| Proposal Success Criteria / Rollback still describe the 2-deletion happy path | ✅ | ❌ | SUGGESTION | Suspect — proposal is pre-amendment intent record; spec/design/tasks carry the amended truth; align at archive if cheap |
+| `package.json` / `pnpm-lock.yaml` dirty in worktree (pre-existing, out of scope) | ✅ | ❌ | WARNING (pre-existing) | INFO — untouched by this change, exclude from batch PR |
+| Baseline-ID-embeds-annotation-text coupling will bite future batches touching annotated methods | ✅ | ✅ | WARNING (systemic) | Confirmed — future batches must budget tool-run baseline regeneration |
+| Proposal Success Criteria / Rollback described the 2-deletion happy path | ✅ | ❌ | SUGGESTION | RESOLVED — proposal aligned with the amended 1-deletion scope at archive |
 
 Single executor: Judge A = spec-literal check, Judge B = design-intent check.
 
 ## Remaining Debt
 
-1. `StaleAssetReconciler.kt:96` `@Suppress("TooGenericExceptionCaught")` + trailing comment retained. Removable only together with a tool-run `detekt-baseline.xml` regeneration (never hand-edit `:88`), in a future epic #1019 lote.
+1. `StaleAssetReconciler.kt:96` `@Suppress("TooGenericExceptionCaught")` + trailing comment retained. Any potential removal requires a separately scoped future epic #1019 batch with tool-run `detekt-baseline.xml` regeneration (never hand-edit `:88`).
 
 ## Final Verdict
 
