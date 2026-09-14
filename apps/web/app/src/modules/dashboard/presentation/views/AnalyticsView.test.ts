@@ -331,7 +331,7 @@ describe('AnalyticsView accessibility', () => {
     }
 
     const wrapper = mountView()
-    const bars = wrapper.findAll('[title$="impressions"]')
+    const svg = wrapper.find('svg')
 
     expect(wrapper.text()).toContain('1.0M')
     expect(wrapper.text()).toContain('999')
@@ -342,8 +342,13 @@ describe('AnalyticsView accessibility', () => {
     expect(wrapper.text()).toContain('analytics.days.sun')
     expect(wrapper.text()).toContain('09:00')
     expect(wrapper.text()).not.toContain('analytics.days.sat')
-    expect(bars[0]?.attributes('style')).toContain('height: 4%')
-    expect(bars[1]?.attributes('style')).toContain('height: 100%')
+    expect(svg.exists()).toBe(true)
+    expect(svg.find('title').text()).toContain('analytics.chartDescription')
+    const rects = svg.findAll('rect')
+    expect(rects).toHaveLength(2)
+    expect(rects[0]?.attributes('height')).toBe('1.6')
+    expect(rects[1]?.attributes('height')).toBe('40')
+    expect(rects[0]?.text()).toContain('2026-08-01')
   })
 
   it('renders pagination and requests previous and next pages', async () => {

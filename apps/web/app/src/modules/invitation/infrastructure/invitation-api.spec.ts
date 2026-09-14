@@ -220,82 +220,33 @@ describe('acceptInvitationRequest', () => {
     expect(result.errorStatus).toBe(400)
   })
 
-  it('classifies 400 as INVITATION_INVALID', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 400 }))
+  it.each([
+    [400, 'INVITATION_INVALID'],
+    [409, 'INVITATION_ALREADY_CONSUMED'],
+    [410, 'INVITATION_EXPIRED'],
+    [403, 'INVITATION_EMAIL_MISMATCH'],
+    [401, 'INVITATION_REQUIRES_LOGIN'],
+    [404, 'INVITATION_INVALID'],
+  ])('classifies %i as %s', async (status, errorCode) => {
+    stubFetch(new Response(JSON.stringify({}), { status }))
 
     const result = await acceptInvitationRequest('tok')
 
-    expect(result.errorCode).toBe('INVITATION_INVALID')
-    expect(result.errorStatus).toBe(400)
+    expect(result.errorCode).toBe(errorCode)
+    expect(result.errorStatus).toBe(status)
   })
 
-  it('classifies 409 as INVITATION_ALREADY_CONSUMED', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 409 }))
+  it.each([
+    [429, 'INVITATION_RATE_LIMITED'],
+    [500, 'INTERNAL_ERROR'],
+    [502, 'INTERNAL_ERROR'],
+  ])('classifies %i as %s', async (status, errorCode) => {
+    stubFetch(new Response(JSON.stringify({}), { status }))
 
     const result = await acceptInvitationRequest('tok')
 
-    expect(result.errorCode).toBe('INVITATION_ALREADY_CONSUMED')
-    expect(result.errorStatus).toBe(409)
-  })
-
-  it('classifies 410 as INVITATION_EXPIRED', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 410 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INVITATION_EXPIRED')
-    expect(result.errorStatus).toBe(410)
-  })
-
-  it('classifies 403 as INVITATION_EMAIL_MISMATCH', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 403 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INVITATION_EMAIL_MISMATCH')
-    expect(result.errorStatus).toBe(403)
-  })
-
-  it('classifies 401 as INVITATION_REQUIRES_LOGIN', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 401 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INVITATION_REQUIRES_LOGIN')
-    expect(result.errorStatus).toBe(401)
-  })
-
-  it('classifies 404 as INVITATION_INVALID', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 404 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INVITATION_INVALID')
-  })
-
-  it('classifies 429 as INVITATION_RATE_LIMITED', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 429 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INVITATION_RATE_LIMITED')
-    expect(result.errorStatus).toBe(429)
-  })
-
-  it('classifies 500 as INTERNAL_ERROR', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 500 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INTERNAL_ERROR')
-  })
-
-  it('classifies 502 as INTERNAL_ERROR', async () => {
-    stubFetch(new Response(JSON.stringify({}), { status: 502 }))
-
-    const result = await acceptInvitationRequest('tok')
-
-    expect(result.errorCode).toBe('INTERNAL_ERROR')
+    expect(result.errorCode).toBe(errorCode)
+    expect(result.errorStatus).toBe(status)
   })
 
   it('classifies unknown status as INTERNAL_ERROR', async () => {

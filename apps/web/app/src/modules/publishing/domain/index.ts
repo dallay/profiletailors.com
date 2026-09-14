@@ -4,7 +4,7 @@
  * Pure domain types and business logic — NO framework dependencies.
  */
 
-export type { Channel, ChannelProvider } from './channel'
+export type { Channel } from './channel'
 export type {
   BulkJobResult,
   BulkJobStatus,

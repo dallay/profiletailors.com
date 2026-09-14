@@ -1,9 +1,9 @@
 package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.common.domain.bus.event.DomainEvent
-import com.profiletailors.smp.identity.infrastructure.email.CoroutinePasswordResetRetryDelay
 import com.profiletailors.smp.identity.infrastructure.email.EmailProperties
 import com.profiletailors.smp.identity.infrastructure.email.PasswordResetRetryDelay
+import com.profiletailors.smp.identity.infrastructure.email.coroutinePasswordResetRetryDelay
 import com.profiletailors.spring.boot.bus.event.EventConfiguration
 import com.profiletailors.spring.boot.bus.event.EventEmitter
 import org.springframework.beans.factory.annotation.Value
@@ -65,7 +65,7 @@ class IdentityEventConfiguration {
      * @return The password reset retry delay.
      */
     @Bean
-    fun passwordResetRetryDelay(): PasswordResetRetryDelay = CoroutinePasswordResetRetryDelay
+    fun passwordResetRetryDelay(): PasswordResetRetryDelay = coroutinePasswordResetRetryDelay
 
     /**
      * Creates email configuration properties for identity-related notifications.

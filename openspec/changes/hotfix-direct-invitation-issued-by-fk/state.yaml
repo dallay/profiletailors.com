@@ -1,0 +1,19 @@
+change: hotfix-direct-invitation-issued-by-fk
+current_phase: verify
+completed:
+  - propose
+  - tasks
+  - apply
+  - verify
+next: qa
+updated: "2026-09-11"
+note: >
+  Verify PASS: all writers via PlatformPrincipalIds.fromUuid with
+  anti-double-prefix guard, InvitationId untouched, zero migrations,
+  focused unit (37 tests), BDD fast 247/247 incl. invitations-direct
+  11/11, Detekt + Spotless + diff --check PASS. No commits, prod
+  untouched. Next: deploy 0.5.1 + QA-01 rerun in sdd-qa.
+persistence_mode: openspec
+bounded_contexts:
+  - platformadmin
+  - identity

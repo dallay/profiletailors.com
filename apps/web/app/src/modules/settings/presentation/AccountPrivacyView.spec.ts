@@ -64,7 +64,7 @@ describe('AccountPrivacyView', () => {
     const wrapper = mount(AccountPrivacyView, { global: { stubs: { teleport: true } } })
     const deleteBtn = wrapper.findAll('button').find((b) => b.text().includes('delete'))
     await deleteBtn?.trigger('click')
-    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+    expect(wrapper.find('dialog').exists()).toBe(true)
   })
 
   it('does not submit when confirmation does not match DELETE', async () => {

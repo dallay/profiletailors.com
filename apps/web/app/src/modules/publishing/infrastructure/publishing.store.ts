@@ -14,7 +14,6 @@ export type { Channel } from '@modules/publishing/domain/channel'
 // ---------------------------------------------------------------------------
 
 export type SocialProvider = 'twitter' | 'linkedin' | 'instagram' | 'facebook'
-export type ChannelProvider = string
 
 const SOCIAL_PROVIDERS = new Set<SocialProvider>(['twitter', 'linkedin', 'instagram', 'facebook'])
 
@@ -220,6 +219,14 @@ export type CalendarFilters = {
  */
 function normalizeText(input: string): string {
   return input.trim()
+}
+
+async function computeCsvHash(csvText: string): Promise<string> {
+  const bytes = new TextEncoder().encode(csvText)
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 function deriveTimezone(): string {
@@ -987,14 +994,6 @@ export const usePublishingStore = defineStore('publishing', () => {
       `${bulkBasePath()}/validate`,
       { method: 'POST', body: JSON.stringify({ csvText }), workspaceScoped: true },
     )
-  }
-
-  async function computeCsvHash(csvText: string): Promise<string> {
-    const bytes = new TextEncoder().encode(csvText)
-    const digest = await crypto.subtle.digest('SHA-256', bytes)
-    return Array.from(new Uint8Array(digest))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
   }
 
   async function scheduleBulk(
