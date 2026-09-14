@@ -20,8 +20,10 @@ import com.profiletailors.smp.publishing.domain.BulkImportJobRepository
 import com.profiletailors.smp.publishing.domain.BulkImportRow
 import com.profiletailors.smp.publishing.domain.BulkJobStatus
 import com.profiletailors.smp.publishing.domain.BulkRowStatus
+import com.profiletailors.smp.publishing.domain.BulkRowValidation
 import com.profiletailors.smp.publishing.domain.BulkTemplate
 import com.profiletailors.smp.publishing.domain.BulkValidationPipeline
+import com.profiletailors.smp.publishing.domain.BulkValidationResult
 import com.profiletailors.smp.publishing.domain.ImportError
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
@@ -64,6 +66,40 @@ class ScheduleBulkHandler(
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<ScheduleBulkCommand, ScheduleBulkResult> {
     override suspend fun handle(command: ScheduleBulkCommand): ScheduleBulkResult {
+        val access = authorizeBulkSchedule(command.workspaceId)
+        val idempotency = ensureNoDuplicate(access.workspaceId, access.principalId, command.csvText)
+        val validation = validationPipeline.validate(access.workspaceId, command.csvText)
+        val totalRows = validation.rows.size
+        val socialAccountId = resolveSocialAccountId(access.workspaceId)
+        val job = createSchedulingJob(access, idempotency, totalRows)
+        bulkImportJobRepository.save(job)
+        if (totalRows == 0) {
+            val finished = job.withCounts(0, 0)
+            bulkImportJobRepository.save(finished)
+            return ScheduleBulkResult(finished.id, 0, 0, 0, emptyList())
+        }
+        val outcome = processAllChunks(validation, job, access, socialAccountId)
+        val updatedJob = job.copy(
+            status = BulkImportFinalStatus.compute(totalRows, outcome.scheduledCount, outcome.failedCount),
+            scheduledCount = outcome.scheduledCount,
+            failedCount = outcome.failedCount,
+            updatedAt = clock.instant(),
+        )
+        bulkImportJobRepository.save(updatedJob)
+        return ScheduleBulkResult(updatedJob.id, totalRows, outcome.scheduledCount, outcome.failedCount, outcome.rows)
+    }
+
+    private data class BulkScheduleAccess(val workspaceId: String, val principalId: String)
+
+    private data class BulkIdempotency(val csvHash: String, val idempotencyKey: String)
+
+    private data class BulkChunkOutcome(
+        val scheduledCount: Int = 0,
+        val failedCount: Int = 0,
+        val rows: List<BulkRowResult> = emptyList(),
+    )
+
+    private suspend fun authorizeBulkSchedule(requestedWorkspaceId: String): BulkScheduleAccess {
         val principalCtx = principalContextProvider.require()
         requireEmailVerification(
             principalCtx,
@@ -78,173 +114,185 @@ class ScheduleBulkHandler(
             AuthFeature.SCHEDULE_POST,
         )
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
-        if (command.workspaceId != workspaceId) {
+        if (requestedWorkspaceId != workspaceId) {
             throw BulkWorkspaceMismatchException("Workspace path does not match the authenticated workspace.")
         }
-        val principalId = principalCtx.principalId
-        val csvHash = computeSha256(command.csvText)
+        return BulkScheduleAccess(workspaceId, principalCtx.principalId)
+    }
+
+    private suspend fun ensureNoDuplicate(workspaceId: String, principalId: String, csvText: String): BulkIdempotency {
+        val csvHash = computeSha256(csvText)
         val idempotencyKey = BulkImportJob.computeIdempotencyKey(workspaceId, principalId, csvHash)
         val existing = bulkImportJobRepository.findByIdempotencyKey(idempotencyKey)
         if (existing != null) {
             throw DuplicateBulkImportException(existing.id)
         }
-        val validation = validationPipeline.validate(workspaceId, command.csvText)
-        val totalRows = validation.rows.size
-        val now = clock.instant()
-        val socialAccountId = resolveSocialAccountId(workspaceId)
-        val job = BulkImportJob(
-            id = "bulk-${UUID.randomUUID()}",
-            workspaceId = workspaceId,
-            principalId = principalId,
-            idempotencyKey = idempotencyKey,
-            csvHash = csvHash,
-            status = BulkJobStatus.SCHEDULING,
-            totalRows = totalRows,
-            createdAt = now,
-        )
-        bulkImportJobRepository.save(job)
-        if (totalRows == 0) {
-            val finished = job.withCounts(0, 0)
-            bulkImportJobRepository.save(finished)
-            return ScheduleBulkResult(finished.id, 0, 0, 0, emptyList())
-        }
-        val chunkSize = 50
-        val allRows = mutableListOf<BulkImportRow>()
-        val resultRows = mutableListOf<BulkRowResult>()
+        return BulkIdempotency(csvHash, idempotencyKey)
+    }
+
+    private fun createSchedulingJob(
+        access: BulkScheduleAccess,
+        idempotency: BulkIdempotency,
+        totalRows: Int,
+    ): BulkImportJob = BulkImportJob(
+        id = "bulk-${UUID.randomUUID()}",
+        workspaceId = access.workspaceId,
+        principalId = access.principalId,
+        idempotencyKey = idempotency.idempotencyKey,
+        csvHash = idempotency.csvHash,
+        status = BulkJobStatus.SCHEDULING,
+        totalRows = totalRows,
+        createdAt = clock.instant(),
+    )
+
+    private suspend fun processAllChunks(
+        validation: BulkValidationResult,
+        job: BulkImportJob,
+        access: BulkScheduleAccess,
+        socialAccountId: String,
+    ): BulkChunkOutcome {
         var scheduledCount = 0
         var failedCount = 0
-        for (chunk in validation.rows.chunked(chunkSize)) {
-            val chunkResult = transactionRunner.runAtomically {
-                val chunkRows = mutableListOf<BulkImportRow>()
-                val chunkResultRows = mutableListOf<BulkRowResult>()
-                var chunkScheduled = 0
-                var chunkFailed = 0
-                for (validated in chunk) {
-                    val errors = validated.errors.toMutableList()
-                    val isInvalid = validated.status == BulkRowStatus.INVALID
-                    if (isInvalid) {
-                        val row = BulkImportRow(
-                            id = "brow-${UUID.randomUUID()}",
-                            jobId = job.id,
-                            rowIndex = validated.rowIndex,
-                            status = BulkRowStatus.FAILED,
-                            errors = errors,
-                            bodyText = validated.bodyText,
-                            scheduledFor = validated.scheduledFor,
-                            mediaUrls = validated.mediaUrls,
-                            hasConflict = validated.hasConflict,
-                        )
-                        chunkRows.add(row)
-                        chunkResultRows.add(
-                            BulkRowResult(
-                                rowIndex = validated.rowIndex,
-                                status = BulkRowStatus.FAILED.name,
-                                errors = errors.map { BulkErrorResult(it.code, it.message) },
-                                bodyText = validated.bodyText,
-                                scheduledFor = validated.scheduledFor,
-                                mediaUrls = validated.mediaUrls,
-                                hasConflict = validated.hasConflict,
-                            ),
-                        )
-                        chunkFailed++
-                    } else {
-                        try {
-                            val publication = publicationCreationService.create(
-                                workspaceId = workspaceId,
-                                principalId = principalId,
-                                socialAccountId = socialAccountId,
-                                bodyText = validated.bodyText,
-                                scheduledFor = validated.scheduledFor,
-                                mediaUrls = validated.mediaUrls,
-                            )
-                            val row = BulkImportRow(
-                                id = "brow-${UUID.randomUUID()}",
-                                jobId = job.id,
-                                rowIndex = validated.rowIndex,
-                                status = BulkRowStatus.SCHEDULED,
-                                errors = emptyList(),
-                                publicationId = publication.id,
-                                bodyText = validated.bodyText,
-                                scheduledFor = validated.scheduledFor,
-                                mediaUrls = validated.mediaUrls,
-                                hasConflict = validated.hasConflict,
-                            )
-                            chunkRows.add(row)
-                            chunkResultRows.add(
-                                BulkRowResult(
-                                    rowIndex = validated.rowIndex,
-                                    status = BulkRowStatus.SCHEDULED.name,
-                                    errors = emptyList(),
-                                    bodyText = validated.bodyText,
-                                    scheduledFor = validated.scheduledFor,
-                                    mediaUrls = validated.mediaUrls,
-                                    hasConflict = validated.hasConflict,
-                                ),
-                            )
-                            chunkScheduled++
-                        } catch (ex: Exception) {
-                            if (ex is MediaServiceUnavailableException) throw ex
-                            val code = when (ex) {
-                                is PublicationValidationException -> "INVALID_MEDIA"
-                                is IllegalArgumentException -> if (ex.message?.contains("CAPABILITY") ==
-                                    true
-                                ) {
-                                    "CAPABILITY_VIOLATION"
-                                } else {
-                                    "INVALID_DATE"
-                                }
-                                else -> "UNKNOWN"
-                            }
-                            val importError = ImportError(code = code, message = ex.message ?: "failed")
-                            val row = BulkImportRow(
-                                id = "brow-${UUID.randomUUID()}",
-                                jobId = job.id,
-                                rowIndex = validated.rowIndex,
-                                status = BulkRowStatus.FAILED,
-                                errors = listOf(importError),
-                                bodyText = validated.bodyText,
-                                scheduledFor = validated.scheduledFor,
-                                mediaUrls = validated.mediaUrls,
-                                hasConflict = validated.hasConflict,
-                            )
-                            chunkRows.add(row)
-                            chunkResultRows.add(
-                                BulkRowResult(
-                                    rowIndex = validated.rowIndex,
-                                    status = BulkRowStatus.FAILED.name,
-                                    errors = listOf(BulkErrorResult(importError.code, importError.message)),
-                                    bodyText = validated.bodyText,
-                                    scheduledFor = validated.scheduledFor,
-                                    mediaUrls = validated.mediaUrls,
-                                    hasConflict = validated.hasConflict,
-                                ),
-                            )
-                            chunkFailed++
-                        }
-                    }
-                }
-                bulkImportJobRepository.saveRows(chunkRows)
-                Triple(chunkRows, chunkResultRows, chunkScheduled to chunkFailed)
+        val resultRows = mutableListOf<BulkRowResult>()
+        for (chunk in validation.rows.chunked(BULK_CHUNK_SIZE)) {
+            val chunkOutcome = transactionRunner.runAtomically {
+                processChunk(chunk, job.id, access, socialAccountId)
             }
-            allRows.addAll(chunkResult.first)
-            resultRows.addAll(chunkResult.second)
-            scheduledCount += chunkResult.third.first
-            failedCount += chunkResult.third.second
+            scheduledCount += chunkOutcome.scheduledCount
+            failedCount += chunkOutcome.failedCount
+            resultRows.addAll(chunkOutcome.rows)
         }
-        val finalStatus = when {
-            failedCount == 0 && scheduledCount == totalRows -> BulkJobStatus.SCHEDULED
-            scheduledCount == 0 && failedCount == totalRows && totalRows > 0 -> BulkJobStatus.FAILED
-            else -> BulkJobStatus.PARTIAL
-        }
-        val updatedJob = job.copy(
-            status = finalStatus,
-            scheduledCount = scheduledCount,
-            failedCount = failedCount,
-            updatedAt = clock.instant(),
-        )
-        bulkImportJobRepository.save(updatedJob)
-        return ScheduleBulkResult(updatedJob.id, totalRows, scheduledCount, failedCount, resultRows)
+        return BulkChunkOutcome(scheduledCount, failedCount, resultRows)
     }
+
+    private suspend fun processChunk(
+        chunk: List<BulkRowValidation>,
+        jobId: String,
+        access: BulkScheduleAccess,
+        socialAccountId: String,
+    ): BulkChunkOutcome {
+        val chunkRows = mutableListOf<BulkImportRow>()
+        val chunkResultRows = mutableListOf<BulkRowResult>()
+        var chunkScheduled = 0
+        var chunkFailed = 0
+        for (validated in chunk) {
+            val outcome = processSingleRow(validated, jobId, access, socialAccountId)
+            chunkRows.add(outcome.row)
+            chunkResultRows.add(outcome.result)
+            if (outcome.scheduled) chunkScheduled++ else chunkFailed++
+        }
+        bulkImportJobRepository.saveRows(chunkRows)
+        return BulkChunkOutcome(chunkScheduled, chunkFailed, chunkResultRows)
+    }
+
+    private data class BulkRowOutcome(val row: BulkImportRow, val result: BulkRowResult, val scheduled: Boolean)
+
+    private suspend fun processSingleRow(
+        validated: BulkRowValidation,
+        jobId: String,
+        access: BulkScheduleAccess,
+        socialAccountId: String,
+    ): BulkRowOutcome {
+        if (validated.status == BulkRowStatus.INVALID) {
+            return BulkRowOutcome(
+                mapInvalidRow(validated, jobId),
+                mapInvalidResult(validated),
+                false,
+            )
+        }
+        return try {
+            val publication = publicationCreationService.create(
+                workspaceId = access.workspaceId,
+                principalId = access.principalId,
+                socialAccountId = socialAccountId,
+                bodyText = validated.bodyText,
+                scheduledFor = validated.scheduledFor,
+                mediaUrls = validated.mediaUrls,
+            )
+            BulkRowOutcome(
+                mapScheduledRow(validated, jobId, publication.id),
+                mapScheduledResult(validated),
+                true,
+            )
+        } catch (ex: Exception) {
+            if (ex is MediaServiceUnavailableException) throw ex
+            val importError = BulkImportErrorMapper.map(ex)
+            BulkRowOutcome(
+                mapFailedRow(validated, jobId, importError),
+                mapFailedResult(validated, importError),
+                false,
+            )
+        }
+    }
+
+    private fun mapInvalidRow(validated: BulkRowValidation, jobId: String): BulkImportRow = BulkImportRow(
+        id = "brow-${UUID.randomUUID()}",
+        jobId = jobId,
+        rowIndex = validated.rowIndex,
+        status = BulkRowStatus.FAILED,
+        errors = validated.errors,
+        bodyText = validated.bodyText,
+        scheduledFor = validated.scheduledFor,
+        mediaUrls = validated.mediaUrls,
+        hasConflict = validated.hasConflict,
+    )
+
+    private fun mapInvalidResult(validated: BulkRowValidation): BulkRowResult = BulkRowResult(
+        rowIndex = validated.rowIndex,
+        status = BulkRowStatus.FAILED.name,
+        errors = validated.errors.map { BulkErrorResult(it.code, it.message) },
+        bodyText = validated.bodyText,
+        scheduledFor = validated.scheduledFor,
+        mediaUrls = validated.mediaUrls,
+        hasConflict = validated.hasConflict,
+    )
+
+    private fun mapScheduledRow(validated: BulkRowValidation, jobId: String, publicationId: String): BulkImportRow =
+        BulkImportRow(
+            id = "brow-${UUID.randomUUID()}",
+            jobId = jobId,
+            rowIndex = validated.rowIndex,
+            status = BulkRowStatus.SCHEDULED,
+            errors = emptyList(),
+            publicationId = publicationId,
+            bodyText = validated.bodyText,
+            scheduledFor = validated.scheduledFor,
+            mediaUrls = validated.mediaUrls,
+            hasConflict = validated.hasConflict,
+        )
+
+    private fun mapScheduledResult(validated: BulkRowValidation): BulkRowResult = BulkRowResult(
+        rowIndex = validated.rowIndex,
+        status = BulkRowStatus.SCHEDULED.name,
+        errors = emptyList(),
+        bodyText = validated.bodyText,
+        scheduledFor = validated.scheduledFor,
+        mediaUrls = validated.mediaUrls,
+        hasConflict = validated.hasConflict,
+    )
+
+    private fun mapFailedRow(validated: BulkRowValidation, jobId: String, importError: ImportError): BulkImportRow =
+        BulkImportRow(
+            id = "brow-${UUID.randomUUID()}",
+            jobId = jobId,
+            rowIndex = validated.rowIndex,
+            status = BulkRowStatus.FAILED,
+            errors = listOf(importError),
+            bodyText = validated.bodyText,
+            scheduledFor = validated.scheduledFor,
+            mediaUrls = validated.mediaUrls,
+            hasConflict = validated.hasConflict,
+        )
+
+    private fun mapFailedResult(validated: BulkRowValidation, importError: ImportError): BulkRowResult = BulkRowResult(
+        rowIndex = validated.rowIndex,
+        status = BulkRowStatus.FAILED.name,
+        errors = listOf(BulkErrorResult(importError.code, importError.message)),
+        bodyText = validated.bodyText,
+        scheduledFor = validated.scheduledFor,
+        mediaUrls = validated.mediaUrls,
+        hasConflict = validated.hasConflict,
+    )
 
     private suspend fun resolveSocialAccountId(workspaceId: String): String {
         val account = socialAccountRepository.findFirstActiveByWorkspace(workspaceId)
@@ -255,6 +303,10 @@ class ScheduleBulkHandler(
     private fun computeSha256(text: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
         return digest.digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+    }
+
+    private companion object {
+        const val BULK_CHUNK_SIZE = 50
     }
 }
 
