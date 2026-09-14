@@ -21,6 +21,7 @@ const config = {
   server: {
     port: parseInt(process.env.PORT || '5173', 10),
     strictPort: Boolean(process.env.WORKTREE_ID || process.env.PLAYWRIGHT),
+    hmr: !isE2eOrCi,
     host: true,
     allowedHosts: ['.localhost', 'pt-app.localhost'],
     proxy: {

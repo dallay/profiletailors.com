@@ -439,20 +439,30 @@ export class ComposeModalPage {
   }
 
   async switchToNow(): Promise<void> {
-    await this.nowTab.click()
+    const isAlreadyActive = await this.nowTab.getByRole('radio').isChecked()
+    if (!isAlreadyActive) {
+      await this.nowTab.click()
+    }
   }
 
   async switchToNextSchedule(): Promise<void> {
-    // nextScheduleTab resolves the Next Schedule radio (exact name match).
-    await this.nextScheduleTab.click()
+    const isAlreadyActive = await this.nextScheduleTab.getByRole('radio').isChecked()
+    if (!isAlreadyActive) {
+      await this.nextScheduleTab.click()
+    }
   }
 
   async switchToPickDate(): Promise<void> {
-    await this.pickDateTab.click()
+    const isAlreadyActive = await this.pickDateTab.getByRole('radio').isChecked()
+    if (!isAlreadyActive) {
+      await this.pickDateTab.click()
+    }
   }
 
   async openDatePicker(): Promise<void> {
+    const popoverContent = this.page.locator('[data-slot="popover-content"]')
     await this.datePickerButton.click()
+    await expect(popoverContent).toBeVisible({ timeout: 5_000 })
   }
 
   async pickDate(date: Date): Promise<void> {
@@ -465,6 +475,9 @@ export class ComposeModalPage {
     const dayButton = this.page
       .locator('[data-slot="calendar-cell-trigger"]:not([data-disabled]):not([data-outside-view])')
       .getByText(String(date.getDate()), { exact: true })
+      .first()
+
+    await expect(dayButton).toBeVisible({ timeout: 5_000 })
     await dayButton.click()
   }
 
