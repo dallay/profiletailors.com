@@ -133,3 +133,13 @@ The system SHALL retain the narrowed `LongMethod` suppression byte-identical, as
 - GIVEN the change is applied
 - WHEN `git status --porcelain` is inspected
 - THEN only the 2 tenancy files plus OpenSpec artifacts are modified
+
+### Requirement: Verified-Live Suppressions (Lote 3 Sweep)
+
+The 2026-09-14 Lote 3 sweep under epic #1019 deleted and lint-tested 4 candidate suppressions; `just backend-lint` proved all 4 live, so all are RETAINED byte-identical with zero production diff: `ResetPasswordHandler.kt:15` (`ThrowsCount`, `handle` carries 6 throws), `AuditEventModels.kt:28` (`ThrowsCount`, `decode` carries 6 throws including catch rethrows), `R2dbcComplianceEvidenceRepository.kt:22` (`StringLiteralDuplication`, findings at :64 and :66), `McpErrorMapper.kt:171` (`StringShouldBeRawString`, escaped regex). No baseline entry references these symbols; the baseline MUST NOT be hand-edited.
+
+#### Scenario: Live suppressions retained with proof
+
+- GIVEN the sweep applied and reverted
+- WHEN the 4 files are diffed against the base
+- THEN zero production lines differ and the lint findings above stand as retention rationale
