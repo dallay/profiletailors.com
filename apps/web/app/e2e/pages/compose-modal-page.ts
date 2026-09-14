@@ -439,21 +439,27 @@ export class ComposeModalPage {
   }
 
   async switchToNow(): Promise<void> {
-    const isAlreadyActive = await this.nowTab.evaluate((el) => el.classList.contains('bg-text-display')).catch(() => false)
+    const isAlreadyActive = await this.nowTab
+      .evaluate((el) => el.classList.contains('bg-text-display'))
+      .catch(() => false)
     if (!isAlreadyActive) {
       await this.nowTab.click()
     }
   }
 
   async switchToNextSchedule(): Promise<void> {
-    const isAlreadyActive = await this.nextScheduleTab.evaluate((el) => el.classList.contains('bg-text-display')).catch(() => false)
+    const isAlreadyActive = await this.nextScheduleTab
+      .evaluate((el) => el.classList.contains('bg-text-display'))
+      .catch(() => false)
     if (!isAlreadyActive) {
       await this.nextScheduleTab.click()
     }
   }
 
   async switchToPickDate(): Promise<void> {
-    const isAlreadyActive = await this.pickDateTab.evaluate((el) => el.classList.contains('bg-text-display')).catch(() => false)
+    const isAlreadyActive = await this.pickDateTab
+      .evaluate((el) => el.classList.contains('bg-text-display'))
+      .catch(() => false)
     if (!isAlreadyActive) {
       await this.pickDateTab.click()
     }
@@ -461,7 +467,7 @@ export class ComposeModalPage {
 
   async openDatePicker(): Promise<void> {
     const popoverContent = this.page.locator('[data-slot="popover-content"]')
-    if (!await popoverContent.isVisible().catch(() => false)) {
+    if (!(await popoverContent.isVisible().catch(() => false))) {
       await this.datePickerButton.click()
       await expect(popoverContent).toBeVisible({ timeout: 5_000 })
     }
