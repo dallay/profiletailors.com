@@ -4,23 +4,18 @@ import com.profiletailors.observability.OperationalEvent
 import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.observability.Severity
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 
-@Component
 class Slf4jOperationalEventSink : OperationalEventSink {
     private val logger = LoggerFactory.getLogger("profiletailors.operational")
 
     override fun emit(event: OperationalEvent) {
-        try {
-            val message = format(event)
-            when (event.severity) {
-                Severity.TRACE -> logger.trace(message, event.cause)
-                Severity.DEBUG -> logger.debug(message, event.cause)
-                Severity.INFO -> logger.info(message, event.cause)
-                Severity.WARN -> logger.warn(message, event.cause)
-                Severity.ERROR -> logger.error(message, event.cause)
-            }
-        } catch (_: Exception) {
+        val message = format(event)
+        when (event.severity) {
+            Severity.TRACE -> logger.trace(message)
+            Severity.DEBUG -> logger.debug(message)
+            Severity.INFO -> logger.info(message)
+            Severity.WARN -> logger.warn(message)
+            Severity.ERROR -> logger.error(message)
         }
     }
 

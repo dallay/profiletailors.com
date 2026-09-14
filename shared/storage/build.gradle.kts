@@ -6,6 +6,8 @@ group = "com.profiletailors"
 version = "0.0.1-SNAPSHOT"
 
 dependencies {
+    testImplementation(testFixtures(project(":shared:common")))
+
     implementation(project(":shared:common"))
     implementation(project(":shared:bus"))
     implementation(project(":shared:observability"))

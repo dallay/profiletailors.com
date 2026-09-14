@@ -1,5 +1,7 @@
 package com.profiletailors.smp.observability.infrastructure
 
+import com.profiletailors.observability.BestEffortOperationalEventSink
+import com.profiletailors.observability.OperationalEventSink
 import com.profiletailors.smp.observability.application.ObservabilityHookRegistry
 import com.profiletailors.smp.observability.domain.MetricsHook
 import com.profiletailors.smp.observability.domain.RateLimitHook
@@ -9,6 +11,10 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class ObservabilityBootstrapConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean(OperationalEventSink::class)
+    fun operationalEventSink(): OperationalEventSink = BestEffortOperationalEventSink(Slf4jOperationalEventSink())
 
     @Bean
     @ConditionalOnMissingBean(MetricsHook::class)

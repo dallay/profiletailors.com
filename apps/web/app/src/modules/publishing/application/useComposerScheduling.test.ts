@@ -212,32 +212,26 @@ describe('useComposerScheduling', () => {
       expect(selectedDateLabel.value).toBe('Select date')
     })
 
-    it('builds correct helper text for "now" mode', () => {
-      const { scheduleMode, scheduleHelperText } = useComposerScheduling()
-
-      scheduleMode.value = 'now'
-
-      expect(scheduleHelperText.value).toContain('creation date and time')
-    })
-
-    it('builds correct helper text for "next" mode', () => {
-      const { scheduleMode, scheduleHelperText } = useComposerScheduling()
-
-      scheduleMode.value = 'next'
-
-      expect(scheduleHelperText.value).toContain('next available schedule slot')
-    })
-
-    it('builds correct helper text for "custom" mode with date', () => {
+    it.each([
+      { mode: 'now', expected: ['creation date and time'] },
+      { mode: 'next', expected: ['next available schedule slot'] },
+      {
+        mode: 'custom',
+        date: new CalendarDate(2026, 8, 15),
+        time: '14:30',
+        expected: ['Aug 15, 2026', '14:30'],
+      },
+    ])('builds correct helper text for $mode mode', ({ mode, date, time, expected }) => {
       const { scheduleMode, selectedCalendarDate, scheduleTime, scheduleHelperText } =
         useComposerScheduling()
 
-      scheduleMode.value = 'custom'
-      selectedCalendarDate.value = new CalendarDate(2026, 8, 15)
-      scheduleTime.value = '14:30'
+      scheduleMode.value = mode as typeof scheduleMode.value
+      if (date) selectedCalendarDate.value = date
+      if (time) scheduleTime.value = time
 
-      expect(scheduleHelperText.value).toContain('Aug 15, 2026')
-      expect(scheduleHelperText.value).toContain('14:30')
+      for (const fragment of expected) {
+        expect(scheduleHelperText.value).toContain(fragment)
+      }
     })
 
     it('prompts to select date in "custom" mode without date', () => {

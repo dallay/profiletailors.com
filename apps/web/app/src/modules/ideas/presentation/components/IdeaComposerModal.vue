@@ -240,6 +240,7 @@ async function handleCreatePost(): Promise<void> {
                 <SelectItem v-for="col in columns" :key="col.id" :value="col.id">{{ col.name }}</SelectItem>
               </SelectContent>
             </Select>
+            <label for="idea-composer-column-native" class="sr-only">{{ t('ideas.fields.column') }}</label>
             <select
               id="idea-composer-column-native"
               data-testid="composer-column-select-native"

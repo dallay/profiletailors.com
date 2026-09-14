@@ -82,6 +82,23 @@ class InvitationAcceptanceControllerTest {
     }
 
     @Test
+    fun `accept rejects an authenticated non-user principal without calling the handler`() {
+        coEvery { requestContextStore.currentPrincipalContext() } returns principal().copy(
+            principalType = PrincipalType.SERVICE_ACCOUNT,
+        )
+
+        webClient()
+            .post()
+            .uri("/api/invitations/accept")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"token":"raw-invitation-token"}""")
+            .exchange()
+            .expectStatus().isForbidden
+
+        coVerify(exactly = 0) { acceptInvitationHandler.handle(any()) }
+    }
+
+    @Test
     fun `accept returns 400 for a blank token without calling the handler`() {
         coEvery { requestContextStore.currentPrincipalContext() } returns principal()
 

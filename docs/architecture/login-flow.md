@@ -1,5 +1,7 @@
 # Login Flow Architecture & Sequence Diagrams
 
+****Last Updated:** 2026-09-12
+
 - **Status**: Active / Implemented
 - **Bounded Contexts**: `com.profiletailors.smp.identity`, `com.profiletailors.smp.credentials`
 - **Related Specifications**: [ADR-0009: JWT & HttpOnly Cookie Authentication](adr/0009-jwt-and-httponly-cookie-authentication.md), [IAM Platform](iam-platform.md)
@@ -210,4 +212,4 @@ graph TD
 - **Stateless Verification**: API requests evaluate JWT access tokens statelessly without DB roundtrips on protected endpoints.
 - **Session Rotation**: Every refresh invocation revokes the prior refresh token and issues a new one, mitigating token replay attacks.
 
-Last updated: 2026-09-05
+Last updated: 2026-09-12

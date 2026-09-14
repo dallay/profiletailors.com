@@ -1,6 +1,7 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platformadmin.application.OptimisticLockException
+import com.profiletailors.smp.platformadmin.domain.InvitationAcceptanceFailureCode
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotAcceptableException
 import com.profiletailors.smp.platformadmin.domain.InvitationNotFoundException
@@ -60,7 +61,11 @@ class AdminProblemDetailsHandler {
 
     @ExceptionHandler(InvitationNotAcceptableException::class)
     fun handle(ex: InvitationNotAcceptableException): ProblemDetail =
-        problem(HttpStatus.BAD_REQUEST, "INVITATION_NOT_ACCEPTABLE", ex.message ?: "Invitation is unavailable.")
+        ProblemDetail.forStatusAndDetail(invitationStatus(ex.failureCode), INVITATION_UNAVAILABLE_DETAIL).apply {
+            title = "Invitation unavailable"
+            type = URI("/problems/invitation-unavailable")
+            setProperty("code", ex.failureCode.publicCode)
+        }
 
     @ExceptionHandler(InvitationAlreadyActiveException::class)
     fun handle(ex: InvitationAlreadyActiveException): ProblemDetail =
@@ -120,9 +125,26 @@ class AdminProblemDetailsHandler {
             properties = mapOf("code" to code)
         }
 
+    private fun invitationStatus(code: InvitationAcceptanceFailureCode): HttpStatus = when (code) {
+        InvitationAcceptanceFailureCode.INVALID,
+        InvitationAcceptanceFailureCode.WORKSPACE_OVERRIDE_NOT_ALLOWED,
+        -> HttpStatus.BAD_REQUEST
+
+        InvitationAcceptanceFailureCode.EXPIRED,
+        InvitationAcceptanceFailureCode.REVOKED,
+        -> HttpStatus.GONE
+
+        InvitationAcceptanceFailureCode.ALREADY_CONSUMED,
+        InvitationAcceptanceFailureCode.REPLAYED,
+        -> HttpStatus.CONFLICT
+
+        InvitationAcceptanceFailureCode.EMAIL_MISMATCH -> HttpStatus.FORBIDDEN
+    }
+
     companion object {
         private const val MAX_CORRELATION_ID_LENGTH = 64
         private const val UNKNOWN_CORRELATION_ID = "unknown"
+        private const val INVITATION_UNAVAILABLE_DETAIL = "Invitation is unavailable."
         private val VALID_CORRELATION_ID = Regex("^[A-Za-z0-9._:-]{1,$MAX_CORRELATION_ID_LENGTH}$")
     }
 }

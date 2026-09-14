@@ -19,7 +19,10 @@ export type AcceptInvitationResult = {
  * @param token - The raw invitation token to submit.
  * @returns The invitation acceptance result, including workspace and membership data on success or error details on failure.
  */
-export async function acceptInvitationRequest(token: string): Promise<AcceptInvitationResult> {
+export async function acceptInvitationRequest(
+  token: string,
+  accessToken?: string | null,
+): Promise<AcceptInvitationResult> {
   let response: Response
   try {
     response = await fetch(resolveApiUrl('/api/invitations/accept'), {
@@ -28,6 +31,7 @@ export async function acceptInvitationRequest(token: string): Promise<AcceptInvi
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/vnd.api.v1+json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
       body: JSON.stringify({ token }),
     })
@@ -72,9 +76,11 @@ export async function acceptInvitationRequest(token: string): Promise<AcceptInvi
 }
 
 function classifyStatus(status: number): string {
-  if (status === 400 || status === 409) return 'INVITATION_NOT_ACCEPTABLE'
+  if (status === 400 || status === 404) return 'INVITATION_INVALID'
+  if (status === 403) return 'INVITATION_EMAIL_MISMATCH'
+  if (status === 409) return 'INVITATION_ALREADY_CONSUMED'
+  if (status === 410) return 'INVITATION_EXPIRED'
   if (status === 401) return 'INVITATION_REQUIRES_LOGIN'
-  if (status === 404) return 'INVITATION_NOT_FOUND'
   if (status === 429) return 'INVITATION_RATE_LIMITED'
   return 'INTERNAL_ERROR'
 }

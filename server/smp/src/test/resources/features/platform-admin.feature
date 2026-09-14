@@ -96,7 +96,7 @@ Feature: Platform administration access control and waitlist management
     Given an active direct invitation exists for "jwt-user@example.com"
     When the authenticated principal accepts the invitation with an unavailable token
     Then the admin response status should be 400
-    And the admin response code should be "INVITATION_NOT_ACCEPTABLE"
+    And the admin response code should be "INVITATION_INVALID"
 
   Scenario: Authenticated principal accepts a direct invitation and receives a safe result
     Given an active direct invitation exists for "jwt-user@example.com"
@@ -111,13 +111,26 @@ Feature: Platform administration access control and waitlist management
     Given an active direct invitation exists for "jwt-user@example.com"
     When the authenticated principal accepts the invitation
     And the authenticated principal accepts the invitation again
-    Then the admin response status should be 400
-    And the admin response code should be "INVITATION_NOT_ACCEPTABLE"
+    Then the admin response status should be 409
+    And the admin response code should be "INVITATION_ALREADY_CONSUMED"
 
   Scenario: Invitation acceptance is isolated from the request workspace
     Given an active direct invitation exists for "jwt-user@example.com"
     When the authenticated principal accepts the invitation
     Then the invitation acceptance workspace should be "invitation-workspace"
+
+  Scenario: Authenticated existing identity accepts without duplicate records
+    Given an active direct invitation exists for "jwt-user@example.com"
+    And the authenticated principal has an existing credential and workspace membership
+    When the authenticated principal accepts the invitation
+    Then the admin response status should be 200
+    And the invitation acceptance workspace should be "invitation-workspace"
+    And the invitation acceptance membership status should be "ACTIVE"
+    And the invitation response should not contain the token
+    And the invitation response should not contain "jwt-user@example.com"
+    And the invitation status should become "ACCEPTED"
+    And the authenticated principal should have exactly one identity and credential
+    And the invitation workspace should have exactly one workspace and membership for the authenticated principal
 
   # ── Invitation operations ─────────────────────────────────────────────────
 

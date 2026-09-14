@@ -1,7 +1,6 @@
 package com.profiletailors.smp.platformadmin.infrastructure.persistence
 
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntry
 import com.profiletailors.smp.identity.application.InvitationRegistrationGateway
@@ -456,6 +455,12 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('user-principal-1', 'USER', 'subject-user-principal-1', 'https://issuer.example', 'Accepter')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
             INSERT INTO workspaces (id, name, status, icon)
             VALUES ('workspace-1', 'Workspace One', 'ACTIVE', NULL)
             """.trimIndent(),
@@ -530,12 +535,6 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
             waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = firstBlockingProvisioner,
-            transactionRunner = object : AtomicTransactionRunner {
-                override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
-                    val operator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory))
-                    return operator.transactional(mono { block() }).awaitSingle()
-                }
-            },
             clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
         )
         val secondCoordinator = InvitationActivationCoordinator(
@@ -545,12 +544,6 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
             workspaceProvisioningService = noOpWorkspaceProvisioningService,
             waitlistEntryAdmin = NoOpWaitlistEntryAdmin,
             membershipProvisioner = secondMembershipProvisioner,
-            transactionRunner = object : AtomicTransactionRunner {
-                override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
-                    val operator = TransactionalOperator.create(R2dbcTransactionManager(independentConnectionFactory))
-                    return operator.transactional(mono { block() }).awaitSingle()
-                }
-            },
             clock = Clock.fixed(acceptedAt, ZoneOffset.UTC),
         )
         return ConcurrentAcceptanceFixture(
@@ -568,15 +561,19 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
 
     private suspend fun runConcurrentAcceptance(fixture: ConcurrentAcceptanceFixture): List<Result<String>> =
         coroutineScope {
+            val firstContext = fixture.firstGateway.prepare("raw-token", "invitee@example.com")
+            val secondContext = fixture.secondGateway.prepare("raw-token", "invitee@example.com")
             val first = async {
                 runCatching {
                     fixture.firstOperator.transactional(
                         mono {
-                            fixture.firstGateway.acceptForRegistration(
+                            fixture.firstGateway.complete(
+                                context = firstContext,
                                 rawToken = "raw-token",
-                                email = "invitee@example.com",
                                 principalId = "principal-1",
+                                displayName = "invitee",
                             )
+                                .workspaceId
                         },
                     ).awaitSingle()
                 }
@@ -586,11 +583,13 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
                 runCatching {
                     fixture.secondOperator.transactional(
                         mono {
-                            fixture.secondGateway.acceptForRegistration(
+                            fixture.secondGateway.complete(
+                                context = secondContext,
                                 rawToken = "raw-token",
-                                email = "invitee@example.com",
                                 principalId = "principal-1",
+                                displayName = "invitee",
                             )
+                                .workspaceId
                         },
                     ).awaitSingle()
                 }

@@ -1,10 +1,11 @@
 package com.profiletailors.smp.media.application
 
 import com.profiletailors.observability.OperationalEventSink
-import com.profiletailors.observability.debug
-import com.profiletailors.observability.warn
+import com.profiletailors.observability.Severity
+import com.profiletailors.observability.emit
 import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.PresignableStorage
+import kotlinx.coroutines.CancellationException
 import java.time.Instant
 import java.util.Base64
 import javax.crypto.Mac
@@ -117,17 +118,25 @@ class StorageAssetPreviewUrlResolver(
                     expirySeconds = previewUrlExpirySeconds,
                 )
             }.onFailure { err ->
-                operationalEvents.warn(
-                    "Failed to generate presigned preview URL for assetId={} storageKey={}: {}",
-                    assetId,
-                    storageKey,
-                    err.message,
+                if (err is CancellationException) throw err
+                operationalEvents.emit(
+                    severity = Severity.WARN,
+                    name = "media.asset.preview.presignFailed",
+                    cause = err,
+                    attributes = arrayOf(
+                        "assetId" to assetId,
+                        "storageKey" to storageKey,
+                    ),
                 )
             }.getOrNull()
             if (presigned != null) return presigned
         }
 
-        operationalEvents.debug("Falling back to signed local preview endpoint for assetId={}", assetId)
+        operationalEvents.emit(
+            severity = Severity.DEBUG,
+            name = "media.asset.preview.localFallback",
+            attributes = arrayOf("assetId" to assetId),
+        )
         return mediaPreviewTokenService.buildSignedPreviewPath(assetId, workspaceId)
     }
 }
