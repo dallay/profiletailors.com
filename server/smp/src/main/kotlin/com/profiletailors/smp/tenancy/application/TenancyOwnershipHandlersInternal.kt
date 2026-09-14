@@ -32,7 +32,7 @@ private suspend inline fun <T : Any> auditedMutation(
     transactionRunner.runAtomically {
         block()
     }
-} catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
+} catch (exception: Exception) {
     when (exception) {
         is IllegalArgumentException, is IllegalStateException -> {
             tenancyMutationAuditor.recordRejected(
@@ -63,7 +63,6 @@ internal class AddWorkspaceOwnerHandler(
     private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<AddWorkspaceOwnerCommand, WorkspaceOwnershipResult> {
 
-    @Suppress("ThrowsCount")
     override suspend fun handle(command: AddWorkspaceOwnerCommand): WorkspaceOwnershipResult {
         val actor = principalContextProvider.require()
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
@@ -137,7 +136,7 @@ internal class TransferWorkspaceOwnershipHandler(
     private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<TransferWorkspaceOwnershipCommand, WorkspaceOwnershipResult> {
 
-    @Suppress("ThrowsCount", "LongMethod")
+    @Suppress("LongMethod")
     override suspend fun handle(command: TransferWorkspaceOwnershipCommand): WorkspaceOwnershipResult {
         val actor = principalContextProvider.require()
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
@@ -220,7 +219,6 @@ internal class RemoveWorkspaceOwnerHandler(
     private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<RemoveWorkspaceOwnerCommand, WorkspaceOwnershipResult> {
 
-    @Suppress("ThrowsCount")
     override suspend fun handle(command: RemoveWorkspaceOwnerCommand): WorkspaceOwnershipResult {
         val actor = principalContextProvider.require()
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
