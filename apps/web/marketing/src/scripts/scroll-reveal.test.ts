@@ -61,17 +61,34 @@ describe('initScrollReveal', () => {
     }))
 
     // Stub IntersectionObserver so we control when the callback fires
-    vi.stubGlobal('IntersectionObserver', vi.fn().mockImplementation((cb: IntersectionObserverCallback) => {
-      $globals.observeCb = cb
-      $globals.unobserveSpy = vi.fn()
-      return {
-        observe: (el: Element) => {
-          $globals.observedEls.add(el)
-          $globals.entries.push(makeEntry(el, false))
-        },
-        unobserve: $globals.unobserveSpy,
-        disconnect: vi.fn(),
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root: Element | Document | null = null
+      readonly rootMargin: string = ''
+      readonly thresholds: ReadonlyArray<number> = []
+
+      constructor(cb: IntersectionObserverCallback) {
+        $globals.observeCb = cb
+        $globals.unobserveSpy = vi.fn()
       }
+
+      observe(el: Element): void {
+        $globals.observedEls.add(el)
+        $globals.entries.push(makeEntry(el, false))
+      }
+
+      unobserve(el: Element): void {
+        $globals.unobserveSpy(el)
+      }
+
+      disconnect(): void {}
+
+      takeRecords(): IntersectionObserverEntry[] {
+        return []
+      }
+    }
+
+    vi.stubGlobal('IntersectionObserver', vi.fn(function (this: unknown, cb: IntersectionObserverCallback) {
+      return new MockIntersectionObserver(cb)
     }))
   })
 
