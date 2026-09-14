@@ -135,6 +135,49 @@ describe('consentReceiptSchema', () => {
     const result = consentReceiptSchema.safeParse(receiptWithoutDnt)
     expect(result.success).toBe(false)
   })
+
+  it.each(['consentVersion', 'policyVersion', 'timestamp', 'region', 'categories', 'source'])(
+    'rejects a receipt missing the required %s field',
+    (field) => {
+      const receipt = Object.fromEntries(
+        Object.entries(validReceipt).filter(([key]) => key !== field),
+      )
+
+      expect(consentReceiptSchema.safeParse(receipt).success).toBe(false)
+    },
+  )
+
+  it.each(['necessary', 'analytics'])(
+    'rejects categories missing the required %s field',
+    (field) => {
+      const categories = Object.fromEntries(
+        Object.entries(validReceipt.categories).filter(([key]) => key !== field),
+      )
+      const receipt = { ...validReceipt, categories }
+
+      expect(consentReceiptSchema.safeParse(receipt).success).toBe(false)
+    },
+  )
+
+  it('returns a sanitized copy without unknown receipt or category fields', () => {
+    const receipt = {
+      ...validReceipt,
+      unexpectedReceiptField: 'ignored',
+      categories: {
+        ...validReceipt.categories,
+        advertising: true,
+      },
+    }
+
+    const result = consentReceiptSchema.safeParse(receipt)
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toEqual(validReceipt)
+      expect(result.data).not.toBe(receipt)
+      expect(result.data.categories).not.toBe(receipt.categories)
+    }
+  })
 })
 
 describe('validateConsentReceipt', () => {
@@ -156,6 +199,29 @@ describe('validateConsentReceipt', () => {
     expect(validateConsentReceipt(invalid)).toBeNull()
   })
 
+  it('returns a sanitized receipt for valid input with unknown fields', () => {
+    const receipt = {
+      consentVersion: 1,
+      policyVersion: '2026-07-23',
+      timestamp: '2026-07-23T10:00:00Z',
+      region: 'EU',
+      categories: { necessary: true, analytics: false, advertising: true },
+      dnt: true,
+      source: 'settings-panel',
+      unexpectedReceiptField: 'ignored',
+    }
+
+    expect(validateConsentReceipt(receipt)).toEqual({
+      consentVersion: 1,
+      policyVersion: '2026-07-23',
+      timestamp: '2026-07-23T10:00:00Z',
+      region: 'EU',
+      categories: { necessary: true, analytics: false },
+      dnt: true,
+      source: 'settings-panel',
+    })
+  })
+
   it('returns null for null input', () => {
     expect(validateConsentReceipt(null)).toBeNull()
   })
@@ -164,4 +230,11 @@ describe('validateConsentReceipt', () => {
     expect(validateConsentReceipt('string')).toBeNull()
     expect(validateConsentReceipt(123)).toBeNull()
   })
+
+  it.each([undefined, true, false, [], () => undefined])(
+    'returns null for unsupported input %#',
+    (input) => {
+      expect(validateConsentReceipt(input)).toBeNull()
+    },
+  )
 })
