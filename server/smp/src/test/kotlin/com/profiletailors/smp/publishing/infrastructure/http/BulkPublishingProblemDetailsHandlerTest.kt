@@ -7,8 +7,6 @@ import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.application.BulkJobNotFoundException
 import com.profiletailors.smp.publishing.application.BulkWorkspaceMismatchException
 import com.profiletailors.smp.publishing.application.DuplicateBulkImportException
-import com.profiletailors.smp.publishing.application.PublicationNotFoundException
-import com.profiletailors.smp.publishing.application.RecurringScheduleNotFoundException
 import com.profiletailors.smp.publishing.application.SocialContentActorNotFoundException
 import com.profiletailors.smp.publishing.application.SocialContentPostIsolationException
 import com.profiletailors.smp.publishing.application.SocialContentPostNotFoundException
@@ -16,7 +14,6 @@ import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidSocialContentCursorException
 import com.profiletailors.smp.publishing.domain.ProviderConnectionNotAvailableException
-import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAlreadyTerminalException
 import com.profiletailors.smp.publishing.domain.PublicationCancellationNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
@@ -105,8 +102,7 @@ class BulkPublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps RecurringScheduleNotFoundException to 404`() {
-        val ex = RecurringScheduleNotFoundException("sched-1")
-        val problem = handler.handle(ex)
+        val problem = handler.handleRecurringScheduleMissing()
         problem.status shouldBe HttpStatus.NOT_FOUND.value()
         problem.title shouldBe "Recurring schedule not found"
     }
@@ -151,7 +147,7 @@ class BulkPublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps ProviderNotConfigured to 503`() {
-        val problem = handler.handle(ProviderNotConfiguredException(SocialProvider.LINKEDIN))
+        val problem = handler.handleProviderNotConfigured()
         problem.status shouldBe HttpStatus.SERVICE_UNAVAILABLE.value()
         problem.title shouldBe "Provider not configured"
     }
@@ -189,7 +185,7 @@ class BulkPublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps PublicationNotFound to 404`() {
-        val problem = handler.handle(PublicationNotFoundException("pub-1"))
+        val problem = handler.handlePublicationNotFound()
         problem.status shouldBe HttpStatus.NOT_FOUND.value()
         problem.title shouldBe "Publication not found"
     }

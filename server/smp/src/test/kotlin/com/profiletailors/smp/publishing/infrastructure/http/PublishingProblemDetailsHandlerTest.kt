@@ -1,13 +1,11 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
-import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.application.SocialContentActorNotFoundException
 import com.profiletailors.smp.publishing.application.SocialContentPostIsolationException
 import com.profiletailors.smp.publishing.application.SocialContentPostNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidSocialContentCursorException
-import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAlreadyTerminalException
 import com.profiletailors.smp.publishing.domain.PublicationCancellationNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
@@ -17,7 +15,6 @@ import com.profiletailors.smp.publishing.domain.PublicationStateTransitionExcept
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.SocialContentAccessDenial
 import com.profiletailors.smp.publishing.domain.SocialContentAccessDeniedException
-import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -28,8 +25,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps ProviderNotConfiguredException to 503 SERVICE_UNAVAILABLE`() {
-        val exception = ProviderNotConfiguredException(SocialProvider.LINKEDIN)
-        val problem = handler.handle(exception)
+        val problem = handler.handleProviderNotConfigured()
 
         problem.status shouldBe HttpStatus.SERVICE_UNAVAILABLE.value()
         problem.title shouldBe "Provider not configured"
@@ -68,8 +64,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps PublicationNotFoundException to 404 NOT_FOUND`() {
-        val exception = PublicationNotFoundException("pub-missing")
-        val problem = handler.handle(exception)
+        val problem = handler.handlePublicationNotFound()
 
         problem.status shouldBe HttpStatus.NOT_FOUND.value()
         problem.title shouldBe "Publication not found"
@@ -219,8 +214,7 @@ class PublishingProblemDetailsHandlerTest {
 
     @Test
     fun `maps RecurringScheduleNotFoundException to 404 NOT_FOUND`() {
-        val exception = com.profiletailors.smp.publishing.application.RecurringScheduleNotFoundException("recur-123")
-        val problem = handler.handle(exception)
+        val problem = handler.handleRecurringScheduleMissing()
 
         problem.status shouldBe HttpStatus.NOT_FOUND.value()
         problem.title shouldBe "Recurring schedule not found"
