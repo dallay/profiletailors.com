@@ -199,6 +199,29 @@ describe('validateConsentReceipt', () => {
     expect(validateConsentReceipt(invalid)).toBeNull()
   })
 
+  it('returns a sanitized receipt for valid input with unknown fields', () => {
+    const receipt = {
+      consentVersion: 1,
+      policyVersion: '2026-07-23',
+      timestamp: '2026-07-23T10:00:00Z',
+      region: 'EU',
+      categories: { necessary: true, analytics: false, advertising: true },
+      dnt: true,
+      source: 'settings-panel',
+      unexpectedReceiptField: 'ignored',
+    }
+
+    expect(validateConsentReceipt(receipt)).toEqual({
+      consentVersion: 1,
+      policyVersion: '2026-07-23',
+      timestamp: '2026-07-23T10:00:00Z',
+      region: 'EU',
+      categories: { necessary: true, analytics: false },
+      dnt: true,
+      source: 'settings-panel',
+    })
+  })
+
   it('returns null for null input', () => {
     expect(validateConsentReceipt(null)).toBeNull()
   })
