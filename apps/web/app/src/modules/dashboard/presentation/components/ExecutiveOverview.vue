@@ -24,11 +24,15 @@ const { t } = useI18n()
       </span>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div
+      data-kpi-grid
+      class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-4"
+    >
       <KpiCard
-        v-for="metric in kpis"
+        v-for="(metric, index) in kpis"
         :key="metric.id"
         :metric="metric"
+        :featured="index === 0"
       />
     </div>
   </section>

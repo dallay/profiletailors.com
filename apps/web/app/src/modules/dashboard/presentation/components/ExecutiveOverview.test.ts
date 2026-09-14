@@ -47,13 +47,17 @@ describe('ExecutiveOverview', () => {
     expect(wrapper.text()).toContain('38')
   })
 
-  it('renders 4 KPI cards in a grid', () => {
+  it('renders 4 KPI cards with the first metric prioritized', () => {
     const kpis = Array.from({ length: 4 }, (_, i) => makeKpi(`kpi-${i}`))
     const wrapper = mount(ExecutiveOverview, {
       props: { kpis },
     })
     const cards = wrapper.findAllComponents({ name: 'KpiCard' })
+
     expect(cards).toHaveLength(4)
+    expect(cards[0]?.props('featured')).toBe(true)
+    expect(cards.slice(1).every((card) => card.props('featured') === false)).toBe(true)
+    expect(wrapper.find('[data-kpi-grid]').classes()).toContain('lg:grid-cols-5')
   })
 
   it('handles empty KPI array gracefully', () => {
