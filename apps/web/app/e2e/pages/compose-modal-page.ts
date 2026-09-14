@@ -439,27 +439,21 @@ export class ComposeModalPage {
   }
 
   async switchToNow(): Promise<void> {
-    const isAlreadyActive = await this.nowTab
-      .evaluate((el) => el.classList.contains('bg-text-display'))
-      .catch(() => false)
+    const isAlreadyActive = await this.nowTab.getByRole('radio').isChecked()
     if (!isAlreadyActive) {
       await this.nowTab.click()
     }
   }
 
   async switchToNextSchedule(): Promise<void> {
-    const isAlreadyActive = await this.nextScheduleTab
-      .evaluate((el) => el.classList.contains('bg-text-display'))
-      .catch(() => false)
+    const isAlreadyActive = await this.nextScheduleTab.getByRole('radio').isChecked()
     if (!isAlreadyActive) {
       await this.nextScheduleTab.click()
     }
   }
 
   async switchToPickDate(): Promise<void> {
-    const isAlreadyActive = await this.pickDateTab
-      .evaluate((el) => el.classList.contains('bg-text-display'))
-      .catch(() => false)
+    const isAlreadyActive = await this.pickDateTab.getByRole('radio').isChecked()
     if (!isAlreadyActive) {
       await this.pickDateTab.click()
     }
