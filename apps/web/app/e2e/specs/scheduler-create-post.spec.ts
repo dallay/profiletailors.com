@@ -35,8 +35,9 @@ test.describe('Scheduler — Create Post', () => {
     await composeModal.expectNowActive()
     await composeModal.expectScheduleNowButton()
 
-    // Create the post
-    await composeModal.createPostNow(testText)
+    // Fill post text and submit in NOW mode
+    await composeModal.fillText(testText)
+    await composeModal.clickScheduleNow()
 
     // Modal may remain open in some local-only mock flows; close it explicitly
     // if needed so the test can continue.
@@ -377,6 +378,9 @@ test.describe('Scheduler — Create Post', () => {
 
     // Verify Schedule Post button is visible (not Schedule Now)
     await composeModal.expectSchedulePostButton()
+
+    // Set time input to a safe future time (e.g. 23:59) so date validation always succeeds
+    await composeModal.timeInput.fill('23:59')
 
     // Open calendar and pick a future date (tomorrow)
     const tomorrow = new Date()

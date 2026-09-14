@@ -100,8 +100,10 @@ export class SchedulerPage {
   // ---- Actions ----
 
   async goto(): Promise<void> {
-    await this.page.goto('/scheduler', { waitUntil: 'domcontentloaded' })
+    await this.page.goto('/scheduler/calendar/week', { waitUntil: 'domcontentloaded' })
     await this.heading.waitFor({ state: 'visible', timeout: 15_000 })
+    // Ensure week view component is fully mounted before proceeding
+    await this.page.locator('div[aria-disabled]').first().waitFor({ state: 'visible', timeout: 10_000 }).catch(() => undefined)
   }
 
   async switchToMonth(): Promise<void> {
