@@ -1,0 +1,14 @@
+change: chore-suppress-publishing-r01-problem-details-unused-param
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - spec-amended
+  - archive
+next: done
+updated: 2026-09-14

@@ -36,8 +36,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 class PublishingProblemDetailsHandler {
 
     @ExceptionHandler(ProviderNotConfiguredException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: ProviderNotConfiguredException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handleProviderNotConfigured(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.SERVICE_UNAVAILABLE,
         PROVIDER_NOT_CONFIGURED_DETAIL,
     ).apply {
@@ -68,8 +67,7 @@ class PublishingProblemDetailsHandler {
     }
 
     @ExceptionHandler(PublicationNotFoundException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: PublicationNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handlePublicationNotFound(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.NOT_FOUND,
         PUBLICATION_NOT_FOUND_DETAIL,
     ).apply {
@@ -155,8 +153,7 @@ class PublishingProblemDetailsHandler {
     }
 
     @ExceptionHandler(RecurringScheduleNotFoundException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: RecurringScheduleNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handleRecurringScheduleMissing(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.NOT_FOUND,
         RECURRING_SCHEDULE_NOT_FOUND_DETAIL,
     ).apply {
