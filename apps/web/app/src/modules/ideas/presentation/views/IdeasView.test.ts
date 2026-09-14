@@ -299,6 +299,7 @@ describe('IdeasView accessibility', () => {
     ideasStore.loadBoard.mockReset()
     ideasStore.clearState.mockReset()
     ideasStore.updateIdea.mockReset()
+    ideasStore.moveIdea.mockReset()
     ideasStore.deleteIdea.mockReset()
     ideasStore.convertIdea.mockReset()
     ideasStore.updateColumns.mockReset()
@@ -607,6 +608,7 @@ describe('IdeasView accessibility', () => {
       ),
     )
     await monitor.onDrop(dropEvent({ ideaId: 'idea-1' }, [{ data: doneColumn!.getData() }]))
+    await flushPromises()
 
     expect(ideasStore.moveIdea).toHaveBeenNthCalledWith(1, 'idea-2', {
       columnId: 'raw',
