@@ -22,3 +22,5 @@ minimumReleaseAgeExclude:
   - '@intlify/shared@11.4.9'
   # Renovate security update: astro@7.2.8
   - astro@7.2.8
+  # Renovate security update: vitest@4.1.11
+  - vitest@4.1.11

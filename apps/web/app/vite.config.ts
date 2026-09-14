@@ -3,7 +3,7 @@
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig, type UserConfig } from 'vite'
-import type { UserConfig as VitestUserConfig } from 'vitest/config'
+import type { InlineConfig as VitestInlineConfig } from 'vitest/node'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwind from '@tailwindcss/vite'
@@ -54,6 +54,6 @@ const config = {
       exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'src/**/*.d.ts'],
     },
   },
-} satisfies UserConfig & Pick<VitestUserConfig, 'test'>
+} satisfies UserConfig & { test?: VitestInlineConfig }
 
 export default defineConfig(config)
