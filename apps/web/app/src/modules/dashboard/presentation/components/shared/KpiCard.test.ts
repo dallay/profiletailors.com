@@ -23,6 +23,24 @@ function makeKpi(overrides: Partial<KpiMetric> = {}): KpiMetric {
 }
 
 describe('KpiCard', () => {
+  it('renders the featured metric with a stronger value hierarchy', () => {
+    const wrapper = mount(KpiCard, {
+      props: { metric: makeKpi(), featured: true },
+    })
+
+    expect(wrapper.find('[data-kpi-value]').classes()).toContain('text-4xl')
+    expect(wrapper.find('[data-kpi-card]').classes()).toContain('lg:col-span-2')
+  })
+
+  it('renders a standard metric without featured sizing', () => {
+    const wrapper = mount(KpiCard, {
+      props: { metric: makeKpi(), featured: false },
+    })
+
+    expect(wrapper.find('[data-kpi-value]').classes()).toContain('text-2xl')
+    expect(wrapper.find('[data-kpi-card]').classes()).not.toContain('lg:col-span-2')
+  })
+
   it('renders the metric label and value', () => {
     const wrapper = mount(KpiCard, {
       props: { metric: makeKpi() },
