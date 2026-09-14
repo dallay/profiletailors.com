@@ -207,3 +207,19 @@ Each renamed handler MUST map the same exception to the same status/title `Probl
 - GIVEN the change is applied
 - WHEN `git status --porcelain` and the handler diff are inspected
 - THEN only `PublishingProblemDetailsHandler.kt` + its web-slice test plus OpenSpec artifacts are modified, with `:35`, the 8 deferred sites, and config/baseline byte-identical
+
+### Requirement: Remaining UNUSED_PARAMETER Removals (Publishing R02)
+
+The system MUST NOT contain the 9 remaining `UNUSED_PARAMETER` suppressions in `PublishingProblemDetailsHandler.kt` (empirical recount supersedes the "8 deferred sites" wording above): PublicationStateTransition, SocialContentPostNotFound, SocialContentActorNotFound, SocialContentPostIsolation, ExpiredOAuthState, InvalidOAuthState, InvalidSocialContentCursor, MediaServiceUnavailable, AssetNotReady handlers, all removed via the R01 rename-and-drop pattern with bodies byte-identical and all new names within `FunctionNameMaxLength` (30). 4 stale KDoc blocks documenting deleted params were removed with them. What remains in the file is `TooManyFunctions` (`:35`) plus the 7 used-parameter handlers, untouched.
+
+#### Scenario: Nine renames with identical behavior
+
+- GIVEN the R02 change applied
+- WHEN each renamed handler is invoked and `git diff` is inspected
+- THEN every exception maps to its pre-rename status/title, and each hunk shows only signature/KDoc lines changed
+
+#### Scenario: Gates stay green
+
+- GIVEN the 9 renames applied
+- WHEN `just backend-lint`, `just backend-check`, and `just backend-bdd-fast` run
+- THEN all exit PASS (`publishing-publications.feature` 8/8 green), with zero new suppressions and baseline/config/shared untouched
