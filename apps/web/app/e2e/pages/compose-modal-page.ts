@@ -461,16 +461,14 @@ export class ComposeModalPage {
 
   async openDatePicker(): Promise<void> {
     const popoverContent = this.page.locator('[data-slot="popover-content"]')
-    if (!(await popoverContent.isVisible().catch(() => false))) {
-      await this.datePickerButton.click()
-      await expect(popoverContent).toBeVisible({ timeout: 5_000 })
-    }
+    await this.datePickerButton.click()
+    await expect(popoverContent).toBeVisible({ timeout: 5_000 })
   }
 
   async pickDate(date: Date): Promise<void> {
-    await this.openDatePicker()
-
-    // Select target year and month
+    // Select the target month before clicking the day. Month grids can render
+    // duplicate labels for outside-view days, so avoid disabled cells and
+    // outside-view days after navigating to the target month.
     await this.page.getByLabel('Year').selectOption(String(date.getFullYear()))
     await this.page.getByLabel('Month').selectOption(String(date.getMonth() + 1))
 
