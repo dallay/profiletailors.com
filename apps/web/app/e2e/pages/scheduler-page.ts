@@ -100,8 +100,9 @@ export class SchedulerPage {
   // ---- Actions ----
 
   async goto(): Promise<void> {
-    await this.page.goto('/scheduler', { waitUntil: 'domcontentloaded' })
+    await this.page.goto('/scheduler/calendar/week', { waitUntil: 'domcontentloaded' })
     await this.heading.waitFor({ state: 'visible', timeout: 15_000 })
+    await this.expectWeekView()
   }
 
   async switchToMonth(): Promise<void> {
