@@ -59,7 +59,7 @@ internal class UpdateWorkspaceMembershipStatusHandler(
                     )
                 }
             }
-        } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
+        } catch (exception: Exception) {
             when (exception) {
                 is IllegalArgumentException, is IllegalStateException -> {
                     tenancyMutationAuditor.recordRejected(

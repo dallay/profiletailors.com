@@ -1,0 +1,14 @@
+change: chore-suppress-l02-tenancy-dead-suppress
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - spec-amended
+  - archive
+next: done
+updated: 2026-09-14
