@@ -84,7 +84,6 @@ class AdminInvitationController(
     }
 
     @PostMapping("/direct")
-    @Transactional
     suspend fun createDirectInvitation(
         @RequestBody request: CreateDirectInvitationRequest,
     ): ResponseEntity<CreateInvitationResult> {
@@ -122,7 +121,6 @@ class AdminInvitationController(
     }
 
     @PostMapping("/{invitationId}/direct-resend")
-    @Transactional
     suspend fun resendDirectInvitation(@PathVariable invitationId: UUID): ResponseEntity<ResendInvitationResult> {
         val operator = resolveOperator()
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()

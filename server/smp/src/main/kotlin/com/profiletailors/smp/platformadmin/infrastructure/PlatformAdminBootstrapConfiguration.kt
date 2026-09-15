@@ -8,6 +8,7 @@ import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationEventPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
@@ -26,10 +27,13 @@ import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistIn
 import com.profiletailors.smp.tenancy.application.R2dbcWorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipRepository
+import com.profiletailors.smp.tenancy.application.WorkspaceNameReader
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.transaction.reactive.TransactionalEventPublisher
 import java.time.Clock
 import java.time.Duration
 
@@ -180,10 +184,17 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
+    fun transactionalEventPublisher(
+        applicationEventPublisher: ApplicationEventPublisher,
+    ): TransactionalEventPublisher = TransactionalEventPublisher(applicationEventPublisher)
+
+    @Bean
     fun createInvitationHandler(
         invitationRepository: InvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
-        eventPublisher: EventPublisher<DomainEvent>,
+        eventPublisher: InvitationEventPublisher,
+        transactionRunner: AtomicTransactionRunner,
+        workspaceNameReader: WorkspaceNameReader,
         clock: Clock,
         tokenHasher: TokenHasher,
         telemetry: InvitationTelemetry,
@@ -192,6 +203,8 @@ class PlatformAdminBootstrapConfiguration {
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
+        transactionRunner = transactionRunner,
+        workspaceNameReader = workspaceNameReader,
         clock = clock,
         invitationTtl = Duration.ofDays(ttlDays),
         tokenHasher = tokenHasher,
@@ -215,7 +228,9 @@ class PlatformAdminBootstrapConfiguration {
     fun resendInvitationHandler(
         invitationRepository: InvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
-        eventPublisher: EventPublisher<DomainEvent>,
+        eventPublisher: InvitationEventPublisher,
+        transactionRunner: AtomicTransactionRunner,
+        workspaceNameReader: WorkspaceNameReader,
         clock: Clock,
         tokenHasher: TokenHasher,
         acceptUrlTemplate: AcceptUrlTemplate,
@@ -224,6 +239,8 @@ class PlatformAdminBootstrapConfiguration {
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
+        transactionRunner = transactionRunner,
+        workspaceNameReader = workspaceNameReader,
         clock = clock,
         invitationTtl = Duration.ofDays(ttlDays),
         tokenHasher = tokenHasher,

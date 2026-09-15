@@ -60,6 +60,8 @@ class InvitationVersionConflictException(invitationId: String) :
 
 class UserNotFoundException(principalId: String) : RuntimeException("User not found: $principalId")
 
+class WorkspaceNotFoundException(workspaceId: String) : RuntimeException("Workspace not found: $workspaceId")
+
 class PlatformRoleAlreadyRevokedException(assignmentId: String) :
     RuntimeException("Platform role assignment is already revoked: $assignmentId")
 

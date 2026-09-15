@@ -15,6 +15,7 @@ import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyCancelled
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotInvitableException
+import com.profiletailors.smp.platformadmin.domain.WorkspaceNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -93,6 +94,10 @@ class AdminProblemDetailsHandler {
 
     @ExceptionHandler(UserNotFoundException::class)
     fun handle(ex: UserNotFoundException): ProblemDetail = problem(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", ex.message)
+
+    @ExceptionHandler(WorkspaceNotFoundException::class)
+    fun handle(ex: WorkspaceNotFoundException): ProblemDetail =
+        problem(HttpStatus.NOT_FOUND, "WORKSPACE_NOT_FOUND", ex.message)
 
     @ExceptionHandler(IllegalArgumentException::class)
     fun handle(ex: IllegalArgumentException): ProblemDetail =

@@ -169,6 +169,7 @@ open class InviteWaitlistEntryHandler(
                 invitationId = newInvitation.id.value,
                 recipientEmail = context.recipientEmail,
                 workspaceName = context.workspaceName,
+                target = newInvitation.target,
                 locale = context.locale,
                 rawToken = rawToken,
             ),
