@@ -1,6 +1,6 @@
 # Level 2: Container Diagram
 
-****Last Updated:** 2026-09-12
+**Last Updated:** 2026-09-14
 
 ## Overview
 
@@ -288,9 +288,8 @@ graph TB
 
 ### Horizontal Scaling
 
-- API Application: Stateless, can scale horizontally
-- Scheduler Service: Partitioned by workspace or time slot
-- Analytics Service: Partitioned by platform or metric type
+- API Application: Stateless, can scale horizontally; in-process workers (`PublishingWorker`) handle scheduled tasks within the modular monolith
+- Analytics Context: In-monolith analytics processing and metric aggregation
 
 ### Database Scaling
 
@@ -300,7 +299,8 @@ graph TB
 
 ### Caching Strategy
 
-- Redis for session data (TTL: 15 min)
+- Local Caffeine or optional Redis store for Bucket4j rate limiting (`shared:shield:ratelimit`)
+- Session management is stateless via signed HttpOnly JWT cookies
 - API response cache (TTL: 1-5 min)
 - OAuth token cache (TTL: token expiry - 5 min)
 
@@ -326,4 +326,4 @@ graph TB
 
 ---
 
-Last updated: 2026-09-12
+Last updated: 2026-09-14

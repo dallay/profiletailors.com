@@ -5,7 +5,7 @@ status: 🔄 In Progress
 
 # Profile Tailors — C4 Architecture Summary
 
-**Last updated: 2026-09-12
+**Last updated: 2026-09-14
 
 ## Executive Summary
 
@@ -279,4 +279,4 @@ Managed & Local Storage
 
 ---
 
-Last updated: 2026-09-12
+Last updated: 2026-09-14

@@ -81,6 +81,28 @@ Yes.
 - **Verification Result**: VERIFIED (count corrected from 17 to 19). Config is infrastructure/cross-cutting configuration, not a separate bounded context in the DDD sense, but is organized as a module. Observability is retained among the contexts.
 - **Drift Action**: Updated C4 Component & Code documents to include all 19 contexts and corrected CANDIDATE-013 synchronization records.
 
+---
+
+## Finding: Task Scheduling & Analytics Execution Model
+
+- **Claim**: Task scheduling and analytics execute in-process within the `server:smp` modular monolith, rather than via separate external Scheduler or Analytics container services.
+- **Evidence**:
+  - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/scheduling/PublishingWorker.kt:912`: In-process publishing scheduling via Spring `TaskScheduler`.
+  - `server/smp/src/main/kotlin/com/profiletailors/smp/analytics/`: Analytics context module inside `server:smp`.
+- **Verification Result**: VERIFIED.
+- **Drift Action**: Updated C4 Container model to remove separate container claims for Scheduler Service and Analytics Service.
+
+---
+
+## Finding: Stateless Auth & Rate Limit Caching
+
+- **Claim**: Session management relies on stateless signed JWTs in HttpOnly cookies, while Redis/Caffeine is used solely for rate limiting in `shared:shield:ratelimit`, not for central session storage.
+- **Evidence**:
+  - `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/JwtPrincipalAuthenticationConverter.kt`: Stateless JWT authentication.
+  - `shared/shield/ratelimit/src/main/kotlin/com/profiletailors/shield/ratelimit/`: Bucket4j rate limiting with Caffeine/Redis store options.
+- **Verification Result**: VERIFIED.
+- **Drift Action**: Corrected C4 Container caching section to clarify stateless JWT cookies vs optional rate-limit caching.
+
 ### Open questions
 
 - What is the remediation plan for the current Modulith violation?

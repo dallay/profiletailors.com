@@ -12,8 +12,10 @@ the canonical architectural state.
 | `docs/architecture/c4/04-code.md`      | Identifier Strategy     | Update description to mention prefixed-UUIDs (`varchar(64)`).  | ADR-0005           | ✅ Applied (2026-08-14) |
 | `docs/architecture/README.md`          | Architecture Principles | Link to ADR-0001 (Modular Monolith) and ADR-0002 (Hexagonal).  | ADR-0001, ADR-0002 | ✅ Applied (2026-08-14) |
 | `docs/architecture/c4/02-container.md` | Deployment & Messaging  | Remove Kubernetes/Cloud Run & RabbitMQ/Kafka in favor of Swarm & Reactor channels. | CANDIDATE-011, CANDIDATE-012 | ✅ Applied (2026-08-14) |
-| `docs/architecture/c4/03-component.md` | Bounded Contexts        | Document all 19 bounded contexts in `server/smp/`.             | CANDIDATE-013      | ✅ Applied (2026-08-14) |
-| `docs/architecture/shared/dependencies.md`| Shared Kernel Modules| Document all 10 registered Gradle modules under `shared/`.     | ADR-0010           | ✅ Applied (2026-08-14) |
+| `docs/architecture/c4/03-component.md` | Bounded Contexts        | Document all 19 bounded contexts in `server/smp/`.             | CANDIDATE-013      | ✅ Applied (2026-09-14) |
+| `docs/architecture/c4/02-container.md` | In-Monolith Execution   | Clarify task scheduling and analytics run inside monolith.    | CANDIDATE-014      | ✅ Applied (2026-09-14) |
+| `docs/architecture/c4/02-container.md` | Auth Caching Clarification| Specify stateless JWT cookie auth vs optional rate-limit cache. | CANDIDATE-015      | ✅ Applied (2026-09-14) |
+| `docs/architecture/shared/dependencies.md`| Shared Kernel Modules| Document all 11 registered Gradle modules under `shared/`.     | ADR-0010           | ✅ Applied (2026-09-14) |
 | `.agents/AGENTS.md`                    | Backend Architecture    | Explicitly mention the custom `@Service` marker rule.          | ADR-0002           | ✅ Applied (2026-08-14) |
 
 ## Process

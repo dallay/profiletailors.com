@@ -1,6 +1,6 @@
 # Publishing Failure Modes
 
-****Last Updated:** 2026-09-12
+**Last Updated:** 2026-09-14
 **Status:** Active
 
 ## Overview

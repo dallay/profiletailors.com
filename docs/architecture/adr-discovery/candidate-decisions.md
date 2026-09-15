@@ -14,7 +14,9 @@
 | CANDIDATE-010 | **Shared Kernel Strategy**          | Implemented   | High              | Yes                      | None                                  | Create ADR      |
 | CANDIDATE-011 | **Docker Swarm Deployment**         | Implemented   | High              | Yes                      | C4 referenced Kubernetes/Cloud Run    | Documented      |
 | CANDIDATE-012 | **In-Process Reactor Event Bus**    | Implemented   | High              | Yes                      | C4 referenced RabbitMQ/Kafka          | Documented      |
-| CANDIDATE-013 | **17 Backend Bounded Contexts**     | Implemented   | High              | Yes                      | C4 missing 11 contexts                | Documented      |
+| CANDIDATE-013 | **19 Backend Bounded Contexts**     | Implemented   | High              | Yes                      | C4 previously listed 17 or missing 11 | Documented      |
+| CANDIDATE-014 | **In-Monolith Task Scheduling**     | Implemented   | High              | Yes                      | C4 referenced separate Scheduler Svc  | Documented      |
+| CANDIDATE-015 | **Stateless Auth / Optional Redis** | Implemented   | High              | Yes                      | C4 referenced Redis session cache     | Documented      |
 
 ## Decision Groups
 
