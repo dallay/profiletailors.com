@@ -1,27 +1,14 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
-import com.profiletailors.smp.identity.application.AuthFeature
-import com.profiletailors.smp.identity.application.CloseAccountConfirmationException
-import com.profiletailors.smp.identity.application.CloseAccountRateLimitException
 import com.profiletailors.smp.identity.application.ExpiredPasswordResetTokenException
-import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
-import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidPasswordResetTokenException
-import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
-import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
 import com.profiletailors.smp.identity.application.PasswordRecoveryDisabledException
 import com.profiletailors.smp.identity.application.RegistrationDisabledException
 import com.profiletailors.smp.identity.application.RegistrationInvitationRequiredException
-import com.profiletailors.smp.identity.application.RegistrationValidationException
-import com.profiletailors.smp.identity.application.UnverifiedEmailException
 import com.profiletailors.smp.identity.application.UsedPasswordResetTokenException
-import com.profiletailors.smp.identity.application.UserAlreadyExistsException
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments
-import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.http.HttpStatus
 import java.net.URI
 
@@ -72,7 +59,7 @@ class IdentityProblemDetailsHandlerTest {
 
     @Test
     fun `invalid credentials map to generic problem detail`() {
-        val result = handler.handle(InvalidEmailPasswordException())
+        val result = handler.handleInvalidEmailPassword()
 
         result.status shouldBe HttpStatus.UNAUTHORIZED.value()
         result.title shouldBe "Invalid credentials"
@@ -81,7 +68,7 @@ class IdentityProblemDetailsHandlerTest {
 
     @Test
     fun `user already exists omits email from problem detail`() {
-        val result = handler.handle(UserAlreadyExistsException("test@example.com"))
+        val result = handler.handleUserAlreadyExists()
 
         result.status shouldBe HttpStatus.CONFLICT.value()
         result.title shouldBe "User already exists"
@@ -92,7 +79,7 @@ class IdentityProblemDetailsHandlerTest {
 
     @Test
     fun `invalid registration input maps to generic problem detail`() {
-        val result = handler.handle(InvalidRegistrationInputException("email format leaked"))
+        val result = handler.handleInvalidRegistrationInput()
 
         result.status shouldBe HttpStatus.BAD_REQUEST.value()
         result.title shouldBe "Invalid registration input"
@@ -101,7 +88,7 @@ class IdentityProblemDetailsHandlerTest {
 
     @Test
     fun `registration validation maps to generic problem detail`() {
-        val result = handler.handle(RegistrationValidationException("password policy leaked"))
+        val result = handler.handleRegistrationValidation()
 
         result.status shouldBe HttpStatus.UNPROCESSABLE_CONTENT.value()
         result.title shouldBe "Registration validation failed"
@@ -110,25 +97,53 @@ class IdentityProblemDetailsHandlerTest {
 
     @Test
     fun `invalid verification token maps to generic problem detail`() {
-        val result = handler.handle(InvalidVerificationTokenException("expired token details leaked"))
+        val result = handler.handleInvalidVerificationToken()
 
         result.status shouldBe HttpStatus.BAD_REQUEST.value()
         result.title shouldBe "Invalid verification token"
         result.detail shouldBe "Invalid verification token."
     }
 
-    @ParameterizedTest
-    @MethodSource("emailVerificationExceptions")
-    fun `email verification exceptions map to RFC 9457 problem detail`(exception: UnverifiedEmailException) {
-        assertProblemDetail(handler.handle(exception))
+    @Test
+    fun `unverified email maps to RFC 9457 problem detail`() {
+        val result = handler.handleUnverifiedEmail()
+
+        result.status shouldBe HttpStatus.FORBIDDEN.value()
+        result.title shouldBe "Email verification required"
+        result.type shouldBe URI("https://api.profiletailors.com/errors/email-verification-required")
+        result.detail shouldBe "Please verify your email before using this feature."
+        result.properties?.get("code") shouldBe "EMAIL_VERIFICATION_REQUIRED"
     }
 
-    @ParameterizedTest
-    @MethodSource("featureExceptions")
-    fun `feature email verification exceptions map to RFC 9457 problem detail`(
-        exception: FeatureEmailVerificationRequired,
-    ) {
-        assertProblemDetail(handler.handle(exception))
+    @Test
+    fun `feature email verification maps to RFC 9457 problem detail`() {
+        val result = handler.handleFeatureEmailRequired()
+
+        result.status shouldBe HttpStatus.FORBIDDEN.value()
+        result.title shouldBe "Email verification required"
+        result.type shouldBe URI("https://api.profiletailors.com/errors/email-verification-required")
+        result.detail shouldBe "Please verify your email before using this feature."
+        result.properties?.get("code") shouldBe "EMAIL_VERIFICATION_REQUIRED"
+    }
+
+    @Test
+    fun `web exchange bind failure maps to validation problem detail`() {
+        val result = handler.handleWebExchangeBind()
+
+        result.status shouldBe HttpStatus.BAD_REQUEST.value()
+        result.title shouldBe "Validation failed"
+        result.detail shouldBe "Validation failure"
+        result.properties?.get("code") shouldBe "VALIDATION_ERROR"
+    }
+
+    @Test
+    fun `server web input failure maps to invalid request problem detail`() {
+        val result = handler.handleServerWebInput()
+
+        result.status shouldBe HttpStatus.BAD_REQUEST.value()
+        result.title shouldBe "Invalid request"
+        result.detail shouldBe "Validation failure"
+        result.properties?.get("code") shouldBe "VALIDATION_ERROR"
     }
 
     @Test
@@ -155,45 +170,21 @@ class IdentityProblemDetailsHandlerTest {
 
     @Test
     fun `close account confirmation maps to redacted generic problem detail`() {
-        val result = handler.handle(CloseAccountConfirmationException("sensitive payload leaked from caller"))
+        val result = handler.handleCloseConfirmation()
 
         result.status shouldBe HttpStatus.BAD_REQUEST.value()
         result.title shouldBe "Invalid account closure confirmation"
         result.detail shouldBe "Account closure confirmation is invalid."
-        result.detail?.contains("sensitive payload", ignoreCase = false) shouldBe false
     }
 
     @Test
     fun `close account rate limit maps to redacted generic problem detail`() {
-        val result = handler.handle(CloseAccountRateLimitException("internal counter leaked from caller"))
+        val result = handler.handleAccountClosureRateLimit()
 
         result.status shouldBe HttpStatus.TOO_MANY_REQUESTS.value()
         result.title shouldBe "Account closure rate limit exceeded"
         result.type shouldBe URI("https://api.profiletailors.com/errors/account-closure-rate-limit")
         result.detail shouldBe "Account closure rate limit exceeded."
         result.properties?.get("code") shouldBe "ACCOUNT_CLOSURE_RATE_LIMIT"
-        result.detail?.contains("internal counter", ignoreCase = false) shouldBe false
-    }
-
-    private fun assertProblemDetail(result: org.springframework.http.ProblemDetail) {
-        result.status shouldBe HttpStatus.FORBIDDEN.value()
-        result.title shouldBe "Email verification required"
-        result.type shouldBe URI("https://api.profiletailors.com/errors/email-verification-required")
-        result.detail shouldBe "Please verify your email before using this feature."
-        result.properties?.get("code") shouldBe "EMAIL_VERIFICATION_REQUIRED"
-    }
-
-    companion object {
-        @JvmStatic
-        fun emailVerificationExceptions() = listOf(
-            Arguments.of(UnverifiedEmailException("test@example.com")),
-        )
-
-        @JvmStatic
-        fun featureExceptions() = listOf(
-            Arguments.of(FeatureEmailVerificationRequired(AuthFeature.CONNECT_SOCIAL)),
-            Arguments.of(FeatureEmailVerificationRequired(AuthFeature.PUBLISH_CONTENT)),
-            Arguments.of(FeatureEmailVerificationRequired(AuthFeature.SCHEDULE_POST)),
-        )
     }
 }

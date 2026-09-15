@@ -34,30 +34,26 @@ import java.net.URI
 class IdentityProblemDetailsHandler {
 
     @ExceptionHandler(InvalidEmailPasswordException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: InvalidEmailPasswordException): ProblemDetail =
+    fun handleInvalidEmailPassword(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, INVALID_CREDENTIALS_DETAIL).apply {
             title = "Invalid credentials"
         }
 
     @ExceptionHandler(UserAlreadyExistsException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: UserAlreadyExistsException): ProblemDetail =
+    fun handleUserAlreadyExists(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, USER_ALREADY_EXISTS_DETAIL).apply {
             title = "User already exists"
             setProperty("code", "USER_ALREADY_EXISTS")
         }
 
     @ExceptionHandler(InvalidRegistrationInputException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: InvalidRegistrationInputException): ProblemDetail =
+    fun handleInvalidRegistrationInput(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_REGISTRATION_INPUT_DETAIL).apply {
             title = "Invalid registration input"
         }
 
     @ExceptionHandler(UnverifiedEmailException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: UnverifiedEmailException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handleUnverifiedEmail(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.FORBIDDEN,
         "Please verify your email before using this feature.",
     ).apply {
@@ -67,8 +63,7 @@ class IdentityProblemDetailsHandler {
     }
 
     @ExceptionHandler(FeatureEmailVerificationRequired::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: FeatureEmailVerificationRequired): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handleFeatureEmailRequired(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.FORBIDDEN,
         "Please verify your email before using this feature.",
     ).apply {
@@ -113,15 +108,13 @@ class IdentityProblemDetailsHandler {
      * @return A problem detail with HTTP 422 status and a registration validation failure message.
      */
     @ExceptionHandler(RegistrationValidationException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: RegistrationValidationException): ProblemDetail =
+    fun handleRegistrationValidation(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, REGISTRATION_VALIDATION_DETAIL).apply {
             title = "Registration validation failed"
         }
 
     @ExceptionHandler(InvalidVerificationTokenException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: InvalidVerificationTokenException): ProblemDetail =
+    fun handleInvalidVerificationToken(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_VERIFICATION_TOKEN_DETAIL).apply {
             title = "Invalid verification token"
         }
@@ -167,24 +160,21 @@ class IdentityProblemDetailsHandler {
     }
 
     @ExceptionHandler(WebExchangeBindException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: WebExchangeBindException): ProblemDetail =
+    fun handleWebExchangeBind(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, VALIDATION_DETAIL).apply {
             title = "Validation failed"
             setProperty("code", "VALIDATION_ERROR")
         }
 
     @ExceptionHandler(ServerWebInputException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: ServerWebInputException): ProblemDetail =
+    fun handleServerWebInput(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, VALIDATION_DETAIL).apply {
             title = "Invalid request"
             setProperty("code", "VALIDATION_ERROR")
         }
 
     @ExceptionHandler(CloseAccountConfirmationException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: CloseAccountConfirmationException): ProblemDetail =
+    fun handleCloseConfirmation(): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, CLOSE_ACCOUNT_CONFIRMATION_DETAIL).apply {
             title = "Invalid account closure confirmation"
         }
@@ -195,8 +185,7 @@ class IdentityProblemDetailsHandler {
      * @return A rate-limit problem detail with HTTP status 429 and the account-closure error code.
      */
     @ExceptionHandler(CloseAccountRateLimitException::class)
-    @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: CloseAccountRateLimitException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+    fun handleAccountClosureRateLimit(): ProblemDetail = ProblemDetail.forStatusAndDetail(
         HttpStatus.TOO_MANY_REQUESTS,
         CLOSE_ACCOUNT_RATE_LIMIT_DETAIL,
     ).apply {
