@@ -1,5 +1,8 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
+import com.profiletailors.smp.identity.application.InvalidPrincipalStatusTransitionException
+import com.profiletailors.smp.identity.application.PrincipalNotFoundException
+import com.profiletailors.smp.identity.application.PrincipalVersionConflictException
 import com.profiletailors.smp.platformadmin.application.OptimisticLockException
 import com.profiletailors.smp.platformadmin.domain.InvitationAcceptanceFailureCode
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
@@ -15,7 +18,7 @@ import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyCancelled
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotInvitableException
-import com.profiletailors.smp.platformadmin.domain.WorkspaceNotFoundException
+import com.profiletailors.smp.platformadmin.domain.WaitlistEntryVersionConflictException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -56,6 +59,22 @@ class AdminProblemDetailsHandler {
     fun handle(ex: WaitlistEntryAlreadyCancelledException): ProblemDetail =
         problem(HttpStatus.CONFLICT, "WAITLIST_ENTRY_ALREADY_CANCELLED", ex.message)
 
+    @ExceptionHandler(WaitlistEntryVersionConflictException::class)
+    fun handle(ex: WaitlistEntryVersionConflictException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "WAITLIST_ENTRY_VERSION_CONFLICT", ex.message)
+
+    @ExceptionHandler(PrincipalVersionConflictException::class)
+    fun handle(ex: PrincipalVersionConflictException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "USER_ACCOUNT_VERSION_CONFLICT", ex.message)
+
+    @ExceptionHandler(PrincipalNotFoundException::class)
+    fun handle(ex: PrincipalNotFoundException): ProblemDetail =
+        problem(HttpStatus.NOT_FOUND, "USER_PRINCIPAL_NOT_FOUND", ex.message)
+
+    @ExceptionHandler(InvalidPrincipalStatusTransitionException::class)
+    fun handle(ex: InvalidPrincipalStatusTransitionException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "PRINCIPAL_STATUS_TRANSITION_REJECTED", ex.message)
+
     @ExceptionHandler(InvitationNotFoundException::class)
     fun handle(ex: InvitationNotFoundException): ProblemDetail =
         problem(HttpStatus.NOT_FOUND, "INVITATION_NOT_FOUND", ex.message)
@@ -94,10 +113,6 @@ class AdminProblemDetailsHandler {
 
     @ExceptionHandler(UserNotFoundException::class)
     fun handle(ex: UserNotFoundException): ProblemDetail = problem(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", ex.message)
-
-    @ExceptionHandler(WorkspaceNotFoundException::class)
-    fun handle(ex: WorkspaceNotFoundException): ProblemDetail =
-        problem(HttpStatus.NOT_FOUND, "WORKSPACE_NOT_FOUND", ex.message)
 
     @ExceptionHandler(IllegalArgumentException::class)
     fun handle(ex: IllegalArgumentException): ProblemDetail =
