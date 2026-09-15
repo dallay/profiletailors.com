@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.12](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.11...landing@v0.2.12) (2026-09-15)
+
+
+### Bug Fixes
+
+* **a11y:** associate waitlist email label and fallback channel avatar alt text ([#1054](https://github.com/dallay/profiletailors.com/issues/1054)) ([da92132](https://github.com/dallay/profiletailors.com/commit/da9213293f343052908b0d1096434a48327e1c3e))
+* **sonarqube:** batch remediation of quality-gate findings ([#1026](https://github.com/dallay/profiletailors.com/issues/1026)) ([861e2c0](https://github.com/dallay/profiletailors.com/commit/861e2c07b4764fc5b08b91ccbfc24b06675b3738))
+
 ## [0.2.11](https://github.com/dallay/profiletailors.com/compare/landing@v0.2.10...landing@v0.2.11) (2026-09-10)
 
 
