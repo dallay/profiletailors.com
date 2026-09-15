@@ -1,9 +1,5 @@
 package com.profiletailors.smp.platform.infrastructure.http
 
-import com.profiletailors.common.domain.context.MissingPrincipalContextException
-import com.profiletailors.common.domain.context.MissingResourceContextException
-import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
-import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -15,7 +11,7 @@ class PlatformProblemDetailsHandlerTest {
 
     @Test
     fun `maps missing principal context to unauthorized problem detail`() {
-        val problem = handler.handle(MissingPrincipalContextException())
+        val problem = handler.handleMissingPrincipalContext()
 
         problem.status shouldBe HttpStatus.UNAUTHORIZED.value()
         problem.title shouldBe "Principal context missing"
@@ -23,8 +19,17 @@ class PlatformProblemDetailsHandlerTest {
     }
 
     @Test
+    fun `maps inactive api key credential to unauthorized problem detail`() {
+        val problem = handler.handleApiKeyNotActive()
+
+        problem.status shouldBe HttpStatus.UNAUTHORIZED.value()
+        problem.title shouldBe "API key credential invalid"
+        problem.detail shouldBe "Authentication is required."
+    }
+
+    @Test
     fun `maps missing resource context to bad request problem detail`() {
-        val problem = handler.handle(MissingResourceContextException())
+        val problem = handler.handleMissingResourceContext()
 
         problem.status shouldBe HttpStatus.BAD_REQUEST.value()
         problem.title shouldBe "Resource context missing"
@@ -33,12 +38,7 @@ class PlatformProblemDetailsHandlerTest {
 
     @Test
     fun `maps invalid refresh session to generic unauthorized problem detail`() {
-        val problem = handler.handle(
-            RefreshSessionNotActiveException(
-                lookupKey = "lookup-1",
-                reason = RefreshSessionFailureReason.INVALID,
-            ),
-        )
+        val problem = handler.handleRefreshSessionNotActive()
 
         problem.status shouldBe HttpStatus.UNAUTHORIZED.value()
         problem.title shouldBe "Refresh session invalid"
