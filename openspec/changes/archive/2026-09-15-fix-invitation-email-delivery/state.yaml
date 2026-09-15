@@ -1,0 +1,27 @@
+change: fix-invitation-email-delivery
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - qa
+  - archive
+next: none
+updated: "2026-09-15"
+note: >
+  Archived after PASS WITH WARNINGS acceptance QA. Direct invitation BDD passed 16/16 in both fast
+  and PostgreSQL lanes with JUnit XML; focused invitation transaction integration passed 12/12,
+  notification repository integration passed 7/7, focused handler/consumer tests passed 35/35, and
+  backend-check passed. The complete PostgreSQL suite retains unrelated P2 QA-001 for
+  PublishingWorkerTransactionPostgresIntegrationTest initialization. The raw-token internal handoff
+  remains a documented temporary DALLAY-566 follow-up. No deployed, CI, PR, or production evidence
+  is claimed; no DALLAY-567 QA artifact was modified.
+persistence_mode: openspec
+bounded_contexts:
+  - platformadmin
+  - notifications
+  - tenancy
