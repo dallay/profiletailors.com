@@ -40,6 +40,7 @@ class ResendInvitationHandler(
     private val clock: Clock,
     private val invitationTtl: Duration,
     private val tokenHasher: TokenHasher,
+    private val invitationTokenCandidateKey: InvitationTokenCandidateKey,
     private val acceptUrlTemplateFn: AcceptUrlTemplate,
 ) {
     suspend fun handle(command: ResendInvitationCommand): ResendInvitationResult {
@@ -58,13 +59,11 @@ class ResendInvitationHandler(
             val now = clock.instant()
             val rawToken = InvitationTokenGenerator.generate()
             val tokenHash: String = tokenHasher.hash(rawToken)
-            check(tokenHasher is InvitationTokenCandidateKey) {
-                "TokenHasher must implement InvitationTokenCandidateKey"
-            }
+            val candidateKey = invitationTokenCandidateKey.candidateKey(rawToken)
             val newExpiresAt = now + invitationTtl
 
             val resentInvitation = invitation.resend(tokenHash, newExpiresAt, now)
-            val updated = invitationRepository.updateIfVersionMatches(resentInvitation)
+            val updated = invitationRepository.updateIfVersionMatches(resentInvitation, candidateKey)
             if (!updated) {
                 throw InvitationNotResendableException(invitationId.value.toString())
             }

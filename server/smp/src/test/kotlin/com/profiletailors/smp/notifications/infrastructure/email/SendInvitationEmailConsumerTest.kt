@@ -8,6 +8,7 @@ import com.profiletailors.notifications.domain.Notification
 import com.profiletailors.notifications.domain.NotificationRepository
 import com.profiletailors.notifications.domain.NotificationStatus
 import com.profiletailors.notifications.domain.event.InvitationResent
+import com.profiletailors.smp.notifications.infrastructure.persistence.DuplicateNotificationException
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.domain.DirectInvitationResent
 import com.profiletailors.smp.platformadmin.domain.InvitationIssued
@@ -18,7 +19,11 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.jupiter.api.Test
 import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
@@ -73,6 +78,62 @@ internal class SendInvitationEmailConsumerTest {
         issuedListener.fallbackExecution shouldBe false
         resentListener.fallbackExecution shouldBe false
         directListener.fallbackExecution shouldBe false
+    }
+
+    @Test
+    fun `concurrent duplicate insert claims delivery only once`() = runTest {
+        val pending = slot<Notification>()
+        var saveCalls = 0
+        coEvery { notificationRepository.findByIdempotencyKey(any()) } returns null
+        coEvery { notificationRepository.save(capture(pending)) } answers {
+            saveCalls += 1
+            if (saveCalls == 1) {
+                firstArg<Notification>()
+            } else {
+                throw DuplicateNotificationException(
+                    IdempotencyKey("invitation:$invitationId:initial"),
+                    IllegalStateException("duplicate"),
+                )
+            }
+        }
+        coEvery { emailDispatcher.dispatch(inviteeEmail, any()) } coAnswers {
+            yield()
+            EmailDispatchResult.Success
+        }
+        coEvery { notificationRepository.update(any()) } answers { firstArg() }
+
+        coroutineScope {
+            listOf(
+                async {
+                    consumer.onInvitationIssued(
+                        InvitationIssued(
+                            invitationId = invitationId,
+                            recipientEmail = inviteeEmail,
+                            workspaceName = workspaceName,
+                            target = InvitationTarget.EXISTING_WORKSPACE,
+                            locale = "en",
+                            rawToken = rawToken,
+                        ),
+                    )
+                },
+                async {
+                    consumer.onInvitationIssued(
+                        InvitationIssued(
+                            invitationId = invitationId,
+                            recipientEmail = inviteeEmail,
+                            workspaceName = workspaceName,
+                            target = InvitationTarget.EXISTING_WORKSPACE,
+                            locale = "en",
+                            rawToken = rawToken,
+                        ),
+                    )
+                },
+            ).awaitAll()
+        }
+
+        coVerify(exactly = 1) { emailDispatcher.dispatch(inviteeEmail, any()) }
+        coVerify(exactly = 2) { notificationRepository.save(any()) }
+        coVerify(exactly = 1) { notificationRepository.update(any()) }
     }
 
     @Test

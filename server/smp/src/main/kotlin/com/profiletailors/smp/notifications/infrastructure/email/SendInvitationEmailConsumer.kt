@@ -12,6 +12,7 @@ import com.profiletailors.notifications.domain.NotificationRepository
 import com.profiletailors.notifications.domain.NotificationStatus
 import com.profiletailors.notifications.domain.Recipient
 import com.profiletailors.notifications.domain.event.InvitationResent
+import com.profiletailors.smp.notifications.infrastructure.persistence.DuplicateNotificationException
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.domain.DirectInvitationResent
 import com.profiletailors.smp.platformadmin.domain.InvitationIssued
@@ -121,7 +122,16 @@ internal class SendInvitationEmailConsumer(
             updatedAt = now,
         )
         val rendered = email.render()
-        val persisted = notificationRepository.save(pending)
+        val persisted = try {
+            notificationRepository.save(pending)
+        } catch (duplicate: DuplicateNotificationException) {
+            log.info(
+                "Invitation email already claimed for invitation '{}' key '{}' - skipping",
+                invitationId,
+                duplicate.idempotencyKey.value,
+            )
+            return
+        }
 
         val result = emailDispatcher.dispatch(normalizedEmail, rendered)
         val now2 = Instant.now(clock)

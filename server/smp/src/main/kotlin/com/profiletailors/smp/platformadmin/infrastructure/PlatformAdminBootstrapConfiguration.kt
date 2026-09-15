@@ -11,6 +11,7 @@ import com.profiletailors.smp.platformadmin.application.contracts.Administrative
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationEventPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTelemetry
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
@@ -48,7 +49,7 @@ class PlatformAdminBootstrapConfiguration {
         com.profiletailors.smp.platformadmin.application.OperatorAccessResolver(roleAssignmentRepository)
 
     @Bean
-    fun tokenHasher(): TokenHasher = BCryptTokenHasher()
+    fun tokenHasher(): BCryptTokenHasher = BCryptTokenHasher()
 
     @Bean
     fun workspaceMembershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
@@ -196,7 +197,8 @@ class PlatformAdminBootstrapConfiguration {
         transactionRunner: AtomicTransactionRunner,
         workspaceNameReader: WorkspaceNameReader,
         clock: Clock,
-        tokenHasher: TokenHasher,
+        tokenHasher: BCryptTokenHasher,
+        invitationTokenCandidateKey: InvitationTokenCandidateKey,
         telemetry: InvitationTelemetry,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
     ): CreateInvitationHandler = CreateInvitationHandler(
@@ -208,6 +210,7 @@ class PlatformAdminBootstrapConfiguration {
         clock = clock,
         invitationTtl = Duration.ofDays(ttlDays),
         tokenHasher = tokenHasher,
+        invitationTokenCandidateKey = invitationTokenCandidateKey,
         telemetry = telemetry,
     )
 
@@ -232,7 +235,8 @@ class PlatformAdminBootstrapConfiguration {
         transactionRunner: AtomicTransactionRunner,
         workspaceNameReader: WorkspaceNameReader,
         clock: Clock,
-        tokenHasher: TokenHasher,
+        tokenHasher: BCryptTokenHasher,
+        invitationTokenCandidateKey: InvitationTokenCandidateKey,
         acceptUrlTemplate: AcceptUrlTemplate,
         @Value("\${platform.admin.invitation.ttl-days:7}") ttlDays: Long,
     ): ResendInvitationHandler = ResendInvitationHandler(
@@ -244,6 +248,7 @@ class PlatformAdminBootstrapConfiguration {
         clock = clock,
         invitationTtl = Duration.ofDays(ttlDays),
         tokenHasher = tokenHasher,
+        invitationTokenCandidateKey = invitationTokenCandidateKey,
         acceptUrlTemplateFn = acceptUrlTemplate,
     )
 }

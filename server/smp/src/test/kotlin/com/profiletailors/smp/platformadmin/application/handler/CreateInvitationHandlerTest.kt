@@ -47,11 +47,11 @@ class CreateInvitationHandlerTest {
     private val workspaceNameReader = mockk<WorkspaceNameReader>()
     private val telemetry = mockk<InvitationTelemetry>(relaxed = true)
 
-    private val tokenHasher = object : TokenHasher, InvitationTokenCandidateKey {
+    private val tokenHasher = object : TokenHasher {
         override fun hash(rawToken: String): String = "hashed-$rawToken"
         override fun matches(rawToken: String, storedHash: String): Boolean = false
-        override fun candidateKey(rawToken: String): String = "candidate-$rawToken"
     }
+    private val invitationTokenCandidateKey = InvitationTokenCandidateKey { rawToken -> "candidate-$rawToken" }
 
     private val handler = CreateInvitationHandler(
         invitationRepository = invitationRepository,
@@ -62,6 +62,7 @@ class CreateInvitationHandlerTest {
         clock = fixedClock,
         invitationTtl = ttl,
         tokenHasher = tokenHasher,
+        invitationTokenCandidateKey = invitationTokenCandidateKey,
         telemetry = telemetry,
     )
 

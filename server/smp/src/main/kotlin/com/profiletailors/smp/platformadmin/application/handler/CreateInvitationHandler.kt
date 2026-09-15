@@ -41,6 +41,7 @@ class CreateInvitationHandler(
     private val clock: Clock,
     private val invitationTtl: Duration,
     private val tokenHasher: TokenHasher,
+    private val invitationTokenCandidateKey: InvitationTokenCandidateKey,
     private val telemetry: InvitationTelemetry,
 ) {
     suspend fun handle(command: CreateInvitationCommand): CreateInvitationResult {
@@ -62,9 +63,7 @@ class CreateInvitationHandler(
 
             val rawToken = InvitationTokenGenerator.generate()
             val tokenHash: String = tokenHasher.hash(rawToken)
-            val candidateKey: String = (tokenHasher as? InvitationTokenCandidateKey)
-                ?.candidateKey(rawToken)
-                ?: throw IllegalStateException("TokenHasher must implement InvitationTokenCandidateKey")
+            val candidateKey = invitationTokenCandidateKey.candidateKey(rawToken)
 
             val invitation = Invitation(
                 id = InvitationId.generate(),

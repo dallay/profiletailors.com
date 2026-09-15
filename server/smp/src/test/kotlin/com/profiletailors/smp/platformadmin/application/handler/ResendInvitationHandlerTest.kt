@@ -49,11 +49,11 @@ class ResendInvitationHandlerTest {
     private val transactionRunner = RecordingTransactionRunner()
     private val workspaceNameReader = mockk<WorkspaceNameReader>()
 
-    private val tokenHasher = object : TokenHasher, InvitationTokenCandidateKey {
+    private val tokenHasher = object : TokenHasher {
         override fun hash(rawToken: String): String = "hashed-$rawToken"
         override fun matches(rawToken: String, storedHash: String): Boolean = false
-        override fun candidateKey(rawToken: String): String = "candidate-$rawToken"
     }
+    private val invitationTokenCandidateKey = InvitationTokenCandidateKey { rawToken -> "candidate-$rawToken" }
 
     private val acceptUrlTemplate = AcceptUrlTemplate { rawToken ->
         "https://app.profiletailors.com/accept?token=$rawToken"
@@ -68,7 +68,9 @@ class ResendInvitationHandlerTest {
         clock = fixedClock,
         invitationTtl = ttl,
         tokenHasher = tokenHasher,
+        invitationTokenCandidateKey = invitationTokenCandidateKey,
         acceptUrlTemplateFn = acceptUrlTemplate,
+
     )
 
     private fun activeInvitation() = Invitation(
@@ -94,7 +96,7 @@ class ResendInvitationHandlerTest {
         )
 
         coEvery { invitationRepository.findById(invitationId) } returns activeInvitation()
-        coEvery { invitationRepository.updateIfVersionMatches(any()) } returns true
+        coEvery { invitationRepository.updateIfVersionMatches(any(), any()) } returns true
         coEvery { workspaceNameReader.findName("ws-001") } returns "Existing Workspace"
 
         val result = handler.handle(command)
@@ -176,7 +178,7 @@ class ResendInvitationHandlerTest {
         assertThrows<InvitationNotResendableException> {
             handler.handle(command)
         }
-        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any()) }
+        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any(), any()) }
     }
 
     @Test
@@ -196,7 +198,7 @@ class ResendInvitationHandlerTest {
         assertThrows<InvitationNotResendableException> {
             handler.handle(command)
         }
-        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any()) }
+        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any(), any()) }
     }
 
     @Test
@@ -214,7 +216,7 @@ class ResendInvitationHandlerTest {
             handler.handle(command)
         }
         assertEquals("Workspace not found: ws-001", thrown.message)
-        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any()) }
+        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any(), any()) }
         coVerify(exactly = 0) { eventPublisher.publish(any()) }
         coVerify(exactly = 0) { auditPublisher.publish(any()) }
     }
@@ -228,7 +230,7 @@ class ResendInvitationHandlerTest {
         )
 
         coEvery { invitationRepository.findById(invitationId) } returns activeInvitation()
-        coEvery { invitationRepository.updateIfVersionMatches(any()) } returns true
+        coEvery { invitationRepository.updateIfVersionMatches(any(), any()) } returns true
         coEvery { workspaceNameReader.findName("ws-001") } returns "Existing Workspace"
 
         handler.handle(command)
@@ -251,13 +253,13 @@ class ResendInvitationHandlerTest {
         )
 
         coEvery { invitationRepository.findById(invitationId) } returns activeInvitation()
-        coEvery { invitationRepository.updateIfVersionMatches(any()) } returns true
+        coEvery { invitationRepository.updateIfVersionMatches(any(), any()) } returns true
         coEvery { workspaceNameReader.findName("ws-001") } returns "Existing Workspace"
 
         handler.handle(command)
 
         assertEquals(1, transactionRunner.invocationCount)
-        coVerify { invitationRepository.updateIfVersionMatches(any()) }
+        coVerify { invitationRepository.updateIfVersionMatches(any(), any()) }
         coVerify { auditPublisher.publish(any()) }
         coVerify { eventPublisher.publish(any()) }
     }
@@ -271,7 +273,7 @@ class ResendInvitationHandlerTest {
         )
 
         coEvery { invitationRepository.findById(invitationId) } returns activeInvitation()
-        coEvery { invitationRepository.updateIfVersionMatches(any()) } returns true
+        coEvery { invitationRepository.updateIfVersionMatches(any(), any()) } returns true
         coEvery { workspaceNameReader.findName("ws-001") } returns "Existing Workspace"
         coEvery { eventPublisher.publish(any()) } throws RuntimeException("bus unavailable")
 
@@ -294,7 +296,7 @@ class ResendInvitationHandlerTest {
             target = InvitationTarget.NEW_WORKSPACE,
             workspaceId = null,
         )
-        coEvery { invitationRepository.updateIfVersionMatches(any()) } returns true
+        coEvery { invitationRepository.updateIfVersionMatches(any(), any()) } returns true
 
         val eventSlot = slot<DirectInvitationResent>()
         coEvery { eventPublisher.publish(capture(eventSlot)) } returns Unit
