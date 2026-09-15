@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.8](https://github.com/dallay/profiletailors.com/compare/app@v0.3.7...app@v0.3.8) (2026-09-15)
+
+
+### Features
+
+* **app:** prioritize primary dashboard KPI ([#1049](https://github.com/dallay/profiletailors.com/issues/1049)) ([68495da](https://github.com/dallay/profiletailors.com/commit/68495da13623fec3fbd6524d914d0ffda9a54dad))
+
+
+### Bug Fixes
+
+* **a11y:** associate waitlist email label and fallback channel avatar alt text ([#1054](https://github.com/dallay/profiletailors.com/issues/1054)) ([da92132](https://github.com/dallay/profiletailors.com/commit/da9213293f343052908b0d1096434a48327e1c3e))
+* **sonarqube:** batch remediation of quality-gate findings ([#1026](https://github.com/dallay/profiletailors.com/issues/1026)) ([861e2c0](https://github.com/dallay/profiletailors.com/commit/861e2c07b4764fc5b08b91ccbfc24b06675b3738))
+
 ## [0.3.7](https://github.com/dallay/profiletailors.com/compare/app@v0.3.6...app@v0.3.7) (2026-09-11)
 
 
