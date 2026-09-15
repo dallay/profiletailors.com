@@ -1,7 +1,6 @@
 package com.profiletailors.smp.platformadmin.domain
 
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
-import org.springframework.modulith.NamedInterface
 import java.util.UUID
 
 /**
@@ -19,7 +18,6 @@ import java.util.UUID
  * @property locale optional BCP-47 locale code (e.g. "en", "es") for template selection
  * @property rawToken ephemeral bearer token used by the notification consumer to build acceptance URLs
  */
-@NamedInterface("domain")
 data class InvitationIssued(
     val invitationId: UUID,
     val recipientEmail: String,
