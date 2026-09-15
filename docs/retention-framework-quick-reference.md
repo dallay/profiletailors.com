@@ -55,6 +55,6 @@
 
 ---
 
-**Last updated: 2026-09-14
+**Last updated:** 2026-09-14
 **Version:** 2.0 (corrected — v1.0 described a not-yet-implemented framework)
 **For questions:** [retention-and-erasure-control-plan.md](compliance/retention-and-erasure-control-plan.md)

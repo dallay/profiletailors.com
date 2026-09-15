@@ -130,12 +130,12 @@ com.profiletailors.smp
 
 ## Current Implementation Status
 
-**Implemented Bounded Contexts** (19 total):
+**Implemented Modules** (18 bounded contexts plus Config; 19 total):
 
 - ✅ Analytics Context (engagement metrics & reporting)
 - ✅ Audit Context (request outcomes, authorization decisions, mutations)
 - ✅ Authorization Context (permission checking, RBAC, direct grants)
-- ✅ Config Context (application & system configuration)
+- ✅ Config Module (application & system configuration)
 - ✅ Credentials Context (API key validation, secret management)
 - ✅ Governance Context (audit logging, compliance)
 - ✅ Hashtags Context (hashtag group management & tracking)

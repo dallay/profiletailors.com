@@ -10,11 +10,11 @@
 | CANDIDATE-006 | **Resource Creation via POST**      | Implemented   | High              | Likely (REST convention) | Documentation drift (target PUT)      | Create ADR      |
 | CANDIDATE-007 | **Astro & Vue Frontend Split**      | Implemented   | High              | Yes                      | Documentation drift (mentions React)  | Create ADR      |
 | CANDIDATE-008 | **Application-Level Multi-tenancy** | Implemented   | High              | Yes                      | None (RLS not used)                   | Create ADR      |
-| CANDIDATE-009 | **JWT + HttpOnly Cookie Auth**      | Implemented   | High              | Yes                      | None                                  | Create ADR      |
+| CANDIDATE-009 | **Bearer JWT + HttpOnly Refresh Cookie** | Implemented   | High              | Yes                      | None                                  | Create ADR      |
 | CANDIDATE-010 | **Shared Kernel Strategy**          | Implemented   | High              | Yes                      | None                                  | Create ADR      |
 | CANDIDATE-011 | **Docker Swarm Deployment**         | Implemented   | High              | Yes                      | C4 referenced Kubernetes/Cloud Run    | Documented      |
 | CANDIDATE-012 | **In-Process Reactor Event Bus**    | Implemented   | High              | Yes                      | C4 referenced RabbitMQ/Kafka          | Documented      |
-| CANDIDATE-013 | **19 Backend Bounded Contexts**     | Implemented   | High              | Yes                      | C4 previously listed 17 or missing 11 | Documented      |
+| CANDIDATE-013 | **18 Bounded Contexts + Config Module** | Implemented   | High              | Yes                      | C4 previously listed 17 or missing 11 | Documented      |
 | CANDIDATE-014 | **In-Monolith Task Scheduling**     | Implemented   | High              | Yes                      | C4 referenced separate Scheduler Svc  | Documented      |
 | CANDIDATE-015 | **Stateless Auth / Optional Redis** | Implemented   | High              | Yes                      | C4 referenced Redis session cache     | Documented      |
 

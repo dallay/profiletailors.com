@@ -73,13 +73,13 @@ Yes.
 
 ---
 
-## Finding: 19 Backend Bounded Contexts
+## Finding: 18 Backend Bounded Contexts plus Config
 
-- **Claim**: Backend `server:smp` comprises 19 bounded contexts following hexagonal architecture.
+- **Claim**: Backend `server:smp` comprises 18 bounded contexts following hexagonal architecture plus the cross-cutting Config module (19 modules total).
 - **Evidence**:
   - `server/smp/src/main/kotlin/com/profiletailors/smp/`: Directory structure containing `analytics`, `audit`, `authorization`, `config`, `credentials`, `governance`, `hashtags`, `ideas`, `identity`, `leadcapture`, `mcp`, `media`, `notifications`, `observability`, `platform`, `platformadmin`, `privacy`, `publishing`, `tenancy`.
-- **Verification Result**: VERIFIED (count corrected from 17 to 19). Config is infrastructure/cross-cutting configuration, not a separate bounded context in the DDD sense, but is organized as a module. Observability is retained among the contexts.
-- **Drift Action**: Updated C4 Component & Code documents to include all 19 contexts and corrected CANDIDATE-013 synchronization records.
+- **Verification Result**: VERIFIED (count corrected from 17 to 18 bounded contexts plus Config). Config is infrastructure/cross-cutting configuration, not a separate bounded context in the DDD sense, but is organized as a module. Observability is retained among the contexts.
+- **Drift Action**: Updated C4 Component & Code documents to include all 18 bounded contexts plus the Config module and corrected CANDIDATE-013 synchronization records.
 
 ---
 
@@ -94,14 +94,16 @@ Yes.
 
 ---
 
-## Finding: Stateless Auth & Rate Limit Caching
+## Finding: Stateless Access-Token Auth & Rate Limit Caching
 
-- **Claim**: Session management relies on stateless signed JWTs in HttpOnly cookies, while Redis/Caffeine is used solely for rate limiting in `shared:shield:ratelimit`, not for central session storage.
+- **Claim**: The SPA keeps the short-lived JWT access token in memory and sends it in the `Authorization: Bearer` header. The refresh token alone is stored in an HttpOnly cookie. Caffeine/Redis caching is reserved for rate limiting in `shared:shield:ratelimit`, not central session storage.
 - **Evidence**:
-  - `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/JwtPrincipalAuthenticationConverter.kt`: Stateless JWT authentication.
+  - `apps/web/app/src/modules/auth/infrastructure/auth.store.ts` and `auth-api.ts`: Keep the access token in memory and add it to the `Authorization: Bearer` header.
+  - `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/LocalAuthController.kt`: Returns the access token in `AuthTokens` and stores only `result.refreshToken` in the HttpOnly cookie.
+  - `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/JwtPrincipalAuthenticationConverter.kt`: Stateless access-token validation.
   - `shared/shield/ratelimit/src/main/kotlin/com/profiletailors/shield/ratelimit/`: Bucket4j rate limiting with Caffeine/Redis store options.
 - **Verification Result**: VERIFIED.
-- **Drift Action**: Corrected C4 Container caching section to clarify stateless JWT cookies vs optional rate-limit caching.
+- **Drift Action**: Corrected the C4 Container caching section to distinguish Bearer access-token authentication, the HttpOnly refresh-token cookie, and optional rate-limit caching.
 
 ### Open questions
 
@@ -425,7 +427,7 @@ Yes.
 
 ---
 
-## Finding: Authentication Flow (JWT + HttpOnly Cookie)
+## Finding: Authentication Flow (Bearer JWT + HttpOnly Refresh Cookie)
 
 ### Observed implementation
 
@@ -434,9 +436,10 @@ cookie. Access token lives only in memory on the frontend.
 
 ### Evidence
 
-- `LocalAuthHandlers.kt`: `issueAuthSession` creates tokens.
-- `auth-api.ts`: `requestRaw` includes `credentials: 'include'`.
-- `auth.ts` (Vue store): "Access token lives ONLY in memory".
+- `LocalAuthHandlers.kt`: `issueAuthSession` creates the access and refresh tokens.
+- `LocalAuthController.kt`: returns `AuthTokens` and stores only `result.refreshToken` in the HttpOnly cookie.
+- `auth-api.ts`: `requestRaw` sends the in-memory access token in the `Authorization: Bearer` header and includes the refresh cookie via `credentials: 'include'`.
+- `auth.store.ts` (Vue store): "Access token lives ONLY in memory".
 
 ### Documented intention
 
