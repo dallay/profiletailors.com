@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.5.2](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.1...smp@v0.5.2) (2026-09-15)
+
+
+### Features
+
+* **observability:** close vendor-neutral event migration ([#1027](https://github.com/dallay/profiletailors.com/issues/1027)) ([77c199c](https://github.com/dallay/profiletailors.com/commit/77c199c037989aaf68af01bc68f7405d3de0afc6))
+
+
+### Bug Fixes
+
+* **admin:** resolve backoffice review findings for users, waitlist and invitations ([#1057](https://github.com/dallay/profiletailors.com/issues/1057)) ([27825c5](https://github.com/dallay/profiletailors.com/commit/27825c5cb799712111df34870fd3bd8af7789cb5))
+* **invitations:** deliver direct invitation emails reliably ([#1053](https://github.com/dallay/profiletailors.com/issues/1053)) ([3f5789e](https://github.com/dallay/profiletailors.com/commit/3f5789e9e956d6da3959106e1fc827253919c1fd))
+* **sonarqube:** batch remediation of quality-gate findings ([#1026](https://github.com/dallay/profiletailors.com/issues/1026)) ([861e2c0](https://github.com/dallay/profiletailors.com/commit/861e2c07b4764fc5b08b91ccbfc24b06675b3738))
+
+
+### Refactoring
+
+* **backend:** remove 15 UNUSED_PARAMETER suppressions via rename-and-drop (R03 platform + R04 identity) ([#1059](https://github.com/dallay/profiletailors.com/issues/1059)) ([6322d36](https://github.com/dallay/profiletailors.com/commit/6322d36c06d89bd737ff82ab1b753d066efa691b))
+* **platformadmin:** add Modulith metadata parity, drop domain exemptions ([#1056](https://github.com/dallay/profiletailors.com/issues/1056)) ([791582c](https://github.com/dallay/profiletailors.com/commit/791582c95b16ac43dcdd8294ac808e33136ae17b))
+* **publishing:** remove 3 live UNUSED_PARAMETER suppressions via rename-and-drop ([#1047](https://github.com/dallay/profiletailors.com/issues/1047)) ([4b49e36](https://github.com/dallay/profiletailors.com/commit/4b49e36c59d9d408c02cbd420cbc3b5a8ff6b363))
+* **publishing:** remove remaining 9 UNUSED_PARAMETER suppressions via rename-and-drop ([#1048](https://github.com/dallay/profiletailors.com/issues/1048)) ([438e557](https://github.com/dallay/profiletailors.com/commit/438e557aa1a6a2c19f9c43615b238e6dd69204e4))
+
+
+### Documentation
+
+* reconcile Java version declarations and documentation references ([#1023](https://github.com/dallay/profiletailors.com/issues/1023)) ([e53ed2f](https://github.com/dallay/profiletailors.com/commit/e53ed2f59d6433951401a819f95cd47a1ad0d9dc))
+
 ## [0.5.1](https://github.com/dallay/profiletailors.com/compare/smp@v0.5.0...smp@v0.5.1) (2026-09-11)
 
 
