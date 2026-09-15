@@ -219,7 +219,7 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
         seedReferenceData()
         val invitationId = UUID.randomUUID()
         seedActiveInvitation(invitationId, "candidate-key-resend-old", version = 0)
-        val stored = repository.findById(InvitationId(invitationId))!!
+        val stored = requireNotNull(repository.findById(InvitationId(invitationId)))
         val resent = stored.resend(
             "token-hash-resend-new",
             stored.expiresAt.plusSeconds(3600),

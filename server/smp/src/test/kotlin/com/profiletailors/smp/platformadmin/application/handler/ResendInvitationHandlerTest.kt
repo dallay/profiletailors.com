@@ -88,7 +88,7 @@ class ResendInvitationHandlerTest {
     )
 
     @Test
-    fun `handle happy path resends invitation without exposing the token`() = runTest {
+    fun `should resend invitation without exposing token when invitation is valid`() = runTest {
         val command = ResendInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -117,7 +117,7 @@ class ResendInvitationHandlerTest {
     }
 
     @Test
-    fun `handle throws when invitation not found`() = runTest {
+    fun `should reject resend when invitation is not found`() = runTest {
         val command = ResendInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -132,7 +132,7 @@ class ResendInvitationHandlerTest {
     }
 
     @Test
-    fun `handle throws when invitation not active`() = runTest {
+    fun `should reject resend when invitation is not active`() = runTest {
         val command = ResendInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -150,7 +150,7 @@ class ResendInvitationHandlerTest {
     }
 
     @Test
-    fun `handle throws when operator lacks INVITATIONS_RESEND permission`() = runTest {
+    fun `should reject resend when operator lacks invitation permission`() = runTest {
         val command = ResendInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.SUPPORT_AGENT),
@@ -163,7 +163,7 @@ class ResendInvitationHandlerTest {
     }
 
     @Test
-    fun `handle throws when invitation is not a direct invitation`() = runTest {
+    fun `should reject resend when invitation is not direct`() = runTest {
         val command = ResendInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),

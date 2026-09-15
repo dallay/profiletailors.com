@@ -67,7 +67,7 @@ class CreateInvitationHandlerTest {
     )
 
     @Test
-    fun `handle happy path creates invitation and publishes event`() = runTest {
+    fun `should create invitation and publish event when command is valid`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -100,7 +100,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `should persist issuedBy as prefixed platform principal id when creating a direct invitation`() = runTest {
+    fun `should persist prefixed issuer when creating a direct invitation`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -122,7 +122,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle throws when active invitation already exists`() = runTest {
+    fun `should reject creation when an active invitation already exists`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -142,7 +142,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle rejects existing-workspace invitation without workspace`() = runTest {
+    fun `should reject existing-workspace invitation when workspace is absent`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -157,7 +157,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle creates new-workspace invitation without workspace`() = runTest {
+    fun `should create new-workspace invitation when workspace is absent`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -179,7 +179,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle normalizes email with surrounding whitespace before lookup and persistence`() = runTest {
+    fun `should normalize email before lookup and persistence when whitespace surrounds it`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -211,7 +211,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle throws when operator lacks INVITATIONS_CREATE permission`() = runTest {
+    fun `should reject creation when operator lacks invitation permission`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.SUPPORT_AGENT),
@@ -226,7 +226,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle runs creation inside one atomic transaction`() = runTest {
+    fun `should run creation inside one atomic transaction when command is valid`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -251,7 +251,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle propagates publisher failure for rollback without telemetry`() = runTest {
+    fun `should propagate publisher failure and skip telemetry when publication fails`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -276,7 +276,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle resolves workspace name and throws WorkspaceNotFoundException when lookup returns null`() = runTest {
+    fun `should reject invitation when existing workspace lookup returns no name`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -298,7 +298,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle uses the canonical NEW_WORKSPACE copy and target for new-workspace invitations`() = runTest {
+    fun `should use new-workspace copy and target when creating a new-workspace invitation`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
