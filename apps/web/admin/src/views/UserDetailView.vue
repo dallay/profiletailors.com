@@ -21,6 +21,8 @@ interface AdminUserDetail {
   authenticationMethods: string[]
   workspaceMemberships: AdminWorkspaceMembership[]
   platformRoles: string[]
+  status: string
+  version: number
 }
 
 interface AdminWorkspaceMembership {
@@ -35,6 +37,51 @@ const user = ref<AdminUserDetail | null>(null)
 const workspaces = ref<AdminWorkspaceMembership[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
+const actionLoading = ref(false)
+const actionError = ref<string | null>(null)
+const actionSuccess = ref<string | null>(null)
+
+async function deactivateUser() {
+  if (!user.value) return
+  if (!confirm(t('users.deactivateConfirm'))) return
+  actionLoading.value = true
+  actionError.value = null
+  actionSuccess.value = null
+  try {
+    const res = await authStore.request(`/api/admin/users/${principalId}/deactivate`, {
+      method: 'PATCH',
+      body: JSON.stringify({ expectedVersion: user.value.version }),
+    })
+    if (!res.ok) throw new Error()
+    actionSuccess.value = t('users.deactivateSuccess')
+    await fetchUser()
+  } catch {
+    actionError.value = t('users.deactivateError')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+async function reactivateUser() {
+  if (!user.value) return
+  if (!confirm(t('users.reactivateConfirm'))) return
+  actionLoading.value = true
+  actionError.value = null
+  actionSuccess.value = null
+  try {
+    const res = await authStore.request(`/api/admin/users/${principalId}/reactivate`, {
+      method: 'PATCH',
+      body: JSON.stringify({ expectedVersion: user.value.version }),
+    })
+    if (!res.ok) throw new Error()
+    actionSuccess.value = t('users.reactivateSuccess')
+    await fetchUser()
+  } catch {
+    actionError.value = t('users.reactivateError')
+  } finally {
+    actionLoading.value = false
+  }
+}
 
 async function fetchUser() {
   loading.value = true
@@ -76,6 +123,38 @@ onMounted(fetchUser)
         <Field :label="t('common.createdAt')" :value="new Date(user.createdAt).toLocaleString(locale)" />
         <Field :label="t('users.lastAuthenticated')" :value="user.lastAuthenticatedAt ? new Date(user.lastAuthenticatedAt).toLocaleString(locale) : '—'" />
         <Field :label="t('users.platformRoles')" :value="user.platformRoles?.join(', ') || '—'" />
+        <div>
+          <p class="mb-1 text-xs text-text-secondary uppercase">{{ t('users.status') }}</p>
+          <span
+            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+            :class="{
+              'bg-green-900/40 text-green-400': user.status === 'ACTIVE',
+              'bg-red-900/40 text-red-400': user.status === 'DEACTIVATED',
+              'bg-yellow-900/40 text-yellow-400': user.status === 'SUSPENDED',
+            }"
+          >{{ t(`users.${user.status.toLowerCase()}`) }}</span>
+        </div>
+      </div>
+
+      <div class="mb-6 flex items-center gap-3">
+        <button
+          v-if="user.status === 'ACTIVE' || user.status === 'SUSPENDED'"
+          class="admin-button-danger min-h-0 px-2 py-1 text-xs disabled:opacity-50"
+          :disabled="actionLoading"
+          @click="deactivateUser"
+        >
+          {{ t('users.deactivate') }}
+        </button>
+        <button
+          v-if="user.status === 'DEACTIVATED'"
+          class="admin-button-primary min-h-0 px-2 py-1 text-xs disabled:opacity-50"
+          :disabled="actionLoading"
+          @click="reactivateUser"
+        >
+          {{ t('users.reactivate') }}
+        </button>
+        <div v-if="actionSuccess" role="status" class="text-sm text-green-400">{{ actionSuccess }}</div>
+        <div v-if="actionError" role="alert" class="text-sm text-error">{{ actionError }}</div>
       </div>
 
       <h2 class="mb-3 text-lg font-semibold text-text-display">{{ t('users.workspaces') }}</h2>

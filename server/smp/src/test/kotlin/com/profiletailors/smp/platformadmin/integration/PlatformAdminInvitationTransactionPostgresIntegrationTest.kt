@@ -221,6 +221,7 @@ class PlatformAdminInvitationTransactionPostgresIntegrationTest : PostgresIntegr
                 operatorRoles = operatorRoles,
                 waitlistEntryId = "entry-test-1",
                 reason = "spam account",
+                expectedVersion = 1,
             ),
         )
 

@@ -20,6 +20,7 @@ interface InvitationSummary {
 }
 
 interface WaitlistEntryDetail {
+  id: string
   email: string
   status: string
   joinedAt: string
@@ -28,6 +29,11 @@ interface WaitlistEntryDetail {
   source: string
   preferredLocale: string | null
   invitationHistory: InvitationSummary[]
+  earlyAccessConsent: boolean
+  marketingConsent: boolean
+  consentVersion: string | null
+  metadataSummary: Record<string, string>
+  version: number
 }
 
 const entry = ref<WaitlistEntryDetail | null>(null)
@@ -41,6 +47,10 @@ const revokeTargetId = ref<string | null>(null)
 
 const canInvite = authStore.hasPermission('platform.waitlist.invite')
 const canRevoke = authStore.hasPermission('platform.invitations.revoke')
+const canResend = authStore.hasPermission('platform.invitations.resend')
+const resending = ref(false)
+const resendError = ref<string | null>(null)
+const showResendDialog = ref(false)
 
 async function fetchEntry() {
   loading.value = true
@@ -69,6 +79,32 @@ async function invite() {
     actionError.value = t('common.error')
   } finally {
     inviting.value = false
+  }
+}
+
+function openResendDialog() {
+  showResendDialog.value = true
+  resendError.value = null
+}
+
+async function confirmResend() {
+  if (!entry.value) return
+  const activeInvitation = entry.value.invitationHistory.find(inv => inv.status === 'ACTIVE')
+  if (!activeInvitation) return
+  resending.value = true
+  resendError.value = null
+  showResendDialog.value = false
+  try {
+    const res = await authStore.request(`/api/admin/invitations/${activeInvitation.id}/resend`, { method: 'POST' })
+    if (!res.ok) {
+      resendError.value = await errorMessage(res)
+      return
+    }
+    await fetchEntry()
+  } catch {
+    resendError.value = t('common.error')
+  } finally {
+    resending.value = false
   }
 }
 
@@ -133,6 +169,29 @@ onMounted(fetchEntry)
         <Field :label="t('waitlist.cancelledAt')" :value="entry.cancelledAt ? new Date(entry.cancelledAt).toLocaleString(locale) : '—'" />
       </div>
 
+      <details class="mb-6">
+        <summary class="cursor-pointer text-sm font-medium text-text-secondary hover:text-text-display">
+          {{ t('waitlist.consentDetails') }}
+        </summary>
+        <div class="mt-3 grid grid-cols-2 gap-4">
+          <Field :label="t('waitlist.earlyAccessConsent')" :value="entry.earlyAccessConsent ? 'Yes' : 'No'" />
+          <Field :label="t('waitlist.marketingConsent')" :value="entry.marketingConsent ? 'Yes' : 'No'" />
+          <Field :label="t('waitlist.consentVersion')" :value="entry.consentVersion ?? '—'" />
+        </div>
+      </details>
+
+      <details v-if="entry.metadataSummary && Object.keys(entry.metadataSummary).length > 0" class="mb-6">
+        <summary class="cursor-pointer text-sm font-medium text-text-secondary hover:text-text-display">
+          {{ t('waitlist.metadata') }}
+        </summary>
+        <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div v-for="[key, value] in Object.entries(entry.metadataSummary)" :key="key" class="flex gap-2">
+            <span class="text-text-secondary">{{ key }}:</span>
+            <span class="text-text-display">{{ value }}</span>
+          </div>
+        </div>
+      </details>
+
       <div class="flex gap-3 mb-8">
         <button
           v-if="canInvite && (entry.status === 'PENDING' || entry.status === 'INVITED')"
@@ -141,6 +200,14 @@ onMounted(fetchEntry)
           @click="invite"
         >
           {{ inviting ? t('common.loading') : t('waitlist.invite') }}
+        </button>
+        <button
+          v-if="canResend && entry.invitationHistory.some(inv => inv.status === 'ACTIVE')"
+          :disabled="resending"
+          class="admin-button-secondary disabled:opacity-50"
+          @click="openResendDialog"
+        >
+          {{ resending ? t('common.loading') : t('waitlist.resend') }}
         </button>
       </div>
 

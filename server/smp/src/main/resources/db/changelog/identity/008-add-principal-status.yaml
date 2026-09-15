@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: identity-008-add-principal-status
+      author: opencode
+      changes:
+        - addColumn:
+            tableName: principals
+            columns:
+              - column:
+                  name: status
+                  type: varchar(32)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropColumn:
+            tableName: principals
+            columnName: status

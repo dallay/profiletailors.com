@@ -15,6 +15,8 @@ enum class AdminAuditAction {
     INVITATION_REVOKED,
     ADMIN_USER_VIEWED,
     ADMIN_WAITLIST_ENTRY_VIEWED,
+    USER_DEACTIVATED,
+    USER_REACTIVATED,
 }
 
 @ValueObject

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import RevokeInvitationDialog from '@/components/RevokeInvitationDialog.vue'
@@ -10,6 +10,26 @@ interface CreatedInvitation {
   status: string
   expiresAt: string
   version: number
+}
+
+interface DirectInvitationRow {
+  invitationId: string
+  email: string
+  target: string
+  workspaceId: string | null
+  status: string
+  expiresAt: string
+  version: number
+}
+
+interface DirectInvitationPage {
+  items: DirectInvitationRow[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  hasNext: boolean
+  hasPrevious: boolean
 }
 
 const JSON_API_MEDIA_TYPE = 'application/vnd.api.v1+json'
@@ -40,6 +60,16 @@ const revokeError = ref<string | null>(null)
 const resending = ref(false)
 const resendError = ref<string | null>(null)
 const lastCreatedId = ref<string | null>(null)
+
+const listResult = ref<DirectInvitationPage | null>(null)
+const listLoading = ref(false)
+const listError = ref<string | null>(null)
+const listSearch = ref('')
+const listStatusFilter = ref('')
+const listPage = ref(0)
+const rowActionId = ref<string | null>(null)
+
+const listItems = computed(() => listResult.value?.items ?? [])
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -106,16 +136,71 @@ async function submit() {
   }
 }
 
-function openRevokeDialog(id: string) {
+function openRevokeDialog(id: string, email?: string, expectedVersion?: number) {
   const invitation = created.value && created.value.id === id ? created.value : null
   revokeTarget.value = {
     id,
-    email: invitation?.email ?? id,
-    expectedVersion: invitation?.version ?? 0,
+    email: email ?? invitation?.email ?? id,
+    expectedVersion: expectedVersion ?? invitation?.version ?? 0,
   }
   revokeError.value = null
   revokeDialogOpen.value = true
 }
+
+async function fetchList() {
+  if (!canRead) return
+  listLoading.value = true
+  listError.value = null
+  try {
+    const params = new URLSearchParams({ page: String(listPage.value), size: '25' })
+    if (listStatusFilter.value) params.set('status', listStatusFilter.value)
+    if (listSearch.value.trim()) params.set('email', listSearch.value.trim())
+    const res = await authStore.request(`/api/admin/invitations/direct?${params}`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    listResult.value = (await res.json()) as DirectInvitationPage
+  } catch {
+    listResult.value = null
+    listError.value = t('common.error')
+  } finally {
+    listLoading.value = false
+  }
+}
+
+async function resendRow(row: DirectInvitationRow) {
+  if (rowActionId.value) return
+  rowActionId.value = row.invitationId
+  try {
+    const res = await authStore.request(
+      `/api/admin/invitations/${row.invitationId}/direct-resend`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': JSON_API_MEDIA_TYPE },
+      },
+    )
+    if (!res.ok) {
+      listError.value = await errorMessage(res)
+      return
+    }
+    await fetchList()
+  } catch {
+    listError.value = t('common.error')
+  } finally {
+    rowActionId.value = null
+  }
+}
+
+function openRowRevokeDialog(row: DirectInvitationRow) {
+  openRevokeDialog(row.invitationId, row.email, row.version)
+}
+
+watch([listStatusFilter, listSearch], () => {
+  listPage.value = 0
+  void fetchList()
+})
+
+onMounted(() => {
+  if (canRead) void fetchList()
+})
 
 async function resendInvitation() {
   if (!created.value || resending.value) return
@@ -169,6 +254,7 @@ async function confirmRevoke(expectedVersion: number) {
       created.value = null
     }
     revokeTarget.value = null
+    if (canRead) await fetchList()
   } catch {
     revokeError.value = t('common.error')
   } finally {
@@ -375,6 +461,171 @@ function formatExpiry(value: string): string {
     <p v-if="!canRead" class="text-sm text-text-secondary">
       {{ t('auth.accessDeniedMessage') }}
     </p>
+
+    <section
+      v-if="canRead"
+      class="admin-card mt-6 p-5"
+      data-testid="direct-invitations-list"
+    >
+      <h2 class="mb-4 text-lg font-medium text-text-display">
+        {{ t('directInvitations.list.title') }}
+      </h2>
+
+      <div class="mb-4 flex flex-wrap gap-3">
+        <input
+          v-model="listSearch"
+          type="search"
+          class="admin-input w-64 text-sm"
+          data-testid="direct-invitations-search"
+          :placeholder="t('directInvitations.list.search')"
+          :aria-label="t('directInvitations.list.search')"
+        >
+        <select
+          v-model="listStatusFilter"
+          class="admin-input text-sm"
+          data-testid="direct-invitations-status-filter"
+          :aria-label="t('directInvitations.list.statusFilter')"
+        >
+          <option value="">
+            {{ t('directInvitations.list.allStatuses') }}
+          </option>
+          <option value="ACTIVE">
+            ACTIVE
+          </option>
+          <option value="ACCEPTED">
+            ACCEPTED
+          </option>
+          <option value="EXPIRED">
+            EXPIRED
+          </option>
+          <option value="REVOKED">
+            REVOKED
+          </option>
+        </select>
+      </div>
+
+      <div
+        v-if="listLoading"
+        class="text-sm text-text-secondary"
+        data-testid="direct-invitations-loading"
+      >
+        {{ t('common.loading') }}
+      </div>
+      <div
+        v-else-if="listError"
+        role="alert"
+        class="rounded-md border border-error/40 bg-error/10 px-3 py-2 text-sm text-error"
+        data-testid="direct-invitations-error"
+      >
+        {{ listError }}
+      </div>
+      <template v-else-if="listResult">
+        <div
+          v-if="listItems.length === 0"
+          class="text-sm text-text-secondary"
+          data-testid="direct-invitations-empty"
+        >
+          {{ t('directInvitations.list.empty') }}
+        </div>
+        <template v-else>
+          <table
+            class="admin-table w-full text-left text-sm"
+            data-testid="direct-invitations-table"
+            :aria-label="t('directInvitations.list.title')"
+          >
+            <thead>
+              <tr class="border-b border-border-subtle text-xs uppercase text-text-secondary">
+                <th scope="col" class="py-2 pr-4">
+                  {{ t('common.email') }}
+                </th>
+                <th scope="col" class="py-2 pr-4">
+                  {{ t('directInvitations.list.target') }}
+                </th>
+                <th scope="col" class="py-2 pr-4">
+                  {{ t('common.status') }}
+                </th>
+                <th scope="col" class="py-2 pr-4">
+                  {{ t('directInvitations.list.expiresAt') }}
+                </th>
+                <th scope="col" class="py-2">
+                  {{ t('common.actions') }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="row in listItems"
+                :key="row.invitationId"
+                class="border-b border-border-subtle hover:bg-bg-surface"
+                data-testid="direct-invitation-row"
+              >
+                <td class="py-2 pr-4 text-text-display">
+                  {{ row.email }}
+                </td>
+                <td class="py-2 pr-4 text-text-secondary">
+                  {{ row.target }}
+                </td>
+                <td class="py-2 pr-4 text-text-display">
+                  {{ row.status }}
+                </td>
+                <td class="py-2 pr-4 text-text-secondary">
+                  {{ formatExpiry(row.expiresAt) }}
+                </td>
+                <td class="flex gap-2 py-2">
+                  <button
+                    v-if="canResend && row.status === 'ACTIVE'"
+                    type="button"
+                    class="admin-button-secondary min-h-0 px-2 py-1 text-xs disabled:opacity-50"
+                    data-testid="direct-invitation-row-resend"
+                    :disabled="rowActionId === row.invitationId"
+                    @click="resendRow(row)"
+                  >
+                    {{ t('directInvitations.success.resend') }}
+                  </button>
+                  <button
+                    v-if="canRevoke && row.status === 'ACTIVE'"
+                    type="button"
+                    class="admin-button-danger min-h-0 px-2 py-1 text-xs"
+                    data-testid="direct-invitation-row-revoke"
+                    @click="openRowRevokeDialog(row)"
+                  >
+                    {{ t('directInvitations.success.revoke') }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="mt-4 flex items-center justify-between text-sm text-text-secondary">
+            <span data-testid="direct-invitations-page-info">
+              {{ t('common.page') }} {{ listResult.page + 1 }} {{ t('common.of') }} {{ listResult.totalPages }}
+            </span>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="admin-button-secondary disabled:opacity-40"
+                data-testid="direct-invitations-prev"
+                :disabled="!listResult.hasPrevious"
+                :aria-label="t('common.previous')"
+                @click="listPage--; fetchList()"
+              >
+                {{ t('common.previous') }}
+              </button>
+              <button
+                type="button"
+                class="admin-button-secondary disabled:opacity-40"
+                data-testid="direct-invitations-next"
+                :disabled="!listResult.hasNext"
+                :aria-label="t('common.next')"
+                @click="listPage++; fetchList()"
+              >
+                {{ t('common.next') }}
+              </button>
+            </div>
+          </div>
+        </template>
+      </template>
+    </section>
 
     <RevokeInvitationDialog
       :open="revokeDialogOpen"
