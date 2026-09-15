@@ -33,6 +33,31 @@ describe('useAdminAuthStore', () => {
     expect(store.hasPermission('platform.waitlist.invite')).toBe(true)
     expect(store.hasPermission('platform.operators.manage')).toBe(true)
     expect(store.hasPermission('platform.audit.read')).toBe(true)
+    expect(store.hasPermission('platform.publishing.stale.read')).toBe(true)
+  })
+
+  it('PLATFORM_OPERATOR holds publishing stale read like the server map', () => {
+    const store = useAdminAuthStore()
+    store.principal = {
+      principalId: 'test-id',
+      email: 'op@example.com',
+      displayName: null,
+      platformRoles: ['PLATFORM_OPERATOR'],
+    }
+    expect(store.hasPermission('platform.publishing.stale.read')).toBe(true)
+  })
+
+  it('SUPPORT_AGENT and AUDITOR lack publishing stale read', () => {
+    const store = useAdminAuthStore()
+    for (const email of ['support@example.com', 'auditor@example.com']) {
+      store.principal = {
+        principalId: 'test-id',
+        email,
+        displayName: null,
+        platformRoles: email.startsWith('support') ? ['SUPPORT_AGENT'] : ['AUDITOR'],
+      }
+      expect(store.hasPermission('platform.publishing.stale.read')).toBe(false)
+    }
   })
 
   it('PLATFORM_OPERATOR cannot manage operators', () => {

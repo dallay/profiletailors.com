@@ -26,6 +26,7 @@ data class CancelWaitlistEntryCommand(
     val operatorRoles: Set<PlatformRole>,
     val waitlistEntryId: String,
     val reason: String,
+    val expectedVersion: Long,
 )
 
 data class AssignPlatformRoleCommand(
@@ -40,4 +41,18 @@ data class RevokePlatformRoleCommand(
     val operatorRoles: Set<PlatformRole>,
     val targetPrincipalId: UUID,
     val role: PlatformRole,
+)
+
+data class DeactivateUserCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val principalId: String,
+    val expectedVersion: Long,
+)
+
+data class ReactivateUserCommand(
+    val operatorPrincipalId: UUID,
+    val operatorRoles: Set<PlatformRole>,
+    val principalId: String,
+    val expectedVersion: Long,
 )

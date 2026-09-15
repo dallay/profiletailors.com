@@ -49,7 +49,7 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
 
         val countSql = "SELECT COUNT(*) FROM principals p LEFT JOIN user_identities ui ON ui.principal_id = p.id $where"
         val dataSql = """
-            SELECT p.id, p.principal_type, p.created_at, p.display_identity,
+            SELECT p.id, p.principal_type, p.created_at, p.display_identity, p.status,
                    ui.email
             FROM principals p
             LEFT JOIN user_identities ui ON ui.principal_id = p.id
@@ -106,6 +106,8 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
         authenticationMethods = emptyList(),
         workspaceCount = 0,
         platformRoles = emptyList(),
+        status = get("status", String::class.java) ?: "ACTIVE",
+        version = 1L,
     )
 
     private fun Readable.toDetail() = AdminUserDetail(
@@ -118,6 +120,8 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
         authenticationMethods = emptyList(),
         workspaceMemberships = emptyList(),
         platformRoles = emptyList(),
+        status = get("status", String::class.java) ?: "ACTIVE",
+        version = 1L,
     )
 
     companion object {
@@ -126,7 +130,7 @@ class R2dbcAdminUserQuery(private val databaseClient: DatabaseClient) : AdminUse
             "email" to "ui.email",
         )
         private const val SELECT_USER_DETAIL = """
-            SELECT p.id, p.principal_type, p.created_at, p.display_identity, ui.email
+            SELECT p.id, p.principal_type, p.created_at, p.display_identity, p.status, ui.email
             FROM principals p LEFT JOIN user_identities ui ON ui.principal_id = p.id
             WHERE p.id = :id
         """

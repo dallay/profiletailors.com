@@ -7,6 +7,8 @@ import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
 import com.profiletailors.smp.platformadmin.application.contracts.AdminUserQuery
+import com.profiletailors.smp.platformadmin.application.handler.DeactivateUserHandler
+import com.profiletailors.smp.platformadmin.application.handler.ReactivateUserHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminUserDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminUserSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWorkspaceMembershipSummary
@@ -28,6 +30,8 @@ class AdminUserControllerTest {
 
     private val userQuery = mockk<AdminUserQuery>()
     private val operatorAccessResolver = mockk<OperatorAccessResolver>()
+    private val deactivateUserHandler = mockk<DeactivateUserHandler>()
+    private val reactivateUserHandler = mockk<ReactivateUserHandler>()
 
     @Test
     fun `listUsers returns 401 without principal context`() {
@@ -158,6 +162,8 @@ class AdminUserControllerTest {
                 userQuery = userQuery,
                 operatorAccessResolver = operatorAccessResolver,
                 requestContextStore = FakeRequestContextStore(principal),
+                deactivateUserHandler = deactivateUserHandler,
+                reactivateUserHandler = reactivateUserHandler,
             ),
         )
         .controllerAdvice(AdminProblemDetailsHandler())

@@ -23,6 +23,8 @@ interface AdminUserSummary {
   createdAt: string
   lastAuthenticatedAt: string | null
   platformRoles: string[]
+  status: string
+  version: number
 }
 
 interface PagedResult<T> {
@@ -90,6 +92,7 @@ onBeforeUnmount(() => {
             <th scope="col" class="py-2 pr-4">{{ t('common.email') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('users.displayName') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('users.principalType') }}</th>
+            <th scope="col" class="py-2 pr-4">{{ t('common.status') }}</th>
             <th scope="col" class="py-2 pr-4">{{ t('common.createdAt') }}</th>
           </tr>
         </thead>
@@ -109,6 +112,16 @@ onBeforeUnmount(() => {
             </td>
             <td class="py-2 pr-4 text-text-body">{{ user.displayIdentity ?? '—' }}</td>
             <td class="py-2 pr-4 text-text-body">{{ user.principalType }}</td>
+            <td class="py-2 pr-4">
+              <span
+                class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                :class="{
+                  'bg-green-900/40 text-green-400': user.status === 'ACTIVE',
+                  'bg-red-900/40 text-red-400': user.status === 'DEACTIVATED',
+                  'bg-yellow-900/40 text-yellow-400': user.status === 'SUSPENDED',
+                }"
+              >{{ user.status }}</span>
+            </td>
             <td class="py-2 pr-4 text-text-secondary">{{ new Date(user.createdAt).toLocaleDateString(locale) }}</td>
           </tr>
         </tbody>

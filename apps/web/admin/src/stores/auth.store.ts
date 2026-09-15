@@ -17,6 +17,7 @@ const ROLE_PERMISSIONS = {
     'platform.audit.read',
     'platform.operators.read',
     'platform.operators.manage',
+    'platform.publishing.stale.read',
   ],
   PLATFORM_OPERATOR: [
     'platform.dashboard.read',
@@ -31,6 +32,7 @@ const ROLE_PERMISSIONS = {
     'platform.users.workspaces.read',
     'platform.audit.read',
     'platform.operators.read',
+    'platform.publishing.stale.read',
   ],
   SUPPORT_AGENT: [
     'platform.users.read',

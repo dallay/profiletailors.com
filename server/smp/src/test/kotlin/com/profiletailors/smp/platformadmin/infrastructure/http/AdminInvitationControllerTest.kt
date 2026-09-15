@@ -15,7 +15,9 @@ import com.profiletailors.smp.platformadmin.application.handler.ResendInvitation
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
+import com.profiletailors.smp.platformadmin.application.model.AdminDirectInvitationSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminInvitationSummary
+import com.profiletailors.smp.platformadmin.application.model.PagedResult
 import com.profiletailors.smp.platformadmin.application.result.CreateInvitationResult
 import com.profiletailors.smp.platformadmin.application.result.ResendInvitationResult
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
@@ -222,6 +224,94 @@ class AdminInvitationControllerTest {
         coVerify { revokeWaitlistHandler.handle(match { it.invitationId == invitationId }) }
     }
 
+    @Test
+    fun `listDirect returns 401 without principal context`() {
+        webClient(principal = null)
+            .get()
+            .uri("/api/admin/invitations/direct")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `listDirect returns 403 when operator lacks invitations read permission`() {
+        grantRoles(emptyList())
+
+        webClient()
+            .get()
+            .uri("/api/admin/invitations/direct")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
+    }
+
+    @Test
+    fun `listDirect returns page without token material`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { invitationQuery.list(any()) } returns PagedResult.of(listOf(directSummary()), 0, 25, 1)
+
+        webClient()
+            .get()
+            .uri("/api/admin/invitations/direct?page=0&size=25")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.items[0].invitationId").isEqualTo(invitationId.toString())
+            .jsonPath("$.items[0].email").isEqualTo("ops@example.com")
+            .jsonPath("$.items[0].target").isEqualTo("EXISTING_WORKSPACE")
+            .jsonPath("$.items[0].status").isEqualTo("ACTIVE")
+            .jsonPath("$.totalElements").isEqualTo(1)
+            .jsonPath("$.items[0].token").doesNotExist()
+            .jsonPath("$.items[0].tokenHash").doesNotExist()
+            .jsonPath("$.items[0].candidateKey").doesNotExist()
+    }
+
+    @Test
+    fun `listDirect forwards filters and pagination to query`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { invitationQuery.list(any()) } returns PagedResult.of(emptyList(), 1, 10, 0)
+
+        webClient()
+            .get()
+            .uri("/api/admin/invitations/direct?page=1&size=10&status=ACTIVE&email=ops@")
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            invitationQuery.list(
+                match { query ->
+                    query.page == 1 &&
+                        query.size == 10 &&
+                        query.status == "ACTIVE" &&
+                        query.email == "ops@"
+                },
+            )
+        }
+    }
+
+    @Test
+    fun `listDirect returns 400 when size exceeds max page size`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        webClient()
+            .get()
+            .uri("/api/admin/invitations/direct?size=101")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `listDirect returns 400 for unknown status`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+
+        webClient()
+            .get()
+            .uri("/api/admin/invitations/direct?status=BOGUS")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
     private fun webClient(principal: PrincipalContext? = operatorPrincipal()): WebTestClient = WebTestClient
         .bindToController(
             AdminInvitationController(
@@ -247,6 +337,16 @@ class AdminInvitationControllerTest {
         principalType = PrincipalType.USER,
         subject = "operator@example.com",
         provider = "jwt",
+    )
+
+    private fun directSummary() = AdminDirectInvitationSummary(
+        invitationId = invitationId,
+        email = "ops@example.com",
+        target = "EXISTING_WORKSPACE",
+        workspaceId = "ws-1",
+        status = "ACTIVE",
+        expiresAt = clock.plusSeconds(604_800),
+        version = 0,
     )
 
     private fun invitationSummary() = AdminInvitationSummary(

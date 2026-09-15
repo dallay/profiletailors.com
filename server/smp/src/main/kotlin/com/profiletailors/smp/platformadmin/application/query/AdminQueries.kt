@@ -42,4 +42,11 @@ data class ListAdminAuditEventsQuery(
     val correlationId: String? = null,
 )
 
+data class ListAdminDirectInvitationsQuery(
+    val page: Int = 0,
+    val size: Int = 25,
+    val status: String? = null,
+    val email: String? = null,
+)
+
 data class GetAdminDashboardQuery(val periodDays: Int = 30)

@@ -245,7 +245,7 @@ class AdminWaitlistControllerTest {
             .post()
             .uri("/api/admin/waitlist-entries/$entryId/cancel")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("""{"reason":"spam"}""")
+            .bodyValue("""{"reason":"spam","expectedVersion":1}""")
             .exchange()
             .expectStatus().isOk
             .expectBody()

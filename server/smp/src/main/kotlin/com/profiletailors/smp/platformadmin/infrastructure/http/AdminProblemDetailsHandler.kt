@@ -10,11 +10,14 @@ import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableExcepti
 import com.profiletailors.smp.platformadmin.domain.InvitationRateLimitExceededException
 import com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
+import com.profiletailors.smp.platformadmin.domain.UserAccountDeactivationConflictException
 import com.profiletailors.smp.platformadmin.domain.UserNotFoundException
+import com.profiletailors.smp.platformadmin.domain.UserPrincipalNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyCancelledException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotInvitableException
+import com.profiletailors.smp.platformadmin.domain.WaitlistEntryVersionConflictException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -54,6 +57,18 @@ class AdminProblemDetailsHandler {
     @ExceptionHandler(WaitlistEntryAlreadyCancelledException::class)
     fun handle(ex: WaitlistEntryAlreadyCancelledException): ProblemDetail =
         problem(HttpStatus.CONFLICT, "WAITLIST_ENTRY_ALREADY_CANCELLED", ex.message)
+
+    @ExceptionHandler(WaitlistEntryVersionConflictException::class)
+    fun handle(ex: WaitlistEntryVersionConflictException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "WAITLIST_ENTRY_VERSION_CONFLICT", ex.message)
+
+    @ExceptionHandler(UserAccountDeactivationConflictException::class)
+    fun handle(ex: UserAccountDeactivationConflictException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "USER_ACCOUNT_VERSION_CONFLICT", ex.message)
+
+    @ExceptionHandler(UserPrincipalNotFoundException::class)
+    fun handle(ex: UserPrincipalNotFoundException): ProblemDetail =
+        problem(HttpStatus.NOT_FOUND, "USER_PRINCIPAL_NOT_FOUND", ex.message)
 
     @ExceptionHandler(InvitationNotFoundException::class)
     fun handle(ex: InvitationNotFoundException): ProblemDetail =

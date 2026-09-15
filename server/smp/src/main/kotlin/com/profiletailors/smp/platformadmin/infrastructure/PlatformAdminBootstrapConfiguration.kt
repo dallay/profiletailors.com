@@ -7,22 +7,27 @@ import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
+import com.profiletailors.smp.platformadmin.application.contracts.PrincipalAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.CreateInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.DeactivateUserHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
+import com.profiletailors.smp.platformadmin.application.handler.ReactivateUserHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
+import com.profiletailors.smp.platformadmin.infrastructure.persistence.R2dbcPrincipalAdmin
 import com.profiletailors.smp.tenancy.application.R2dbcWorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipRepository
@@ -49,6 +54,32 @@ class PlatformAdminBootstrapConfiguration {
     @Bean
     fun workspaceMembershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
         R2dbcWorkspaceMembershipProvisioner(repository)
+
+    @Bean
+    fun principalAdmin(databaseClient: org.springframework.r2dbc.core.DatabaseClient): PrincipalAdmin =
+        R2dbcPrincipalAdmin(databaseClient)
+
+    @Bean
+    fun deactivateUserHandler(
+        principalAdmin: PrincipalAdmin,
+        auditPublisher: AdministrativeAuditPublisher,
+        clock: Clock,
+    ): DeactivateUserHandler = DeactivateUserHandler(
+        principalAdmin = principalAdmin,
+        auditPublisher = auditPublisher,
+        clock = clock,
+    )
+
+    @Bean
+    fun reactivateUserHandler(
+        principalAdmin: PrincipalAdmin,
+        auditPublisher: AdministrativeAuditPublisher,
+        clock: Clock,
+    ): ReactivateUserHandler = ReactivateUserHandler(
+        principalAdmin = principalAdmin,
+        auditPublisher = auditPublisher,
+        clock = clock,
+    )
 
     @Bean
     fun invitationActivator(
@@ -149,11 +180,13 @@ class PlatformAdminBootstrapConfiguration {
         waitlistEntryAdmin: WaitlistEntryAdmin,
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
+        adminWaitlistQuery: AdminWaitlistQuery,
         clock: Clock,
     ): CancelWaitlistEntryHandler = CancelWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
+        adminWaitlistQuery = adminWaitlistQuery,
         clock = clock,
     )
 

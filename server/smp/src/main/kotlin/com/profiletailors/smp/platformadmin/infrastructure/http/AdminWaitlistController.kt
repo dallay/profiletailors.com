@@ -81,6 +81,16 @@ class AdminWaitlistController(
         return ResponseEntity.ok(result)
     }
 
+    @GetMapping("/summary")
+    suspend fun getSummary(): ResponseEntity<Map<String, Long>> {
+        val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (PlatformPermission.WAITLIST_READ !in operator.roles.effectivePermissions()) {
+            throw PlatformAccessDeniedException(PlatformPermission.WAITLIST_READ)
+        }
+        val summary = waitlistQuery.countByStatus()
+        return ResponseEntity.ok(summary)
+    }
+
     @GetMapping("/{entryId}")
     suspend fun getEntry(@PathVariable entryId: String): ResponseEntity<AdminWaitlistEntryDetail> {
         val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
@@ -120,6 +130,7 @@ class AdminWaitlistController(
                 operatorRoles = operator.roles,
                 waitlistEntryId = entryId,
                 reason = request.reason,
+                expectedVersion = request.expectedVersion,
             ),
         )
         return ResponseEntity.ok(mapOf("status" to "cancelled"))
@@ -130,5 +141,5 @@ class AdminWaitlistController(
         return operatorAccessResolver.resolve(ctx)
     }
 
-    data class CancelRequest(val reason: String)
+    data class CancelRequest(val reason: String, val expectedVersion: Long)
 }

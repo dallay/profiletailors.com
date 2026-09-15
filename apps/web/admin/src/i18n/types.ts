@@ -2,9 +2,17 @@ export type MessageSchema = {
   nav: {
     dashboard: string
     waitlist: string
+    directInvitations: string
     users: string
     audit: string
+    overview: string
+    notifications: string
+    governance: string
+    configuration: string
     platformAdministration: string
+  }
+  planned: {
+    message: string
   }
   common: {
     loading: string
@@ -81,8 +89,23 @@ export type MessageSchema = {
     revokeConfirmMessage: string
     entries: string
     invitationHistory: string
+    consentDetails: string
+    earlyAccessConsent: string
+    marketingConsent: string
+    consentVersion: string
+    metadata: string
+    resendDialog: { title: string; message: string }
     statuses: { pending: string; invited: string; converted: string; cancelled: string }
-    filters: { status: string; search: string; all: string }
+    filters: {
+      status: string
+      search: string
+      all: string
+      waitlistKey: string
+      joinedFrom: string
+      joinedTo: string
+      invitedFrom: string
+      invitedTo: string
+    }
   }
   users: {
     title: string
@@ -94,6 +117,18 @@ export type MessageSchema = {
     workspaces: string
     platformRoles: string
     workspaceMemberships: string
+    status: string
+    deactivate: string
+    reactivate: string
+    deactivateConfirm: string
+    reactivateConfirm: string
+    deactivateSuccess: string
+    reactivateSuccess: string
+    deactivateError: string
+    reactivateError: string
+    active: string
+    deactivated: string
+    suspended: string
   }
   audit: {
     title: string
@@ -143,6 +178,15 @@ export type MessageSchema = {
       title: string
       message: string
       confirm: string
+    }
+    list: {
+      title: string
+      search: string
+      statusFilter: string
+      allStatuses: string
+      target: string
+      expiresAt: string
+      empty: string
     }
   }
   errors: {
