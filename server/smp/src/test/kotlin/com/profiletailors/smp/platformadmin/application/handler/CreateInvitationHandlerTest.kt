@@ -1,9 +1,9 @@
 package com.profiletailors.smp.platformadmin.application.handler
 
-import com.profiletailors.common.domain.bus.event.DomainEvent
-import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.platformadmin.application.command.CreateInvitationCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationEventPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
@@ -14,6 +14,8 @@ import com.profiletailors.smp.platformadmin.domain.InvitationIssued
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
+import com.profiletailors.smp.platformadmin.domain.WorkspaceNotFoundException
+import com.profiletailors.smp.tenancy.application.WorkspaceNameReader
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -40,7 +42,9 @@ class CreateInvitationHandlerTest {
 
     private val invitationRepository = mockk<InvitationRepository>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
-    private val eventPublisher = mockk<EventPublisher<DomainEvent>>(relaxed = true)
+    private val eventPublisher = mockk<InvitationEventPublisher>(relaxed = true)
+    private val transactionRunner = RecordingTransactionRunner()
+    private val workspaceNameReader = mockk<WorkspaceNameReader>()
     private val telemetry = mockk<InvitationTelemetry>(relaxed = true)
 
     private val tokenHasher = object : TokenHasher, InvitationTokenCandidateKey {
@@ -53,6 +57,8 @@ class CreateInvitationHandlerTest {
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
+        transactionRunner = transactionRunner,
+        workspaceNameReader = workspaceNameReader,
         clock = fixedClock,
         invitationTtl = ttl,
         tokenHasher = tokenHasher,
@@ -70,6 +76,7 @@ class CreateInvitationHandlerTest {
         )
 
         coEvery { invitationRepository.hasActiveInvitationFor(any(), any(), any()) } returns false
+        coEvery { workspaceNameReader.findName("workspace-001") } returns "Existing Workspace"
         coEvery { invitationRepository.save(any(), any()) } answers {
             val invitation = firstArg<Invitation>()
             invitation.copy(id = invitationId)
@@ -86,6 +93,8 @@ class CreateInvitationHandlerTest {
         coVerify { eventPublisher.publish(capture(eventSlot)) }
         assertThat(eventSlot.captured.recipientEmail).isEqualTo("user@example.com")
         assertThat(eventSlot.captured.rawToken).isNotEmpty()
+        assertThat(eventSlot.captured.workspaceName).isEqualTo("Existing Workspace")
+        assertThat(eventSlot.captured.target).isEqualTo(InvitationTarget.EXISTING_WORKSPACE)
         verify { telemetry.recordInvitationCreated() }
     }
 
@@ -100,6 +109,7 @@ class CreateInvitationHandlerTest {
         )
 
         coEvery { invitationRepository.hasActiveInvitationFor(any(), any(), any()) } returns false
+        coEvery { workspaceNameReader.findName("workspace-001") } returns "Existing Workspace"
         val savedSlot = slot<Invitation>()
         coEvery { invitationRepository.save(capture(savedSlot), any()) } answers {
             firstArg<Invitation>()
@@ -120,6 +130,7 @@ class CreateInvitationHandlerTest {
             workspaceId = "workspace-001",
         )
 
+        coEvery { workspaceNameReader.findName("workspace-001") } returns "Existing Workspace"
         coEvery {
             invitationRepository.hasActiveInvitationFor("user@example.com", "workspace-001", any())
         } returns true
@@ -179,6 +190,7 @@ class CreateInvitationHandlerTest {
         coEvery {
             invitationRepository.hasActiveInvitationFor("user@example.com", "workspace-001", any())
         } returns false
+        coEvery { workspaceNameReader.findName("workspace-001") } returns "Existing Workspace"
         coEvery { invitationRepository.save(any(), any()) } answers {
             val invitation = firstArg<Invitation>()
             invitation.copy(id = invitationId)
@@ -194,6 +206,7 @@ class CreateInvitationHandlerTest {
         val eventSlot = slot<InvitationIssued>()
         coVerify { eventPublisher.publish(capture(eventSlot)) }
         assertThat(eventSlot.captured.recipientEmail).isEqualTo("user@example.com")
+        assertThat(eventSlot.captured.workspaceName).isEqualTo("Existing Workspace")
     }
 
     @Test
@@ -212,7 +225,7 @@ class CreateInvitationHandlerTest {
     }
 
     @Test
-    fun `handle keeps the persisted invitation when event publish fails`() = runTest {
+    fun `handle runs creation inside one atomic transaction`() = runTest {
         val command = CreateInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -222,14 +235,107 @@ class CreateInvitationHandlerTest {
         )
 
         coEvery { invitationRepository.hasActiveInvitationFor(any(), any(), any()) } returns false
+        coEvery { workspaceNameReader.findName("workspace-001") } returns "Existing Workspace"
+        coEvery { invitationRepository.save(any(), any()) } answers {
+            val invitation = firstArg<Invitation>()
+            invitation.copy(id = invitationId)
+        }
+
+        handler.handle(command)
+
+        assertEquals(1, transactionRunner.invocationCount)
+        coVerify { invitationRepository.save(any(), any()) }
+        coVerify { auditPublisher.publish(any()) }
+        coVerify { eventPublisher.publish(any()) }
+    }
+
+    @Test
+    fun `handle propagates publisher failure for rollback without telemetry`() = runTest {
+        val command = CreateInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            email = "user@example.com",
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "workspace-001",
+        )
+
+        coEvery { invitationRepository.hasActiveInvitationFor(any(), any(), any()) } returns false
+        coEvery { workspaceNameReader.findName("workspace-001") } returns "Existing Workspace"
         coEvery { invitationRepository.save(any(), any()) } answers {
             firstArg<Invitation>()
         }
-        coEvery { eventPublisher.publish(any<DomainEvent>()) } throws RuntimeException("bus unavailable")
+        coEvery { eventPublisher.publish(any()) } throws RuntimeException("bus unavailable")
 
         assertThrows<RuntimeException> {
             handler.handle(command)
         }
-        coVerify { invitationRepository.save(any(), any()) }
+        assertEquals(1, transactionRunner.invocationCount)
+        assertEquals(1, transactionRunner.rollbackCount)
+        coVerify(exactly = 0) { telemetry.recordInvitationCreated() }
+    }
+
+    @Test
+    fun `handle resolves workspace name and throws WorkspaceNotFoundException when lookup returns null`() = runTest {
+        val command = CreateInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            email = "user@example.com",
+            target = InvitationTarget.EXISTING_WORKSPACE,
+            workspaceId = "missing-workspace",
+        )
+
+        coEvery { workspaceNameReader.findName("missing-workspace") } returns null
+
+        val thrown = assertThrows<WorkspaceNotFoundException> {
+            handler.handle(command)
+        }
+        assertEquals("Workspace not found: missing-workspace", thrown.message)
+        coVerify(exactly = 0) { invitationRepository.hasActiveInvitationFor(any(), any(), any()) }
+        coVerify(exactly = 0) { invitationRepository.save(any(), any()) }
+        coVerify(exactly = 0) { eventPublisher.publish(any()) }
+        coVerify(exactly = 0) { auditPublisher.publish(any()) }
+    }
+
+    @Test
+    fun `handle uses the canonical NEW_WORKSPACE copy and target for new-workspace invitations`() = runTest {
+        val command = CreateInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            email = "new-workspace@example.com",
+            target = InvitationTarget.NEW_WORKSPACE,
+            workspaceId = null,
+        )
+
+        coEvery { invitationRepository.save(any(), any()) } answers {
+            val invitation = firstArg<Invitation>()
+            invitation.copy(id = invitationId)
+        }
+
+        val result = handler.handle(command)
+
+        assertEquals(invitationId.value, result.invitationId)
+        coVerify(exactly = 0) { workspaceNameReader.findName(any()) }
+        coVerify(exactly = 0) { invitationRepository.hasActiveInvitationFor(any(), any(), any()) }
+        val eventSlot = slot<InvitationIssued>()
+        coVerify { eventPublisher.publish(capture(eventSlot)) }
+        assertThat(eventSlot.captured.target).isEqualTo(InvitationTarget.NEW_WORKSPACE)
+        assertThat(eventSlot.captured.workspaceName)
+            .isEqualTo("You've been invited to create a new Profile Tailors workspace.")
+        assertThat(eventSlot.captured.deliveryId).isNull()
+    }
+
+    private class RecordingTransactionRunner : AtomicTransactionRunner {
+        var invocationCount = 0
+        var rollbackCount = 0
+
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+            invocationCount += 1
+            return try {
+                block()
+            } catch (error: Throwable) {
+                rollbackCount += 1
+                throw error
+            }
+        }
     }
 }

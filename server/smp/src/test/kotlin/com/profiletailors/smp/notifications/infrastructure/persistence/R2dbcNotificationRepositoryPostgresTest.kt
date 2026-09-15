@@ -24,6 +24,7 @@ import org.junit.jupiter.api.TestInstance
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.UUID
 import kotlin.math.abs
 import kotlin.test.assertTrue
 
@@ -187,6 +188,23 @@ class R2dbcNotificationRepositoryPostgresTest : PostgresDatabaseTestBase() {
         assertNotNull(thrown)
         val duplicate = thrown as DuplicateNotificationException
         assertEquals(IdempotencyKey("waitlist.welcome:entry-dup"), duplicate.idempotencyKey)
+    }
+
+    @Test
+    fun `invitation initial and resend keys persist as distinct rows`() = runTest {
+        val invitationId = UUID.randomUUID().toString()
+        val initial = pending(id = "ntf-inv-initial", key = "invitation:$invitationId:initial")
+        repository.save(initial)
+
+        val deliveryId = UUID.randomUUID().toString()
+        val resend = pending(id = "ntf-inv-resend", key = "invitation:$invitationId:resend:$deliveryId")
+        repository.save(resend)
+
+        val foundInitial = requireNotNull(repository.findByIdempotencyKey(initial.idempotencyKey))
+        val foundResend = requireNotNull(repository.findByIdempotencyKey(resend.idempotencyKey))
+        assertEquals(initial.id, foundInitial.id)
+        assertEquals(resend.id, foundResend.id)
+        assertTrue(foundInitial.idempotencyKey != foundResend.idempotencyKey)
     }
 
     companion object {

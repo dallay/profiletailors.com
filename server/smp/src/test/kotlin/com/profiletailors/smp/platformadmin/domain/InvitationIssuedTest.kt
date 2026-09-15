@@ -26,6 +26,7 @@ class InvitationIssuedTest {
             invitationId = invitationId,
             recipientEmail = recipientEmail,
             workspaceName = workspaceName,
+            target = InvitationTarget.EXISTING_WORKSPACE,
             locale = locale,
             rawToken = rawToken,
         )
@@ -47,6 +48,7 @@ class InvitationIssuedTest {
             invitationId = invitationId,
             recipientEmail = recipientEmail,
             workspaceName = workspaceName,
+            target = InvitationTarget.EXISTING_WORKSPACE,
             locale = null,
             rawToken = rawToken,
         )
