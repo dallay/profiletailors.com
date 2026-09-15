@@ -31,6 +31,7 @@ class ModularStructureTest {
         "media" to setOf("application", "domain", "infrastructure"),
         "observability" to setOf("application", "domain", "infrastructure"),
         "platform" to setOf("application", "domain", "infrastructure"),
+        "platformadmin" to setOf("application", "contracts", "domain", "infrastructure"),
         "publishing" to setOf("application", "domain", "infrastructure"),
         "tenancy" to setOf("application", "domain", "infrastructure"),
     )
