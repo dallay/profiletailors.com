@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.8](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.7...admin@v0.0.8) (2026-09-15)
+
+
+### Bug Fixes
+
+* **admin:** resolve backoffice review findings for users, waitlist and invitations ([#1057](https://github.com/dallay/profiletailors.com/issues/1057)) ([27825c5](https://github.com/dallay/profiletailors.com/commit/27825c5cb799712111df34870fd3bd8af7789cb5))
+
 ## [0.0.7](https://github.com/dallay/profiletailors.com/compare/admin@v0.0.6...admin@v0.0.7) (2026-09-10)
 
 
