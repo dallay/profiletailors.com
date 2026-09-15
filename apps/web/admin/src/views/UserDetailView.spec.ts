@@ -61,7 +61,10 @@ function createView() {
     global: {
       plugins: [router, i18n],
       stubs: {
-        Field: { props: ['label', 'value'], template: '<div class="field">{{ label }}: {{ value }}</div>' },
+        Field: {
+          props: ['label', 'value'],
+          template: '<div class="field">{{ label }}: {{ value }}</div>',
+        },
       },
     },
   })
@@ -90,20 +93,23 @@ describe('UserDetailView', () => {
     router.push({ name: 'user-detail', params: { principalId: 'user-1' } })
     await router.isReady()
     await flushPromises()
-    const btn = wrapper.findAll('button').find(b => b.text().includes('Deactivate'))
+    const btn = wrapper.findAll('button').find((b) => b.text().includes('Deactivate'))
     expect(btn?.exists()).toBe(true)
   })
 
   it('shows reactivate button for DEACTIVATED user', async () => {
     mockRequest.mockReset()
     mockRequest
-      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ...mockUser, status: 'DEACTIVATED' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ ...mockUser, status: 'DEACTIVATED' }),
+      })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockWorkspaces) })
     const { wrapper, router } = createView()
     router.push({ name: 'user-detail', params: { principalId: 'user-1' } })
     await router.isReady()
     await flushPromises()
-    const btn = wrapper.findAll('button').find(b => b.text().includes('Reactivate'))
+    const btn = wrapper.findAll('button').find((b) => b.text().includes('Reactivate'))
     expect(btn?.exists()).toBe(true)
   })
 })

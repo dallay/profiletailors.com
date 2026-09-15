@@ -276,6 +276,40 @@ onMounted(fetchEntry)
         </div>
       </div>
     </div>
+
+    <div
+      v-if="showResendDialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="resend-dialog-title"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      @keydown.esc="showResendDialog = false"
+    >
+      <div class="admin-card w-full max-w-md p-6">
+        <h2 id="resend-dialog-title" class="mb-2 text-lg font-semibold text-text-display">
+          {{ t('waitlist.resendDialog.title') }}
+        </h2>
+        <p class="mb-6 text-sm text-text-secondary">
+          {{ t('waitlist.resendDialog.message', { email: entry?.email }) }}
+        </p>
+        <div v-if="resendError" role="alert" class="mb-4 text-sm text-error">{{ resendError }}</div>
+        <div class="flex gap-2 justify-end">
+          <button
+            class="admin-button-secondary"
+            @click="showResendDialog = false"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            class="admin-button-primary"
+            :disabled="resending"
+            @click="confirmResend"
+          >
+            {{ resending ? t('common.loading') : t('waitlist.resend') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
