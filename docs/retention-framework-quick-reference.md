@@ -1,6 +1,6 @@
 # Data Retention — Quick Reference (Current State)
 
-**Last Updated:** 2026-09-14
+**Last Updated:** 2026-09-15
 
 > **For:** On-call operators, compliance officers
 > **Updated:** 2026-08-02
