@@ -1,0 +1,13 @@
+change: enhance-backoffice-waitlist-management
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: none
+updated: '2026-09-15T00:00:00Z'

@@ -3,7 +3,8 @@ import { computed } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import lightOnDarkLogoUrl from '@shared/assets/profiletailors-logotype-light.svg'
-import { useAdminAuthStore, type PlatformPermission } from '@/stores/auth.store'
+import { useAdminAuthStore } from '@/stores/auth.store'
+import { visibleNavEntries } from '@/router/nav-registry'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -12,39 +13,15 @@ const authStore = useAdminAuthStore()
 interface NavItem {
   name: string
   label: string
-  permission: PlatformPermission
   icon: string
 }
 
 const navItems = computed<NavItem[]>(() =>
-  (
-    [
-      {
-        name: 'dashboard',
-        label: t('nav.dashboard'),
-        permission: 'platform.dashboard.read',
-        icon: '◈',
-      },
-      {
-        name: 'waitlist',
-        label: t('nav.waitlist'),
-        permission: 'platform.waitlist.read',
-        icon: '≡',
-      },
-      {
-        name: 'users',
-        label: t('nav.users'),
-        permission: 'platform.users.read',
-        icon: '◎',
-      },
-      {
-        name: 'audit',
-        label: t('nav.audit'),
-        permission: 'platform.audit.read',
-        icon: '▤',
-      },
-    ] as NavItem[]
-  ).filter(item => authStore.hasPermission(item.permission)),
+  visibleNavEntries((permission) => authStore.hasPermission(permission)).map((entry) => ({
+    name: entry.routeName,
+    label: t(entry.labelKey),
+    icon: entry.icon,
+  })),
 )
 
 async function signOut() {

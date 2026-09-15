@@ -12,6 +12,7 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
+import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -44,19 +45,19 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
         }
         query.joinedFrom?.let {
             conditions += "we.joined_at >= :joinedFrom"
-            params["joinedFrom"] = OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
+            params["joinedFrom"] = OffsetDateTime.of(it.atStartOfDay(), ZoneOffset.UTC)
         }
         query.joinedTo?.let {
             conditions += "we.joined_at <= :joinedTo"
-            params["joinedTo"] = OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
+            params["joinedTo"] = OffsetDateTime.of(it.atTime(LocalTime.MAX), ZoneOffset.UTC)
         }
         query.invitedFrom?.let {
             conditions += "we.invited_at >= :invitedFrom"
-            params["invitedFrom"] = OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
+            params["invitedFrom"] = OffsetDateTime.of(it.atStartOfDay(), ZoneOffset.UTC)
         }
         query.invitedTo?.let {
             conditions += "we.invited_at <= :invitedTo"
-            params["invitedTo"] = OffsetDateTime.ofInstant(it, ZoneOffset.UTC)
+            params["invitedTo"] = OffsetDateTime.of(it.atTime(LocalTime.MAX), ZoneOffset.UTC)
         }
 
         val where = if (conditions.isEmpty()) "" else "WHERE ${conditions.joinToString(" AND ")}"
@@ -67,7 +68,8 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
         val countSql = "SELECT COUNT(*) FROM waitlist_entries we JOIN waitlists w ON w.id = we.waitlist_id $where"
         val dataSql = """
             SELECT we.id, we.waitlist_id, w.key AS waitlist_key, we.email_original, we.normalized_email,
-                   we.status, we.joined_at, we.invited_at, we.converted_at, we.cancelled_at, we.locale, we.source
+                   we.status, we.joined_at, we.invited_at, we.converted_at, we.cancelled_at, we.locale, we.source,
+                   we.version
             FROM waitlist_entries we
             JOIN waitlists w ON w.id = we.waitlist_id
             $where
@@ -123,7 +125,7 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
             source = entry.source,
             metadataSummary = emptyMap(),
             invitationHistory = invitations,
-            version = 0L,
+            version = entry.version,
         )
     }
 
@@ -154,6 +156,7 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
         marketingConsent = requireNotNull(get("consent_marketing", Boolean::class.java)),
         consentVersion = get("consent_version", String::class.java),
         source = requireNotNull(get("source", String::class.java)),
+        version = requireNotNull(get("version", Long::class.java)),
     )
 
     private data class AdminWaitlistEntrySnapshot(
@@ -172,6 +175,7 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
         val marketingConsent: Boolean,
         val consentVersion: String?,
         val source: String,
+        val version: Long,
     )
 
     private fun Readable.toSummary() = AdminWaitlistEntrySummary(
@@ -187,6 +191,7 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
         cancelledAt = get("cancelled_at", OffsetDateTime::class.java)?.toInstant(),
         preferredLocale = get("locale", String::class.java),
         source = requireNotNull(get("source", String::class.java)),
+        version = requireNotNull(get("version", Long::class.java)),
     )
 
     /**
@@ -219,7 +224,7 @@ class R2dbcAdminWaitlistQuery(private val databaseClient: DatabaseClient) : Admi
         private const val SELECT_ENTRY_DETAIL = """
             SELECT we.id, we.waitlist_id, w.key AS waitlist_key, we.email_original, we.normalized_email,
                    we.status, we.joined_at, we.invited_at, we.converted_at, we.cancelled_at, we.locale, we.source,
-                   we.consent_early_access, we.consent_marketing, we.consent_version
+                   we.consent_early_access, we.consent_marketing, we.consent_version, we.version
             FROM waitlist_entries we JOIN waitlists w ON w.id = we.waitlist_id
             WHERE we.id = :id
         """

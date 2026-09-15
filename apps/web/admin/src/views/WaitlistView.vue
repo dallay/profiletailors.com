@@ -18,6 +18,14 @@ interface WaitlistEntry {
   invitedAt: string | null
   waitlistKey: string
   source: string
+  version: number
+}
+
+interface StatusSummary {
+  PENDING: number
+  INVITED: number
+  CONVERTED: number
+  CANCELLED: number
 }
 
 interface PagedResult<T> {
@@ -35,7 +43,13 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const search = ref('')
 const statusFilter = ref('')
+const waitlistKeyFilter = ref('')
+const joinedFrom = ref('')
+const joinedTo = ref('')
+const invitedFrom = ref('')
+const invitedTo = ref('')
 const page = ref(0)
+const summary = ref<StatusSummary | null>(null)
 const invitingId = ref<string | null>(null)
 const cancellingId = ref<string | null>(null)
 const cancelReason = ref('')
@@ -44,6 +58,15 @@ const cancelTarget = ref<WaitlistEntry | null>(null)
 
 const canInvite = authStore.hasPermission('platform.waitlist.invite')
 const canCancel = authStore.hasPermission('platform.waitlist.cancel')
+
+async function fetchSummary() {
+  try {
+    const res = await authStore.request('/api/admin/waitlist-entries/summary')
+    if (res.ok) summary.value = await res.json()
+  } catch {
+    // Summary is non-critical, fail silently
+  }
+}
 
 async function fetchEntries() {
   loading.value = true
@@ -57,6 +80,11 @@ async function fetchEntries() {
     })
     if (statusFilter.value) params.set('status', statusFilter.value)
     if (search.value.trim()) params.set('email', search.value.trim())
+    if (waitlistKeyFilter.value.trim()) params.set('waitlistKey', waitlistKeyFilter.value.trim())
+    if (joinedFrom.value) params.set('joinedFrom', joinedFrom.value)
+    if (joinedTo.value) params.set('joinedTo', joinedTo.value)
+    if (invitedFrom.value) params.set('invitedFrom', invitedFrom.value)
+    if (invitedTo.value) params.set('invitedTo', invitedTo.value)
 
     const res = await authStore.request(`/api/admin/waitlist-entries?${params}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -78,7 +106,7 @@ async function inviteEntry(entry: WaitlistEntry) {
       const code = body.properties?.code
       alert((code && code in messages.en.errors && t(`errors.${code}`)) || t('common.error'))
     } else {
-      await fetchEntries()
+      await Promise.all([fetchEntries(), fetchSummary()])
     }
   } finally {
     invitingId.value = null
@@ -99,14 +127,14 @@ async function confirmCancel() {
     const res = await authStore.request(`/api/admin/waitlist-entries/${cancelTarget.value.id}/cancel`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason: cancelReason.value }),
+      body: JSON.stringify({ reason: cancelReason.value, expectedVersion: cancelTarget.value.version }),
     })
     if (!res.ok) {
       const body = (await res.json()) as { properties?: { code?: string } }
       const code = body.properties?.code
       alert((code && code in messages.en.errors && t(`errors.${code}`)) || t('common.error'))
     } else {
-      await fetchEntries()
+      await Promise.all([fetchEntries(), fetchSummary()])
     }
   } finally {
     cancellingId.value = null
@@ -114,21 +142,45 @@ async function confirmCancel() {
   }
 }
 
-watch([statusFilter, search], () => { page.value = 0; fetchEntries() })
-onMounted(fetchEntries)
+watch([statusFilter, search, waitlistKeyFilter, joinedFrom, joinedTo, invitedFrom, invitedTo], () => { page.value = 0; fetchEntries() })
+onMounted(() => {
+  Promise.all([fetchEntries(), fetchSummary()])
+})
 </script>
 
 <template>
   <div class="admin-page p-5 sm:p-8">
     <h1 class="mb-6 text-2xl font-semibold text-text-display">{{ t('waitlist.title') }}</h1>
 
-    <div class="flex gap-3 mb-4">
+    <div v-if="summary" class="flex gap-2 mb-4">
+      <div class="admin-chip bg-pending/10 text-pending border border-pending/30">
+        {{ t('waitlist.statuses.pending') }}: {{ summary.PENDING ?? 0 }}
+      </div>
+      <div class="admin-chip bg-invited/10 text-invited border border-invited/30">
+        {{ t('waitlist.statuses.invited') }}: {{ summary.INVITED ?? 0 }}
+      </div>
+      <div class="admin-chip bg-converted/10 text-converted border border-converted/30">
+        {{ t('waitlist.statuses.converted') }}: {{ summary.CONVERTED ?? 0 }}
+      </div>
+      <div class="admin-chip bg-cancelled/10 text-cancelled border border-cancelled/30">
+        {{ t('waitlist.statuses.cancelled') }}: {{ summary.CANCELLED ?? 0 }}
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-3 mb-4">
       <input
         v-model="search"
         type="search"
         :placeholder="t('waitlist.filters.search')"
         class="admin-input w-64 text-sm"
         :aria-label="t('waitlist.filters.search')"
+      />
+      <input
+        v-model="waitlistKeyFilter"
+        type="text"
+        :placeholder="t('waitlist.filters.waitlistKey')"
+        class="admin-input w-40 text-sm"
+        :aria-label="t('waitlist.filters.waitlistKey')"
       />
       <select
         v-model="statusFilter"
@@ -141,6 +193,34 @@ onMounted(fetchEntries)
         <option value="CONVERTED">{{ t('waitlist.statuses.converted') }}</option>
         <option value="CANCELLED">{{ t('waitlist.statuses.cancelled') }}</option>
       </select>
+      <input
+        v-model="joinedFrom"
+        type="date"
+        :placeholder="t('waitlist.filters.joinedFrom')"
+        class="admin-input w-36 text-sm"
+        :aria-label="t('waitlist.filters.joinedFrom')"
+      />
+      <input
+        v-model="joinedTo"
+        type="date"
+        :placeholder="t('waitlist.filters.joinedTo')"
+        class="admin-input w-36 text-sm"
+        :aria-label="t('waitlist.filters.joinedTo')"
+      />
+      <input
+        v-model="invitedFrom"
+        type="date"
+        :placeholder="t('waitlist.filters.invitedFrom')"
+        class="admin-input w-36 text-sm"
+        :aria-label="t('waitlist.filters.invitedFrom')"
+      />
+      <input
+        v-model="invitedTo"
+        type="date"
+        :placeholder="t('waitlist.filters.invitedTo')"
+        class="admin-input w-36 text-sm"
+        :aria-label="t('waitlist.filters.invitedTo')"
+      />
     </div>
 
     <div v-if="loading" class="text-text-secondary">{{ t('common.loading') }}</div>
