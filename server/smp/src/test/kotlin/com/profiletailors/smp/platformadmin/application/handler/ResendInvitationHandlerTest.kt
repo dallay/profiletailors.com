@@ -1,10 +1,10 @@
 package com.profiletailors.smp.platformadmin.application.handler
 
-import com.profiletailors.common.domain.bus.event.DomainEvent
-import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.platformadmin.application.command.ResendInvitationCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
+import com.profiletailors.smp.platformadmin.application.contracts.InvitationEventPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTokenCandidateKey
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
@@ -18,12 +18,16 @@ import com.profiletailors.smp.platformadmin.domain.InvitationStatus
 import com.profiletailors.smp.platformadmin.domain.InvitationTarget
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
+import com.profiletailors.smp.platformadmin.domain.WorkspaceNotFoundException
+import com.profiletailors.smp.tenancy.application.WorkspaceNameReader
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.Clock
@@ -41,13 +45,15 @@ class ResendInvitationHandlerTest {
 
     private val invitationRepository = mockk<InvitationRepository>()
     private val auditPublisher = mockk<AdministrativeAuditPublisher>(relaxed = true)
-    private val eventPublisher = mockk<EventPublisher<DomainEvent>>(relaxed = true)
+    private val eventPublisher = mockk<InvitationEventPublisher>(relaxed = true)
+    private val transactionRunner = RecordingTransactionRunner()
+    private val workspaceNameReader = mockk<WorkspaceNameReader>()
 
-    private val tokenHasher = object : TokenHasher, InvitationTokenCandidateKey {
+    private val tokenHasher = object : TokenHasher {
         override fun hash(rawToken: String): String = "hashed-$rawToken"
         override fun matches(rawToken: String, storedHash: String): Boolean = false
-        override fun candidateKey(rawToken: String): String = "candidate-$rawToken"
     }
+    private val invitationTokenCandidateKey = InvitationTokenCandidateKey { rawToken -> "candidate-$rawToken" }
 
     private val acceptUrlTemplate = AcceptUrlTemplate { rawToken ->
         "https://app.profiletailors.com/accept?token=$rawToken"
@@ -57,10 +63,14 @@ class ResendInvitationHandlerTest {
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
         eventPublisher = eventPublisher,
+        transactionRunner = transactionRunner,
+        workspaceNameReader = workspaceNameReader,
         clock = fixedClock,
         invitationTtl = ttl,
         tokenHasher = tokenHasher,
+        invitationTokenCandidateKey = invitationTokenCandidateKey,
         acceptUrlTemplateFn = acceptUrlTemplate,
+
     )
 
     private fun activeInvitation() = Invitation(
@@ -78,7 +88,7 @@ class ResendInvitationHandlerTest {
     )
 
     @Test
-    fun `handle happy path resends invitation without exposing the token`() = runTest {
+    fun `should resend invitation without exposing token when invitation is valid`() = runTest {
         val command = ResendInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -86,7 +96,8 @@ class ResendInvitationHandlerTest {
         )
 
         coEvery { invitationRepository.findById(invitationId) } returns activeInvitation()
-        coEvery { invitationRepository.updateIfVersionMatches(any()) } returns true
+        coEvery { invitationRepository.updateIfVersionMatches(any(), any()) } returns true
+        coEvery { workspaceNameReader.findName("ws-001") } returns "Existing Workspace"
 
         val result = handler.handle(command)
 
@@ -100,10 +111,13 @@ class ResendInvitationHandlerTest {
         assertThat(eventSlot.captured.recipient).isEqualTo("user@example.com")
         assertThat(eventSlot.captured.rawToken).isNotEmpty()
         assertThat(eventSlot.captured.previousInvitationId).isEqualTo(invitationId.value)
+        assertThat(eventSlot.captured.workspaceName).isEqualTo("Existing Workspace")
+        assertThat(eventSlot.captured.target).isEqualTo(InvitationTarget.EXISTING_WORKSPACE)
+        assertThat(eventSlot.captured.deliveryId).isNotNull()
     }
 
     @Test
-    fun `handle throws when invitation not found`() = runTest {
+    fun `should reject resend when invitation is not found`() = runTest {
         val command = ResendInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -118,7 +132,7 @@ class ResendInvitationHandlerTest {
     }
 
     @Test
-    fun `handle throws when invitation not active`() = runTest {
+    fun `should reject resend when invitation is not active`() = runTest {
         val command = ResendInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -128,6 +142,7 @@ class ResendInvitationHandlerTest {
         coEvery { invitationRepository.findById(invitationId) } returns activeInvitation().copy(
             status = InvitationStatus.EXPIRED,
         )
+        coEvery { workspaceNameReader.findName("ws-001") } returns "Existing Workspace"
 
         assertThrows<InvitationNotResendableException> {
             handler.handle(command)
@@ -135,7 +150,7 @@ class ResendInvitationHandlerTest {
     }
 
     @Test
-    fun `handle throws when operator lacks INVITATIONS_RESEND permission`() = runTest {
+    fun `should reject resend when operator lacks invitation permission`() = runTest {
         val command = ResendInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.SUPPORT_AGENT),
@@ -148,7 +163,7 @@ class ResendInvitationHandlerTest {
     }
 
     @Test
-    fun `handle throws when invitation is not a direct invitation`() = runTest {
+    fun `should reject resend when invitation is not direct`() = runTest {
         val command = ResendInvitationCommand(
             operatorPrincipalId = operatorId,
             operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
@@ -163,7 +178,7 @@ class ResendInvitationHandlerTest {
         assertThrows<InvitationNotResendableException> {
             handler.handle(command)
         }
-        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any()) }
+        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any(), any()) }
     }
 
     @Test
@@ -178,10 +193,135 @@ class ResendInvitationHandlerTest {
             createdAt = fixedClock.instant().minusSeconds(7_200),
             expiresAt = fixedClock.instant().minusSeconds(60),
         )
+        coEvery { workspaceNameReader.findName("ws-001") } returns "Existing Workspace"
 
         assertThrows<InvitationNotResendableException> {
             handler.handle(command)
         }
-        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any()) }
+        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any(), any()) }
+    }
+
+    @Test
+    fun `handle throws WorkspaceNotFoundException when target workspace was removed`() = runTest {
+        val command = ResendInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            invitationId = invitationId.value,
+        )
+
+        coEvery { invitationRepository.findById(invitationId) } returns activeInvitation()
+        coEvery { workspaceNameReader.findName("ws-001") } returns null
+
+        val thrown = assertThrows<WorkspaceNotFoundException> {
+            handler.handle(command)
+        }
+        assertEquals("Workspace not found: ws-001", thrown.message)
+        coVerify(exactly = 0) { invitationRepository.updateIfVersionMatches(any(), any()) }
+        coVerify(exactly = 0) { eventPublisher.publish(any()) }
+        coVerify(exactly = 0) { auditPublisher.publish(any()) }
+    }
+
+    @Test
+    fun `two resends of the same invitation publish DirectInvitationResent with distinct delivery ids`() = runTest {
+        val command = ResendInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            invitationId = invitationId.value,
+        )
+
+        coEvery { invitationRepository.findById(invitationId) } returns activeInvitation()
+        coEvery { invitationRepository.updateIfVersionMatches(any(), any()) } returns true
+        coEvery { workspaceNameReader.findName("ws-001") } returns "Existing Workspace"
+
+        handler.handle(command)
+        handler.handle(command)
+
+        val events = mutableListOf<DirectInvitationResent>()
+        coVerify(exactly = 2) { eventPublisher.publish(capture(events)) }
+        assertNotNull(events.first().deliveryId)
+        assertNotNull(events.last().deliveryId)
+        assertThat(events.first().deliveryId).isNotEqualTo(events.last().deliveryId)
+        assertThat(events.first().workspaceName).isEqualTo("Existing Workspace")
+    }
+
+    @Test
+    fun `handle runs resend inside one atomic transaction`() = runTest {
+        val command = ResendInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            invitationId = invitationId.value,
+        )
+
+        coEvery { invitationRepository.findById(invitationId) } returns activeInvitation()
+        coEvery { invitationRepository.updateIfVersionMatches(any(), any()) } returns true
+        coEvery { workspaceNameReader.findName("ws-001") } returns "Existing Workspace"
+
+        handler.handle(command)
+
+        assertEquals(1, transactionRunner.invocationCount)
+        coVerify { invitationRepository.updateIfVersionMatches(any(), any()) }
+        coVerify { auditPublisher.publish(any()) }
+        coVerify { eventPublisher.publish(any()) }
+    }
+
+    @Test
+    fun `handle propagates publisher failure for rollback`() = runTest {
+        val command = ResendInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            invitationId = invitationId.value,
+        )
+
+        coEvery { invitationRepository.findById(invitationId) } returns activeInvitation()
+        coEvery { invitationRepository.updateIfVersionMatches(any(), any()) } returns true
+        coEvery { workspaceNameReader.findName("ws-001") } returns "Existing Workspace"
+        coEvery { eventPublisher.publish(any()) } throws RuntimeException("bus unavailable")
+
+        assertThrows<RuntimeException> {
+            handler.handle(command)
+        }
+        assertEquals(1, transactionRunner.invocationCount)
+        assertEquals(1, transactionRunner.rollbackCount)
+    }
+
+    @Test
+    fun `resend for NEW_WORKSPACE uses canonical copy without workspace lookup`() = runTest {
+        val command = ResendInvitationCommand(
+            operatorPrincipalId = operatorId,
+            operatorRoles = setOf(PlatformRole.PLATFORM_OWNER),
+            invitationId = invitationId.value,
+        )
+
+        coEvery { invitationRepository.findById(invitationId) } returns activeInvitation().copy(
+            target = InvitationTarget.NEW_WORKSPACE,
+            workspaceId = null,
+        )
+        coEvery { invitationRepository.updateIfVersionMatches(any(), any()) } returns true
+
+        val eventSlot = slot<DirectInvitationResent>()
+        coEvery { eventPublisher.publish(capture(eventSlot)) } returns Unit
+
+        handler.handle(command)
+
+        coVerify(exactly = 0) { workspaceNameReader.findName(any()) }
+        assertThat(eventSlot.captured.target).isEqualTo(InvitationTarget.NEW_WORKSPACE)
+        assertThat(eventSlot.captured.workspaceName)
+            .isEqualTo("You've been invited to create a new Profile Tailors workspace.")
+        assertThat(eventSlot.captured.deliveryId).isNotNull()
+    }
+
+    private class RecordingTransactionRunner : AtomicTransactionRunner {
+        var invocationCount = 0
+        var rollbackCount = 0
+
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+            invocationCount += 1
+            return try {
+                block()
+            } catch (error: Throwable) {
+                rollbackCount += 1
+                throw error
+            }
+        }
     }
 }

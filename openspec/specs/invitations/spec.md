@@ -271,42 +271,72 @@ DALLAY-570 does NOT create a new `Invitation` on re-invite.
 New waitlist invitation flows MUST NOT create or update `WaitlistInvitation` rows.
 Existing records created before this change remain readable via the legacy repository.
 
-### Requirement: Paged direct-invitations list
+### Requirement: Direct invitation transactions are atomic
 
-The system MUST expose `GET /api/admin/invitations/direct` returning a paged list of `source=DIRECT` invitations sorted `issuedAt desc`. Query params MUST be `page`, `size`, optional `status` and `email`. Rows MUST be direct-shaped (`invitationId, email, target, workspaceId, status, expiresAt, version`) and MUST NOT contain token material. The endpoint MUST require `INVITATIONS_READ`. `status` filter MUST accept canonical statuses; `email` filter MUST match normalized email substring case-insensitively.
+`CreateInvitationHandler` and `ResendInvitationHandler` MUST own an `AtomicTransactionRunner`
+boundary. Inside one reactive R2DBC transaction each handler MUST validate the operator, resolve the
+target, mutate the invitation, write the administrative audit event, and register the domain event
+through `InvitationEventPublisher`. Any failure before commit MUST roll back invitation, audit, and
+event registration together. `AdminInvitationController` direct create and direct resend MUST NOT be
+transactional. Telemetry recording MUST happen only after the transaction succeeds.
 
-#### Scenario: Authorized operator lists direct invitations
+#### Scenario: Committed create persists invitation and audit with registered event
 
-- GIVEN an operator with `platform.invitations.read` and seeded DIRECT rows
-- WHEN `GET /direct?page=0&size=20` is received
-- THEN HTTP 200 returns a page ordered `issuedAt desc` with direct-shaped rows and no token field
+- GIVEN a direct invitation create with a resolvable target
+- WHEN the handler transaction commits
+- THEN one `ACTIVE` invitation exists
+- AND one `INVITATION_CREATED` audit event exists
+- AND one `InvitationIssued` event is registered for after-commit delivery
 
-#### Scenario: Pagination is honored
+#### Scenario: Publisher failure leaves no invitation or audit
 
-- GIVEN 25 DIRECT rows exist
-- WHEN `GET /direct?page=1&size=10` is received
-- THEN the second page of 10 rows is returned with correct total count
+- GIVEN a direct create where event publication fails inside the transaction
+- WHEN the handler propagates that failure
+- THEN no invitation row exists for the requested email
+- AND no `INVITATION_CREATED` audit event exists
+- AND no notification exists and the provider is not called
 
-#### Scenario: Status and email filters combine
+### Requirement: Target-aware invitation context with 404 workspace semantics
 
-- GIVEN DIRECT rows with mixed statuses and emails
-- WHEN `GET /direct?status=ACTIVE&email=ops@` is received
-- THEN only ACTIVE rows whose normalized email contains `ops@` are returned
+For `EXISTING_WORKSPACE` the handler MUST resolve the human label through the narrow tenancy
+workspace-name port (`workspaces.name` where `ACTIVE`). A null lookup MUST raise the platform-admin
+workspace-not-found error, map to HTTP `404 Not Found` with code `WORKSPACE_NOT_FOUND`, abort before
+commit, and create no invitation, audit, event, notification, or provider call. The email MUST receive
+the resolved name, never the workspace ID or blank text. For `NEW_WORKSPACE` the handler MUST keep
+`workspaceId` absent and use exactly: “You’ve been invited to create a new Profile Tailors workspace.”
 
-#### Scenario: Unauthenticated list is rejected
+#### Scenario: Unknown workspace returns 404 with no writes
 
-- GIVEN no credentials
-- WHEN `GET /direct` is received
-- THEN HTTP 401 is returned
+- GIVEN a direct create for `EXISTING_WORKSPACE` with an unknown workspace ID
+- WHEN the handler resolves the target
+- THEN HTTP `404` with `WORKSPACE_NOT_FOUND` is returned
+- AND no invitation, audit, event, notification, or provider call is created
 
-#### Scenario: Unpermitted list is forbidden
+#### Scenario: New-workspace create uses the canonical copy
 
-- GIVEN a principal without `platform.invitations.read`
-- WHEN `GET /direct` is received
-- THEN HTTP 403 is returned
+- GIVEN a direct create for `NEW_WORKSPACE`
+- WHEN the handler resolves the target
+- THEN no workspace lookup is performed
+- AND the event carries `NEW_WORKSPACE` with the exact canonical workspace copy
 
-#### Scenario: Empty list returns empty page
+### Requirement: Delivery identity originates in handlers
 
-- GIVEN no DIRECT rows match the filters
-- WHEN `GET /direct?status=REVOKED` is received
-- THEN HTTP 200 returns an empty items array with total zero
+Initial direct create MUST publish `InvitationIssued` with `deliveryId = null`, which the consumer
+renders as `invitation:{invitationId}:initial`. Each intentional direct resend MUST mint a new random
+`deliveryId` and publish `DirectInvitationResent` with that identity, which the consumer renders as
+`invitation:{invitationId}:resend:{deliveryId}`. Two intentional resends of the same invitation MUST
+carry distinct delivery identities.
+
+#### Scenario: Initial create carries no delivery identity
+
+- GIVEN a direct create commits
+- WHEN its `InvitationIssued` event is inspected
+- THEN `deliveryId` is null
+- AND the delivery key is `invitation:{invitationId}:initial`
+
+#### Scenario: Two resends carry distinct delivery identities
+
+- GIVEN one active direct invitation
+- WHEN it is resent twice
+- THEN both `DirectInvitationResent` events carry non-null delivery identities
+- AND the two delivery identities differ

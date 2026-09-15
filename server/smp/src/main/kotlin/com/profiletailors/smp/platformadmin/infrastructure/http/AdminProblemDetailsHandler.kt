@@ -19,6 +19,7 @@ import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConverted
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotInvitableException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryVersionConflictException
+import com.profiletailors.smp.platformadmin.domain.WorkspaceNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -78,6 +79,10 @@ class AdminProblemDetailsHandler {
     @ExceptionHandler(InvitationNotFoundException::class)
     fun handle(ex: InvitationNotFoundException): ProblemDetail =
         problem(HttpStatus.NOT_FOUND, "INVITATION_NOT_FOUND", ex.message)
+
+    @ExceptionHandler(WorkspaceNotFoundException::class)
+    fun handle(ex: WorkspaceNotFoundException): ProblemDetail =
+        problem(HttpStatus.NOT_FOUND, "WORKSPACE_NOT_FOUND", ex.message)
 
     @ExceptionHandler(InvitationNotAcceptableException::class)
     fun handle(ex: InvitationNotAcceptableException): ProblemDetail =

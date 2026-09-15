@@ -8,8 +8,14 @@ data class DirectInvitationResent(
     val operatorPrincipalId: UUID,
     val recipient: String,
     val workspaceName: String,
+    val target: InvitationTarget,
     val acceptUrl: String,
     val locale: String?,
     val rawToken: String,
+    val deliveryId: UUID,
     val previousInvitationId: UUID,
-) : BaseDomainEvent()
+) : BaseDomainEvent() {
+    init {
+        require(workspaceName.isNotBlank()) { "Resolved workspace name cannot be blank" }
+    }
+}

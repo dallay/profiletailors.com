@@ -215,6 +215,26 @@ class R2dbcInvitationRepositoryTest : PostgresIntegrationTestBase() {
     }
 
     @Test
+    fun `updateIfVersionMatches persists resend candidate key and token hash atomically`() = runTest {
+        seedReferenceData()
+        val invitationId = UUID.randomUUID()
+        seedActiveInvitation(invitationId, "candidate-key-resend-old", version = 0)
+        val stored = requireNotNull(repository.findById(InvitationId(invitationId)))
+        val resent = stored.resend(
+            "token-hash-resend-new",
+            stored.expiresAt.plusSeconds(3600),
+            stored.createdAt.plusSeconds(1),
+        )
+
+        val result = repository.updateIfVersionMatches(resent, candidateKey = "candidate-key-resend-new")
+
+        assertTrue(result)
+        val persisted = repository.findByCandidateKey("candidate-key-resend-new")
+        assertEquals("token-hash-resend-new", persisted?.tokenHash)
+        assertThat(repository.findByCandidateKey("candidate-key-resend-old")).isNull()
+    }
+
+    @Test
     fun `updateIfVersionMatches persists a transition when its version follows the stored version`() = runTest {
         seedReferenceData()
         val invitationId = UUID.randomUUID()

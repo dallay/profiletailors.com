@@ -72,52 +72,39 @@ Feature: Direct invitation admin commands
     Then the admin response status should be 403
     And the admin response code should be "PLATFORM_ACCESS_DENIED"
 
-  Scenario: Operator lists direct invitations without token material
-    Given an active direct invitation exists for "direct-list-alpha@example.com"
-    And an active direct invitation exists for "direct-list-beta@example.com"
-    When the platform operator lists the direct invitations
+  Scenario: Creating a direct invitation for an unknown workspace returns 404
+    When the platform operator creates a direct invitation for "direct-unknown-workspace@example.com" in workspace "workspace-missing"
+    Then the admin response status should be 404
+    And the admin response code should be "WORKSPACE_NOT_FOUND"
+
+  Scenario: Operator creates a new-workspace direct invitation
+    When the platform operator creates a new-workspace direct invitation for "direct-new-workspace@example.com"
+    Then the admin response status should be 201
+    And the direct invitation response should contain an id
+    And the invitation response should not contain the token
+    And the direct invitation status should be "ACTIVE"
+
+  Scenario: Operator resends a direct invitation without leaking the token
+    Given an active direct invitation exists for "direct-resend-redacted@example.com"
+    When the platform operator resends the direct invitation
     Then the admin response status should be 200
-    And the direct invitation list should contain 2 invitations
-    And the direct invitation list should contain an invitation with email "direct-list-alpha@example.com"
-    And the direct invitation list should not expose token material
+    And the invitation response should not contain the token
 
-  Scenario: Direct invitation list is ordered newest first
-    Given an expired direct invitation exists for "direct-list-old@example.com"
-    And an active direct invitation exists for "direct-list-new@example.com"
-    When the platform operator lists the direct invitations
+  Scenario: Resending twice creates distinct deliveries without leaking the token
+    Given an active direct invitation exists for "direct-resend-identity@example.com"
+    When the platform operator resends the direct invitation
     Then the admin response status should be 200
-    And the first direct invitation in the list should have email "direct-list-new@example.com"
-
-  Scenario: Direct invitation list honors pagination
-    Given an active direct invitation exists for "direct-page-1@example.com"
-    And an active direct invitation exists for "direct-page-2@example.com"
-    And an active direct invitation exists for "direct-page-3@example.com"
-    When the platform operator lists the direct invitations with "page=1&size=2"
+    And the invitation response should not contain the token
+    When the platform operator resends the direct invitation
     Then the admin response status should be 200
-    And the direct invitation list should contain 1 invitation
-    And the direct invitation list total should be 3
+    And the invitation response should not contain the token
+    Then distinct resend deliveries should exist for "direct-resend-identity@example.com"
 
-  Scenario: Direct invitation list combines status and email filters
-    Given an active direct invitation exists for "ops-combined@example.com"
-    And an active direct invitation exists for "other-combined@example.com"
-    And a revoked direct invitation exists for "ops-revoked@example.com"
-    When the platform operator lists the direct invitations with "status=ACTIVE&email=ops-"
-    Then the admin response status should be 200
-    And the direct invitation list should contain 1 invitation
-    And the direct invitation list should contain an invitation with email "ops-combined@example.com"
-
-  Scenario: Unauthenticated list of direct invitations returns 401
-    When an unauthenticated principal lists the direct invitations
-    Then the admin response status should be 401
-
-  Scenario: Operator without permission cannot list direct invitations
-    Given the authenticated principal has the role "AUDITOR"
-    When the platform operator lists the direct invitations
-    Then the admin response status should be 403
-    And the admin response code should be "PLATFORM_ACCESS_DENIED"
-
-  Scenario: Empty direct invitation list returns an empty page
-    When the platform operator lists the direct invitations with "status=REVOKED"
-    Then the admin response status should be 200
-    And the direct invitation list should contain 0 invitations
-    And the direct invitation list total should be 0
+  Scenario: Provider failure still returns success without leaking the token
+    When the platform operator creates a new-workspace direct invitation for "direct-provider-failure@example.com"
+    Then the admin response status should be 201
+    And the invitation response should not contain the token
+    And the direct invitation status should be "ACTIVE"
+    When the invitation notification is marked as FAILED for "direct-provider-failure@example.com"
+    Then the direct invitation status should be "ACTIVE"
+    And the invitation notification should be recorded as "FAILED" for "direct-provider-failure@example.com"

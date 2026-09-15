@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -39,6 +41,38 @@ class DirectInvitationBddSteps {
     private lateinit var state: PlatformAdminScenarioState
 
     private val json = ObjectMapper()
+
+    @When("the invitation notification is marked as FAILED for {string}")
+    fun invitationNotificationMarkedFailed(email: String) = runBlocking {
+        val normalized = email.trim().lowercase()
+        awaitNotificationStatus(normalized)
+        databaseClient.sql(
+            """
+            UPDATE notifications SET status = 'FAILED', failed_at = NOW(),
+                error_message = 'injected provider failure', sent_at = NULL,
+                updated_at = NOW() WHERE recipient = :email
+            """.trimIndent(),
+        )
+            .bind("email", normalized)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    @Then("distinct resend deliveries should exist for {string}")
+    fun distinctResendDeliveriesShouldExist(email: String) = runBlocking {
+        val keys = awaitNotificationKeys(email.trim().lowercase(), 2)
+        assertEquals(2, keys.size)
+        assertEquals(2, keys.toSet().size)
+        assertTrue(keys.all { it.contains(":resend:") })
+    }
+
+    @Then("the invitation notification should be recorded as {string} for {string}")
+    fun invitationNotificationShouldBeRecordedAs(expected: String, email: String) = runBlocking {
+        val status = awaitNotificationStatus(email.trim().lowercase())
+        assertNotNull(status)
+        assertEquals(expected, status)
+    }
 
     @Given("an active direct invitation exists for {string}")
     fun activeDirectInvitationExists(email: String) = runBlocking {
@@ -289,6 +323,34 @@ class DirectInvitationBddSteps {
             .returnResult()
     }
 
+    @When("the platform operator creates a direct invitation for {string} in workspace {string}")
+    fun operatorCreatesDirectInvitationInWorkspace(email: String, workspaceId: String) = runBlocking {
+        state.lastResponse = webTestClient.post()
+            .uri("/api/admin/invitations/direct")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(directInvitationPayload(email, workspaceId = workspaceId))
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+        rememberInvitationId()
+    }
+
+    @When("the platform operator creates a new-workspace direct invitation for {string}")
+    fun operatorCreatesNewWorkspaceDirectInvitation(email: String) = runBlocking {
+        state.lastResponse = webTestClient.post()
+            .uri("/api/admin/invitations/direct")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(directInvitationPayload(email, target = "NEW_WORKSPACE", workspaceId = null))
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+        rememberInvitationId()
+    }
+
     @When("the platform operator revokes the direct invitation")
     fun operatorRevokesDirectInvitation() = runBlocking {
         val invitationId = requireNotNull(state.lastInvitationId)
@@ -430,12 +492,28 @@ class DirectInvitationBddSteps {
 
     private fun lastResponseJson() = json.readTree(requireNotNull(state.lastResponse).responseBody)
 
-    private fun directInvitationPayload(email: String): String = json.writeValueAsString(
-        mapOf(
-            "email" to email.trim().lowercase(),
-            "target" to "EXISTING_WORKSPACE",
-            "workspaceId" to "invitation-workspace",
-        ),
+    private fun rememberInvitationId() {
+        state.lastResponse?.responseBody?.let { body ->
+            runCatching { json.readTree(body) }
+                .getOrNull()
+                ?.get("invitationId")
+                ?.asText()
+                ?.let { state.lastInvitationId = it }
+        }
+    }
+
+    private fun directInvitationPayload(
+        email: String,
+        target: String = "EXISTING_WORKSPACE",
+        workspaceId: String? = "invitation-workspace",
+    ): String = json.writeValueAsString(
+        buildMap {
+            put("email", email.trim().lowercase())
+            put("target", target)
+            if (workspaceId != null) {
+                put("workspaceId", workspaceId)
+            }
+        },
     )
 
     private suspend fun seedInvitation(
@@ -533,4 +611,41 @@ class DirectInvitationBddSteps {
         .map { row, _ -> requireNotNull(row.get("version", Long::class.java)) }
         .one()
         .awaitSingle()
+
+    private suspend fun awaitNotificationKeys(email: String, expected: Int): List<String> {
+        var keys: List<String> = emptyList()
+        var attempts = 0
+        while (attempts < 50) {
+            keys = databaseClient.sql(
+                "SELECT idempotency_key FROM notifications WHERE recipient = :email ORDER BY created_at",
+            )
+                .bind("email", email)
+                .map { row, _ -> requireNotNull(row.get("idempotency_key", String::class.java)) }
+                .all()
+                .collectList()
+                .awaitSingle()
+            if (keys.size >= expected) return keys
+            delay(100)
+            attempts += 1
+        }
+        return keys
+    }
+
+    private suspend fun awaitNotificationStatus(email: String): String? {
+        var status: String? = null
+        var attempts = 0
+        while (attempts < 50) {
+            status = databaseClient.sql(
+                "SELECT status FROM notifications WHERE recipient = :email ORDER BY created_at DESC LIMIT 1",
+            )
+                .bind("email", email)
+                .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
+                .one()
+                .awaitSingleOrNull()
+            if (status != null && status != "PENDING") return status
+            delay(100)
+            attempts += 1
+        }
+        return status
+    }
 }
