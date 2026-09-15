@@ -31,6 +31,8 @@ export type MessageSchema = {
     of: string
     next: string
     previous: string
+    yes: string
+    no: string
   }
   auth: {
     signIn: string
@@ -187,6 +189,8 @@ export type MessageSchema = {
       target: string
       expiresAt: string
       empty: string
+      statuses: { active: string; accepted: string; expired: string; revoked: string }
+      targets: { existingWorkspace: string; newWorkspace: string }
     }
   }
   errors: {

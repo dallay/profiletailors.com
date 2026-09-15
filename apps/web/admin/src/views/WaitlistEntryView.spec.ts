@@ -55,7 +55,14 @@ function createWrapper(entryId = 'entry-1') {
           earlyAccessConsent: 'Early Access Consent',
           marketingConsent: 'Marketing Consent',
         },
-        common: { loading: 'Loading...', error: 'Error', noData: 'No data', actions: 'Actions' },
+        common: {
+          loading: 'Loading...',
+          error: 'Error',
+          noData: 'No data',
+          actions: 'Actions',
+          yes: 'Yes',
+          no: 'No',
+        },
       },
     },
   })
@@ -150,10 +157,11 @@ describe('WaitlistEntryView', () => {
     it('does not render metadata section when empty', async () => {
       mockRequest.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          ...mockEntry,
-          metadataSummary: {},
-        }),
+        json: () =>
+          Promise.resolve({
+            ...mockEntry,
+            metadataSummary: {},
+          }),
       })
       const wrapper = createWrapper()
       await flushPromises()
@@ -166,30 +174,31 @@ describe('WaitlistEntryView', () => {
       const wrapper = createWrapper()
       await flushPromises()
       const buttons = wrapper.findAll('button')
-      const resendButton = buttons.find(b => b.text().includes('Resend Invitation'))
+      const resendButton = buttons.find((b) => b.text().includes('Resend Invitation'))
       expect(resendButton?.exists()).toBe(true)
     })
 
     it('resend button is not visible when no active invitation', async () => {
       mockRequest.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          ...mockEntry,
-          invitationHistory: [
-            {
-              id: 'inv-1',
-              status: 'USED',
-              issuedAt: '2024-01-02T00:00:00Z',
-              expiresAt: '2024-01-09T00:00:00Z',
-              deliveryStatus: 'SENT',
-            },
-          ],
-        }),
+        json: () =>
+          Promise.resolve({
+            ...mockEntry,
+            invitationHistory: [
+              {
+                id: 'inv-1',
+                status: 'USED',
+                issuedAt: '2024-01-02T00:00:00Z',
+                expiresAt: '2024-01-09T00:00:00Z',
+                deliveryStatus: 'SENT',
+              },
+            ],
+          }),
       })
       const wrapper = createWrapper()
       await flushPromises()
       const buttons = wrapper.findAll('button')
-      const resendButton = buttons.find(b => b.text().includes('Resend Invitation'))
+      const resendButton = buttons.find((b) => b.text().includes('Resend Invitation'))
       expect(resendButton?.exists()).toBeFalsy()
     })
 
@@ -197,8 +206,9 @@ describe('WaitlistEntryView', () => {
       const wrapper = createWrapper()
       await flushPromises()
       const buttons = wrapper.findAll('button')
-      const resendButton = buttons.find(b => b.text().includes('Resend Invitation'))
-      await resendButton!.trigger('click')
+      const resendButton = buttons.find((b) => b.text().includes('Resend Invitation'))
+      expect(resendButton).toBeDefined()
+      await resendButton?.trigger('click')
       await flushPromises()
       expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
     })

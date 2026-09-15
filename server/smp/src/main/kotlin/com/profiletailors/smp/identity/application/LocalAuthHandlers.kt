@@ -12,6 +12,7 @@ import com.profiletailors.smp.governance.application.RecordConsentHandler
 import com.profiletailors.smp.governance.domain.ConsentType
 import com.profiletailors.smp.governance.domain.SubjectReference
 import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.PrincipalStatus
 import com.profiletailors.smp.identity.domain.RegistrationDecision
 import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
@@ -332,6 +333,9 @@ internal class LoginUserHandler(
         }
 
         val identityFacts = principalIdentityLookup.findByEmail(normalizedEmail)
+        if (identityFacts != null && identityFacts.status != PrincipalStatus.ACTIVE) {
+            throw InvalidEmailPasswordException()
+        }
         val emailStatus = identityFacts?.emailStatus ?: EmailStatus.VERIFIED
 
         return issueAuthSession(
@@ -360,6 +364,10 @@ internal class RefreshUserSessionHandler(
     override suspend fun handle(command: RefreshUserSessionCommand): LocalAuthSessionResult {
         val rotatedSession = refreshSessionLifecycleService.rotate(command.rawRefreshToken)
         val identityFacts = principalIdentityLookup.findByPrincipalId(rotatedSession.current.principalId)
+        if (identityFacts != null && identityFacts.status != PrincipalStatus.ACTIVE) {
+            refreshSessionLifecycleService.revokeAllForPrincipal(rotatedSession.current.principalId)
+            throw InvalidEmailPasswordException()
+        }
 
         val email = identityFacts?.email
             ?: error("Email could not be resolved for principal '${rotatedSession.current.principalId}'.")

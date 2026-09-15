@@ -33,6 +33,8 @@ export const en: MessageSchema = {
     of: 'of',
     next: 'Next',
     previous: 'Previous',
+    yes: 'Yes',
+    no: 'No',
   },
   auth: {
     signIn: 'Sign In',
@@ -204,6 +206,16 @@ export const en: MessageSchema = {
       target: 'Target',
       expiresAt: 'Expires',
       empty: 'No invitations match the current filters.',
+      statuses: {
+        active: 'Active',
+        accepted: 'Accepted',
+        expired: 'Expired',
+        revoked: 'Revoked',
+      },
+      targets: {
+        existingWorkspace: 'Existing workspace',
+        newWorkspace: 'New workspace',
+      },
     },
   },
   errors: {
@@ -255,6 +267,8 @@ export const es: MessageSchema = {
     of: 'de',
     next: 'Siguiente',
     previous: 'Anterior',
+    yes: 'Sí',
+    no: 'No',
   },
   auth: {
     signIn: 'Iniciar sesión',
@@ -316,7 +330,7 @@ export const es: MessageSchema = {
     entries: 'Entradas de la lista de espera',
     invitationHistory: 'Historial de invitaciones',
     consentDetails: 'Detalles de consentimiento',
-    earlyAccessConsent: 'Consentimiento early access',
+    earlyAccessConsent: 'Consentimiento de acceso anticipado',
     marketingConsent: 'Consentimiento marketing',
     consentVersion: 'Versión de consentimiento',
     metadata: 'Metadatos',
@@ -426,6 +440,16 @@ export const es: MessageSchema = {
       target: 'Destino',
       expiresAt: 'Vence',
       empty: 'Ninguna invitación coincide con los filtros actuales.',
+      statuses: {
+        active: 'Activa',
+        accepted: 'Aceptada',
+        expired: 'Vencida',
+        revoked: 'Revocada',
+      },
+      targets: {
+        existingWorkspace: 'Espacio de trabajo existente',
+        newWorkspace: 'Nuevo espacio de trabajo',
+      },
     },
   },
   errors: {

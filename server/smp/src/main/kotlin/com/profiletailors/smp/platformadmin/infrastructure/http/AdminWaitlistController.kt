@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import java.time.Instant
+import java.time.LocalDate
 
 @RestController
 @RequestMapping("/api/admin/waitlist-entries")
@@ -48,10 +48,10 @@ class AdminWaitlistController(
         @RequestParam waitlistId: String? = null,
         @RequestParam waitlistKey: String? = null,
         @RequestParam email: String? = null,
-        @RequestParam joinedFrom: Instant? = null,
-        @RequestParam joinedTo: Instant? = null,
-        @RequestParam invitedFrom: Instant? = null,
-        @RequestParam invitedTo: Instant? = null,
+        @RequestParam joinedFrom: LocalDate? = null,
+        @RequestParam joinedTo: LocalDate? = null,
+        @RequestParam invitedFrom: LocalDate? = null,
+        @RequestParam invitedTo: LocalDate? = null,
     ): ResponseEntity<PagedResult<AdminWaitlistEntrySummary>> {
         val operator = resolveOperator() ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         if (PlatformPermission.WAITLIST_READ !in operator.roles.effectivePermissions()) {

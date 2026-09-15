@@ -134,6 +134,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/lead-capture/002-seed-profile-tailors-launch.yaml
   - include:
+      file: db/changelog/lead-capture/003-add-waitlist-entry-version.yaml
+  - include:
       file: db/changelog/privacy/001-create-data-subject-requests.yaml
   - include:
       file: db/changelog/platform-admin/001-create-platform-role-assignments.yaml

@@ -20,6 +20,7 @@ import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
+import com.profiletailors.smp.platformadmin.domain.WaitlistEntryVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitation
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationId
 import com.profiletailors.smp.platformadmin.domain.WaitlistInvitationStatus
@@ -146,6 +147,18 @@ class CancelWaitlistEntryHandlerTest {
         handler.handle(command(reason = "spam"))
 
         coVerify { auditPublisher.publish(match { it.reason == "spam" }) }
+    }
+
+    @Test
+    fun `throws WaitlistEntryVersionConflictException on stale expected version`() = runTest {
+        coEvery { waitlistEntryAdmin.findById(entryId) } returns entry(WaitlistEntryStatus.PENDING)
+        coEvery { adminWaitlistQuery.findById(entryId) } returns entryDetail(version = 2)
+
+        assertThrows<WaitlistEntryVersionConflictException> { handler.handle(command(expectedVersion = 1)) }
+
+        coVerify(exactly = 0) { invitationRepository.update(any()) }
+        coVerify(exactly = 0) { waitlistEntryAdmin.save(any()) }
+        coVerify(exactly = 0) { auditPublisher.publish(any()) }
     }
 
     private fun command(

@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.PrincipalLifecycle
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
@@ -12,7 +13,6 @@ import com.profiletailors.smp.platformadmin.application.contracts.Administrative
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationTelemetry
 import com.profiletailors.smp.platformadmin.application.contracts.PlatformRoleAssignmentRepository
-import com.profiletailors.smp.platformadmin.application.contracts.PrincipalAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
@@ -27,7 +27,6 @@ import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistIn
 import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokePlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeWaitlistInvitationHandler
-import com.profiletailors.smp.platformadmin.infrastructure.persistence.R2dbcPrincipalAdmin
 import com.profiletailors.smp.tenancy.application.R2dbcWorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipProvisioner
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipRepository
@@ -56,27 +55,23 @@ class PlatformAdminBootstrapConfiguration {
         R2dbcWorkspaceMembershipProvisioner(repository)
 
     @Bean
-    fun principalAdmin(databaseClient: org.springframework.r2dbc.core.DatabaseClient): PrincipalAdmin =
-        R2dbcPrincipalAdmin(databaseClient)
-
-    @Bean
     fun deactivateUserHandler(
-        principalAdmin: PrincipalAdmin,
+        principalLifecycleService: PrincipalLifecycle,
         auditPublisher: AdministrativeAuditPublisher,
         clock: Clock,
     ): DeactivateUserHandler = DeactivateUserHandler(
-        principalAdmin = principalAdmin,
+        principalLifecycleService = principalLifecycleService,
         auditPublisher = auditPublisher,
         clock = clock,
     )
 
     @Bean
     fun reactivateUserHandler(
-        principalAdmin: PrincipalAdmin,
+        principalLifecycleService: PrincipalLifecycle,
         auditPublisher: AdministrativeAuditPublisher,
         clock: Clock,
     ): ReactivateUserHandler = ReactivateUserHandler(
-        principalAdmin = principalAdmin,
+        principalLifecycleService = principalLifecycleService,
         auditPublisher = auditPublisher,
         clock = clock,
     )

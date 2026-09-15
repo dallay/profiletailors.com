@@ -1,6 +1,7 @@
 package com.profiletailors.smp.platformadmin.application.query
 
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 data class ListAdminWaitlistEntriesQuery(
@@ -12,10 +13,10 @@ data class ListAdminWaitlistEntriesQuery(
     val waitlistId: String? = null,
     val waitlistKey: String? = null,
     val email: String? = null,
-    val joinedFrom: Instant? = null,
-    val joinedTo: Instant? = null,
-    val invitedFrom: Instant? = null,
-    val invitedTo: Instant? = null,
+    val joinedFrom: LocalDate? = null,
+    val joinedTo: LocalDate? = null,
+    val invitedFrom: LocalDate? = null,
+    val invitedTo: LocalDate? = null,
 )
 
 data class ListAdminUsersQuery(

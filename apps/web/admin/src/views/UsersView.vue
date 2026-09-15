@@ -37,6 +37,12 @@ interface PagedResult<T> {
   hasPrevious: boolean
 }
 
+function statusLabel(status: string) {
+  const key = `users.${status.toLowerCase()}`
+  const translated = t(key)
+  return translated === key ? status : translated
+}
+
 async function fetchUsers() {
   activeRequest?.abort()
   const controller = new AbortController()
@@ -120,7 +126,7 @@ onBeforeUnmount(() => {
                   'bg-red-900/40 text-red-400': user.status === 'DEACTIVATED',
                   'bg-yellow-900/40 text-yellow-400': user.status === 'SUSPENDED',
                 }"
-              >{{ user.status }}</span>
+              >{{ statusLabel(user.status) }}</span>
             </td>
             <td class="py-2 pr-4 text-text-secondary">{{ new Date(user.createdAt).toLocaleDateString(locale) }}</td>
           </tr>

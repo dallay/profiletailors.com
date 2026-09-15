@@ -174,8 +174,8 @@ onMounted(fetchEntry)
           {{ t('waitlist.consentDetails') }}
         </summary>
         <div class="mt-3 grid grid-cols-2 gap-4">
-          <Field :label="t('waitlist.earlyAccessConsent')" :value="entry.earlyAccessConsent ? 'Yes' : 'No'" />
-          <Field :label="t('waitlist.marketingConsent')" :value="entry.marketingConsent ? 'Yes' : 'No'" />
+          <Field :label="t('waitlist.earlyAccessConsent')" :value="entry.earlyAccessConsent ? t('common.yes') : t('common.no')" />
+          <Field :label="t('waitlist.marketingConsent')" :value="entry.marketingConsent ? t('common.yes') : t('common.no')" />
           <Field :label="t('waitlist.consentVersion')" :value="entry.consentVersion ?? '—'" />
         </div>
       </details>

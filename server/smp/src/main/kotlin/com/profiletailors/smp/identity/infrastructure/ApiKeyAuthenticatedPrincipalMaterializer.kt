@@ -7,6 +7,7 @@ import com.profiletailors.smp.credentials.application.ActiveApiKeyCredential
 import com.profiletailors.smp.credentials.domain.CredentialType
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
+import com.profiletailors.smp.identity.domain.PrincipalStatus
 
 open class ApiKeyAuthenticatedPrincipalMaterializer(private val principalIdentityLookup: PrincipalIdentityLookup) {
     open suspend fun materialize(activeCredential: ActiveApiKeyCredential): AuthenticatedPrincipal {
@@ -15,6 +16,9 @@ open class ApiKeyAuthenticatedPrincipalMaterializer(private val principalIdentit
             subject = activeCredential.subject,
             provider = activeCredential.provider,
         ) ?: throw MissingPrincipalContextException("Authenticated API-key principal could not be materialized.")
+        if (principalFacts.status != PrincipalStatus.ACTIVE) {
+            throw MissingPrincipalContextException("Authenticated API-key principal is not active.")
+        }
 
         return AuthenticatedPrincipal(
             context = PrincipalContext(

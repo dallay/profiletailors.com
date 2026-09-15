@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
 import RevokeInvitationDialog from '@/components/RevokeInvitationDialog.vue'
@@ -70,6 +70,26 @@ const listPage = ref(0)
 const rowActionId = ref<string | null>(null)
 
 const listItems = computed(() => listResult.value?.items ?? [])
+
+let activeListRequest: AbortController | null = null
+
+function invitationStatusLabel(status: string) {
+  const key = `directInvitations.list.statuses.${status.toLowerCase()}`
+  const translated = t(key)
+  return translated === key ? status : translated
+}
+
+function invitationTargetLabel(target: string) {
+  const keyByValue: Record<string, string> = {
+    EXISTING_WORKSPACE: 'existingWorkspace',
+    NEW_WORKSPACE: 'newWorkspace',
+  }
+  const mapped = keyByValue[target]
+  if (!mapped) return target
+  const key = `directInvitations.list.targets.${mapped}`
+  const translated = t(key)
+  return translated === key ? target : translated
+}
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -149,20 +169,29 @@ function openRevokeDialog(id: string, email?: string, expectedVersion?: number) 
 
 async function fetchList() {
   if (!canRead) return
+  activeListRequest?.abort()
+  const controller = new AbortController()
+  activeListRequest = controller
   listLoading.value = true
   listError.value = null
   try {
     const params = new URLSearchParams({ page: String(listPage.value), size: '25' })
     if (listStatusFilter.value) params.set('status', listStatusFilter.value)
     if (listSearch.value.trim()) params.set('email', listSearch.value.trim())
-    const res = await authStore.request(`/api/admin/invitations/direct?${params}`)
+    const res = await authStore.request(`/api/admin/invitations/direct?${params}`, {
+      signal: controller.signal,
+    })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     listResult.value = (await res.json()) as DirectInvitationPage
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return
     listResult.value = null
     listError.value = t('common.error')
   } finally {
-    listLoading.value = false
+    if (activeListRequest === controller) {
+      activeListRequest = null
+      listLoading.value = false
+    }
   }
 }
 
@@ -200,6 +229,9 @@ watch([listStatusFilter, listSearch], () => {
 
 onMounted(() => {
   if (canRead) void fetchList()
+})
+onBeforeUnmount(() => {
+  activeListRequest?.abort()
 })
 
 async function resendInvitation() {
@@ -490,16 +522,16 @@ function formatExpiry(value: string): string {
             {{ t('directInvitations.list.allStatuses') }}
           </option>
           <option value="ACTIVE">
-            ACTIVE
+            {{ t('directInvitations.list.statuses.active') }}
           </option>
           <option value="ACCEPTED">
-            ACCEPTED
+            {{ t('directInvitations.list.statuses.accepted') }}
           </option>
           <option value="EXPIRED">
-            EXPIRED
+            {{ t('directInvitations.list.statuses.expired') }}
           </option>
           <option value="REVOKED">
-            REVOKED
+            {{ t('directInvitations.list.statuses.revoked') }}
           </option>
         </select>
       </div>
@@ -563,10 +595,10 @@ function formatExpiry(value: string): string {
                   {{ row.email }}
                 </td>
                 <td class="py-2 pr-4 text-text-secondary">
-                  {{ row.target }}
+                  {{ invitationTargetLabel(row.target) }}
                 </td>
                 <td class="py-2 pr-4 text-text-display">
-                  {{ row.status }}
+                  {{ invitationStatusLabel(row.status) }}
                 </td>
                 <td class="py-2 pr-4 text-text-secondary">
                   {{ formatExpiry(row.expiresAt) }}

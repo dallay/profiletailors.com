@@ -22,8 +22,9 @@ const mockUser = {
 const mockWorkspaces: object[] = []
 
 const mockRequest = vi.fn()
+const mockHasPermission = vi.fn(() => true)
 vi.mock('@/stores/auth.store', () => ({
-  useAdminAuthStore: () => ({ request: mockRequest }),
+  useAdminAuthStore: () => ({ request: mockRequest, hasPermission: mockHasPermission }),
 }))
 
 function createView() {
@@ -74,6 +75,8 @@ function createView() {
 describe('UserDetailView', () => {
   beforeEach(() => {
     mockRequest.mockReset()
+    mockHasPermission.mockReset()
+    mockHasPermission.mockReturnValue(true)
     mockRequest
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockUser) })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockWorkspaces) })
@@ -111,5 +114,17 @@ describe('UserDetailView', () => {
     await flushPromises()
     const btn = wrapper.findAll('button').find((b) => b.text().includes('Reactivate'))
     expect(btn?.exists()).toBe(true)
+  })
+
+  it('hides lifecycle buttons without permission', async () => {
+    mockHasPermission.mockReturnValue(false)
+    const { wrapper, router } = createView()
+    router.push({ name: 'user-detail', params: { principalId: 'user-1' } })
+    await router.isReady()
+    await flushPromises()
+    const buttons = wrapper
+      .findAll('button')
+      .filter((b) => b.text().includes('Deactivate') || b.text().includes('Reactivate'))
+    expect(buttons.length).toBe(0)
   })
 })

@@ -12,6 +12,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 
 @Repository
@@ -26,11 +27,15 @@ class R2dbcAdminInvitationQuery(
     override suspend fun list(query: ListAdminDirectInvitationsQuery): PagedResult<AdminDirectInvitationSummary> {
         validatePagination(query.page, query.size)
 
+        val effectiveStatus =
+            "CASE WHEN status = 'ACTIVE' AND expires_at <= :now THEN 'EXPIRED' ELSE status END"
+        val now = OffsetDateTime.now(ZoneOffset.UTC)
         val conditions = mutableListOf("source = 'DIRECT'")
         val params = mutableMapOf<String, Any>()
         query.status?.let {
-            conditions += "status = :status"
+            conditions += "$effectiveStatus = :status"
             params["status"] = it
+            params["now"] = now
         }
         query.email?.let {
             conditions += "invited_email_normalized LIKE '%' || :email || '%'"
@@ -41,18 +46,21 @@ class R2dbcAdminInvitationQuery(
         val offset = query.page.toLong() * query.size
         val countSql = "SELECT COUNT(*) FROM invitations $where"
         val dataSql = """
-            SELECT id, invited_email_normalized, target, workspace_id, status, expires_at, version
+            SELECT id, invited_email_normalized, target, workspace_id, $effectiveStatus AS status, expires_at, version
             FROM invitations
             $where
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC, id DESC
             LIMIT :size OFFSET :offset
         """.trimIndent()
 
-        val countSpec = params.entries.fold(databaseClient.sql(countSql)) { spec, (key, value) ->
+        var countSpec = params.entries.fold(databaseClient.sql(countSql)) { spec, (key, value) ->
             spec.bind(key, value)
         }
+        if (query.status != null) {
+            countSpec = countSpec.bind("now", now)
+        }
         val dataSpec = params.entries.fold(
-            databaseClient.sql(dataSql).bind("size", query.size).bind("offset", offset),
+            databaseClient.sql(dataSql).bind("size", query.size).bind("offset", offset).bind("now", now),
         ) { spec, (key, value) ->
             spec.bind(key, value)
         }

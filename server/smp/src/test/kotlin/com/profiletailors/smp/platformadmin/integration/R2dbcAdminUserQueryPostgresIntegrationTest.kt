@@ -1,5 +1,8 @@
 package com.profiletailors.smp.platformadmin.integration
 
+import com.profiletailors.smp.identity.application.PrincipalLifecycle
+import com.profiletailors.smp.identity.application.PrincipalStatusTransition
+import com.profiletailors.smp.identity.application.PrincipalVersionConflictException
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
@@ -49,6 +52,9 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
 
     @Autowired
     private lateinit var userQuery: AdminUserQuery
+
+    @Autowired
+    private lateinit var principalLifecycleService: PrincipalLifecycle
 
     override suspend fun seedScenario() {
         seedPrincipal("user-1")
@@ -155,6 +161,47 @@ class R2dbcAdminUserQueryPostgresIntegrationTest : PostgresIntegrationTestBase()
     @Test
     fun `findWorkspacesByPrincipalId returns empty for user without workspaces`() = runTest {
         assertEquals(0, userQuery.findWorkspacesByPrincipalId("user-2").size)
+    }
+
+    @Test
+    fun `findById maps persisted status and version`() = runTest {
+        val user = requireNotNull(userQuery.findById("user-1"))
+
+        assertEquals("ACTIVE", user.status)
+        assertEquals(0, user.version)
+    }
+
+    @Test
+    fun `deactivate rejects stale version`() = runTest {
+        assertFailsWith<PrincipalVersionConflictException> {
+            principalLifecycleService.deactivate("svc-1", 5)
+        }
+    }
+
+    @Test
+    fun `deactivate and reactivate lifecycle bumps version`() = runTest {
+        assertEquals(
+            PrincipalStatusTransition.TRANSITIONED,
+            principalLifecycleService.deactivate("user-2", 0),
+        )
+
+        val deactivated = requireNotNull(userQuery.findById("user-2"))
+        assertEquals("DEACTIVATED", deactivated.status)
+        assertEquals(1, deactivated.version)
+
+        assertEquals(
+            PrincipalStatusTransition.ALREADY_IN_TARGET_STATE,
+            principalLifecycleService.deactivate("user-2", 1),
+        )
+
+        assertEquals(
+            PrincipalStatusTransition.TRANSITIONED,
+            principalLifecycleService.reactivate("user-2", 1),
+        )
+
+        val reactivated = requireNotNull(userQuery.findById("user-2"))
+        assertEquals("ACTIVE", reactivated.status)
+        assertEquals(2, reactivated.version)
     }
 
     companion object {

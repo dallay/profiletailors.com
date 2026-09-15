@@ -3,6 +3,8 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.smp.identity.application.PrincipalNotFoundException
+import com.profiletailors.smp.identity.application.PrincipalVersionConflictException
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccess
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
@@ -13,11 +15,14 @@ import com.profiletailors.smp.platformadmin.application.model.AdminUserDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminUserSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWorkspaceMembershipSummary
 import com.profiletailors.smp.platformadmin.application.model.PagedResult
+import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
+import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.PlatformRole
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
+import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.time.Instant
 import java.util.UUID
@@ -141,6 +146,154 @@ class AdminUserControllerTest {
             .expectBody()
             .jsonPath("$[0].workspaceId").isEqualTo("workspace-1")
             .jsonPath("$[0].membershipStatus").isEqualTo("ACTIVE")
+    }
+
+    @Test
+    fun `deactivateUser returns 204 on successful transition`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { deactivateUserHandler.handle(any()) } returns Unit
+
+        webClient()
+            .patch()
+            .uri("/api/admin/users/$userId/deactivate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":1}""")
+            .exchange()
+            .expectStatus().isNoContent
+    }
+
+    @Test
+    fun `deactivateUser returns 401 without principal context`() {
+        webClient(principal = null)
+            .patch()
+            .uri("/api/admin/users/$userId/deactivate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":1}""")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `deactivateUser returns 403 when operator lacks deactivate permission`() {
+        grantRoles(emptyList())
+        coEvery { deactivateUserHandler.handle(any()) } throws
+            PlatformAccessDeniedException(PlatformPermission.USERS_DEACTIVATE)
+
+        webClient()
+            .patch()
+            .uri("/api/admin/users/$userId/deactivate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":1}""")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
+    }
+
+    @Test
+    fun `deactivateUser returns 404 when principal does not exist`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { deactivateUserHandler.handle(any()) } throws PrincipalNotFoundException(userId)
+
+        webClient()
+            .patch()
+            .uri("/api/admin/users/$userId/deactivate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":1}""")
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("USER_PRINCIPAL_NOT_FOUND")
+    }
+
+    @Test
+    fun `deactivateUser returns 409 on version conflict`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { deactivateUserHandler.handle(any()) } throws PrincipalVersionConflictException(userId, 1, 2)
+
+        webClient()
+            .patch()
+            .uri("/api/admin/users/$userId/deactivate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":1}""")
+            .exchange()
+            .expectStatus().isEqualTo(409)
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("USER_ACCOUNT_VERSION_CONFLICT")
+    }
+
+    @Test
+    fun `reactivateUser returns 204 on successful transition`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { reactivateUserHandler.handle(any()) } returns Unit
+
+        webClient()
+            .patch()
+            .uri("/api/admin/users/$userId/reactivate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":1}""")
+            .exchange()
+            .expectStatus().isNoContent
+    }
+
+    @Test
+    fun `reactivateUser returns 401 without principal context`() {
+        webClient(principal = null)
+            .patch()
+            .uri("/api/admin/users/$userId/reactivate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":1}""")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `reactivateUser returns 403 when operator lacks reactivate permission`() {
+        grantRoles(emptyList())
+        coEvery { reactivateUserHandler.handle(any()) } throws
+            PlatformAccessDeniedException(PlatformPermission.USERS_REACTIVATE)
+
+        webClient()
+            .patch()
+            .uri("/api/admin/users/$userId/reactivate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":1}""")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
+    }
+
+    @Test
+    fun `reactivateUser returns 404 when principal does not exist`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { reactivateUserHandler.handle(any()) } throws PrincipalNotFoundException(userId)
+
+        webClient()
+            .patch()
+            .uri("/api/admin/users/$userId/reactivate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":1}""")
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("USER_PRINCIPAL_NOT_FOUND")
+    }
+
+    @Test
+    fun `reactivateUser returns 409 on version conflict`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { reactivateUserHandler.handle(any()) } throws PrincipalVersionConflictException(userId, 1, 2)
+
+        webClient()
+            .patch()
+            .uri("/api/admin/users/$userId/reactivate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"expectedVersion":1}""")
+            .exchange()
+            .expectStatus().isEqualTo(409)
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("USER_ACCOUNT_VERSION_CONFLICT")
     }
 
     @Test

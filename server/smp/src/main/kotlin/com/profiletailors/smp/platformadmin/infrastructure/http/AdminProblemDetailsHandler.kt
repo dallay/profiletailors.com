@@ -1,5 +1,8 @@
 package com.profiletailors.smp.platformadmin.infrastructure.http
 
+import com.profiletailors.smp.identity.application.InvalidPrincipalStatusTransitionException
+import com.profiletailors.smp.identity.application.PrincipalNotFoundException
+import com.profiletailors.smp.identity.application.PrincipalVersionConflictException
 import com.profiletailors.smp.platformadmin.application.OptimisticLockException
 import com.profiletailors.smp.platformadmin.domain.InvitationAcceptanceFailureCode
 import com.profiletailors.smp.platformadmin.domain.InvitationAlreadyActiveException
@@ -10,9 +13,7 @@ import com.profiletailors.smp.platformadmin.domain.InvitationNotRevocableExcepti
 import com.profiletailors.smp.platformadmin.domain.InvitationRateLimitExceededException
 import com.profiletailors.smp.platformadmin.domain.InvitationVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.PlatformAccessDeniedException
-import com.profiletailors.smp.platformadmin.domain.UserAccountDeactivationConflictException
 import com.profiletailors.smp.platformadmin.domain.UserNotFoundException
-import com.profiletailors.smp.platformadmin.domain.UserPrincipalNotFoundException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyCancelledException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
@@ -62,13 +63,17 @@ class AdminProblemDetailsHandler {
     fun handle(ex: WaitlistEntryVersionConflictException): ProblemDetail =
         problem(HttpStatus.CONFLICT, "WAITLIST_ENTRY_VERSION_CONFLICT", ex.message)
 
-    @ExceptionHandler(UserAccountDeactivationConflictException::class)
-    fun handle(ex: UserAccountDeactivationConflictException): ProblemDetail =
+    @ExceptionHandler(PrincipalVersionConflictException::class)
+    fun handle(ex: PrincipalVersionConflictException): ProblemDetail =
         problem(HttpStatus.CONFLICT, "USER_ACCOUNT_VERSION_CONFLICT", ex.message)
 
-    @ExceptionHandler(UserPrincipalNotFoundException::class)
-    fun handle(ex: UserPrincipalNotFoundException): ProblemDetail =
+    @ExceptionHandler(PrincipalNotFoundException::class)
+    fun handle(ex: PrincipalNotFoundException): ProblemDetail =
         problem(HttpStatus.NOT_FOUND, "USER_PRINCIPAL_NOT_FOUND", ex.message)
+
+    @ExceptionHandler(InvalidPrincipalStatusTransitionException::class)
+    fun handle(ex: InvalidPrincipalStatusTransitionException): ProblemDetail =
+        problem(HttpStatus.CONFLICT, "PRINCIPAL_STATUS_TRANSITION_REJECTED", ex.message)
 
     @ExceptionHandler(InvitationNotFoundException::class)
     fun handle(ex: InvitationNotFoundException): ProblemDetail =

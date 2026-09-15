@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAdminAuthStore } from '@/stores/auth.store'
@@ -40,6 +40,16 @@ const error = ref<string | null>(null)
 const actionLoading = ref(false)
 const actionError = ref<string | null>(null)
 const actionSuccess = ref<string | null>(null)
+
+const canDeactivate = computed(
+  () =>
+    authStore.hasPermission('platform.users.deactivate') &&
+    (user.value?.status === 'ACTIVE' || user.value?.status === 'SUSPENDED'),
+)
+const canReactivate = computed(
+  () =>
+    authStore.hasPermission('platform.users.reactivate') && user.value?.status === 'DEACTIVATED',
+)
 
 async function deactivateUser() {
   if (!user.value) return
@@ -138,7 +148,7 @@ onMounted(fetchUser)
 
       <div class="mb-6 flex items-center gap-3">
         <button
-          v-if="user.status === 'ACTIVE' || user.status === 'SUSPENDED'"
+          v-if="canDeactivate"
           class="admin-button-danger min-h-0 px-2 py-1 text-xs disabled:opacity-50"
           :disabled="actionLoading"
           @click="deactivateUser"
@@ -146,7 +156,7 @@ onMounted(fetchUser)
           {{ t('users.deactivate') }}
         </button>
         <button
-          v-if="user.status === 'DEACTIVATED'"
+          v-if="canReactivate"
           class="admin-button-primary min-h-0 px-2 py-1 text-xs disabled:opacity-50"
           :disabled="actionLoading"
           @click="reactivateUser"

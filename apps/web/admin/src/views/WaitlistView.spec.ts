@@ -61,7 +61,12 @@ function createWrapper() {
       en: {
         waitlist: {
           title: 'Waitlist',
-          statuses: { pending: 'Pending', invited: 'Invited', converted: 'Converted', cancelled: 'Cancelled' },
+          statuses: {
+            pending: 'Pending',
+            invited: 'Invited',
+            converted: 'Converted',
+            cancelled: 'Cancelled',
+          },
           filters: {
             status: 'Status',
             search: 'Search',
@@ -90,7 +95,11 @@ function createWrapper() {
     history: createMemoryHistory(),
     routes: [
       { path: '/admin/waitlist', name: 'waitlist', component: { template: '<div />' } },
-      { path: '/admin/waitlist/:entryId', name: 'waitlist-entry', component: { template: '<div />' } },
+      {
+        path: '/admin/waitlist/:entryId',
+        name: 'waitlist-entry',
+        component: { template: '<div />' },
+      },
     ],
   })
   const pinia = createPinia()
@@ -150,13 +159,16 @@ describe('WaitlistView', () => {
 
   describe('loading and error states', () => {
     it('shows loading state while fetching', async () => {
-      let resolvePromise: ((value: Response) => void) | null = null
-      mockRequest.mockImplementation(() => new Promise((resolve) => {
-        resolvePromise = resolve
-      }))
+      let resolvePromise: (value: Response) => void = () => {}
+      mockRequest.mockImplementation(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolvePromise = resolve
+          }),
+      )
       const wrapper = createWrapper()
       expect(wrapper.text()).toContain('Loading...')
-      resolvePromise!({ ok: true, json: () => Promise.resolve(mockEntries) } as Response)
+      resolvePromise({ ok: true, json: () => Promise.resolve(mockEntries) } as Response)
       await flushPromises()
     })
 
@@ -207,9 +219,7 @@ describe('WaitlistView', () => {
       await joinedFromInput.setValue('2024-01-01')
 
       await flushPromises()
-      expect(mockRequest).toHaveBeenCalledWith(
-        expect.stringContaining('joinedFrom=2024-01-01'),
-      )
+      expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining('joinedFrom=2024-01-01'))
     })
 
     it('resets to page 0 when filter changes', async () => {
@@ -221,7 +231,8 @@ describe('WaitlistView', () => {
       await searchInput.setValue('test')
       await flushPromises()
 
-      const lastCall = mockRequest.mock.calls[mockRequest.mock.calls.length - 1]![0] as string
+      const calls = mockRequest.mock.calls
+      const lastCall = calls[calls.length - 1]?.[0] as string
       expect(lastCall).toContain('page=0')
     })
   })
@@ -231,7 +242,7 @@ describe('WaitlistView', () => {
       const wrapper = createWrapper()
       await flushPromises()
       const buttons = wrapper.findAll('button')
-      const cancelButtons = buttons.filter(b => b.text() === 'Cancel')
+      const cancelButtons = buttons.filter((b) => b.text() === 'Cancel')
       expect(cancelButtons.length).toBeGreaterThan(0)
     })
 
@@ -239,11 +250,12 @@ describe('WaitlistView', () => {
       vi.stubGlobal('confirm', () => true)
       const wrapper = createWrapper()
       await flushPromises()
-      
-      const cancelButton = wrapper.findAll('button').find(b => b.text() === 'Cancel')
-      await cancelButton!.trigger('click')
+
+      const cancelButton = wrapper.findAll('button').find((b) => b.text() === 'Cancel')
+      expect(cancelButton).toBeDefined()
+      await cancelButton?.trigger('click')
       await flushPromises()
-      
+
       expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
       vi.stubGlobal('confirm', () => {})
     })
@@ -251,7 +263,7 @@ describe('WaitlistView', () => {
     it('sends expectedVersion in cancel request', async () => {
       vi.stubGlobal('confirm', () => true)
       let cancelBody: { reason?: string; expectedVersion?: number } = {}
-      
+
       mockRequest.mockImplementation((url: string, options?: RequestInit) => {
         if (url.includes('/cancel')) {
           if (options?.body) {
@@ -268,8 +280,9 @@ describe('WaitlistView', () => {
       const wrapper = createWrapper()
       await flushPromises()
 
-      const cancelButton = wrapper.findAll('button').find(b => b.text() === 'Cancel')
-      await cancelButton!.trigger('click')
+      const cancelButton = wrapper.findAll('button').find((b) => b.text() === 'Cancel')
+      expect(cancelButton).toBeDefined()
+      await cancelButton?.trigger('click')
       await flushPromises()
 
       const dialog = wrapper.find('[role="dialog"]')

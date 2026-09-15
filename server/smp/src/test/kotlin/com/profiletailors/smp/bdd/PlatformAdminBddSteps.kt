@@ -192,7 +192,7 @@ class PlatformAdminBddSteps {
             .header(HttpHeaders.ACCEPT, API_V1)
             .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("""{"reason":"$reason"}""")
+            .bodyValue("""{"reason":"$reason","expectedVersion":0}""")
             .exchange()
             .expectBody(ByteArray::class.java)
             .returnResult()

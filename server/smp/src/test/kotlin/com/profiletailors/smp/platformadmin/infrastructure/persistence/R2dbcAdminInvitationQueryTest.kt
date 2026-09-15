@@ -180,7 +180,7 @@ class R2dbcAdminInvitationQueryTest {
         verify { dataSpec.bind("email", "ops@") }
         verify { dataSpec.bind("size", 10) }
         verify { dataSpec.bind("offset", 10L) }
-        assertTrue(sqls.any { it.contains("status = :status") })
+        assertTrue(sqls.any { it.contains("EXPIRED") })
         assertTrue(sqls.any { it.contains("invited_email_normalized LIKE") })
     }
 
@@ -196,6 +196,15 @@ class R2dbcAdminInvitationQueryTest {
         assertEquals("ws-1", item.workspaceId)
         assertEquals("ACTIVE", item.status)
         assertEquals(3L, item.version)
+    }
+
+    @Test
+    fun `list orders by created_at desc with id tiebreaker`() = runTest {
+        val sqls = stubList(total = 0, rows = emptyList())
+
+        query.list(ListAdminDirectInvitationsQuery(page = 0, size = 25))
+
+        assertTrue(sqls.any { it.contains("ORDER BY created_at DESC, id DESC") })
     }
 
     @Test

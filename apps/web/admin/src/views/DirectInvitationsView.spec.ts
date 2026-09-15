@@ -76,7 +76,7 @@ describe('DirectInvitationsView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     request.mockReset()
-    request.mockResolvedValue(listPageResponse())
+    request.mockImplementation(() => Promise.resolve(listPageResponse()))
     const authStore = useAdminAuthStore()
     authStore.request = request
     authStore.principal = {
@@ -294,8 +294,8 @@ describe('DirectInvitationsView', () => {
     const table = wrapper.get('[data-testid="direct-invitations-table"]')
     expect(table.text()).toContain('ops@example.com')
     expect(table.text()).toContain('second@example.com')
-    expect(table.text()).toContain('EXISTING_WORKSPACE')
-    expect(table.text()).toContain('ACTIVE')
+    expect(table.text()).toContain('Existing workspace')
+    expect(table.text()).toContain('Active')
     expect(wrapper.findAll('[data-testid="direct-invitation-row-resend"]').length).toBe(2)
     expect(wrapper.findAll('[data-testid="direct-invitation-row-revoke"]').length).toBe(2)
     wrapper.unmount()
@@ -375,7 +375,9 @@ describe('DirectInvitationsView', () => {
           { status: 200 },
         ),
       )
-      .mockResolvedValue(listPageResponse([listRowResponse({ version: 3 })]))
+      .mockImplementation(() =>
+        Promise.resolve(listPageResponse([listRowResponse({ version: 3 })])),
+      )
     const wrapper = mountView()
     await flushPromises()
     await wrapper.get('[data-testid="direct-invitation-row-resend"]').trigger('click')
@@ -394,7 +396,7 @@ describe('DirectInvitationsView', () => {
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ invitationId: 'inv-1' }), { status: 200 }),
       )
-      .mockResolvedValue(listPageResponse([]))
+      .mockImplementation(() => Promise.resolve(listPageResponse([])))
     const wrapper = mountView()
     await flushPromises()
     await wrapper.get('[data-testid="direct-invitation-row-revoke"]').trigger('click')
