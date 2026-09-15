@@ -20,6 +20,7 @@ import com.profiletailors.smp.governance.domain.ConsentRecordId
 import com.profiletailors.smp.identity.application.EmailVerificationTokenData
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
+import com.profiletailors.smp.identity.domain.PrincipalStatus
 import com.profiletailors.smp.identity.domain.RegistrationMode
 import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
@@ -690,6 +691,53 @@ class LocalAuthHandlersTest {
 
         try {
             handler.handle(LoginUserCommand("missing@example.com", validPassword))
+            throw AssertionError("Expected InvalidEmailPasswordException")
+        } catch (e: InvalidEmailPasswordException) {
+            assertNotNull(e)
+        }
+    }
+
+    @Test
+    fun `rejects login for deactivated principal`() = runTest {
+        val handler = LoginUserHandler(
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(
+                record = LocalPasswordCredentialRecord(
+                    principalId = "user-1",
+                    email = "yuniel@example.com",
+                    username = "yuniel",
+                    passwordHash = "hashed-$validPassword",
+                ),
+            ),
+            passwordHasher = FakePasswordHasher(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = identityFacts(EmailStatus.VERIFIED).copy(status = PrincipalStatus.DEACTIVATED),
+            ),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = fixedClock,
+        )
+
+        try {
+            handler.handle(LoginUserCommand("yuniel@example.com", validPassword))
+            throw AssertionError("Expected InvalidEmailPasswordException")
+        } catch (e: InvalidEmailPasswordException) {
+            assertNotNull(e)
+        }
+    }
+
+    @Test
+    fun `rejects refresh for deactivated principal`() = runTest {
+        val handler = RefreshUserSessionHandler(
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = identityFacts(EmailStatus.VERIFIED).copy(status = PrincipalStatus.DEACTIVATED),
+            ),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = fixedClock,
+        )
+
+        try {
+            handler.handle(RefreshUserSessionCommand("refresh-lookup.refresh-secret"))
             throw AssertionError("Expected InvalidEmailPasswordException")
         } catch (e: InvalidEmailPasswordException) {
             assertNotNull(e)

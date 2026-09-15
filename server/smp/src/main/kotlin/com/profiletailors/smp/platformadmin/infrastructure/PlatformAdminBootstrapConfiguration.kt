@@ -4,9 +4,11 @@ import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.PrincipalLifecycle
 import com.profiletailors.smp.platformadmin.application.AcceptInvitationHandler
 import com.profiletailors.smp.platformadmin.application.InvitationActivationCoordinator
 import com.profiletailors.smp.platformadmin.application.contracts.AcceptUrlTemplate
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationEventPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.InvitationRepository
@@ -19,7 +21,9 @@ import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvita
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.CreateInvitationHandler
+import com.profiletailors.smp.platformadmin.application.handler.DeactivateUserHandler
 import com.profiletailors.smp.platformadmin.application.handler.InviteWaitlistEntryHandler
+import com.profiletailors.smp.platformadmin.application.handler.ReactivateUserHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.ResendWaitlistInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.RevokeInvitationHandler
@@ -54,6 +58,28 @@ class PlatformAdminBootstrapConfiguration {
     @Bean
     fun workspaceMembershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
         R2dbcWorkspaceMembershipProvisioner(repository)
+
+    @Bean
+    fun deactivateUserHandler(
+        principalLifecycleService: PrincipalLifecycle,
+        auditPublisher: AdministrativeAuditPublisher,
+        clock: Clock,
+    ): DeactivateUserHandler = DeactivateUserHandler(
+        principalLifecycleService = principalLifecycleService,
+        auditPublisher = auditPublisher,
+        clock = clock,
+    )
+
+    @Bean
+    fun reactivateUserHandler(
+        principalLifecycleService: PrincipalLifecycle,
+        auditPublisher: AdministrativeAuditPublisher,
+        clock: Clock,
+    ): ReactivateUserHandler = ReactivateUserHandler(
+        principalLifecycleService = principalLifecycleService,
+        auditPublisher = auditPublisher,
+        clock = clock,
+    )
 
     @Bean
     fun invitationActivator(
@@ -154,11 +180,13 @@ class PlatformAdminBootstrapConfiguration {
         waitlistEntryAdmin: WaitlistEntryAdmin,
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
+        adminWaitlistQuery: AdminWaitlistQuery,
         clock: Clock,
     ): CancelWaitlistEntryHandler = CancelWaitlistEntryHandler(
         waitlistEntryAdmin = waitlistEntryAdmin,
         invitationRepository = invitationRepository,
         auditPublisher = auditPublisher,
+        adminWaitlistQuery = adminWaitlistQuery,
         clock = clock,
     )
 

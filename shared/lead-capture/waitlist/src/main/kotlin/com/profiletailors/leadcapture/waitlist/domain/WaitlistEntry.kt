@@ -18,6 +18,7 @@ class WaitlistEntry(
     val metadata: LeadMetadata,
     val consent: WaitlistConsent,
     val joinedAt: Instant,
+    val version: Long = 0,
     status: WaitlistEntryStatus = WaitlistEntryStatus.PENDING,
     invitedAt: Instant? = null,
     convertedAt: Instant? = null,

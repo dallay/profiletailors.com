@@ -2,6 +2,7 @@ package com.profiletailors.smp.platformadmin.application.handler
 
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.smp.platformadmin.application.command.CancelWaitlistEntryCommand
+import com.profiletailors.smp.platformadmin.application.contracts.AdminWaitlistQuery
 import com.profiletailors.smp.platformadmin.application.contracts.AdministrativeAuditPublisher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
@@ -13,6 +14,7 @@ import com.profiletailors.smp.platformadmin.domain.PlatformPermission
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyCancelledException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryAlreadyConvertedException
 import com.profiletailors.smp.platformadmin.domain.WaitlistEntryNotFoundException
+import com.profiletailors.smp.platformadmin.domain.WaitlistEntryVersionConflictException
 import com.profiletailors.smp.platformadmin.domain.effectivePermissions
 import java.time.Clock
 import java.util.UUID
@@ -21,6 +23,7 @@ open class CancelWaitlistEntryHandler(
     private val waitlistEntryAdmin: WaitlistEntryAdmin,
     private val invitationRepository: WaitlistInvitationRepository,
     private val auditPublisher: AdministrativeAuditPublisher,
+    private val adminWaitlistQuery: AdminWaitlistQuery,
     private val clock: Clock,
 ) {
     @Suppress("ThrowsCount")
@@ -32,6 +35,12 @@ open class CancelWaitlistEntryHandler(
 
         val entry = waitlistEntryAdmin.findById(command.waitlistEntryId)
             ?: throw WaitlistEntryNotFoundException(command.waitlistEntryId)
+
+        val entryDetail = adminWaitlistQuery.findById(command.waitlistEntryId)
+            ?: throw WaitlistEntryNotFoundException(command.waitlistEntryId)
+        if (entryDetail.version != command.expectedVersion) {
+            throw WaitlistEntryVersionConflictException(command.waitlistEntryId)
+        }
 
         when (entry.status) {
             WaitlistEntryStatus.CONVERTED -> throw WaitlistEntryAlreadyConvertedException(command.waitlistEntryId)

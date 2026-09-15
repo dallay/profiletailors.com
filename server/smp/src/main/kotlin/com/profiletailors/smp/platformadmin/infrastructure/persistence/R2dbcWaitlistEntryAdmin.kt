@@ -12,6 +12,7 @@ import com.profiletailors.leadcapture.waitlist.domain.WaitlistEntryStatus
 import com.profiletailors.leadcapture.waitlist.domain.WaitlistId
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationContext
+import com.profiletailors.smp.platformadmin.domain.WaitlistEntryVersionConflictException
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -37,15 +38,17 @@ class R2dbcWaitlistEntryAdmin(private val databaseClient: DatabaseClient) : Wait
         val invitedAt = entry.invitedAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
         val convertedAt = entry.convertedAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
         val cancelledAt = entry.cancelledAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
-        databaseClient.sql(UPDATE_STATUS)
+        val updated = databaseClient.sql(UPDATE_STATUS)
             .bind("status", entry.status.name)
             .bindNullable("invitedAt", invitedAt, OffsetDateTime::class.java)
             .bindNullable("convertedAt", convertedAt, OffsetDateTime::class.java)
             .bindNullable("cancelledAt", cancelledAt, OffsetDateTime::class.java)
             .bind("id", entry.id.value)
+            .bind("expectedVersion", entry.version)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+        if (updated == 0L) throw WaitlistEntryVersionConflictException(entry.id.value)
         return requireNotNull(findById(entry.id.value))
     }
 
@@ -91,6 +94,7 @@ class R2dbcWaitlistEntryAdmin(private val databaseClient: DatabaseClient) : Wait
                 version = requireNotNull(get("consent_version", String::class.java)),
             ),
             joinedAt = requireNotNull(get("joined_at", OffsetDateTime::class.java)).toInstant(),
+            version = requireNotNull(get("version", Long::class.java)),
             status = WaitlistEntryStatus.valueOf(
                 requireNotNull(get("status", String::class.java)),
             ),
@@ -103,14 +107,15 @@ class R2dbcWaitlistEntryAdmin(private val databaseClient: DatabaseClient) : Wait
     companion object {
         private const val SELECT_BY_ID = """
             SELECT id, waitlist_id, email_original, normalized_email, source, form_id, locale,
-                   consent_early_access, consent_marketing, consent_version, status,
+                   consent_early_access, consent_marketing, consent_version, status, version,
                    joined_at, invited_at, converted_at, cancelled_at
             FROM waitlist_entries WHERE id = :id
         """
         private const val UPDATE_STATUS = """
             UPDATE waitlist_entries
-            SET status = :status, invited_at = :invitedAt, converted_at = :convertedAt, cancelled_at = :cancelledAt
-            WHERE id = :id
+            SET status = :status, invited_at = :invitedAt, converted_at = :convertedAt, cancelled_at = :cancelledAt,
+                version = version + 1
+            WHERE id = :id AND version = :expectedVersion
         """
         private const val SELECT_INVITATION_CONTEXT = """
             SELECT we.normalized_email AS normalized_email, we.locale AS locale, w.name AS waitlist_name

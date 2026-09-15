@@ -12,6 +12,8 @@ data class AdminUserSummary(
     val authenticationMethods: List<String> = emptyList(),
     val workspaceCount: Int = 0,
     val platformRoles: List<String> = emptyList(),
+    val status: String = "ACTIVE",
+    val version: Long = 1L,
 )
 
 data class AdminUserDetail(
@@ -24,6 +26,8 @@ data class AdminUserDetail(
     val authenticationMethods: List<String> = emptyList(),
     val workspaceMemberships: List<AdminWorkspaceMembershipSummary> = emptyList(),
     val platformRoles: List<String> = emptyList(),
+    val status: String = "ACTIVE",
+    val version: Long = 1L,
 )
 
 data class AdminWorkspaceMembershipSummary(

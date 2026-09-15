@@ -412,6 +412,84 @@ class DirectInvitationBddSteps {
         assertNotNull(lastResponseJson().path("invitationId").asText(null))
     }
 
+    @When("the platform operator lists the direct invitations")
+    fun operatorListsDirectInvitations() {
+        state.lastResponse = webTestClient.get()
+            .uri("/api/admin/invitations/direct")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("the platform operator lists the direct invitations with {string}")
+    fun operatorListsDirectInvitationsWithQuery(rawQuery: String) {
+        state.lastResponse = webTestClient.get()
+            .uri("/api/admin/invitations/direct?$rawQuery")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .header(HttpHeaders.AUTHORIZATION, ADMIN_BEARER)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @When("an unauthenticated principal lists the direct invitations")
+    fun unauthenticatedListsDirectInvitations() {
+        state.lastResponse = webTestClient.get()
+            .uri("/api/admin/invitations/direct")
+            .header(HttpHeaders.ACCEPT, DIRECT_API_V1)
+            .exchange()
+            .expectBody(ByteArray::class.java)
+            .returnResult()
+    }
+
+    @Then("the direct invitation list should contain {int} invitations")
+    fun directInvitationListShouldContainCount(expected: Int) {
+        val body = lastResponseJson()
+        assertEquals(expected, body.path("items").size())
+    }
+
+    @Then("the direct invitation list should contain {int} invitation")
+    fun directInvitationListShouldContainSingle(expected: Int) {
+        directInvitationListShouldContainCount(expected)
+    }
+
+    @Then("the direct invitation list total should be {int}")
+    fun directInvitationListTotalShouldBe(expected: Int) {
+        assertEquals(expected, lastResponseJson().path("totalElements").asInt())
+    }
+
+    @Then("the direct invitation list should contain an invitation with email {string}")
+    fun directInvitationListShouldContainEmail(email: String) {
+        val items = lastResponseJson().path("items")
+        val match = (0 until items.size()).any { i ->
+            email.equals(items[i].path("email").asText(), ignoreCase = true)
+        }
+        assertTrue(match, "Expected an invitation with email $email in the direct invitation list")
+    }
+
+    @Then("the first direct invitation in the list should have email {string}")
+    fun firstDirectInvitationShouldHaveEmail(email: String) {
+        val items = lastResponseJson().path("items")
+        assertTrue(items.size() > 0, "Expected a non-empty direct invitation list")
+        assertEquals(email, items[0].path("email").asText())
+    }
+
+    @Then("the direct invitation list should not expose token material")
+    fun directInvitationListShouldNotExposeTokenMaterial() {
+        val items = lastResponseJson().path("items")
+        assertTrue(items.isArray, "Expected the direct invitation list to return an items array")
+        (0 until items.size()).forEach { i ->
+            val item = items[i]
+            assertTrue(!item.has("token"), "List row must not expose token")
+            assertTrue(!item.has("tokenHash"), "List row must not expose tokenHash")
+            assertTrue(!item.has("candidateKey"), "List row must not expose candidateKey")
+            assertNotNull(item.path("invitationId").asText(null))
+            assertNotNull(item.path("email").asText(null))
+        }
+    }
+
     private fun lastResponseJson() = json.readTree(requireNotNull(state.lastResponse).responseBody)
 
     private fun rememberInvitationId() {

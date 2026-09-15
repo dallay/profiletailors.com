@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.common.domain.context.MissingPrincipalContextException
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.credentials.application.ActiveServiceAccountCredential
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialFailureReason
@@ -10,6 +11,7 @@ import com.profiletailors.smp.credentials.domain.ValidatedToken
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.PrincipalIdentityFacts
+import com.profiletailors.smp.identity.domain.PrincipalStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -134,6 +136,39 @@ class JwtAuthenticatedPrincipalMaterializerTest {
         assertEquals("dev-user-001", authenticatedPrincipal.context.principalId)
         assertEquals("local:dev@profiletailors.com", authenticatedPrincipal.context.subject)
         assertEquals("dev", authenticatedPrincipal.context.displayIdentity)
+    }
+
+    @Test
+    fun `rejects deactivated principal during materialization`() = runTest {
+        val materializer = JwtAuthenticatedPrincipalMaterializer(
+            principalIdentityLookup = StubPrincipalIdentityLookup(
+                PrincipalIdentityFacts(
+                    principalId = "dev-user-001",
+                    principalType = PrincipalType.USER,
+                    subject = "local:dev@profiletailors.com",
+                    provider = null,
+                    displayIdentity = "dev",
+                    email = "dev@profiletailors.com",
+                    username = "dev",
+                    status = PrincipalStatus.DEACTIVATED,
+                ),
+            ),
+        )
+        val token = ValidatedToken(
+            credentialType = CredentialType.JWT,
+            tokenValue = "token-value",
+            subject = "local:dev@profiletailors.com",
+            issuer = "http://localhost/profiletailors-local",
+            audience = setOf("profiletailors-api"),
+            issuedAt = Instant.parse("2026-05-15T10:15:30Z"),
+            expiresAt = Instant.parse("2026-05-15T11:15:30Z"),
+            tokenId = "jwt-1",
+            claims = mapOf("principal_id" to "dev-user-001"),
+        )
+
+        assertThrows(MissingPrincipalContextException::class.java) {
+            kotlinx.coroutines.runBlocking { materializer.materialize(token) }
+        }
     }
 
     @Test

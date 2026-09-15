@@ -2,7 +2,11 @@ package com.profiletailors.smp.platformadmin.infrastructure.http
 
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platformadmin.application.OperatorAccessResolver
+import com.profiletailors.smp.platformadmin.application.command.DeactivateUserCommand
+import com.profiletailors.smp.platformadmin.application.command.ReactivateUserCommand
 import com.profiletailors.smp.platformadmin.application.contracts.AdminUserQuery
+import com.profiletailors.smp.platformadmin.application.handler.DeactivateUserHandler
+import com.profiletailors.smp.platformadmin.application.handler.ReactivateUserHandler
 import com.profiletailors.smp.platformadmin.application.model.AdminUserDetail
 import com.profiletailors.smp.platformadmin.application.model.AdminUserSummary
 import com.profiletailors.smp.platformadmin.application.model.AdminWorkspaceMembershipSummary
@@ -15,7 +19,9 @@ import com.profiletailors.smp.platformadmin.infrastructure.persistence.ADMIN_PAG
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -27,6 +33,8 @@ class AdminUserController(
     private val userQuery: AdminUserQuery,
     private val operatorAccessResolver: OperatorAccessResolver,
     private val requestContextStore: RequestContextStore,
+    private val deactivateUserHandler: DeactivateUserHandler,
+    private val reactivateUserHandler: ReactivateUserHandler,
 ) {
     @GetMapping
     suspend fun listUsers(
@@ -80,8 +88,48 @@ class AdminUserController(
         return ResponseEntity.ok(userQuery.findWorkspacesByPrincipalId(principalId))
     }
 
+    @PatchMapping("/{principalId}/deactivate")
+    suspend fun deactivateUser(
+        @PathVariable principalId: String,
+        @RequestBody body: DeactivateUserRequest,
+    ): ResponseEntity<Unit> {
+        val operator = resolveOperator()
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        deactivateUserHandler.handle(
+            DeactivateUserCommand(
+                operatorPrincipalId = operator.principalId,
+                operatorRoles = operator.roles,
+                principalId = principalId,
+                expectedVersion = body.expectedVersion,
+            ),
+        )
+        return ResponseEntity.noContent().build()
+    }
+
+    @PatchMapping("/{principalId}/reactivate")
+    suspend fun reactivateUser(
+        @PathVariable principalId: String,
+        @RequestBody body: ReactivateUserRequest,
+    ): ResponseEntity<Unit> {
+        val operator = resolveOperator()
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        reactivateUserHandler.handle(
+            ReactivateUserCommand(
+                operatorPrincipalId = operator.principalId,
+                operatorRoles = operator.roles,
+                principalId = principalId,
+                expectedVersion = body.expectedVersion,
+            ),
+        )
+        return ResponseEntity.noContent().build()
+    }
+
     private suspend fun resolveOperator(): com.profiletailors.smp.platformadmin.application.OperatorAccess? {
         val ctx = requestContextStore.currentPrincipalContext() ?: return null
         return operatorAccessResolver.resolve(ctx)
     }
 }
+
+data class DeactivateUserRequest(val expectedVersion: Long)
+
+data class ReactivateUserRequest(val expectedVersion: Long)

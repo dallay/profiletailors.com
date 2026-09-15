@@ -11,4 +11,5 @@ data class PrincipalIdentityFacts(
     val email: String?,
     val username: String?,
     val emailStatus: EmailStatus? = null,
+    val status: PrincipalStatus = PrincipalStatus.ACTIVE,
 )

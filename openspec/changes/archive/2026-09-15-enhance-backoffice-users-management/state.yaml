@@ -1,0 +1,16 @@
+change: enhance-backoffice-users-management
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply-backend
+  - apply-frontend
+  - apply-tests
+  - verify
+  - archive
+next: none
+archived: '2026-09-15T00:00:00Z'
+updated: '2026-09-15T00:00:00Z'

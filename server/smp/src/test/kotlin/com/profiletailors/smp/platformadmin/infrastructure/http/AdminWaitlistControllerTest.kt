@@ -222,6 +222,43 @@ class AdminWaitlistControllerTest {
     }
 
     @Test
+    fun `getSummary returns waitlist status counts`() {
+        grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
+        coEvery { waitlistQuery.countByStatus() } returns mapOf("PENDING" to 2L, "INVITED" to 1L)
+
+        webClient()
+            .get()
+            .uri("/api/admin/waitlist-entries/summary")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.PENDING").isEqualTo(2)
+            .jsonPath("$.INVITED").isEqualTo(1)
+    }
+
+    @Test
+    fun `getSummary returns 401 without principal context`() {
+        webClient(principal = null)
+            .get()
+            .uri("/api/admin/waitlist-entries/summary")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `getSummary returns 403 when operator lacks waitlist read permission`() {
+        grantRoles(emptyList())
+
+        webClient()
+            .get()
+            .uri("/api/admin/waitlist-entries/summary")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody()
+            .jsonPath("$.code").isEqualTo("PLATFORM_ACCESS_DENIED")
+    }
+
+    @Test
     fun `invite returns 201 with invitation summary`() {
         grantRoles(listOf(PlatformRole.PLATFORM_OWNER))
         coEvery { inviteHandler.handle(any()) } returns invitationSummary()
@@ -245,7 +282,7 @@ class AdminWaitlistControllerTest {
             .post()
             .uri("/api/admin/waitlist-entries/$entryId/cancel")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("""{"reason":"spam"}""")
+            .bodyValue("""{"reason":"spam","expectedVersion":1}""")
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -292,6 +329,7 @@ class AdminWaitlistControllerTest {
         cancelledAt = null,
         preferredLocale = "en",
         source = "web",
+        version = 0,
     )
 
     private fun detail() = AdminWaitlistEntryDetail(
