@@ -5,7 +5,7 @@ status: 🔄 In Progress
 
 # Profile Tailors — C4 Architecture Summary
 
-**Last updated: 2026-09-12
+**Last updated:** 2026-09-15
 
 ## Executive Summary
 
@@ -66,19 +66,19 @@ framework-agnostic domain primitives and shared infrastructure:
 
 ---
 
-## Bounded Contexts (19 Bounded Contexts)
+## Backend Modules (18 Bounded Contexts + Config)
 
-The backend `server:smp` comprises 19 modular bounded contexts:
+The backend `server:smp` comprises 18 bounded contexts plus the cross-cutting Config module (19 modules total):
 
 1. **Analytics Context**: Engagement metrics collection, aggregation, and reporting.
 2. **Audit Context**: Request outcomes, authorization decision auditing, and mutation event capture.
 3. **Authorization Context**: RBAC, direct permission grants, workspace permissions, and entitlements.
-4. **Config Context**: Dynamic platform and system configuration.
+4. **Config Module**: Dynamic platform and system configuration.
 5. **Credentials Context**: API keys, OAuth tokens, and credential encryption (`PublishingCredentialsProperties`).
 6. **Governance Context**: Mutation audit logging, policy enforcement, and compliance tracking.
 7. **Hashtags Context**: Hashtag group management, aggregation, and performance tracking.
 8. **Ideas Context**: Content brainstorming and draft idea management.
-9. **Identity Context**: Native JWT and HttpOnly cookie authentication, principal management.
+9. **Identity Context**: Bearer JWT access-token and HttpOnly refresh-cookie authentication, principal management.
 10. **Lead Capture Context**: Public waitlist joins, lead capture storage, and consent collection.
 11. **MCP Context**: Model Context Protocol integration for platform AI tooling.
 12. **Media Context**: Media asset storage, Content-Addressable Storage (CAS) deduplication.
@@ -279,4 +279,4 @@ Managed & Local Storage
 
 ---
 
-Last updated: 2026-09-12
+Last updated: 2026-09-14

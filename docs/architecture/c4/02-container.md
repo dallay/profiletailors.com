@@ -1,6 +1,6 @@
 # Level 2: Container Diagram
 
-****Last Updated:** 2026-09-12
+**Last Updated:** 2026-09-15
 
 ## Overview
 
@@ -30,7 +30,7 @@ System_Boundary(profile_tailors, "Profile Tailors") {
     
     Container(spa, "Web Application", "Vue 3, TypeScript", "Single-page application for content management, scheduling, and analytics")
     
-    Container(api, "API Application", "Spring Boot 4, Kotlin, WebFlux", "Reactive REST API with 19 bounded contexts including Identity, Tenancy, Publishing, Media, Privacy, etc.")
+    Container(api, "API Application", "Spring Boot 4, Kotlin, WebFlux", "Reactive REST API with 18 bounded contexts plus the Config module (19 modules total), including Identity, Tenancy, Publishing, Media, and Privacy.")
     
     ContainerDb(db, "Database", "PostgreSQL 18", "Stores user data, workspaces, posts, schedules, credentials, and audit logs. R2DBC for reactive access.")
     
@@ -131,10 +131,11 @@ graph TB
 - **Composition**: Shared modules (`shared:common`, `shared:bus`, `shared:spring-boot-common`,
   `shared:security`, `shared:presentation`, `shared:storage`, `shared:shield:ratelimit`,
   `shared:lead-capture:*`) and `server:smp` (application assembly).
-- **Bounded Contexts**: Analytics, Audit, Authorization, Config, Credentials, Governance, Hashtags,
+- **Bounded Contexts**: Analytics, Audit, Authorization, Credentials, Governance, Hashtags,
   Ideas, Identity, Leadcapture, MCP, Media, Notifications, Observability, Platform, Platformadmin, Privacy,
   Publishing, Tenancy.
-- **Key Features**: Reactive programming with Kotlin coroutines, native JWT/cookie authentication,
+- **Cross-Cutting Module**: Config.
+- **Key Features**: Reactive programming with Kotlin coroutines, Bearer JWT access-token authentication with an HttpOnly refresh-token cookie,
   non-blocking R2DBC access, internal in-process event publishing via Reactor (`ChannelEventPublisher`),
   Spring Modulith modular monolith.
 
@@ -153,8 +154,8 @@ graph TB
 
 - **Technology**: Caffeine local in-memory cache, optional Redis via `shared:shield:ratelimit`
 - **Deployment**: Embedded JVM in-memory / optional container
-- **Purpose**: Rate limiting (Bucket4j) and ephemeral caching.
-- **Use Cases**: Rate limiting for public and waitlist endpoints (defaults to Caffeine). Session management relies on stateless signed JWT cookies rather than central session cache storage.
+- **Purpose**: Rate-limit state storage for Bucket4j.
+- **Use Cases**: Rate limiting for public and waitlist endpoints (defaults to Caffeine). The JWT access token is validated statelessly from the `Authorization: Bearer` header, while only the refresh token is stored in an HttpOnly cookie.
 
 #### Event Bus (In-Process Event Dispatch)
 
@@ -288,9 +289,8 @@ graph TB
 
 ### Horizontal Scaling
 
-- API Application: Stateless, can scale horizontally
-- Scheduler Service: Partitioned by workspace or time slot
-- Analytics Service: Partitioned by platform or metric type
+- API Application: Stateless, can scale horizontally; in-process workers (`PublishingWorker`) handle scheduled tasks within the modular monolith
+- Analytics Context: In-monolith analytics processing and metric aggregation
 
 ### Database Scaling
 
@@ -300,9 +300,8 @@ graph TB
 
 ### Caching Strategy
 
-- Redis for session data (TTL: 15 min)
-- API response cache (TTL: 1-5 min)
-- OAuth token cache (TTL: token expiry - 5 min)
+- Local Caffeine or optional Redis store for Bucket4j rate limiting (`shared:shield:ratelimit`)
+- The SPA keeps the short-lived JWT access token in memory and sends it in the `Authorization: Bearer` header; only the refresh token is stored in an HttpOnly cookie
 
 ---
 
@@ -326,4 +325,4 @@ graph TB
 
 ---
 
-Last updated: 2026-09-12
+Last updated: 2026-09-14

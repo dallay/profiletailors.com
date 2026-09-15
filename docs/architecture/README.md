@@ -1,6 +1,6 @@
 # Profile Tailors — Architecture Documentation
 
-****Last Updated:** 2026-09-12
+**Last Updated:** 2026-09-15
 
 This directory contains the architecture documentation for Profile Tailors, a social media
 management platform.
@@ -46,8 +46,8 @@ architecture at different levels of abstraction.
 ┌─────────────────────────────────────────────────────────────┐
 │ Level 3: Component (API Application)                        │
 │ ┌─────────────────────────────────────────────────────┐   │
-│ │  19 Bounded Contexts: Identity, Authorization,      │   │
-│ │  Tenancy, Credentials, Publishing, Governance, etc. │   │
+│ │  18 Bounded Contexts + Config: Identity,            │   │
+│ │  Authorization, Tenancy, Publishing, etc.           │   │
 │ └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                         ↓
@@ -72,9 +72,9 @@ architecture at different levels of abstraction.
 
 ### 2. Domain-Driven Design (DDD)
 
-- **Bounded Contexts**: 19 modular bounded contexts in `server/smp` (Analytics, Audit, Authorization,
-  Config, Credentials, Governance, Hashtags, Ideas, Identity, Lead Capture, MCP, Media,
-  Notifications, Observability, Platform, Platformadmin, Privacy, Publishing, Tenancy)
+- **Bounded Contexts**: 18 bounded contexts plus the Config module in `server/smp` (19 modules total):
+  Analytics, Audit, Authorization, Credentials, Governance, Hashtags, Ideas, Identity, Lead Capture,
+  MCP, Media, Notifications, Observability, Platform, Platformadmin, Privacy, Publishing, Tenancy
 - **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md)
   for all `api` and `implementation` relationships
 - **Foundation**: [`shared:common`](../../shared/common/) and [`shared:lead-capture:common`](../../shared/lead-capture/common/) — framework-agnostic domain
@@ -183,4 +183,4 @@ architecture at different levels of abstraction.
 
 ---
 
-Last updated: 2026-09-12
+Last updated: 2026-09-14

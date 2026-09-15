@@ -1,6 +1,6 @@
 # Profile Tailors — C4 Architecture Models
 
-****Last Updated:** 2026-09-12
+**Last Updated:** 2026-09-15
 
 This directory contains the C4 architecture models for Profile Tailors, a social media management
 platform.
@@ -51,8 +51,10 @@ Diagrams are written in:
 - Marketing site (Astro 7, bilingual static site)
 - Web Application Dashboard (Vue 3, Pinia, TypeScript)
 - Backend Modular Monolith (Spring Boot 4, Kotlin, WebFlux, R2DBC)
-- 19 Bounded Contexts: Analytics, Audit, Authorization, Config, Credentials, Governance, Hashtags, Ideas, Identity, Leadcapture, MCP, Media, Notifications, Observability, Platform, Platformadmin, Privacy, Publishing, Tenancy
+- 18 bounded contexts plus the Config module (19 modules total): Analytics, Audit, Authorization,
+  Credentials, Governance, Hashtags, Ideas, Identity, Leadcapture, MCP, Media, Notifications,
+  Observability, Platform, Platformadmin, Privacy, Publishing, Tenancy; plus Config
 
 ---
 
-Last updated: 2026-09-12
+Last updated: 2026-09-14
