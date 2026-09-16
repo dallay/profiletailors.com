@@ -102,6 +102,7 @@ export type MessageSchema = {
     bulkSelectAll: string
     bulkResults: string
     bulkSummary: string
+    bulkTooMany: string
     statuses: { pending: string; invited: string; converted: string; cancelled: string }
     filters: {
       status: string

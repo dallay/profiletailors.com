@@ -109,6 +109,7 @@ export const en: MessageSchema = {
     bulkSelectAll: 'Select all entries',
     bulkResults: 'Bulk invite results',
     bulkSummary: '{invited} invited · {skipped} skipped · {failed} failed',
+    bulkTooMany: 'Select up to {max} entries at a time',
     statuses: {
       pending: 'Pending',
       invited: 'Invited',
@@ -348,6 +349,7 @@ export const es: MessageSchema = {
     bulkSelectAll: 'Seleccionar todas las entradas',
     bulkResults: 'Resultados de la invitación masiva',
     bulkSummary: '{invited} invitados · {skipped} omitidos · {failed} fallidos',
+    bulkTooMany: 'Selecciona hasta {max} entradas a la vez',
     statuses: {
       pending: 'Pendiente',
       invited: 'Invitado',

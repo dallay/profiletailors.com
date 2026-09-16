@@ -52,6 +52,8 @@ interface BulkInviteSummary {
   failed: number
 }
 
+const BULK_INVITE_MAX_ENTRIES = 50
+
 const result = ref<PagedResult<WaitlistEntry> | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -145,8 +147,12 @@ function toggleSelectAll(event: Event) {
 
 async function bulkInviteSelected() {
   if (selectedIds.value.length === 0 || bulkInviting.value) return
-  bulkInviting.value = true
   bulkError.value = null
+  if (selectedIds.value.length > BULK_INVITE_MAX_ENTRIES) {
+    bulkError.value = t('waitlist.bulkTooMany', { max: BULK_INVITE_MAX_ENTRIES })
+    return
+  }
+  bulkInviting.value = true
   try {
     const res = await authStore.request('/api/admin/waitlist-entries/invitations:bulk', {
       method: 'POST',
@@ -161,8 +167,10 @@ async function bulkInviteSelected() {
       bulkResults.value = payload.results
       bulkSummary.value = payload.summary
       selectedIds.value = []
-      await fetchEntries()
+      await Promise.all([fetchEntries(), fetchSummary()])
     }
+  } catch {
+    bulkError.value = t('common.error')
   } finally {
     bulkInviting.value = false
   }

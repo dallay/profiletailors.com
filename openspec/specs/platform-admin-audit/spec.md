@@ -108,7 +108,7 @@ code MUST reference it:
 
 ### Requirement: Per-entry bulk audit (DALLAY-665)
 
-The system MUST publish one audit event per requested entry: `WAITLIST_ENTRY_INVITED/SUCCEEDED` per `invited` entry, `REJECTED` plus stable code per `skipped` entry, `FAILED` plus stable code per `failed` entry (including unexpected errors). Each audit MUST commit independently of its entry's state change. Metadata MUST carry IDs and codes only — never raw tokens or emails.
+The system MUST publish one audit event per requested entry: `WAITLIST_ENTRY_INVITED/SUCCEEDED` per `invited` entry, `REJECTED` plus stable code per `skipped` entry, `FAILED` plus stable code per `failed` entry (including unexpected errors). `SUCCEEDED` audits MUST commit atomically with their entry's state change; `REJECTED` and `FAILED` audits MUST commit independently of entry state. Metadata MUST carry IDs and codes only — never raw tokens or emails.
 
 #### Scenario: Success audited per entry
 
