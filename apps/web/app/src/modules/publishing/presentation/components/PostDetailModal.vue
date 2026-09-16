@@ -224,11 +224,12 @@ function cancelReschedule() {
 <template>
   <Teleport to="body">
     <!-- biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop intentionally uses click only -->
-    <!-- biome-ignore lint/a11y/useKeyWithClickEvents: modal backdrop intentionally uses click only -->
     <div
       v-if="isOpen && publication"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      role="presentation"
       @click.self="closeModal"
+      @keydown.escape.stop="closeModal"
     >
       <dialog
         ref="modalContainer"

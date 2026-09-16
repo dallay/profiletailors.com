@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { initScrollReveal } from './scroll-reveal'
 
 // ---------------------------------------------------------------------------
@@ -11,7 +11,7 @@ interface ObserverGlobals {
   observedEls: Set<Element>
   entries: IntersectionObserverEntry[]
   /** Reference to the mock observer's unobserve spy (the actual one used by implementation). */
-  unobserveSpy: ReturnType<typeof vi.fn>
+  unobserveSpy: Mock<(el: Element) => void>
 }
 
 const $globals: ObserverGlobals = {
@@ -64,6 +64,7 @@ describe('initScrollReveal', () => {
     class MockIntersectionObserver implements IntersectionObserver {
       readonly root: Element | Document | null = null
       readonly rootMargin: string = ''
+      readonly scrollMargin: string = ''
       readonly thresholds: ReadonlyArray<number> = []
 
       constructor(cb: IntersectionObserverCallback) {

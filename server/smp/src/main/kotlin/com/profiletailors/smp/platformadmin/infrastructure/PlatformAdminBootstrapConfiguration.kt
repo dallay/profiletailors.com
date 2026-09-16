@@ -57,7 +57,7 @@ class PlatformAdminBootstrapConfiguration {
     fun tokenHasher(): BCryptTokenHasher = BCryptTokenHasher()
 
     @Bean
-    fun workspaceMembershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
+    fun membershipProvisioner(repository: WorkspaceMembershipRepository): WorkspaceMembershipProvisioner =
         R2dbcWorkspaceMembershipProvisioner(repository)
 
     @Bean
@@ -83,6 +83,7 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
+    @Suppress("S107") // Spring composition root: explicit bean wiring requires all dependencies as parameters
     fun invitationActivator(
         invitationRepository: InvitationRepository,
         tokenHasher: TokenHasher,
@@ -120,6 +121,7 @@ class PlatformAdminBootstrapConfiguration {
     ): AcceptUrlTemplate = AcceptUrlTemplate { rawToken -> "$base?token=$rawToken" }
 
     @Bean
+    @Suppress("S107") // Spring composition root: explicit bean wiring requires all dependencies as parameters
     fun inviteWaitlistEntryHandler(
         waitlistEntryAdmin: WaitlistEntryAdmin,
         invitationRepository: WaitlistInvitationRepository,
@@ -141,24 +143,8 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
-    fun bulkInviteHandler(
-        inviteWaitlistEntryHandler: InviteWaitlistEntryHandler,
-        waitlistEntryAdmin: WaitlistEntryAdmin,
-        transactionRunner: AtomicTransactionRunner,
-        auditPublisher: AdministrativeAuditPublisher,
-        telemetry: InvitationTelemetry,
-        clock: Clock,
-    ): BulkInviteWaitlistEntriesHandler = BulkInviteWaitlistEntriesHandler(
-        singleHandler = inviteWaitlistEntryHandler,
-        waitlistEntryAdmin = waitlistEntryAdmin,
-        transactionRunner = transactionRunner,
-        auditPublisher = auditPublisher,
-        telemetry = telemetry,
-        clock = clock,
-    )
-
-    @Bean
-    fun resendWaitlistInvitationHandler(
+    @Suppress("S107") // Spring composition root: explicit bean wiring requires all dependencies as parameters
+    fun resendWaitlistInviteHandler(
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
         eventPublisher: EventPublisher<DomainEvent>,
@@ -183,7 +169,24 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
-    fun revokeWaitlistInvitationHandler(
+    fun bulkInviteHandler(
+        inviteWaitlistEntryHandler: InviteWaitlistEntryHandler,
+        waitlistEntryAdmin: WaitlistEntryAdmin,
+        transactionRunner: AtomicTransactionRunner,
+        auditPublisher: AdministrativeAuditPublisher,
+        telemetry: InvitationTelemetry,
+        clock: Clock,
+    ): BulkInviteWaitlistEntriesHandler = BulkInviteWaitlistEntriesHandler(
+        singleHandler = inviteWaitlistEntryHandler,
+        waitlistEntryAdmin = waitlistEntryAdmin,
+        transactionRunner = transactionRunner,
+        auditPublisher = auditPublisher,
+        telemetry = telemetry,
+        clock = clock,
+    )
+
+    @Bean
+    fun revokeWaitlistInviteHandler(
         invitationRepository: WaitlistInvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
         clock: Clock,
@@ -236,6 +239,7 @@ class PlatformAdminBootstrapConfiguration {
     ): TransactionalEventPublisher = TransactionalEventPublisher(applicationEventPublisher)
 
     @Bean
+    @Suppress("S107") // Spring composition root: explicit bean wiring requires all dependencies as parameters
     fun createInvitationHandler(
         invitationRepository: InvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,
@@ -274,6 +278,7 @@ class PlatformAdminBootstrapConfiguration {
     )
 
     @Bean
+    @Suppress("S107") // Spring composition root: explicit bean wiring requires all dependencies as parameters
     fun resendInvitationHandler(
         invitationRepository: InvitationRepository,
         auditPublisher: AdministrativeAuditPublisher,

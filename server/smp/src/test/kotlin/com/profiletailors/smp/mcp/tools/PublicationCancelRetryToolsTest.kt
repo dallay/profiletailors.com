@@ -38,6 +38,8 @@ class PublicationCancelRetryToolsTest {
     private val principalId = "user-1"
     private val grantedScopes = setOf("mcp:publications:write")
 
+    private val authContext = AuthContext(workspaceId, principalId, grantedScopes)
+
     private fun stubIdempotencyMiss(repository: IdempotencyRecordRepository) {
         coEvery { repository.find(any(), any(), any(), any()) } returns null
         coEvery { repository.save(any()) } returnsArgument 0
@@ -80,9 +82,7 @@ class PublicationCancelRetryToolsTest {
         coEvery { mediator.send(any<CancelPublicationCommand>()) } returns successResult("pub-cancel")
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).cancelPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-cancel",
             idempotencyKey = null,
         ).block()!!
@@ -101,9 +101,7 @@ class PublicationCancelRetryToolsTest {
             com.profiletailors.smp.publishing.domain.PublicationCancellationNotAllowedException("pub-cancel")
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).cancelPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-cancel",
             idempotencyKey = null,
         ).block()!!
@@ -121,9 +119,7 @@ class PublicationCancelRetryToolsTest {
         coEvery { mediator.send(any<CancelPublicationCommand>()) } throws PublicationNotFoundException("pub-cancel")
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).cancelPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-cancel",
             idempotencyKey = null,
         ).block()!!
@@ -142,9 +138,7 @@ class PublicationCancelRetryToolsTest {
 
         val adapter = newAdapter(mediator, idempotencyRepository, auditEmitter)
         val first = adapter.cancelPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-cancel",
             idempotencyKey = "cancel-key",
         ).block()!!
@@ -158,9 +152,7 @@ class PublicationCancelRetryToolsTest {
         val secondRepo: IdempotencyRecordRepository = mockk()
         coEvery { secondRepo.find(any(), any(), any(), any()) } returns cachedJson
         val second = newAdapter(secondMediator, secondRepo, CapturingAuditEmitter()).cancelPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-cancel",
             idempotencyKey = "cancel-key",
         ).block()!!
@@ -178,9 +170,7 @@ class PublicationCancelRetryToolsTest {
         coEvery { mediator.send(any<RetryPublicationCommand>()) } returns successResult("pub-retry")
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).retryPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-retry",
             scheduleMode = "SCHEDULED_AT",
             scheduledFor = "2026-12-31T00:00:00Z",
@@ -212,14 +202,8 @@ class PublicationCancelRetryToolsTest {
             com.profiletailors.smp.publishing.domain.PublicationRetryNotAllowedException("pub-retry")
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).retryPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-retry",
-            scheduleMode = null,
-            scheduledFor = null,
-            nextSlotAfter = null,
-            priority = null,
             idempotencyKey = null,
         ).block()!!
 
@@ -234,15 +218,10 @@ class PublicationCancelRetryToolsTest {
         val auditEmitter = CapturingAuditEmitter()
         stubIdempotencyMiss(idempotencyRepository)
 
+        val readOnlyAuthContext = AuthContext(workspaceId, principalId, setOf("mcp:channels:read"))
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).retryPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = setOf("mcp:channels:read"),
+            authContext = readOnlyAuthContext,
             publicationId = "pub-retry",
-            scheduleMode = null,
-            scheduledFor = null,
-            nextSlotAfter = null,
-            priority = null,
             idempotencyKey = null,
         ).block()!!
 
@@ -260,9 +239,7 @@ class PublicationCancelRetryToolsTest {
         coEvery { mediator.send(any<CancelPublicationCommand>()) } returns successResult("pub-cancel")
 
         newAdapter(mediator, idempotencyRepository, auditEmitter).cancelPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-cancel",
             idempotencyKey = null,
         ).block()
@@ -283,14 +260,8 @@ class PublicationCancelRetryToolsTest {
             McpIdempotencyConflictException("retry_publication", workspaceId)
 
         val result = newAdapter(mediator, idempotencyRepository, auditEmitter).retryPublication(
-            workspaceId = workspaceId,
-            principalId = principalId,
-            grantedScopes = grantedScopes,
+            authContext = authContext,
             publicationId = "pub-retry",
-            scheduleMode = null,
-            scheduledFor = null,
-            nextSlotAfter = null,
-            priority = null,
             idempotencyKey = "retry-key",
         ).block()!!
 

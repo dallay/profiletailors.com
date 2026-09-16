@@ -14,10 +14,7 @@ afterEach(() => {
   delete process.env.VITE_API_BASE_URL
 })
 
-if (
-  typeof window.HTMLDialogElement !== 'undefined' &&
-  !window.HTMLDialogElement.prototype.showModal
-) {
+if (window.HTMLDialogElement !== undefined && !window.HTMLDialogElement.prototype.showModal) {
   window.HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
     this.setAttribute('open', '')
   }

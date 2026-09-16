@@ -19,11 +19,13 @@ const langLabel = t.nav.langSwitchLabel
 ---
 
 <Layout title={t.meta.title} description={t.meta.description} lang={locale}>
-  <main id="main-content" class="fade-in" tabindex="-1">
+  <div class="fixed inset-0 dot-grid pointer-events-none opacity-[0.06] dark:opacity-[0.14] -z-10" aria-hidden="true"></div>
+  <main id="main-content" class="fade-in relative" tabindex="-1">
     <Nav
       langSwitch={t.nav.langSwitch}
       langHref={langHref}
       langLabel={langLabel}
+      locale={locale}
     />
 
     <Hero
