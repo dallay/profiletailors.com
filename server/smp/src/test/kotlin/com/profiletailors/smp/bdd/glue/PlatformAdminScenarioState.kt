@@ -7,4 +7,5 @@ class PlatformAdminScenarioState {
     var lastEntryId: String? = null
     var lastInvitationId: String? = null
     var invitationToken: String? = null
+    val bulkEntryIds: MutableList<String> = mutableListOf()
 }

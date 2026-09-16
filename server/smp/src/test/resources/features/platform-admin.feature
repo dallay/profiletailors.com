@@ -148,3 +148,40 @@ Feature: Platform administration access control and waitlist management
     When the platform operator invites the waitlist entry
     Then an audit event with action "WAITLIST_ENTRY_INVITED" should be recorded
     And the audit event should not contain a raw invitation token
+
+  # ── Bulk waitlist invitation ─────────────────────────────────────────────
+
+  Scenario: Operator bulk invites a mixed batch with partial success
+    Given a pending waitlist entry exists for "bulk-ok-a@example.com"
+    And a pending waitlist entry exists for "bulk-ok-b@example.com"
+    And a pending waitlist entry exists for "bulk-ok-c@example.com"
+    And an invited waitlist entry with an active invitation exists for "bulk-skipped@example.com"
+    And a converted waitlist entry exists for "bulk-failed@example.com"
+    When the platform operator bulk invites the tracked waitlist entries
+    Then the admin response status should be 200
+    And the bulk invite summary should be 3 invited, 1 skipped and 1 failed
+    And the bulk invite results should not contain sensitive values
+
+  Scenario: Retrying a bulk invite yields skips without duplicates
+    Given a pending waitlist entry exists for "bulk-retry-a@example.com"
+    And a pending waitlist entry exists for "bulk-retry-b@example.com"
+    When the platform operator bulk invites the tracked waitlist entries
+    And the platform operator bulk invites the tracked waitlist entries
+    Then the admin response status should be 200
+    And the bulk invite summary should be 0 invited, 2 skipped and 0 failed
+
+  Scenario: Bulk invite after a single invite keeps exactly one invitation
+    Given a pending waitlist entry exists for "bulk-race@example.com"
+    When the platform operator invites the waitlist entry
+    And the platform operator bulk invites the tracked waitlist entries
+    Then the admin response status should be 200
+    And the bulk invite summary should be 0 invited, 1 skipped and 0 failed
+    And one active invitation should be created for the entry
+
+  Scenario: AUDITOR cannot bulk invite candidates
+    Given the authenticated principal has the role "AUDITOR"
+    And a pending waitlist entry exists for "bulk-denied@example.com"
+    When the auditor bulk invites the tracked waitlist entries
+    Then the admin response status should be 403
+    And the admin response code should be "PLATFORM_ACCESS_DENIED"
+    And the waitlist entry status should remain "PENDING"

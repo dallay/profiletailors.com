@@ -79,6 +79,7 @@ function createWrapper() {
           },
           entries: 'Waitlist Entries',
           invite: 'Invite',
+          bulkTooMany: 'Select up to {max} entries at a time',
           cancel: 'Cancel',
           cancelConfirmTitle: 'Confirm Cancel',
           cancelConfirmMessage: 'Are you sure you want to cancel',
@@ -319,6 +320,137 @@ describe('WaitlistView', () => {
       await flushPromises()
       expect(wrapper.text()).toContain('Pending')
       expect(wrapper.text()).toContain('Invited')
+    })
+  })
+
+  describe('bulk invite', () => {
+    const bulkPayload = {
+      results: [
+        {
+          entryId: 'entry-1',
+          outcome: 'invited',
+          invitationId: '00000000-0000-0000-0000-0000000000a1',
+        },
+        { entryId: 'entry-2', outcome: 'skipped', code: 'ALREADY_INVITED' },
+      ],
+      summary: { requested: 2, invited: 1, skipped: 1, failed: 0 },
+    }
+
+    beforeEach(() => {
+      mockRequest.mockImplementation((url: string) => {
+        if (url.includes('/invitations:bulk')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(bulkPayload) })
+        }
+        if (url.includes('/summary')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSummary) })
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockEntries) })
+      })
+    })
+
+    it('renders a selection checkbox per entry when the operator can invite', async () => {
+      const wrapper = createWrapper()
+      await flushPromises()
+      expect(wrapper.findAll('[data-testid="bulk-select"]')).toHaveLength(2)
+    })
+
+    it('posts selected entry ids and renders per-entry outcomes', async () => {
+      const wrapper = createWrapper()
+      await flushPromises()
+      const boxes = wrapper.findAll('[data-testid="bulk-select"]')
+      expect(boxes).toHaveLength(2)
+      await boxes[0]?.setValue(true)
+      await boxes[1]?.setValue(true)
+      await wrapper.get('[data-testid="bulk-invite"]').trigger('click')
+      await flushPromises()
+
+      const bulkCall = mockRequest.mock.calls.find((call) =>
+        String(call[0]).includes('/invitations:bulk'),
+      )
+      expect(bulkCall).toBeDefined()
+      expect(bulkCall?.[1]).toMatchObject({ method: 'POST' })
+      const sentBody = String((bulkCall?.[1] as RequestInit | undefined)?.body ?? '')
+      expect(sentBody).toContain('entry-1')
+      expect(sentBody).toContain('entry-2')
+
+      const results = wrapper.get('[data-testid="bulk-results"]')
+      expect(results.text()).toContain('entry-1')
+      expect(results.text()).toContain('invited')
+      expect(results.text()).toContain('ALREADY_INVITED')
+
+      const summaryCalls = mockRequest.mock.calls.filter((call) =>
+        String(call[0]).includes('/summary'),
+      )
+      expect(summaryCalls).toHaveLength(2)
+    })
+
+    it('shows the generic error when the bulk request rejects', async () => {
+      const wrapper = createWrapper()
+      await flushPromises()
+      mockRequest.mockRejectedValueOnce(new Error('network down'))
+      const boxes = wrapper.findAll('[data-testid="bulk-select"]')
+      await boxes[0]?.setValue(true)
+      await wrapper.get('[data-testid="bulk-invite"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[role="alert"]').text()).toContain('Error')
+    })
+
+    it('blocks submission above the entry maximum without sending the request', async () => {
+      const manyEntries = {
+        ...mockEntries,
+        items: Array.from({ length: 51 }, (_, index) => ({
+          id: `bulk-${index}`,
+          email: `bulk-${index}@example.com`,
+          normalizedEmail: `bulk-${index}@example.com`,
+          status: 'PENDING',
+          joinedAt: '2024-01-01T00:00:00Z',
+          invitedAt: null,
+          waitlistKey: 'test-key',
+          source: 'web',
+          version: 1,
+        })),
+        totalElements: 51,
+      }
+      mockRequest.mockImplementation((url: string) => {
+        if (url.includes('/summary')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSummary) })
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(manyEntries) })
+      })
+      const wrapper = createWrapper()
+      await flushPromises()
+      await wrapper.get('[data-testid="bulk-select-all"]').setValue(true)
+      await wrapper.get('[data-testid="bulk-invite"]').trigger('click')
+      await flushPromises()
+
+      const bulkCalls = mockRequest.mock.calls.filter((call) =>
+        String(call[0]).includes('/invitations:bulk'),
+      )
+      expect(bulkCalls).toHaveLength(0)
+      expect(wrapper.get('[role="alert"]').text()).toContain('50')
+    })
+
+    it('surfaces the bulk error code when the request fails', async () => {
+      mockRequest.mockImplementation((url: string) => {
+        if (url.includes('/invitations:bulk')) {
+          return Promise.resolve({
+            ok: false,
+            status: 400,
+            json: () => Promise.resolve({ properties: { code: 'VALIDATION_ERROR' } }),
+          })
+        }
+        if (url.includes('/summary')) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(mockSummary) })
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockEntries) })
+      })
+      const wrapper = createWrapper()
+      await flushPromises()
+      const boxes = wrapper.findAll('[data-testid="bulk-select"]')
+      await boxes[0]?.setValue(true)
+      await wrapper.get('[data-testid="bulk-invite"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[role="alert"]').text()).toContain('VALIDATION_ERROR')
     })
   })
 })
