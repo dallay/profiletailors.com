@@ -181,9 +181,7 @@ class PublicationTools(
                 auditEmitterRef = auditEmitterRef,
                 errorMapperRef = errorMapperRef,
             ) {
-                val mode = ScheduleMode.valueOf(requireNotNull(scheduling.scheduleMode))
-                val scheduledInstant = scheduling.scheduledFor?.let { Instant.parse(it) }
-                val nextSlotInstant = scheduling.nextSlotAfter?.let { Instant.parse(it) }
+                val (mode, scheduledInstant, nextSlotInstant) = parseScheduling(scheduling)
                 val command = CreatePublicationCommand(
                     socialAccountId = socialAccountId,
                     title = title,
@@ -237,9 +235,7 @@ class PublicationTools(
                 auditEmitterRef = auditEmitterRef,
                 errorMapperRef = errorMapperRef,
             ) {
-                val mode = ScheduleMode.valueOf(requireNotNull(scheduling.scheduleMode))
-                val scheduledInstant = scheduling.scheduledFor?.let { Instant.parse(it) }
-                val nextSlotInstant = scheduling.nextSlotAfter?.let { Instant.parse(it) }
+                val (mode, scheduledInstant, nextSlotInstant) = parseScheduling(scheduling)
                 val command = EditPublicationCommand(
                     publicationId = publicationId,
                     title = title,
@@ -513,6 +509,19 @@ class PublicationTools(
     }
 
     private fun correlationId(): String = java.util.UUID.randomUUID().toString()
+
+    private data class SchedulingResult(
+        val mode: ScheduleMode,
+        val scheduledInstant: Instant?,
+        val nextSlotInstant: Instant?,
+    )
+
+    private fun parseScheduling(params: SchedulingParams): SchedulingResult {
+        val mode = ScheduleMode.valueOf(requireNotNull(params.scheduleMode))
+        val scheduledInstant = params.scheduledFor?.let { Instant.parse(it) }
+        val nextSlotInstant = params.nextSlotAfter?.let { Instant.parse(it) }
+        return SchedulingResult(mode, scheduledInstant, nextSlotInstant)
+    }
 
     private companion object {
         const val MCP_WRITE_SCOPE = "mcp:publications:write"
