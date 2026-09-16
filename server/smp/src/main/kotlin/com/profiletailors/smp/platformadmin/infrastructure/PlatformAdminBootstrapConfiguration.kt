@@ -19,6 +19,7 @@ import com.profiletailors.smp.platformadmin.application.contracts.TokenHasher
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistEntryAdmin
 import com.profiletailors.smp.platformadmin.application.contracts.WaitlistInvitationRepository
 import com.profiletailors.smp.platformadmin.application.handler.AssignPlatformRoleHandler
+import com.profiletailors.smp.platformadmin.application.handler.BulkInviteWaitlistEntriesHandler
 import com.profiletailors.smp.platformadmin.application.handler.CancelWaitlistEntryHandler
 import com.profiletailors.smp.platformadmin.application.handler.CreateInvitationHandler
 import com.profiletailors.smp.platformadmin.application.handler.DeactivateUserHandler
@@ -137,6 +138,23 @@ class PlatformAdminBootstrapConfiguration {
         clock = clock,
         invitationTtl = Duration.ofDays(ttlDays),
         tokenHasher = tokenHasher,
+    )
+
+    @Bean
+    fun bulkInviteHandler(
+        inviteWaitlistEntryHandler: InviteWaitlistEntryHandler,
+        waitlistEntryAdmin: WaitlistEntryAdmin,
+        transactionRunner: AtomicTransactionRunner,
+        auditPublisher: AdministrativeAuditPublisher,
+        telemetry: InvitationTelemetry,
+        clock: Clock,
+    ): BulkInviteWaitlistEntriesHandler = BulkInviteWaitlistEntriesHandler(
+        singleHandler = inviteWaitlistEntryHandler,
+        waitlistEntryAdmin = waitlistEntryAdmin,
+        transactionRunner = transactionRunner,
+        auditPublisher = auditPublisher,
+        telemetry = telemetry,
+        clock = clock,
     )
 
     @Bean
