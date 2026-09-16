@@ -14,6 +14,10 @@ private const val FAIL_BUILDS_ON_CVSS: Float = 7.0F // Fail build on High or Cri
 private const val AUTO_UPDATE: Boolean = true
 private const val PURGE_DATABASE: Boolean = true
 private const val DEFAULT_DELAY = 1000
+private const val NVD_API_KEY = "NVD_API_KEY"
+
+internal fun nvdApiKey(environment: Map<String, String>): String? =
+    environment[NVD_API_KEY]?.trim()?.takeIf(String::isNotEmpty)
 
 @Suppress("unused")
 internal class OwaspPlugin : ConventionPlugin {
@@ -102,17 +106,16 @@ internal class OwaspPlugin : ConventionPlugin {
         }
     }
 
+    internal fun nvdApiKey(environment: Map<String, String>): String? =
+        environment[NVD_API_KEY]?.trim()?.takeIf(String::isNotEmpty)
+
     private fun DependencyCheckExtension.setEnvironmentVariables() {
-        val apiKeyValue = System.getenv("NVD_API_KEY") ?: run {
-            println("⚠️ NVD_API_KEY not found in the environment. NVD queries may be heavily rate-limited.")
-            println("   Create an API key at: https://nvd.nist.gov/vuln/data-feeds#apikey")
-            null
-        }
-        if (apiKeyValue != null) {
-            nvd {
-                apiKey.set(apiKeyValue)
+        nvdApiKey(System.getenv()).let { apiKeyValue ->
+            if (apiKeyValue != null) {
+                nvd {
+                    apiKey.set(apiKeyValue)
+                }
             }
-            println("✅ NVD_API_KEY loaded from environment.")
         }
         val delayValue = System.getenv("NVD_API_DELAY")
         if (delayValue != null) {

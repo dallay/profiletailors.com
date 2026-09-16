@@ -10,6 +10,13 @@ on:
         description: 'Release tag from Release Please (e.g. smp@v0.x.x)'
         required: false
         type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        description: 'Docker Hub username'
+        required: true
+      DOCKERHUB_TOKEN:
+        description: 'Docker Hub access token'
+        required: true
 
 permissions:
   contents: read
